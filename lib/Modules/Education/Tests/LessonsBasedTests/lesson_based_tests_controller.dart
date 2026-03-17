@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class LessonBasedTestsController extends GetxController {
   final TestRepository _testRepository = TestRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String testTuru;
   final list = <TestsModel>[].obs;
   final isLoading = false.obs;
@@ -26,7 +28,12 @@ class LessonBasedTestsController extends GetxController {
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
-      await getData(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:type:$testTuru',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -46,6 +53,7 @@ class LessonBasedTestsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       list.assignAll(items);
+      SilentRefreshGate.markRefreshed('tests:type:$testTuru');
     } finally {
       isLoading.value = false;
     }

@@ -5,12 +5,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class MyScholarshipController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   var isLoading = true.obs;
   final myScholarships = <Map<String, dynamic>>[].obs;
 
@@ -39,7 +41,12 @@ class MyScholarshipController extends GetxController {
           await _buildScholarshipCards(cachedRaw, userCacheOnly: true),
         );
         isLoading.value = false;
-        await fetchMyScholarships(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'scholarships:mine:${user.uid}',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(fetchMyScholarships(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -63,12 +70,14 @@ class MyScholarshipController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final rawScholarships = await _scholarshipRepository.fetchMyScholarshipsRaw(
+      final rawScholarships =
+          await _scholarshipRepository.fetchMyScholarshipsRaw(
         user.uid,
         limit: 50,
         forceRefresh: forceRefresh,
       );
       myScholarships.value = await _buildScholarshipCards(rawScholarships);
+      SilentRefreshGate.markRefreshed('scholarships:mine:${user.uid}');
     } catch (e) {
       AppSnackbar('Hata', 'Veriler yüklenemedi.');
     } finally {
@@ -115,7 +124,12 @@ class MyScholarshipController extends GetxController {
       try {
         final userID = data['userID'] as String? ?? '';
         final userData = userDataMap[userID] ??
-            {'avatarUrl': '', 'nickname': '', 'displayName': '', 'userID': userID};
+            {
+              'avatarUrl': '',
+              'nickname': '',
+              'displayName': '',
+              'userID': userID
+            };
 
         scholarships.add({
           'model': IndividualScholarshipsModel.fromJson(data),

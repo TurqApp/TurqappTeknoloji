@@ -6,12 +6,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 
 class ApplicationsController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final isLoading = true.obs;
   final applications = <Map<String, dynamic>>[].obs;
 
@@ -22,11 +24,21 @@ class ApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapApplications() async {
+    final userID = FirebaseAuth.instance.currentUser?.uid;
+    if (userID == null) {
+      isLoading.value = false;
+      return;
+    }
     final cached = await _loadApplications(cacheOnly: true);
     if (cached.isNotEmpty) {
       applications.assignAll(cached);
       isLoading.value = false;
-      await fetchApplications(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'scholarships:applications:$userID',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(fetchApplications(silent: true, forceRefresh: true));
+      }
       return;
     }
     await fetchApplications();
@@ -45,6 +57,10 @@ class ApplicationsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       applications.assignAll(applicationList);
+      final userID = FirebaseAuth.instance.currentUser?.uid;
+      if (userID != null) {
+        SilentRefreshGate.markRefreshed('scholarships:applications:$userID');
+      }
     } catch (e) {
       AppSnackbar('Hata', 'Başvurular yüklenemedi.');
     } finally {

@@ -4,11 +4,13 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 
 class ScholarshipProvidersController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final isLoading = true.obs;
   final providers = <Map<String, dynamic>>[].obs;
 
@@ -23,7 +25,12 @@ class ScholarshipProvidersController extends GetxController {
     if (cached.isNotEmpty) {
       providers.assignAll(cached);
       isLoading.value = false;
-      await fetchProviders(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'scholarships:providers',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(fetchProviders(silent: true, forceRefresh: true));
+      }
       return;
     }
     await fetchProviders();
@@ -42,6 +49,7 @@ class ScholarshipProvidersController extends GetxController {
         forceRefresh: forceRefresh,
       );
       providers.assignAll(providerList);
+      SilentRefreshGate.markRefreshed('scholarships:providers');
     } catch (e) {
       AppSnackbar('Hata', 'Burs verenler yüklenemedi.');
     } finally {
@@ -75,8 +83,7 @@ class ScholarshipProvidersController extends GetxController {
     final providerList = <Map<String, dynamic>>[];
     final userIdsList = seenUserIDs.toList();
     for (var i = 0; i < userIdsList.length; i += 30) {
-      final end =
-          (i + 30) > userIdsList.length ? userIdsList.length : (i + 30);
+      final end = (i + 30) > userIdsList.length ? userIdsList.length : (i + 30);
       final batchIds = userIdsList.sublist(i, end);
       final users = await _userRepository.getUsers(
         batchIds,

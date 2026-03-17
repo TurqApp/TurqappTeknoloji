@@ -6,9 +6,11 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class SavedItemsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final isLoading = false.obs;
   final likedScholarships = <Map<String, dynamic>>[].obs;
   final bookmarkedScholarships = <Map<String, dynamic>>[].obs;
@@ -52,7 +54,12 @@ class SavedItemsController extends GetxController {
         likedScholarships.assignAll(liked);
         bookmarkedScholarships.assignAll(bookmarked);
         isLoading.value = false;
-        await fetchSavedItems(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'scholarships:saved:${user.uid}',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(fetchSavedItems(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -87,6 +94,7 @@ class SavedItemsController extends GetxController {
           forceRefresh: forceRefresh,
         ),
       ]);
+      SilentRefreshGate.markRefreshed('scholarships:saved:${user.uid}');
     } finally {
       if (shouldShowLoader ||
           (likedScholarships.isEmpty && bookmarkedScholarships.isEmpty)) {
@@ -130,11 +138,9 @@ class SavedItemsController extends GetxController {
       for (final entry in users.entries) {
         final user = entry.value;
         final profileImage = (user['avatarUrl'] ?? '').toString();
-        final profileName = (user['displayName'] ??
-                user['username'] ??
-                user['nickname'] ??
-                '')
-            .toString();
+        final profileName =
+            (user['displayName'] ?? user['username'] ?? user['nickname'] ?? '')
+                .toString();
         userDataMap[entry.key] = {
           'avatarUrl': profileImage,
           'nickname': profileName,

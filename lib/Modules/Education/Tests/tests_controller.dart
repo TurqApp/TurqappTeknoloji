@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class TestsController extends GetxController {
   final TestRepository _testRepository = TestRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;
   final showButtons = false.obs;
   final ustBar = true.obs;
@@ -68,7 +70,12 @@ class TestsController extends GetxController {
       list.assignAll(cachedPage.items);
       hasMore.value = cachedPage.hasMore;
       isLoading.value = false;
-      await getData(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:shared',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -92,6 +99,7 @@ class TestsController extends GetxController {
       list.assignAll(page.items);
       _lastDocument = page.lastDocument;
       hasMore.value = page.hasMore;
+      SilentRefreshGate.markRefreshed('tests:shared');
     } catch (e) {
       log("TestsController.getData error: $e");
     } finally {
