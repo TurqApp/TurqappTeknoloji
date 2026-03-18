@@ -224,6 +224,18 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       final gif = contentController.gif.value;
       final customThumb = contentController.selectedThumbnail.value;
       final poll = contentController.pollData.value ?? const {};
+      final hasPoll =
+          poll['options'] is List && (poll['options'] as List).isNotEmpty;
+
+      if (text.isEmpty &&
+          images.isEmpty &&
+          reusedImageUrls.isEmpty &&
+          video == null &&
+          reusedVideoUrl.trim().isEmpty &&
+          gif.trim().isEmpty &&
+          !hasPoll) {
+        continue;
+      }
 
       allPosts.add(
         PreparedPostModel(

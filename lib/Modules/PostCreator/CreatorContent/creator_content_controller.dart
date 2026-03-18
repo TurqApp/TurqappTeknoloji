@@ -657,25 +657,56 @@ class CreatorContentController extends GetxController
   }
 
   Future<void> pickVideo({required ImageSource source}) async {
-    if (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty) {
+    final postCreator = Get.find<PostCreatorController>();
+    final isSeries = postCreator.postList.length > 1;
+
+    if (source != ImageSource.gallery &&
+        !isSeries &&
+        (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty)) {
       UploadValidationService.showValidationError(
           'En fazla ${UploadConstants.maxVideosPerPost} video seçebilirsiniz.');
       return;
     }
 
-    File? file;
     if (source == ImageSource.gallery) {
       final ctx = Get.context;
       if (ctx == null) return;
-      file = await AppImagePickerService.pickSingleVideo(ctx);
-      if (file == null) return;
+      final files = await AppImagePickerService.pickVideos(
+        ctx,
+        maxAssets: 20,
+      );
+      if (files.isEmpty) return;
+
+      if (isSeries || files.length > 1) {
+        var insertCursor = postCreator.selectedIndex.value;
+        for (int i = 0; i < files.length; i++) {
+          final file = files[i];
+          CreatorContentController targetController;
+
+          if (i == 0) {
+            targetController = this;
+          } else {
+            final newModel = postCreator.insertComposerItemAfter(insertCursor);
+            insertCursor++;
+            final newTag = newModel.index.toString();
+            targetController =
+                Get.isRegistered<CreatorContentController>(tag: newTag)
+                    ? Get.find<CreatorContentController>(tag: newTag)
+                    : Get.put(CreatorContentController(), tag: newTag);
+          }
+
+          await targetController._replaceWithSingleVideo(file);
+        }
+        return;
+      }
+
+      await _processPickedVideo(files.first);
+      return;
     } else {
       final picked = await picker.pickVideo(source: source);
       if (picked == null) return;
-      file = File(picked.path);
+      await _processPickedVideo(File(picked.path));
     }
-
-    await _processPickedVideo(file);
   }
 
   Future<void> _processPickedVideo(File file) async {
@@ -736,6 +767,44 @@ class CreatorContentController extends GetxController
       final size = UploadConstants.formatBytes(await file.length());
       debugPrint('[Creator] Video added: size=$size, duration=${duration}s');
     }
+  }
+
+  Future<void> _replaceWithSingleVideo(File file) async {
+    waitingVideo.value = false;
+    isProcessing.value = true;
+
+    final validation = await UploadValidationService.validateVideo(file);
+    if (!validation.isValid) {
+      isProcessing.value = false;
+      UploadValidationService.showValidationError(validation.errorMessage!);
+      return;
+    }
+
+    gif.value = '';
+    selectedImages.clear();
+    croppedImages.clear();
+    await _releaseVideoController();
+    selectedVideo.value = null;
+    reusedVideoUrl.value = '';
+    reusedVideoThumbnail.value = '';
+    reusedVideoAspectRatio.value = 0.0;
+    reusedImageUrls.clear();
+    isPlaying.value = false;
+    hasVideo.value = false;
+    hasVideo.refresh();
+    selectedThumbnail.value = null;
+    videoLookPreset.value = 'original';
+
+    final controller = VideoPlayerController.file(file);
+    await controller.initialize();
+    _bindVideoController(controller);
+
+    selectedVideo.value = file;
+    hasVideo.value = true;
+    isPlaying.value = false;
+    _listenVideo();
+    hasVideo.refresh();
+    isProcessing.value = false;
   }
 
   Future<void> setReusedVideoSource({

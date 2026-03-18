@@ -370,6 +370,19 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final controller = ensureComposerControllerFor(postModel.index);
+        final hasText = controller.textEdit.text.trim().isNotEmpty;
+        final hasImages = controller.croppedImages.isNotEmpty ||
+            controller.selectedImages.isNotEmpty ||
+            controller.reusedImageUrls.isNotEmpty;
+        final hasVideo = controller.selectedVideo.value != null ||
+            controller.reusedVideoUrl.value.trim().isNotEmpty;
+        final hasGif = controller.gif.value.trim().isNotEmpty;
+        final hasPoll = controller.pollData.value != null &&
+            (controller.pollData.value?['options'] is List) &&
+            (controller.pollData.value!['options'] as List).isNotEmpty;
+        if (!(hasText || hasImages || hasVideo || hasGif || hasPoll)) {
+          continue;
+        }
         final docID = '${queueUuid}_$index';
 
         final authorSummary = await _resolveAuthorSummary();
