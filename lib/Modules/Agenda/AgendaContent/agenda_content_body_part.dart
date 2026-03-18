@@ -73,9 +73,20 @@ extension AgendaContentBodyPart on _AgendaContentState {
                               children: [
                                 SizedBox.expand(
                                   child: GestureDetector(
+                                    onDoubleTap: controller.like,
                                     onTap: () async {
                                       if (_shouldBlurIzBirakPost) {
                                         videoController?.pause();
+                                        return;
+                                      }
+                                      if (widget.model.floodCount > 1) {
+                                        videoController?.pause();
+                                        await Get.to(() => FloodListing(
+                                              mainModel: widget.model,
+                                            ));
+                                        if (widget.shouldPlay) {
+                                          videoController?.play();
+                                        }
                                         return;
                                       }
                                       if (widget.isPreview) {
@@ -142,72 +153,62 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           }
                                         }
                                       } else {
-                                        if (controller.model.floodCount > 1) {
-                                          videoController?.pause();
-                                          await Get.to(() => FloodListing(
-                                              mainModel: widget.model));
-                                          if (widget.shouldPlay) {
-                                            videoController?.play();
-                                          }
-                                        } else {
-                                          final currentPos =
-                                              await _resolveCurrentVideoPosition();
-                                          final listForFullscreen =
-                                              await _buildFullscreenStartList();
+                                        final currentPos =
+                                            await _resolveCurrentVideoPosition();
+                                        final listForFullscreen =
+                                            await _buildFullscreenStartList();
 
-                                          _prepareVideoFullscreenTransition();
-                                          _pauseFeedBeforeFullscreen();
-                                          setPauseBlocked(true);
-                                          _setFullscreenState(true);
-                                          final res = await Get.to(() =>
-                                              SingleShortView(
-                                                startModel: widget.model,
-                                                startList: listForFullscreen,
-                                                initialPosition: currentPos,
-                                                injectedController:
-                                                    videoController,
-                                              ));
-                                          setPauseBlocked(false);
-                                          _setFullscreenState(false);
+                                        _prepareVideoFullscreenTransition();
+                                        _pauseFeedBeforeFullscreen();
+                                        setPauseBlocked(true);
+                                        _setFullscreenState(true);
+                                        final res = await Get.to(() =>
+                                            SingleShortView(
+                                              startModel: widget.model,
+                                              startList: listForFullscreen,
+                                              initialPosition: currentPos,
+                                              injectedController:
+                                                  videoController,
+                                            ));
+                                        setPauseBlocked(false);
+                                        _setFullscreenState(false);
 
-                                          if (!mounted) return;
+                                        if (!mounted) return;
 
-                                          final modelIndex = agendaController
-                                              .agendaList
-                                              .indexWhere((p) =>
-                                                  p.docID ==
-                                                  widget.model.docID);
-                                          if (modelIndex >= 0) {
-                                            agendaController.centeredIndex
-                                                .value = modelIndex;
-                                            agendaController.lastCenteredIndex =
-                                                modelIndex;
-                                          }
+                                        final modelIndex = agendaController
+                                            .agendaList
+                                            .indexWhere((p) =>
+                                                p.docID == widget.model.docID);
+                                        if (modelIndex >= 0) {
+                                          agendaController.centeredIndex.value =
+                                              modelIndex;
+                                          agendaController.lastCenteredIndex =
+                                              modelIndex;
+                                        }
 
-                                          final vc = videoController;
-                                          if (vc != null &&
-                                              vc.value.isInitialized) {
-                                            if (res is Map &&
-                                                res['docID'] ==
-                                                    widget.model.docID) {
-                                              final int? ms =
-                                                  res['positionMs'] as int?;
-                                              if (ms != null) {
-                                                await vc.seekTo(
-                                                    Duration(milliseconds: ms));
-                                                if (widget.shouldPlay) {
-                                                  vc.play();
-                                                  vc.setVolume(agendaController
-                                                          .isMuted.value
-                                                      ? 0
-                                                      : 1);
-                                                }
-                                                return;
+                                        final vc = videoController;
+                                        if (vc != null &&
+                                            vc.value.isInitialized) {
+                                          if (res is Map &&
+                                              res['docID'] ==
+                                                  widget.model.docID) {
+                                            final int? ms =
+                                                res['positionMs'] as int?;
+                                            if (ms != null) {
+                                              await vc.seekTo(
+                                                  Duration(milliseconds: ms));
+                                              if (widget.shouldPlay) {
+                                                vc.play();
+                                                vc.setVolume(agendaController
+                                                        .isMuted.value
+                                                    ? 0
+                                                    : 1);
                                               }
+                                              return;
                                             }
-                                            if (widget.shouldPlay) {
-                                              tryAutoPlayWhenBuffered();
-                                            }
+                                          }
+                                          if (widget.shouldPlay) {
+                                            tryAutoPlayWhenBuffered();
                                           }
                                         }
                                       }

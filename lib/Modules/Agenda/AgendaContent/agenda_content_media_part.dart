@@ -109,6 +109,12 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       return;
     }
 
+    if (widget.model.floodCount > 1) {
+      _pauseFeedBeforeFullscreen();
+      await Get.to(() => FloodListing(mainModel: widget.model));
+      return;
+    }
+
     _pauseFeedBeforeFullscreen();
     final visibleList = agendaController.agendaList
         .where((val) =>
@@ -124,14 +130,10 @@ extension _AgendaContentMediaPart on _AgendaContentState {
             startModel: widget.model,
           ));
     } else {
-      if (widget.model.floodCount > 1) {
-        Get.to(FloodListing(mainModel: widget.model));
-      } else {
-        Get.to(() => PhotoShorts(
-              fetchedList: visibleList,
-              startModel: widget.model,
-            ));
-      }
+      Get.to(() => PhotoShorts(
+            fetchedList: visibleList,
+            startModel: widget.model,
+          ));
     }
   }
 

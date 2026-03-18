@@ -609,12 +609,7 @@ class ExploreController extends GetxController {
 
         List<PostsModel> batch = [];
         for (final model in page.items) {
-          // Kök flood ve video içeren gönderiler
-          final hasMedia = model.hasPlayableVideo;
           if (model.flood == true) {
-            continue;
-          }
-          if (!hasMedia) {
             continue;
           }
           if ((model.floodCount) <= 1) {

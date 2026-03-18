@@ -14,6 +14,7 @@ import '../../Core/Helpers/RoadToTop/road_to_top.dart';
 import '../Agenda/TagPosts/tag_media_widgets.dart';
 import '../Agenda/TagPosts/tag_posts.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
+import '../Agenda/AgendaContent/agenda_content.dart';
 import 'SearchedUser/search_user_content.dart';
 import 'explore_controller.dart';
 
@@ -204,6 +205,18 @@ class ExploreView extends StatelessWidget {
                                 Get.find<PageLineBarController>(tag: "Explore")
                                     .selection
                                     .value = idx;
+                                if (idx == 0 &&
+                                    controller.trendingTags.isEmpty) {
+                                  controller.fetchTrendingTags();
+                                } else if (idx == 1 &&
+                                    controller.explorePosts.isEmpty &&
+                                    !controller.exploreIsLoading.value) {
+                                  controller.fetchExplorePosts();
+                                } else if (idx == 2 &&
+                                    controller.exploreFloods.isEmpty &&
+                                    !controller.floodsIsLoading.value) {
+                                  controller.fetchFloods();
+                                }
                               },
                               children: [
                                 // ---- 1. Sekme: Gündemdekiler ----
@@ -493,71 +506,40 @@ class ExploreView extends StatelessWidget {
                                       controller.floodsHasMore.value = true;
                                       await controller.fetchFloods();
                                     },
-                                    child: GridView.builder(
+                                    child: ListView.builder(
                                       key: const PageStorageKey(
                                           'Explore_Floods'),
                                       controller: controller.floodsScroll,
-                                      gridDelegate:
-                                          const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 3,
-                                        mainAxisSpacing: 1,
-                                        crossAxisSpacing: 1,
-                                        childAspectRatio: 0.8,
-                                      ),
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
                                       itemCount:
                                           list.length + (showLoader ? 1 : 0),
                                       itemBuilder: (c, i) {
                                         if (i == list.length) {
-                                          return const Center(
+                                          return const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                vertical: 24),
+                                            child: Center(
                                               child:
-                                                  CupertinoActivityIndicator());
+                                                  CupertinoActivityIndicator(),
+                                            ),
+                                          );
                                         }
                                         final p = list[i];
                                         return RepaintBoundary(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              // Dizi sekmesinde daima flood listesine git
-                                              Get.to(() =>
-                                                  FloodListing(mainModel: p));
-                                            },
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              alignment: Alignment.bottomRight,
-                                              children: [
-                                                _buildCoverFrame(
-                                                  aspectRatio: _safeAspectRatio(
-                                                    p.aspectRatio,
-                                                    fallback: 1.0,
-                                                  ),
-                                                  child: CachedNetworkImage(
-                                                    imageUrl: p.img.isNotEmpty
-                                                        ? p.img.first
-                                                        : p.thumbnail,
-                                                    memCacheWidth: 200,
-                                                    memCacheHeight: 400,
-                                                    fit: BoxFit.cover,
-                                                    placeholder: (c, u) =>
-                                                        Container(
-                                                            color: Colors
-                                                                .grey[300]),
-                                                    errorWidget: (c, u, e) =>
-                                                        const Icon(Icons.error),
-                                                  ),
-                                                ),
-                                                if (p.floodCount > 1)
-                                                  Positioned(
-                                                    bottom: 0,
-                                                    right: 0,
-                                                    child: Texts
-                                                        .colorfulFloodForExplore,
-                                                  ),
-                                                if (p.gizlendi)
-                                                  _overlayStatus("Gizlendi")
-                                                else if (p.arsiv)
-                                                  _overlayStatus("Arşivlendi")
-                                                else if (p.deletedPost)
-                                                  _overlayStatus("Silindi"),
-                                              ],
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              top: i == 0 ? 8 : 0,
+                                              bottom: i == list.length - 1
+                                                  ? 24
+                                                  : 10,
+                                            ),
+                                            child: AgendaContent(
+                                              key: ValueKey(
+                                                  'explore-series-${p.docID}'),
+                                              model: p,
+                                              isPreview: true,
+                                              shouldPlay: false,
                                             ),
                                           ),
                                         );
@@ -687,19 +669,6 @@ class ExploreView extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Durum (Gizlendi, Arşivlendi, Silindi) için kısa widget
-  Widget _overlayStatus(String status) {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.7),
-      alignment: Alignment.center,
-      child: Text(
-        status,
-        style: const TextStyle(
-            color: Colors.white, fontSize: 15, fontFamily: "Montserrat"),
       ),
     );
   }
