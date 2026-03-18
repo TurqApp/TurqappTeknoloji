@@ -499,7 +499,7 @@ class PostCreator extends StatelessWidget {
                 onPressed: disableFlood
                     ? null
                     : () {
-                        final newIndex = controller.postList.length;
+                        final newIndex = controller.allocateComposerItemIndex();
                         controller.postList.add(
                           PostCreatorModel(index: newIndex, text: ""),
                         );

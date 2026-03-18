@@ -97,6 +97,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     isEditMode.value = true;
     editingPostID.value = editPost.docID;
     postList.value = [PostCreatorModel(index: 0, text: editPost.metin)];
+    resetComposerItemIndexSeed(1);
     selectedIndex.value = 0;
     commentVisibility.value = editPost.yorumVisibility;
     comment.value = commentVisibility.value != 3;

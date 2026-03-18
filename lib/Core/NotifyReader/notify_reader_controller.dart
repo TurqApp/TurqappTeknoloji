@@ -106,7 +106,7 @@ class NotifyReaderController extends GetxController {
       return toNavbar();
     }
 
-    final route = (model.flood == false && model.floodCount > 1)
+    final route = (model.floodCount > 1)
         ? Get.to<FloodListing>(() => FloodListing(mainModel: model))
         : Get.to<SinglePost>(
             () => SinglePost(model: model, showComments: false));

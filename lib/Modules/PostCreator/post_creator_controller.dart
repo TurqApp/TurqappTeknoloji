@@ -92,6 +92,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   final PostRepository _postRepository = PostRepository.ensure();
   RxList<PostCreatorModel> postList =
       <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
+  int _nextComposerItemIndex = 1;
   final RxBool isKeyboardOpen = false.obs;
   final RxBool isPublishing = false.obs;
   var selectedIndex = 0.obs;
@@ -173,6 +174,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   DateTime get maxIzBirakDate =>
       DateTime.now().add(const Duration(days: _maxScheduledWindowDays));
+
+  int allocateComposerItemIndex() {
+    final next = _nextComposerItemIndex;
+    _nextComposerItemIndex++;
+    return next;
+  }
+
+  void resetComposerItemIndexSeed([int next = 1]) {
+    _nextComposerItemIndex = next;
+  }
 
   @override
   void onInit() {
@@ -292,9 +303,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     // Comprehensive validation before upload
     final allImages = <File>[];
     final allVideos = <File>[];
-    final allTexts = <String>[];
-    bool hasReusedVideo = false;
-    bool hasReusedImages = false;
 
     // Collect all content from posts
     for (final postModel in postList) {
@@ -311,25 +319,25 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       if (c.selectedVideo.value != null) {
         allVideos.add(c.selectedVideo.value!);
       }
-      if (c.reusedVideoUrl.value.trim().isNotEmpty) {
-        hasReusedVideo = true;
-      }
-      if (c.reusedImageUrls.isNotEmpty) {
-        hasReusedImages = true;
-      }
+      final validation = await UploadValidationService.validatePost(
+        images: c.selectedImages.toList(),
+        videos:
+            c.selectedVideo.value != null ? [c.selectedVideo.value!] : <File>[],
+        text: (c.reusedVideoUrl.value.trim().isNotEmpty ||
+                c.reusedImageUrls.isNotEmpty)
+            ? 'media'
+            : c.textEdit.text.trim(),
+      );
 
-      // Collect texts
-      final text = c.textEdit.text.trim();
-      if (text.isNotEmpty) {
-        allTexts.add(text);
+      if (!validation.isValid) {
+        UploadValidationService.showValidationError(validation.errorMessage!);
+        return;
       }
     }
 
-    // Final comprehensive validation
-    final validation = await UploadValidationService.validatePost(
-      images: allImages,
-      videos: allVideos,
-      text: (hasReusedVideo || hasReusedImages) ? 'media' : allTexts.join(' '),
+    final validation = UploadValidationService.validateTotalPostSize(
+      allImages,
+      allVideos,
     );
 
     if (!validation.isValid) {

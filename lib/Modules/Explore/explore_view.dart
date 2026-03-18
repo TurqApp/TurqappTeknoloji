@@ -191,7 +191,7 @@ class ExploreView extends StatelessWidget {
                             barList: const [
                               "Gündem",
                               "Sana Özel",
-                              "Floods",
+                              "Dizi",
                             ],
                             pageName: 'Explore',
                             pageController: controller.pageController,
@@ -359,8 +359,7 @@ class ExploreView extends StatelessWidget {
                                               return RepaintBoundary(
                                                 child: GestureDetector(
                                                   onTap: () async {
-                                                    if (model.floodCount > 1 &&
-                                                        model.flood == false) {
+                                                    if (model.floodCount > 1) {
                                                       await VideoControllerPool
                                                           .pauseAll();
                                                       Get.to(() => FloodListing(
@@ -473,7 +472,7 @@ class ExploreView extends StatelessWidget {
                                   );
                                 }),
 
-                                // ---- 2. Sekme: floods ----
+                                // ---- 2. Sekme: dizi ----
                                 Obx(() {
                                   final list = controller.exploreFloods;
                                   final showLoader =
@@ -482,8 +481,8 @@ class ExploreView extends StatelessWidget {
                                   if (list.isEmpty &&
                                       !controller.floodsIsLoading.value) {
                                     return Center(
-                                        child: EmptyRow(
-                                            text: "Floods bulunamadı"));
+                                          child: EmptyRow(
+                                            text: "Dizi bulunamadı"));
                                   }
                                   return RefreshIndicator(
                                     backgroundColor: Colors.black,
@@ -517,7 +516,7 @@ class ExploreView extends StatelessWidget {
                                         return RepaintBoundary(
                                           child: GestureDetector(
                                             onTap: () {
-                                              // Floods sekmesinde daima flood listesine git
+                                              // Dizi sekmesinde daima flood listesine git
                                               Get.to(() =>
                                                   FloodListing(mainModel: p));
                                             },

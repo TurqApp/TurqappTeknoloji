@@ -82,186 +82,6 @@ class CreatorContent extends StatelessWidget {
     );
   }
 
-  Widget _buildThreadMediaSummary() {
-    final imageCount =
-        controller.croppedImages.length + controller.reusedImageUrls.length;
-    final hasVideo = controller.videoPlayerController != null ||
-        controller.waitingVideo.value ||
-        controller.selectedVideo.value != null ||
-        controller.reusedVideoUrl.value.trim().isNotEmpty;
-
-    if (imageCount == 0 && !hasVideo) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              final position = mainController.postList.indexWhere(
-                (post) => post.index == model.index,
-              );
-              if (position != -1) {
-                mainController.selectedIndex.value = position;
-              }
-              controller.focus.requestFocus();
-            },
-            child: _buildThreadMediaThumbnail(
-              imageCount: imageCount,
-              hasVideo: hasVideo,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (imageCount > 0)
-                  _buildSummaryChip(
-                    icon: CupertinoIcons.photo_on_rectangle,
-                    label: imageCount == 1 ? '1 gorsel' : '$imageCount gorsel',
-                  ),
-                if (hasVideo)
-                  _buildSummaryChip(
-                    icon: CupertinoIcons.play_rectangle,
-                    label: controller.waitingVideo.value
-                        ? 'Video isleniyor'
-                        : 'Video',
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildThreadMediaThumbnail({
-    required int imageCount,
-    required bool hasVideo,
-  }) {
-    const size = 72.0;
-    final memoryImage = controller.croppedImages
-        .whereType<Uint8List>()
-        .cast<Uint8List?>()
-        .toList();
-    final networkImages = controller.reusedImageUrls
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    final thumbBytes = controller.selectedThumbnail.value;
-    final reusedVideoThumb = controller.reusedVideoThumbnail.value.trim();
-
-    Widget child;
-    if (memoryImage.isNotEmpty) {
-      child = Image.memory(
-        memoryImage.first!,
-        fit: BoxFit.cover,
-        width: size,
-        height: size,
-      );
-    } else if (networkImages.isNotEmpty) {
-      child = CachedNetworkImage(
-        imageUrl: networkImages.first,
-        fit: BoxFit.cover,
-        width: size,
-        height: size,
-      );
-    } else if (thumbBytes != null) {
-      child = Image.memory(
-        thumbBytes,
-        fit: BoxFit.cover,
-        width: size,
-        height: size,
-      );
-    } else if (reusedVideoThumb.isNotEmpty) {
-      child = CachedNetworkImage(
-        imageUrl: reusedVideoThumb,
-        fit: BoxFit.cover,
-        width: size,
-        height: size,
-      );
-    } else {
-      child = Container(
-        width: size,
-        height: size,
-        color: const Color(0xFFF4F6F8),
-        alignment: Alignment.center,
-        child: Icon(
-          hasVideo
-              ? CupertinoIcons.play_rectangle
-              : CupertinoIcons.photo_on_rectangle,
-          color: const Color(0xFF6B7280),
-          size: 22,
-        ),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: size,
-            height: size,
-            child: child,
-          ),
-          if (hasVideo && imageCount == 0)
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.45),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                CupertinoIcons.play_fill,
-                size: 14,
-                color: Colors.white,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryChip({
-    required IconData icon,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F6F8),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE3E6EA)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: const Color(0xFF4B5563),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF374151),
-              fontSize: 12,
-              fontFamily: "MontserratMedium",
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     controller = Get.put(
@@ -394,10 +214,6 @@ class CreatorContent extends StatelessWidget {
                       Obx(() {
                         if (mainController.isQuotedPost) {
                           return _buildQuotedComposerCard();
-                        }
-                        if (mainController.postList.length > 1 &&
-                            !isSelected) {
-                          return _buildThreadMediaSummary();
                         }
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,6 +405,7 @@ class CreatorContent extends StatelessWidget {
                           mainController.postList.assignAll(
                             [PostCreatorModel(index: 0, text: "")],
                           );
+                          mainController.resetComposerItemIndexSeed(1);
                           mainController.selectedIndex.value = 0;
                         } else {
                           if (Get.isRegistered<CreatorContentController>(

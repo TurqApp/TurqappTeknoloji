@@ -381,13 +381,25 @@ class CreatorContentController extends GetxController
       }
     }
 
-    final currentVideos =
-        selectedVideo.value != null ? [selectedVideo.value!] : <File>[];
+    final hadVideo =
+        selectedVideo.value != null || reusedVideoUrl.value.trim().isNotEmpty;
+    if (hadVideo) {
+      await _releaseVideoController();
+      selectedVideo.value = null;
+      reusedVideoUrl.value = '';
+      reusedVideoThumbnail.value = '';
+      reusedVideoAspectRatio.value = 0.0;
+      selectedThumbnail.value = null;
+      isPlaying.value = false;
+      hasVideo.value = false;
+      hasVideo.refresh();
+    }
+
     final existingImages = selectedImages.toList();
     final allImages = [...existingImages, ...files];
 
     final totalSizeValidation =
-        UploadValidationService.validateTotalPostSize(allImages, currentVideos);
+        UploadValidationService.validateTotalPostSize(allImages, const <File>[]);
     if (!totalSizeValidation.isValid) {
       UploadValidationService.showValidationError(
           totalSizeValidation.errorMessage!);
@@ -428,13 +440,9 @@ class CreatorContentController extends GetxController
       for (final b in croppedImages) {
         if (b != null) existingCompressed += b.length;
       }
-      int currentVideo = 0;
-      if (selectedVideo.value != null) {
-        currentVideo = await selectedVideo.value!.length();
-      }
       final validation = UploadValidationService.validateCompressedTotals(
         imagesBytes: newCompressedTotal,
-        videoBytes: currentVideo,
+        videoBytes: 0,
         existingCompressedBytes: existingCompressed,
       );
       if (!validation.isValid) {

@@ -627,7 +627,7 @@ class _SocialProfileState extends State<SocialProfile> {
               final model = visiblePosts[index];
               return GestureDetector(
                 onTap: () {
-                  if (model.floodCount > 1 && model.flood == false) {
+                  if (model.floodCount > 1) {
                     Get.to(() => FloodListing(mainModel: model));
                   } else {
                     Get.to(() => PhotoShorts(
@@ -729,7 +729,7 @@ class _SocialProfileState extends State<SocialProfile> {
               final model = visibleVideos[index];
               return GestureDetector(
                 onTap: () {
-                  if (model.floodCount > 1 && model.flood == false) {
+                  if (model.floodCount > 1) {
                     Get.to(() => FloodListing(mainModel: model));
                   } else {
                     Get.to(() => SingleShortView(

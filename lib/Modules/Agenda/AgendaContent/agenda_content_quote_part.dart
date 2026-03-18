@@ -426,7 +426,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
         return;
       }
 
-      if (model.flood == false && model.floodCount > 1) {
+      if (model.floodCount > 1) {
         await Get.to(() => FloodListing(mainModel: model));
         return;
       }

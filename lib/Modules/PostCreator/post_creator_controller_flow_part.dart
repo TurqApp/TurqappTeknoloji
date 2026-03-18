@@ -265,9 +265,6 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       final progressController = Get.find<UploadProgressController>();
       final allImages = <File>[];
       final allVideos = <File>[];
-      final allTexts = <String>[];
-      bool hasReusedVideo = false;
-      bool hasReusedImages = false;
 
       for (final postModel in postList) {
         final tag = postModel.index.toString();
@@ -280,16 +277,26 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         if (c.selectedVideo.value != null) {
           allVideos.add(c.selectedVideo.value!);
         }
-        if (c.reusedVideoUrl.value.trim().isNotEmpty) {
-          hasReusedVideo = true;
-        }
-        if (c.reusedImageUrls.isNotEmpty) {
-          hasReusedImages = true;
-        }
 
-        final text = c.textEdit.text.trim();
-        if (text.isNotEmpty) {
-          allTexts.add(text);
+        final perPostValidation = await UploadValidationService.validatePost(
+          images: c.selectedImages.toList(),
+          videos: c.selectedVideo.value != null
+              ? [c.selectedVideo.value!]
+              : const <File>[],
+          text: (c.reusedVideoUrl.value.trim().isNotEmpty ||
+                  c.reusedImageUrls.isNotEmpty)
+              ? 'media'
+              : c.textEdit.text.trim(),
+        );
+        if (!perPostValidation.isValid) {
+          await _errorService.handleError(
+            perPostValidation.errorMessage ?? 'Validation failed',
+            category: ErrorCategory.validation,
+            severity: ErrorSeverity.medium,
+            userMessage: perPostValidation.errorMessage ??
+                'Gönderi doğrulaması başarısız',
+          );
+          return;
         }
       }
 
@@ -314,20 +321,17 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         }
       }
 
-      final validation = await UploadValidationService.validatePost(
-        images: allImages,
-        videos: allVideos,
-        text:
-            (hasReusedVideo || hasReusedImages) ? 'media' : allTexts.join(' '),
+      final totalSizeValidation = UploadValidationService.validateTotalPostSize(
+        allImages,
+        allVideos,
       );
-
-      if (!validation.isValid) {
+      if (!totalSizeValidation.isValid) {
         await _errorService.handleError(
-          validation.errorMessage ?? 'Validation failed',
+          totalSizeValidation.errorMessage ?? 'Validation failed',
           category: ErrorCategory.validation,
           severity: ErrorSeverity.medium,
-          userMessage:
-              validation.errorMessage ?? 'Gönderi doğrulaması başarısız',
+          userMessage: totalSizeValidation.errorMessage ??
+              'Gönderi doğrulaması başarısız',
         );
         return;
       }
@@ -374,14 +378,14 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       _startQueueRingMonitor();
       if (!_validatePollRequirements()) return;
       var addedCount = 0;
+      final queueUuid = const Uuid().v4();
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final tag = postModel.index.toString();
         if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
 
         final controller = Get.find<CreatorContentController>(tag: tag);
-        final uuid = const Uuid().v4();
-        final docID = '${uuid}_$index';
+        final docID = '${queueUuid}_$index';
 
         final authorSummary = await _resolveAuthorSummary();
         final postData = {

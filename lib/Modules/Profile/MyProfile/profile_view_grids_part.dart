@@ -30,7 +30,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
-                  if (model.floodCount > 1 && model.flood == false) {
+                  if (model.floodCount > 1) {
                     Get.to(() => FloodListing(mainModel: model));
                   } else {
                     Get.to(() =>
@@ -186,7 +186,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
-                  if (model.floodCount > 1 && model.flood == false) {
+                  if (model.floodCount > 1) {
                     Get.to(() => FloodListing(mainModel: model));
                   } else {
                     Get.to(() => SingleShortView(

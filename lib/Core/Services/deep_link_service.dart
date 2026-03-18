@@ -326,7 +326,7 @@ class DeepLinkService extends GetxService {
       return;
     }
 
-    if (model.flood == false && model.floodCount > 1) {
+    if (model.floodCount > 1) {
       await Get.to(() => FloodListing(mainModel: model));
       return;
     }
