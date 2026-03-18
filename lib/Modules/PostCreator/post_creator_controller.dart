@@ -181,6 +181,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return next;
   }
 
+  PostCreatorModel insertComposerItemAfter(int listIndex) {
+    final newIndex = allocateComposerItemIndex();
+    final model = PostCreatorModel(index: newIndex, text: "");
+    final insertAt = (listIndex + 1).clamp(0, postList.length);
+    postList.insert(insertAt, model);
+    postList.refresh();
+    return model;
+  }
+
   void resetComposerItemIndexSeed([int next = 1]) {
     _nextComposerItemIndex = next;
   }

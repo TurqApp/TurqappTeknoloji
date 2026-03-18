@@ -810,7 +810,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                   0, 0, bounds.width, bounds.height)),
                               blendMode: BlendMode.srcIn,
                               child: Text(
-                                "${shorts[idx].floodCount} FLOOD",
+                                "${shorts[idx].floodCount} DİZİ",
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontFamily: "MontserratBold",

@@ -50,7 +50,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                       ),
                       blendMode: BlendMode.srcIn,
                       child: Text(
-                        "${widget.model.floodCount.toString()} FLOOD",
+                        "${widget.model.floodCount.toString()} DİZİ",
                         style: TextStyle(
                           fontSize: 15,
                           fontFamily: "MontserratBold",

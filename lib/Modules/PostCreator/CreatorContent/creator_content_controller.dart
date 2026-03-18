@@ -340,16 +340,14 @@ class CreatorContentController extends GetxController
     }
 
     final postCreator = Get.find<PostCreatorController>();
-    final isThread = postCreator.postList.length > 1;
+    final isSeries = postCreator.postList.length > 1;
     final existingCount = selectedImages.length;
-    final maxImages = isThread ? 1 : UploadConstants.maxImagesPerPost;
+    final maxImages = isSeries ? UploadConstants.maxImagesPerPost : UploadConstants.maxImagesPerPost;
     final existingReusedCount = reusedImageUrls.length;
     final remaining = maxImages - existingCount - existingReusedCount;
     if (remaining <= 0) {
-      if (isThread) {
-        UploadValidationService.showValidationError(
-            'Dizi icinde her gonderide yalnizca 1 fotograf secilebilir.');
-      }
+      UploadValidationService.showValidationError(
+          'Maksimum $maxImages fotograf secilebilir.');
       return;
     }
 
@@ -365,7 +363,7 @@ class CreatorContentController extends GetxController
     final newImageCount = files.length;
     final totalCount = currentImageCount + newImageCount;
 
-    if (totalCount > maxImages) {
+    if (!isSeries && totalCount > maxImages) {
       UploadValidationService.showValidationError(
           'Maksimum $maxImages fotograf ekleyebilirsiniz. '
           'Mevcut: $currentImageCount, Eklenmek istenen: $newImageCount');
@@ -398,19 +396,18 @@ class CreatorContentController extends GetxController
     final existingImages = selectedImages.toList();
     final allImages = [...existingImages, ...files];
 
-    final totalSizeValidation =
-        UploadValidationService.validateTotalPostSize(allImages, const <File>[]);
-    if (!totalSizeValidation.isValid) {
-      UploadValidationService.showValidationError(
-          totalSizeValidation.errorMessage!);
-      return;
+    if (!isSeries) {
+      final totalSizeValidation = UploadValidationService.validateTotalPostSize(
+          allImages, const <File>[]);
+      if (!totalSizeValidation.isValid) {
+        UploadValidationService.showValidationError(
+            totalSizeValidation.errorMessage!);
+        return;
+      }
     }
 
     isProcessing.value = true;
     reusedImageUrls.clear();
-
-    selectedImages.addAll(files);
-    _enforceImageCap();
 
     // Show compression progress
     // AppSnackbar(
@@ -431,31 +428,58 @@ class CreatorContentController extends GetxController
         },
       );
 
-      // Validate total size after compression (centralized)
-      int newCompressedTotal = 0;
-      for (final r in compressionResults) {
-        newCompressedTotal += r.compressedSize;
-      }
-      int existingCompressed = 0;
-      for (final b in croppedImages) {
-        if (b != null) existingCompressed += b.length;
-      }
-      final validation = UploadValidationService.validateCompressedTotals(
-        imagesBytes: newCompressedTotal,
-        videoBytes: 0,
-        existingCompressedBytes: existingCompressed,
-      );
-      if (!validation.isValid) {
-        UploadValidationService.showValidationError(validation.errorMessage!);
-        isProcessing.value = false;
-        return;
-      }
+      if (isSeries) {
+        var insertCursor = postCreator.selectedIndex.value;
 
-      // Add compressed data
-      for (final result in compressionResults) {
-        croppedImages.add(result.compressedData);
+        for (int i = 0; i < compressionResults.length; i++) {
+          final result = compressionResults[i];
+          CreatorContentController targetController;
+
+          if (i == 0) {
+            targetController = this;
+          } else {
+            final newModel = postCreator.insertComposerItemAfter(insertCursor);
+            insertCursor++;
+            final newTag = newModel.index.toString();
+            targetController = Get.isRegistered<CreatorContentController>(tag: newTag)
+                ? Get.find<CreatorContentController>(tag: newTag)
+                : Get.put(CreatorContentController(), tag: newTag);
+          }
+
+          await targetController._replaceWithSingleImage(
+            file: files[i],
+            compressedData: result.compressedData,
+          );
+        }
+      } else {
+        // Validate total size after compression (centralized)
+        int newCompressedTotal = 0;
+        for (final r in compressionResults) {
+          newCompressedTotal += r.compressedSize;
+        }
+        int existingCompressed = 0;
+        for (final b in croppedImages) {
+          if (b != null) existingCompressed += b.length;
+        }
+        final validation = UploadValidationService.validateCompressedTotals(
+          imagesBytes: newCompressedTotal,
+          videoBytes: 0,
+          existingCompressedBytes: existingCompressed,
+        );
+        if (!validation.isValid) {
+          UploadValidationService.showValidationError(validation.errorMessage!);
+          isProcessing.value = false;
+          return;
+        }
+
+        selectedImages.addAll(files);
+        _enforceImageCap();
+
+        for (final result in compressionResults) {
+          croppedImages.add(result.compressedData);
+        }
+        _enforceImageCap();
       }
-      _enforceImageCap();
 
       // Calculate total savings
       final totalOriginal =
@@ -494,6 +518,31 @@ class CreatorContentController extends GetxController
     } finally {
       isProcessing.value = false;
     }
+  }
+
+  Future<void> _replaceWithSingleImage({
+    required File file,
+    required Uint8List compressedData,
+  }) async {
+    await _releaseVideoController();
+    gif.value = '';
+    selectedVideo.value = null;
+    reusedVideoUrl.value = '';
+    reusedVideoThumbnail.value = '';
+    reusedVideoAspectRatio.value = 0.0;
+    selectedThumbnail.value = null;
+    isPlaying.value = false;
+    hasVideo.value = false;
+    hasVideo.refresh();
+    reusedImageUrls.clear();
+    reusedImageAspectRatio.value = 0.0;
+    selectedImages
+      ..clear()
+      ..add(file);
+    croppedImages
+      ..clear()
+      ..add(compressedData);
+    _enforceImageCap();
   }
 
   Future<void> pickImageFromCamera({required ImageSource source}) async {

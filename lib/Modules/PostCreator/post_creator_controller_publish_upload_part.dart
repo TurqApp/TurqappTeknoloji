@@ -165,7 +165,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           final nowMs = DateTime.now().millisecondsSinceEpoch;
           final uid = await _ensureStorageUploadAuthReady() ??
               FirebaseAuth.instance.currentUser!.uid;
-          final locationCity = _resolvePostLocationCity();
+          final locationCity =
+              post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
 
           // Storage rules require Posts/{docID}.userID to exist before media upload.
           await _preparePostShellForStorageUpload(

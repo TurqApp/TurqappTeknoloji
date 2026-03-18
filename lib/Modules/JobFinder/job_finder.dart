@@ -25,7 +25,9 @@ class JobFinder extends StatelessWidget {
   });
   final bool embedded;
   final bool showEmbeddedControls;
-  final controller = Get.put(JobFinderController());
+  final controller = Get.isRegistered<JobFinderController>()
+      ? Get.find<JobFinderController>()
+      : Get.put(JobFinderController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +158,19 @@ class JobFinder extends StatelessWidget {
   // ─── Tab 1: Keşfet ───
   Widget _kesfetTab(BuildContext context) {
     return Obx(() {
+      if (!controller.listingSelectionReady.value) {
+        return const Center(child: CupertinoActivityIndicator());
+      }
+      if (controller.isLoading.value && controller.list.isEmpty) {
+        return Column(
+          children: [
+            _kesfetHeader(isSearching: false, context: context),
+            const Expanded(
+              child: Center(child: CupertinoActivityIndicator()),
+            ),
+          ],
+        );
+      }
       if (controller.list.isEmpty) {
         return Column(
           children: [

@@ -481,8 +481,8 @@ class PostRepository extends GetxService {
     );
     final items = snap.docs
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
-        .where((post) => post.floodCount <= 1)
         .where((post) => !post.shouldHideWhileUploading)
+        .where((post) => _isRenderableCard(post))
         .take(limit)
         .toList(growable: false);
     return PostQueryPage(

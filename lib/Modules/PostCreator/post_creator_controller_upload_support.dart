@@ -14,7 +14,7 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
       final value = (raw ?? '').trim();
       if (value.isNotEmpty) return value;
     }
-    return 'Türkiye';
+    return '';
   }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {

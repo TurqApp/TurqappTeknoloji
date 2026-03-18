@@ -83,7 +83,7 @@ class _FloodListingState extends State<FloodListing> {
                 children.add(
                   Row(
                     children: [
-                      BackButtons(text: "Flood"),
+                      BackButtons(text: "Dizi"),
                     ],
                   ),
                 );

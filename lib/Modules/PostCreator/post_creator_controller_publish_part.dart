@@ -450,7 +450,8 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       final scheduledDate = _normalizedIzBirakDateTime();
       final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
       final publishTime = scheduledMs != 0 ? scheduledMs : nowMs;
-      final locationCity = _resolvePostLocationCity();
+      final locationCity =
+          post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
 
       final pollPayload = post.poll.isNotEmpty
           ? _normalizePollForSave(post.poll, publishTime)

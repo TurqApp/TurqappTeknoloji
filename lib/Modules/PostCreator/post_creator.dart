@@ -262,9 +262,9 @@ class PostCreator extends StatelessWidget {
       final disableFlood =
           controller.isEditMode.value ||
           !(hasCaption || hasImages || hasVideo || pollActive);
-      final iconGap = AppIconSurface.kGap;
+      final iconGap = AppIconSurface.kGap - 1;
       final toolbarIconSize = AppIconSurface.kIconSize;
-      final compactButtonSize = GetPlatform.isIOS ? 31.0 : 30.0;
+      final compactButtonSize = GetPlatform.isIOS ? 30.0 : 29.0;
       final bottomPadding = keyboardInset > 0 ? 6.0 : 14.0;
       return AnimatedPadding(
         duration: const Duration(milliseconds: 180),
@@ -525,12 +525,12 @@ class PostCreator extends StatelessWidget {
                       },
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
-                  minimumSize: const Size(30, 30),
+                  minimumSize: const Size(29, 29),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Container(
-                  width: 27,
-                  height: 27,
+                  width: 26,
+                  height: 26,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,

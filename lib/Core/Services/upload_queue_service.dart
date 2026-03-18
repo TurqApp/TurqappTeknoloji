@@ -965,6 +965,11 @@ class UploadQueueService extends GetxController {
         upload.status = UploadStatus.failed;
         upload.errorMessage = e.toString();
         _failedCount.value++;
+        await FirebaseFirestore.instance
+            .collection('Posts')
+            .doc(upload.id)
+            .delete()
+            .catchError((_) {});
         AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
       } else {
         upload.status = UploadStatus.pending;

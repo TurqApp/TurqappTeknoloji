@@ -43,6 +43,8 @@ import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/turq_image_cache_manager.dart';
+import '../../Core/Services/typesense_market_service.dart';
+import '../../Core/Services/typesense_education_service.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
 import '../../Core/Services/mandatory_follow_service.dart';
@@ -231,7 +233,7 @@ class _SplashViewState extends State<SplashView> {
     _didNavigate = true;
     if (loggedIn) {
       if (Get.isRegistered<NavBarController>()) {
-        await Get.find<NavBarController>().restorePersistedIndex();
+        Get.find<NavBarController>().selectedIndex.value = 0;
       }
       Get.offAll(() => NavBarView());
       return;
@@ -464,6 +466,24 @@ class _SplashViewState extends State<SplashView> {
             _primeFeedVideoSegments(agendaController);
           } catch (_) {}
         })(),
+        // Market / Mabil Pazar
+        (() async {
+          try {
+            await _warmMarketListings(onWiFi: onWiFi).timeout(
+              Duration(milliseconds: onWiFi ? 1400 : 900),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
+        // Jobs / Is Veren
+        (() async {
+          try {
+            await _warmJobListings(onWiFi: onWiFi).timeout(
+              Duration(milliseconds: onWiFi ? 1400 : 900),
+              onTimeout: () {},
+            );
+          } catch (_) {}
+        })(),
       ]);
 
       unawaited(() async {
@@ -678,6 +698,53 @@ class _SplashViewState extends State<SplashView> {
     } catch (_) {
       return false;
     }
+  }
+
+  Future<void> _warmMarketListings({required bool onWiFi}) async {
+    try {
+      final warmLimit = onWiFi ? 18 : 10;
+      final cached = await TypesenseMarketSearchService.instance.searchItems(
+        query: '*',
+        limit: warmLimit,
+        preferCache: true,
+        cacheOnly: true,
+      );
+
+      // Minimum sıcak başlangıç hedefi: en az 10 aktif ilan.
+      if (cached.where((item) => item.status == 'active').length >= 10) {
+        return;
+      }
+
+      await TypesenseMarketSearchService.instance.searchItems(
+        query: '*',
+        limit: warmLimit,
+        preferCache: true,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _warmJobListings({required bool onWiFi}) async {
+    try {
+      final warmLimit = onWiFi ? 18 : 10;
+      final cached = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.job,
+        query: '*',
+        limit: warmLimit,
+        preferCache: true,
+        cacheOnly: true,
+      );
+
+      if (cached.hits.length >= 10) {
+        return;
+      }
+
+      await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.job,
+        query: '*',
+        limit: warmLimit,
+        preferCache: true,
+      );
+    } catch (_) {}
   }
 
   Future<void> _warmUserMetaAndAvatars({

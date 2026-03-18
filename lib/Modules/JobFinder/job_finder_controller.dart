@@ -46,11 +46,12 @@ class JobFinderController extends GetxController {
 
   TextEditingController search = TextEditingController();
   var listingSelection = 0.obs;
+  final RxBool listingSelectionReady = false.obs;
   var sehir = "".obs;
   final sehirler = <String>[].obs;
   var short = 0.obs;
   var filtre = false.obs;
-  var isLoading = false.obs;
+  var isLoading = true.obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   var kullaniciSehiri = "".obs;
   int _searchRequestId = 0;
@@ -65,6 +66,7 @@ class JobFinderController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
       listingSelection.value = 0;
+      listingSelectionReady.value = true;
       return;
     }
     try {
@@ -73,6 +75,8 @@ class JobFinderController extends GetxController {
       listingSelection.value = stored == 1 ? 1 : 0;
     } catch (_) {
       listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
     }
   }
 
