@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email.dart';
 import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number.dart';
@@ -71,6 +72,46 @@ class AccountCenterView extends StatelessWidget {
         storedAccountUid: account.uid,
       ),
     );
+  }
+
+  Future<void> _confirmRemoveAccount(
+    BuildContext context,
+    StoredAccount account,
+  ) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (currentUid == account.uid) {
+      AppSnackbar(
+        'Aktif Hesap',
+        'Aktif hesabı burada silemezsin. Önce başka hesaba geç.',
+      );
+      return;
+    }
+
+    final shouldRemove = await showCupertinoDialog<bool>(
+          context: context,
+          builder: (dialogContext) => CupertinoAlertDialog(
+            title: const Text('Hesabı Kaldır'),
+            content: Text(
+              '@${account.username} hesabını bu cihazdaki kayıtlı hesaplardan kaldırmak istiyor musun?',
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Vazgeç'),
+              ),
+              CupertinoDialogAction(
+                isDestructiveAction: true,
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Sil'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldRemove) return;
+    await accountCenter.removeAccount(account.uid);
+    AppSnackbar('Başarılı', '@${account.username} kaldırıldı.');
   }
 
   Widget _avatar(StoredAccount account) {
@@ -173,6 +214,11 @@ class AccountCenterView extends StatelessWidget {
                                           account: items[i],
                                           avatar: _avatar(items[i]),
                                           onTap: () => _continueWithAccount(items[i]),
+                                          onLongPress: () =>
+                                              _confirmRemoveAccount(
+                                            context,
+                                            items[i],
+                                          ),
                                         ),
                                         if (i != items.length - 1)
                                           const Divider(
@@ -592,11 +638,13 @@ class _AccountRow extends StatelessWidget {
     required this.account,
     required this.avatar,
     required this.onTap,
+    required this.onLongPress,
   });
 
   final StoredAccount account;
   final Widget avatar;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -604,6 +652,7 @@ class _AccountRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
@@ -614,16 +663,44 @@ class _AccountRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      account.username.trim().isNotEmpty
-                          ? account.username
-                          : account.displayName,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: 'MontserratBold',
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            account.username.trim().isNotEmpty
+                                ? account.username
+                                : account.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: 'MontserratBold',
+                            ),
+                          ),
+                        ),
+                        RozetContent(
+                          size: 17,
+                          userID: account.uid,
+                          rozetValue: account.rozet,
+                        ),
+                      ],
                     ),
+                    if (account.displayName.trim().isNotEmpty &&
+                        account.displayName.trim() !=
+                            account.username.trim()) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        account.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

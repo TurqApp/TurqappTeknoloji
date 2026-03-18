@@ -10,6 +10,7 @@ class StoredAccount {
     required this.email,
     required this.username,
     required this.displayName,
+    required this.rozet,
     required this.avatarUrl,
     required this.providers,
     required this.lastUsedAt,
@@ -25,6 +26,7 @@ class StoredAccount {
   final String email;
   final String username;
   final String displayName;
+  final String rozet;
   final String avatarUrl;
   final List<String> providers;
   final int lastUsedAt;
@@ -48,6 +50,7 @@ class StoredAccount {
     String? email,
     String? username,
     String? displayName,
+    String? rozet,
     String? avatarUrl,
     List<String>? providers,
     int? lastUsedAt,
@@ -63,6 +66,7 @@ class StoredAccount {
       email: email ?? this.email,
       username: username ?? this.username,
       displayName: displayName ?? this.displayName,
+      rozet: rozet ?? this.rozet,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       providers: providers ?? this.providers,
       lastUsedAt: lastUsedAt ?? this.lastUsedAt,
@@ -82,6 +86,7 @@ class StoredAccount {
       'email': email,
       'username': username,
       'displayName': displayName,
+      'rozet': rozet,
       'avatarUrl': avatarUrl,
       'providers': providers,
       'lastUsedAt': lastUsedAt,
@@ -100,6 +105,7 @@ class StoredAccount {
       email: (json['email'] ?? '').toString().trim().toLowerCase(),
       username: (json['username'] ?? '').toString(),
       displayName: (json['displayName'] ?? '').toString(),
+      rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
       providers: (json['providers'] as List?)
               ?.map((e) => e.toString())
@@ -135,6 +141,7 @@ class StoredAccount {
       email: user.email.trim().toLowerCase(),
       username: username,
       displayName: displayName,
+      rozet: user.rozet.trim(),
       avatarUrl: user.avatarUrl.trim(),
       providers: providers,
       lastUsedAt: DateTime.now().millisecondsSinceEpoch,
@@ -167,6 +174,7 @@ class StoredAccount {
       email: (firebaseUser.email ?? '').trim().toLowerCase(),
       username: username,
       displayName: displayName,
+      rozet: user.rozet.trim(),
       avatarUrl: user.avatarUrl.trim(),
       providers: providers,
       lastUsedAt: DateTime.now().millisecondsSinceEpoch,
@@ -199,6 +207,7 @@ class StoredAccount {
       email: email.toLowerCase(),
       username: derivedUsername,
       displayName: displayName,
+      rozet: '',
       avatarUrl: firebaseUser.photoURL?.trim() ?? '',
       providers: providers,
       lastUsedAt: DateTime.now().millisecondsSinceEpoch,
