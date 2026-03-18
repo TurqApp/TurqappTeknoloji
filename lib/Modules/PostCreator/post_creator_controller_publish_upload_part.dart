@@ -10,9 +10,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
       try {
         bool hasVideo = false;
         for (final postModel in postList) {
-          final tag = postModel.index.toString();
-          if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-          final controller = Get.find<CreatorContentController>(tag: tag);
+          final controller = ensureComposerControllerFor(postModel.index);
           if (controller.selectedVideo.value != null) {
             hasVideo = true;
             break;
@@ -33,10 +31,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           // Track data usage
           int totalUploadMB = 0;
           for (final postModel in postList) {
-            final tag = postModel.index.toString();
-            if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-
-            final controller = Get.find<CreatorContentController>(tag: tag);
+            final controller = ensureComposerControllerFor(postModel.index);
             for (final image in controller.selectedImages) {
               final size = await image.length();
               totalUploadMB += (size / (1024 * 1024)).round();
@@ -111,10 +106,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
     try {
       // Prepare all posts
       for (var postModel in postList) {
-        final tag = postModel.index.toString();
-        if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-
-        final contentController = Get.find<CreatorContentController>(tag: tag);
+        final contentController = ensureComposerControllerFor(postModel.index);
         final text = contentController.textEdit.text.trim();
         final images =
             contentController.croppedImages.whereType<Uint8List>().toList();

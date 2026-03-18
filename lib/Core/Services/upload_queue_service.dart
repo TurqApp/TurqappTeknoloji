@@ -197,7 +197,10 @@ class UploadQueueService extends GetxController {
   }
 
   /// Add upload to queue
-  Future<bool> addToQueue(QueuedUpload upload) async {
+  Future<bool> addToQueue(
+    QueuedUpload upload, {
+    bool startProcessing = true,
+  }) async {
     final fingerprint = _queueFingerprint(upload);
     final duplicateActive = fingerprint.isNotEmpty &&
         _queue.any((item) =>
@@ -222,8 +225,14 @@ class UploadQueueService extends GetxController {
     _notifyQueueUpdated();
     await _saveQueueToStorage();
     await _createPendingPostShell(upload);
-    _processQueue();
+    if (startProcessing) {
+      _processQueue();
+    }
     return true;
+  }
+
+  void processPendingQueue() {
+    _processQueue();
   }
 
   Future<void> _createPendingPostShell(QueuedUpload upload) async {

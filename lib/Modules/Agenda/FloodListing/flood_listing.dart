@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
@@ -83,7 +82,13 @@ class _FloodListingState extends State<FloodListing> {
                 children.add(
                   Row(
                     children: [
-                      BackButtons(text: "Dizi"),
+                      IconButton(
+                        onPressed: Get.back,
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 );

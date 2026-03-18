@@ -194,6 +194,14 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     _nextComposerItemIndex = next;
   }
 
+  CreatorContentController ensureComposerControllerFor(int composerIndex) {
+    final tag = composerIndex.toString();
+    if (Get.isRegistered<CreatorContentController>(tag: tag)) {
+      return Get.find<CreatorContentController>(tag: tag);
+    }
+    return Get.put(CreatorContentController(), tag: tag);
+  }
+
   @override
   void onInit() {
     super.onInit();

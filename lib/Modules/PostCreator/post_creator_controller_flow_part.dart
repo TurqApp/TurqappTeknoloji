@@ -123,9 +123,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
   bool _validatePollRequirements() {
     for (final postModel in postList) {
-      final tag = postModel.index.toString();
-      if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-      final controller = Get.find<CreatorContentController>(tag: tag);
+      final controller = ensureComposerControllerFor(postModel.index);
       final poll = controller.pollData.value;
       if (poll == null || poll.isEmpty) continue;
       final hasCaption = controller.textEdit.text.trim().isNotEmpty;
@@ -155,10 +153,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
   Future<bool> _runModerationPreflightForComposer() async {
     for (final postModel in postList) {
-      final tag = postModel.index.toString();
-      if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-
-      final controller = Get.find<CreatorContentController>(tag: tag);
+      final controller = ensureComposerControllerFor(postModel.index);
 
       for (final image in controller.selectedImages) {
         final nsfwImage = await OptimizedNSFWService.checkImage(image);
@@ -212,10 +207,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
     try {
       for (final postModel in postList) {
-        final tag = postModel.index.toString();
-        if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-
-        final controller = Get.find<CreatorContentController>(tag: tag);
+        final controller = ensureComposerControllerFor(postModel.index);
         final text = controller.textEdit.text.trim();
 
         if (text.isNotEmpty ||
@@ -267,11 +259,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       final allVideos = <File>[];
 
       for (final postModel in postList) {
-        final tag = postModel.index.toString();
-        if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-          Get.put(CreatorContentController(), tag: tag);
-        }
-        final c = Get.find<CreatorContentController>(tag: tag);
+        final c = ensureComposerControllerFor(postModel.index);
 
         allImages.addAll(c.selectedImages);
         if (c.selectedVideo.value != null) {
@@ -381,10 +369,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       final queueUuid = const Uuid().v4();
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
-        final tag = postModel.index.toString();
-        if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-
-        final controller = Get.find<CreatorContentController>(tag: tag);
+        final controller = ensureComposerControllerFor(postModel.index);
         final docID = '${queueUuid}_$index';
 
         final authorSummary = await _resolveAuthorSummary();
@@ -476,7 +461,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           createdAt: DateTime.now(),
         );
 
-        final added = await _uploadQueueService.addToQueue(queuedUpload);
+        final added = await _uploadQueueService.addToQueue(
+          queuedUpload,
+          startProcessing: false,
+        );
         if (added) {
           addedCount++;
         }
@@ -486,6 +474,8 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         progressController.complete('Bu medya zaten yükleme kuyruğunda.');
         return;
       }
+
+      _uploadQueueService.processPendingQueue();
 
       progressController
           .complete('Gönderiler kuyruğa eklendi! Arka planda yüklenecek.');

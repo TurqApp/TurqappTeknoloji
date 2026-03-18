@@ -205,10 +205,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
     final uuid = const Uuid().v4();
 
     for (var postModel in postList) {
-      final tag = postModel.index.toString();
-      if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
-
-      final contentController = Get.find<CreatorContentController>(tag: tag);
+      final contentController = ensureComposerControllerFor(postModel.index);
       final text = contentController.textEdit.text.trim();
       final images =
           contentController.croppedImages.whereType<Uint8List>().toList();

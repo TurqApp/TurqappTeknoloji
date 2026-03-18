@@ -195,6 +195,7 @@ class PostCreator extends StatelessWidget {
               Get.put(CreatorContentController(), tag: tag);
             }
             return GestureDetector(
+              key: ValueKey('composer-${postModel.index}'),
               behavior: HitTestBehavior.deferToChild,
               onTap: isSelected
                   ? null
@@ -233,13 +234,8 @@ class PostCreator extends StatelessWidget {
         controller.postList.length - 1,
       );
       final selectedModel = controller.postList[selectedListIndex];
-      final tag = selectedModel.index.toString();
-
-      // Make sure a CreatorContentController exists for the selected index
-      if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-        Get.put(CreatorContentController(), tag: tag);
-      }
-      final selectedController = Get.find<CreatorContentController>(tag: tag);
+      final selectedController =
+          controller.ensureComposerControllerFor(selectedModel.index);
 
       // Hide toolbar while video is processing
       if (selectedController.waitingVideo.value) {
