@@ -519,8 +519,8 @@ class ScholarshipPreviewView extends StatelessWidget {
                           SizedBox(width: 8),
                           Expanded(
                             child: GestureDetector(
-                              // Mevcut onTap bloğunu bu şekilde değiştirin:
                               onTap: () async {
+                                if (controller.isLoading.value) return;
                                 // Eğer şu anki slide 0 değilse, önce ilk slayda geç
                                 if (currentIndex.value != 0) {
                                   await carouselController.animateToPage(
@@ -529,16 +529,12 @@ class ScholarshipPreviewView extends StatelessWidget {
                                     curve: Curves.easeInOut,
                                   );
                                 }
-                                // Sonra share/update işlemlerini başlat
-                                controller.isLoading.value = true;
                                 if (controller.isEditing.value) {
                                   await controller.updateScholarship();
                                 } else {
                                   await controller.saveScholarship();
                                 }
-                                controller.isLoading.value = false;
                               },
-
                               child: Container(
                                 height: 50,
                                 alignment: Alignment.center,

@@ -608,248 +608,251 @@ class CreateScholarshipController extends GetxController {
   }
 
   Future<void> saveScholarship() async {
-    if (formKey.currentState!.validate()) {
-      try {
-        isLoading.value = true;
-
-        if (selectedTemplateIndex.value != -1) {
-          final templateUrlResult = await _captureAndUploadTemplate();
-          if (templateUrlResult == null) {
-            AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
-            isLoading.value = false;
-            return;
-          }
-        }
-
-        final String? customImageUrl = customImagePath.value.isNotEmpty &&
-                !customImagePath.value.startsWith('http')
-            ? await _uploadImage(customImagePath.value)
-            : customImagePath.value;
-        final String? logoUrl =
-            logoPath.value.isNotEmpty && !logoPath.value.startsWith('http')
-                ? await _uploadImage(logoPath.value, isLogo: true)
-                : logoPath.value;
-
-        final List<String> altEgitimKitlesi = [];
-        if (egitimKitlesi.value == "Ortaokul") {
-          altEgitimKitlesi.add("Ortaokul");
-        } else if (egitimKitlesi.value == "Lise") {
-          altEgitimKitlesi.add("Lise");
-        } else if (egitimKitlesi.value == "Lisans") {
-          altEgitimKitlesi.addAll(lisansTuru);
-        } else if (egitimKitlesi.value == "Hepsi") {
-          altEgitimKitlesi.addAll(["Ortaokul", "Lise"]);
-          altEgitimKitlesi.addAll(lisansTuru);
-        }
-
-        final String egitimKitlesiValue = egitimKitlesi.value == "Hepsi"
-            ? "Ortaokul, Lise, Lisans"
-            : egitimKitlesi.value;
-
-        final scholarship = IndividualScholarshipsModel(
-          aciklama: aciklama.value,
-          shortDescription: '',
-          altEgitimKitlesi: altEgitimKitlesi,
-          aylar: aylar,
-          basvurular: [],
-          baslangicTarihi: baslangicTarihi.value,
-          baslik: baslik.value,
-          bursVeren: bursVeren.value,
-          basvuruKosullari: basvuruKosullari.value,
-          basvuruURL: basvuruURL.value,
-          basvuruYapilacakYer: basvuruYapilacakYer.value,
-          begeniler: [],
-          belgeler: belgeler,
-          bitisTarihi: bitisTarihi.value,
-          egitimKitlesi: egitimKitlesiValue,
-          geriOdemeli: geriOdemeli.value,
-          goruntuleme: [],
-          hedefKitle: hedefKitle.value,
-          ilceler: ilceler,
-          img: templateUrl.value,
-          img2: customImageUrl ?? '',
-          kaydedenler: [],
-          kaydedilenler: [],
-          liseOrtaOkulIlceler: [],
-          liseOrtaOkulSehirler: [],
-          logo: logoUrl ?? '',
-          mukerrerDurumu: mukerrerDurumu.value,
-          ogrenciSayisi: ogrenciSayisi.value,
-          sehirler: sehirler,
-          timeStamp: DateTime.now().millisecondsSinceEpoch,
-          tutar: tutar.value,
-          universiteler: universiteler,
-          userID: currentUser?.uid ?? '',
-          website: website.value,
-          lisansTuru: lisansTuru.join(','),
-          template: template.value,
-          ulke: ulke.value,
-        );
-        final authorFields = await _authorFieldsForCurrentUser();
-
-        final docRef = await ScholarshipFirestorePath.collection(
-          firestore: _firestore,
-        ).add(<String, dynamic>{
-          ...scholarship.toJson(),
-          ...authorFields,
-        });
-
-        await ScholarshipFirestorePath.doc(
-          docRef.id,
-          firestore: _firestore,
-        ).set({'likesCount': 0, 'bookmarksCount': 0}, SetOptions(merge: true));
-
-        // Refresh scholarships after successful save
-        final scholarshipsController = Get.find<ScholarshipsController>();
-        scholarshipsController.fetchScholarships();
-
-        // After create: return to NavBarView (Education tab), then open ScholarshipsView
+    if (isLoading.value) return;
+    isLoading.value = true;
+    try {
+      if (formKey.currentState!.validate()) {
         try {
-          // NavBar'a dön ve Education sekmesini seç
-          Get.offAll(() => NavBarView());
-          if (Get.isRegistered<NavBarController>()) {
-            // Education sekmesi (varsayılan sıra: 0-Agenda,1-Explore,2-Shorts,3-Education,4-Profile)
-            Get.find<NavBarController>().changeIndex(3);
+          if (selectedTemplateIndex.value != -1) {
+            final templateUrlResult = await _captureAndUploadTemplate();
+            if (templateUrlResult == null) {
+              AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
+              return;
+            }
           }
-        } catch (_) {}
 
-        // Reset scholarships search state if controller exists
-        if (Get.isRegistered<ScholarshipsController>()) {
+          final String? customImageUrl = customImagePath.value.isNotEmpty &&
+                  !customImagePath.value.startsWith('http')
+              ? await _uploadImage(customImagePath.value)
+              : customImagePath.value;
+          final String? logoUrl =
+              logoPath.value.isNotEmpty && !logoPath.value.startsWith('http')
+                  ? await _uploadImage(logoPath.value, isLogo: true)
+                  : logoPath.value;
+
+          final List<String> altEgitimKitlesi = [];
+          if (egitimKitlesi.value == "Ortaokul") {
+            altEgitimKitlesi.add("Ortaokul");
+          } else if (egitimKitlesi.value == "Lise") {
+            altEgitimKitlesi.add("Lise");
+          } else if (egitimKitlesi.value == "Lisans") {
+            altEgitimKitlesi.addAll(lisansTuru);
+          } else if (egitimKitlesi.value == "Hepsi") {
+            altEgitimKitlesi.addAll(["Ortaokul", "Lise"]);
+            altEgitimKitlesi.addAll(lisansTuru);
+          }
+
+          final String egitimKitlesiValue = egitimKitlesi.value == "Hepsi"
+              ? "Ortaokul, Lise, Lisans"
+              : egitimKitlesi.value;
+
+          final scholarship = IndividualScholarshipsModel(
+            aciklama: aciklama.value,
+            shortDescription: '',
+            altEgitimKitlesi: altEgitimKitlesi,
+            aylar: aylar,
+            basvurular: [],
+            baslangicTarihi: baslangicTarihi.value,
+            baslik: baslik.value,
+            bursVeren: bursVeren.value,
+            basvuruKosullari: basvuruKosullari.value,
+            basvuruURL: basvuruURL.value,
+            basvuruYapilacakYer: basvuruYapilacakYer.value,
+            begeniler: [],
+            belgeler: belgeler,
+            bitisTarihi: bitisTarihi.value,
+            egitimKitlesi: egitimKitlesiValue,
+            geriOdemeli: geriOdemeli.value,
+            goruntuleme: [],
+            hedefKitle: hedefKitle.value,
+            ilceler: ilceler,
+            img: templateUrl.value,
+            img2: customImageUrl ?? '',
+            kaydedenler: [],
+            kaydedilenler: [],
+            liseOrtaOkulIlceler: [],
+            liseOrtaOkulSehirler: [],
+            logo: logoUrl ?? '',
+            mukerrerDurumu: mukerrerDurumu.value,
+            ogrenciSayisi: ogrenciSayisi.value,
+            sehirler: sehirler,
+            timeStamp: DateTime.now().millisecondsSinceEpoch,
+            tutar: tutar.value,
+            universiteler: universiteler,
+            userID: currentUser?.uid ?? '',
+            website: website.value,
+            lisansTuru: lisansTuru.join(','),
+            template: template.value,
+            ulke: ulke.value,
+          );
+          final authorFields = await _authorFieldsForCurrentUser();
+
+          final docRef = await ScholarshipFirestorePath.collection(
+            firestore: _firestore,
+          ).add(<String, dynamic>{
+            ...scholarship.toJson(),
+            ...authorFields,
+          });
+
+          await ScholarshipFirestorePath.doc(
+            docRef.id,
+            firestore: _firestore,
+          ).set(
+              {'likesCount': 0, 'bookmarksCount': 0}, SetOptions(merge: true));
+
+          // Refresh scholarships after successful save
+          final scholarshipsController = Get.find<ScholarshipsController>();
+          scholarshipsController.fetchScholarships();
+
+          // After create: return to NavBarView (Education tab), then open ScholarshipsView
           try {
-            Get.find<ScholarshipsController>().resetSearch();
+            // NavBar'a dön ve Education sekmesini seç
+            Get.offAll(() => NavBarView());
+            if (Get.isRegistered<NavBarController>()) {
+              // Education sekmesi (varsayılan sıra: 0-Agenda,1-Explore,2-Shorts,3-Education,4-Profile)
+              Get.find<NavBarController>().changeIndex(3);
+            }
           } catch (_) {}
+
+          // Reset scholarships search state if controller exists
+          if (Get.isRegistered<ScholarshipsController>()) {
+            try {
+              Get.find<ScholarshipsController>().resetSearch();
+            } catch (_) {}
+          }
+
+          // Bursları Education sekmesi açıkken göster
+          Get.to(() => ScholarshipsView());
+          AppSnackbar('Başarılı', 'Burs başarıyla paylaşıldı!');
+
+          resetForm();
+        } catch (_) {
+          AppSnackbar('Hata', 'Burs paylaşılırken bir hata oluştu.');
         }
-
-        // Bursları Education sekmesi açıkken göster
-        Get.to(() => ScholarshipsView());
-        AppSnackbar('Başarılı', 'Burs başarıyla paylaşıldı!');
-
-        resetForm();
-      } catch (_) {
-        AppSnackbar('Hata', 'Burs paylaşılırken bir hata oluştu.');
-      } finally {
-        isLoading.value = false;
       }
+    } finally {
+      isLoading.value = false;
     }
   }
 
   Future<void> updateScholarship() async {
-    if (formKey.currentState!.validate()) {
-      try {
-        isLoading.value = true;
-
-        // Şablon görüntüsünü yakala ve yükle
-        if (selectedTemplateIndex.value != -1 &&
-            templateKey.currentContext != null) {
-          final templateUrlResult = await _captureAndUploadTemplate();
-          if (templateUrlResult == null) {
-            AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
-            isLoading.value = false;
-            return;
-          }
-        }
-
-        final String? customImageUrl = customImagePath.value.isNotEmpty &&
-                !customImagePath.value.startsWith('http')
-            ? await _uploadImage(customImagePath.value)
-            : customImagePath.value;
-        final String? logoUrl =
-            logoPath.value.isNotEmpty && !logoPath.value.startsWith('http')
-                ? await _uploadImage(logoPath.value, isLogo: true)
-                : logoPath.value;
-
-        final List<String> altEgitimKitlesi = [];
-        if (egitimKitlesi.value == "Ortaokul") {
-          altEgitimKitlesi.add("Ortaokul");
-        } else if (egitimKitlesi.value == "Lise") {
-          altEgitimKitlesi.add("Lise");
-        } else if (egitimKitlesi.value == "Lisans") {
-          altEgitimKitlesi.addAll(lisansTuru);
-        } else if (egitimKitlesi.value == "Hepsi") {
-          altEgitimKitlesi.addAll(["Ortaokul", "Lise"]);
-          altEgitimKitlesi.addAll(lisansTuru);
-        }
-
-        final String egitimKitlesiValue = egitimKitlesi.value == "Hepsi"
-            ? "Ortaokul, Lise, Lisans"
-            : egitimKitlesi.value;
-
-        final scholarship = IndividualScholarshipsModel(
-          aciklama: aciklama.value,
-          shortDescription: '',
-          altEgitimKitlesi: altEgitimKitlesi,
-          aylar: aylar,
-          basvurular: [],
-          baslangicTarihi: baslangicTarihi.value,
-          baslik: baslik.value,
-          bursVeren: bursVeren.value,
-          basvuruKosullari: basvuruKosullari.value,
-          basvuruURL: basvuruURL.value,
-          basvuruYapilacakYer: basvuruYapilacakYer.value,
-          begeniler: [],
-          belgeler: belgeler,
-          bitisTarihi: bitisTarihi.value,
-          egitimKitlesi: egitimKitlesiValue,
-          geriOdemeli: geriOdemeli.value,
-          goruntuleme: [],
-          hedefKitle: hedefKitle.value,
-          ilceler: ilceler,
-          img: templateUrl.value,
-          img2: customImageUrl ?? '',
-          kaydedenler: [],
-          kaydedilenler: [],
-          liseOrtaOkulIlceler: [],
-          liseOrtaOkulSehirler: [],
-          logo: logoUrl ?? '',
-          mukerrerDurumu: mukerrerDurumu.value,
-          ogrenciSayisi: ogrenciSayisi.value,
-          sehirler: sehirler,
-          timeStamp: DateTime.now().millisecondsSinceEpoch,
-          tutar: tutar.value,
-          universiteler: universiteler,
-          userID: currentUser?.uid ?? '',
-          website: website.value,
-          lisansTuru: lisansTuru.join(','),
-          template: template.value,
-          ulke: ulke.value,
-        );
-        final authorFields = await _authorFieldsForCurrentUser();
-
-        await ScholarshipFirestorePath.doc(
-          scholarshipId.value,
-          firestore: _firestore,
-        ).update(<String, dynamic>{
-          ...scholarship.toJson(),
-          ...authorFields,
-        });
-
-        // Refresh scholarships after successful update
-        final scholarshipsController = Get.find<ScholarshipsController>();
-        scholarshipsController.fetchScholarships();
-
-        // After update: return to NavBarView (Education tab), then open ScholarshipsView
+    if (isLoading.value) return;
+    isLoading.value = true;
+    try {
+      if (formKey.currentState!.validate()) {
         try {
-          Get.offAll(() => NavBarView());
-          if (Get.isRegistered<NavBarController>()) {
-            Get.find<NavBarController>().changeIndex(3);
+          // Şablon görüntüsünü yakala ve yükle
+          if (selectedTemplateIndex.value != -1 &&
+              templateKey.currentContext != null) {
+            final templateUrlResult = await _captureAndUploadTemplate();
+            if (templateUrlResult == null) {
+              AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
+              return;
+            }
           }
-        } catch (_) {}
 
-        // Reset scholarships search state if controller exists
-        if (Get.isRegistered<ScholarshipsController>()) {
+          final String? customImageUrl = customImagePath.value.isNotEmpty &&
+                  !customImagePath.value.startsWith('http')
+              ? await _uploadImage(customImagePath.value)
+              : customImagePath.value;
+          final String? logoUrl =
+              logoPath.value.isNotEmpty && !logoPath.value.startsWith('http')
+                  ? await _uploadImage(logoPath.value, isLogo: true)
+                  : logoPath.value;
+
+          final List<String> altEgitimKitlesi = [];
+          if (egitimKitlesi.value == "Ortaokul") {
+            altEgitimKitlesi.add("Ortaokul");
+          } else if (egitimKitlesi.value == "Lise") {
+            altEgitimKitlesi.add("Lise");
+          } else if (egitimKitlesi.value == "Lisans") {
+            altEgitimKitlesi.addAll(lisansTuru);
+          } else if (egitimKitlesi.value == "Hepsi") {
+            altEgitimKitlesi.addAll(["Ortaokul", "Lise"]);
+            altEgitimKitlesi.addAll(lisansTuru);
+          }
+
+          final String egitimKitlesiValue = egitimKitlesi.value == "Hepsi"
+              ? "Ortaokul, Lise, Lisans"
+              : egitimKitlesi.value;
+
+          final scholarship = IndividualScholarshipsModel(
+            aciklama: aciklama.value,
+            shortDescription: '',
+            altEgitimKitlesi: altEgitimKitlesi,
+            aylar: aylar,
+            basvurular: [],
+            baslangicTarihi: baslangicTarihi.value,
+            baslik: baslik.value,
+            bursVeren: bursVeren.value,
+            basvuruKosullari: basvuruKosullari.value,
+            basvuruURL: basvuruURL.value,
+            basvuruYapilacakYer: basvuruYapilacakYer.value,
+            begeniler: [],
+            belgeler: belgeler,
+            bitisTarihi: bitisTarihi.value,
+            egitimKitlesi: egitimKitlesiValue,
+            geriOdemeli: geriOdemeli.value,
+            goruntuleme: [],
+            hedefKitle: hedefKitle.value,
+            ilceler: ilceler,
+            img: templateUrl.value,
+            img2: customImageUrl ?? '',
+            kaydedenler: [],
+            kaydedilenler: [],
+            liseOrtaOkulIlceler: [],
+            liseOrtaOkulSehirler: [],
+            logo: logoUrl ?? '',
+            mukerrerDurumu: mukerrerDurumu.value,
+            ogrenciSayisi: ogrenciSayisi.value,
+            sehirler: sehirler,
+            timeStamp: DateTime.now().millisecondsSinceEpoch,
+            tutar: tutar.value,
+            universiteler: universiteler,
+            userID: currentUser?.uid ?? '',
+            website: website.value,
+            lisansTuru: lisansTuru.join(','),
+            template: template.value,
+            ulke: ulke.value,
+          );
+          final authorFields = await _authorFieldsForCurrentUser();
+
+          await ScholarshipFirestorePath.doc(
+            scholarshipId.value,
+            firestore: _firestore,
+          ).update(<String, dynamic>{
+            ...scholarship.toJson(),
+            ...authorFields,
+          });
+
+          // Refresh scholarships after successful update
+          final scholarshipsController = Get.find<ScholarshipsController>();
+          scholarshipsController.fetchScholarships();
+
+          // After update: return to NavBarView (Education tab), then open ScholarshipsView
           try {
-            Get.find<ScholarshipsController>().resetSearch();
+            Get.offAll(() => NavBarView());
+            if (Get.isRegistered<NavBarController>()) {
+              Get.find<NavBarController>().changeIndex(3);
+            }
           } catch (_) {}
-        }
-        Get.to(() => ScholarshipsView());
-        AppSnackbar('Başarılı', 'Burs başarıyla güncellendi!');
 
-        resetForm();
-      } catch (e) {
-        AppSnackbar('Hata', 'Burs güncellenirken bir hata oluştu.');
-      } finally {
-        isLoading.value = false;
+          // Reset scholarships search state if controller exists
+          if (Get.isRegistered<ScholarshipsController>()) {
+            try {
+              Get.find<ScholarshipsController>().resetSearch();
+            } catch (_) {}
+          }
+          Get.to(() => ScholarshipsView());
+          AppSnackbar('Başarılı', 'Burs başarıyla güncellendi!');
+
+          resetForm();
+        } catch (e) {
+          AppSnackbar('Hata', 'Burs güncellenirken bir hata oluştu.');
+        }
       }
+    } finally {
+      isLoading.value = false;
     }
   }
 

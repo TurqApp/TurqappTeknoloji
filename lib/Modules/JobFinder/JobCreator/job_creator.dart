@@ -132,8 +132,9 @@ class JobCreator extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _selectionField(
-                label:
-                    controller.meslek.value.isEmpty ? 'Meslek' : controller.meslek.value,
+                label: controller.meslek.value.isEmpty
+                    ? 'Meslek'
+                    : controller.meslek.value,
                 onTap: controller.showMeslekSelector,
               ),
               const SizedBox(height: 8),
@@ -184,7 +185,8 @@ class JobCreator extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: () => controller.maasOpen.value = !controller.maasOpen.value,
+                onTap: () =>
+                    controller.maasOpen.value = !controller.maasOpen.value,
                 child: Container(
                   height: 58,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -230,27 +232,27 @@ class JobCreator extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                    child: TextField(
-                      controller: controller.maas1,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        _ThousandsTextInputFormatter(),
-                      ],
-                      decoration: _inputDecoration('Min Ücret'),
-                    ),
+                      child: TextField(
+                        controller: controller.maas1,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          _ThousandsTextInputFormatter(),
+                        ],
+                        decoration: _inputDecoration('Min Ücret'),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                    child: TextField(
-                      controller: controller.maas2,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        _ThousandsTextInputFormatter(),
-                      ],
-                      decoration: _inputDecoration('Max Ücret'),
-                    ),
+                      child: TextField(
+                        controller: controller.maas2,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          _ThousandsTextInputFormatter(),
+                        ],
+                        decoration: _inputDecoration('Max Ücret'),
+                      ),
                     ),
                   ],
                 ),
@@ -260,22 +262,33 @@ class JobCreator extends StatelessWidget {
                 height: 52,
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: controller.isSubmitting.value ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
                     backgroundColor: Colors.black,
+                    disabledBackgroundColor: Colors.black54,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: Text(
-                    existingJob == null ? 'Yayınla' : 'Güncelle',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
+                  child: controller.isSubmitting.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          existingJob == null ? 'Yayınla' : 'Güncelle',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -286,57 +299,66 @@ class JobCreator extends StatelessWidget {
   }
 
   Future<void> _submit() async {
-    if (controller.croppedImage.value == null &&
-        (existingJob?.logo.isEmpty ?? true)) {
-      AppSnackbar('Eksik alan', 'Firma logosu seçmeden devam edemezsiniz');
-      return;
+    if (controller.isSubmitting.value) return;
+    controller.isSubmitting.value = true;
+    try {
+      if (controller.croppedImage.value == null &&
+          (existingJob?.logo.isEmpty ?? true)) {
+        AppSnackbar('Eksik alan', 'Firma logosu seçmeden devam edemezsiniz');
+        return;
+      }
+      if (controller.brand.text.trim().isEmpty) {
+        AppSnackbar('Eksik alan', 'Firma ismini girmeden devam edemezsiniz');
+        return;
+      }
+      if (controller.sehir.value.isEmpty || controller.ilce.value.isEmpty) {
+        AppSnackbar('Eksik alan', 'Şehir ve ilçe seçmeden devam edemezsiniz');
+        return;
+      }
+      if (controller.adres.value.isEmpty && controller.lat.value == 0) {
+        AppSnackbar(
+          'Eksik alan',
+          'Mevcut konumunuzu kullanarak firma adresinizi belirtiniz',
+        );
+        return;
+      }
+      if (controller.selectedCalismaTuruList.isEmpty) {
+        AppSnackbar('Eksik alan', 'Çalışma türü seçmeden devam edemezsiniz');
+        return;
+      }
+      if (controller.meslek.value.isEmpty) {
+        AppSnackbar('Eksik alan', 'Meslek seçmeden devam edemezsiniz');
+        return;
+      }
+      if (controller.isTanimi.text.trim().isEmpty) {
+        AppSnackbar('Eksik alan', 'İş tanımını açıklamak zorundasınız');
+        return;
+      }
+      if (controller.selectedYanHaklar.isEmpty) {
+        AppSnackbar('Eksik alan', 'En az bir ek imkan seçmek zorundasın');
+        return;
+      }
+      if (controller.maasOpen.value && controller.maas1.text.trim().isEmpty) {
+        AppSnackbar('Eksik alan', 'Minimum maaş alanını doldurmalısınız');
+        return;
+      }
+      if (controller.maasOpen.value && controller.maas2.text.trim().isEmpty) {
+        AppSnackbar('Eksik alan', 'Maksimum maaş alanını doldurmalısınız');
+        return;
+      }
+      if (controller.maasOpen.value &&
+          controller.parseMoneyInput(controller.maas2.text) <
+              controller.parseMoneyInput(controller.maas1.text)) {
+        AppSnackbar(
+            'Hatalı Aralık', 'Maksimum maaş, minimum maaştan düşük olamaz');
+        return;
+      }
+      await controller.setData();
+    } finally {
+      if (controller.isSubmitting.value) {
+        controller.isSubmitting.value = false;
+      }
     }
-    if (controller.brand.text.trim().isEmpty) {
-      AppSnackbar('Eksik alan', 'Firma ismini girmeden devam edemezsiniz');
-      return;
-    }
-    if (controller.sehir.value.isEmpty || controller.ilce.value.isEmpty) {
-      AppSnackbar('Eksik alan', 'Şehir ve ilçe seçmeden devam edemezsiniz');
-      return;
-    }
-    if (controller.adres.value.isEmpty && controller.lat.value == 0) {
-      AppSnackbar(
-        'Eksik alan',
-        'Mevcut konumunuzu kullanarak firma adresinizi belirtiniz',
-      );
-      return;
-    }
-    if (controller.selectedCalismaTuruList.isEmpty) {
-      AppSnackbar('Eksik alan', 'Çalışma türü seçmeden devam edemezsiniz');
-      return;
-    }
-    if (controller.meslek.value.isEmpty) {
-      AppSnackbar('Eksik alan', 'Meslek seçmeden devam edemezsiniz');
-      return;
-    }
-    if (controller.isTanimi.text.trim().isEmpty) {
-      AppSnackbar('Eksik alan', 'İş tanımını açıklamak zorundasınız');
-      return;
-    }
-    if (controller.selectedYanHaklar.isEmpty) {
-      AppSnackbar('Eksik alan', 'En az bir ek imkan seçmek zorundasın');
-      return;
-    }
-    if (controller.maasOpen.value && controller.maas1.text.trim().isEmpty) {
-      AppSnackbar('Eksik alan', 'Minimum maaş alanını doldurmalısınız');
-      return;
-    }
-    if (controller.maasOpen.value && controller.maas2.text.trim().isEmpty) {
-      AppSnackbar('Eksik alan', 'Maksimum maaş alanını doldurmalısınız');
-      return;
-    }
-    if (controller.maasOpen.value &&
-        controller.parseMoneyInput(controller.maas2.text) <
-            controller.parseMoneyInput(controller.maas1.text)) {
-      AppSnackbar('Hatalı Aralık', 'Maksimum maaş, minimum maaştan düşük olamaz');
-      return;
-    }
-    await controller.setData();
   }
 
   Widget _buildLogoPicker() {

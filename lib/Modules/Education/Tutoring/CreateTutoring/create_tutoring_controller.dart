@@ -377,20 +377,21 @@ class CreateTutoringController extends GetxController {
     };
   }
 
-  void saveTutoring() async {
-    if (titleController.text.isEmpty ||
-        descriptionController.text.isEmpty ||
-        branchController.text.isEmpty ||
-        priceController.text.isEmpty ||
-        selectedLessonPlace.value.isEmpty ||
-        cityController.text.isEmpty ||
-        selectedGender.value.isEmpty) {
-      AppSnackbar("Hata", "Boş Alanları Doldurunuz!");
-      return;
-    }
-
+  Future<void> saveTutoring() async {
+    if (isLoading.value) return;
     isLoading.value = true;
     try {
+      if (titleController.text.isEmpty ||
+          descriptionController.text.isEmpty ||
+          branchController.text.isEmpty ||
+          priceController.text.isEmpty ||
+          selectedLessonPlace.value.isEmpty ||
+          cityController.text.isEmpty ||
+          selectedGender.value.isEmpty) {
+        AppSnackbar("Hata", "Boş Alanları Doldurunuz!");
+        return;
+      }
+
       final imageUrls = await uploadImages();
       final profile = _profileFields();
       final tutoring = TutoringModel(
@@ -434,20 +435,21 @@ class CreateTutoringController extends GetxController {
     }
   }
 
-  void updateTutoring(String docId) async {
-    if (titleController.text.isEmpty ||
-        descriptionController.text.isEmpty ||
-        branchController.text.isEmpty ||
-        priceController.text.isEmpty ||
-        selectedLessonPlace.value.isEmpty ||
-        cityController.text.isEmpty ||
-        selectedGender.value.isEmpty) {
-      AppSnackbar("Hata", "Boş Alanları Doldurunuz!");
-      return;
-    }
-
+  Future<void> updateTutoring(String docId) async {
+    if (isLoading.value) return;
     isLoading.value = true;
     try {
+      if (titleController.text.isEmpty ||
+          descriptionController.text.isEmpty ||
+          branchController.text.isEmpty ||
+          priceController.text.isEmpty ||
+          selectedLessonPlace.value.isEmpty ||
+          cityController.text.isEmpty ||
+          selectedGender.value.isEmpty) {
+        AppSnackbar("Hata", "Boş Alanları Doldurunuz!");
+        return;
+      }
+
       final initialData = Get.arguments as TutoringModel?;
       final updateData = <String, dynamic>{};
       final profile = _profileFields();

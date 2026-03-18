@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crop_your_image/crop_your_image.dart';
@@ -724,11 +725,9 @@ class JobCreatorController extends GetxController {
   }
 
   Future<void> setData() async {
-    if (isSubmitting.value) return;
     final docID =
         existingJob?.docID ?? Uuid().v4(); // düzenleme veya yeni kayıt
     final loader = Get.find<GlobalLoaderController>(tag: loaderTag);
-    isSubmitting.value = true;
     loader.isOn.value = true;
     try {
       final current = CurrentUserService.instance.currentUser;
@@ -791,24 +790,23 @@ class JobCreatorController extends GetxController {
 
       selection.value = 0;
       final shouldUploadLogo = croppedImage.value != null;
-      if (shouldUploadLogo) {
-        try {
-          await uploadCroppedImageToFirebase(docID);
-        } catch (e) {
-          AppSnackbar('Hata', e.toString().replaceFirst('Exception: ', ''));
-          return;
-        }
-      }
       loader.isOn.value = false;
-      isSubmitting.value = false;
       Get.back();
+      if (shouldUploadLogo) {
+        unawaited(_uploadLogoAfterClose(docID));
+      }
     } finally {
       if (loader.isOn.value) {
         loader.isOn.value = false;
       }
-      if (isSubmitting.value) {
-        isSubmitting.value = false;
-      }
+    }
+  }
+
+  Future<void> _uploadLogoAfterClose(String docID) async {
+    try {
+      await uploadCroppedImageToFirebase(docID);
+    } catch (e) {
+      AppSnackbar('Hata', e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }
