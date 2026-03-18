@@ -283,7 +283,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
           ),
           _buildIzBirakBlurOverlay(),
           _buildIzBirakBottomBar(),
-          if (widget.model.floodCount > 1 && widget.model.flood == false)
+          if (!widget.suppressFloodBadge &&
+              widget.model.floodCount > 1 &&
+              widget.model.flood == false)
             GestureDetector(
               onTap: () {
                 Get.to(() => FloodListing(mainModel: widget.model));

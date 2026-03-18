@@ -17,12 +17,11 @@ class Texts {
         ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
         blendMode: BlendMode.srcIn,
         child: const Text(
-          "FLOOD",
+          "DİZİ",
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 18,
             fontFamily: "MontserratBold",
-            color:
-                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color: Colors.white,
           ),
         ),
       ),
@@ -44,12 +43,11 @@ class Texts {
         ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
         blendMode: BlendMode.srcIn,
         child: const Text(
-          "FLOOD",
+          "DİZİ",
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 18,
             fontFamily: "MontserratBold",
-            color:
-                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color: Colors.white,
           ),
         ),
       ),
@@ -71,12 +69,11 @@ class Texts {
         ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
         blendMode: BlendMode.srcIn,
         child: const Text(
-          "FLOOD",
+          "DİZİ",
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 18,
             fontFamily: "MontserratBold",
-            color:
-                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color: Colors.white,
           ),
         ),
       ),
@@ -98,12 +95,11 @@ class Texts {
         ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
         blendMode: BlendMode.srcIn,
         child: const Text(
-          "FLOOD",
+          "DİZİ",
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 18,
             fontFamily: "MontserratBold",
-            color:
-                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color: Colors.white,
           ),
         ),
       ),
@@ -125,12 +121,11 @@ class Texts {
         ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
         blendMode: BlendMode.srcIn,
         child: const Text(
-          "FLOOD",
+          "DİZİ",
           style: TextStyle(
-            fontSize: 15,
+            fontSize: 20,
             fontFamily: "MontserratBold",
-            color:
-                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color: Colors.white,
           ),
         ),
       ),

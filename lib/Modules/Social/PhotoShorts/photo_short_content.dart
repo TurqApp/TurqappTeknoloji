@@ -10,7 +10,6 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/post_story_share_service.dart';
-import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
@@ -157,7 +156,6 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (widget.model.floodCount > 1) Texts.colorfulFlood,
                       SharedPostLabel(
                         originalUserID: widget.model.originalUserID,
                         fontSize: 12,

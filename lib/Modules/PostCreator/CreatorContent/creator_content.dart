@@ -391,6 +391,8 @@ class CreatorContent extends StatelessWidget {
                       final indexInList =
                           mainController.postList.indexWhere((e) => e == model);
                       if (indexInList != -1) {
+                        final previousSelectedIndex =
+                            mainController.selectedIndex.value;
                         if (indexInList == 0) {
                           for (final post in mainController.postList) {
                             if (Get.isRegistered<CreatorContentController>(
@@ -405,6 +407,7 @@ class CreatorContent extends StatelessWidget {
                           mainController.postList.assignAll(
                             [PostCreatorModel(index: 0, text: "")],
                           );
+                          mainController.postList.refresh();
                           mainController.resetComposerItemIndexSeed(1);
                           mainController.selectedIndex.value = 0;
                         } else {
@@ -417,11 +420,16 @@ class CreatorContent extends StatelessWidget {
                             );
                           }
                           mainController.postList.removeAt(indexInList);
-                          final nextPosition = (indexInList - 1).clamp(
-                            0,
-                            mainController.postList.length - 1,
-                          );
-                          mainController.selectedIndex.value = nextPosition;
+                          mainController.postList.refresh();
+                          final lastIndex = mainController.postList.isEmpty
+                              ? 0
+                              : mainController.postList.length - 1;
+                          final nextSelectedIndex = previousSelectedIndex > indexInList
+                              ? previousSelectedIndex - 1
+                              : previousSelectedIndex == indexInList
+                                  ? indexInList.clamp(0, lastIndex)
+                                  : previousSelectedIndex.clamp(0, lastIndex);
+                          mainController.selectedIndex.value = nextSelectedIndex;
                         }
                       }
                     },

@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
 import '../Models/posts_model.dart';
+import '../Core/Repositories/post_repository.dart';
+import '../Core/Services/IndexPool/index_pool_store.dart';
+import '../Core/Services/typesense_post_service.dart';
 import '../Core/Repositories/profile_repository.dart';
 import '../Modules/Agenda/agenda_controller.dart';
 import '../Modules/Explore/explore_controller.dart';
@@ -52,10 +55,15 @@ class PostDeleteService {
 
     // 3) UI/Store tarafını güncelle
     _updateStores(model.docID);
+    PostRepository.ensure().mergeCachedPostData(model.docID, {
+      'deletedPost': true,
+      'deletedPostTime': nowMs,
+    });
     await ProfileRepository.ensure().removePostFromCaches(
       uid: model.userID,
       docId: model.docID,
     );
+    await _invalidatePostCaches(<String>[model.docID]);
 
     // 3.5) Bu gönderi yeniden paylaşıldıysa, tüm yeniden paylaşılan kopyaları kaldır
     try {
@@ -150,7 +158,12 @@ class PostDeleteService {
 
     for (final sharedPostId in sharedPostIds) {
       _updateStores(sharedPostId);
+      PostRepository.ensure().mergeCachedPostData(sharedPostId, {
+        'deletedPost': true,
+        'deletedPostTime': nowMs,
+      });
     }
+    await _invalidatePostCaches(sharedPostIds);
 
     for (var i = 0; i < postSharersSnap.docs.length; i += 400) {
       final batch = firestore.batch();
@@ -231,6 +244,30 @@ class PostDeleteService {
             .copyWith(deletedPost: true, deletedPostTime: now);
         shorts.shorts.refresh();
       }
+    }
+  }
+
+  Future<void> _invalidatePostCaches(Iterable<String> docIds) async {
+    final ids = docIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (ids.isEmpty) return;
+
+    try {
+      if (Get.isRegistered<IndexPoolStore>()) {
+        final pool = Get.find<IndexPoolStore>();
+        for (final kind in const <IndexPoolKind>[
+          IndexPoolKind.feed,
+          IndexPoolKind.explore,
+          IndexPoolKind.shortFullscreen,
+        ]) {
+          await pool.removePosts(kind, ids.toList(growable: false));
+        }
+      }
+    } catch (_) {}
+
+    for (final docId in ids) {
+      try {
+        await TypesensePostService.instance.invalidatePostId(docId);
+      } catch (_) {}
     }
   }
 

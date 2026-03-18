@@ -216,11 +216,6 @@ extension CreatorContentMediaPart on CreatorContent {
           right: 6,
           child: GestureDetector(
             onTap: () {
-              final tag = Get.find<PostCreatorController>()
-                  .selectedIndex
-                  .value
-                  .toString();
-              final controller = Get.find<CreatorContentController>(tag: tag);
               controller.selectedImages.clear();
               controller.croppedImages.clear();
               controller.reusedImageUrls.clear();
@@ -451,11 +446,6 @@ extension CreatorContentMediaPart on CreatorContent {
           right: 6,
           child: GestureDetector(
             onTap: () {
-              final tag = Get.find<PostCreatorController>()
-                  .selectedIndex
-                  .value
-                  .toString();
-              final controller = Get.find<CreatorContentController>(tag: tag);
               controller.reusedImageUrls.clear();
             },
             child: Container(

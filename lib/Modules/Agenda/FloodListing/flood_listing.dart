@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
+import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'flood_listing_controller.dart';
 
@@ -37,6 +38,14 @@ class _FloodListingState extends State<FloodListing> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        toolbarHeight: 0,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+      ),
       body: SafeArea(
         bottom: false,
         child: Obx(() {
@@ -68,28 +77,26 @@ class _FloodListingState extends State<FloodListing> {
               final model = controller.floods[index];
               final itemKey = controller.getFloodKey(index);
               final isCentered = centeredIndex == index;
+              final isLastItem = index == controller.floods.length - 1;
 
               final contentWidget = AgendaContent(
                 key: itemKey,
                 model: model,
                 isPreview: true,
                 shouldPlay: isCentered,
+                suppressFloodBadge: true,
               );
 
               final children = <Widget>[];
 
               if (index == 0) {
                 children.add(
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: Get.back,
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12, top: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _FloodListingBackButton(),
+                    ),
                   ),
                 );
               }
@@ -102,7 +109,8 @@ class _FloodListingState extends State<FloodListing> {
                       Positioned(
                         left: _chainLeftOffset(),
                         top: index == 0 ? 50 : 0,
-                        bottom: index == controller.floods.length - 1 ? 26 : 0,
+                        bottom: isLastItem ? null : 0,
+                        height: isLastItem ? 44 : null,
                         child: Container(
                           width: _chainLineWidth,
                           decoration: BoxDecoration(
@@ -132,6 +140,24 @@ class _FloodListingState extends State<FloodListing> {
             },
           );
         }),
+      ),
+    );
+  }
+}
+
+class _FloodListingBackButton extends StatelessWidget {
+  const _FloodListingBackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: Get.back,
+      child: const AppIconSurface(
+        child: Icon(
+          Icons.arrow_back_ios_new,
+          color: Colors.black,
+          size: 18,
+        ),
       ),
     );
   }

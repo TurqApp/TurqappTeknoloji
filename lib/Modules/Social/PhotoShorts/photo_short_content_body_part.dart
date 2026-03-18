@@ -54,8 +54,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                         style: TextStyle(
                           fontSize: 15,
                           fontFamily: "MontserratBold",
-                          color: Colors
-                              .white, // Burada renk önemli değil çünkü shader kaplıyor
+                          color: Colors.white,
                         ),
                       ),
                     ),

@@ -196,14 +196,22 @@ class UploadQueueService extends GetxController {
     }
   }
 
+  String _seriesBaseId(String id) {
+    final splitAt = id.lastIndexOf('_');
+    if (splitAt <= 0) return id;
+    return id.substring(0, splitAt);
+  }
+
   /// Add upload to queue
   Future<bool> addToQueue(
     QueuedUpload upload, {
     bool startProcessing = true,
   }) async {
     final fingerprint = _queueFingerprint(upload);
+    final baseId = _seriesBaseId(upload.id);
     final duplicateActive = fingerprint.isNotEmpty &&
         _queue.any((item) =>
+            _seriesBaseId(item.id) != baseId &&
             item.status != UploadStatus.completed &&
             item.status != UploadStatus.failed &&
             _queueFingerprint(item) == fingerprint);
@@ -213,6 +221,7 @@ class UploadQueueService extends GetxController {
     }
     final recentDuplicate = fingerprint.isNotEmpty &&
         _queue.any((item) =>
+            _seriesBaseId(item.id) != baseId &&
             item.status == UploadStatus.completed &&
             DateTime.now().difference(item.createdAt) <=
                 _recentDuplicateWindow &&

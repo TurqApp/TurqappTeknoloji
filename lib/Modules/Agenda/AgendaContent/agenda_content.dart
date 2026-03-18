@@ -69,6 +69,7 @@ part 'agenda_content_body_part.dart';
 
 class AgendaContent extends PostContentBase {
   final bool hideVideoPoster;
+  final bool suppressFloodBadge;
   const AgendaContent({
     super.key,
     required super.model,
@@ -76,6 +77,7 @@ class AgendaContent extends PostContentBase {
     required super.shouldPlay,
     super.instanceTag,
     this.hideVideoPoster = false,
+    this.suppressFloodBadge = false,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
     bool? showComments = false,

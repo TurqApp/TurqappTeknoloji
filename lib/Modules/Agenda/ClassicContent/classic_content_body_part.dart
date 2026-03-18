@@ -169,19 +169,12 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         ),
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.model.floodCount > 1)
-                              Texts.colorfulFlood,
-                          ],
-                        ),
-                        const SizedBox(),
-                      ],
-                    ),
+                    if (widget.model.floodCount > 1)
+                      Positioned(
+                        left: 8,
+                        bottom: 8,
+                        child: Texts.colorfulFlood,
+                      ),
                     _buildClassicReshareOverlay(
                       bottom: widget.model.originalUserID.isNotEmpty
                           ? (widget.model.floodCount > 1 ? 52 : 34)

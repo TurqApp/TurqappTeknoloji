@@ -313,31 +313,15 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       );
                                     },
                                   ),
-                                if (widget.model.flood == false &&
-                                    widget.model.floodCount > 1)
-                                  Positioned(
-                                    bottom: 0,
-                                    left: 0,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        videoController?.pause();
-                                        Get.to(() => FloodListing(
-                                                mainModel: widget.model))
-                                            ?.then(
-                                                (_) => videoController?.play());
-                                      },
-                                      child: Texts.colorfulFloodLeftSide,
-                                    ),
-                                  ),
                                 if ((widget.isReshared &&
                                         widget.model.originalUserID.isEmpty) ||
                                     widget.model.originalUserID.isNotEmpty)
                                   Positioned(
                                     left: 8,
-                                    bottom: ((widget.model.flood == false &&
+                                    bottom: (widget.model.flood == false &&
                                             widget.model.floodCount > 1)
                                         ? 26
-                                        : 8),
+                                        : 8,
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -367,6 +351,23 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                   ),
                                 _buildIzBirakBlurOverlay(),
                                 _buildIzBirakBottomBar(),
+                                if (!widget.suppressFloodBadge &&
+                                    widget.model.flood == false &&
+                                    widget.model.floodCount > 1)
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        videoController?.pause();
+                                        Get.to(() => FloodListing(
+                                                mainModel: widget.model))
+                                            ?.then(
+                                                (_) => videoController?.play());
+                                      },
+                                      child: Texts.colorfulFloodLeftSide,
+                                    ),
+                                  ),
                                 if (!_isIzBirakPost)
                                   Positioned(
                                     bottom: 8,
