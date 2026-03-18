@@ -56,6 +56,7 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       );
     }
 
+    _normalizeLayerOrdering();
     elements.refresh();
     _saveState();
   }
@@ -179,6 +180,7 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       ),
     );
 
+    _normalizeLayerOrdering();
     _saveState();
   }
 
@@ -240,6 +242,7 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       ),
     );
 
+    _normalizeLayerOrdering();
     _saveState();
   }
 

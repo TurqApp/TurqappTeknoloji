@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -480,6 +481,55 @@ class StoryRepository extends GetxService {
       'deleteReason': FieldValue.delete(),
     });
     final uid = (raw['userId'] ?? '').toString().trim();
+    if (uid.isNotEmpty) {
+      await invalidateStoryCachesForUser(uid);
+    }
+  }
+
+  Future<void> permanentlyDeleteStory(String storyId) async {
+    if (storyId.isEmpty) return;
+    final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
+    final uid = (raw['userId'] ?? '').toString().trim();
+    final musicId = (raw['musicId'] ?? '').toString().trim();
+
+    try {
+      await FirebaseFirestore.instance.collection('stories').doc(storyId).delete();
+    } catch (_) {}
+
+    if (uid.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('DeletedStories')
+            .doc(storyId)
+            .delete();
+      } catch (_) {}
+
+      try {
+        final archiveSnap = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('DeletedStories')
+            .where('storyId', isEqualTo: storyId)
+            .get();
+        for (final doc in archiveSnap.docs) {
+          try {
+            await doc.reference.delete();
+          } catch (_) {}
+        }
+      } catch (_) {}
+    }
+
+    if (musicId.isNotEmpty) {
+      unawaited(
+        StoryMusicLibraryService.instance.removeStoryUsage(
+          musicId: musicId,
+          storyId: storyId,
+        ),
+      );
+    }
+
     if (uid.isNotEmpty) {
       await invalidateStoryCachesForUser(uid);
     }

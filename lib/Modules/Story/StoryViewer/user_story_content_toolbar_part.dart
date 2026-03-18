@@ -226,14 +226,42 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () {
+                  final deletedStoriesController =
+                      Get.isRegistered<DeletedStoriesController>()
+                          ? Get.find<DeletedStoriesController>()
+                          : null;
+                  final isDeletedStory = deletedStoriesController
+                          ?.deletedAtById
+                          .containsKey(currentStory.id) ==
+                      true;
                   noYesAlert(
-                      title: "Sil",
-                      message: "Bu hikaye silinsin mi?",
+                      title: isDeletedStory ? "Kalıcı Sil" : "Sil",
+                      message: isDeletedStory
+                          ? "Bu hikaye kalıcı olarak silinsin mi?"
+                          : "Bu hikaye silinsin mi?",
                       onYesPressed: () async {
                         final currentStory = widget.user.stories[storyIndex];
-                        await deleteStory(
-                            userId: widget.user.userID,
-                            storyId: currentStory.id);
+                        if (isDeletedStory) {
+                          await StoryRepository.ensure()
+                              .permanentlyDeleteStory(currentStory.id);
+                          deletedStoriesController?.list
+                              .removeWhere((e) => e.id == currentStory.id);
+                          deletedStoriesController?.deletedAtById
+                              .remove(currentStory.id);
+                          deletedStoriesController?.deleteReasonById
+                              .remove(currentStory.id);
+                          unawaited(
+                            deletedStoriesController?.fetch(
+                                  initial: false,
+                                  forceRemote: true,
+                                ) ??
+                                Future<void>.value(),
+                          );
+                        } else {
+                          await deleteStory(
+                              userId: widget.user.userID,
+                              storyId: currentStory.id);
+                        }
 
                         setState(() {
                           widget.user.stories.removeAt(storyIndex);

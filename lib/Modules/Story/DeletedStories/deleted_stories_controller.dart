@@ -123,6 +123,20 @@ class DeletedStoriesController extends GetxController {
     } catch (_) {}
   }
 
+  Future<void> deleteForever(StoryModel story) async {
+    await _storyRepository.permanentlyDeleteStory(story.id);
+    list.removeWhere((e) => e.id == story.id);
+    deletedAtById.remove(story.id);
+    deleteReasonById.remove(story.id);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _persistCache(uid);
+    }
+    try {
+      await StoryRowController.refreshStoriesGlobally();
+    } catch (_) {}
+  }
+
   @override
   Future<void> refresh() async {
     await fetch(initial: false, forceRemote: true);

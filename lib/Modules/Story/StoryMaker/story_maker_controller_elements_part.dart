@@ -1,8 +1,30 @@
 part of 'story_maker_controller.dart';
 
 extension StoryMakerControllerElementsPart on StoryMakerController {
+  bool _isBackgroundMediaElement(StoryElement element) {
+    return element.type == StoryElementType.image ||
+        element.type == StoryElementType.video;
+  }
+
+  void _normalizeLayerOrdering() {
+    final media = elements.where(_isBackgroundMediaElement).toList()
+      ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    final overlays = elements.where((e) => !_isBackgroundMediaElement(e)).toList()
+      ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+
+    var nextZ = 0;
+    for (final element in media) {
+      element.zIndex = nextZ++;
+    }
+    for (final element in overlays) {
+      element.zIndex = nextZ++;
+    }
+    _zIndexCounter = nextZ;
+  }
+
   void bringToFront(StoryElement element) {
     element.zIndex = ++_zIndexCounter;
+    _normalizeLayerOrdering();
     elements.refresh();
   }
 
@@ -16,6 +38,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
   void removeElement(StoryElement element) {
     _saveState();
     elements.remove(element);
+    _normalizeLayerOrdering();
     elements.refresh();
   }
 
@@ -74,6 +97,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
     if (_historyIndex > 0) {
       _historyIndex--;
       elements.assignAll(_history[_historyIndex]);
+      _normalizeLayerOrdering();
       elements.refresh();
       _updateUndoRedoState();
     }
@@ -83,6 +107,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
     if (_historyIndex < _history.length - 1) {
       _historyIndex++;
       elements.assignAll(_history[_historyIndex]);
+      _normalizeLayerOrdering();
       elements.refresh();
       _updateUndoRedoState();
     }
@@ -106,6 +131,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
         mediaLookPreset: 'original',
       ),
     );
+    _normalizeLayerOrdering();
   }
 
   void addStyledTextElement(
@@ -163,6 +189,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
         mediaLookPreset: 'original',
       ),
     );
+    _normalizeLayerOrdering();
   }
 
   void addGifFromUrl(String gifUrl) {
@@ -184,6 +211,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
         mediaLookPreset: 'original',
       ),
     );
+    _normalizeLayerOrdering();
     elements.refresh();
   }
 
@@ -216,6 +244,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
         mediaLookPreset: 'original',
       ),
     );
+    _normalizeLayerOrdering();
     elements.refresh();
   }
 
@@ -270,6 +299,7 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
             mediaLookPreset: 'original',
           ),
         );
+        _normalizeLayerOrdering();
       }),
     );
   }

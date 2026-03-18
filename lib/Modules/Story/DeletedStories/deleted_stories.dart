@@ -91,10 +91,12 @@ class _StoryCard extends StatelessWidget {
   final StoryModel model;
   final DateTime deletedAt;
   final VoidCallback onRestore;
+  final VoidCallback onDelete;
   const _StoryCard({
     required this.model,
     required this.deletedAt,
     required this.onRestore,
+    required this.onDelete,
   });
 
   @override
@@ -176,6 +178,27 @@ class _StoryCard extends StatelessWidget {
                             style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: onDelete,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.delete,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -316,6 +339,30 @@ class _GridContentState extends State<_GridContent> {
             onRestore: () async {
               await c.repost(m);
               AppSnackbar('Hikaye', 'Hikaye Tekrar Paylaşıldı');
+            },
+            onDelete: () async {
+              final confirmed = await Get.dialog<bool>(
+                CupertinoAlertDialog(
+                  title: const Text('Kalıcı Sil'),
+                  content: const Text(
+                    'Bu hikaye kalıcı olarak silinsin mi?',
+                  ),
+                  actions: [
+                    CupertinoDialogAction(
+                      onPressed: () => Get.back(result: false),
+                      child: const Text('Vazgeç'),
+                    ),
+                    CupertinoDialogAction(
+                      isDestructiveAction: true,
+                      onPressed: () => Get.back(result: true),
+                      child: const Text('Sil'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true) return;
+              await c.deleteForever(m);
+              AppSnackbar('Hikaye', 'Hikaye kalıcı olarak silindi');
             },
           ),
         );
@@ -481,7 +528,39 @@ class _VerticalStripState extends State<_VerticalStrip> {
                         color: Colors.blueAccent,
                         fontFamily: "MontserratMedium"),
                   ),
-                )
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () async {
+                    final confirmed = await Get.dialog<bool>(
+                      CupertinoAlertDialog(
+                        title: const Text('Kalıcı Sil'),
+                        content: const Text(
+                          'Bu hikaye kalıcı olarak silinsin mi?',
+                        ),
+                        actions: [
+                          CupertinoDialogAction(
+                            onPressed: () => Get.back(result: false),
+                            child: const Text('Vazgeç'),
+                          ),
+                          CupertinoDialogAction(
+                            isDestructiveAction: true,
+                            onPressed: () => Get.back(result: true),
+                            child: const Text('Sil'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true) return;
+                    await widget.controller.deleteForever(m);
+                    AppSnackbar('Hikaye', 'Hikaye kalıcı olarak silindi');
+                  },
+                  icon: const Icon(
+                    CupertinoIcons.delete,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
+                ),
               ],
             ),
           ),

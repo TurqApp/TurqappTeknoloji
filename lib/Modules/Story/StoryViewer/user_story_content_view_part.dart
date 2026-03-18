@@ -21,6 +21,16 @@ extension UserStoryContentViewPart on _UserStoryContentState {
     final sortedElements = [...currentStory.elements]
       ..removeWhere((element) => element.stickerType == 'source_profile')
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    final mediaLayer = sortedElements
+        .where((element) =>
+            element.type == StoryElementType.image ||
+            element.type == StoryElementType.video)
+        .toList(growable: false);
+    final overlayLayer = sortedElements
+        .where((element) =>
+            element.type != StoryElementType.image &&
+            element.type != StoryElementType.video)
+        .toList(growable: false);
 
     return Column(
       key: ValueKey('story_column_${currentStory.id}'),
@@ -96,24 +106,12 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                         key: ValueKey(
                             'story_stack_${currentStory.id}_$storyIndex'),
                         children: [
-                          ...sortedElements.map((element) {
+                          ...mediaLayer.map((element) {
                             switch (element.type) {
                               case StoryElementType.image:
                                 return StoryImageWidget(
                                   key: ValueKey(
                                       'img_${element.content}_${currentStory.id}'),
-                                  element: element,
-                                );
-                              case StoryElementType.gif:
-                                return StoryGifWidget(
-                                  key: ValueKey(
-                                      'gif_${element.content}_${currentStory.id}'),
-                                  element: element,
-                                );
-                              case StoryElementType.text:
-                                return StoryTextWidget(
-                                  key: ValueKey(
-                                      'txt_${element.content}_${currentStory.id}'),
                                   element: element,
                                 );
                               case StoryElementType.video:
@@ -140,6 +138,24 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                                   onEnded: () {
                                     _nextStory(auto: true);
                                   },
+                                );
+                              default:
+                                return const SizedBox.shrink();
+                            }
+                          }),
+                          ...overlayLayer.map((element) {
+                            switch (element.type) {
+                              case StoryElementType.gif:
+                                return StoryGifWidget(
+                                  key: ValueKey(
+                                      'gif_${element.content}_${currentStory.id}'),
+                                  element: element,
+                                );
+                              case StoryElementType.text:
+                                return StoryTextWidget(
+                                  key: ValueKey(
+                                      'txt_${element.content}_${currentStory.id}'),
+                                  element: element,
                                 );
                               case StoryElementType.sticker:
                                 return StoryTextWidget(
