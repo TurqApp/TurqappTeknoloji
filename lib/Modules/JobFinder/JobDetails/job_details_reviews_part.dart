@@ -345,7 +345,7 @@ extension JobDetailsReviewsPart on JobDetails {
           Text("Benzer İlanlar", style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
-            height: (Get.height * 0.28).clamp(188.0, 218.0),
+            height: (Get.height * 0.30).clamp(206.0, 236.0),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: items.length,
@@ -357,7 +357,7 @@ extension JobDetailsReviewsPart on JobDetails {
                 return GestureDetector(
                   onTap: () => Get.off(() => JobDetails(model: item)),
                   child: Container(
-                    width: (Get.width * 0.42).clamp(136.0, 160.0),
+                    width: (Get.width * 0.43).clamp(142.0, 166.0),
                     margin: const EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
@@ -371,7 +371,7 @@ extension JobDetailsReviewsPart on JobDetails {
                             top: Radius.circular(12),
                           ),
                           child: SizedBox(
-                            height: (Get.height * 0.125).clamp(84.0, 100.0),
+                            height: (Get.height * 0.135).clamp(96.0, 112.0),
                             width: double.infinity,
                             child: CachedNetworkImage(
                               imageUrl: item.logo,

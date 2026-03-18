@@ -475,7 +475,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 }
 
                 return SizedBox(
-                  height: 224,
+                  height: 242,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: related.length,
@@ -1458,7 +1458,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         await _refreshItem(silent: true);
       },
       child: SizedBox(
-        width: 164,
+        width: 170,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
