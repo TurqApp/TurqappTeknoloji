@@ -66,14 +66,14 @@ class StorageBudgetUsageSnapshot {
 class StorageBudgetManager extends GetxService {
   static const int _mb = 1024 * 1024;
   static const int _maxRecentProtectionWindow = 50;
-  final RxInt _selectedPlanGb = 3.obs;
+  final RxInt _selectedPlanGb = 4.obs;
 
   int get selectedPlanGb => _selectedPlanGb.value;
   StorageBudgetProfile get currentProfile =>
       profileForPlanGb(_selectedPlanGb.value);
 
   Future<StorageBudgetProfile> applyPlanGb(int gb) async {
-    final normalized = gb.clamp(2, 5);
+    final normalized = gb.clamp(4, 7);
     _selectedPlanGb.value = normalized;
     return profileForPlanGb(normalized);
   }
@@ -164,7 +164,7 @@ class StorageBudgetManager extends GetxService {
   }
 
   static StorageBudgetProfile profileForPlanGb(int gb) {
-    final normalized = gb.clamp(2, 5);
+    final normalized = gb.clamp(4, 7);
     final template = _templateFor(normalized);
     final mediaHardStopBytes =
         template.mediaQuotaBytes + template.reserveQuotaBytes;
@@ -184,13 +184,13 @@ class StorageBudgetManager extends GetxService {
   }
 
   static int _baseRecentProtectionWindow(int planGb) {
-    switch (planGb.clamp(2, 5)) {
-      case 2:
-        return 8;
-      case 3:
-        return 16;
+    switch (planGb.clamp(4, 7)) {
       case 4:
         return 32;
+      case 5:
+        return 42;
+      case 6:
+        return 46;
       default:
         return _maxRecentProtectionWindow;
     }
@@ -203,22 +203,6 @@ class StorageBudgetManager extends GetxService {
 
   static _BudgetTemplate _templateFor(int planGb) {
     switch (planGb) {
-      case 2:
-        return const _BudgetTemplate(
-          mediaQuotaBytes: 1370 * _mb,
-          imageQuotaBytes: 220 * _mb,
-          metadataQuotaBytes: 110 * _mb,
-          reserveQuotaBytes: 120 * _mb,
-          osSafetyMarginBytes: 180 * _mb,
-        );
-      case 3:
-        return const _BudgetTemplate(
-          mediaQuotaBytes: 2150 * _mb,
-          imageQuotaBytes: 350 * _mb,
-          metadataQuotaBytes: 180 * _mb,
-          reserveQuotaBytes: 120 * _mb,
-          osSafetyMarginBytes: 200 * _mb,
-        );
       case 4:
         return const _BudgetTemplate(
           mediaQuotaBytes: 3000 * _mb,
@@ -227,13 +211,29 @@ class StorageBudgetManager extends GetxService {
           reserveQuotaBytes: 160 * _mb,
           osSafetyMarginBytes: 200 * _mb,
         );
-      default:
+      case 5:
         return const _BudgetTemplate(
           mediaQuotaBytes: 3950 * _mb,
           imageQuotaBytes: 480 * _mb,
           metadataQuotaBytes: 250 * _mb,
           reserveQuotaBytes: 170 * _mb,
           osSafetyMarginBytes: 150 * _mb,
+        );
+      case 6:
+        return const _BudgetTemplate(
+          mediaQuotaBytes: 4900 * _mb,
+          imageQuotaBytes: 560 * _mb,
+          metadataQuotaBytes: 280 * _mb,
+          reserveQuotaBytes: 190 * _mb,
+          osSafetyMarginBytes: 170 * _mb,
+        );
+      default:
+        return const _BudgetTemplate(
+          mediaQuotaBytes: 5850 * _mb,
+          imageQuotaBytes: 640 * _mb,
+          metadataQuotaBytes: 320 * _mb,
+          reserveQuotaBytes: 210 * _mb,
+          osSafetyMarginBytes: 180 * _mb,
         );
     }
   }

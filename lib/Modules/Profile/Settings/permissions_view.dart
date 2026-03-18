@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
@@ -40,7 +41,9 @@ class PermissionsView extends StatefulWidget {
 
 class _PermissionsViewState extends State<PermissionsView> {
   static const String _quotaKey = 'offline_cache_quota_gb';
-  static const List<int> _quotaOptions = [2, 3, 4, 5];
+  static const List<int> _quotaOptions = [3, 4, 5, 6];
+  static const int _minDisplayQuotaGb = 3;
+  static const int _maxDisplayQuotaGb = 6;
   static const List<_PermissionItem> _items = [
     _PermissionItem(
       title: 'Kamera',
@@ -114,39 +117,59 @@ class _PermissionsViewState extends State<PermissionsView> {
   final Map<String, PermissionStatus> _statuses = {};
   bool _loading = true;
   int _selectedQuota = 3;
+  bool _showPlaybackPreferences = false;
   NetworkSettings _networkSettings = NetworkSettings();
 
   @override
   void initState() {
     super.initState();
     _loadQuota();
+    _loadAdminVisibility();
     _loadNetworkSettings();
     _refreshStatuses();
   }
 
+  int _normalizeDisplayQuota(int gb) =>
+      gb.clamp(_minDisplayQuotaGb, _maxDisplayQuotaGb);
+
+  int _effectiveQuotaGb(int displayGb) =>
+      (_normalizeDisplayQuota(displayGb) + 1).clamp(4, 7);
+
+  Future<void> _loadAdminVisibility() async {
+    final canManage = await AdminAccessService.canManageSliders();
+    if (!mounted) return;
+    setState(() => _showPlaybackPreferences = canManage);
+  }
+
   Future<void> _loadQuota() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getInt(_quotaKey) ?? 3;
+    final saved = _normalizeDisplayQuota(prefs.getInt(_quotaKey) ?? 3);
+    final effectiveQuota = _effectiveQuotaGb(saved);
     if (Get.isRegistered<StorageBudgetManager>()) {
-      await Get.find<StorageBudgetManager>().applyPlanGb(saved.clamp(2, 5));
+      await Get.find<StorageBudgetManager>().applyPlanGb(effectiveQuota);
+    }
+    if (Get.isRegistered<SegmentCacheManager>()) {
+      await Get.find<SegmentCacheManager>().setUserLimitGB(effectiveQuota);
     }
     if (!mounted) return;
-    setState(() => _selectedQuota = saved.clamp(2, 5));
+    setState(() => _selectedQuota = saved);
   }
 
   Future<void> _setQuota(int gb) async {
+    final displayQuota = _normalizeDisplayQuota(gb);
+    final effectiveQuota = _effectiveQuotaGb(displayQuota);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_quotaKey, gb);
+    await prefs.setInt(_quotaKey, displayQuota);
     try {
       if (Get.isRegistered<StorageBudgetManager>()) {
-        await Get.find<StorageBudgetManager>().applyPlanGb(gb);
+        await Get.find<StorageBudgetManager>().applyPlanGb(effectiveQuota);
       }
       if (Get.isRegistered<SegmentCacheManager>()) {
-        await Get.find<SegmentCacheManager>().setUserLimitGB(gb);
+        await Get.find<SegmentCacheManager>().setUserLimitGB(effectiveQuota);
       }
     } catch (_) {}
     if (!mounted) return;
-    setState(() => _selectedQuota = gb);
+    setState(() => _selectedQuota = displayQuota);
   }
 
   Future<void> _loadNetworkSettings() async {
@@ -248,7 +271,8 @@ class _PermissionsViewState extends State<PermissionsView> {
   }
 
   Widget _buildQuotaBreakdown() {
-    final profile = StorageBudgetManager.profileForPlanGb(_selectedQuota);
+    final profile = StorageBudgetManager.profileForPlanGb(
+        _effectiveQuotaGb(_selectedQuota));
     final usage = Get.isRegistered<SegmentCacheManager>()
         ? StorageBudgetManager.usageSnapshotForProfile(
             profile,
@@ -280,7 +304,7 @@ class _PermissionsViewState extends State<PermissionsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${profile.planGb} GB plan dagilimi',
+            '$_selectedQuota GB plan dagilimi',
             style: const TextStyle(
               color: Colors.black,
               fontSize: 14,
@@ -640,7 +664,7 @@ class _PermissionsViewState extends State<PermissionsView> {
                           ),
                           const SizedBox(height: 10),
                           const Text(
-                            'Seçtiğiniz GB kadar içerik cihazınıza indirilir ve internet bağlantısı olmadan izlenebilir. Alan doldukça eski videolar otomatik olarak silinir.',
+                            'Seçtiğiniz plana göre içerik cihazınıza indirilir ve internet bağlantısı olmadan izlenebilir. Alan doldukça eski videolar otomatik olarak silinir.',
                             style: TextStyle(
                               color: Colors.black45,
                               fontSize: 13,
@@ -649,7 +673,8 @@ class _PermissionsViewState extends State<PermissionsView> {
                             ),
                           ),
                           _buildQuotaBreakdown(),
-                          _buildPlaybackPolicyCard(),
+                          if (_showPlaybackPreferences)
+                            _buildPlaybackPolicyCard(),
                         ],
                       ),
                     ),

@@ -38,6 +38,8 @@ import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.da
 import 'package:turqappv2/Modules/Profile/Settings/pasaj_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/reports_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/story_music_admin_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/support_admin_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/support_contact_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -55,7 +57,6 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Services/offline_mode_service.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 
@@ -94,14 +95,16 @@ class SettingsView extends StatelessWidget {
                         Get.to(() => EditProfile());
                       }),
                       FutureBuilder<VerifiedAccountApplicationState?>(
-                        future: _verifiedAccountRepository.fetchApplicationState(
+                        future:
+                            _verifiedAccountRepository.fetchApplicationState(
                           FirebaseAuth.instance.currentUser?.uid ?? '',
                         ),
                         builder: (context, snapshot) {
                           final application = snapshot.data;
                           final hasPendingApplication =
                               application?.isPending == true;
-                          final canRenew = application?.canSubmitRenewal == true;
+                          final canRenew =
+                              application?.canSubmitRenewal == true;
                           final hasBadge =
                               (userService.currentUser?.rozet ?? "").isNotEmpty;
                           if (hasPendingApplication) {
@@ -187,7 +190,7 @@ class SettingsView extends StatelessWidget {
                         Get.to(() => Policies());
                       }),
                       buildRow("Bize Yazın", CupertinoIcons.pencil_circle, () {
-                        launchUrl(Uri.parse('mailto:info@turqapp.com'));
+                        Get.to(() => const SupportContactView());
                       }),
                       StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                         stream: _adminTaskAssignmentRepository.watchAssignment(
@@ -207,12 +210,15 @@ class SettingsView extends StatelessWidget {
                             children: [
                               buildSectionTitle("Görevlerim"),
                               ..._buildAssignedTaskRows(taskIds),
-                              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                                stream: _adminApprovalRepository.watchOwnApprovals(
+                              StreamBuilder<
+                                  QuerySnapshot<Map<String, dynamic>>>(
+                                stream:
+                                    _adminApprovalRepository.watchOwnApprovals(
                                   FirebaseAuth.instance.currentUser?.uid ?? '',
                                 ),
                                 builder: (context, approvalsSnap) {
-                                  final docs = approvalsSnap.data?.docs ?? const [];
+                                  final docs =
+                                      approvalsSnap.data?.docs ?? const [];
                                   if (docs.isEmpty) {
                                     return const SizedBox.shrink();
                                   }
@@ -250,7 +256,8 @@ class SettingsView extends StatelessWidget {
                               buildRow(
                                 "Yönetim / Moderasyon",
                                 CupertinoIcons.flag_fill,
-                                () => Get.to(() => const ModerationSettingsView()),
+                                () => Get.to(
+                                    () => const ModerationSettingsView()),
                               ),
                               buildRow(
                                 "Yönetim / Reports",
@@ -265,7 +272,8 @@ class SettingsView extends StatelessWidget {
                               buildRow(
                                 "Yönetim / Admin Görevleri",
                                 CupertinoIcons.checkmark_rectangle_fill,
-                                () => Get.to(() => const AdminTaskAssignmentsView()),
+                                () => Get.to(
+                                    () => const AdminTaskAssignmentsView()),
                               ),
                               buildRow(
                                 "Yönetim / Admin Onayları",
@@ -276,6 +284,11 @@ class SettingsView extends StatelessWidget {
                                 "Yönetim / Hikaye Müzikleri",
                                 CupertinoIcons.music_note_list,
                                 () => Get.to(() => const StoryMusicAdminView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Kullanıcı Destek",
+                                CupertinoIcons.chat_bubble_2_fill,
+                                () => Get.to(() => const SupportAdminView()),
                               ),
                               buildRow(
                                 "Sistem ve Tanı Menüsü",
@@ -304,7 +317,8 @@ class SettingsView extends StatelessWidget {
                                 currentUser,
                                 {"token": ""},
                               );
-                              await AccountCenterService.ensure().markSessionState(
+                              await AccountCenterService.ensure()
+                                  .markSessionState(
                                 uid: currentUser,
                                 isSessionValid: false,
                               );
@@ -475,10 +489,7 @@ class SettingsView extends StatelessWidget {
         Get.to(() => PasajSettingsView());
         return;
       case 'support':
-        AppSnackbar(
-          'Görev',
-          'Kullanıcı Destek ekranı henüz ayrı bir panel olarak açılmadı.',
-        );
+        Get.to(() => const SupportAdminView());
         return;
     }
   }

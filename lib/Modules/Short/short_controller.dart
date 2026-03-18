@@ -96,8 +96,8 @@ class ShortController extends GetxController {
   Future<void> _applyUserCacheQuota() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedGb = prefs.getInt('offline_cache_quota_gb') ?? 3;
-      final quotaGb = savedGb.clamp(2, 5);
+      final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
+      final quotaGb = (savedGb + 1).clamp(4, 7);
       if (Get.isRegistered<StorageBudgetManager>()) {
         await Get.find<StorageBudgetManager>().applyPlanGb(quotaGb);
       }
