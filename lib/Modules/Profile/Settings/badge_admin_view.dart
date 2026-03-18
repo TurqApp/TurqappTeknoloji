@@ -3,6 +3,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -32,6 +34,9 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
   final TextEditingController _nicknameController = TextEditingController();
   final VerifiedAccountRepository _verifiedAccountRepository =
       VerifiedAccountRepository.ensure();
+  final AdminApprovalRepository _approvalRepository =
+      AdminApprovalRepository.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
   late final Future<bool> _canAccessFuture;
   String _selectedBadge = '';
   bool _saving = false;
@@ -95,7 +100,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Nickname ile rozet ata',
+                                'Kullanıcı adı ile rozet yönet',
                                 style: TextStyle(
                                   fontFamily: 'MontserratBold',
                                   fontSize: 15,
@@ -104,7 +109,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Nickname gir, rozeti seç ve kaydet. `Rozetsiz` seçimi mevcut rozeti kaldırır.',
+                                'Kullanıcı adını gir, rozeti seç ve kaydet. `Rozetsiz` seçimi mevcut rozeti kaldırır.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontFamily: 'MontserratMedium',
                                   color: Colors.black54,
@@ -120,7 +125,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                                   color: Colors.black,
                                 ),
                                 decoration: InputDecoration(
-                                  labelText: 'Nickname',
+                                  labelText: 'Kullanıcı adı',
                                   hintText: '@kullaniciadi',
                                   labelStyle: const TextStyle(
                                     fontFamily: 'MontserratMedium',
@@ -263,7 +268,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
     FocusManager.instance.primaryFocus?.unfocus();
     final nickname = _normalizeNickname(_nicknameController.text);
     if (nickname.isEmpty) {
-      AppSnackbar('Eksik Bilgi', 'Nickname zorunludur.');
+      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı zorunludur.');
       return;
     }
 
@@ -272,6 +277,29 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
     });
 
     try {
+      final isPrimaryAdmin = await AdminAccessService.isPrimaryAdmin();
+      if (!isPrimaryAdmin) {
+        final user = await _userRepository.findUserByNickname(nickname);
+        if (user == null) {
+          AppSnackbar('Hata', 'Bu kullanıcı adı ile kullanıcı bulunamadı.');
+          return;
+        }
+        await _approvalRepository.createApproval(
+          type: 'badge_change',
+          title: 'Rozet değişikliği onayı',
+          summary:
+              '@$nickname için ${_selectedBadge.isEmpty ? 'rozet kaldırma' : '$_selectedBadge rozeti verme'} talebi oluşturuldu.',
+          targetUserId: (user['id'] ?? '').toString(),
+          targetNickname: (user['nickname'] ?? '').toString(),
+          payload: <String, dynamic>{
+            'userId': (user['id'] ?? '').toString(),
+            'rozet': _selectedBadge,
+          },
+        );
+        AppSnackbar('Rozet', 'İşlem admin onay kuyruğuna gönderildi.');
+        return;
+      }
+
       final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('setUserBadgeByNickname');
       final response = await callable.call<Map<String, dynamic>>({
@@ -316,13 +344,13 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
   String _errorMessage(FirebaseFunctionsException error) {
     switch (error.code) {
       case 'not-found':
-        return 'Bu nickname ile kullanıcı bulunamadı.';
+        return 'Bu kullanıcı adı ile kullanıcı bulunamadı.';
       case 'permission-denied':
         return 'Bu işlem için admin yetkisi gerekli.';
       case 'invalid-argument':
         return error.message ?? 'Girilen bilgi geçersiz.';
       case 'failed-precondition':
-        return 'Bu nickname için birden fazla kullanıcı bulundu.';
+        return 'Bu kullanıcı adı için birden fazla kullanıcı bulundu.';
       default:
         return error.message ?? 'Rozet kaydedilemedi.';
     }
@@ -403,6 +431,8 @@ class _ApplicationCard extends StatefulWidget {
 }
 
 class _ApplicationCardState extends State<_ApplicationCard> {
+  final AdminApprovalRepository _approvalRepository =
+      AdminApprovalRepository.ensure();
   bool _approving = false;
 
   @override
@@ -606,6 +636,25 @@ class _ApplicationCardState extends State<_ApplicationCard> {
       _approving = true;
     });
     try {
+      final isPrimaryAdmin = await AdminAccessService.isPrimaryAdmin();
+      if (!isPrimaryAdmin) {
+        await _approvalRepository.createApproval(
+          type: 'badge_change',
+          title: 'Rozet başvurusu onayı',
+          summary:
+              '@${(widget.data['talepNickname'] ?? '').toString().trim()} için $rozet rozeti onaya gönderildi.',
+          targetUserId: userId,
+          targetNickname:
+              (widget.data['currentNickname'] ?? '').toString().trim(),
+          payload: <String, dynamic>{
+            'userId': userId,
+            'rozet': rozet,
+          },
+        );
+        AppSnackbar('Rozet', 'Başvuru admin onay kuyruğuna gönderildi.');
+        return;
+      }
+
       final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('setUserBadgeByUserId');
       await callable.call<Map<String, dynamic>>({

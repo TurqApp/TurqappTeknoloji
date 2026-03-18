@@ -52,6 +52,13 @@ class AdminAccessService {
     return allowed;
   }
 
+  static Future<bool> isPrimaryAdmin() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return false;
+    final token = await currentUser.getIdTokenResult(true);
+    return token.claims?["admin"] == true;
+  }
+
   static Future<Set<String>> _loadAllowlist() async {
     final now = DateTime.now();
     if (_lastAllowlistFetchAt != null &&

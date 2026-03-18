@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
@@ -23,6 +24,8 @@ import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/admin_approvals_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/admin_task_assignments_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_home_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/account_center_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
@@ -56,6 +59,8 @@ class SettingsView extends StatelessWidget {
   final controller = Get.put(SettingsController());
   final scholarshipsController = Get.put(ScholarshipsController());
   final UserRepository _userRepository = UserRepository.ensure();
+  final VerifiedAccountRepository _verifiedAccountRepository =
+      VerifiedAccountRepository.ensure();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
@@ -83,12 +88,47 @@ class SettingsView extends StatelessWidget {
                           () {
                         Get.to(() => EditProfile());
                       }),
-                      if ((userService.currentUser?.rozet ?? "").isEmpty)
-                        buildRow(
-                            "Onaylı Hesap Ol", CupertinoIcons.checkmark_seal,
-                            () {
-                          Get.to(() => BecomeVerifiedAccount());
-                        }),
+                      FutureBuilder<VerifiedAccountApplicationState?>(
+                        future: _verifiedAccountRepository.fetchApplicationState(
+                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                        ),
+                        builder: (context, snapshot) {
+                          final application = snapshot.data;
+                          final hasPendingApplication =
+                              application?.isPending == true;
+                          final canRenew = application?.canSubmitRenewal == true;
+                          final hasBadge =
+                              (userService.currentUser?.rozet ?? "").isNotEmpty;
+                          if (hasPendingApplication) {
+                            return buildRow(
+                              "Rozet Başvurum",
+                              CupertinoIcons.doc_text_search,
+                              () {
+                                Get.to(() => BecomeVerifiedAccount());
+                              },
+                            );
+                          }
+                          if (canRenew) {
+                            return buildRow(
+                              "Rozeti Yenile",
+                              CupertinoIcons.arrow_clockwise_circle,
+                              () {
+                                Get.to(() => BecomeVerifiedAccount());
+                              },
+                            );
+                          }
+                          if (!hasBadge) {
+                            return buildRow(
+                              "Onaylı Hesap Ol",
+                              CupertinoIcons.checkmark_seal,
+                              () {
+                                Get.to(() => BecomeVerifiedAccount());
+                              },
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                       buildRow(
                         "Engellenenler",
                         CupertinoIcons.exclamationmark_circle,
@@ -165,6 +205,16 @@ class SettingsView extends StatelessWidget {
                           "Yönetim / Rozet Yönetimi",
                           CupertinoIcons.checkmark_seal_fill,
                           () => Get.to(() => const BadgeAdminView()),
+                        ),
+                        buildRow(
+                          "Yönetim / Admin Görevleri",
+                          CupertinoIcons.checkmark_rectangle_fill,
+                          () => Get.to(() => const AdminTaskAssignmentsView()),
+                        ),
+                        buildRow(
+                          "Yönetim / Admin Onayları",
+                          CupertinoIcons.checkmark_alt_circle_fill,
+                          () => Get.to(() => const AdminApprovalsView()),
                         ),
                         buildRow(
                           "Yönetim / Hikaye Müzikleri",

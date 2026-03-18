@@ -1081,6 +1081,18 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    match /adminTaskAssignments/{uid} {
+      allow read, write: if canManageAdminPanels();
+    }
+
+    match /adminApprovals/{docId} {
+      allow read: if canManageAdminPanels();
+      allow create: if canManageAdminPanels()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
     match /storyMusic/{docId} {
       allow read: if isAuth();
       allow create, update, delete: if isAdmin() || isAllowlistedAdmin();
@@ -1982,7 +1994,18 @@ service cloud.firestore {
       allow write: if false; // Legacy hashtag path disabled
     }
     match /TurqAppVerified/{docId} {
-      allow read: if isAuth();
+      allow read: if isOwner(docId) || isAdmin();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update: if isAdmin() || (
+        isOwner(docId)
+        && resource.data.status in ['approved', 'expired', 'renewal_open', 'rejected']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.userID == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+    match /bannedUser/{docId} {
+      allow read: if canManageAdminPanels();
       allow write: if false;
     }
     match /SosyalMedyaLinkleri/{docId} {
