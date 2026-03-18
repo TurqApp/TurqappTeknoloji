@@ -131,59 +131,59 @@ class _ShortsContentState extends State<ShortsContent> {
     return Obx(() {
       final showOverlay =
           widget.onToggleOverlay == null ? controller.fullscreen.value : widget.showOverlayControls;
-      return Stack(
-        fit: StackFit.expand,
-        alignment: Alignment.center,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              if (widget.onToggleOverlay != null) {
-                widget.onToggleOverlay!();
-              } else {
-                controller.fullscreen.value = !controller.fullscreen.value;
-              }
-            },
-            onDoubleTap: () {
-              if (widget.onDoubleTapLike != null) {
-                widget.onDoubleTapLike!();
-              } else {
-                controller.toggleLike();
-              }
-              HapticFeedback.mediumImpact();
-            },
-            onLongPressStart: (v) {
-              if (videoPlayerController.value.isInitialized) {
-                videoPlayerController.pause();
-                HapticFeedback.lightImpact();
-              }
-            },
-            onLongPressEnd: (v) {
-              if (videoPlayerController.value.isInitialized) {
-                resumeIfActive();
-              }
-            },
-            onHorizontalDragEnd: (details) async {
-              if (details.velocity.pixelsPerSecond.dx < 0) {
-                videoPlayerController.pause();
-                await Get.to(() => SocialProfile(userID: model.userID));
-                resumeIfActive();
-              }
-            },
-            child: const SizedBox.expand(),
-          ),
-          if (showOverlay) userInfoBar(context),
-          if (controller.gizlendi.value) gonderiGizlendi(context),
-          if (controller.arsivlendi.value) gonderiArsivlendi(context),
-          Obx(() => controller.silindi.value
-              ? AnimatedOpacity(
-                  opacity: controller.silindiOpacity.value,
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut,
-                  child: gonderiSilindi(context),
-                )
-              : const SizedBox.shrink())
-        ],
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (widget.onToggleOverlay != null) {
+            widget.onToggleOverlay!();
+          } else {
+            controller.fullscreen.value = !controller.fullscreen.value;
+          }
+        },
+        onDoubleTap: () {
+          if (widget.onDoubleTapLike != null) {
+            widget.onDoubleTapLike!();
+          } else {
+            controller.toggleLike();
+          }
+          HapticFeedback.mediumImpact();
+        },
+        onLongPressStart: (v) {
+          if (videoPlayerController.value.isInitialized) {
+            videoPlayerController.pause();
+            HapticFeedback.lightImpact();
+          }
+        },
+        onLongPressEnd: (v) {
+          if (videoPlayerController.value.isInitialized) {
+            resumeIfActive();
+          }
+        },
+        onHorizontalDragEnd: (details) async {
+          if (details.velocity.pixelsPerSecond.dx < 0) {
+            videoPlayerController.pause();
+            await Get.to(() => SocialProfile(userID: model.userID));
+            resumeIfActive();
+          }
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          alignment: Alignment.center,
+          children: [
+            const SizedBox.expand(),
+            if (showOverlay) userInfoBar(context),
+            if (controller.gizlendi.value) gonderiGizlendi(context),
+            if (controller.arsivlendi.value) gonderiArsivlendi(context),
+            Obx(() => controller.silindi.value
+                ? AnimatedOpacity(
+                    opacity: controller.silindiOpacity.value,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOut,
+                    child: gonderiSilindi(context),
+                  )
+                : const SizedBox.shrink())
+          ],
+        ),
       );
     });
   }
