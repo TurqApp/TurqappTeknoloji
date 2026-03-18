@@ -30,54 +30,91 @@ extension SignInSignupPart on SignIn {
                 ],
               ),
               SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontFamily: "Montserrat",
-                        ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F1EA),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () => controller.signupPoliciesAccepted.value =
+                          !controller.signupPoliciesAccepted.value,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const TextSpan(
-                            text: "Hesap oluşturarak ",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
+                          Container(
+                            width: 22,
+                            height: 22,
+                            margin: const EdgeInsets.only(top: 1),
+                            decoration: BoxDecoration(
+                              color: controller.signupPoliciesAccepted.value
+                                  ? Colors.black
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.black),
                             ),
+                            child: controller.signupPoliciesAccepted.value
+                                ? const Icon(
+                                    CupertinoIcons.check_mark,
+                                    color: Colors.white,
+                                    size: 14,
+                                  )
+                                : null,
                           ),
-                          TextSpan(
-                            text: "Son Kullanıcı Sözleşmesini",
-                            style: const TextStyle(
-                              color: Colors.blue,
-                              decoration: TextDecoration.underline,
-                              fontSize: 12,
-                              fontFamily: "MontserratMedium",
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                launchUrl(Uri.parse("https://turqapp.com"));
-                              },
-                          ),
-                          const TextSpan(
-                            text: " kabul etmiş olursunuz.",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 12,
+                                  height: 1.55,
+                                  fontFamily: 'Montserrat',
+                                ),
+                                children: [
+                                  const TextSpan(
+                                    text: 'Hesap olusturarak ve devam ederek ',
+                                  ),
+                                  _policyTextSpan(
+                                    'Uyelik ve Sozlesme',
+                                    'agreement',
+                                  ),
+                                  const TextSpan(text: ', '),
+                                  _policyTextSpan('Gizlilik', 'privacy'),
+                                  const TextSpan(text: ', '),
+                                  _policyTextSpan('Aydinlatma', 'notice'),
+                                  const TextSpan(text: ', '),
+                                  _policyTextSpan('Topluluk', 'community'),
+                                  const TextSpan(text: ' ve '),
+                                  _policyTextSpan(
+                                    'Guvenlik ve Moderasyon',
+                                    'moderation',
+                                  ),
+                                  const TextSpan(
+                                      text: ' metinlerini kabul ediyorum.'),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Bu onay, hesap olusturma akisinin bir parcasi olarak kayda alinabilir.',
+                      style: TextStyle(
+                        color: Colors.black45,
+                        fontSize: 11,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  ],
+                ),
               ),
               SizedBox(height: 12),
               Container(
@@ -307,6 +344,7 @@ extension SignInSignupPart on SignIn {
                       controller.nicknamecontroller.text = "";
                       controller.emailcontroller.text = "";
                       controller.passwordcontroller.text = "";
+                      controller.signupPoliciesAccepted.value = false;
                       controller.emailFocus.value.unfocus();
                       controller.nicknameFocus.value.unfocus();
                       controller.passwordFocus.value.unfocus();

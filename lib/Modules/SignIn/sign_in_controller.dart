@@ -79,6 +79,7 @@ class SignInController extends GetxController
   var passwordAvilable = false.obs;
   var wait = false.obs;
   var signupIdentityCheckLoading = false.obs;
+  var signupPoliciesAccepted = false.obs;
   var showPassword = false.obs;
   var showNewPassword = false.obs;
   var showNewPasswordRepeat = false.obs;
@@ -225,7 +226,8 @@ class SignInController extends GetxController
     );
   }
 
-  Future<String> preferredIdentifierForStoredAccount(StoredAccount account) async {
+  Future<String> preferredIdentifierForStoredAccount(
+      StoredAccount account) async {
     final emailFromAccount = account.email.trim().toLowerCase();
     if (emailFromAccount.isNotEmpty) return emailFromAccount;
     if (account.hasPasswordProvider) {

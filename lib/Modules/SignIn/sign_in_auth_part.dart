@@ -119,7 +119,8 @@ extension SignInAuthPart on SignIn {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    accountCenter.lastUsedUid.value == account.uid
+                                    accountCenter.lastUsedUid.value ==
+                                            account.uid
                                         ? 'Son kullanilan'
                                         : 'Kayitli hesap',
                                     style: const TextStyle(
@@ -172,6 +173,7 @@ extension SignInAuthPart on SignIn {
           TextButton(
             onPressed: () {
               controller.clearStoredAccountContext();
+              controller.signupPoliciesAccepted.value = false;
               controller.selection.value = 2;
             },
             style: TextButton.styleFrom(
@@ -197,6 +199,27 @@ extension SignInAuthPart on SignIn {
             ),
           ),
           SizedBox(height: 20),
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 12,
+                height: 1.55,
+                fontFamily: 'Montserrat',
+              ),
+              children: [
+                const TextSpan(text: 'Devam ederek '),
+                _policyTextSpan('Uyelik ve Sozlesme', 'agreement'),
+                const TextSpan(text: ', '),
+                _policyTextSpan('Gizlilik', 'privacy'),
+                const TextSpan(text: ' ve '),
+                _policyTextSpan('Topluluk', 'community'),
+                const TextSpan(text: ' metinlerini inceleyebilirsin.'),
+              ],
+            ),
+          ),
+          SizedBox(height: 12),
           Text(
             "© TurqApp A.Ş.",
             style: TextStyle(
@@ -220,15 +243,6 @@ extension SignInAuthPart on SignIn {
             children: [
               Column(
                 children: [
-                  RotationTransition(
-                    turns: controller.animationController,
-                    child: Image.asset(
-                      "assets/images/logotrans.webp",
-                      color: Colors.black,
-                      height: 80,
-                    ),
-                  ),
-                  SizedBox(height: 12),
                   Text(
                     "TurqApp",
                     style: TextStyle(
@@ -344,7 +358,8 @@ extension SignInAuthPart on SignIn {
                                     TextPosition(offset: trimmedValue.length),
                                   );
                                 }
-                                controller.maybeClearStoredAccountContextForIdentifier(
+                                controller
+                                    .maybeClearStoredAccountContextForIdentifier(
                                   trimmedValue,
                                 );
                                 if (trimmedValue.isEmpty) {
@@ -456,6 +471,27 @@ extension SignInAuthPart on SignIn {
             ),
           ),
           SizedBox(height: 20),
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 12,
+                height: 1.55,
+                fontFamily: 'Montserrat',
+              ),
+              children: [
+                const TextSpan(text: 'Giris yaparak uygulama ici '),
+                _policyTextSpan('Uyelik ve Sozlesme', 'agreement'),
+                const TextSpan(text: ', '),
+                _policyTextSpan('Gizlilik', 'privacy'),
+                const TextSpan(text: ' ve '),
+                _policyTextSpan('Aydinlatma', 'notice'),
+                const TextSpan(text: ' metinlerine bagli kalirsin.'),
+              ],
+            ),
+          ),
+          SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

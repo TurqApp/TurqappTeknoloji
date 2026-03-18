@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Modules/Profile/Policies/policies.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_controller.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../Core/Helpers/custom_nickname_formatter.dart';
 
@@ -64,6 +64,24 @@ class SignIn extends StatelessWidget {
           }),
         ),
       ),
+    );
+  }
+
+  void _openPolicyCenter({String? initialPolicyId}) {
+    Get.to(() => Policies(initialPolicyId: initialPolicyId));
+  }
+
+  TextSpan _policyTextSpan(String label, String policyId) {
+    return TextSpan(
+      text: label,
+      style: const TextStyle(
+        color: Colors.black,
+        decoration: TextDecoration.underline,
+        fontSize: 12,
+        fontFamily: 'MontserratBold',
+      ),
+      recognizer: TapGestureRecognizer()
+        ..onTap = () => _openPolicyCenter(initialPolicyId: policyId),
     );
   }
 }

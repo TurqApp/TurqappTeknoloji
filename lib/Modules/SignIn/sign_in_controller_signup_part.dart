@@ -19,6 +19,19 @@ extension SignInControllerSignupPart on SignInController {
         email: email.value,
         phoneNumber: phoneNumber.value,
       );
+      userDoc['agreementAcceptance'] = <String, dynamic>{
+        'accepted': true,
+        'version': '2026-03-19',
+        'acceptedAt': DateTime.now().millisecondsSinceEpoch,
+        'source': 'signup_email_phone_flow',
+        'documents': <String>[
+          'agreement',
+          'privacy',
+          'notice',
+          'community',
+          'moderation',
+        ],
+      };
       final userSubdocs = buildInitialUserSubdocuments(userDoc: userDoc);
 
       try {
@@ -227,6 +240,13 @@ extension SignInControllerSignupPart on SignInController {
     final pass = passwordcontroller.text;
 
     try {
+      if (!signupPoliciesAccepted.value) {
+        AppSnackbar(
+          'Onay Gerekli',
+          'Devam etmek icin uyelik sozlesmesi ve politika metinlerini kabul etmelisiniz.',
+        );
+        return false;
+      }
       if (!isValidEmail(emailText)) {
         AppSnackbar('Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
         return false;
@@ -447,6 +467,13 @@ extension SignInControllerSignupPart on SignInController {
 
   Future<void> verifySignupOtpAndCreateAccount(BuildContext context) async {
     if (wait.value) return;
+    if (!signupPoliciesAccepted.value) {
+      AppSnackbar(
+        'Onay Gerekli',
+        'Hesap olusturmadan once sozlesme ve politikalar kabul edilmelidir.',
+      );
+      return;
+    }
     final phone = phoneNumber.value.trim();
     final code = otpCode.value.trim();
 
