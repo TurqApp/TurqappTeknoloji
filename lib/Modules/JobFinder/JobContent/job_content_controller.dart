@@ -16,6 +16,20 @@ import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 class JobContentController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
   var saved = false.obs;
+  final Map<String, Future<JobModel?>> _jobFutureCache = <String, Future<JobModel?>>{};
+
+  Future<JobModel?> resolveFreshJob(JobModel model) {
+    final docId = model.docID.trim();
+    if (docId.isEmpty) return Future<JobModel?>.value(model);
+    return _jobFutureCache.putIfAbsent(
+      docId,
+      () => _jobRepository.fetchById(
+        docId,
+        preferCache: true,
+        forceRefresh: true,
+      ),
+    );
+  }
 
   Future<void> checkSaved(String docId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;

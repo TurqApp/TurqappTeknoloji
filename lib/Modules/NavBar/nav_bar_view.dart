@@ -74,18 +74,35 @@ class NavBarView extends StatelessWidget {
 
   late final AnimationController animationController;
 
+  int _stackIndexForSelected({
+    required int selected,
+    required bool hasEducation,
+  }) {
+    if (selected == 1) return 1;
+    if (hasEducation && selected == 3) return 2;
+    final profileIndex = hasEducation ? 4 : 3;
+    if (selected == profileIndex) return hasEducation ? 3 : 2;
+    return 0;
+  }
+
   Widget _buildSelectedPage() {
     final hasEducation = settingController.educationScreenIsOn.value;
     final selected = controller.selectedIndex.value;
+    final pages = <Widget>[
+      AgendaView(key: const PageStorageKey<String>('nav-agenda')),
+      ExploreView(key: const PageStorageKey<String>('nav-explore')),
+      if (hasEducation)
+        EducationView(key: const PageStorageKey<String>('nav-education')),
+      ProfileView(key: const PageStorageKey<String>('nav-profile')),
+    ];
 
-    if (selected == 0) return AgendaView();
-    if (selected == 1) return ExploreView();
-    if (selected == 2) return Container(); // shorts placeholder
-    if (hasEducation) {
-      if (selected == 3) return EducationView();
-      return ProfileView();
-    }
-    return ProfileView();
+    return IndexedStack(
+      index: _stackIndexForSelected(
+        selected: selected,
+        hasEducation: hasEducation,
+      ),
+      children: pages,
+    );
   }
 
   Future<bool> _handleBackNavigation() async {

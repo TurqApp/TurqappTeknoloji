@@ -27,6 +27,8 @@ import 'market_schema_service.dart';
 
 class MarketController extends GetxController {
   static const String _recentSearchesKey = 'market_recent_searches_v1';
+  static const String _listingSelectionPrefKeyPrefix =
+      'pasaj_market_listing_selection';
   static const List<String> _preferredCategoryOrder = <String>[
     'Emlak',
     'Telefon',
@@ -50,7 +52,7 @@ class MarketController extends GetxController {
   final TextEditingController search = TextEditingController();
 
   final RxDouble scrollOffset = 0.0.obs;
-  final RxInt listingSelection = 1.obs;
+  final RxInt listingSelection = 0.obs;
   final RxBool isLoading = false.obs;
   final RxBool isSearchLoading = false.obs;
   final RxString searchQuery = ''.obs;
@@ -74,9 +76,40 @@ class MarketController extends GetxController {
   Timer? _searchDebounce;
   int _searchRequestId = 0;
 
+  String _listingSelectionKeyFor(String uid) =>
+      '${_listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      listingSelection.value = stored == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreListingSelection());
     scrollController.addListener(_onScroll);
     unawaited(_loadRecentSearches());
     unawaited(_bootstrapHomeData());
@@ -243,6 +276,7 @@ class MarketController extends GetxController {
 
   void toggleListingSelection() {
     listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
   }
 
   void selectCategory(String key) {

@@ -1,9 +1,46 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ViewModeController extends GetxController {
+  static const String _viewModePrefKeyPrefix = 'pasaj_tutoring_view_mode';
   var isGridView = false.obs;
+
+  String _viewModeKeyFor(String uid) => '${_viewModePrefKeyPrefix}_$uid';
+
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_restoreViewMode());
+  }
+
+  Future<void> _restoreViewMode() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      isGridView.value = false;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      isGridView.value = prefs.getBool(_viewModeKeyFor(uid)) ?? false;
+    } catch (_) {
+      isGridView.value = false;
+    }
+  }
+
+  Future<void> _persistViewMode() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_viewModeKeyFor(uid), isGridView.value);
+    } catch (_) {}
+  }
 
   void toggleView() {
     isGridView.value = !isGridView.value;
+    unawaited(_persistViewMode());
   }
 }

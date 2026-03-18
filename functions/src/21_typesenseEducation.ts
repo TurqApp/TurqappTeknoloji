@@ -67,6 +67,7 @@ const EDUCATION_ENTITIES: EducationEntity[] = [
   "tutoring",
   "job",
   "workout",
+  "past_question",
 ];
 
 const EDUCATION_COLLECTIONS: Record<EducationEntity, string> = {
@@ -228,6 +229,9 @@ type EducationSearchDoc = {
   reviewCount?: number;
   categoryKey?: string;
   anaBaslik?: string;
+  baslik2?: string;
+  baslik3?: string;
+  dil?: string;
   ders?: string;
   sinavTuru?: string;
   soruNo?: string;
@@ -355,6 +359,9 @@ type TypesenseSearchHitOutput = {
   reviewCount: number;
   categoryKey: string;
   anaBaslik: string;
+  baslik2: string;
+  baslik3: string;
+  dil: string;
   ders: string;
   sinavTuru: string;
   soruNo: string;
@@ -686,6 +693,9 @@ function requiredFields(entity?: EducationEntity) {
     { name: "about", type: "string", optional: true },
     { name: "categoryKey", type: "string", optional: true },
     { name: "anaBaslik", type: "string", optional: true },
+    { name: "baslik2", type: "string", optional: true },
+    { name: "baslik3", type: "string", optional: true },
+    { name: "dil", type: "string", optional: true },
     { name: "ders", type: "string", optional: true },
     { name: "sinavTuru", type: "string", optional: true },
     { name: "soruNo", type: "string", optional: true },
@@ -1146,22 +1156,53 @@ function buildWorkoutDoc(docId: string, data: Record<string, unknown>): Educatio
 }
 
 function buildPastQuestionDoc(docId: string, data: Record<string, unknown>): EducationSearchDoc {
-  return baseDoc("past_question", docId, data, {
-    title: asString(data.title) || asString(data.baslik) || asString(data.soruAdi) || asString(data.soru),
-    subtitle: asString(data.ders) || asString(data.sinav) || asString(data.sinavTuru),
-    description: asString(data.aciklama) || asString(data.description),
+  const anaBaslik = asString(data.anaBaslik);
+  const baslik2 = asString(data.baslik2);
+  const baslik3 = asString(data.baslik3);
+  const sinavTuru = asString(data.sinavTuru);
+  const yil = asString(data.yil);
+  const dil = asString(data.dil);
+  const title =
+      asString(data.title) ||
+      composeDescription(anaBaslik, sinavTuru, yil).split(" | ").join(" - ");
+  const subtitle = composeDescription(baslik2, baslik3, dil);
+  const description = composeDescription(
+    asString(data.aciklama),
+    anaBaslik,
+    sinavTuru,
+    yil,
+    baslik2,
+    baslik3,
+    dil,
+  );
+  const base = baseDoc("past_question", docId, data, {
+    title,
+    subtitle,
+    description,
     ownerId: asString(data.userID) || asString(data.ownerId),
     timeStamp: asEpochMillis(data.timeStamp) || asEpochMillis(data.createdDate),
-    active: asBool(data.deleted) ? false : true,
+    active: (data.active as boolean | undefined) ?? (asBool(data.iptal) ? false : !asBool(data.deleted)),
     tags: dedupe([
-      asString(data.sinav),
-      asString(data.sinavTuru),
-      asString(data.ders),
-      asString(data.yil),
+      anaBaslik,
+      sinavTuru,
+      yil,
+      baslik2,
+      baslik3,
+      dil,
       ...asStringArray(data.tags),
     ]),
-    cover: asString(data.cover) || asString(data.img),
+    cover: asString(data.cover) || asString(data.soru) || asString(data.img),
   });
+  return {
+    ...base,
+    anaBaslik,
+    baslik2,
+    baslik3,
+    dil,
+    sinavTuru,
+    yil,
+    seq: asInt(data.sira),
+  };
 }
 
 function buildSearchDoc(entity: EducationEntity, docId: string, data: Record<string, unknown>): EducationSearchDoc {
@@ -1416,6 +1457,9 @@ function toHitOutput(hitRaw: unknown, collection: string): TypesenseSearchHitOut
     reviewCount: Number(doc.reviewCount || 0),
     categoryKey: String(doc.categoryKey || ""),
     anaBaslik: String(doc.anaBaslik || ""),
+    baslik2: String(doc.baslik2 || ""),
+    baslik3: String(doc.baslik3 || ""),
+    dil: String(doc.dil || ""),
     ders: String(doc.ders || ""),
     sinavTuru: String(doc.sinavTuru || ""),
     soruNo: String(doc.soruNo || ""),
@@ -1450,6 +1494,8 @@ async function searchFromCollection(
     switch (entity) {
       case "workout":
         return "title,subtitle,description,tags,detailsText,anaBaslik,sinavTuru,ders,soruNo,yil";
+      case "past_question":
+        return "title,subtitle,description,tags,detailsText,anaBaslik,sinavTuru,baslik2,baslik3,yil,dil";
       case "tutoring":
         return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName,cinsiyet,dersYeri";
       case "job":
@@ -1688,7 +1734,11 @@ export const f21_syncPastQuestionsToTypesense = onDocumentWritten(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (event) => {
-    return;
+    ensureAdmin();
+    if (!typesenseReady()) return;
+    const docId = String(event.params.docId || "");
+    const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
+    await syncEducationDoc("past_question", docId, afterData);
   }
 );
 

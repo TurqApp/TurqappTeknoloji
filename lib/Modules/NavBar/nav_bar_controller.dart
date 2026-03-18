@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -22,6 +24,7 @@ typedef TextUpdate = String;
 
 class NavBarController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
+  static const String _selectedIndexPrefKeyPrefix = 'nav_selected_index';
   var selectedIndex = 0.obs;
   var showBar = true.obs;
   ShortController?
@@ -56,6 +59,39 @@ class NavBarController extends GetxController
   bool _proactiveShortPreloadStarted = false;
   Timer? _backgroundCacheTimer;
   Timer? _uploadIndicatorTimer;
+
+  String _selectedIndexKeyFor(String uid) => '${_selectedIndexPrefKeyPrefix}_$uid';
+
+  int _normalizeSelectedIndex(int value) {
+    if (value == 2) return 0;
+    if (value < 0) return 0;
+    if (value > 4) return 4;
+    return value;
+  }
+
+  Future<void> restorePersistedIndex() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_selectedIndexKeyFor(uid));
+      if (stored == null) return;
+      selectedIndex.value = _normalizeSelectedIndex(stored);
+    } catch (_) {}
+  }
+
+  Future<void> _persistSelectedIndex(int index) async {
+    if (index == 2) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _selectedIndexKeyFor(uid),
+        _normalizeSelectedIndex(index),
+      );
+    } catch (_) {}
+  }
 
   @override
   void onInit() {
@@ -231,6 +267,7 @@ class NavBarController extends GetxController
   void changeIndex(int index) {
     final previous = selectedIndex.value;
     selectedIndex.value = index;
+    unawaited(_persistSelectedIndex(index));
 
     // Feed dışında bir sekmeye geçildiğinde medya seslerini her durumda sustur.
     // (Sadece previous==0 kontrolü bazı hızlı geçişlerde kaçırabiliyordu.)

@@ -56,6 +56,7 @@ class JobFinderController extends GetxController {
   int _searchRequestId = 0;
   double? _userLat;
   double? _userLong;
+  Position? _lastResolvedPosition;
 
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
@@ -179,7 +180,10 @@ class JobFinderController extends GetxController {
         list.assignAll(cachedJobs);
         allJobs.assignAll(cachedJobs);
         isLoading.value = false;
-        unawaited(_hydrateLocationAndResort(cachedJobs));
+        unawaited(_hydrateLocationAndResort(
+          cachedJobs,
+          allowPermissionPrompt: false,
+        ));
         if (SilentRefreshGate.shouldRefresh(
           'jobs:home',
           minInterval: _silentRefreshInterval,
@@ -216,7 +220,10 @@ class JobFinderController extends GetxController {
         isLoading.value = false;
       }
 
-      unawaited(_hydrateLocationAndResort(fetchedJobs));
+      unawaited(_hydrateLocationAndResort(
+        fetchedJobs,
+        allowPermissionPrompt: false,
+      ));
     } catch (_) {
     } finally {
       if (shouldShowLoader || list.isEmpty) {
@@ -225,13 +232,17 @@ class JobFinderController extends GetxController {
     }
   }
 
-  Future<void> _hydrateLocationAndResort(List<JobModel> sourceJobs) async {
+  Future<void> _hydrateLocationAndResort(
+    List<JobModel> sourceJobs, {
+    required bool allowPermissionPrompt,
+  }) async {
     try {
-      var position = await Geolocator.getLastKnownPosition();
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
+      final position = await _resolveUserPosition(
+        allowPermissionPrompt: allowPermissionPrompt,
       );
+      if (position == null) {
+        return;
+      }
       final userLat = position.latitude;
       final userLong = position.longitude;
       _userLat = userLat;
@@ -264,6 +275,50 @@ class JobFinderController extends GetxController {
       list.assignAll(updatedJobs);
       allJobs.assignAll(updatedJobs);
     } catch (_) {}
+  }
+
+  Future<Position?> _resolveUserPosition({
+    required bool allowPermissionPrompt,
+  }) async {
+    try {
+      final lastResolved = _lastResolvedPosition;
+      if (lastResolved != null) {
+        return lastResolved;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return null;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        if (!allowPermissionPrompt) {
+          return await Geolocator.getLastKnownPosition();
+        }
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return await Geolocator.getLastKnownPosition();
+      }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        _lastResolvedPosition = lastKnown;
+        return lastKnown;
+      }
+
+      final current = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+      _lastResolvedPosition = current;
+      return current;
+    } catch (_) {
+      return null;
+    }
   }
 
   JobModel _attachDistance(JobModel job) {
