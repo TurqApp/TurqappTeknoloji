@@ -199,6 +199,7 @@ class InAppNotifications extends StatelessWidget {
         "Takip",
         "Yorum",
         "Bahsedenler",
+        "İlan",
       ],
       pageName: 'Notifications',
       fontSize: 15,
@@ -221,6 +222,11 @@ class InAppNotifications extends StatelessWidget {
       case 3:
         return _notificationList(
           _mentionNotifications(),
+          emptyText: "Bu filtrede bildirim yok",
+        );
+      case 4:
+        return _notificationList(
+          _listingNotifications(),
           emptyText: "Bu filtrede bildirim yok",
         );
       case 0:
@@ -254,6 +260,7 @@ class InAppNotifications extends StatelessWidget {
           _listForSelection(1),
           _listForSelection(2),
           _listForSelection(3),
+          _listForSelection(4),
         ],
       );
     });
@@ -287,6 +294,25 @@ class InAppNotifications extends StatelessWidget {
 
   List<dynamic> _commentNotifications() {
     return controller.list.where((n) => n.postType == "Comment").toList();
+  }
+
+  List<dynamic> _listingNotifications() {
+    return controller.list.where(_isListingNotification).toList();
+  }
+
+  bool _isListingNotification(NotificationModel notification) {
+    final normalizedType = notification.type.trim().toLowerCase();
+    final normalizedPostType = notification.postType.trim().toLowerCase();
+
+    return normalizedType == "job_application" ||
+        normalizedType == "tutoring_application" ||
+        normalizedType == "tutoring_status" ||
+        normalizedType == "market_offer" ||
+        normalizedType == "market_offer_status" ||
+        normalizedPostType == "jobapplication" ||
+        normalizedPostType == "tutoringapplication" ||
+        normalizedPostType == "market" ||
+        normalizedPostType == "market_chat";
   }
 
   List<Widget> _buildGroupedList(List<dynamic> notifications) {
