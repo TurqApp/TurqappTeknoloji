@@ -41,12 +41,13 @@ class ExploreRepository extends GetxService {
         .where('flood', isEqualTo: false)
         .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
+        .limit(pageLimit * 3);
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
     return _runPageQuery(
       query,
+      excludeSeriesRoots: true,
       pageLimit: pageLimit,
       feedMode: 'explore_posts',
     );
@@ -65,12 +66,13 @@ class ExploreRepository extends GetxService {
         .where('hlsStatus', isEqualTo: 'ready')
         .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
+        .limit(pageLimit * 3);
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
     return _runPageQuery(
       query,
+      excludeSeriesRoots: true,
       pageLimit: pageLimit,
       feedMode: 'explore_video',
     );
@@ -88,12 +90,13 @@ class ExploreRepository extends GetxService {
         .where('flood', isEqualTo: false)
         .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
+        .limit(pageLimit * 3);
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
     return _runPageQuery(
       query,
+      excludeSeriesRoots: true,
       pageLimit: pageLimit,
       feedMode: 'explore_video_fallback',
     );
@@ -110,12 +113,13 @@ class ExploreRepository extends GetxService {
         .where('arsiv', isEqualTo: false)
         .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
+        .limit(pageLimit * 3);
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
     return _runPageQuery(
       query,
+      excludeSeriesRoots: true,
       pageLimit: pageLimit,
       feedMode: 'explore_video_broad',
     );
@@ -134,12 +138,13 @@ class ExploreRepository extends GetxService {
         .where('video', isEqualTo: '')
         .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('timeStamp', descending: true)
-        .limit(pageLimit);
+        .limit(pageLimit * 3);
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
     return _runPageQuery(
       query,
+      excludeSeriesRoots: true,
       pageLimit: pageLimit,
       feedMode: 'explore_photo',
     );
@@ -202,6 +207,7 @@ class ExploreRepository extends GetxService {
 
   Future<ExploreQueryPage> _runPageQuery(
     Query<Map<String, dynamic>> query, {
+    bool excludeSeriesRoots = false,
     required int pageLimit,
     required String feedMode,
   }) async {
@@ -214,11 +220,13 @@ class ExploreRepository extends GetxService {
     final items = postIds
         .map((id) => byId[id])
         .whereType<PostsModel>()
+        .where((item) => !excludeSeriesRoots || item.floodCount <= 1)
+        .take(pageLimit)
         .toList(growable: false);
     return ExploreQueryPage(
       items: items,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
-      hasMore: snap.docs.length >= pageLimit,
+      hasMore: snap.docs.length >= (excludeSeriesRoots ? pageLimit * 3 : pageLimit),
     );
   }
 }

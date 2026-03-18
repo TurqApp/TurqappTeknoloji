@@ -227,7 +227,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
             text: text,
             images: controller.selectedImages,
             video: controller.selectedVideo.value,
-            location: controller.adres.value,
+            location: '',
             gif: controller.gif.value,
             commentEnabled: comment.value,
             sharePrivacy: paylasimSelection.value,
@@ -387,7 +387,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final postData = {
           'id': docID,
           'text': controller.textEdit.text.trim(),
-          'location': controller.adres.value,
+          'location': '',
           'gif': controller.gif.value,
           'userID': FirebaseAuth.instance.currentUser!.uid,
           'authorNickname': authorSummary.nickname,

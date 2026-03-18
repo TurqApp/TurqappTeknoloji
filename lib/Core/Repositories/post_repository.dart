@@ -468,7 +468,7 @@ class PostRepository extends GetxService {
         .where('flood', isEqualTo: false)
         .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
         .orderBy('timeStamp', descending: true)
-        .limit(limit);
+        .limit(limit * 3);
     if (startAfter != null) {
       query = query.startAfterDocument(
         startAfter as DocumentSnapshot<Map<String, dynamic>>,
@@ -481,7 +481,9 @@ class PostRepository extends GetxService {
     );
     final items = snap.docs
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+        .where((post) => post.floodCount <= 1)
         .where((post) => !post.shouldHideWhileUploading)
+        .take(limit)
         .toList(growable: false);
     return PostQueryPage(
       items: items,

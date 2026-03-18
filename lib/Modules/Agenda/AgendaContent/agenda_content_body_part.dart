@@ -55,7 +55,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                   const SizedBox(width: 45),
                   Expanded(
                     child: Builder(builder: (_) {
-                      final double displayAspect = _isIzBirakPost ? 0.92 : 0.80;
+                      final double displayAspect = _isIzBirakPost
+                          ? 0.92
+                          : (widget.model.floodCount > 1 ? 1.0 : 0.80);
                       return VisibilityDetector(
                         key: Key('agenda-media-${widget.model.docID}'),
                         onVisibilityChanged: (info) {

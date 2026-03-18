@@ -66,6 +66,202 @@ class CreatorContent extends StatelessWidget {
     return 0.80;
   }
 
+  double get _threadPickerWidthFactor {
+    if (mainController.postList.length <= 1 || isSelected) return 1.0;
+    return 0.5;
+  }
+
+  Widget _buildThreadPickerPreview(Widget child) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: FractionallySizedBox(
+        widthFactor: _threadPickerWidthFactor,
+        alignment: Alignment.centerLeft,
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildThreadMediaSummary() {
+    final imageCount =
+        controller.croppedImages.length + controller.reusedImageUrls.length;
+    final hasVideo = controller.videoPlayerController != null ||
+        controller.waitingVideo.value ||
+        controller.selectedVideo.value != null ||
+        controller.reusedVideoUrl.value.trim().isNotEmpty;
+
+    if (imageCount == 0 && !hasVideo) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              final position = mainController.postList.indexWhere(
+                (post) => post.index == model.index,
+              );
+              if (position != -1) {
+                mainController.selectedIndex.value = position;
+              }
+              controller.focus.requestFocus();
+            },
+            child: _buildThreadMediaThumbnail(
+              imageCount: imageCount,
+              hasVideo: hasVideo,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (imageCount > 0)
+                  _buildSummaryChip(
+                    icon: CupertinoIcons.photo_on_rectangle,
+                    label: imageCount == 1 ? '1 gorsel' : '$imageCount gorsel',
+                  ),
+                if (hasVideo)
+                  _buildSummaryChip(
+                    icon: CupertinoIcons.play_rectangle,
+                    label: controller.waitingVideo.value
+                        ? 'Video isleniyor'
+                        : 'Video',
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThreadMediaThumbnail({
+    required int imageCount,
+    required bool hasVideo,
+  }) {
+    const size = 72.0;
+    final memoryImage = controller.croppedImages
+        .whereType<Uint8List>()
+        .cast<Uint8List?>()
+        .toList();
+    final networkImages = controller.reusedImageUrls
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final thumbBytes = controller.selectedThumbnail.value;
+    final reusedVideoThumb = controller.reusedVideoThumbnail.value.trim();
+
+    Widget child;
+    if (memoryImage.isNotEmpty) {
+      child = Image.memory(
+        memoryImage.first!,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+      );
+    } else if (networkImages.isNotEmpty) {
+      child = CachedNetworkImage(
+        imageUrl: networkImages.first,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+      );
+    } else if (thumbBytes != null) {
+      child = Image.memory(
+        thumbBytes,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+      );
+    } else if (reusedVideoThumb.isNotEmpty) {
+      child = CachedNetworkImage(
+        imageUrl: reusedVideoThumb,
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+      );
+    } else {
+      child = Container(
+        width: size,
+        height: size,
+        color: const Color(0xFFF4F6F8),
+        alignment: Alignment.center,
+        child: Icon(
+          hasVideo
+              ? CupertinoIcons.play_rectangle
+              : CupertinoIcons.photo_on_rectangle,
+          color: const Color(0xFF6B7280),
+          size: 22,
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: size,
+            height: size,
+            child: child,
+          ),
+          if (hasVideo && imageCount == 0)
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.45),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                CupertinoIcons.play_fill,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryChip({
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F6F8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE3E6EA)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: const Color(0xFF4B5563),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF374151),
+              fontSize: 12,
+              fontFamily: "MontserratMedium",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     controller = Get.put(
@@ -79,13 +275,25 @@ class CreatorContent extends StatelessWidget {
         behavior: HitTestBehavior.deferToChild,
         onTap: () {
           if (!isSelected) {
-            mainController.selectedIndex.value = model.index;
+            final position = mainController.postList.indexWhere(
+              (post) => post.index == model.index,
+            );
+            if (position != -1) {
+              mainController.selectedIndex.value = position;
+            }
           }
           controller.focus.requestFocus();
         },
         child: Obx(() {
           final userService = CurrentUserService.instance;
           final currentUser = userService.currentUserRx.value;
+          final threadIndex = mainController.postList.indexWhere(
+            (post) => post.index == model.index,
+          );
+          final isFirstInThread = threadIndex <= 0;
+          final isLastInThread =
+              threadIndex == -1 ||
+              threadIndex == mainController.postList.length - 1;
           final composerUserId = (currentUser?.userID ??
                   (userService.userId.isNotEmpty
                       ? userService.userId
@@ -98,69 +306,116 @@ class CreatorContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Sol taraf: profil ve çizgi
-                Column(
+                Stack(
+                  alignment: Alignment.topCenter,
                   children: [
-                    // Profil fotoğrafı
-                    SizedBox(
-                      width: 38,
-                      height: 38,
-                      child: CachedUserAvatar(
-                        userId:
-                            composerUserId.isNotEmpty ? composerUserId : null,
-                        imageUrl: composerAvatarUrl.isNotEmpty
-                            ? composerAvatarUrl
-                            : null,
-                        radius: 19,
-                      ),
-                    ),
-                    7.ph,
-                    // Dikey çizgi
-                    if (mainController.postList.length != 1)
-                      Expanded(
-                        child: Container(
-                          width: 2,
-                          margin: const EdgeInsets.only(top: 4, bottom: 12),
-                          color: Colors.grey.shade300,
+                    if (mainController.postList.length > 1)
+                      Positioned.fill(
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 2,
+                            margin: EdgeInsets.only(
+                              top: isFirstInThread ? 44 : 0,
+                              bottom: isLastInThread ? 12 : 0,
+                            ),
+                            color: Colors.grey.shade300,
+                          ),
                         ),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: 38,
+                            height: 38,
+                            child: CachedUserAvatar(
+                              userId: composerUserId.isNotEmpty
+                                  ? composerUserId
+                                  : null,
+                              imageUrl: composerAvatarUrl.isNotEmpty
+                                  ? composerAvatarUrl
+                                  : null,
+                              radius: 19,
+                            ),
+                          ),
+                          7.ph,
+                        ],
+                      ),
+                    ),
                   ],
                 ),
                 4.pw,
 
-                Obx(() {
-                  return Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        textBody(),
-                        SizedBox(height: 12),
-                        Obx(() {
-                          final hasMedia =
-                              controller.croppedImages.isNotEmpty ||
-                                  controller.reusedImageUrls.isNotEmpty ||
-                                  controller.videoPlayerController != null ||
-                                  controller.waitingVideo.value;
-                          if (mainController.isQuotedPost) {
-                            return const SizedBox.shrink();
-                          }
-                          return hasMedia
-                              ? const SizedBox.shrink()
-                              : buildPollPreview();
-                        }),
-                        Obx(() {
-                          if (mainController.isQuotedPost) {
-                            return _buildQuotedComposerCard();
-                          }
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (controller.croppedImages.isNotEmpty)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      textBody(),
+                      SizedBox(height: 12),
+                      Obx(() {
+                        final hasMedia =
+                            controller.croppedImages.isNotEmpty ||
+                                controller.reusedImageUrls.isNotEmpty ||
+                                controller.videoPlayerController != null ||
+                                controller.waitingVideo.value;
+                        if (mainController.isQuotedPost ||
+                            mainController.postList.length > 1) {
+                          return const SizedBox.shrink();
+                        }
+                        return hasMedia
+                            ? Padding(
+                                padding: EdgeInsets.only(
+                                  top: 10,
+                                  left: (controller.videoPlayerController !=
+                                              null ||
+                                          controller.waitingVideo.value)
+                                      ? 7
+                                      : 0,
+                                ),
+                                child: _buildMediaLookSelector(),
+                              )
+                            : const SizedBox.shrink();
+                      }),
+                      Obx(() {
+                        final hasMedia =
+                            controller.croppedImages.isNotEmpty ||
+                                controller.reusedImageUrls.isNotEmpty ||
+                                controller.videoPlayerController != null ||
+                                controller.waitingVideo.value;
+                        if (mainController.isQuotedPost) {
+                          return const SizedBox.shrink();
+                        }
+                        return hasMedia
+                            ? const SizedBox.shrink()
+                            : buildPollPreview();
+                      }),
+                      Obx(() {
+                        if (mainController.isQuotedPost) {
+                          return _buildQuotedComposerCard();
+                        }
+                        if (mainController.postList.length > 1 &&
+                            !isSelected) {
+                          return _buildThreadMediaSummary();
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (controller.croppedImages.isNotEmpty)
+                              _buildThreadPickerPreview(
                                 buildImageGridFromMemory(
-                                    controller.croppedImages),
-                              if (controller.croppedImages.isEmpty &&
-                                  controller.reusedImageUrls.isNotEmpty)
+                                  controller.croppedImages,
+                                ),
+                              ),
+                            if (controller.croppedImages.isEmpty &&
+                                controller.reusedImageUrls.isNotEmpty)
+                              _buildThreadPickerPreview(
                                 buildImageGridFromUrls(
-                                    controller.reusedImageUrls),
+                                  controller.reusedImageUrls,
+                                ),
+                              ),
+                            _buildThreadPickerPreview(
                               Stack(
                                 children: [
                                   if (controller.waitingVideo.value == false &&
@@ -214,83 +469,37 @@ class CreatorContent extends StatelessWidget {
                                         ))
                                 ],
                               ),
-                            ],
-                          );
-                        }),
-                        Obx(() {
-                          final hasMedia =
-                              controller.croppedImages.isNotEmpty ||
-                                  controller.reusedImageUrls.isNotEmpty ||
-                                  controller.videoPlayerController != null ||
-                                  controller.waitingVideo.value;
-                          if (mainController.isQuotedPost) {
-                            return const SizedBox.shrink();
-                          }
-                          return hasMedia
-                              ? Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 10,
-                                    left: (controller.videoPlayerController !=
-                                                null ||
-                                            controller.waitingVideo.value)
-                                        ? 7
-                                        : 0,
-                                  ),
-                                  child: _buildMediaLookSelector(),
-                                )
-                              : const SizedBox.shrink();
-                        }),
-                        Obx(() {
-                          final hasMedia =
-                              controller.croppedImages.isNotEmpty ||
-                                  controller.reusedImageUrls.isNotEmpty ||
-                                  controller.videoPlayerController != null ||
-                                  controller.waitingVideo.value;
-                          if (mainController.isQuotedPost) {
-                            return const SizedBox.shrink();
-                          }
-                          return hasMedia
-                              ? Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 12,
-                                    left: (controller.videoPlayerController !=
-                                                null ||
-                                            controller.waitingVideo.value)
-                                        ? 7
-                                        : 0,
-                                  ),
-                                  child: buildPollPreview(),
-                                )
-                              : const SizedBox.shrink();
-                        }),
-                        if (controller.adres.value != "")
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  CupertinoIcons.map_pin,
-                                  color: Colors.red,
-                                  size: 15,
-                                ),
-                                SizedBox(
-                                  width: 3,
-                                ),
-                                Text(
-                                  controller.adres.value,
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "Montserrat"),
-                                ),
-                              ],
                             ),
-                          ),
-                        12.ph,
-                      ],
-                    ),
-                  );
-                })
+                          ],
+                        );
+                      }),
+                      Obx(() {
+                        final hasMedia =
+                            controller.croppedImages.isNotEmpty ||
+                                controller.reusedImageUrls.isNotEmpty ||
+                                controller.videoPlayerController != null ||
+                                controller.waitingVideo.value;
+                        if (mainController.isQuotedPost) {
+                          return const SizedBox.shrink();
+                        }
+                        return hasMedia
+                            ? Padding(
+                                padding: EdgeInsets.only(
+                                  top: 12,
+                                  left: (controller.videoPlayerController !=
+                                              null ||
+                                          controller.waitingVideo.value)
+                                      ? 7
+                                      : 0,
+                                ),
+                                child: buildPollPreview(),
+                              )
+                            : const SizedBox.shrink();
+                      }),
+                      12.ph,
+                    ],
+                  ),
+                )
               ],
             ),
           );
@@ -319,7 +528,12 @@ class CreatorContent extends StatelessWidget {
                       controller: controller.textEdit,
                       textCapitalization: TextCapitalization.sentences,
                       onTap: () {
-                        mainController.selectedIndex.value = model.index;
+                        final position = mainController.postList.indexWhere(
+                          (post) => post.index == model.index,
+                        );
+                        if (position != -1) {
+                          mainController.selectedIndex.value = position;
+                        }
                       },
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline,
@@ -361,8 +575,37 @@ class CreatorContent extends StatelessWidget {
                       final indexInList =
                           mainController.postList.indexWhere((e) => e == model);
                       if (indexInList != -1) {
-                        mainController.postList.removeAt(indexInList);
-                        mainController.selectedIndex.value--;
+                        if (indexInList == 0) {
+                          for (final post in mainController.postList) {
+                            if (Get.isRegistered<CreatorContentController>(
+                              tag: post.index.toString(),
+                            )) {
+                              Get.delete<CreatorContentController>(
+                                tag: post.index.toString(),
+                                force: true,
+                              );
+                            }
+                          }
+                          mainController.postList.assignAll(
+                            [PostCreatorModel(index: 0, text: "")],
+                          );
+                          mainController.selectedIndex.value = 0;
+                        } else {
+                          if (Get.isRegistered<CreatorContentController>(
+                            tag: model.index.toString(),
+                          )) {
+                            Get.delete<CreatorContentController>(
+                              tag: model.index.toString(),
+                              force: true,
+                            );
+                          }
+                          mainController.postList.removeAt(indexInList);
+                          final nextPosition = (indexInList - 1).clamp(
+                            0,
+                            mainController.postList.length - 1,
+                          );
+                          mainController.selectedIndex.value = nextPosition;
+                        }
                       }
                     },
                     icon: Icon(

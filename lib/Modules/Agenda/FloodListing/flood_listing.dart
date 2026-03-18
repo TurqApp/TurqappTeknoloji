@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'flood_listing_controller.dart';
 
@@ -16,11 +17,16 @@ class FloodListing extends StatefulWidget {
 
 class _FloodListingState extends State<FloodListing> {
   final FloodListingController controller = Get.put(FloodListingController());
+  static const double _chainLineWidth = 2.0;
+  static const Color _chainLineColor = Color(0xFFD7DCE2);
 
   double _tailSpaceHeight() {
     final screenHeight = MediaQuery.of(context).size.height;
     return (screenHeight * 0.24).clamp(120.0, 200.0);
   }
+
+  double _chainLeftOffset() =>
+      AgendaSpacing.modernContainerPadding.left + AgendaSpacing.avatarRadius;
 
   @override
   void initState() {
@@ -86,7 +92,23 @@ class _FloodListingState extends State<FloodListing> {
               children.add(
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: contentWidget,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: _chainLeftOffset(),
+                        top: index == 0 ? 50 : 0,
+                        bottom: index == controller.floods.length - 1 ? 26 : 0,
+                        child: Container(
+                          width: _chainLineWidth,
+                          decoration: BoxDecoration(
+                            color: _chainLineColor,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      contentWidget,
+                    ],
+                  ),
                 ),
               );
 

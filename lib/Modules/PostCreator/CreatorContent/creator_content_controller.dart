@@ -21,6 +21,7 @@ import '../../../Core/Services/network_awareness_service.dart';
 import '../../../Core/Camera/chat_camera_capture_view.dart';
 import '../../../Core/upload_constants.dart';
 import '../../../Themes/app_colors.dart';
+import '../post_creator_controller.dart';
 
 class CreatorContentController extends GetxController
     with WidgetsBindingObserver {
@@ -338,9 +339,17 @@ class CreatorContentController extends GetxController
       return;
     }
 
+    final postCreator = Get.find<PostCreatorController>();
+    final isThread = postCreator.postList.length > 1;
     final existingCount = selectedImages.length;
-    final remaining = UploadConstants.maxImagesPerPost - existingCount;
+    final maxImages = isThread ? 1 : UploadConstants.maxImagesPerPost;
+    final existingReusedCount = reusedImageUrls.length;
+    final remaining = maxImages - existingCount - existingReusedCount;
     if (remaining <= 0) {
+      if (isThread) {
+        UploadValidationService.showValidationError(
+            'Dizi icinde her gonderide yalnizca 1 fotograf secilebilir.');
+      }
       return;
     }
 
@@ -352,13 +361,13 @@ class CreatorContentController extends GetxController
     );
     if (files.isEmpty) return;
 
-    final currentImageCount = selectedImages.length;
+    final currentImageCount = selectedImages.length + reusedImageUrls.length;
     final newImageCount = files.length;
     final totalCount = currentImageCount + newImageCount;
 
-    if (totalCount > UploadConstants.maxImagesPerPost) {
+    if (totalCount > maxImages) {
       UploadValidationService.showValidationError(
-          'Maksimum ${UploadConstants.maxImagesPerPost} fotoğraf ekleyebilirsiniz. '
+          'Maksimum $maxImages fotograf ekleyebilirsiniz. '
           'Mevcut: $currentImageCount, Eklenmek istenen: $newImageCount');
       return;
     }
@@ -719,9 +728,11 @@ class CreatorContentController extends GetxController
     List<String> imageUrls, {
     double aspectRatio = 0.0,
   }) async {
+    final isThread = Get.find<PostCreatorController>().postList.length > 1;
     final uniqueUrls =
         imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (uniqueUrls.isEmpty) return;
+    final limitedUrls = isThread ? [uniqueUrls.first] : uniqueUrls;
 
     waitingVideo.value = false;
     isProcessing.value = true;
@@ -739,7 +750,7 @@ class CreatorContentController extends GetxController
     reusedImageAspectRatio.value = aspectRatio > 0 ? aspectRatio : 0.0;
     selectedImages.clear();
     croppedImages.clear();
-    reusedImageUrls.assignAll(uniqueUrls);
+    reusedImageUrls.assignAll(limitedUrls);
     isProcessing.value = false;
   }
 

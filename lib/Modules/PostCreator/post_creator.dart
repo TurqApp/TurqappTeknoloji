@@ -168,7 +168,7 @@ class PostCreator extends StatelessWidget {
           Text(
             controller.isEditMode.value
                 ? "Gönderi Düzenle"
-                : "${controller.postList.length > 1 ? "Flood" : "Gönderi"} Hazırla",
+                : "Gönderi Hazırla",
             style: const TextStyle(
               color: Colors.black,
               fontSize: 16,
@@ -188,8 +188,9 @@ class PostCreator extends StatelessWidget {
         itemBuilder: (context, index) {
           return Obx(() {
             final isSelected = controller.selectedIndex.value == index;
+            final postModel = controller.postList[index];
             // Ensure controller for this index is registered
-            final tag = index.toString();
+            final tag = postModel.index.toString();
             if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
               Get.put(CreatorContentController(), tag: tag);
             }
@@ -203,7 +204,7 @@ class PostCreator extends StatelessWidget {
                 child: Stack(
                   children: [
                     CreatorContent(
-                      model: controller.postList[index],
+                      model: postModel,
                       isSelected: isSelected,
                     ),
                     if (!isSelected)
@@ -227,7 +228,12 @@ class PostCreator extends StatelessWidget {
         WidgetsBinding.instance.platformDispatcher.views.first,
       );
       final keyboardInset = mediaQuery.viewInsets.bottom;
-      final tag = controller.selectedIndex.value.toString();
+      final selectedListIndex = controller.selectedIndex.value.clamp(
+        0,
+        controller.postList.length - 1,
+      );
+      final selectedModel = controller.postList[selectedListIndex];
+      final tag = selectedModel.index.toString();
 
       // Make sure a CreatorContentController exists for the selected index
       if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
@@ -244,14 +250,18 @@ class PostCreator extends StatelessWidget {
           selectedController.selectedImages.isNotEmpty ||
           selectedController.reusedImageUrls.isNotEmpty;
       final hasVideo = selectedController.selectedVideo.value != null;
-      final hasLocation = selectedController.adres.value.trim().isNotEmpty;
+      final hasCaption =
+          selectedController.textChanged.value ||
+          selectedController.textEdit.text.trim().isNotEmpty;
       final commentActive = controller.commentVisibility.value != 0;
       final reshareActive = controller.paylasimSelection.value != 0;
       final pollActive = selectedController.pollData.value != null &&
           (selectedController.pollData.value?['options'] is List) &&
           (selectedController.pollData.value!['options'] as List).isNotEmpty;
       final disableFirstThree = controller.isEditMode.value;
-      final disableFlood = controller.isEditMode.value;
+      final disableFlood =
+          controller.isEditMode.value ||
+          !(hasCaption || hasImages || hasVideo || pollActive);
       final iconGap = AppIconSurface.kGap;
       final toolbarIconSize = AppIconSurface.kIconSize;
       final compactButtonSize = GetPlatform.isIOS ? 31.0 : 30.0;
@@ -334,18 +344,6 @@ class PostCreator extends StatelessWidget {
                           size: toolbarIconSize,
                           color:
                               pollActive ? Colors.blueAccent : Colors.black,
-                        ),
-                      ),
-                    ),
-                    _toolbarSlot(
-                      child: _toolbarSurfaceButton(
-                        onPressed: selectedController.goToLocationMap,
-                        size: compactButtonSize,
-                        icon: Icon(
-                          CupertinoIcons.map_pin_ellipse,
-                          size: toolbarIconSize,
-                          color:
-                              hasLocation ? Colors.blueAccent : Colors.black,
                         ),
                       ),
                     ),
@@ -505,9 +503,25 @@ class PostCreator extends StatelessWidget {
                         controller.postList.add(
                           PostCreatorModel(index: newIndex, text: ""),
                         );
-                        controller.selectedIndex.value = newIndex;
-                        Get.put(CreatorContentController(),
-                            tag: newIndex.toString());
+                        final newTag = newIndex.toString();
+                        controller.selectedIndex.value =
+                            controller.postList.length - 1;
+                        final nextController =
+                            Get.isRegistered<CreatorContentController>(
+                              tag: newTag,
+                            )
+                                ? Get.find<CreatorContentController>(
+                                    tag: newTag,
+                                  )
+                                : Get.put(
+                                    CreatorContentController(),
+                                    tag: newTag,
+                                  );
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!nextController.focus.hasFocus) {
+                            nextController.focus.requestFocus();
+                          }
+                        });
                       },
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -519,18 +533,8 @@ class PostCreator extends StatelessWidget {
                   height: 27,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: disableFlood
-                        ? null
-                        : LinearGradient(
-                            colors: [
-                              AppColors.primaryColor,
-                              AppColors.secondColor,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                    color: disableFlood ? Colors.black26 : null,
                     shape: BoxShape.circle,
+                    color: disableFlood ? Colors.black26 : Colors.green,
                   ),
                   child: const Icon(
                     CupertinoIcons.add,

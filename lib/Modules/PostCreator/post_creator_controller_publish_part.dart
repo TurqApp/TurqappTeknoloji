@@ -220,8 +220,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       final reusedVideoThumbnail = contentController.reusedVideoThumbnail.value;
       final reusedVideoAspectRatio =
           contentController.reusedVideoAspectRatio.value;
-      final videoLookPreset = contentController.videoLookPreset.value.trim();
-      final location = contentController.adres.value;
+      final videoLookPreset = postList.length > 1
+          ? 'original'
+          : contentController.videoLookPreset.value.trim();
+      const location = '';
       final gif = contentController.gif.value;
       final customThumb = contentController.selectedThumbnail.value;
       final poll = contentController.pollData.value ?? const {};

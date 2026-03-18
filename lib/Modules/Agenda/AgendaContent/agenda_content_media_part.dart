@@ -154,9 +154,11 @@ extension _AgendaContentMediaPart on _AgendaContentState {
         .type;
     final preserveScholarshipFrame =
         type == 'scholarship' && widget.model.img.length == 1;
-    final singleImageAspectRatio = preserveScholarshipFrame
-        ? widget.model.aspectRatio.toDouble().clamp(0.65, 1.8)
-        : 0.80;
+    final singleImageAspectRatio = widget.model.floodCount > 1
+        ? 1.0
+        : (preserveScholarshipFrame
+            ? widget.model.aspectRatio.toDouble().clamp(0.65, 1.8)
+            : 0.80);
 
     switch (images.length) {
       case 1:
