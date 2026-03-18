@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/external.dart';
@@ -230,13 +231,21 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                     ),
                                   ),
                                   if (selectedSubject == entry.value)
-                                    for (var questionEntry in list
-                                        .asMap()
-                                        .entries
-                                        .where(
-                                          (e) => e.value.ders == entry.value,
-                                        ))
-                                      Container(
+                                    ...() {
+                                      final subjectQuestions = list
+                                          .asMap()
+                                          .entries
+                                          .where(
+                                            (e) => e.value.ders == entry.value,
+                                          )
+                                          .toList(growable: false);
+                                      final children = <Widget>[];
+                                      for (var i = 0;
+                                          i < subjectQuestions.length;
+                                          i++) {
+                                        final questionEntry =
+                                            subjectQuestions[i];
+                                        children.add(Container(
                                         decoration: BoxDecoration(
                                           color: Colors.white,
                                           boxShadow: [
@@ -395,7 +404,22 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                             ],
                                           ),
                                         ),
-                                      ),
+                                      ));
+                                        if ((i + 1) % 3 == 0) {
+                                          children.add(
+                                            const Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 12,
+                                              ),
+                                              child: Center(
+                                                child: AdmobKare(),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                      return children;
+                                    }(),
                                 ],
                               ),
                             SizedBox(height: 60),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
@@ -156,13 +157,16 @@ class QuestionContent extends StatelessWidget {
                       return Center(child: Text("Soru bulunamadı!"));
                     }
 
+                    final adCount = controller.questions.length ~/ 3;
+                    final contentCount = controller.questions.length + adCount;
+
                     return ListView.builder(
                       controller: _scrollController,
                       physics: AlwaysScrollableScrollPhysics(),
                       cacheExtent: 1000,
-                      itemCount: controller.questions.length + 1,
+                      itemCount: contentCount + 1,
                       itemBuilder: (context, index) {
-                        if (index == controller.questions.length) {
+                        if (index == contentCount) {
                           return Obx(() {
                             if (controller.loadingProgress.value < 1.0) {
                               return Padding(
@@ -176,7 +180,15 @@ class QuestionContent extends StatelessWidget {
                           });
                         }
 
-                        final question = controller.questions[index];
+                        if ((index + 1) % 4 == 0) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Center(child: AdmobKare()),
+                          );
+                        }
+
+                        final questionIndex = index - ((index + 1) ~/ 4);
+                        final question = controller.questions[questionIndex];
                         final aspectRatio =
                             controller.imageAspectRatios[question.soru] ?? 1.0;
 
@@ -208,7 +220,7 @@ class QuestionContent extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      "${index + 1}. Soru ${question.ders} (${question.sinavTuru == question.anaBaslik ? question.anaBaslik : "${question.sinavTuru} - ${question.anaBaslik}"})",
+                                      "${questionIndex + 1}. Soru ${question.ders} (${question.sinavTuru == question.anaBaslik ? question.anaBaslik : "${question.sinavTuru} - ${question.anaBaslik}"})",
                                       style: TextStyles.bold18Black,
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
