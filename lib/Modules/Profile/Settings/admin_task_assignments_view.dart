@@ -527,17 +527,28 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       AppSnackbar('Eksik Bilgi', 'Önce kullanıcıyı yükle.');
       return;
     }
-    if (_selectedTaskIds.isEmpty) {
-      AppSnackbar('Eksik Bilgi', 'En az bir görev seç.');
-      return;
-    }
     setState(() {
       _saving = true;
     });
     try {
+      final nickname = (user['nickname'] ?? '').toString();
+      if (_selectedTaskIds.isEmpty) {
+        await _assignmentRepository.clearAssignment(
+          (user['id'] ?? '').toString(),
+        );
+        if (!mounted) return;
+        setState(() {
+          _selectedTaskIds = <String>[];
+        });
+        AppSnackbar(
+          'Admin Görevleri',
+          '@$nickname için görev ataması kaldırıldı.',
+        );
+        return;
+      }
       await _assignmentRepository.saveAssignment(
         userId: (user['id'] ?? '').toString(),
-        nickname: (user['nickname'] ?? '').toString(),
+        nickname: nickname,
         displayName: (user['displayName'] ?? '').toString(),
         avatarUrl: (user['avatarUrl'] ?? '').toString(),
         rozet: (user['rozet'] ?? '').toString(),
@@ -546,7 +557,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       );
       AppSnackbar(
         'Admin Görevleri',
-        '@${(user['nickname'] ?? '').toString()} için görevler kaydedildi.',
+        '@$nickname için görevler kaydedildi.',
       );
     } catch (e) {
       AppSnackbar('Hata', 'Görevler kaydedilemedi: $e');

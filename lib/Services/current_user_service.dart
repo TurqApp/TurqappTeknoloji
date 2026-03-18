@@ -62,7 +62,7 @@ class _TimedValue<T> {
 /// // Reactive GetX (if using Obx)
 /// Obx(() => Text(userService.currentUserRx.value?.nickname ?? 'Guest'))
 /// ```
-class CurrentUserService extends GetxController {
+class CurrentUserService extends GetxController with WidgetsBindingObserver {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🏗️ Singleton Pattern
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -73,7 +73,9 @@ class CurrentUserService extends GetxController {
     return _instance!;
   }
 
-  CurrentUserService._internal();
+  CurrentUserService._internal() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 📦 State Management
@@ -128,6 +130,9 @@ class CurrentUserService extends GetxController {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   SharedPreferences? _prefs;
   StreamSubscription<Map<String, dynamic>?>? _firestoreSubscription;
+  Timer? _exclusiveSessionHeartbeat;
+  static const Duration _exclusiveSessionHeartbeatInterval =
+      Duration(seconds: 10);
 
   static const String _cacheKeyPrefix = 'cached_current_user';
   static const String _cacheTimestampKeyPrefix = 'cached_current_user_timestamp';
@@ -181,6 +186,7 @@ class CurrentUserService extends GetxController {
         return false;
       }
       emailVerifiedRx.value = firebaseUser.emailVerified;
+      unawaited(_adoptFreshSessionKeyIfNeeded());
       _lastKnownViewSelection =
           _prefs?.getInt(_viewSelectionKey(firebaseUser.uid));
       viewSelectionRx.value = _lastKnownViewSelection ?? 1;
@@ -381,9 +387,42 @@ class CurrentUserService extends GetxController {
         },
         onError: (_) {},
       );
+      _startExclusiveSessionHeartbeat(firebaseUser.uid);
+      unawaited(_adoptFreshSessionKeyIfNeeded());
+      unawaited(_validateExclusiveSessionFromServer(firebaseUser.uid));
     } catch (_) {
       _isSyncing = false;
     }
+  }
+
+  Future<void> _adoptFreshSessionKeyIfNeeded() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    if (!DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) return;
+    try {
+      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+    } catch (_) {}
+  }
+
+  void _startExclusiveSessionHeartbeat(String uid) {
+    _exclusiveSessionHeartbeat?.cancel();
+    _exclusiveSessionHeartbeat = Timer.periodic(
+      _exclusiveSessionHeartbeatInterval,
+      (_) => unawaited(_validateExclusiveSessionFromServer(uid)),
+    );
+  }
+
+  Future<void> _validateExclusiveSessionFromServer(String uid) async {
+    if (uid.trim().isEmpty || _handlingSessionDisplacement) return;
+    try {
+      final raw = await UserRepository.ensure().getUserRaw(
+        uid,
+        preferCache: false,
+        forceServer: true,
+      );
+      if (raw == null || raw.isEmpty) return;
+      await _handleExclusiveSessionIfNeeded(uid, raw);
+    } catch (_) {}
   }
 
   Future<Map<String, dynamic>> _buildMergedUserData({
@@ -737,6 +776,8 @@ class CurrentUserService extends GetxController {
   Future<void> _stopFirebaseSync() async {
     await _firestoreSubscription?.cancel();
     _firestoreSubscription = null;
+    _exclusiveSessionHeartbeat?.cancel();
+    _exclusiveSessionHeartbeat = null;
     _isSyncing = false;
   }
 
@@ -795,6 +836,26 @@ class CurrentUserService extends GetxController {
     final localDeviceKey =
         await DeviceSessionService.instance.getOrCreateDeviceKey();
     if (activeDeviceKey == localDeviceKey) return false;
+    if (DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) {
+      try {
+        await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+        return false;
+      } catch (_) {}
+    }
+    if (DeviceSessionService.instance.hasPendingSessionClaim(uid)) {
+      try {
+        await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+        return false;
+      } catch (_) {}
+    }
+    final legacyDeviceKey =
+        (await DeviceSessionService.instance.getLegacyDeviceKey() ?? '').trim();
+    if (legacyDeviceKey.isNotEmpty && activeDeviceKey == legacyDeviceKey) {
+      try {
+        await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+        return false;
+      } catch (_) {}
+    }
 
     _handlingSessionDisplacement = true;
     try {
@@ -926,6 +987,7 @@ class CurrentUserService extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopFirebaseSync();
     _subdocCache.clear();
     _listCache.clear();
@@ -933,6 +995,14 @@ class CurrentUserService extends GetxController {
     _userStreamController.close();
     _instance = null;
     super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    unawaited(_validateExclusiveSessionFromServer(uid));
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

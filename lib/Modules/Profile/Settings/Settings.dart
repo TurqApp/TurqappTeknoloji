@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -28,6 +29,7 @@ import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_approvals_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_task_assignments_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/my_admin_approval_results_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_home_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/account_center_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
@@ -66,13 +68,11 @@ class SettingsView extends StatelessWidget {
       VerifiedAccountRepository.ensure();
   final AdminTaskAssignmentRepository _adminTaskAssignmentRepository =
       AdminTaskAssignmentRepository.ensure();
+  final AdminApprovalRepository _adminApprovalRepository =
+      AdminApprovalRepository.ensure();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
-
-  bool get _isDiagnosticsAdmin {
-    return AdminAccessService.isKnownAdminSync();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,56 +207,88 @@ class SettingsView extends StatelessWidget {
                             children: [
                               buildSectionTitle("Görevlerim"),
                               ..._buildAssignedTaskRows(taskIds),
+                              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                stream: _adminApprovalRepository.watchOwnApprovals(
+                                  FirebaseAuth.instance.currentUser?.uid ?? '',
+                                ),
+                                builder: (context, approvalsSnap) {
+                                  final docs = approvalsSnap.data?.docs ?? const [];
+                                  if (docs.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return buildRow(
+                                    "Onay Sonuçlarım",
+                                    CupertinoIcons.checkmark_alt_circle,
+                                    () => Get.to(
+                                      () => const MyAdminApprovalResultsView(),
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
                           );
                         },
                       ),
-                      if (_isDiagnosticsAdmin) ...[
-                        buildSectionTitle("Sistem ve Tanı"),
-                        buildRow(
-                          "Yönetim / Reklam Merkezi",
-                          CupertinoIcons.volume_up,
-                          () => Get.to(() => const AdsCenterHomeView()),
-                        ),
-                        buildRow(
-                          "Yönetim / Moderasyon",
-                          CupertinoIcons.flag_fill,
-                          () => Get.to(() => const ModerationSettingsView()),
-                        ),
-                        buildRow(
-                          "Yönetim / Reports",
-                          CupertinoIcons.exclamationmark_bubble_fill,
-                          () => Get.to(() => const ReportsAdminView()),
-                        ),
-                        buildRow(
-                          "Yönetim / Rozet Yönetimi",
-                          CupertinoIcons.checkmark_seal_fill,
-                          () => Get.to(() => const BadgeAdminView()),
-                        ),
-                        buildRow(
-                          "Yönetim / Admin Görevleri",
-                          CupertinoIcons.checkmark_rectangle_fill,
-                          () => Get.to(() => const AdminTaskAssignmentsView()),
-                        ),
-                        buildRow(
-                          "Yönetim / Admin Onayları",
-                          CupertinoIcons.checkmark_alt_circle_fill,
-                          () => Get.to(() => const AdminApprovalsView()),
-                        ),
-                        buildRow(
-                          "Yönetim / Hikaye Müzikleri",
-                          CupertinoIcons.music_note_list,
-                          () => Get.to(() => const StoryMusicAdminView()),
-                        ),
-                        buildRow(
-                          "Sistem ve Tanı Menüsü",
-                          CupertinoIcons.antenna_radiowaves_left_right,
-                          () {
-                            _showSystemDiagnosticsMenu();
-                          },
-                        ),
-                        _AdminPushMenuTile(buildRow: buildRow),
-                      ],
+                      FutureBuilder<bool>(
+                        future: AdminAccessService.isPrimaryAdmin(),
+                        builder: (context, adminSnap) {
+                          if (adminSnap.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox.shrink();
+                          }
+                          if (adminSnap.data != true) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            children: [
+                              buildSectionTitle("Sistem ve Tanı"),
+                              buildRow(
+                                "Yönetim / Reklam Merkezi",
+                                CupertinoIcons.volume_up,
+                                () => Get.to(() => const AdsCenterHomeView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Moderasyon",
+                                CupertinoIcons.flag_fill,
+                                () => Get.to(() => const ModerationSettingsView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Reports",
+                                CupertinoIcons.exclamationmark_bubble_fill,
+                                () => Get.to(() => const ReportsAdminView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Rozet Yönetimi",
+                                CupertinoIcons.checkmark_seal_fill,
+                                () => Get.to(() => const BadgeAdminView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Admin Görevleri",
+                                CupertinoIcons.checkmark_rectangle_fill,
+                                () => Get.to(() => const AdminTaskAssignmentsView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Admin Onayları",
+                                CupertinoIcons.checkmark_alt_circle_fill,
+                                () => Get.to(() => const AdminApprovalsView()),
+                              ),
+                              buildRow(
+                                "Yönetim / Hikaye Müzikleri",
+                                CupertinoIcons.music_note_list,
+                                () => Get.to(() => const StoryMusicAdminView()),
+                              ),
+                              buildRow(
+                                "Sistem ve Tanı Menüsü",
+                                CupertinoIcons.antenna_radiowaves_left_right,
+                                () {
+                                  _showSystemDiagnosticsMenu();
+                                },
+                              ),
+                              _AdminPushMenuTile(buildRow: buildRow),
+                            ],
+                          );
+                        },
+                      ),
                       buildSectionTitle("Oturum"),
                       buildRow(
                           "Oturumu Kapat", CupertinoIcons.square_arrow_right,

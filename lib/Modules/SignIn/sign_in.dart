@@ -18,7 +18,7 @@ class SignIn extends StatelessWidget {
     super.key,
     this.initialIdentifier = '',
     this.storedAccountUid = '',
-  }) {
+  }) : controller = _createFreshController() {
     controller.prepareSignInPrefill(initialIdentifier);
     controller.prepareStoredAccountContext(storedAccountUid);
   }
@@ -26,7 +26,14 @@ class SignIn extends StatelessWidget {
   final String initialIdentifier;
   final String storedAccountUid;
 
-  final controller = Get.put(SignInController());
+  final SignInController controller;
+
+  static SignInController _createFreshController() {
+    if (Get.isRegistered<SignInController>()) {
+      Get.delete<SignInController>(force: true);
+    }
+    return Get.put(SignInController());
+  }
 
   @override
   Widget build(BuildContext context) {

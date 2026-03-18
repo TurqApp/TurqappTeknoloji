@@ -256,7 +256,7 @@ class _ApprovalCardState extends State<_ApprovalCard> {
       final payload = Map<String, dynamic>.from(
         (data['payload'] as Map?)?.cast<String, dynamic>() ?? const {},
       );
-      if (type == 'badge_change') {
+      if (type == 'badge_change' || type == 'badge') {
         final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
             .httpsCallable('setUserBadgeByUserId');
         await callable.call<Map<String, dynamic>>(payload);

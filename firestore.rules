@@ -44,6 +44,29 @@ service cloud.firestore {
     function canManageAdminPanels() {
       return isAdmin() || isAllowlistedAdmin();
     }
+    function hasAssignedAdminTask(taskId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid))
+        && get(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid)).data.taskIds is list
+        && taskId in get(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid)).data.taskIds;
+    }
+    function canCreateAdminApproval() {
+      return canManageAdminPanels()
+        || (
+          isAuth()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.type is string
+          && (
+            (request.resource.data.type == 'user_ban' && hasAssignedAdminTask('user_bans'))
+            || ((request.resource.data.type == 'badge'
+                || request.resource.data.type == 'badge_change')
+                && hasAssignedAdminTask('badges'))
+            || (request.resource.data.type == 'report' && hasAssignedAdminTask('reports'))
+            || (request.resource.data.type == 'approval' && hasAssignedAdminTask('approvals'))
+          )
+        );
+    }
     function isBlackBadge() {
       return isAuth()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -1087,10 +1110,11 @@ service cloud.firestore {
     }
 
     match /adminApprovals/{docId} {
-      allow read: if canManageAdminPanels();
-      allow create: if canManageAdminPanels()
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.status == 'pending';
+      allow read: if canManageAdminPanels()
+        || (isAuth()
+          && resource.data.createdBy is string
+          && resource.data.createdBy == request.auth.uid);
+      allow create: if canCreateAdminApproval();
       allow update, delete: if isAdmin();
     }
 
@@ -2006,7 +2030,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     match /bannedUser/{docId} {
-      allow read: if canManageAdminPanels();
+      allow read: if canManageAdminPanels() || hasAssignedAdminTask('user_bans');
       allow write: if false;
     }
     match /SosyalMedyaLinkleri/{docId} {

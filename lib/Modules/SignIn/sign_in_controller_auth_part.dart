@@ -24,6 +24,10 @@ extension SignInControllerAuthPart on SignInController {
         email: credential.email,
         password: credential.password,
       );
+      final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (signedUid.isNotEmpty) {
+        DeviceSessionService.instance.beginSessionClaim(signedUid);
+      }
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
@@ -234,6 +238,10 @@ extension SignInControllerAuthPart on SignInController {
         email: resetMail.value,
         password: newPassword,
       );
+      final signedUid = userCredential.user?.uid ?? '';
+      if (signedUid.isNotEmpty) {
+        DeviceSessionService.instance.beginSessionClaim(signedUid);
+      }
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
@@ -322,6 +330,10 @@ extension SignInControllerAuthPart on SignInController {
         email: _resolvedSignInEmail(),
         password: password.value,
       );
+      final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (signedUid.isNotEmpty) {
+        DeviceSessionService.instance.beginSessionClaim(signedUid);
+      }
       authSucceeded = true;
       try {
         TextInput.finishAutofillContext(shouldSave: true);

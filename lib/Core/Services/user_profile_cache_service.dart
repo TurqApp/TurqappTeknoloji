@@ -346,6 +346,12 @@ class UserProfileCacheService extends GetxService {
       'isPrivate': raw['isPrivate'] == true,
       'isDeleted': raw['isDeleted'] == true,
       'accountStatus': (raw['accountStatus'] ?? '').toString(),
+      'singleDeviceSessionEnabled': raw['singleDeviceSessionEnabled'] == true,
+      'activeSessionDeviceKey':
+          (raw['activeSessionDeviceKey'] ?? '').toString(),
+      'activeSessionUpdatedAt': raw['activeSessionUpdatedAt'] ?? 0,
+      'deviceID': (raw['deviceID'] ?? '').toString(),
+      'email': (raw['email'] ?? '').toString(),
     };
   }
 

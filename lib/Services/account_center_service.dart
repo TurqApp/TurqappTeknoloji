@@ -370,6 +370,7 @@ class AccountCenterService extends GetxService {
       'deviceID': deviceKey,
       'updatedDate': nowMs,
     });
+    DeviceSessionService.instance.clearPendingSessionClaim(uid);
   }
 
   Future<void> togglePinned(String uid) async {
