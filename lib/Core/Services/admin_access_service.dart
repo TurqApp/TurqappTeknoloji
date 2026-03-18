@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/admin_task_catalog.dart';
 
 class AdminAccessService {
   static bool _adminCached = false;
@@ -8,6 +10,9 @@ class AdminAccessService {
   static DateTime? _lastAllowlistFetchAt;
   static const Duration _allowlistTtl = Duration(minutes: 10);
   static Set<String> _allowlistCache = <String>{};
+  static DateTime? _lastTaskFetchAt;
+  static const Duration _taskTtl = Duration(minutes: 2);
+  static List<String> _taskCache = <String>[];
 
   static bool isKnownAdminSync() {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -15,6 +20,8 @@ class AdminAccessService {
       _cachedUid = currentUid;
       _adminCached = false;
       _hasRefreshed = false;
+      _taskCache = <String>[];
+      _lastTaskFetchAt = null;
     }
     if (!_hasRefreshed) {
       _hasRefreshed = true;
@@ -57,6 +64,61 @@ class AdminAccessService {
     if (currentUser == null) return false;
     final token = await currentUser.getIdTokenResult(true);
     return token.claims?["admin"] == true;
+  }
+
+  static Future<List<String>> fetchAssignedTaskIds({bool forceRefresh = false}) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      _taskCache = <String>[];
+      _lastTaskFetchAt = null;
+      return const <String>[];
+    }
+
+    if (_cachedUid != currentUser.uid) {
+      _cachedUid = currentUser.uid;
+      _taskCache = <String>[];
+      _lastTaskFetchAt = null;
+    }
+
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _lastTaskFetchAt != null &&
+        now.difference(_lastTaskFetchAt!) < _taskTtl) {
+      return List<String>.unmodifiable(_taskCache);
+    }
+
+    try {
+      final assignment = await AdminTaskAssignmentRepository.ensure()
+          .fetchAssignment(currentUser.uid);
+      _taskCache = normalizeAdminTaskIds(
+        assignment?['taskIds'] is List ? assignment!['taskIds'] as List : const [],
+      );
+    } catch (_) {
+      _taskCache = <String>[];
+    }
+    _lastTaskFetchAt = now;
+    return List<String>.unmodifiable(_taskCache);
+  }
+
+  static Future<bool> canAccessTask(String taskId) async {
+    if (await canManageSliders()) {
+      return true;
+    }
+    final tasks = await fetchAssignedTaskIds();
+    return tasks.contains(taskId.trim());
+  }
+
+  static Future<bool> canAccessAnyTask(Iterable<String> taskIds) async {
+    if (await canManageSliders()) {
+      return true;
+    }
+    final tasks = await fetchAssignedTaskIds();
+    for (final taskId in taskIds) {
+      if (tasks.contains(taskId.trim())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static Future<Set<String>> _loadAllowlist() async {

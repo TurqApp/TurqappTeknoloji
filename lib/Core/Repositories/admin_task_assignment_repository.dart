@@ -17,6 +17,15 @@ class AdminTaskAssignmentRepository extends GetxService {
     return _ref.orderBy('updatedAt', descending: true).snapshots();
   }
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> watchAssignment(
+    String userId,
+  ) {
+    if (userId.trim().isEmpty) {
+      return const Stream<DocumentSnapshot<Map<String, dynamic>>>.empty();
+    }
+    return _ref.doc(userId.trim()).snapshots();
+  }
+
   Future<Map<String, dynamic>?> fetchAssignment(String userId) async {
     if (userId.trim().isEmpty) return null;
     final doc = await _ref.doc(userId.trim()).get();

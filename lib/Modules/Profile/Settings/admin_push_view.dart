@@ -47,7 +47,7 @@ class _AdminPushViewState extends State<AdminPushView> {
   }
 
   Future<void> _checkAdminAccess() async {
-    final allowed = await AdminAccessService.canManageSliders();
+    final allowed = await AdminAccessService.canAccessTask('admin_push');
     if (!mounted) return;
     setState(() {
       _canManagePush = allowed;

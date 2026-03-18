@@ -3,6 +3,7 @@ part of 'sign_in_controller.dart';
 extension SignInControllerAuthPart on SignInController {
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
     if (!account.hasPasswordProvider) return false;
+    if (account.requiresReauth) return false;
     final credential = await AccountSessionVault.instance.read(account.uid);
     if (credential == null) return false;
 
@@ -33,6 +34,7 @@ extension SignInControllerAuthPart on SignInController {
       unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
       unawaited(_postLoginWarmup());
       await _trackCurrentAccountForDevice();
+      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
       await _persistStoredSessionCredential(
         email: credential.email,
         password: credential.password,
@@ -248,6 +250,7 @@ extension SignInControllerAuthPart on SignInController {
       await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
       await _trackCurrentAccountForDevice();
+      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
       await _persistStoredSessionCredential(
         email: resetMail.value,
         password: newPassword,
@@ -330,6 +333,7 @@ extension SignInControllerAuthPart on SignInController {
       unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
       unawaited(_postLoginWarmup());
       await _trackCurrentAccountForDevice();
+      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
       await _persistStoredSessionCredential(
         email: _resolvedSignInEmail(),
         password: password.value,

@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -24,6 +25,9 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/account_session_vault.dart';
+import 'package:turqappv2/Services/device_session_service.dart';
 
 import '../Models/current_user_model.dart';
 
@@ -155,6 +159,8 @@ class CurrentUserService extends GetxController {
   String? _lastReactiveSignature;
   String? _lastRootSyncSignature;
   String? _lastWarmedAvatarUrl;
+  bool _handlingPermanentBan = false;
+  bool _handlingSessionDisplacement = false;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚀 Initialization
@@ -353,6 +359,9 @@ class CurrentUserService extends GetxController {
           UserRepository.ensure().watchUserRaw(firebaseUser.uid).listen(
         (data) async {
           if (data == null || data.isEmpty) {
+            return;
+          }
+          if (await _handleExclusiveSessionIfNeeded(firebaseUser.uid, data)) {
             return;
           }
           final rootSignature = jsonEncode(data);
@@ -738,12 +747,81 @@ class CurrentUserService extends GetxController {
   /// Update current user (internal)
   Future<void> _updateUser(CurrentUserModel user) async {
     final resolvedUser = await _applyStoredViewSelection(user);
+    if (await _handlePermanentBanIfNeeded(resolvedUser)) {
+      return;
+    }
     _currentUser = resolvedUser;
     final didPublish = _publishResolvedUser(resolvedUser);
     await UserRepository.ensure().seedCurrentUser(resolvedUser);
     unawaited(_warmAvatar(resolvedUser));
     if (didPublish) {
       await _saveToCache(resolvedUser);
+    }
+  }
+
+  Future<bool> _handlePermanentBanIfNeeded(CurrentUserModel user) async {
+    if (!user.isPermanentAppBan || _handlingPermanentBan) {
+      return false;
+    }
+
+    _handlingPermanentBan = true;
+    try {
+      AppSnackbar(
+        'Hesap Engellendi',
+        'Bu hesap uygulamaya erişimden kalıcı olarak uzaklaştırıldı.',
+      );
+      await logout();
+      await FirebaseAuth.instance.signOut();
+      if (Get.key.currentContext != null) {
+        await Get.offAll(() => SignIn());
+      }
+      return true;
+    } catch (_) {
+      return true;
+    } finally {
+      _handlingPermanentBan = false;
+    }
+  }
+
+  Future<bool> _handleExclusiveSessionIfNeeded(
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
+    if (_handlingSessionDisplacement) return false;
+    if (data['singleDeviceSessionEnabled'] != true) return false;
+    final activeDeviceKey =
+        (data['activeSessionDeviceKey'] ?? '').toString().trim();
+    if (activeDeviceKey.isEmpty) return false;
+    final localDeviceKey =
+        await DeviceSessionService.instance.getOrCreateDeviceKey();
+    if (activeDeviceKey == localDeviceKey) return false;
+
+    _handlingSessionDisplacement = true;
+    try {
+      await AccountCenterService.ensure().markSessionState(
+        uid: uid,
+        isSessionValid: false,
+        requiresReauth: true,
+      );
+      await AccountSessionVault.instance.delete(uid);
+      AppSnackbar(
+        'Oturum Kapatıldı',
+        'Bu hesap başka bir telefonda açıldı. Yeniden giriş için şifre gerekir.',
+      );
+      await logout();
+      await FirebaseAuth.instance.signOut();
+      if (Get.key.currentContext != null) {
+        await Get.offAll(
+          () => SignIn(
+            initialIdentifier: (data['email'] ?? '').toString().trim(),
+          ),
+        );
+      }
+      return true;
+    } catch (_) {
+      return true;
+    } finally {
+      _handlingSessionDisplacement = false;
     }
   }
 

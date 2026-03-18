@@ -67,6 +67,7 @@ export * from "./22_badgeAdmin";
 export * from "./23_sharedPostCascade";
 export * from "./24_reports";
 export * from "./25_typesenseMarket";
+export * from "./26_userBanAdmin";
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore
@@ -94,6 +95,15 @@ export const syncUserSchemaAndFlags = functions.firestore
     if (afterData?.isApproved === undefined) patch.isApproved = false;
     if (afterData?.isDeleted === undefined) patch.isDeleted = false;
     if (afterData?.isBanned === undefined) patch.isBanned = false;
+    if (afterData?.moderationStrikeCount === undefined) patch.moderationStrikeCount = 0;
+    if (afterData?.moderationLevel === undefined) patch.moderationLevel = 0;
+    if (afterData?.moderationRestrictedUntil === undefined) patch.moderationRestrictedUntil = 0;
+    if (afterData?.moderationPermanentBan === undefined) patch.moderationPermanentBan = false;
+    if (afterData?.moderationBanReason === undefined) patch.moderationBanReason = "";
+    if (afterData?.moderationUpdatedAt === undefined) patch.moderationUpdatedAt = 0;
+    if (afterData?.singleDeviceSessionEnabled === undefined) patch.singleDeviceSessionEnabled = false;
+    if (afterData?.activeSessionDeviceKey === undefined) patch.activeSessionDeviceKey = "";
+    if (afterData?.activeSessionUpdatedAt === undefined) patch.activeSessionUpdatedAt = 0;
     if (afterData?.isBot === undefined) patch.isBot = false;
     const canonicalAvatarUrl = normalizeAvatarUrl(afterData?.avatarUrl);
     if (String(afterData?.avatarUrl ?? "").trim() !== canonicalAvatarUrl) {

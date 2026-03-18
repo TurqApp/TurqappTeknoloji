@@ -22,7 +22,7 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
   @override
   void initState() {
     super.initState();
-    _canAccessFuture = AdminAccessService.canManageSliders();
+    _canAccessFuture = AdminAccessService.canAccessTask('approvals');
     _isPrimaryAdminFuture = AdminAccessService.isPrimaryAdmin();
   }
 

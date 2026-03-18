@@ -1082,7 +1082,8 @@ service cloud.firestore {
     }
 
     match /adminTaskAssignments/{uid} {
-      allow read, write: if canManageAdminPanels();
+      allow read: if canManageAdminPanels() || isOwner(uid);
+      allow write: if canManageAdminPanels();
     }
 
     match /adminApprovals/{docId} {

@@ -45,7 +45,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
   @override
   void initState() {
     super.initState();
-    _canAccessFuture = AdminAccessService.canManageSliders();
+    _canAccessFuture = AdminAccessService.canAccessTask('badges');
   }
 
   @override

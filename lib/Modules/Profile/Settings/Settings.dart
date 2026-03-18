@@ -1,9 +1,11 @@
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:svg_flutter/svg.dart';
@@ -53,6 +55,7 @@ import 'package:turqappv2/Services/offline_mode_service.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/admin_task_catalog.dart';
 
 class SettingsView extends StatelessWidget {
   SettingsView({super.key});
@@ -61,6 +64,8 @@ class SettingsView extends StatelessWidget {
   final UserRepository _userRepository = UserRepository.ensure();
   final VerifiedAccountRepository _verifiedAccountRepository =
       VerifiedAccountRepository.ensure();
+  final AdminTaskAssignmentRepository _adminTaskAssignmentRepository =
+      AdminTaskAssignmentRepository.ensure();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
@@ -184,6 +189,28 @@ class SettingsView extends StatelessWidget {
                       buildRow("Bize Yazın", CupertinoIcons.pencil_circle, () {
                         launchUrl(Uri.parse('mailto:info@turqapp.com'));
                       }),
+                      StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                        stream: _adminTaskAssignmentRepository.watchAssignment(
+                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                        ),
+                        builder: (context, taskSnap) {
+                          final data = taskSnap.data?.data();
+                          final taskIds = normalizeAdminTaskIds(
+                            data?['taskIds'] is List
+                                ? data!['taskIds'] as List
+                                : const [],
+                          );
+                          if (taskIds.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            children: [
+                              buildSectionTitle("Görevlerim"),
+                              ..._buildAssignedTaskRows(taskIds),
+                            ],
+                          );
+                        },
+                      ),
                       if (_isDiagnosticsAdmin) ...[
                         buildSectionTitle("Sistem ve Tanı"),
                         buildRow(
@@ -372,6 +399,56 @@ class SettingsView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildAssignedTaskRows(List<String> taskIds) {
+    final rows = <Widget>[];
+    final seen = <String>{};
+    for (final taskId in taskIds) {
+      if (!seen.add(taskId)) continue;
+      final task = adminTaskCatalogById[taskId];
+      if (task == null) continue;
+      rows.add(
+        buildRow(task.title, task.icon, () => _openAssignedTask(taskId)),
+      );
+    }
+    return rows;
+  }
+
+  void _openAssignedTask(String taskId) {
+    switch (taskId) {
+      case 'moderation':
+      case 'user_bans':
+        Get.to(() => const ModerationSettingsView());
+        return;
+      case 'reports':
+        Get.to(() => const ReportsAdminView());
+        return;
+      case 'badges':
+        Get.to(() => const BadgeAdminView());
+        return;
+      case 'approvals':
+        Get.to(() => const AdminApprovalsView());
+        return;
+      case 'admin_push':
+        Get.to(() => const AdminPushView());
+        return;
+      case 'ads_center':
+        Get.to(() => const AdsCenterHomeView());
+        return;
+      case 'story_music':
+        Get.to(() => const StoryMusicAdminView());
+        return;
+      case 'pasaj':
+        Get.to(() => PasajSettingsView());
+        return;
+      case 'support':
+        AppSnackbar(
+          'Görev',
+          'Kullanıcı Destek ekranı henüz ayrı bir panel olarak açılmadı.',
+        );
+        return;
+    }
   }
 
   void _showDataUsageDialog() {

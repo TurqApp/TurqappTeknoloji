@@ -35,6 +35,21 @@ class AccountCenterView extends StatelessWidget {
     }
 
     if (account.hasPasswordProvider) {
+      if (account.requiresReauth) {
+        final identifier =
+            await _signInController.preferredIdentifierForStoredAccount(account);
+        await Get.offAll(
+          () => SignIn(
+            initialIdentifier: identifier,
+            storedAccountUid: account.uid,
+          ),
+        );
+        AppSnackbar(
+          'Tekrar Giriş Gerekli',
+          '@${account.username} hesabı için şifrenle yeniden giriş yapman gerekiyor.',
+        );
+        return;
+      }
       Get.dialog(
         const Center(child: CupertinoActivityIndicator()),
         barrierDismissible: false,
@@ -252,6 +267,10 @@ class AccountCenterView extends StatelessWidget {
                                   ),
                           ),
                           const SizedBox(height: 18),
+                          _SessionSecuritySection(
+                            accountCenter: accountCenter,
+                          ),
+                          const SizedBox(height: 18),
                           const Padding(
                             padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
                             child: Text(
@@ -280,6 +299,82 @@ class AccountCenterView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SessionSecuritySection extends StatelessWidget {
+  const _SessionSecuritySection({
+    required this.accountCenter,
+  });
+
+  final AccountCenterService accountCenter;
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
+          child: Text(
+            'Güvenlik',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 14,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.black12),
+          ),
+          child: StreamBuilder<Map<String, dynamic>?>(
+            stream: UserRepository.ensure().watchUserRaw(uid),
+            builder: (context, snapshot) {
+              final enabled =
+                  (snapshot.data?['singleDeviceSessionEnabled'] ?? false) == true;
+              return SwitchListTile.adaptive(
+                value: enabled,
+                onChanged: (value) async {
+                  await accountCenter.setSingleDeviceSessionEnabled(value);
+                  AppSnackbar(
+                    'Hesap Merkezi',
+                    value
+                        ? 'Yeni cihazdan girişte diğer telefonlardan çıkış yapılacak.'
+                        : 'Hesap aynı anda birden fazla telefonda açık kalabilir.',
+                  );
+                },
+                title: const Text(
+                  'Yeni girişte diğer telefonlardan çıkış yap',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontFamily: 'MontserratBold',
+                  ),
+                ),
+                subtitle: const Text(
+                  'Bu ayar açıksa başka bir telefondan giriş yapıldığında bu cihazdaki oturum kapanır. Yeniden giriş için şifre gerekir.',
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontFamily: 'MontserratMedium',
+                    height: 1.35,
+                  ),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -21,7 +21,7 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
   @override
   void initState() {
     super.initState();
-    _canAccessFuture = AdminAccessService.canManageSliders();
+    _canAccessFuture = AdminAccessService.canAccessTask('reports');
   }
 
   @override

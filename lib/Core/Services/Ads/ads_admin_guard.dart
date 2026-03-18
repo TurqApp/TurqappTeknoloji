@@ -7,7 +7,7 @@ class AdsAdminGuard {
   static Future<bool> canAccessAdsCenter() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
-    return AdminAccessService.canManageSliders();
+    return AdminAccessService.canAccessTask('ads_center');
   }
 
   static bool canAccessAdsCenterSync() {

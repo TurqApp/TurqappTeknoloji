@@ -46,7 +46,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   void initState() {
     super.initState();
     AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
-    _canAccessFuture = AdminAccessService.canManageSliders();
+    _canAccessFuture = AdminAccessService.canAccessTask('story_music');
     _loadTracks();
   }
 

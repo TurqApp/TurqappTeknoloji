@@ -9,6 +9,7 @@ import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Services/device_session_service.dart';
 
 class AccountCenterService extends GetxService {
   static const String _accountsKey = 'account_center.accounts';
@@ -331,6 +332,44 @@ class AccountCenterService extends GetxService {
       ),
       promoteActiveUid: true,
     );
+  }
+
+  Future<void> setSingleDeviceSessionEnabled(bool enabled) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final deviceKey = await DeviceSessionService.instance.getOrCreateDeviceKey();
+    final patch = <String, dynamic>{
+      'singleDeviceSessionEnabled': enabled,
+      'activeSessionUpdatedAt': nowMs,
+      'updatedDate': nowMs,
+    };
+    if (enabled) {
+      patch['activeSessionDeviceKey'] = deviceKey;
+      patch['deviceID'] = deviceKey;
+    } else {
+      patch['activeSessionDeviceKey'] = '';
+    }
+    await UserRepository.ensure().updateUserFields(uid, patch);
+  }
+
+  Future<void> registerCurrentDeviceSessionIfEnabled() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    final raw = await UserRepository.ensure().getUserRaw(
+      uid,
+      preferCache: false,
+      forceServer: true,
+    );
+    if (raw == null || raw['singleDeviceSessionEnabled'] != true) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final deviceKey = await DeviceSessionService.instance.getOrCreateDeviceKey();
+    await UserRepository.ensure().updateUserFields(uid, <String, dynamic>{
+      'activeSessionDeviceKey': deviceKey,
+      'activeSessionUpdatedAt': nowMs,
+      'deviceID': deviceKey,
+      'updatedDate': nowMs,
+    });
   }
 
   Future<void> togglePinned(String uid) async {

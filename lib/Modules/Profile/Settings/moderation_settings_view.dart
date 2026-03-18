@@ -27,7 +27,9 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
   @override
   void initState() {
     super.initState();
-    _canAccessFuture = AdminAccessService.canManageSliders();
+    _canAccessFuture = AdminAccessService.canAccessAnyTask(
+      const <String>['moderation', 'user_bans'],
+    );
   }
 
   @override
