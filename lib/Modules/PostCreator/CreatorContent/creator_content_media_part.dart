@@ -241,87 +241,47 @@ extension CreatorContentMediaPart on CreatorContent {
   Widget _buildMediaLookSelector() {
     return Obx(() {
       final presets = CreatorContentController.supportedVideoLookPresets;
-      return Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF6F7F9),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE6E8EC)),
-        ),
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         child: Row(
-          children: [
-            ...presets.asMap().entries.map((entry) {
-              final index = entry.key;
-              final preset = entry.value;
-              final isSelected = controller.videoLookPreset.value == preset;
-              final label = CreatorContent._videoLookLabels[preset] ?? preset;
-              final icon = CreatorContent._videoLookIcons[preset] ??
-                  CupertinoIcons.circle;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: index == presets.length - 1 ? 0 : 8,
+          children: presets.map((preset) {
+            final isSelected = controller.videoLookPreset.value == preset;
+            final label = CreatorContent._videoLookLabels[preset] ?? preset;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => controller.setVideoLookPreset(preset),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
                   ),
-                  child: GestureDetector(
-                    onTap: () => controller.setVideoLookPreset(preset),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.black : Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: isSelected
-                              ? Colors.black
-                              : const Color(0xFFE2E5EA),
-                        ),
-                        boxShadow: isSelected
-                            ? const [
-                                BoxShadow(
-                                  color: Color(0x22000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            icon,
-                            size: 14,
-                            color: isSelected
-                                ? Colors.white
-                                : const Color(0xFF4B5563),
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              label,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF1F2937),
-                                fontSize: 12,
-                                fontFamily: isSelected
-                                    ? "MontserratBold"
-                                    : "MontserratMedium",
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFF1F1EF) : Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0x22000000)
+                          : const Color(0x12000000),
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color:
+                          isSelected ? Colors.black : const Color(0xFF6B6B6B),
+                      fontSize: 12,
+                      fontFamily:
+                          isSelected ? 'MontserratBold' : 'MontserratMedium',
                     ),
                   ),
                 ),
-              );
-            }),
-          ],
+              ),
+            );
+          }).toList(),
         ),
       );
     });

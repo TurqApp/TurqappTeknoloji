@@ -53,12 +53,6 @@ class CreatorContent extends StatelessWidget {
     'cinema': 'Sinematik',
     'vibe': 'Canlı',
   };
-  static const Map<String, IconData> _videoLookIcons = <String, IconData>{
-    'original': CupertinoIcons.circle,
-    'clear': CupertinoIcons.sparkles,
-    'cinema': CupertinoIcons.film,
-    'vibe': CupertinoIcons.sun_max,
-  };
 
   double get _singleImagePreviewAspect {
     final reused = controller.reusedImageAspectRatio.value;
@@ -111,8 +105,7 @@ class CreatorContent extends StatelessWidget {
             (post) => post.index == model.index,
           );
           final isFirstInThread = threadIndex <= 0;
-          final isLastInThread =
-              threadIndex == -1 ||
+          final isLastInThread = threadIndex == -1 ||
               threadIndex == mainController.postList.length - 1;
           final composerUserId = (currentUser?.userID ??
                   (userService.userId.isNotEmpty
@@ -175,11 +168,10 @@ class CreatorContent extends StatelessWidget {
                       textBody(),
                       SizedBox(height: 12),
                       Obx(() {
-                        final hasMedia =
-                            controller.croppedImages.isNotEmpty ||
-                                controller.reusedImageUrls.isNotEmpty ||
-                                controller.videoPlayerController != null ||
-                                controller.waitingVideo.value;
+                        final hasMedia = controller.croppedImages.isNotEmpty ||
+                            controller.reusedImageUrls.isNotEmpty ||
+                            controller.videoPlayerController != null ||
+                            controller.waitingVideo.value;
                         if (mainController.isQuotedPost ||
                             mainController.postList.length > 1) {
                           return const SizedBox.shrink();
@@ -199,11 +191,10 @@ class CreatorContent extends StatelessWidget {
                             : const SizedBox.shrink();
                       }),
                       Obx(() {
-                        final hasMedia =
-                            controller.croppedImages.isNotEmpty ||
-                                controller.reusedImageUrls.isNotEmpty ||
-                                controller.videoPlayerController != null ||
-                                controller.waitingVideo.value;
+                        final hasMedia = controller.croppedImages.isNotEmpty ||
+                            controller.reusedImageUrls.isNotEmpty ||
+                            controller.videoPlayerController != null ||
+                            controller.waitingVideo.value;
                         if (mainController.isQuotedPost) {
                           return const SizedBox.shrink();
                         }
@@ -290,11 +281,10 @@ class CreatorContent extends StatelessWidget {
                         );
                       }),
                       Obx(() {
-                        final hasMedia =
-                            controller.croppedImages.isNotEmpty ||
-                                controller.reusedImageUrls.isNotEmpty ||
-                                controller.videoPlayerController != null ||
-                                controller.waitingVideo.value;
+                        final hasMedia = controller.croppedImages.isNotEmpty ||
+                            controller.reusedImageUrls.isNotEmpty ||
+                            controller.videoPlayerController != null ||
+                            controller.waitingVideo.value;
                         if (mainController.isQuotedPost) {
                           return const SizedBox.shrink();
                         }
@@ -424,12 +414,14 @@ class CreatorContent extends StatelessWidget {
                           final lastIndex = mainController.postList.isEmpty
                               ? 0
                               : mainController.postList.length - 1;
-                          final nextSelectedIndex = previousSelectedIndex > indexInList
+                          final nextSelectedIndex = previousSelectedIndex >
+                                  indexInList
                               ? previousSelectedIndex - 1
                               : previousSelectedIndex == indexInList
                                   ? indexInList.clamp(0, lastIndex)
                                   : previousSelectedIndex.clamp(0, lastIndex);
-                          mainController.selectedIndex.value = nextSelectedIndex;
+                          mainController.selectedIndex.value =
+                              nextSelectedIndex;
                         }
                       }
                     },
