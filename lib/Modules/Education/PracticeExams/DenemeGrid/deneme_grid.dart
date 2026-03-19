@@ -404,7 +404,7 @@ class DenemeGrid extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 108),
+                  constraints: const BoxConstraints(minHeight: 132),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -554,12 +554,12 @@ class DenemeGrid extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           SizedBox(
-                            width: 128,
+                            width: 110,
                             child: Obx(
                               () => Container(
-                                height: 26,
+                                height: 22,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: _ctaColor(controller),
@@ -567,12 +567,15 @@ class DenemeGrid extends StatelessWidget {
                                     Radius.circular(8),
                                   ),
                                 ),
-                                child: Text(
-                                  _ctaLabel(controller),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontFamily: 'MontserratMedium',
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _ctaLabel(controller),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontFamily: 'MontserratMedium',
+                                    ),
                                   ),
                                 ),
                               ),

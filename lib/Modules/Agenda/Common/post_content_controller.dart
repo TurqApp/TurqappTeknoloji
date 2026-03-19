@@ -54,7 +54,18 @@ class PostContentController extends GetxController {
     required this.model,
     this.enableLegacyCommentSync = false,
     this.scrollFeedToTopOnReshare = false,
-  });
+  })  : nickname = model.authorNickname.trim().obs,
+        username = (model.authorNickname.trim().isNotEmpty
+                ? model.authorNickname.trim()
+                : '')
+            .obs,
+        avatarUrl = (model.authorAvatarUrl.trim().isNotEmpty
+                ? resolveAvatarUrl({'avatarUrl': model.authorAvatarUrl.trim()})
+                : kDefaultAvatarUrl)
+            .obs,
+        fullName = model.authorDisplayName.trim().obs,
+        editTime = (model.editTime?.toInt() ?? 0).obs,
+        currentModel = Rx<PostsModel?>(model);
 
   final PostsModel model;
   final bool enableLegacyCommentSync;
@@ -124,10 +135,10 @@ class PostContentController extends GetxController {
   final followLoading = false.obs;
 
   // user info
-  final nickname = "".obs;
-  final username = "".obs;
-  final avatarUrl = "".obs;
-  final fullName = "".obs;
+  final RxString nickname;
+  final RxString username;
+  final RxString avatarUrl;
+  final RxString fullName;
   final token = "".obs;
 
   final reShareUserNickname = "".obs;
@@ -138,9 +149,9 @@ class PostContentController extends GetxController {
   final sikayetEdildi = false.obs;
   final silindi = false.obs;
   final silindiOpacity = 1.0.obs;
-  final editTime = 0.obs;
+  final RxInt editTime;
 
-  final Rx<PostsModel?> currentModel = Rx<PostsModel?>(null);
+  final Rx<PostsModel?> currentModel;
 
   final yenidenPaylasildiMi = false.obs;
 
@@ -196,22 +207,6 @@ class PostContentController extends GetxController {
     super.onInit();
     _postRepository = PostRepository.ensure();
     _adminPushRepository = AdminPushRepository.ensure();
-    currentModel.value = model;
-    final denormAvatar = model.authorAvatarUrl.trim();
-    avatarUrl.value = denormAvatar.isNotEmpty
-        ? resolveAvatarUrl({'avatarUrl': denormAvatar})
-        : kDefaultAvatarUrl;
-    final denormNick = model.authorNickname.trim();
-    if (denormNick.isNotEmpty) {
-      nickname.value = denormNick;
-      if (username.value.trim().isEmpty) {
-        username.value = denormNick;
-      }
-    }
-    final denormDisplayName = model.authorDisplayName.trim();
-    if (denormDisplayName.isNotEmpty) {
-      fullName.value = denormDisplayName;
-    }
     // Delay reactive counter hydration until after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed) return;
@@ -227,7 +222,6 @@ class PostContentController extends GetxController {
     });
 
     getGizleArsivSikayetEdildi();
-    editTime.value = model.editTime?.toInt() ?? 0;
     getUserData(model.userID);
     getReSharedUsers(model.docID);
     // Real-time listeners handle likes/saved/comments membership and counts.
@@ -345,6 +339,25 @@ class PostContentController extends GetxController {
           model.poll = Map<String, dynamic>.from(data['poll']);
           currentModel.value = model;
         } catch (_) {}
+      }
+
+      final rawStats = data['stats'];
+      dynamic rawRetryCount;
+      if (rawStats is Map) {
+        rawRetryCount = rawStats['retryCount'];
+      }
+      rawRetryCount ??= data['retryCount'];
+      if (rawRetryCount != null) {
+        final parsedRetryCount = rawRetryCount is num
+            ? rawRetryCount.toInt()
+            : int.tryParse('$rawRetryCount');
+        if (parsedRetryCount != null) {
+          model.stats.retryCount = parsedRetryCount;
+          final retryRx = countManager.getRetryCount(model.docID);
+          if (retryRx.value != parsedRetryCount) {
+            retryRx.value = parsedRetryCount;
+          }
+        }
       }
     });
   }

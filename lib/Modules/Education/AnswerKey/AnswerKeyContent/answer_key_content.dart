@@ -261,84 +261,89 @@ class AnswerKeyContent extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: SizedBox(
-                  height: 108,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 130),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  controller.model.baslik,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  controller.model.sinavTuru,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.indigo,
-                                    fontSize: 12,
-                                    fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  controller.model.yayinEvi,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 12,
-                                    height: 1.1,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
                           Row(
-                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (canShareFeed) ...[
-                                EducationShareIconButton(
-                                  onTap: controller.shareBooklet,
-                                  size: 36,
-                                  iconSize: 20,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      controller.model.baslik,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      controller.model.sinavTuru,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.indigo,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      controller.model.yayinEvi,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 12,
+                                        height: 1.1,
+                                        fontFamily: 'MontserratMedium',
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 6),
-                              ],
-                              AppHeaderActionButton(
-                                onTap: controller.toggleBookmark,
-                                size: 36,
-                                child: Icon(
-                                  controller.isBookmarked.value
-                                      ? CupertinoIcons.bookmark_fill
-                                      : CupertinoIcons.bookmark,
-                                  color: controller.isBookmarked.value
-                                      ? Colors.orange
-                                      : Colors.black87,
-                                  size: 20,
-                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (canShareFeed) ...[
+                                    EducationShareIconButton(
+                                      onTap: controller.shareBooklet,
+                                      size: 36,
+                                      iconSize: 20,
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  AppHeaderActionButton(
+                                    onTap: controller.toggleBookmark,
+                                    size: 36,
+                                    child: Icon(
+                                      controller.isBookmarked.value
+                                          ? CupertinoIcons.bookmark_fill
+                                          : CupertinoIcons.bookmark,
+                                      color: controller.isBookmarked.value
+                                          ? Colors.orange
+                                          : Colors.black87,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ],
                       ),
-                      const Spacer(),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -421,14 +426,14 @@ class AnswerKeyContent extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           SizedBox(
-                            width: 128,
+                            width: 110,
                             child: _buildPrimaryButton(
                               context,
                               controller,
-                              height: 26,
-                              fontSize: 12,
+                              height: 22,
+                              fontSize: 10,
                             ),
                           ),
                         ],

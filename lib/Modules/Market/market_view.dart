@@ -29,6 +29,10 @@ class MarketView extends StatelessWidget {
   static const MarketContactService _contactService = MarketContactService();
   final MarketController controller;
 
+  String _categoryLabel(Map<String, dynamic> category) {
+    return (category['localizedLabel'] ?? category['label'] ?? '').toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = Column(
@@ -66,8 +70,8 @@ class MarketView extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Text(
-                  'Market',
+                Text(
+                  'pasaj.market.title'.tr,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 22,
@@ -116,29 +120,35 @@ class MarketView extends StatelessWidget {
                               _buildFilterPill(
                                 controller.selectedContactFilter.value ==
                                         'phone'
-                                    ? 'Telefon'
-                                    : 'Mesaj',
+                                    ? 'pasaj.market.contact_phone'.tr
+                                    : 'pasaj.market.contact_message'.tr,
                               ),
                             if (controller.minPriceFilter.value.isNotEmpty)
                               _buildFilterPill(
-                                'Min ${controller.minPriceFilter.value}',
+                                'pasaj.market.min_price'
+                                    .trParams(<String, String>{
+                                  'value': controller.minPriceFilter.value,
+                                }),
                               ),
                             if (controller.maxPriceFilter.value.isNotEmpty)
                               _buildFilterPill(
-                                'Max ${controller.maxPriceFilter.value}',
+                                'pasaj.market.max_price'
+                                    .trParams(<String, String>{
+                                  'value': controller.maxPriceFilter.value,
+                                }),
                               ),
                             if (controller.sortSelection.value != 'newest')
                               _buildFilterPill(
                                 controller.sortSelection.value == 'price_asc'
-                                    ? 'Fiyat Artan'
-                                    : 'Fiyat Azalan',
+                                    ? 'pasaj.market.sort_price_asc'.tr
+                                    : 'pasaj.market.sort_price_desc'.tr,
                               ),
                             GestureDetector(
                               onTap: controller.clearAdvancedFilters,
-                              child: const Padding(
+                              child: Padding(
                                 padding: EdgeInsets.only(left: 6),
                                 child: Text(
-                                  'Temizle',
+                                  'common.clear'.tr,
                                   style: TextStyle(
                                     color: Colors.black54,
                                     fontSize: 13,
@@ -227,13 +237,12 @@ class MarketView extends StatelessWidget {
 
   Future<void> _openTopCategoryList(BuildContext context) async {
     final displayToKey = <String, String>{
-      'Tüm İlanlar': '',
+      'pasaj.market.all_listings'.tr: '',
       for (final category in controller.categories)
-        (category['label'] ?? '').toString():
-            (category['key'] ?? '').toString(),
+        _categoryLabel(category): (category['key'] ?? '').toString(),
     };
 
-    String? selectedDisplay = 'Tüm İlanlar';
+    String? selectedDisplay = 'pasaj.market.all_listings'.tr;
     if (controller.selectedCategoryKey.value.isNotEmpty) {
       for (final entry in displayToKey.entries) {
         if (entry.value == controller.selectedCategoryKey.value) {
@@ -246,8 +255,8 @@ class MarketView extends StatelessWidget {
     await ListBottomSheet.show(
       context: context,
       items: displayToKey.keys.toList(growable: false),
-      title: 'Ana kategoriler',
-      searchHintText: 'Ana kategori, alt kategori, marka ara',
+      title: 'pasaj.market.main_categories'.tr,
+      searchHintText: 'pasaj.market.category_search_hint'.tr,
       searchTextBuilder: (item) =>
           _topCategorySearchText(displayToKey[item.toString()] ?? ''),
       selectedItem: selectedDisplay,
@@ -267,7 +276,8 @@ class MarketView extends StatelessWidget {
     final parts = <String>[];
     void walk(dynamic node) {
       if (node is Map) {
-        final label = (node['label'] ?? '').toString().trim();
+        final label =
+            (node['localizedLabel'] ?? node['label'] ?? '').toString().trim();
         final key = (node['key'] ?? '').toString().trim();
         if (label.isNotEmpty) parts.add(label);
         if (key.isNotEmpty) parts.add(key.replaceAll('-', ' '));
@@ -361,7 +371,7 @@ class MarketView extends StatelessWidget {
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              'Tümü',
+                              'common.all'.tr,
                               maxLines: 1,
                               softWrap: false,
                               textAlign: TextAlign.center,
@@ -417,7 +427,7 @@ class MarketView extends StatelessWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            (category['label'] ?? '').toString(),
+                            _categoryLabel(category),
                             maxLines: 1,
                             softWrap: false,
                             textAlign: TextAlign.center,
@@ -463,7 +473,9 @@ class MarketView extends StatelessWidget {
               final visualSize = compact ? 92.0 : 108.0;
               final actionButtonSize = compact ? 32.0 : 36.0;
               final actionIconSize = compact ? 16.0 : 18.0;
-              final buttonText = canCall ? 'Hemen Ara' : 'İncele';
+              final buttonText = canCall
+                  ? 'pasaj.market.call_now'.tr
+                  : 'pasaj.market.inspect'.tr;
 
               Widget actionButtons() {
                 final children = [
@@ -526,153 +538,111 @@ class MarketView extends StatelessWidget {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minHeight: visualSize),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.title,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          maxLines: compact ? 2 : 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: compact ? 14 : 15,
+                                            fontFamily: 'MontserratBold',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          item.status == 'active'
+                                              ? item.categoryLabel
+                                              : _statusLabel(item.status),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: item.status == 'active'
+                                                ? accent
+                                                : statusColor,
+                                            fontSize: 12,
+                                            fontFamily: 'MontserratBold',
+                                          ),
+                                        ),
+                                        if (item.description
+                                            .trim()
+                                            .isNotEmpty) ...[
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            item.description.trim(),
+                                            maxLines: compact ? 2 : 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Colors.grey.shade700,
+                                              fontSize: 12,
+                                              height: 1.1,
+                                              fontFamily: 'MontserratMedium',
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  actionButtons(),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    CupertinoIcons.location_solid,
+                                    size: 14,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      item.locationText,
                                       maxLines: compact ? 2 : 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: compact ? 14 : 15,
-                                        fontFamily: 'MontserratBold',
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      item.status == 'active'
-                                          ? item.categoryLabel
-                                          : _statusLabel(item.status),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: item.status == 'active'
-                                            ? accent
-                                            : statusColor,
-                                        fontSize: 12,
-                                        fontFamily: 'MontserratBold',
-                                      ),
-                                    ),
-                                    if (item.description.trim().isNotEmpty) ...[
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        item.description.trim(),
-                                        maxLines: compact ? 2 : 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 12,
-                                          height: 1.1,
-                                          fontFamily: 'MontserratMedium',
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              actionButtons(),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(
-                                CupertinoIcons.location_solid,
-                                size: 14,
-                                color: Colors.grey.shade500,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  item.locationText,
-                                  maxLines: compact ? 2 : 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 12,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          if (compact)
-                            Wrap(
-                              alignment: WrapAlignment.spaceBetween,
-                              runSpacing: 6,
-                              spacing: 8,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
-                                  style: const TextStyle(
-                                    color: Color(0xFF8B0000),
-                                    fontSize: 16,
-                                    fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (canCall) {
-                                      _contactService.callPhone(item);
-                                    } else {
-                                      controller.openItem(item);
-                                    }
-                                  },
-                                  child: Container(
-                                    constraints: const BoxConstraints(
-                                      minWidth: 108,
-                                    ),
-                                    height: 30,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                    ),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          canCall ? Colors.green : Colors.black,
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(8),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      buttonText,
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                        color: Colors.grey.shade700,
                                         fontSize: 12,
                                         fontFamily: 'MontserratMedium',
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            )
-                          else
-                            Row(
+                                ],
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Expanded(
+                                Flexible(
                                   child: Text(
                                     '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Color(0xFF8B0000),
-                                      fontSize: 17,
+                                      fontSize: compact ? 16 : 17,
                                       fontFamily: 'MontserratBold',
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+                                SizedBox(width: compact ? 8 : 10),
                                 GestureDetector(
                                   onTap: () {
                                     if (canCall) {
@@ -682,12 +652,12 @@ class MarketView extends StatelessWidget {
                                     }
                                   },
                                   child: Container(
-                                    constraints: const BoxConstraints(
-                                      minWidth: 128,
+                                    constraints: BoxConstraints(
+                                      minWidth: compact ? 96 : 108,
                                     ),
-                                    height: 26,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
+                                    height: compact ? 28 : 26,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: compact ? 12 : 14,
                                     ),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
@@ -699,9 +669,9 @@ class MarketView extends StatelessWidget {
                                     ),
                                     child: Text(
                                       buttonText,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 12,
+                                        fontSize: compact ? 11 : 12,
                                         fontFamily: 'MontserratMedium',
                                       ),
                                     ),
@@ -709,6 +679,7 @@ class MarketView extends StatelessWidget {
                                 ),
                               ],
                             ),
+                          ),
                         ],
                       ),
                     ),
@@ -881,7 +852,9 @@ class MarketView extends StatelessWidget {
                       },
                       child: Center(
                         child: Text(
-                          canCall ? 'Hemen Ara' : 'İncele',
+                          canCall
+                              ? 'pasaj.market.call_now'.tr
+                              : 'pasaj.market.inspect'.tr,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -943,11 +916,11 @@ class MarketView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.storefront_outlined, size: 42, color: Colors.black38),
             SizedBox(height: 10),
             Text(
-              'Bu filtrede ilan bulunamadı.',
+              'pasaj.market.empty_filtered'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black87,
@@ -1012,15 +985,15 @@ class MarketView extends StatelessWidget {
   String _statusLabel(String status) {
     switch (status) {
       case 'sold':
-        return 'Satıldı';
+        return 'pasaj.market.status.sold'.tr;
       case 'reserved':
-        return 'Rezerve';
+        return 'pasaj.market.status.reserved'.tr;
       case 'draft':
-        return 'Taslak';
+        return 'pasaj.market.status.draft'.tr;
       case 'archived':
-        return 'Arşiv';
+        return 'pasaj.market.status.archived'.tr;
       default:
-        return 'Aktif';
+        return 'pasaj.market.status.active'.tr;
     }
   }
 
