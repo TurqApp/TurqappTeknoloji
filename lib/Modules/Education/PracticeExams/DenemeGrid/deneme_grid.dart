@@ -404,10 +404,9 @@ class DenemeGrid extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 132),
+                  constraints: const BoxConstraints(minHeight: 122),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         children: [
@@ -491,6 +490,7 @@ class DenemeGrid extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 6),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

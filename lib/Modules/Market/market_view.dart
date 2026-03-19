@@ -630,7 +630,7 @@ class MarketView extends StatelessWidget {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Flexible(
+                                Expanded(
                                   child: Text(
                                     '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
                                     maxLines: 1,
@@ -653,18 +653,18 @@ class MarketView extends StatelessWidget {
                                   },
                                   child: Container(
                                     constraints: BoxConstraints(
-                                      minWidth: compact ? 96 : 108,
+                                      minWidth: compact ? 104 : 118,
                                     ),
-                                    height: compact ? 28 : 26,
+                                    height: compact ? 30 : 28,
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: compact ? 12 : 14,
+                                      horizontal: compact ? 14 : 16,
                                     ),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color:
                                           canCall ? Colors.green : Colors.black,
                                       borderRadius: const BorderRadius.all(
-                                        Radius.circular(8),
+                                        Radius.circular(10),
                                       ),
                                     ),
                                     child: Text(
