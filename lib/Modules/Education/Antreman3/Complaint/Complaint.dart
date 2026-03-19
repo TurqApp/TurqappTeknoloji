@@ -57,9 +57,9 @@ class ComplaintController extends GetxController {
       await FirebaseFirestore.instance
           .collection('reports')
           .add(sikayet.toJson());
-      AppSnackbar("Başarılı", "Bilgilendirmeniz için teeşkkürler.");
+      AppSnackbar('common.success'.tr, 'training.complaint_thanks'.tr);
     } catch (e) {
-      AppSnackbar("Hata", "Bildiriminiz gönderilirken bir hata oluştu");
+      AppSnackbar('common.error'.tr, 'training.complaint_submit_failed'.tr);
     }
   }
 }
@@ -227,7 +227,8 @@ class ComplaintBottomSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "%${correctPercentage.toStringAsFixed(1)} Doğru",
+                'training.correct_ratio'
+                    .trParams({'value': correctPercentage.toStringAsFixed(1)}),
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.green,
@@ -235,7 +236,9 @@ class ComplaintBottomSheet extends StatelessWidget {
                 ),
               ),
               Text(
-                "%${incorrectPercentage.toStringAsFixed(1)} Yanlış",
+                'training.wrong_ratio'.trParams({
+                  'value': incorrectPercentage.toStringAsFixed(1),
+                }),
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.red,
@@ -250,8 +253,8 @@ class ComplaintBottomSheet extends StatelessWidget {
               onTap: () {
                 if (selectedSikayets.isEmpty) {
                   AppSnackbar(
-                    "Hata",
-                    "Lütfen en az bir bildiri seçeneği seçin!",
+                    'common.error'.tr,
+                    'training.complaint_select_one'.tr,
                   );
                   return;
                 }
@@ -276,7 +279,7 @@ class ComplaintBottomSheet extends StatelessWidget {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text("Gönder", style: TextStyles.antremanTitle),
+                child: Text('common.send'.tr, style: TextStyles.antremanTitle),
               ),
             ),
           ),

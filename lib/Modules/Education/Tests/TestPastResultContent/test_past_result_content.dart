@@ -39,7 +39,7 @@ class TestPastResultContent extends StatelessWidget {
                       Icon(Icons.info_outline, color: Colors.black, size: 40),
                       SizedBox(height: 10),
                       Text(
-                        "Sonuç bulunamadı.\nBu test için yanıt verisi mevcut değil.",
+                        "tests.result_answer_missing".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
@@ -103,7 +103,9 @@ class TestPastResultContent extends StatelessWidget {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      "${model.testTuru} Testi",
+                                      "tests.type_test".trParams({
+                                        'type': model.testTuru,
+                                      }),
                                       maxLines: 1,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -112,7 +114,9 @@ class TestPastResultContent extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      "${model.aciklama} Testi",
+                                      "tests.description_test".trParams({
+                                        'description': model.aciklama,
+                                      }),
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
@@ -129,7 +133,10 @@ class TestPastResultContent extends StatelessWidget {
                                     ),
                                     if (controller.count.value != 0)
                                       Text(
-                                        "${controller.count.value}. kez çözdün",
+                                        "tests.solve_count".trParams({
+                                          'count':
+                                              controller.count.value.toString(),
+                                        }),
                                         style: TextStyle(
                                           color: Colors.indigo,
                                           fontSize: 12,

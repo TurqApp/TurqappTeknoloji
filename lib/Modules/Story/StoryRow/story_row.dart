@@ -47,6 +47,7 @@ class StoryRow extends StatelessWidget {
                         key: ValueKey('circle_${user.userID}'),
                         model: user,
                         users: controller.users,
+                        isFirst: index == 0,
                       ),
                     );
                   },

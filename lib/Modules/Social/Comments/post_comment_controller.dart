@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 import '../../../Core/Services/giphy_picker_service.dart';
+import '../../../Core/Services/user_summary_resolver.dart';
 import '../../../Core/blocked_texts.dart';
 import '../../../Core/functions.dart';
 import '../../../Models/post_interactions_models_new.dart';
@@ -27,7 +27,7 @@ class PostCommentController extends GetxController {
   final CurrentUserService userService = CurrentUserService.instance;
   final PostInteractionService _interactionService =
       Get.put(PostInteractionService());
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   final RxList<PostCommentModel> list = <PostCommentModel>[].obs;
   final RxSet<String> pendingCommentIds = <String>{}.obs;
@@ -77,14 +77,14 @@ class PostCommentController extends GetxController {
 
   Future<void> _loadPostOwnerNickname() async {
     try {
-      final data = await _userRepository.getUserRaw(
+      final data = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
       );
       if (data != null) {
-        postUserNickname.value =
-            (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
-                .toString();
+        postUserNickname.value = data.displayName.trim().isNotEmpty
+            ? data.displayName
+            : data.nickname;
       }
     } catch (e) {
       postUserNickname.value = '';
@@ -97,8 +97,8 @@ class PostCommentController extends GetxController {
     if (kufurKontrolEt(text)) {
       showAlertDialog(
         context,
-        'Topluluk Kurallarına Aykırı',
-        'Kullandığınız dil, topluluk kurallarımıza uymamaktadır. Lütfen saygılı bir dil kullanınız.',
+        'comments.community_violation_title'.tr,
+        'comments.community_violation_body'.tr,
       );
       return;
     }

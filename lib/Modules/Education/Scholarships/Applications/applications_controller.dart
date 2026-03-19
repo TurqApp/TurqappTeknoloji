@@ -8,9 +8,10 @@ import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class ApplicationsController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -62,7 +63,7 @@ class ApplicationsController extends GetxController {
         SilentRefreshGate.markRefreshed('scholarships:applications:$userID');
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Başvurular yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'scholarship.applications_load_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -91,8 +92,8 @@ class ApplicationsController extends GetxController {
         .toSet()
         .toList();
     final userDocsById = ownerIds.isEmpty
-        ? <String, Map<String, dynamic>>{}
-        : await _userRepository.getUsersRaw(
+        ? <String, UserSummary>{}
+        : await _userSummaryResolver.resolveMany(
             ownerIds,
             cacheOnly: cacheOnly,
           );
@@ -102,20 +103,16 @@ class ApplicationsController extends GetxController {
     for (final data in bursList) {
       final bursOwnerID = data['userID'] as String? ?? '';
       final ownerData = userDocsById[bursOwnerID];
-      final nickname = (ownerData?['displayName'] ??
-              ownerData?['username'] ??
-              ownerData?['nickname'] ??
-              'Bilinmiyor')
-          .toString();
-      final avatarUrl = (ownerData?['avatarUrl'] ?? '').toString();
+      final nickname = ownerData?.preferredName ?? 'common.unknown_user'.tr;
+      final avatarUrl = ownerData?.avatarUrl ?? '';
 
       applicationList.add({
         'bursID': (data['docId'] ?? '').toString(),
-        'title': data['baslik'] as String? ?? 'Burs Başlığı',
+        'title': data['baslik'] as String? ?? 'scholarship.title_label'.tr,
         'img': data['img'] as String? ?? '',
-        'desc': data['aciklama'] as String? ?? 'Açıklama yok',
+        'desc': data['aciklama'] as String? ?? 'scholarship.no_description'.tr,
         'basvuruKosullari':
-            data['basvuruKosullari'] as String? ?? 'Belirtilmemiş',
+            data['basvuruKosullari'] as String? ?? 'common.unspecified'.tr,
         'belgeler': data['belgeler'] as List<dynamic>? ?? [],
         'aylar': data['aylar'] as List<dynamic>? ?? [],
         'baslangicTarihi': data['baslangicTarihi'] as String? ?? '',

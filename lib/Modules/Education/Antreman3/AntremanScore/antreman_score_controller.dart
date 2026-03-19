@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class AntremanScoreController extends GetxController {
   static List<Map<String, dynamic>>? _cachedLeaderboard;
@@ -21,6 +22,7 @@ class AntremanScoreController extends GetxController {
   static const _excludedRozet = {'Turkuaz'};
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   String get _monthKey {
     final now = DateTime.now();
@@ -120,43 +122,52 @@ class AntremanScoreController extends GetxController {
 
     if (missingEntries.isEmpty) return entries;
 
+    final userIds = missingEntries
+        .map((entry) => (entry['userID'] ?? '').toString())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    final summaries = await _userSummaryResolver.resolveMany(
+      userIds,
+      preferCache: true,
+    );
     await Future.wait(
       missingEntries.map((entry) async {
         final userId = (entry['userID'] ?? '').toString();
         if (userId.isEmpty) return;
+
+        final summary = summaries[userId];
+        if (summary != null) {
+          if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
+              summary.avatarUrl.trim().isNotEmpty) {
+            entry['avatarUrl'] = summary.avatarUrl;
+          }
+          if ((entry['displayName'] ?? '').toString().trim().isEmpty &&
+              summary.displayName.trim().isNotEmpty) {
+            entry['displayName'] = summary.displayName;
+          }
+          if ((entry['nickname'] ?? '').toString().trim().isEmpty &&
+              summary.preferredName.trim().isNotEmpty) {
+            entry['nickname'] = summary.preferredName;
+          }
+          if ((entry['rozet'] ?? '').toString().trim().isEmpty &&
+              summary.rozet.trim().isNotEmpty) {
+            entry['rozet'] = summary.rozet;
+          }
+          _fillNamePartsFromSummary(entry, summary);
+        }
+
+        final needsRawFallback =
+            (entry['firstName'] ?? '').toString().trim().isEmpty ||
+                (entry['lastName'] ?? '').toString().trim().isEmpty;
+        if (!needsRawFallback) return;
 
         final userData = await _userRepository.getUserRaw(
           userId,
           preferCache: true,
         );
         if (userData == null) return;
-
-        final profileImage = ('').toString().trim();
-        if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
-            profileImage.isNotEmpty) {
-          entry['avatarUrl'] = profileImage;
-        }
-        if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
-            profileImage.isNotEmpty) {
-          entry['avatarUrl'] = profileImage;
-        }
-
-        final profileName = (userData['displayName'] ??
-                userData['username'] ??
-                userData['nickname'] ??
-                '')
-            .toString()
-            .trim();
-        if ((entry['displayName'] ?? '').toString().trim().isEmpty &&
-            profileName.isNotEmpty) {
-          entry['displayName'] = profileName;
-        }
-        if ((entry['nickname'] ?? '').toString().trim().isEmpty &&
-            profileName.isNotEmpty) {
-          entry['nickname'] = profileName;
-        }
-
-        for (final field in ['firstName', 'lastName', 'rozet']) {
+        for (final field in ['firstName', 'lastName']) {
           final currentValue = (entry[field] ?? '').toString().trim();
           final fallbackValue = (userData[field] ?? '').toString().trim();
           if (currentValue.isEmpty && fallbackValue.isNotEmpty) {
@@ -167,6 +178,26 @@ class AntremanScoreController extends GetxController {
     );
 
     return entries;
+  }
+
+  void _fillNamePartsFromSummary(
+    Map<String, dynamic> entry,
+    UserSummary summary,
+  ) {
+    final display = summary.displayName.trim();
+    if (display.isEmpty) return;
+    final currentFirst = (entry['firstName'] ?? '').toString().trim();
+    final currentLast = (entry['lastName'] ?? '').toString().trim();
+    if (currentFirst.isNotEmpty && currentLast.isNotEmpty) return;
+
+    final parts = display.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    if (parts.isEmpty) return;
+    if (currentFirst.isEmpty) {
+      entry['firstName'] = parts.first;
+    }
+    if (currentLast.isEmpty && parts.length > 1) {
+      entry['lastName'] = parts.skip(1).join(' ');
+    }
   }
 
   Future<void> fetchLeaderboard({bool showLoader = true}) async {

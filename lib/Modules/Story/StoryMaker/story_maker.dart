@@ -534,7 +534,7 @@ class StoryMaker extends StatelessWidget {
             ],
           ),
 
-          Text("Hikaye Oluştur",
+          Text("story.create_title".tr,
               style: TextStyle(
                   fontSize: 16,
                   fontFamily: "MontserratMedium",
@@ -556,7 +556,7 @@ class StoryMaker extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   onPressed: () => controller.onSaveStoryPressed(),
-                  child: Text("Paylas",
+                  child: Text("common.share".tr,
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,

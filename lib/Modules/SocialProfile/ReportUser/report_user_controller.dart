@@ -2,9 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/report_model.dart';
 
 class ReportUserController extends GetxController {
@@ -26,7 +25,7 @@ class ReportUserController extends GetxController {
   var selectedDesc = "".obs;
   var blockedUser = false.obs;
   var isSubmitting = false.obs;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ReportRepository _reportRepository = ReportRepository.ensure();
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
@@ -38,15 +37,14 @@ class ReportUserController extends GetxController {
   }
 
   Future<void> _loadUser() async {
-    final data = await _userRepository.getUserRaw(userID);
+    final data = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
     if (data == null) return;
-    nickname.value =
-        (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-            .toString();
-    avatarUrl.value = resolveAvatarUrl(data);
-    fullName.value =
-        "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-            .trim();
+    nickname.value = data.nickname;
+    avatarUrl.value = data.avatarUrl;
+    fullName.value = data.displayName;
   }
 
   Future<void> report() async {
@@ -55,7 +53,9 @@ class ReportUserController extends GetxController {
         selectedTitle.value.trim().isEmpty ||
         selectedDesc.value.trim().isEmpty) {
       AppSnackbar(
-          "Şikayet Nedeni Seç", "Devam etmek için bir neden seçmelisin.");
+        'report.select_reason_title'.tr,
+        'report.select_reason_body'.tr,
+      );
       return;
     }
 
@@ -74,8 +74,12 @@ class ReportUserController extends GetxController {
 
       Get.back();
 
-      AppSnackbar("Talebiniz Bize Ulaştı!",
-          "${nickname.value} kullanıcısını inceleme altına alacağız. Talebinizden dolayı teşekkür ederiz");
+      AppSnackbar(
+        'report.submitted_title'.tr,
+        'report.submitted_body'.trParams({
+          'nickname': nickname.value,
+        }),
+      );
     } finally {
       isSubmitting.value = false;
     }

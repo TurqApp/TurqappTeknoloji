@@ -46,9 +46,9 @@ class AntremanComments extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(12, 12, 12, 10),
-              child: AppSheetHeader(title: "Yorumlar"),
+              child: AppSheetHeader(title: 'training.comments_title'.tr),
             ),
             Expanded(
               child: Obx(() {
@@ -56,7 +56,7 @@ class AntremanComments extends StatelessWidget {
                   return Center(child: CupertinoActivityIndicator());
                 }
                 if (controller.comments.isEmpty) {
-                  return Center(child: Text("Henüz yorum yok."));
+                  return Center(child: Text("training.no_comments".tr));
                 }
                 return ListView.builder(
                   controller: controller.scrollController,
@@ -67,14 +67,14 @@ class AntremanComments extends StatelessWidget {
                     final userInfo = controller.userInfoCache[comment.userID] ??
                         {
                           'avatarUrl': '',
-                          'displayName': 'Bilinmeyen Kullanıcı',
-                          'nickname': 'Bilinmeyen Kullanıcı'
+                          'displayName': 'training.unknown_user'.tr,
+                          'nickname': 'training.unknown_user'.tr
                         };
                     final userImage = (userInfo['avatarUrl'] ?? '').toString();
                     final userName = (userInfo['displayName'] ??
                             userInfo['username'] ??
                             userInfo['nickname'] ??
-                            'Bilinmeyen Kullanıcı')
+                            'training.unknown_user'.tr)
                         .toString();
                     controller.fetchUserInfo(comment.userID);
 
@@ -169,7 +169,7 @@ class AntremanComments extends StatelessWidget {
                                             foregroundColor: Colors.grey,
                                           ),
                                           child: Text(
-                                            "Yanıtla",
+                                            "training.reply".tr,
                                             style: TextStyle(
                                               color: Colors.grey,
                                             ),
@@ -198,8 +198,12 @@ class AntremanComments extends StatelessWidget {
                                             ),
                                             child: Text(
                                               isVisible
-                                                  ? "Yanıtları gizle"
-                                                  : "${replyList.length} yanıtı gör",
+                                                  ? "training.hide_replies".tr
+                                                  : "training.view_replies"
+                                                      .trParams({
+                                                      'count': replyList.length
+                                                          .toString(),
+                                                    }),
                                               style: TextStyle(
                                                 color: Colors.grey,
                                               ),
@@ -256,7 +260,7 @@ class AntremanComments extends StatelessWidget {
                                             context,
                                             [
                                               PullDownMenuItem(
-                                                title: 'Düzenle',
+                                                title: 'training.edit'.tr,
                                                 icon:
                                                     CupertinoIcons.create_solid,
                                                 iconColor: Colors.black,
@@ -269,7 +273,7 @@ class AntremanComments extends StatelessWidget {
                                                 },
                                               ),
                                               PullDownMenuItem(
-                                                title: 'Sil',
+                                                title: 'common.delete'.tr,
                                                 icon: CupertinoIcons
                                                     .delete_simple,
                                                 iconColor: Colors.red,
@@ -285,7 +289,7 @@ class AntremanComments extends StatelessWidget {
                                             context,
                                             [
                                               PullDownMenuItem(
-                                                title: 'Şikayet Et',
+                                                title: 'training.report'.tr,
                                                 icon: CupertinoIcons.question,
                                                 iconColor: Colors.black,
                                                 onTap: null,
@@ -317,8 +321,10 @@ class AntremanComments extends StatelessWidget {
                                     controller.userInfoCache[reply.userID] ??
                                         {
                                           'avatarUrl': '',
-                                          'displayName': 'Bilinmeyen Kullanıcı',
-                                          'nickname': 'Bilinmeyen Kullanıcı',
+                                          'displayName':
+                                              'training.unknown_user'.tr,
+                                          'nickname':
+                                              'training.unknown_user'.tr,
                                         };
                                 final replyUserImage =
                                     (replyUserInfo['avatarUrl'] ?? '')
@@ -327,7 +333,7 @@ class AntremanComments extends StatelessWidget {
                                     (replyUserInfo['displayName'] ??
                                             replyUserInfo['username'] ??
                                             replyUserInfo['nickname'] ??
-                                            'Bilinmeyen Kullanıcı')
+                                            'training.unknown_user'.tr)
                                         .toString();
                                 controller.fetchUserInfo(reply.userID);
 
@@ -483,7 +489,8 @@ class AntremanComments extends StatelessWidget {
                                                     context,
                                                     [
                                                       PullDownMenuItem(
-                                                        title: 'Düzenle',
+                                                        title:
+                                                            'training.edit'.tr,
                                                         onTap: () {
                                                           controller
                                                               .startEditingReply(
@@ -494,7 +501,8 @@ class AntremanComments extends StatelessWidget {
                                                         },
                                                       ),
                                                       PullDownMenuItem(
-                                                        title: 'Sil',
+                                                        title:
+                                                            'common.delete'.tr,
                                                         onTap: () => controller
                                                             .deleteReply(
                                                           comment.docID,
@@ -508,7 +516,8 @@ class AntremanComments extends StatelessWidget {
                                                   context,
                                                   [
                                                     PullDownMenuItem(
-                                                      title: 'Şikayet Et',
+                                                      title:
+                                                          'training.report'.tr,
                                                       onTap: null,
                                                     ),
                                                   ],
@@ -536,8 +545,8 @@ class AntremanComments extends StatelessWidget {
               final userInfo = controller.userInfoCache[controller.userID] ??
                   {
                     'avatarUrl': '',
-                    'displayName': 'Bilinmeyen Kullanıcı',
-                    'nickname': 'Bilinmeyen Kullanıcı'
+                    'displayName': 'training.unknown_user'.tr,
+                    'nickname': 'training.unknown_user'.tr
                   };
               final userImage = (userInfo['avatarUrl'] ?? '').toString();
               controller.fetchUserInfo(controller.userID);
@@ -661,21 +670,25 @@ class AntremanComments extends StatelessWidget {
                                                   {
                                                     'avatarUrl': '',
                                                     'displayName':
-                                                        'Bilinmeyen Kullanıcı',
+                                                        'training.unknown_user'
+                                                            .tr,
                                                     'nickname':
-                                                        'Bilinmeyen Kullanıcı',
+                                                        'training.unknown_user'
+                                                            .tr,
                                                   };
                                           final replyUserName = (replyUserInfo[
                                                       'displayName'] ??
                                                   replyUserInfo['username'] ??
                                                   replyUserInfo['nickname'] ??
-                                                  'Bilinmeyen Kullanıcı')
+                                                  'training.unknown_user'.tr)
                                               .toString();
                                           controller.fetchUserInfo(
                                             replyingComment.userID,
                                           );
                                           return Text(
-                                            "$replyUserName kişisine yanıt",
+                                            'training.reply_to_user'.trParams({
+                                              'name': replyUserName,
+                                            }),
                                             style: TextStyles.textFieldTitle
                                                 .copyWith(
                                               fontSize: 12,
@@ -688,7 +701,7 @@ class AntremanComments extends StatelessWidget {
                                           controller.editingReplyDocID.value
                                               .isNotEmpty)
                                         Text(
-                                          "Düzenle",
+                                          'training.edit'.tr,
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
@@ -703,7 +716,7 @@ class AntremanComments extends StatelessWidget {
                                           onPressed: () =>
                                               controller.cancelEditing(),
                                           child: Text(
-                                            "İptal",
+                                            'training.cancel'.tr,
                                             style: TextStyle(
                                               color: Colors.grey,
                                             ),
@@ -782,15 +795,16 @@ class AntremanComments extends StatelessWidget {
                                                       .value.isEmpty &&
                                                   controller.editingReplyDocID
                                                       .value.isEmpty
-                                              ? "Yaz.."
+                                              ? 'training.write_hint'.tr
                                               : controller.editingCommentDocID
                                                           .value.isNotEmpty ||
                                                       controller
                                                           .editingReplyDocID
                                                           .value
                                                           .isNotEmpty
-                                                  ? "Yorumu düzenle"
-                                                  : "Yaz..",
+                                                  ? 'training.edit_comment_hint'
+                                                      .tr
+                                                  : 'training.write_hint'.tr,
                                           border: OutlineInputBorder(
                                             borderSide: BorderSide.none,
                                             borderRadius: BorderRadius.circular(
@@ -853,7 +867,7 @@ class AntremanComments extends StatelessWidget {
                                   PullDownButton(
                                     itemBuilder: (context) => [
                                       PullDownMenuItem(
-                                        title: 'Galeriden Seç',
+                                        title: 'training.pick_from_gallery'.tr,
                                         icon: CupertinoIcons.photo,
                                         onTap: () async {
                                           await controller
@@ -861,7 +875,7 @@ class AntremanComments extends StatelessWidget {
                                         },
                                       ),
                                       PullDownMenuItem(
-                                        title: 'Fotoğraf Çek',
+                                        title: 'training.take_photo'.tr,
                                         icon: CupertinoIcons.photo_camera,
                                         onTap: () async {
                                           await controller

@@ -32,7 +32,9 @@ class AnswerKey extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AnswerKeyController controller = Get.put(AnswerKeyController());
+  final AnswerKeyController controller = Get.isRegistered<AnswerKeyController>()
+      ? Get.find<AnswerKeyController>()
+      : Get.put(AnswerKeyController(), permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -51,6 +53,9 @@ class AnswerKey extends StatelessWidget {
           children: [
             Obx(
               () {
+                if (!controller.listingSelectionReady.value) {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
                 final items = controller.hasActiveSearch
                     ? controller.searchResults
                     : controller.bookList;
@@ -168,38 +173,38 @@ class AnswerKey extends StatelessWidget {
               visible: controller.scrollOffset.value <= 350,
               child: ActionButton(context: context, menuItems: [
                 PullDownMenuItem(
-                  title: 'Yayınladıklarım',
+                  title: 'answer_key.published'.tr,
                   icon: AppIcons.book,
                   onTap: () => Get.to(OpticsAndBooksPublished()),
                 ),
                 PullDownMenuItem(
-                  title: 'Kaydedilenler',
+                  title: 'common.saved'.tr,
                   icon: AppIcons.save,
                   onTap: () => Get.to(SavedOpticalForms()),
                 ),
                 PullDownMenuItem(
-                  title: 'Sonuçlarım',
+                  title: 'answer_key.my_results'.tr,
                   icon: AppIcons.question,
                   onTap: () => Get.to(MyBookletResults()),
                 ),
                 PullDownMenuItem(
-                  title: 'Oluştur',
+                  title: 'common.create'.tr,
                   icon: AppIcons.addCircled,
                   onTap: () => Get.to(
                       AnswerKeyCreatingOption(onBack: controller.refreshData)),
                 ),
                 PullDownMenuItem(
-                  title: 'Katıl',
+                  title: 'pasaj.answer_key.join'.tr,
                   icon: AppIcons.arrowRight,
                   onTap: () => Get.to(OpticalFormEntry()),
                 ),
                 PullDownMenuItem(
-                  title: 'Slider Yönetimi',
+                  title: 'practice.slider_management'.tr,
                   icon: CupertinoIcons.slider_horizontal_3,
                   onTap: () => Get.to(
-                    () => const SliderAdminView(
+                    () => SliderAdminView(
                       sliderId: 'cevap_anahtari',
-                      title: 'Cevap Anahtarı',
+                      title: 'answer_key.title'.tr,
                     ),
                   ),
                 ),

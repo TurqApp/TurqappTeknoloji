@@ -18,7 +18,7 @@ class SearchTests extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Test Ara"),
+            BackButtons(text: "tests.search_title".tr),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -44,8 +44,8 @@ class SearchTests extends StatelessWidget {
                             controller: controller.searchController,
                             focusNode: controller.focusNode,
                             onChanged: controller.filterSearchResults,
-                            decoration: const InputDecoration(
-                              hintText: 'Ara',
+                            decoration: InputDecoration(
+                              hintText: 'common.search'.tr,
                               hintStyle: TextStyle(color: Colors.grey),
                               prefixIcon: Icon(
                                 AppIcons.search,

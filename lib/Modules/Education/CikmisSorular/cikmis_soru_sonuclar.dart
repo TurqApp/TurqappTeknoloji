@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
@@ -41,7 +42,7 @@ class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sonuçlarım"),
+            BackButtons(text: 'tests.results_title'.tr),
             if (list.isNotEmpty)
               Expanded(
                 child: ListView.builder(
@@ -60,7 +61,7 @@ class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
                 ),
               )
             else
-              Infomessage(infoMessage: "Her hangi bir sonuç yok"),
+              Infomessage(infoMessage: 'past_questions.no_results'.tr),
           ],
         ),
       ),

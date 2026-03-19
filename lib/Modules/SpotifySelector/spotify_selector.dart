@@ -165,10 +165,10 @@ class SpotifySelector extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller.searchController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Müzik ara',
-                hintStyle: TextStyle(
+                hintText: 'story_music.search_hint'.tr,
+                hintStyle: const TextStyle(
                   color: Color(0xFF9AA5B1),
                   fontSize: 14,
                   fontFamily: 'MontserratMedium',

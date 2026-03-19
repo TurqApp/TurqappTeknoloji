@@ -61,8 +61,8 @@ class BookletAnswer extends StatelessWidget {
                         height: 50,
                         color: Colors.green,
                         alignment: Alignment.center,
-                        child: const Text(
-                          "Testi Bitir",
+                        child: Text(
+                          "tests.finish_test".tr,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -113,11 +113,11 @@ class BookletAnswer extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Row(
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "Tebrikler!",
+                                  "practice.congrats_title".tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 25,
@@ -127,8 +127,8 @@ class BookletAnswer extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              "Testi tamamladınız!",
+                            Text(
+                              "tests.completed_short".tr,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 height: 1.4,
@@ -152,19 +152,19 @@ class BookletAnswer extends StatelessWidget {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     _resultItem(
-                                      "Doğru",
+                                      "tests.correct".tr,
                                       controller.correctCount.value.toString(),
                                     ),
                                     _resultItem(
-                                      "Yanlış",
+                                      "tests.wrong".tr,
                                       controller.wrongCount.value.toString(),
                                     ),
                                     _resultItem(
-                                      "Boş",
+                                      "tests.blank".tr,
                                       controller.emptyCount.value.toString(),
                                     ),
                                     _resultItem(
-                                      "Net",
+                                      "tests.net".tr,
                                       controller.netScore.value
                                           .toStringAsFixed(2),
                                     ),
@@ -175,7 +175,7 @@ class BookletAnswer extends StatelessWidget {
                             const SizedBox(height: 8),
                             Obx(
                               () => Text(
-                                "Puan: ${controller.scorePercent.value.toStringAsFixed(1)}",
+                                "${'tests.score'.tr}: ${controller.scorePercent.value.toStringAsFixed(1)}",
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.black87,
@@ -196,8 +196,8 @@ class BookletAnswer extends StatelessWidget {
                                   ),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Text(
-                                  "Devam Et",
+                                child: Text(
+                                  "common.continue".tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,

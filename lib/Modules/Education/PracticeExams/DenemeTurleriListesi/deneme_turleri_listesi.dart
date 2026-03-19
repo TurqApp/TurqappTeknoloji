@@ -66,7 +66,8 @@ class DenemeTurleriListesi extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
-                                    "$sinavTuru türünde sınav bulunamadı. Lütfen yeni bir sınav oluşturun veya farklı bir sınav türü seçin.",
+                                    'tests.not_found_in_type'
+                                        .trParams({'type': sinavTuru}),
                                     style: const TextStyle(
                                       color: Colors.black,
                                       fontSize: 15,

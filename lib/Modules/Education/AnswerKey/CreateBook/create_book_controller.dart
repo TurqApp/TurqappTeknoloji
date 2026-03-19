@@ -251,13 +251,19 @@ class CreateBookController extends GetxController {
         "coverFormat": "webp",
       });
 
-      AppSnackbar('Kapak Güncellendi', 'Kapak görseli başarıyla yüklendi.');
+      AppSnackbar(
+        'answer_key.cover_updated'.tr,
+        'answer_key.cover_updated_body'.tr,
+      );
       showIndicator.value = false;
       onBack?.call(true);
       Get.back();
     } catch (e) {
       showIndicator.value = false;
-      AppSnackbar('Hata', 'Kapak görseli yüklenirken bir sorun oluştu.');
+      AppSnackbar(
+        'common.error'.tr,
+        'answer_key.cover_update_failed'.tr,
+      );
     }
   }
 }

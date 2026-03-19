@@ -20,13 +20,13 @@ class MyPracticeExams extends StatelessWidget {
         body: SafeArea(
           bottom: false,
           child: Column(
-            children: const [
-              BackButtons(text: "Yayınladıklarım"),
+            children: [
+              BackButtons(text: 'pasaj.common.published'.tr),
               Expanded(
                 child: Center(
                   child: Text(
-                    "Kullanıcı oturumu bulunamadı.",
-                    style: TextStyle(
+                    'practice.user_session_missing'.tr,
+                    style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 15,
                       fontFamily: "MontserratMedium",
@@ -45,7 +45,7 @@ class MyPracticeExams extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            const BackButtons(text: "Yayınladıklarım"),
+            BackButtons(text: 'pasaj.common.published'.tr),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
@@ -55,13 +55,13 @@ class MyPracticeExams extends StatelessWidget {
                 }
 
                 if (controller.exams.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(20),
                       child: Text(
-                        "Henüz yayınladığınız bir online sınav yok.",
+                        'practice.published_empty'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 15,
                           fontFamily: "MontserratMedium",

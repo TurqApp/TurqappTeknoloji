@@ -21,15 +21,13 @@ class MyPastTestResultsPreview extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sonuçlar"),
+            BackButtons(text: "tests.results_title".tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
                     ? Center(child: CupertinoActivityIndicator())
                     : controller.soruList.isEmpty || controller.yanitlar.isEmpty
-                        ? EmptyRow(
-                            text:
-                                "Sonuç bulunamadı.\nBu test için yanıt veya soru verisi mevcut değil.")
+                        ? EmptyRow(text: "tests.results_empty".tr)
                         : SingleChildScrollView(
                             child: Column(
                               children: [
@@ -55,7 +53,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Doğru",
+                                              "tests.correct".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -86,7 +84,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Yanlış",
+                                              "tests.wrong".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -117,7 +115,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Boş",
+                                              "tests.blank".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -147,7 +145,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Puan",
+                                              "tests.score".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -187,7 +185,10 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                                 top: 15,
                                               ),
                                               child: Text(
-                                                "${index + 1}. Soru",
+                                                "tests.question_number".trParams({
+                                                  'index':
+                                                      (index + 1).toString(),
+                                                }),
                                                 style: TextStyle(
                                                   color: Colors.black,
                                                   fontSize: 20,

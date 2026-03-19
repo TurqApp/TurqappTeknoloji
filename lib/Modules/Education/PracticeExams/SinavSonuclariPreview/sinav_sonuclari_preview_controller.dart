@@ -55,7 +55,7 @@ class SinavSonuclariPreviewController extends GetxController {
         isInitialized.value = true;
       }
     } catch (error) {
-      AppSnackbar("Hata", "Yanıtlar yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.answers_load_failed'.tr);
       isLoading.value = false;
       isInitialized.value = true;
     }
@@ -78,7 +78,7 @@ class SinavSonuclariPreviewController extends GetxController {
         await getDersVeSonuclar(yanitID.value);
       }
     } catch (error) {
-      AppSnackbar("Hata", "Sorular yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -94,7 +94,7 @@ class SinavSonuclariPreviewController extends GetxController {
       );
       dersVeSonuclar.assignAll(results);
     } catch (error) {
-      AppSnackbar("Hata", "Ders sonuçları yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.lesson_results_load_failed'.tr);
     }
   }
 

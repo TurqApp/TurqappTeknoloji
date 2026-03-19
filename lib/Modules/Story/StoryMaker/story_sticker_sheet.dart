@@ -28,8 +28,8 @@ Future<void> showStoryStickerSheet(
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Sticker Ekle',
+              Text(
+                'story.add_sticker'.tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: 'MontserratMedium',
@@ -41,7 +41,7 @@ Future<void> showStoryStickerSheet(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _item('🔗 Bağlantı', () async {
+                  _item('🔗 ${'story.sticker_link'.tr}', () async {
                     final data = await _askLinkData();
                     if (data == null) return;
                     controller.addSticker(
@@ -50,8 +50,11 @@ Future<void> showStoryStickerSheet(
                       data: data.url,
                     );
                   }),
-                  _item('🏷️ Konu etiketi', () async {
-                    final v = await _askText('Konu etiketi', '#gundem');
+                  _item('🏷️ ${'story.sticker_hashtag'.tr}', () async {
+                    final v = await _askText(
+                      'story.sticker_topic_label'.tr,
+                      '#gundem',
+                    );
                     if (v == null || v.trim().isEmpty) return;
                     controller.addSticker(
                       stickerType: 'hashtag',
@@ -59,8 +62,11 @@ Future<void> showStoryStickerSheet(
                       data: v.replaceAll('#', '').trim(),
                     );
                   }),
-                  _item('⏳ Geri sayım', () async {
-                    final v = await _askText('Geri sayım başlığı', 'Lansman');
+                  _item('⏳ ${'story.sticker_countdown'.tr}', () async {
+                    final v = await _askText(
+                      'story.sticker_countdown_label'.tr,
+                      'Lansman',
+                    );
                     if (v == null || v.trim().isEmpty) return;
                     controller.addSticker(
                       stickerType: 'countdown',
@@ -68,8 +74,11 @@ Future<void> showStoryStickerSheet(
                       data: v.trim(),
                     );
                   }),
-                  _item('🙋 Sen de ekle', () async {
-                    final v = await _askText('Başlık', 'Sen de ekle');
+                  _item('🙋 ${'story.sticker_add_yours'.tr}', () async {
+                    final v = await _askText(
+                      'story.sticker_title_label'.tr,
+                      'story.sticker_add_yours'.tr,
+                    );
                     if (v == null || v.trim().isEmpty) return;
                     controller.addSticker(
                       stickerType: 'add_yours',
@@ -77,8 +86,11 @@ Future<void> showStoryStickerSheet(
                       data: v.trim(),
                     );
                   }),
-                  _item('❓ Soru', () async {
-                    final v = await _askText('Soru', 'Bana bir soru sor');
+                  _item('❓ ${'story.sticker_question'.tr}', () async {
+                    final v = await _askText(
+                      'story.sticker_question_label'.tr,
+                      'Bana bir soru sor',
+                    );
                     if (v == null || v.trim().isEmpty) return;
                     controller.addSticker(
                       stickerType: 'question',
@@ -86,8 +98,11 @@ Future<void> showStoryStickerSheet(
                       data: v.trim(),
                     );
                   }),
-                  _item('@️⃣ Bahsetme', () async {
-                    final v = await _askText('Kullanıcı', '@kullanici');
+                  _item('@️⃣ ${'story.sticker_mention'.tr}', () async {
+                    final v = await _askText(
+                      'story.sticker_user_label'.tr,
+                      '@kullanici',
+                    );
                     if (v == null || v.trim().isEmpty) return;
                     final clean = v.trim().replaceFirst('@', '');
                     controller.addSticker(
@@ -96,7 +111,7 @@ Future<void> showStoryStickerSheet(
                       data: clean,
                     );
                   }),
-                  _item('🎞️ GIF', () async {
+                  _item('🎞️ ${'story.sticker_gif'.tr}', () async {
                     final url = await GiphyPickerService.pickGifUrl(
                       context,
                       randomId: 'turqapp_story',
@@ -105,8 +120,11 @@ Future<void> showStoryStickerSheet(
                       controller.addGifFromUrl(url);
                     }
                   }),
-                  _item('📝 Metin', () async {
-                    final v = await _askText('Metin', 'Metin');
+                  _item('📝 ${'story.sticker_text'.tr}', () async {
+                    final v = await _askText(
+                      'story.text_title'.tr,
+                      'story.text_title'.tr,
+                    );
                     if (v == null || v.trim().isEmpty) return;
                     controller.addStyledTextElement(v.trim());
                   }),
@@ -172,14 +190,14 @@ Future<String?> _askText(String title, String hint) async {
             foregroundColor: Colors.white70,
           ),
           onPressed: () => Get.back(),
-          child: const Text('İptal'),
+          child: Text('common.cancel'.tr),
         ),
         TextButton(
           style: TextButton.styleFrom(
             foregroundColor: Colors.white,
           ),
           onPressed: () => Get.back(result: c.text.trim()),
-          child: const Text('Ekle'),
+          child: Text('common.add'.tr),
         ),
       ],
     ),
@@ -204,8 +222,8 @@ Future<_LinkData?> _askLinkData() async {
   return Get.dialog<_LinkData>(
     AlertDialog(
       backgroundColor: const Color(0xFF1F1F1F),
-      title: const Text(
-        'Bağlantı Ekle',
+      title: Text(
+        'story.link_add'.tr,
         style: TextStyle(color: Colors.white),
       ),
       content: Column(
@@ -215,15 +233,15 @@ Future<_LinkData?> _askLinkData() async {
             controller: urlCtrl,
             autofocus: true,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'URL',
-              labelStyle: TextStyle(color: Colors.white70),
+              labelStyle: const TextStyle(color: Colors.white70),
               hintText: 'https://example.com',
-              hintStyle: TextStyle(color: Colors.white54),
-              enabledBorder: UnderlineInputBorder(
+              hintStyle: const TextStyle(color: Colors.white54),
+              enabledBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white24),
               ),
-              focusedBorder: UnderlineInputBorder(
+              focusedBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white),
               ),
             ),
@@ -232,15 +250,15 @@ Future<_LinkData?> _askLinkData() async {
           TextField(
             controller: textCtrl,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Bağlantı metni',
-              labelStyle: TextStyle(color: Colors.white70),
-              hintText: 'Haberi oku',
-              hintStyle: TextStyle(color: Colors.white54),
-              enabledBorder: UnderlineInputBorder(
+            decoration: InputDecoration(
+              labelText: 'story.link_text_label'.tr,
+              labelStyle: const TextStyle(color: Colors.white70),
+              hintText: 'story.link_text_hint'.tr,
+              hintStyle: const TextStyle(color: Colors.white54),
+              enabledBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white24),
               ),
-              focusedBorder: UnderlineInputBorder(
+              focusedBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white),
               ),
             ),
@@ -253,7 +271,7 @@ Future<_LinkData?> _askLinkData() async {
             foregroundColor: Colors.white70,
           ),
           onPressed: () => Get.back(),
-          child: const Text('İptal'),
+          child: Text('common.cancel'.tr),
         ),
         TextButton(
           style: TextButton.styleFrom(
@@ -272,7 +290,7 @@ Future<_LinkData?> _askLinkData() async {
             final display = custom.isEmpty ? _pretty(url) : custom;
             Get.back(result: _LinkData(url: url, text: display));
           },
-          child: const Text('Bitti'),
+          child: Text('common.done'.tr),
         ),
       ],
     ),

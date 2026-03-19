@@ -10,10 +10,8 @@ import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/full_screen_image_viewer.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -24,14 +22,6 @@ class QuestionContent extends StatelessWidget {
   final AntremanController controller = Get.find<AntremanController>();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
-
-  int _fallbackAntPoint() {
-    final current = CurrentUserService.instance.currentUser;
-    if (current?.userID == controller.userID) {
-      return current?.antPoint ?? 100;
-    }
-    return 100;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,41 +59,7 @@ class QuestionContent extends StatelessWidget {
                           controller.onScreenReEnter();
                           Get.back();
                         },
-                        child: BackButtons(text: "Soru Bankası"),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Get.to(() => AntremanScore());
-                      },
-                      child: Row(
-                        children: [
-                          StreamBuilder<int?>(
-                            stream: _antremanRepository.scoreStream(
-                              controller.userID,
-                            ),
-                            builder: (context, snapshot) {
-                              final antPoint = snapshot.hasError ||
-                                      !snapshot.hasData ||
-                                      snapshot.data == null
-                                  ? _fallbackAntPoint()
-                                  : snapshot.data!;
-                              return Text(
-                                antPoint.toString(),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 25,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                              );
-                            },
-                          ),
-                          Image.asset(
-                            "assets/icons/trophy.webp",
-                            color: Colors.black,
-                            height: 25,
-                          ),
-                        ],
+                        child: BackButtons(text: "training.question_bank_title".tr),
                       ),
                     ),
                     IconButton(
@@ -129,7 +85,7 @@ class QuestionContent extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "Sorular Yükleniyor...",
+                              "training.questions_loading".tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black,
@@ -154,7 +110,7 @@ class QuestionContent extends StatelessWidget {
                     }
 
                     if (controller.questions.isEmpty) {
-                      return Center(child: Text("Soru bulunamadı!"));
+                      return Center(child: Text("training.no_questions".tr));
                     }
 
                     final adCount = controller.questions.length ~/ 3;
@@ -378,11 +334,14 @@ class QuestionContent extends StatelessWidget {
                               );
                             }),
                             SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            Wrap(
+                              alignment: WrapAlignment.spaceAround,
+                              runSpacing: 4,
+                              spacing: 12,
                               children: [
                                 Obx(
                                   () => Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         icon: Icon(
@@ -417,6 +376,7 @@ class QuestionContent extends StatelessWidget {
                                                 '')
                                             .isNotEmpty;
                                     return Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
                                           icon:
@@ -433,8 +393,8 @@ class QuestionContent extends StatelessWidget {
                                               );
                                             } else {
                                               AppSnackbar(
-                                                "Bilgi",
-                                                "Önce soruyu cevaplayın!",
+                                                "common.info".tr,
+                                                "training.answer_first".tr,
                                               );
                                             }
                                           },
@@ -463,6 +423,7 @@ class QuestionContent extends StatelessWidget {
                                 ),
                                 Obx(
                                   () => Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         onPressed: controller
@@ -485,11 +446,12 @@ class QuestionContent extends StatelessWidget {
                                           height: 24,
                                         ),
                                       ),
-                                      Text("Sonra Çöz"),
+                                      Text("pasaj.question_bank.solve_later".tr),
                                     ],
                                   ),
                                 ),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       icon: Icon(AppIcons.share, size: 20),
@@ -499,7 +461,7 @@ class QuestionContent extends StatelessWidget {
                                         question,
                                       ),
                                     ),
-                                    Text("Paylaş"),
+                                    Text("training.share".tr),
                                   ],
                                 ),
                               ],

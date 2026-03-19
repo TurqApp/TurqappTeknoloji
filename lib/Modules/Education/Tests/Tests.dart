@@ -152,7 +152,7 @@ class Tests extends StatelessWidget {
                               12.pw,
                               Expanded(
                                 child: Text(
-                                  "Ara",
+                                  "common.search".tr,
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontFamily: "Montserrat",
@@ -176,7 +176,7 @@ class Tests extends StatelessWidget {
                           ? Padding(
                               padding: EdgeInsets.all(20),
                               child: Text(
-                                "Paylaşılan test yok.",
+                                "tests.no_shared".tr,
                                 style: TextStyle(
                                   fontFamily: "MontserratMedium",
                                   fontSize: 16,
@@ -233,35 +233,35 @@ class Tests extends StatelessWidget {
               menuItems: [
                 PullDownMenuItem(
                   icon: CupertinoIcons.bookmark,
-                  title: 'Kaydedilenler',
+                  title: 'common.saved'.tr,
                   onTap: () {
                     Get.to(() => SavedTests());
                   },
                 ),
                 PullDownMenuItem(
                   icon: Icons.history,
-                  title: 'Sonuçlarım',
+                  title: 'pasaj.common.my_results'.tr,
                   onTap: () {
                     Get.to(() => MyTestResults());
                   },
                 ),
                 PullDownMenuItem(
                   icon: CupertinoIcons.doc_text,
-                  title: 'Testlerim',
+                  title: 'tests.my_tests_title'.tr,
                   onTap: () {
                     Get.to(() => MyTests());
                   },
                 ),
                 PullDownMenuItem(
                   icon: Icons.add,
-                  title: 'Oluştur',
+                  title: 'common.create'.tr,
                   onTap: () {
                     Get.to(() => CreateTest());
                   },
                 ),
                 PullDownMenuItem(
                   icon: Icons.exit_to_app,
-                  title: 'Katıl',
+                  title: 'tests.join_button'.tr,
                   onTap: () {
                     Get.to(() => TestEntry());
                   },
@@ -302,7 +302,7 @@ class Tests extends StatelessWidget {
                       ),
                     ),
                     TypewriterText(
-                      text: "Testler",
+                      text: "tests.title".tr,
                     ),
                   ],
                 ),

@@ -2,17 +2,19 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
-  static const Duration _silentRefreshInterval = Duration(minutes: 5);
-
-  final UserRepository _userRepository = UserRepository.ensure();
+  final TutoringSnapshotRepository _tutoringSnapshotRepository =
+      TutoringSnapshotRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
   var isLoading = true.obs;
@@ -25,6 +27,7 @@ class TutoringController extends GetxController {
   var users = <String, Map<String, dynamic>>{}.obs;
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
+  StreamSubscription<CachedResource<List<TutoringModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchToken = 0;
   int _currentPage = 1;
@@ -40,39 +43,19 @@ class TutoringController extends GetxController {
   }
 
   Future<void> _bootstrapTutoringData() async {
-    try {
-      final cached = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
-        limit: _pageSize,
-        page: 1,
-        cacheOnly: true,
-      );
-      final items = cached.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
-      if (items.isNotEmpty) {
-        hasMore.value = (_currentPage * _pageSize) < cached.found;
-        final userIds =
-            items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-        await _batchFetchUsers(userIds);
-        tutoringList.value = _applyPersonalization(items);
-        isLoading.value = false;
-        if (SilentRefreshGate.shouldRefresh(
-          'tutoring:home',
-          minInterval: _silentRefreshInterval,
-        )) {
-          unawaited(listenToTutoringData(forceRefresh: true));
-        }
-        return;
-      }
-    } catch (_) {}
-    await listenToTutoringData();
+    final userId = CurrentUserService.instance.userId;
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _tutoringSnapshotRepository
+        .openHome(
+          userId: userId,
+          limit: _pageSize,
+        )
+        .listen(_applyHomeSnapshotResource);
   }
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
     focusNode.dispose();
     scrollController.dispose();
@@ -97,8 +80,16 @@ class TutoringController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      final fetched = await _userRepository.getUsersRaw(toFetch);
-      users.addAll(fetched);
+      final fetched = await _userSummaryResolver.resolveMany(
+        toFetch,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      users.addAll(
+        fetched.map(
+          (key, value) => MapEntry(key, value.toMap()),
+        ),
+      );
     } catch (_) {
     }
   }
@@ -113,18 +104,13 @@ class TutoringController extends GetxController {
     hasMore.value = true;
     _currentPage = 1;
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
+      final result = await _tutoringSnapshotRepository.loadHome(
+        userId: CurrentUserService.instance.userId,
         limit: _pageSize,
-        page: _currentPage,
-        forceRefresh: forceRefresh,
+        forceSync: forceRefresh,
       );
-      final items = result.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
-      hasMore.value = (_currentPage * _pageSize) < result.found;
+      final items = result.data ?? const <TutoringModel>[];
+      hasMore.value = items.length >= _pageSize;
       final userIds = items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
       await _batchFetchUsers(userIds);
       tutoringList.value = _applyPersonalization(items);
@@ -187,18 +173,15 @@ class TutoringController extends GetxController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
+      final result = await _tutoringSnapshotRepository.search(
+        userId: CurrentUserService.instance.userId,
         query: normalized,
         limit: 40,
-        page: 1,
+        forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
-      final results = result.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
+      final results = result.data ?? const <TutoringModel>[];
       await _batchFetchUsers(results.map((t) => t.userID).where((id) => id.isNotEmpty).toSet());
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
@@ -285,6 +268,27 @@ class TutoringController extends GetxController {
         tutoringList.refresh();
       }
       return false;
+    }
+  }
+
+  void _applyHomeSnapshotResource(
+    CachedResource<List<TutoringModel>> resource,
+  ) async {
+    final items = resource.data ?? const <TutoringModel>[];
+    if (items.isNotEmpty) {
+      hasMore.value = items.length >= _pageSize;
+      final userIds =
+          items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
+      await _batchFetchUsers(userIds);
+      tutoringList.value = _applyPersonalization(items);
+    }
+
+    if (!resource.isRefreshing || items.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (tutoringList.isEmpty) {
+      isLoading.value = true;
     }
   }
 }

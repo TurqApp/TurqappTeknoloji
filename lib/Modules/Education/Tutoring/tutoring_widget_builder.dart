@@ -7,6 +7,7 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
@@ -479,6 +480,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
     required TutoringController controller,
     required SavedTutoringsController savedController,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveTutoring)) {
+      return;
+    }
     if (currentUserId == null) return;
     final isSaved = savedController.savedTutoringIds.contains(tutoring.docID);
     final success = await controller.toggleFavorite(

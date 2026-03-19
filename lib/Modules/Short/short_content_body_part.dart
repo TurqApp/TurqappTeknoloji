@@ -593,7 +593,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
             controller.gizle();
             videoPlayerController.pause();
           },
-          title: 'Gizle',
+          title: 'common.hide'.tr,
           icon: CupertinoIcons.eye_slash,
         ),
         PullDownMenuItem(
@@ -941,8 +941,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                   );
                   await ShareLinkService.shareUrl(
                     url: url,
-                    title: 'TurqApp Gönderisi',
-                    subject: 'TurqApp Gönderisi',
+                    title: 'post.share_title'.tr,
+                    subject: 'post.share_title'.tr,
                   );
                 });
               },

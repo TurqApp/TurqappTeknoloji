@@ -34,11 +34,11 @@ class CreateTestQuestionContent extends StatelessWidget {
               padding: const EdgeInsets.all(15),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Icon(Icons.info_outline, color: Colors.black, size: 40),
                   SizedBox(height: 10),
                   Text(
-                    "Soru içeriği yüklenemedi.\nLütfen tekrar deneyin.",
+                    "tests.question_content_failed".tr,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black,
@@ -103,8 +103,8 @@ class CreateTestQuestionContent extends StatelessWidget {
                                                   .clamp(140.0, 180.0),
                                             ),
                                             const SizedBox(height: 15),
-                                            const Text(
-                                              "Çek ve Yükle",
+                                            Text(
+                                              "tests.capture_and_upload".tr,
                                               style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 25,
@@ -112,12 +112,13 @@ class CreateTestQuestionContent extends StatelessWidget {
                                               ),
                                             ),
                                             const SizedBox(height: 12),
-                                            const Padding(
+                                            Padding(
                                               padding: EdgeInsets.symmetric(
                                                 horizontal: 30,
                                               ),
                                               child: Text(
-                                                "Sorunun fotoğrafını çek, doğru cevabı seç ve kolayca hazırla!",
+                                                "tests.capture_and_upload_body"
+                                                    .tr,
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color: Colors.black,
@@ -152,8 +153,9 @@ class CreateTestQuestionContent extends StatelessWidget {
                                                             Radius.circular(12),
                                                           ),
                                                         ),
-                                                        child: const Text(
-                                                          "Galeriden Seç",
+                                                        child: Text(
+                                                          "tests.select_from_gallery"
+                                                              .tr,
                                                           style: TextStyle(
                                                             color: Colors.white,
                                                             fontSize: 15,
@@ -181,8 +183,9 @@ class CreateTestQuestionContent extends StatelessWidget {
                                                             Radius.circular(12),
                                                           ),
                                                         ),
-                                                        child: const Text(
-                                                          "Kameradan Yükle",
+                                                        child: Text(
+                                                          "tests.upload_from_camera"
+                                                              .tr,
                                                           style: TextStyle(
                                                             color: Colors.white,
                                                             fontSize: 14,

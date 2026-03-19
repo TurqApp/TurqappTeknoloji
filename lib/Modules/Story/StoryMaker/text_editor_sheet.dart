@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class TextEditorResult {
   final String text;
@@ -103,7 +104,7 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Metin',
+                  Text('story.text_title'.tr,
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -134,7 +135,7 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                         ),
                       );
                     },
-                    child: const Text('Bitti',
+                    child: Text('common.done'.tr,
                         style: TextStyle(color: Colors.white)),
                   )
                 ],
@@ -170,10 +171,10 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                           _weight == 'bold' ? FontWeight.bold : FontWeight.w500,
                       fontFamily: _fontFamilies[_fontIndex],
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: 'Metin yaz...',
-                      hintStyle: TextStyle(color: Colors.white54),
+                      hintText: 'story.write_text'.tr,
+                      hintStyle: const TextStyle(color: Colors.white54),
                     ),
                   ),
                 ),

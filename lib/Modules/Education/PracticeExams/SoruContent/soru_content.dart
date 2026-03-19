@@ -70,11 +70,11 @@ class _SoruContentState extends State<SoruContent> {
     try {
       final nsfw = await OptimizedNSFWService.checkImage(imageFile);
       if (nsfw.errorMessage != null) {
-        AppSnackbar('Hata', 'Görsel güvenlik kontrolü tamamlanamadı.');
+        AppSnackbar('common.error'.tr, 'tests.image_analyze_failed'.tr);
         return;
       }
       if (nsfw.isNSFW) {
-        AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+        AppSnackbar('common.error'.tr, 'tests.image_invalid'.tr);
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
@@ -179,7 +179,7 @@ class _SoruContentState extends State<SoruContent> {
                                     horizontal: 20,
                                   ),
                                   child: Text(
-                                    "Galeriden Seç",
+                                    "profile_photo.gallery".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -206,7 +206,7 @@ class _SoruContentState extends State<SoruContent> {
                                     horizontal: 20,
                                   ),
                                   child: Text(
-                                    "Kameradan Çek",
+                                    "profile_photo.camera".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,

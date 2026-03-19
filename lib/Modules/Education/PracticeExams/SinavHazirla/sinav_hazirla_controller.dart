@@ -85,7 +85,7 @@ class SinavHazirlaController extends GetxController {
         await _analyzeImage();
       }
     } catch (e) {
-      AppSnackbar("Hata", "Resim seçilemedi.");
+      AppSnackbar('common.error'.tr, 'tests.image_pick_failed'.tr);
     } finally {
       isLoadingImage.value = false;
     }
@@ -97,11 +97,11 @@ class SinavHazirlaController extends GetxController {
       NsfwDetector detector = await NsfwDetector.load(threshold: 0.3);
       NsfwResult? result = await detector.detectNSFWFromFile(cover.value!);
       if (result == null || result.isNsfw) {
-        AppSnackbar("Hata", "Seçilen resim uygun değil!");
+        AppSnackbar('common.error'.tr, 'tests.image_invalid'.tr);
         cover.value = null;
       }
     } catch (e) {
-      AppSnackbar("Hata", "Resim analizi yapılamadı.");
+      AppSnackbar('common.error'.tr, 'tests.image_analyze_failed'.tr);
       cover.value = null;
     }
   }
@@ -130,7 +130,7 @@ class SinavHazirlaController extends GetxController {
         {"cover": downloadUrl},
       );
     } catch (e) {
-      AppSnackbar("Hata", "Resim yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'tests.image_upload_failed_short'.tr);
     }
   }
 
@@ -182,7 +182,7 @@ class SinavHazirlaController extends GetxController {
         ),
       );
     } catch (e) {
-      AppSnackbar("Hata", "Sınav kaydedilemedi.");
+      AppSnackbar('common.error'.tr, 'tests.save_failed'.tr);
     } finally {
       isSaving.value = false;
     }

@@ -43,17 +43,17 @@ class OpticalFormContent extends StatelessWidget {
         confirmDismiss: (direction) async {
           bool shouldDelete = false;
           await noYesAlert(
-            title: "Silme İşlemi",
-            message:
-                "${model.name} adlı optik formu silmek istediğinizden emin misiniz?",
+            title: "answer_key.delete_operation".tr,
+            message: "answer_key.delete_optical_confirm"
+                .trParams({'name': model.name}),
             onYesPressed: () {
               shouldDelete = true;
               controller
                   .deleteOpticalForm()
                   .then((_) => update()); // Call update after deletion
             },
-            yesText: "Sil",
-            cancelText: "İptal",
+            yesText: "common.delete".tr,
+            cancelText: "common.cancel".tr,
           );
           return shouldDelete;
         },
@@ -86,11 +86,11 @@ class OpticalFormContent extends StatelessWidget {
                       ),
                       Text(
                         model.bitis < DateTime.now().millisecondsSinceEpoch
-                            ? "Sınav Bitti"
+                            ? "practice.finished_short".tr
                             : model.baslangic.toInt() <
                                     DateTime.now().millisecondsSinceEpoch
-                                ? "Sınav Başladı"
-                                : "Sınav Başlamadı",
+                                ? "practice.started".tr
+                                : "practice.not_started".tr,
                         style: TextStyle(
                           color: model.bitis <
                                   DateTime.now().millisecondsSinceEpoch
@@ -110,7 +110,8 @@ class OpticalFormContent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Toplam ${model.cevaplar.length} Soru",
+                        "answer_key.total_questions"
+                            .trParams({'count': '${model.cevaplar.length}'}),
                         style: const TextStyle(
                           color: Colors.indigo,
                           fontSize: 15,
@@ -121,7 +122,8 @@ class OpticalFormContent extends StatelessWidget {
                         () => Row(
                           children: [
                             Text(
-                              "${controller.total.value} Kişi",
+                              "answer_key.participant_count"
+                                  .trParams({'count': '${controller.total.value}'}),
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
@@ -145,7 +147,10 @@ class OpticalFormContent extends StatelessWidget {
                       GestureDetector(
                         onTap: () {
                           controller.copyDocID();
-                          AppSnackbar("Başarılı", "ID Kopyalandı");
+                          AppSnackbar(
+                            "common.success".tr,
+                            "answer_key.id_copied".tr,
+                          );
                         },
                         child: Row(
                           children: [

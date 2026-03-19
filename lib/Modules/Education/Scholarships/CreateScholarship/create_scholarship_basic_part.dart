@@ -649,7 +649,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   color: Colors.grey.withAlpha(100),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('Geri', style: TextStyles.medium15Black),
+                child: Text('common.back'.tr, style: TextStyles.medium15Black),
               ),
             ),
             GestureDetector(

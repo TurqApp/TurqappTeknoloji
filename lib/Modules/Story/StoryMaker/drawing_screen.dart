@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
+import 'package:get/get.dart';
 
 class DrawingScreen extends StatefulWidget {
   final Function(String) onSave;
@@ -34,8 +35,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text(
-          "Çizim Ekle",
+        title: Text(
+          'story.drawing_title'.tr,
           style: TextStyle(
             color: Colors.white,
             fontFamily: "MontserratBold",
@@ -46,8 +47,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
         actions: [
           TextButton(
             onPressed: _saveDrawing,
-            child: const Text(
-              "Kaydet",
+            child: Text(
+              'common.save'.tr,
               style: TextStyle(
                 color: Colors.white,
                 fontFamily: "MontserratMedium",
@@ -124,8 +125,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                       context: context,
                       builder: (ctx) => AlertDialog(
                         backgroundColor: Colors.black,
-                        title: const Text(
-                          'Fırça Rengi',
+                        title: Text(
+                          'story.brush_color'.tr,
                           style: TextStyle(color: Colors.white),
                         ),
                         content: SingleChildScrollView(
@@ -141,8 +142,8 @@ class _DrawingScreenState extends State<DrawingScreen> {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text(
-                              'Kapat',
+                            child: Text(
+                              'common.close'.tr,
                               style: TextStyle(color: Colors.white),
                             ),
                           ),

@@ -178,12 +178,12 @@ class _MyBookletResultsState extends State<MyBookletResults> {
         bottom: false,
         child: Column(
           children: [
-            const BackButtons(text: "Sonuçlarım"),
+            BackButtons(text: 'answer_key.my_results'.tr),
             Obx(
               () => PageLineBar(
                 barList: [
-                  "Kitap (${controller.list.length})",
-                  "Optik Form",
+                  "${'answer_key.book'.tr} (${controller.list.length})",
+                  'answer_key.optical_form'.tr,
                 ],
                 pageName: "MyBookletResults",
                 pageController: _pageController,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_yil_sectirme.dart';
@@ -22,6 +23,21 @@ class _CikmisSorularAltDalSectirmeState
     extends State<CikmisSorularAltDalSectirme> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> dallar = [];
+
+  String _localizedBranch(String raw) {
+    switch (raw) {
+      case 'Alan Bilgisi':
+        return 'past_questions.branch.field_knowledge'.tr;
+      case 'Eğitim Bilimleri':
+        return 'past_questions.branch.education_sciences'.tr;
+      case 'A Grubu':
+        return 'past_questions.branch.group_a'.tr;
+      case 'GK - GY':
+        return 'past_questions.branch.general_ability_culture'.tr;
+      default:
+        return raw;
+    }
+  }
   @override
   void initState() {
     // TODO: implement initState
@@ -71,7 +87,7 @@ class _CikmisSorularAltDalSectirmeState
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sınav Seç"),
+            BackButtons(text: 'past_questions.select_exam'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -188,8 +204,11 @@ class _CikmisSorularAltDalSectirmeState
                                             Expanded(
                                               child: Text(
                                                 dallar[index] == "Alan Bilgisi"
-                                                    ? "ÖABT"
-                                                    : dallar[index],
+                                                    ? 'past_questions.oabt_short'
+                                                        .tr
+                                                    : _localizedBranch(
+                                                        dallar[index],
+                                                      ),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color: Colors.white,
@@ -203,7 +222,13 @@ class _CikmisSorularAltDalSectirmeState
                                         Spacer(),
                                         SizedBox(height: 4),
                                         Text(
-                                          widget.sinavTuru,
+                                          widget.sinavTuru == 'Lisans'
+                                              ? 'past_questions.exam_type.undergraduate'
+                                                  .tr
+                                              : widget.sinavTuru == 'Ön Lisans'
+                                                  ? 'past_questions.exam_type.associate'
+                                                      .tr
+                                                  : widget.sinavTuru,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.grey,

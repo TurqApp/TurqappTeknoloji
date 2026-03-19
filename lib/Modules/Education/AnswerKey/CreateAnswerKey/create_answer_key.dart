@@ -20,7 +20,7 @@ class CreateAnswerKey extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Optik Form Oluştur"),
+            BackButtons(text: 'answer_key.create_optical_form_single'.tr),
             _home(context, controller),
           ],
         ),
@@ -43,8 +43,8 @@ class CreateAnswerKey extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 15),
               child: TextField(
                 controller: controller.nameController,
-                decoration: const InputDecoration(
-                  hintText: "Sınavınıza bir ad verin",
+                decoration: InputDecoration(
+                  hintText: 'answer_key.give_exam_name'.tr,
                   hintStyle: TextStyle(
                     color: Colors.grey,
                     fontFamily: "MontserratMedium",

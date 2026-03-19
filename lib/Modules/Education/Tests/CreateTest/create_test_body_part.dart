@@ -19,8 +19,8 @@ extension CreateTestBodyPart on CreateTest {
                   if (r.isNSFW) {
                     controller.imageFile.value = null;
                     AppSnackbar(
-                      "Yükleme Başarısız!",
-                      "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                      "common.error".tr,
+                      "tests.create_upload_failed".tr,
                       backgroundColor: Colors.red.withValues(alpha: 0.7),
                     );
                   } else {
@@ -94,8 +94,8 @@ extension CreateTestBodyPart on CreateTest {
                                               .checkImage(file);
                                           if (r.isNSFW) {
                                             controller.imageFile.value = null;
-                                            AppSnackbar("Yükleme Başarısız!",
-                                                "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                                            AppSnackbar("common.error".tr,
+                                                "tests.create_upload_failed".tr,
                                                 backgroundColor: Colors.red
                                                     .withValues(alpha: 0.7));
                                           } else {
@@ -109,14 +109,14 @@ extension CreateTestBodyPart on CreateTest {
                                         child: SizedBox(
                                           height: 35,
                                           width: coverSelectButtonWidth,
-                                          child: const Material(
+                                          child: Material(
                                             color: Colors.pink,
-                                            borderRadius: BorderRadius.all(
+                                            borderRadius: const BorderRadius.all(
                                               Radius.circular(20),
                                             ),
                                             child: Center(
                                               child: Text(
-                                                "Kapak Fotoğrafı Seç",
+                                                "tests.cover_select".tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 15,
@@ -160,9 +160,9 @@ extension CreateTestBodyPart on CreateTest {
                     textCapitalization: TextCapitalization.sentences,
                     keyboardType: TextInputType.text,
                     inputFormatters: [LengthLimitingTextInputFormatter(35)],
-                    decoration: const InputDecoration(
-                      hintText: "9. Sınıf Üslü İfadeler Köklü İfadeler",
-                      hintStyle: TextStyle(
+                    decoration: InputDecoration(
+                      hintText: "tests.create_description_hint".tr,
+                      hintStyle: const TextStyle(
                         color: Colors.grey,
                         fontFamily: "MontserratMedium",
                       ),
@@ -191,7 +191,11 @@ extension CreateTestBodyPart on CreateTest {
                         Expanded(
                           child: Obx(
                             () => Text(
-                              "Herkese ${controller.paylasilabilir.value ? "Açık" : "Kapalı"}",
+                              "tests.share_status".trParams({
+                                "status": controller.paylasilabilir.value
+                                    ? "tests.status.open".tr
+                                    : "tests.status.closed".tr,
+                              }),
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 18,
@@ -236,8 +240,8 @@ extension CreateTestBodyPart on CreateTest {
                     Obx(
                       () => Text(
                         controller.paylasilabilir.value
-                            ? "Dijital etik kurallarına uygun olarak, telifli testler paylaşılmamalıdır.\nLütfen herkesin çözebileceği, telif hakkı içermeyen testler kullanın ve yayınlayın."
-                            : "Bu test yalnızca kendi öğrencilerinizle paylaşılabilir. Yayınladığınız teste, yalnızca size verilen ID değerini giren öğrenciler erişebilir ve çözebilir.",
+                            ? "tests.share_public_info".tr
+                            : "tests.share_private_info".tr,
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -253,7 +257,9 @@ extension CreateTestBodyPart on CreateTest {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      "Test ID: ${controller.testID.value}",
+                                      "tests.test_id".trParams({
+                                        "id": "${controller.testID.value}",
+                                      }),
                                       style: const TextStyle(
                                         color: Colors.black,
                                         fontSize: 18,
@@ -272,8 +278,8 @@ extension CreateTestBodyPart on CreateTest {
                                     },
                                     child: Text(
                                       controller.kopyalandi.value
-                                          ? "Kopyalandı"
-                                          : "Kopyala",
+                                          ? "common.copied".tr
+                                          : "common.copy".tr,
                                       style: const TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
@@ -297,9 +303,9 @@ extension CreateTestBodyPart on CreateTest {
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
-                children: const [
+                children: [
                   Text(
-                    "Test Türü",
+                    "tests.test_type".tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -362,7 +368,7 @@ extension CreateTestBodyPart on CreateTest {
                             const SizedBox(height: 12),
                             Obx(
                               () => Text(
-                                dersler[index],
+                                controller.localizedTestType(dersler[index]),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
@@ -412,8 +418,8 @@ extension CreateTestBodyPart on CreateTest {
                                     Radius.circular(12),
                                   ),
                                 ),
-                                child: const Text(
-                                  "Testi Sil",
+                                child: Text(
+                                  "tests.delete_test".tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 15,
@@ -436,8 +442,8 @@ extension CreateTestBodyPart on CreateTest {
                                     Radius.circular(12),
                                   ),
                                 ),
-                                child: const Text(
-                                  "Kaydet",
+                                child: Text(
+                                  "common.save".tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 15,
@@ -468,8 +474,8 @@ extension CreateTestBodyPart on CreateTest {
                                   Radius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                "Testi Hazırla",
+                              child: Text(
+                                "tests.prepare_test".tr,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -496,9 +502,9 @@ extension CreateTestBodyPart on CreateTest {
         Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
-            children: const [
+            children: [
               Text(
-                "Dersler",
+                "tests.subjects".tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
@@ -560,7 +566,7 @@ extension CreateTestBodyPart on CreateTest {
                         const SizedBox(height: 12),
                         Obx(
                           () => Text(
-                            ders,
+                            controller.localizedLesson(ders),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
@@ -591,9 +597,9 @@ extension CreateTestBodyPart on CreateTest {
         Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
-            children: const [
+            children: [
               Text(
-                "Sınavlara Hazırlık",
+                "tests.exam_prep".tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
@@ -649,7 +655,7 @@ extension CreateTestBodyPart on CreateTest {
                         const SizedBox(height: 12),
                         Obx(
                           () => Text(
-                            item,
+                            controller.localizedLesson(item),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
@@ -678,9 +684,9 @@ extension CreateTestBodyPart on CreateTest {
         Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
-            children: const [
+            children: [
               Text(
-                "Yabancı Dil",
+                "tests.foreign_language".tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
@@ -719,7 +725,7 @@ extension CreateTestBodyPart on CreateTest {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 25),
                             child: Text(
-                              item,
+                              controller.localizedLesson(item),
                               style: TextStyle(
                                 color: controller.selectedDers.contains(item)
                                     ? Colors.white
@@ -767,7 +773,7 @@ extension CreateTestBodyPart on CreateTest {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 25),
                             child: Text(
-                              item,
+                              controller.localizedLesson(item),
                               style: TextStyle(
                                 color: controller.selectedDers.contains(item)
                                     ? Colors.white
@@ -790,9 +796,9 @@ extension CreateTestBodyPart on CreateTest {
               ? Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
-                        "Dil Seç",
+                        "tests.select_language".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 20,
@@ -829,8 +835,10 @@ extension CreateTestBodyPart on CreateTest {
                           children: [
                             Text(
                               controller.selectedDil.value.isNotEmpty
-                                  ? controller.selectedDil.value
-                                  : "Dil Seç",
+                                  ? controller.localizedLesson(
+                                      controller.selectedDil.value,
+                                    )
+                                  : "tests.select_language".tr,
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
@@ -856,9 +864,9 @@ extension CreateTestBodyPart on CreateTest {
         Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
-            children: const [
+            children: [
               Text(
-                "Branş",
+                "tests.type.branch".tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
@@ -888,8 +896,10 @@ extension CreateTestBodyPart on CreateTest {
                     children: [
                       Text(
                         controller.selectedDers.isNotEmpty
-                            ? controller.selectedDers.first
-                            : "Branş Seç",
+                            ? controller.localizedLesson(
+                                controller.selectedDers.first,
+                              )
+                            : "tests.select_branch".tr,
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15,

@@ -73,7 +73,7 @@ class MyPracticeExamsController extends GetxController {
       SilentRefreshGate.markRefreshed('practice_exams:owner:$uid');
     } catch (e) {
       log('MyPracticeExamsController.fetchExams error: $e');
-      AppSnackbar('Hata', 'Sınavlar yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'tests.exams_load_failed'.tr);
     } finally {
       if (shouldShowLoader || exams.isEmpty) {
         isLoading.value = false;

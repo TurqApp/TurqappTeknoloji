@@ -45,13 +45,14 @@ class AntremanScore extends StatelessWidget {
                             height: (MediaQuery.of(context).size.height * 0.22)
                                 .clamp(130.0, 180.0),
                           ),
-                          const Center(
-                            child: Text("Henüz puan tablosu oluşmadı."),
+                          Center(
+                            child: Text("training.leaderboard_empty".tr),
                           ),
                           const SizedBox(height: 8),
-                          const Center(
+                          Center(
                             child: Text(
-                                "Listeye girmek için Soru Bankası'nda soru çöz."),
+                              "training.leaderboard_empty_body".tr,
+                            ),
                           ),
                         ],
                       ),
@@ -229,7 +230,7 @@ class AntremanScore extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: frameWidth * 0.78),
                 child: Text(
-                  user['nickname'] ?? 'Bilinmiyor',
+                  user['nickname'] ?? 'common.unknown_user'.tr,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -328,7 +329,7 @@ class AntremanScore extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    user['nickname'] ?? 'Bilinmiyor',
+                                    user['nickname'] ?? 'common.unknown_user'.tr,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyles.textFieldTitle

@@ -31,7 +31,7 @@ class PersonalizedView extends StatelessWidget {
   Widget _buildHeader(PersonalizedController controller) {
     return Row(
       children: [
-        Expanded(child: BackButtons(text: "Sana Özel")),
+        Expanded(child: BackButtons(text: 'explore.tab.for_you'.tr)),
         Obx(
           () => Text(
             controller.locationSehir.value,

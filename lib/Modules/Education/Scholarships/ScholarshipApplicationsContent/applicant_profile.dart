@@ -47,85 +47,156 @@ class ApplicantProfile extends StatelessWidget {
                         _buildProfileHeader(controller),
                         24.ph,
                         // Personal Information
-                        _buildSectionTitle("Kişisel Bilgiler"),
+                        _buildSectionTitle(
+                          'scholarship.applicant.personal_section'.tr,
+                        ),
                         _buildInfoCard([
-                          _buildText("Ad Soyad", controller.fullName.value),
+                          _buildText(
+                            'scholarship.applicant.full_name'.tr,
+                            controller.fullName.value,
+                          ),
                           _buildClickableText(
-                            "Mail Adresi",
+                            'scholarship.applicant.email'.tr,
                             controller.email.value,
                             isEmail: true,
                           ),
                           _buildClickableText(
-                            "Telefon Numarası",
+                            'scholarship.applicant.phone'.tr,
                             "+90${(controller.phoneNumber.value)}",
                             isPhone: true,
                           ),
-                          _buildText("Ülke", controller.ulke.value),
-                          _buildText("Nüfus İl", controller.nufusSehir.value),
-                          _buildText("Nüfus İlçe", controller.nufusIlce.value),
                           _buildText(
-                              "Doğum Tarihi", controller.dogumTarigi.value),
-                          _buildText("Medeni Hal", controller.medeniHal.value),
-                          _buildText("Cinsiyet", controller.cinsiyet.value),
+                            'scholarship.applicant.country'.tr,
+                            controller.ulke.value,
+                          ),
                           _buildText(
-                              "Engelli Raporu", controller.engelliRaporu.value),
+                            'scholarship.applicant.registry_city'.tr,
+                            controller.nufusSehir.value,
+                          ),
                           _buildText(
-                              "Çalışma Durumu", controller.calismaDurumu.value),
+                            'scholarship.applicant.registry_district'.tr,
+                            controller.nufusIlce.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.birth_date'.tr,
+                            controller.dogumTarigi.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.marital_status'.tr,
+                            controller.medeniHal.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.gender'.tr,
+                            controller.cinsiyet.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.disability_report'.tr,
+                            controller.engelliRaporu.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.employment_status'.tr,
+                            controller.calismaDurumu.value,
+                          ),
                         ]),
                         SizedBox(height: 24),
                         // Education Information
-                        _buildSectionTitle("Eğitim Bilgileri"),
+                        _buildSectionTitle(
+                          'scholarship.applicant.education_section'.tr,
+                        ),
                         _buildInfoCard([
                           _buildText(
-                              "Eğitim Düzeyi", controller.educationLevel.value),
-                          _buildText("Üniversite", controller.universite.value),
-                          _buildText("Fakülte", controller.fakulte.value),
-                          _buildText("Bölüm", controller.bolum.value),
+                            'scholarship.applicant.education_level'.tr,
+                            controller.educationLevel.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.university'.tr,
+                            controller.universite.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.faculty'.tr,
+                            controller.fakulte.value,
+                          ),
+                          _buildText(
+                            'scholarship.applicant.department'.tr,
+                            controller.bolum.value,
+                          ),
                         ]),
                         SizedBox(height: 24),
                         // Family Information
-                        _buildSectionTitle("Aile Bilgileri"),
+                        _buildSectionTitle(
+                          'scholarship.applicant.family_section'.tr,
+                        ),
                         _buildInfoCard([
                           // Father Information
                           _buildText(
-                              "Baba Hayatta mı?", controller.babaHayata.value),
+                            'scholarship.applicant.father_alive'.tr,
+                            controller.babaHayata.value,
+                          ),
                           if (controller.babaHayata.value.toLowerCase() !=
                               "hayır") ...[
-                            _buildText("Baba Adı", controller.babaAdi.value),
                             _buildText(
-                                "Baba Soyadı", controller.babaSoyadi.value),
+                              'scholarship.applicant.father_name'.tr,
+                              controller.babaAdi.value,
+                            ),
+                            _buildText(
+                              'scholarship.applicant.father_surname'.tr,
+                              controller.babaSoyadi.value,
+                            ),
                             _buildClickableText(
-                              "Baba Telefon",
+                              'scholarship.applicant.father_phone'.tr,
                               "+90${(controller.babaPhone.value)}",
                               isPhone: true,
                             ),
-                            _buildText("Baba Meslek", controller.babaJob.value),
                             _buildText(
-                                "Baba Gelir", controller.babaSalary.value),
+                              'scholarship.applicant.father_job'.tr,
+                              controller.babaJob.value,
+                            ),
+                            _buildText(
+                              'scholarship.applicant.father_income'.tr,
+                              controller.babaSalary.value,
+                            ),
                           ],
                           // Mother Information
                           _buildText(
-                              "Anne Hayatta mı?", controller.anneHayata.value),
+                            'scholarship.applicant.mother_alive'.tr,
+                            controller.anneHayata.value,
+                          ),
                           if (controller.anneHayata.value.toLowerCase() !=
                               "hayır") ...[
-                            _buildText("Anne Adı", controller.anneAdi.value),
                             _buildText(
-                                "Anne Soyadı", controller.anneSoyadi.value),
+                              'scholarship.applicant.mother_name'.tr,
+                              controller.anneAdi.value,
+                            ),
+                            _buildText(
+                              'scholarship.applicant.mother_surname'.tr,
+                              controller.anneSoyadi.value,
+                            ),
                             _buildClickableText(
-                              "Anne Telefon",
+                              'scholarship.applicant.mother_phone'.tr,
                               "+90${(controller.annePhone.value)}",
                               isPhone: true,
                             ),
-                            _buildText("Anne Meslek", controller.anneJob.value),
                             _buildText(
-                                "Anne Gelir", controller.anneSalary.value),
+                              'scholarship.applicant.mother_job'.tr,
+                              controller.anneJob.value,
+                            ),
+                            _buildText(
+                              'scholarship.applicant.mother_income'.tr,
+                              controller.anneSalary.value,
+                            ),
                           ],
                           _buildText(
-                              "Ev Mülkiyeti", controller.evMulkiyeti.value),
+                            'scholarship.applicant.home_ownership'.tr,
+                            controller.evMulkiyeti.value,
+                          ),
                           _buildText(
-                              "İkamet Şehir", controller.ikametSehir.value),
+                            'scholarship.applicant.residence_city'.tr,
+                            controller.ikametSehir.value,
+                          ),
                           _buildText(
-                              "İkamet İlçe", controller.ikametIlce.value),
+                            'scholarship.applicant.residence_district'.tr,
+                            controller.ikametIlce.value,
+                          ),
                         ]),
                       ],
                     ),
@@ -312,7 +383,10 @@ class ApplicantProfile extends StatelessWidget {
                   if (await canLaunchUrl(Uri.parse(url))) {
                     await launchUrl(Uri.parse(url));
                   } else {
-                    AppSnackbar('Hata', 'Telefon araması başlatılamadı');
+                    AppSnackbar(
+                      'common.error'.tr,
+                      'scholarship.applicant.phone_open_failed'.tr,
+                    );
                   }
                 } else if (isEmail) {
                   final url = Uri.encodeFull('mailto:$text');
@@ -320,7 +394,10 @@ class ApplicantProfile extends StatelessWidget {
                     await launchUrl(Uri.parse(url),
                         mode: LaunchMode.externalApplication);
                   } else {
-                    AppSnackbar('Hata', 'E-posta istemcisi açılamadı');
+                    AppSnackbar(
+                      'common.error'.tr,
+                      'scholarship.applicant.email_open_failed'.tr,
+                    );
                   }
                 }
               },

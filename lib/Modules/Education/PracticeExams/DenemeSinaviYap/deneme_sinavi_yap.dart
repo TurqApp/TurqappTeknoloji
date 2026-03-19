@@ -54,7 +54,8 @@ class DenemeSinaviYap extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              "$index. Soru",
+                              'tests.question_number'
+                                  .trParams({'index': index.toString()}),
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 20,
@@ -66,7 +67,7 @@ class DenemeSinaviYap extends StatelessWidget {
                         CachedNetworkImage(
                           imageUrl: soru.soru,
                           errorWidget: (context, url, error) => Text(
-                            "Soru resmi yüklenemedi.",
+                            'practice.question_image_failed'.tr,
                             style: TextStyle(
                               color: Colors.red,
                               fontSize: 15,
@@ -139,7 +140,7 @@ class DenemeSinaviYap extends StatelessWidget {
           children: [
             SizedBox(height: 20),
             Text(
-              "Sınav Başlamıştır!",
+              'practice.exam_started_title'.tr,
               style: TextStyle(
                 color: Colors.purple,
                 fontSize: 25,
@@ -148,7 +149,7 @@ class DenemeSinaviYap extends StatelessWidget {
             ),
             SizedBox(height: 12),
             Text(
-              "Sınav'a gösterdiğiniz özen ve çabanın, başarıya giden yolu açacağına inanıyoruz. Bol şans ve başarılar dileriz!",
+              'practice.exam_started_body'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -160,7 +161,7 @@ class DenemeSinaviYap extends StatelessWidget {
             Divider(color: Colors.grey),
             SizedBox(height: 12),
             Text(
-              "Sınav Kuralları",
+              'practice.rules_title'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -185,7 +186,7 @@ class DenemeSinaviYap extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    "Lütfen telefonunuzun internet bağlantısını kapatınız. Sınavınız tamamlandığında, internetinizi yeniden açarak cevaplarınızı gönderebileceğiniz ekranı görüntüleyebilirsiniz.",
+                    'practice.rule_1'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -213,7 +214,7 @@ class DenemeSinaviYap extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    "Sınavdan çıkmak isterseniz, tüm cevaplarınız geçersiz sayılacaktır ve puanınız kaydedilmeyecektir. Bu işlemi onaylamadan önce dikkatlice düşünmeniz önerilir.",
+                    'practice.rule_2'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -241,7 +242,7 @@ class DenemeSinaviYap extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    "Uygulamayı arka plana aldığınızda sınavınız geçersiz sayılacaktır. Bu yüzden uygulamayı arka plana almamaya özen gösteriniz.",
+                    'practice.rule_3'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -262,7 +263,7 @@ class DenemeSinaviYap extends StatelessWidget {
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
                 child: Text(
-                  "Sınav'a Başla",
+                  'practice.start_exam'.tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -337,7 +338,7 @@ class DenemeSinaviYap extends StatelessWidget {
                                               ),
                                               SizedBox(height: 10),
                                               Text(
-                                                "Bu sınav için soru bulunamadı. Lütfen sınav içeriğini kontrol edin veya yeni sorular ekleyin.",
+                                                'tests.solve_no_questions'.tr,
                                                 style: TextStyle(
                                                   color: Colors.black,
                                                   fontSize: 15,
@@ -416,7 +417,7 @@ class DenemeSinaviYap extends StatelessWidget {
                                                 alignment: Alignment.center,
                                                 color: Colors.green,
                                                 child: Text(
-                                                  "Sınavı Bitir",
+                                                  'practice.finish_exam'.tr,
                                                   style: TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 15,

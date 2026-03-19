@@ -18,7 +18,9 @@ class LessonBasedTests extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            BackButtons(text: "$testTuru Testleri"),
+            BackButtons(
+              text: "tests.lesson_based_title".trParams({"type": testTuru}),
+            ),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -71,14 +73,14 @@ class LessonBasedTests extends StatelessWidget {
                                       Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.center,
-                                        children: const [
+                                        children: [
                                           Icon(
                                             Icons.lightbulb_outline,
                                             color: Colors.black,
                                           ),
                                           SizedBox(height: 7),
                                           Text(
-                                            "Her hangi bir test yok",
+                                            "tests.none_in_category".tr,
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 15,

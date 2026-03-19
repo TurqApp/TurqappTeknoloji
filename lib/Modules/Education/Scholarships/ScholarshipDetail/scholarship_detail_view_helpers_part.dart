@@ -53,15 +53,15 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
     }
 
     AppSnackbar(
-      "Hata!",
-      "Web sitesi açılamadı. Lütfen geçerli bir URL girin.",
+      "common.error".tr,
+      "scholarship.website_open_failed".tr,
     );
   }
 
   void _openProfile(String userId) {
     final trimmedUserId = userId.trim();
     if (trimmedUserId.isEmpty) {
-      AppSnackbar("Uyarı!", "Bu burs için profil bilgisi bulunmamaktadır.");
+      AppSnackbar("common.warning".tr, "scholarship.profile_missing".tr);
       return;
     }
 

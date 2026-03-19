@@ -50,7 +50,7 @@ class _PostSharersState extends State<PostSharers> {
           children: [
             Row(
               children: [
-                BackButtons(text: "Gönderi olarak paylaşanlar"),
+                BackButtons(text: 'short.shared_as_post_by'.tr),
               ],
             ),
             Expanded(
@@ -73,7 +73,7 @@ class _PostSharersState extends State<PostSharers> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          "Henüz kimse bu gönderiyi paylaşmamış",
+                          'post_sharers.empty'.tr,
                           style: TextStyle(
                             color: Colors.grey,
                             fontSize: 16,
@@ -182,11 +182,11 @@ class _PostSharerTileState extends State<_PostSharerTile> {
     final nickname = (widget.userData?['nickname'] ?? '').toString().trim();
     final fullName = (widget.userData?['fullName'] ?? '').toString().trim();
     final displayName =
-        fullName.isNotEmpty && fullName != 'Bilinmeyen Kullanıcı'
+        fullName.isNotEmpty && fullName != 'common.unknown_user'.tr
             ? fullName
-            : (nickname.isNotEmpty ? nickname : 'Bilinmeyen Kullanıcı');
+            : (nickname.isNotEmpty ? nickname : 'common.unknown_user'.tr);
     final subtitle =
-        nickname.isNotEmpty ? '@$nickname' : '@Bilinmeyen Kullanıcı';
+        nickname.isNotEmpty ? '@$nickname' : '@${'common.unknown_user'.tr}';
     final avatarUrl = (widget.userData?['avatarUrl'] ?? '').toString().trim();
 
     return ListTile(

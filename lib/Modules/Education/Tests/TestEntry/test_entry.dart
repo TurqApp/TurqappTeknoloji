@@ -20,7 +20,7 @@ class TestEntry extends StatelessWidget {
           children: [
             Column(
               children: [
-                BackButtons(text: "Teste Katıl"),
+                BackButtons(text: "tests.join_title".tr),
                 Expanded(
                   child: Container(
                     color: Colors.white,
@@ -48,12 +48,12 @@ class TestEntry extends StatelessWidget {
                                     focusNode: controller.focusNode,
                                     onChanged: controller.onTextChanged,
                                     onSubmitted: controller.onTextSubmitted,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       icon: Icon(
                                         AppIcons.search,
                                         color: Colors.pink,
                                       ),
-                                      hintText: "Test ID Ara",
+                                      hintText: "tests.search_id_hint".tr,
                                       hintStyle: TextStyle(
                                         color: Colors.grey,
                                         fontFamily: "Montserrat",
@@ -70,8 +70,8 @@ class TestEntry extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 15),
-                              const Text(
-                                "Öğretmeniniz tarafından size iletilen Test ID değerini buraya girerek teste başlayabilirsiniz.",
+                              Text(
+                                "tests.join_help".tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -97,7 +97,7 @@ class TestEntry extends StatelessWidget {
                                               child: Column(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
-                                                children: const [
+                                                children: [
                                                   Icon(
                                                     Icons.info_outline,
                                                     color: Colors.black,
@@ -105,7 +105,7 @@ class TestEntry extends StatelessWidget {
                                                   ),
                                                   SizedBox(height: 10),
                                                   Text(
-                                                    "Test bulunamadı.\nGirilen Test ID ile eşleşen bir test bulunamadı.",
+                                                    "tests.join_not_found".tr,
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       color: Colors.black,
@@ -184,7 +184,16 @@ class TestEntry extends StatelessWidget {
                                                                 .spaceBetween,
                                                         children: [
                                                           Text(
-                                                            "${controller.model.value!.testTuru} Testi",
+                                                            "tests.type_test"
+                                                                .trParams({
+                                                              "type": controller
+                                                                  .localizedTestType(
+                                                                controller
+                                                                    .model
+                                                                    .value!
+                                                                    .testTuru,
+                                                              ),
+                                                            }),
                                                             maxLines: 1,
                                                             style:
                                                                 const TextStyle(
@@ -214,9 +223,12 @@ class TestEntry extends StatelessWidget {
                                                             ),
                                                           ),
                                                           Text(
-                                                            controller.model
-                                                                .value!.dersler
-                                                                .join(", "),
+                                                            controller
+                                                                .localizedLessons(
+                                                              controller.model
+                                                                  .value!
+                                                                  .dersler,
+                                                            ),
                                                             maxLines: 2,
                                                             overflow:
                                                                 TextOverflow
@@ -251,7 +263,7 @@ class TestEntry extends StatelessWidget {
               () => controller.model.value != null
                   ? GestureDetector(
                       onTap: () => controller.joinTest(context),
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(20),
                         child: SizedBox(
                           height: 50,
@@ -262,7 +274,7 @@ class TestEntry extends StatelessWidget {
                             ),
                             child: Center(
                               child: Text(
-                                "Test'e Katıl",
+                                "tests.join_button".tr,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,

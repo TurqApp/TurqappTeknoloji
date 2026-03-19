@@ -28,7 +28,7 @@ class LocationBasedTutoring extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                BackButtons(text: "Özel Ders"),
+                BackButtons(text: 'tutoring.title'.tr),
                 Padding(
                   padding: EdgeInsets.only(right: 15),
                   child: Row(
@@ -37,10 +37,10 @@ class LocationBasedTutoring extends StatelessWidget {
                       Obx(
                         () => Text(
                           controller.isLoading.value
-                              ? 'Yükleniyor..'
+                              ? 'common.loading'.tr
                               : controller.tutoringList.isNotEmpty
                                   ? controller.tutoringList.first.sehir
-                                  : 'Konum Bulunamadı',
+                                  : 'tutoring.location_missing'.tr,
                           style: TextStyles.bold16Black,
                         ),
                       ),
@@ -55,7 +55,7 @@ class LocationBasedTutoring extends StatelessWidget {
                   return Center(child: CupertinoActivityIndicator());
                 } else if (controller.tutoringList.isEmpty) {
                   return Center(
-                    child: Text("Bu bölgede ders ilanı bulunmuyor."),
+                    child: Text('tutoring.no_listings_in_region'.tr),
                   );
                 } else {
                   final content = SingleChildScrollView(
@@ -64,7 +64,7 @@ class LocationBasedTutoring extends StatelessWidget {
                       users: controller.users,
                       isGridView: viewModeController.isGridView.value,
                       infoMessage: Infomessage(
-                        infoMessage: "Bu bölgede ders ilanı bulunmuyor.",
+                        infoMessage: 'tutoring.no_listings_in_region'.tr,
                       ),
                     ),
                   );

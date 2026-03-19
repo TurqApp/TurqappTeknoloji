@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
   var nickname = "".obs;
@@ -41,19 +41,15 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> fetchUserData() async {
     try {
-      final data = await _userRepository.getUserRaw(model.userID) ??
-          const <String, dynamic>{};
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
-      avatarUrl.value = (data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              "")
-          .toString();
+      final data = await _userSummaryResolver.resolve(
+            model.userID,
+            preferCache: true,
+          ) ??
+          _userSummaryResolver.resolveFromMaps(model.userID);
+      nickname.value = data.preferredName;
+      avatarUrl.value = data.avatarUrl;
     } catch (error) {
-      AppSnackbar("Hata", "Kullanıcı bilgileri yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -79,7 +75,7 @@ class DenemeSinaviPreviewController extends GetxController {
         FirebaseAuth.instance.currentUser!.uid,
       );
     } catch (error) {
-      AppSnackbar("Hata", "Geçersizlik durumu yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.invalidity_load_failed'.tr);
       sinavaGirebilir.value = true;
     }
   }
@@ -151,11 +147,13 @@ class DenemeSinaviPreviewController extends GetxController {
 
     final summary = await _getLatestExamSummary();
     final resultText = summary == null
-        ? "Sonuç hesaplanamadı."
-        : "Doğru: ${summary["dogru"]?.toInt() ?? 0}   •   "
-            "Yanlış: ${summary["yanlis"]?.toInt() ?? 0}   •   "
-            "Boş: ${summary["bos"]?.toInt() ?? 0}   •   "
-            "Net: ${(summary["net"] ?? 0).toStringAsFixed(2)}";
+        ? 'practice.result_unavailable'.tr
+        : 'practice.result_summary'.trParams({
+            'correct': '${summary["dogru"]?.toInt() ?? 0}',
+            'wrong': '${summary["yanlis"]?.toInt() ?? 0}',
+            'blank': '${summary["bos"]?.toInt() ?? 0}',
+            'net': (summary["net"] ?? 0).toStringAsFixed(2),
+          });
 
     Get.bottomSheet(
       Container(
@@ -168,10 +166,10 @@ class DenemeSinaviPreviewController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Tebrikler!",
+            Text(
+              'practice.congrats_title'.tr,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 18,
                 fontFamily: "MontserratBold",
@@ -204,8 +202,8 @@ class DenemeSinaviPreviewController extends GetxController {
                         color: Colors.black,
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
-                      child: const Text(
-                        "Tamam",
+                      child: Text(
+                        'common.ok'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -229,8 +227,8 @@ class DenemeSinaviPreviewController extends GetxController {
 
   void showGecersizAlert() {
     AppSnackbar(
-      "Sınavdan Atıldınız!",
-      "Bir çok kez seni uyardık! Maalesef sınav kurallarına uymadığınız için sınavdan atıldınız ve sınavınız geçersiz sayıldı",
+      'practice.removed_title'.tr,
+      'practice.removed_body'.tr,
     );
   }
 
@@ -267,8 +265,8 @@ class DenemeSinaviPreviewController extends GetxController {
 
       if (alreadyApplied) {
         AppSnackbar(
-          "Başvurunuz Alınmıştır!",
-          "Başvurunuz başarıyla alınmıştır. Şu anda yapılacak başka bir işlem bulunmamaktadır",
+          'practice.applied_title'.tr,
+          'practice.applied_body'.tr,
         );
       } else {
         showSucces.value = true;
@@ -276,7 +274,7 @@ class DenemeSinaviPreviewController extends GetxController {
         basvuranSayisi.value = basvuranSayisi.value + 1;
       }
     } catch (error) {
-      AppSnackbar("Hata", "Başvuru işlemi başarısız.");
+      AppSnackbar('common.error'.tr, 'practice.apply_failed'.tr);
     }
   }
 
@@ -291,7 +289,7 @@ class DenemeSinaviPreviewController extends GetxController {
         FirebaseAuth.instance.currentUser!.uid,
       );
     } catch (error) {
-      AppSnackbar("Hata", "Başvuru kontrolü başarısız.");
+      AppSnackbar('common.error'.tr, 'practice.application_check_failed'.tr);
     }
   }
 

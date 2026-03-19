@@ -73,14 +73,14 @@ class StoryGifWidget extends StatelessWidget {
             placeholder: (context, _) {
               return Container(
                 color: Colors.grey.withValues(alpha: 0.3),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2),
                       SizedBox(height: 8),
-                      Text("GIF",
+                      Text("chat.gif".tr,
                           style: TextStyle(color: Colors.white, fontSize: 12)),
                     ],
                   ),
@@ -89,13 +89,13 @@ class StoryGifWidget extends StatelessWidget {
             },
             errorWidget: (context, url, error) => Container(
               color: Colors.grey.withValues(alpha: 0.3),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.error, color: Colors.white),
                     SizedBox(height: 4),
-                    Text("GIF yüklenemedi",
+                    Text("story.gif_load_failed".tr,
                         style: TextStyle(color: Colors.white, fontSize: 10)),
                   ],
                 ),

@@ -1,11 +1,13 @@
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:get/get.dart';
 
 class ScholarshipApplicationsContentController extends GetxController {
   final String userID;
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   ScholarshipApplicationsContentController({required this.userID});
 
@@ -72,22 +74,21 @@ class ScholarshipApplicationsContentController extends GetxController {
       isDetailsLoading.value = false;
     }).catchError((_) {
       isDetailsLoading.value = false;
-      AppSnackbar('Hata', 'Veriler yüklenirken bir hata oluştu');
+      AppSnackbar('common.error'.tr, 'scholarship.applicant_load_failed'.tr);
     });
   }
 
   Future<void> loadInitialData() async {
     try {
       isLoading.value = true;
-      final data = await _userRepository.getUserRaw(userID);
+      final data = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
       if (data != null) {
-        nickname.value =
-            (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-                .toString();
-        avatarUrl.value = (data["avatarUrl"] ?? "").toString();
-        fullName.value =
-            "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-                .trim();
+        nickname.value = data.nickname;
+        avatarUrl.value = data.avatarUrl;
+        fullName.value = data.displayName;
       }
     } catch (_) {
     } finally {

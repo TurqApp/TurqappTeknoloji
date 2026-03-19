@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 
 import 'cikmis_sorular_preview.dart';
@@ -26,6 +27,17 @@ class _CikmisSorularBaslik3SecimiState
     extends State<CikmisSorularBaslik3Secimi> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> basliklar = [];
+
+  String _localizedExamType(String raw) {
+    switch (raw) {
+      case 'Ön Lisans':
+        return 'past_questions.exam_type.associate'.tr;
+      case 'Lisans':
+        return 'past_questions.exam_type.undergraduate'.tr;
+      default:
+        return raw;
+    }
+  }
 
   @override
   void initState() {
@@ -69,7 +81,8 @@ class _CikmisSorularBaslik3SecimiState
                       Icon(Icons.arrow_back, color: Colors.black),
                       SizedBox(width: 12),
                       Text(
-                        "${widget.yil} Yılı Oturumlar",
+                        'past_questions.sessions_by_year'
+                            .trParams({'year': widget.yil}),
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 25,
@@ -183,7 +196,7 @@ class _CikmisSorularBaslik3SecimiState
                                         Spacer(),
                                         SizedBox(height: 4),
                                         Text(
-                                          widget.sinavTuru,
+                                          _localizedExamType(widget.sinavTuru),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.grey,

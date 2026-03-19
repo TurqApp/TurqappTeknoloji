@@ -109,12 +109,12 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
           children: [
             Column(
               children: [
-                const BackButtons(text: "Yayınladıklarım"),
+                BackButtons(text: 'pasaj.common.published'.tr),
                 Obx(
                   () => PageLineBar(
                     barList: [
-                      "Kitap (${controller.list.length})",
-                      "Optik Form (${controller.optikler.length})",
+                      "${'answer_key.book'.tr} (${controller.list.length})",
+                      "${'answer_key.optical_form'.tr} (${controller.optikler.length})",
                     ],
                     pageName: "OpticsAndBooksPublished",
                     pageController: _pageController,

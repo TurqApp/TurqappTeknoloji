@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 
@@ -22,6 +23,23 @@ class _CikmisSorularDilSectirmeYDTState
     extends State<CikmisSorularDilSectirmeYDT> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> diller = [];
+
+  String _localizedLanguage(String raw) {
+    switch (raw) {
+      case 'İngilizce':
+        return 'tests.language.english'.tr;
+      case 'Almanca':
+        return 'tests.language.german'.tr;
+      case 'Arapça':
+        return 'tests.language.arabic'.tr;
+      case 'Fransızca':
+        return 'tests.language.french'.tr;
+      case 'Rusça':
+        return 'tests.language.russian'.tr;
+      default:
+        return raw;
+    }
+  }
 
   @override
   void initState() {
@@ -58,7 +76,10 @@ class _CikmisSorularDilSectirmeYDTState
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "${widget.sinavTuru} Dilleri"),
+            BackButtons(
+              text: 'past_questions.languages_title'
+                  .trParams({'type': widget.sinavTuru}),
+            ),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -160,7 +181,9 @@ class _CikmisSorularDilSectirmeYDTState
                                               MainAxisAlignment.center,
                                           children: [
                                             Text(
-                                              diller[index],
+                                              _localizedLanguage(
+                                                diller[index],
+                                              ),
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 30,

@@ -12,16 +12,22 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 
 class DormitoryInfoController extends GetxController {
+  static const String _selectCity = "Şehir Seç";
+  static const String _selectDistrict = "İlçe Seç";
+  static const String _selectAdminType = "İdari Seç";
+  String get selectCityValue => _selectCity;
+  String get selectDistrictValue => _selectDistrict;
+  String get selectAdminTypeValue => _selectAdminType;
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   final EducationReferenceDataService _referenceDataService =
       EducationReferenceDataService.ensure();
   final isLoading = true.obs;
-  final sehir = "Şehir Seç".obs;
-  final ilce = "İlçe Seç".obs;
+  final sehir = _selectCity.obs;
+  final ilce = _selectDistrict.obs;
   final yurt = "".obs;
-  final sub = "İdari Seç".obs;
+  final sub = _selectAdminType.obs;
   final listedeYok = false.obs;
   final yurtInput = TextEditingController();
   final yurtSelectionController = TextEditingController();
@@ -43,6 +49,19 @@ class DormitoryInfoController extends GetxController {
     yurtInput.addListener(() {
       yurtInputText.value = yurtInput.text;
     });
+  }
+
+  String localizedAdminType(String value) {
+    switch (value) {
+      case "DEVLET":
+        return 'dormitory.admin_public'.tr;
+      case "ÖZEL":
+        return 'dormitory.admin_private'.tr;
+      case _selectAdminType:
+        return 'dormitory.select_admin_type'.tr;
+      default:
+        return value;
+    }
   }
 
   @override
@@ -87,11 +106,13 @@ class DormitoryInfoController extends GetxController {
   void showIdariSec() {
     Get.bottomSheet(
       AppBottomSheet(
-        list: subList,
-        title: "İdari Seç",
-        startSelection: sub.value,
+        list: subList.map(localizedAdminType).toList(),
+        title: 'dormitory.select_admin_type'.tr,
+        startSelection: localizedAdminType(sub.value),
         onBackData: (v) {
-          sub.value = v;
+          final localizedList = subList.map(localizedAdminType).toList();
+          final selectedIndex = localizedList.indexOf(v);
+          sub.value = selectedIndex >= 0 ? subList[selectedIndex] : v;
           yurt.value = "";
           yurtSelectionController.clear();
         },
@@ -108,7 +129,7 @@ class DormitoryInfoController extends GetxController {
     Get.bottomSheet(
       ListBottomSheet(
         list: sehirler,
-        title: "Şehir Seç",
+        title: 'common.select_city'.tr,
         startSelection: sehir.value,
         onBackData: (v) {
           sehir.value = v;
@@ -136,14 +157,14 @@ class DormitoryInfoController extends GetxController {
         .toList();
 
     if (filteredYurtList.isEmpty) {
-      AppSnackbar("Bilgi", "Bu şehir ve idari tür için yurt bulunamadı");
+      AppSnackbar('common.warning'.tr, 'dormitory.not_found_for_filters'.tr);
       return;
     }
 
     Get.bottomSheet(
       ListBottomSheet(
         list: filteredYurtList,
-        title: "Yurt Seç",
+        title: 'dormitory.select_dormitory'.tr,
         startSelection: yurt.value.isEmpty ? null : yurt.value,
         onBackData: (v) {
           yurt.value = v;
@@ -173,8 +194,8 @@ class DormitoryInfoController extends GetxController {
 
   void selectYurt(DormitoryModel item) {
     yurt.value = item.adi;
-    sehir.value = "Şehir Seç";
-    sub.value = "İdari Seç";
+    sehir.value = _selectCity;
+    sub.value = _selectAdminType;
     listedeYok.value = false;
     yurtInput.clear();
     yurtInputText.value = "";
@@ -196,12 +217,12 @@ class DormitoryInfoController extends GetxController {
         );
         yurt.value = savedYurt;
         Get.back();
-        AppSnackbar("Başarılı", "Yurt Bilgileriniz Kaydedildi.");
+        AppSnackbar('common.success'.tr, 'dormitory.saved'.tr);
       } catch (_) {
-        AppSnackbar("Hata", "Veri kaydedilemedi.");
+        AppSnackbar('common.error'.tr, 'dormitory.save_failed'.tr);
       }
     } else {
-      AppSnackbar("Hata", "Lütfen bir yurt seçin veya yurt adı girin");
+      AppSnackbar('common.error'.tr, 'dormitory.select_or_enter'.tr);
     }
   }
 

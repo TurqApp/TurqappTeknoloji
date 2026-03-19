@@ -7,15 +7,18 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinavlariController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_practice_exam_listing_selection';
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
+      PracticeExamSnapshotRepository.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
   var list = <SinavModel>[].obs;
@@ -28,6 +31,7 @@ class DenemeSinavlariController extends GetxController {
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
   final RxInt listingSelection = 0.obs;
+  final RxBool listingSelectionReady = false.obs;
   final ScrollController scrollController = ScrollController();
   double _previousOffset = 0.0;
   final RxDouble scrollOffset = 0.0.obs;
@@ -35,6 +39,7 @@ class DenemeSinavlariController extends GetxController {
   final RxList<SinavModel> searchResults = <SinavModel>[].obs;
   DocumentSnapshot? _lastDocument;
   static const int _pageSize = 30;
+  StreamSubscription<CachedResource<List<SinavModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchToken = 0;
 
@@ -45,6 +50,7 @@ class DenemeSinavlariController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
       listingSelection.value = 0;
+      listingSelectionReady.value = true;
       return;
     }
     try {
@@ -53,6 +59,8 @@ class DenemeSinavlariController extends GetxController {
           (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
     } catch (_) {
       listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
     }
   }
 
@@ -85,21 +93,14 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    try {
-      final cached = await _practiceExamRepository.fetchPage(
-        limit: _pageSize,
-        cacheOnly: true,
-      );
-      if (cached.items.isNotEmpty) {
-        list.assignAll(cached.items);
-        _lastDocument = cached.lastDocument;
-        hasMore.value = cached.hasMore;
-        isLoading.value = false;
-        await getData();
-        return;
-      }
-    } catch (_) {}
-    await getData();
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _practiceExamSnapshotRepository
+        .openHome(
+          userId: userId,
+          limit: _pageSize,
+        )
+        .listen(_applyHomeSnapshotResource);
   }
 
   void scrolControlcu() {
@@ -128,15 +129,15 @@ class DenemeSinavlariController extends GetxController {
 
   Future<void> getOkulBilgisi() async {
     try {
-      final data = await _userRepository.getUserRaw(
-            FirebaseAuth.instance.currentUser!.uid,
-          ) ??
-          const <String, dynamic>{};
-      final rozet = data["rozet"] as String?;
+      final data = await _userSummaryResolver.resolve(
+        FirebaseAuth.instance.currentUser!.uid,
+        preferCache: true,
+      );
+      final rozet = data?.rozet;
       okul.value =
           hasRozetPermission(currentRozet: rozet, minimumRozet: "Sarı");
     } catch (e) {
-      AppSnackbar("Hata", "Okul bilgisi alınamadı.");
+      AppSnackbar('common.error'.tr, 'practice.school_info_failed'.tr);
     }
   }
 
@@ -148,13 +149,16 @@ class DenemeSinavlariController extends GetxController {
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final page = await _practiceExamRepository.fetchPage(limit: _pageSize);
-      list.assignAll(page.items);
-      _lastDocument = page.lastDocument;
-      hasMore.value = page.hasMore;
+      final resource = await _practiceExamSnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        limit: _pageSize,
+      );
+      final items = resource.data ?? const <SinavModel>[];
+      list.assignAll(items);
+      hasMore.value = items.length >= _pageSize;
     } catch (e) {
       log("DenemeSinavlariController.getData error: $e");
-      AppSnackbar("Hata", "Veriler yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.load_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -199,16 +203,16 @@ class DenemeSinavlariController extends GetxController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
-        entity: EducationTypesenseEntity.practiceExam,
+      final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
 
-      final results = await _fetchByDocIds(docIds);
+      final results = resource.data ?? const <SinavModel>[];
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       searchResults.assignAll(results);
@@ -224,12 +228,25 @@ class DenemeSinavlariController extends GetxController {
     }
   }
 
-  Future<List<SinavModel>> _fetchByDocIds(List<String> docIds) async {
-    return _practiceExamRepository.fetchByIds(docIds);
+  void _applyHomeSnapshotResource(CachedResource<List<SinavModel>> resource) {
+    final items = resource.data ?? const <SinavModel>[];
+    if (items.isNotEmpty) {
+      list.assignAll(items);
+      hasMore.value = items.length >= _pageSize;
+    }
+
+    if (!resource.isRefreshing || items.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (list.isEmpty) {
+      isLoading.value = true;
+    }
   }
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
     scrollController.dispose();
     super.onClose();

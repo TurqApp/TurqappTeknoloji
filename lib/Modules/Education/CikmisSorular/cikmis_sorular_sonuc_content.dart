@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/cikmis_soru_sonuc_model.dart';
@@ -19,7 +20,8 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
     final parsedYear = int.tryParse(year);
     if (parsedYear == null) return year;
     final denemeNumber = (2025 - parsedYear).clamp(1, 999);
-    return "Deneme $denemeNumber";
+    return 'past_questions.mock_label'
+        .trParams({'index': denemeNumber.toString()});
   }
 
   String _resultTitle() {
@@ -66,7 +68,8 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
             ),
             6.ph,
             Text(
-              "${widget.model.soruSayisi} Soru",
+              'past_questions.question_count'
+                  .trParams({'count': widget.model.soruSayisi.toString()}),
               style: TextStyle(
                 color: Colors.indigo,
                 fontSize: 16,
@@ -77,10 +80,26 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _metricChip("Doğru", widget.model.dogruSayisi.toString(), Colors.green),
-                _metricChip("Yanlış", widget.model.yanlisSayisi.toString(), Colors.red),
-                _metricChip("Boş", widget.model.bosSayisi.toString(), Colors.orangeAccent),
-                _metricChip("Net", widget.model.net.toStringAsFixed(2), Colors.black),
+                _metricChip(
+                  'tests.correct'.tr,
+                  widget.model.dogruSayisi.toString(),
+                  Colors.green,
+                ),
+                _metricChip(
+                  'tests.wrong'.tr,
+                  widget.model.yanlisSayisi.toString(),
+                  Colors.red,
+                ),
+                _metricChip(
+                  'tests.blank'.tr,
+                  widget.model.bosSayisi.toString(),
+                  Colors.orangeAccent,
+                ),
+                _metricChip(
+                  'past_questions.net_label'.tr,
+                  widget.model.net.toStringAsFixed(2),
+                  Colors.black,
+                ),
               ],
             ),
           ],

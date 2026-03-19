@@ -4,12 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview.dart';
 
 class OpticalFormEntryController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();
   final search = TextEditingController();
@@ -67,19 +67,12 @@ class OpticalFormEntryController extends GetxController {
   }
 
   Future<void> getUserData(String userID) async {
-    final data =
-        await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
-    final firstName = (data["firstName"] ?? "").toString();
-    final lastName = (data["lastName"] ?? "").toString();
-    final avatarUrl = (data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            "")
-        .toString();
-
-    fullName.value = "$firstName $lastName";
-    this.avatarUrl.value = avatarUrl;
+    final data = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
+    fullName.value = data?.displayName.trim() ?? '';
+    avatarUrl.value = data?.avatarUrl ?? '';
   }
 
   Future<void> showAlert() async {

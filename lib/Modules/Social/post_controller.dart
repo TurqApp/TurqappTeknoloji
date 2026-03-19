@@ -207,8 +207,8 @@ class PostController extends GetxController {
         );
         await ShareLinkService.shareUrl(
           url: shortUrl,
-          title: 'TurqApp Gönderisi',
-          subject: 'TurqApp Gönderisi',
+          title: 'post.share_title'.tr,
+          subject: 'post.share_title'.tr,
         );
       } catch (e) {
         print('Error downloading or sharing the image: $e');

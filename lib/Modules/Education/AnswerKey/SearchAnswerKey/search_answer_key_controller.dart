@@ -1,9 +1,9 @@
 import 'dart:developer';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 
@@ -11,7 +11,8 @@ class SearchAnswerKeyController extends GetxController {
   final searchController = TextEditingController();
   final filteredList = <BookletModel>[].obs;
   final isLoading = false.obs;
-  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final AnswerKeySnapshotRepository _answerKeySnapshotRepository =
+      AnswerKeySnapshotRepository.ensure();
   int _searchToken = 0;
 
   @override
@@ -39,15 +40,14 @@ class SearchAnswerKeyController extends GetxController {
 
     isLoading.value = true;
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
-        entity: EducationTypesenseEntity.answerKey,
+      final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (token != _searchToken) return;
-      final results = await _bookletRepository.fetchByIds(docIds);
-      if (token != _searchToken) return;
+      final results = resource.data ?? const <BookletModel>[];
       filteredList.assignAll(results);
     } catch (e) {
       log("Answer key typesense search error: $e");

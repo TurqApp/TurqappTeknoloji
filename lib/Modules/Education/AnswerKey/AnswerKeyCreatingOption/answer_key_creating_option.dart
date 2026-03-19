@@ -17,7 +17,7 @@ class AnswerKeyCreatingOption extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Yeni Oluştur"),
+            BackButtons(text: 'answer_key.new_create'.tr),
             Expanded(
               child: GestureDetector(
                 onTap: () => controller.navigateToCreateAnswerKey(context),
@@ -38,7 +38,7 @@ class AnswerKeyCreatingOption extends StatelessWidget {
                       ),
                       SizedBox(height: 15),
                       Text(
-                        "Optik Form\nOluştur",
+                        'answer_key.create_optical_form'.tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -68,7 +68,7 @@ class AnswerKeyCreatingOption extends StatelessWidget {
                       Icon(Icons.book_outlined, color: Colors.white, size: 40),
                       SizedBox(height: 15),
                       Text(
-                        "Kitap Cevap Anahtarı\nOluştur",
+                        'answer_key.create_booklet_answer_key'.tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,

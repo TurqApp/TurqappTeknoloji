@@ -76,7 +76,8 @@ class DenemeGecmisSonucContent extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          "${model.sinavAciklama} Testi",
+                          'tests.description_test'
+                              .trParams({'description': model.sinavAciklama}),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 2,
                           style: TextStyle(

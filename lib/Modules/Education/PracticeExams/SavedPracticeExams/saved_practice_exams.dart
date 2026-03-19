@@ -17,16 +17,16 @@ class SavedPracticeExams extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kaydedilenler"),
+            BackButtons(text: 'common.saved'.tr),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
                   return const Center(child: CupertinoActivityIndicator());
                 }
                 if (controller.savedExams.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
-                      "Kaydedilen sınav bulunmuyor.",
+                      'practice.saved_empty'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 15,

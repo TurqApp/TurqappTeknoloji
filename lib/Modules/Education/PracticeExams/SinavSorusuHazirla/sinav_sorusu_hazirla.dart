@@ -55,10 +55,10 @@ class SinavSorusuHazirla extends StatelessWidget {
             ),
           ),
           questions.isEmpty
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Text(
-                    "Bu ders için soru bulunamadı. Lütfen soruları ekleyin veya sınav türünü kontrol edin.",
+                    "tests.no_questions_for_lesson".tr,
                     style: TextStyle(
                       color: Colors.red,
                       fontSize: 15,
@@ -88,7 +88,8 @@ class SinavSorusuHazirla extends StatelessWidget {
                               top: 10,
                               left: 10,
                               child: Text(
-                                "${entry.key + 1}. Soru",
+                                'tests.question_number'
+                                    .trParams({'index': '${entry.key + 1}'}),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,
@@ -114,7 +115,7 @@ class SinavSorusuHazirla extends StatelessWidget {
           children: [
             Column(
               children: [
-                BackButtons(text: "Soru Hazırla"),
+                BackButtons(text: 'tests.prepare_questions'.tr),
                 Expanded(
                   child: Obx(
                     () => controller.isLoading.value
@@ -123,11 +124,11 @@ class SinavSorusuHazirla extends StatelessWidget {
                           )
                         : controller.isInitialized.value &&
                                 controller.list.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 20),
                                   child: Text(
-                                    "Hiç soru bulunamadı. Lütfen soruları ekleyin veya sınav türünü kontrol edin.",
+                                    "tests.no_questions_at_all".tr,
                                     style: TextStyle(
                                       color: Colors.red,
                                       fontSize: 15,
@@ -166,8 +167,8 @@ class SinavSorusuHazirla extends StatelessWidget {
                                               height: 50,
                                               alignment: Alignment.center,
                                               color: Colors.green,
-                                              child: const Text(
-                                                "Tamamla",
+                                              child: Text(
+                                                'tests.complete'.tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 15,

@@ -33,9 +33,10 @@ class DenemeSinavlari extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final DenemeSinavlariController controller = Get.put(
-    DenemeSinavlariController(),
-  );
+  final DenemeSinavlariController controller =
+      Get.isRegistered<DenemeSinavlariController>()
+          ? Get.find<DenemeSinavlariController>()
+          : Get.put(DenemeSinavlariController(), permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -50,6 +51,9 @@ class DenemeSinavlari extends StatelessWidget {
         backgroundColor: Colors.black,
         onRefresh: controller.getData,
         child: Obx(() {
+          if (!controller.listingSelectionReady.value) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
           final items = controller.hasActiveSearch
               ? controller.searchResults
               : controller.list;
@@ -81,8 +85,8 @@ class DenemeSinavlari extends StatelessWidget {
                     20.ph,
                     Text(
                       controller.hasActiveSearch
-                          ? "Aramana uygun sınav bulunamadı"
-                          : "Henüz Deneme Sınavı Bulunmuyor",
+                          ? 'practice.search_empty_title'.tr
+                          : 'practice.empty_title'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 20,
@@ -93,8 +97,8 @@ class DenemeSinavlari extends StatelessWidget {
                     10.ph,
                     Text(
                       controller.hasActiveSearch
-                          ? "Farklı bir anahtar kelime deneyin."
-                          : "Şu anda sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.",
+                          ? 'practice.search_empty_body_query'.tr
+                          : 'practice.empty_body'.tr,
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 16,
@@ -200,7 +204,7 @@ class DenemeSinavlari extends StatelessWidget {
                               12.pw,
                               Expanded(
                                 child: Text(
-                                  "Ara",
+                                  'common.search'.tr,
                                   style: TextStyle(
                                     color: Colors.grey,
                                     fontFamily: "Montserrat",
@@ -291,7 +295,7 @@ class DenemeSinavlari extends StatelessWidget {
                       menuItems: [
                         PullDownMenuItem(
                           icon: Icons.add,
-                          title: 'Oluştur',
+                          title: 'common.create'.tr,
                           onTap: () {
                             if (controller.okul.value) {
                               Get.to(() => SinavHazirla());
@@ -302,31 +306,31 @@ class DenemeSinavlari extends StatelessWidget {
                         ),
                         PullDownMenuItem(
                           icon: Icons.history,
-                          title: 'Sonuçlarım',
+                          title: 'pasaj.common.my_results'.tr,
                           onTap: () => Get.to(() => SinavSonuclarim()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.doc_text,
-                          title: 'Yayınladıklarım',
+                          title: 'pasaj.common.published'.tr,
                           onTap: () => Get.to(() => const MyPracticeExams()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.bookmark,
-                          title: 'Kaydedilenler',
+                          title: 'common.saved'.tr,
                           onTap: () => Get.to(() => const SavedPracticeExams()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.search,
-                          title: 'Ara',
+                          title: 'common.search'.tr,
                           onTap: () => Get.to(() => SearchDeneme()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.slider_horizontal_3,
-                          title: 'Slider Yönetimi',
+                          title: 'practice.slider_management'.tr,
                           onTap: () => Get.to(
-                            () => const SliderAdminView(
+                            () => SliderAdminView(
                               sliderId: 'online_sinav',
-                              title: 'Online Sınav',
+                              title: 'pasaj.tabs.online_exam'.tr,
                             ),
                           ),
                         ),
@@ -359,7 +363,7 @@ class DenemeSinavlari extends StatelessWidget {
                             ),
                           ),
                           TypewriterText(
-                            text: "Online Sınav",
+                            text: 'pasaj.tabs.online_exam'.tr,
                           ),
                         ],
                       ),
@@ -394,7 +398,7 @@ class DenemeSinavlari extends StatelessWidget {
                       menuItems: [
                         PullDownMenuItem(
                           icon: Icons.add,
-                          title: 'Oluştur',
+                          title: 'common.create'.tr,
                           onTap: () {
                             if (controller.okul.value) {
                               Get.to(() => SinavHazirla());
@@ -405,31 +409,31 @@ class DenemeSinavlari extends StatelessWidget {
                         ),
                         PullDownMenuItem(
                           icon: Icons.history,
-                          title: 'Sonuçlarım',
+                          title: 'pasaj.common.my_results'.tr,
                           onTap: () => Get.to(() => SinavSonuclarim()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.doc_text,
-                          title: 'Yayınladıklarım',
+                          title: 'pasaj.common.published'.tr,
                           onTap: () => Get.to(() => const MyPracticeExams()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.bookmark,
-                          title: 'Kaydedilenler',
+                          title: 'common.saved'.tr,
                           onTap: () => Get.to(() => const SavedPracticeExams()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.search,
-                          title: 'Ara',
+                          title: 'common.search'.tr,
                           onTap: () => Get.to(() => SearchDeneme()),
                         ),
                         PullDownMenuItem(
                           icon: CupertinoIcons.slider_horizontal_3,
-                          title: 'Slider Yönetimi',
+                          title: 'practice.slider_management'.tr,
                           onTap: () => Get.to(
-                            () => const SliderAdminView(
+                            () => SliderAdminView(
                               sliderId: 'online_sinav',
-                              title: 'Online Sınav',
+                              title: 'pasaj.tabs.online_exam'.tr,
                             ),
                           ),
                         ),
@@ -475,7 +479,7 @@ class DenemeSinavlari extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Sarı Rozet ve Üstüne Özel",
+                  'practice.create_disabled_title'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.black,
@@ -487,7 +491,7 @@ class DenemeSinavlari extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 15),
                   child: Text(
-                    "Online sınav oluşturmak için sarı rozet veya üstü doğrulanmış hesaba sahip olmanız gerekmektedir.",
+                    'practice.create_disabled_body'.tr,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black,
@@ -509,7 +513,7 @@ class DenemeSinavlari extends StatelessWidget {
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                     child: Text(
-                      "Onaylı Hesap Ol",
+                      'settings.become_verified'.tr,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 15,

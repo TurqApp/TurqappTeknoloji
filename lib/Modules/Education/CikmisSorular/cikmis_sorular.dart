@@ -29,7 +29,10 @@ class CikmisSorular extends StatefulWidget {
 }
 
 class _CikmisSorularState extends State<CikmisSorular> {
-  final CikmisSorularController controller = Get.put(CikmisSorularController());
+  final CikmisSorularController controller =
+      Get.isRegistered<CikmisSorularController>()
+          ? Get.find<CikmisSorularController>()
+          : Get.put(CikmisSorularController(), permanent: true);
   final ScrollController _scrollController = ScrollController();
   double _previousOffset = 0.0;
   bool showButons = false;
@@ -62,10 +65,10 @@ class _CikmisSorularState extends State<CikmisSorular> {
     }
 
     if (controller.searchResults.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Aramaya uygun deneme bulunamadı.',
-          style: TextStyle(
+          'past_questions.search_empty'.tr,
+          style: const TextStyle(
             color: Colors.black54,
             fontFamily: 'MontserratMedium',
           ),
@@ -96,7 +99,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
             vertical: 8,
           ),
           title: Text(
-            title.isEmpty ? 'Deneme' : title,
+            title.isEmpty ? 'past_questions.mock_fallback'.tr : title,
             style: const TextStyle(
               fontFamily: 'MontserratBold',
               color: Colors.black,
@@ -214,7 +217,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
                 menuItems: [
                   PullDownMenuItem(
                     icon: Icons.history,
-                    title: 'Sonuçlarım',
+                    title: 'pasaj.common.my_results'.tr,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -226,12 +229,12 @@ class _CikmisSorularState extends State<CikmisSorular> {
                   ),
                   PullDownMenuItem(
                     icon: CupertinoIcons.slider_horizontal_3,
-                    title: 'Slider Yönetimi',
+                    title: 'practice.slider_management'.tr,
                     onTap: () {
                       Get.to(
-                        () => const SliderAdminView(
+                        () => SliderAdminView(
                           sliderId: 'denemeler',
-                          title: 'Denemeler',
+                          title: 'past_questions.title'.tr,
                         ),
                       );
                     },
@@ -264,7 +267,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
                       ),
                     ),
                     TypewriterText(
-                      text: 'Denemeler',
+                      text: 'past_questions.title'.tr,
                     ),
                   ],
                 ),
@@ -279,7 +282,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
         menuItems: [
           PullDownMenuItem(
             icon: Icons.history,
-            title: 'Sonuçlarım',
+            title: 'pasaj.common.my_results'.tr,
             onTap: () {
               Navigator.push(
                 context,
@@ -289,12 +292,12 @@ class _CikmisSorularState extends State<CikmisSorular> {
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
-            title: 'Slider Yönetimi',
+            title: 'practice.slider_management'.tr,
             onTap: () {
               Get.to(
-                () => const SliderAdminView(
+                () => SliderAdminView(
                   sliderId: 'denemeler',
-                  title: 'Denemeler',
+                  title: 'past_questions.title'.tr,
                 ),
               );
             },

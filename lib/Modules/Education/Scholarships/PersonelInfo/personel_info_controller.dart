@@ -31,25 +31,36 @@ class FieldConfig {
 
 class PersonelInfoController extends GetxController
     with GetTickerProviderStateMixin {
+  static const String _single = 'Bekar';
+  static const String _married = 'Evli';
+  static const String _divorced = 'Boşanmış';
+  static const String _turkey = 'Türkiye';
+  static const String _selectValue = 'Seçim Yap';
+  static const String _none = 'Yok';
+  static const String _working = 'Çalışıyor';
+  static const String _notWorking = 'Çalışmıyor';
+  static const String _male = 'Erkek';
+  static const String _female = 'Kadın';
+  static const String _hasReport = 'Var';
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   final tc = ''.obs;
-  final medeniHal = 'Bekar'.obs;
-  final county = 'Türkiye'.obs;
-  final cinsiyet = 'Seçim Yap'.obs;
-  final engelliRaporu = 'Yok'.obs;
-  final calismaDurumu = 'Çalışmıyor'.obs;
+  final medeniHal = _single.obs;
+  final county = _turkey.obs;
+  final cinsiyet = _selectValue.obs;
+  final engelliRaporu = _none.obs;
+  final calismaDurumu = _notWorking.obs;
   final city = ''.obs;
   final town = ''.obs;
   final selectedDate = Rxn<DateTime>();
 
   final originalTC = ''.obs;
-  final originalMedeniHal = 'Bekar'.obs;
-  final originalCounty = 'Türkiye'.obs;
-  final originalCinsiyet = 'Seçim Yap'.obs;
-  final originalEngelliRaporu = 'Yok'.obs;
-  final originalCalismaDurumu = 'Çalışmıyor'.obs;
+  final originalMedeniHal = _single.obs;
+  final originalCounty = _turkey.obs;
+  final originalCinsiyet = _selectValue.obs;
+  final originalEngelliRaporu = _none.obs;
+  final originalCalismaDurumu = _notWorking.obs;
   final originalCity = ''.obs;
   final originalTown = ''.obs;
   final originalSelectedDate = Rxn<DateTime>();
@@ -59,10 +70,10 @@ class PersonelInfoController extends GetxController
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   final sehirler = <String>[].obs;
 
-  final medeniHalList = ['Bekar', 'Evli', 'Boşanmış'];
-  final cinsiyetList = ['Erkek', 'Kadın'];
-  final engelliRaporuList = ['Var', 'Yok'];
-  final calismaDurumuList = ['Çalışıyor', 'Çalışmıyor'];
+  final medeniHalList = [_single, _married, _divorced];
+  final cinsiyetList = [_male, _female];
+  final engelliRaporuList = [_hasReport, _none];
+  final calismaDurumuList = [_working, _notWorking];
   final countryList = [
     "Türkiye",
     "Afganistan",
@@ -147,6 +158,10 @@ class PersonelInfoController extends GetxController
   final Map<String, AnimationController> _animationControllers = {};
   final Map<String, RxDouble> _animationTurns = {};
 
+  String get defaultSelectValue => _selectValue;
+  String get turkeyValue => _turkey;
+  bool get isTurkeySelected => county.value == _turkey;
+
   @override
   void onInit() {
     super.onInit();
@@ -156,16 +171,99 @@ class PersonelInfoController extends GetxController
     _initAnimationControllers();
   }
 
+  String localizedStaticValue(String value) {
+    switch (value) {
+      case _selectValue:
+        return 'common.select'.tr;
+      case _single:
+        return 'personal_info.marital_single'.tr;
+      case _married:
+        return 'personal_info.marital_married'.tr;
+      case _divorced:
+        return 'personal_info.marital_divorced'.tr;
+      case _male:
+        return 'personal_info.gender_male'.tr;
+      case _female:
+        return 'personal_info.gender_female'.tr;
+      case _hasReport:
+        return 'personal_info.disability_yes'.tr;
+      case _none:
+        return 'personal_info.disability_no'.tr;
+      case _working:
+        return 'personal_info.working_yes'.tr;
+      case _notWorking:
+        return 'personal_info.working_no'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String localizedFieldLabel(String label) {
+    switch (label) {
+      case 'Ülke':
+        return 'scholarship.country_label'.tr;
+      case 'Medeni Hal':
+        return 'scholarship.applicant.marital_status'.tr;
+      case 'Cinsiyet':
+        return 'scholarship.applicant.gender'.tr;
+      case 'Engel Durumu':
+        return 'scholarship.applicant.disability_report'.tr;
+      case 'Çalışma Durumu':
+        return 'scholarship.applicant.employment_status'.tr;
+      case 'İl':
+        return 'scholarship.applicant.registry_city'.tr;
+      case 'İlçe':
+        return 'scholarship.applicant.registry_district'.tr;
+      default:
+        return label;
+    }
+  }
+
+  String localizedFieldTitle(String title) {
+    switch (title) {
+      case 'Ülke Seç':
+        return 'scholarship.select_country'.tr;
+      case 'Medeni Hal Seç':
+        return 'personal_info.select_marital_status'.tr;
+      case 'Cinsiyet Seç':
+        return 'personal_info.select_gender'.tr;
+      case 'Engel Durumu Seç':
+        return 'personal_info.select_disability'.tr;
+      case 'Çalışma Durumu Seç':
+        return 'personal_info.select_employment'.tr;
+      case 'İl Seç':
+        return 'common.select_city'.tr;
+      case 'İlçe Seç':
+        return 'common.select_district'.tr;
+      default:
+        return title;
+    }
+  }
+
+  String localizedPlaceholder(String label) {
+    switch (label) {
+      case 'Ülke':
+        return 'scholarship.select_country'.tr;
+      case 'İl':
+        return 'common.select_city'.tr;
+      case 'İlçe':
+        return 'common.select_district'.tr;
+      default:
+        return 'personal_info.select_field'
+            .trParams({'field': localizedFieldLabel(label)});
+    }
+  }
+
   void _initFieldConfigs() {
     fieldConfigs = [
       FieldConfig(
         label: "Ülke",
-        title: "Ülke Seç",
+        title: "personal_info.select_country_title".tr,
         value: county,
         items: countryList,
         onSelect: (val) {
           county.value = val;
-          if (val != "Türkiye") {
+          if (val != _turkey) {
             city.value = '';
             town.value = '';
           }
@@ -174,28 +272,28 @@ class PersonelInfoController extends GetxController
       ),
       FieldConfig(
         label: "Medeni Hal",
-        title: "Medeni Hal Seç",
+        title: "personal_info.select_marital_status_title".tr,
         value: medeniHal,
         items: medeniHalList,
         onSelect: (val) => medeniHal.value = val,
       ),
       FieldConfig(
         label: "Cinsiyet",
-        title: "Cinsiyet Seç",
+        title: "personal_info.select_gender_title".tr,
         value: cinsiyet,
         items: cinsiyetList,
         onSelect: (val) => cinsiyet.value = val,
       ),
       FieldConfig(
         label: "Engel Durumu",
-        title: "Engel Durumu Seç",
+        title: "personal_info.select_disability_title".tr,
         value: engelliRaporu,
         items: engelliRaporuList,
         onSelect: (val) => engelliRaporu.value = val,
       ),
       FieldConfig(
         label: "Çalışma Durumu",
-        title: "Çalışma Durumu Seç",
+        title: "personal_info.select_work_status_title".tr,
         value: calismaDurumu,
         items: calismaDurumuList,
         onSelect: (val) => calismaDurumu.value = val,
@@ -256,12 +354,20 @@ class PersonelInfoController extends GetxController
       "Engel Durumu",
       "Çalışma Durumu",
     ].contains(config.label)) {
+      final localizedItems = config.items.map(localizedStaticValue).toList();
       await AppBottomSheet.show(
         context: context,
-        items: config.items,
-        title: config.title,
-        onSelect: (dynamic val) => config.onSelect(val as String),
-        selectedItem: config.value.value.isEmpty ? null : config.value.value,
+        items: localizedItems,
+        title: localizedFieldTitle(config.title),
+        onSelect: (dynamic val) {
+          final selectedIndex = localizedItems.indexOf(val as String);
+          config.onSelect(
+            selectedIndex >= 0 ? config.items[selectedIndex] : val,
+          );
+        },
+        selectedItem: config.value.value.isEmpty
+            ? null
+            : localizedStaticValue(config.value.value),
         isSearchable: config.isSearchable,
       );
     } else {
@@ -269,7 +375,7 @@ class PersonelInfoController extends GetxController
       await ListBottomSheet.show(
         context: context,
         items: config.items,
-        title: config.title,
+        title: localizedFieldTitle(config.title),
         onSelect: (dynamic val) => config.onSelect(val as String),
         selectedItem: config.value.value.isEmpty ? null : config.value.value,
         isSearchable: config.isSearchable,
@@ -297,7 +403,7 @@ class PersonelInfoController extends GetxController
       sehirler.value = await _cityDirectoryService.getSortedCities();
     } catch (e, stackTrace) {
       print("Şehir ve ilçe verileri yüklenirken hata: $e\n$stackTrace");
-      AppSnackbar("Hata", "Şehir ve ilçe verileri yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'personal_info.city_load_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -323,7 +429,7 @@ class PersonelInfoController extends GetxController
   Future<void> fetchData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      AppSnackbar("Hata", "Kullanıcı oturumu bulunamadı.");
+      AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       isLoading.value = false;
       return;
     }
@@ -338,36 +444,36 @@ class PersonelInfoController extends GetxController
           data,
           key: "medeniHal",
           scope: "profile",
-          fallback: "Bekar",
+          fallback: _single,
         );
         county.value = originalCounty.value = userString(
           data,
           key: "ulke",
           scope: "profile",
-          fallback: "Türkiye",
+          fallback: _turkey,
         ).trim();
         cinsiyet.value = originalCinsiyet.value = userString(
           data,
           key: "cinsiyet",
           scope: "profile",
-          fallback: "Seçim Yap",
+          fallback: _selectValue,
         );
         engelliRaporu.value = originalEngelliRaporu.value = userString(
           data,
           key: "engelliRaporu",
           scope: "family",
-          fallback: "Yok",
+          fallback: _none,
         );
         calismaDurumu.value = originalCalismaDurumu.value = userString(
           data,
           key: "calismaDurumu",
           scope: "profile",
-          fallback: "Çalışmıyor",
+          fallback: _notWorking,
         );
-        city.value = originalCity.value = (county.value == "Türkiye"
+        city.value = originalCity.value = (county.value == _turkey
             ? userString(data, key: "nufusSehir", scope: "profile")
             : "");
-        town.value = originalTown.value = (county.value == "Türkiye"
+        town.value = originalTown.value = (county.value == _turkey
             ? userString(data, key: "nufusIlce", scope: "profile")
             : "");
 
@@ -387,14 +493,14 @@ class PersonelInfoController extends GetxController
         }
       } else {
         AppSnackbar(
-          "Bilgi",
-          "Kullanıcı verisi bulunamadı. Yeni kayıt oluşturabilirsiniz.",
+          'common.warning'.tr,
+          'personal_info.user_data_missing'.tr,
         );
         resetToOriginal();
       }
     } catch (e) {
       print("Veri yüklenirken hata.");
-      AppSnackbar("Hata", "Veriler yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'personal_info.load_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -415,18 +521,18 @@ class PersonelInfoController extends GetxController
   Future<void> saveData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      AppSnackbar("Hata", "Kullanıcı oturumu bulunamadı.");
+      AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
 
     if (county.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen ülkeyi seçin.");
+      AppSnackbar('common.error'.tr, 'personal_info.select_country_error'.tr);
       return;
     }
 
-    if (county.value == "Türkiye" &&
+    if (county.value == _turkey &&
         (city.value.isEmpty || town.value.isEmpty)) {
-      AppSnackbar("Hata", "Lütfen şehir ve ilçe bilgilerini doldurun.");
+      AppSnackbar('common.error'.tr, 'personal_info.fill_city_district'.tr);
       return;
     }
 
@@ -447,8 +553,8 @@ class PersonelInfoController extends GetxController
             "tc": tc.value,
             "medeniHal": medeniHal.value,
             "ulke": county.value,
-            "nufusSehir": county.value == "Türkiye" ? city.value : "",
-            "nufusIlce": county.value == "Türkiye" ? town.value : "",
+            "nufusSehir": county.value == _turkey ? city.value : "",
+            "nufusIlce": county.value == _turkey ? town.value : "",
             "cinsiyet": cinsiyet.value,
             "calismaDurumu": calismaDurumu.value,
             "dogumTarihi": formattedDate,
@@ -462,15 +568,15 @@ class PersonelInfoController extends GetxController
       originalCinsiyet.value = cinsiyet.value;
       originalEngelliRaporu.value = engelliRaporu.value;
       originalCalismaDurumu.value = calismaDurumu.value;
-      originalCity.value = county.value == "Türkiye" ? city.value : "";
-      originalTown.value = county.value == "Türkiye" ? town.value : "";
+      originalCity.value = county.value == _turkey ? city.value : "";
+      originalTown.value = county.value == _turkey ? town.value : "";
       originalSelectedDate.value = selectedDate.value;
       Get.back();
 
-      AppSnackbar("Başarılı", "Kişisel Bilgileriniz kaydedildi.");
+      AppSnackbar('common.success'.tr, 'personal_info.saved'.tr);
     } catch (e) {
       print("Veri kaydedilirken hata.");
-      AppSnackbar("Hata", "Bilgiler kaydedilemedi.");
+      AppSnackbar('common.error'.tr, 'personal_info.save_failed'.tr);
     } finally {
       isSaving.value = false;
     }

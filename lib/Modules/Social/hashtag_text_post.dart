@@ -214,7 +214,9 @@ class HashtagTextVideoPost extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      ctrl.expanded.value ? 'Gizle' : 'Daha Fazla Göster',
+                      ctrl.expanded.value
+                          ? 'common.hide'.tr
+                          : 'common.show_more'.tr,
                       style: baseStyle.copyWith(
                         color: ctrl.interactiveColor,
                         fontSize: 12,

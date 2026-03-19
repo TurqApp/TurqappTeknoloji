@@ -39,7 +39,7 @@ class TutoringSearch extends StatelessWidget {
                   Expanded(
                     child: TurqSearchBar(
                       controller: controller.searchController,
-                      hintText: "Ara",
+                      hintText: 'common.search'.tr,
                       onChanged: controller.updateSearchQuery,
                     ),
                   ),
@@ -51,11 +51,14 @@ class TutoringSearch extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Obx(() {
+                  if (!viewModeController.isReady.value) {
+                    return const Center(child: CupertinoActivityIndicator());
+                  }
                   if (controller.isLoading.value) {
                     return const Center(child: CupertinoActivityIndicator());
                   } else if (controller.searchResults.isEmpty) {
-                    return const Center(
-                      child: Text("Aramana uygun ilan bulunamadı"),
+                    return Center(
+                      child: Text('tutoring.search_empty'.tr),
                     );
                   } else {
                     return SingleChildScrollView(
@@ -63,8 +66,8 @@ class TutoringSearch extends StatelessWidget {
                         tutoringList: controller.searchResults,
                         users: controller.users,
                         isGridView: viewModeController.isGridView.value,
-                        infoMessage: const Infomessage(
-                          infoMessage: "Eşleşen özel ders bulunmuyor!",
+                        infoMessage: Infomessage(
+                          infoMessage: 'tutoring.search_empty_info'.tr,
                         ),
                       ),
                     );

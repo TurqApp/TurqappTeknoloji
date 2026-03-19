@@ -19,7 +19,9 @@ class AntremanView2 extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AntremanController controller = Get.put(AntremanController());
+  final AntremanController controller = Get.isRegistered<AntremanController>()
+      ? Get.find<AntremanController>()
+      : Get.put(AntremanController(), permanent: true);
 
   BoxDecoration _sectionCardDecoration({
     required Color color,
@@ -133,9 +135,9 @@ class AntremanView2 extends StatelessWidget {
                 }
 
                 if (controller.searchResults.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
-                      'Aramaya uygun soru bulunamadı.',
+                      'training.search_no_match'.tr,
                       style: TextStyle(
                         color: Colors.black54,
                         fontFamily: 'MontserratMedium',
@@ -603,7 +605,7 @@ class AntremanView2 extends StatelessWidget {
         context: context,
         menuItems: [
           PullDownMenuItem(
-            title: 'Sonra Çöz',
+            title: 'pasaj.question_bank.solve_later'.tr,
             icon: CupertinoIcons.repeat,
             onTap: () {
               controller.fetchSavedQuestions();
@@ -633,7 +635,7 @@ class AntremanView2 extends StatelessWidget {
                 ),
               ),
               TypewriterText(
-                text: "Soru Bankası",
+                text: "pasaj.tabs.question_bank".tr,
               ),
             ],
           ),
@@ -672,7 +674,7 @@ class AntremanView2 extends StatelessWidget {
         context: context,
         menuItems: [
           PullDownMenuItem(
-            title: 'Sonra Çöz',
+            title: 'pasaj.question_bank.solve_later'.tr,
             icon: CupertinoIcons.repeat,
             onTap: () {
               controller.fetchSavedQuestions();

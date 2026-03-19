@@ -17,7 +17,6 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
@@ -42,16 +41,6 @@ class PhotoShortContent extends StatefulWidget {
 }
 
 class _PhotoShortContentState extends State<PhotoShortContent> {
-  static const List<String> _flagReasons = <String>[
-    'Uyuşturucu',
-    'Kumar',
-    'Çıplaklık',
-    'Dolandırıcılık',
-    'Şiddet',
-    'Spam',
-    'Diğer',
-  ];
-  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   late final PhotoShortsContentController controller;
   late final PageController _pageController;
   int _currentPage = 0;

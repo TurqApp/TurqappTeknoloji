@@ -108,7 +108,9 @@ class BookletPreview extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${item.dogruCevaplar.length} soru',
+                          'tests.questions_prepared_count'.trParams({
+                            'count': item.dogruCevaplar.length.toString(),
+                          }),
                           style: const TextStyle(
                             color: Colors.black54,
                             fontSize: 13,
@@ -223,7 +225,7 @@ class BookletPreview extends StatelessWidget {
               ),
             );
           },
-          title: 'Kitabı Bildir',
+          title: 'answer_key.report_book'.tr,
           icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],
@@ -252,8 +254,8 @@ class BookletPreview extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Kitap Detayı',
+        title: Text(
+          'answer_key.book_detail'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -324,24 +326,33 @@ class BookletPreview extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'Kitap Bilgileri',
+                title: 'answer_key.book_info'.tr,
                 children: [
-                  _infoRow('Sınav Türü', controller.model.sinavTuru),
-                  _infoRow('Yayın Evi', controller.model.yayinEvi),
-                  _infoRow('Basım Tarihi', controller.model.basimTarihi),
-                  _infoRow('Dil', controller.model.dil.isEmpty ? '-' : controller.model.dil),
-                  _infoRow('Görüntülenme', controller.model.viewCount.toString()),
+                  _infoRow('answer_key.exam_type'.tr, controller.model.sinavTuru),
+                  _infoRow(
+                    'answer_key.publisher_hint'.tr,
+                    controller.model.yayinEvi,
+                  ),
+                  _infoRow(
+                    'answer_key.publish_date'.tr,
+                    controller.model.basimTarihi,
+                  ),
+                  _infoRow(
+                    'common.language'.tr,
+                    controller.model.dil.isEmpty ? '-' : controller.model.dil,
+                  ),
+                  _infoRow('common.views'.tr, controller.model.viewCount.toString()),
                 ],
               ),
               const SizedBox(height: 18),
               _buildAuthorCard(controller),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'Cevap Anahtarları',
+                title: 'answer_key.answer_keys'.tr,
                 children: controller.answerKeys.isEmpty
-                    ? const [
+                    ? [
                         Text(
-                          'Bu kitap için henüz cevap anahtarı bulunmuyor.',
+                          'answer_key.no_answer_keys'.tr,
                           style: TextStyle(
                             color: Colors.black54,
                             fontSize: 14,

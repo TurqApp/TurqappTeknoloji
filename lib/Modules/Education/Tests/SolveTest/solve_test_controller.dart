@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 
 class SolveTestController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TestRepository _testRepository = TestRepository.ensure();
   final String testID;
   final Function showSucces;
@@ -67,19 +67,11 @@ class SolveTestController extends GetxController {
 
   Future<void> getUserFullName() async {
     try {
-      final data = await _userRepository.getUserRaw(
-            FirebaseAuth.instance.currentUser!.uid,
-          ) ??
-          const <String, dynamic>{};
-      final nick =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString()
-              .trim();
-      final firstName = (data["firstName"] ?? "").toString().trim();
-      final lastName = (data["lastName"] ?? "").toString().trim();
-      final fallbackName =
-          [firstName, lastName].where((e) => e.isNotEmpty).join(" ").trim();
-      fullname.value = nick.isNotEmpty ? nick : fallbackName;
+      final summary = await _userSummaryResolver.resolve(
+        FirebaseAuth.instance.currentUser!.uid,
+        preferCache: true,
+      );
+      fullname.value = summary?.preferredName ?? "";
     } catch (e) {
       fullname.value = "";
     }

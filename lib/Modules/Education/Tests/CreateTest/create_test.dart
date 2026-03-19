@@ -32,8 +32,8 @@ class CreateTest extends StatelessWidget {
               children: [
                 BackButtons(
                   text: controller.model != null
-                      ? "Testi Düzenle"
-                      : "Test Oluştur",
+                      ? "tests.edit_title".tr
+                      : "tests.create_title".tr,
                 ),
                 Expanded(
                   child: Obx(
@@ -50,7 +50,7 @@ class CreateTest extends StatelessWidget {
                                 padding: const EdgeInsets.all(15),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
+                                  children: [
                                     Icon(
                                       Icons.info_outline,
                                       color: Colors.black,
@@ -58,7 +58,7 @@ class CreateTest extends StatelessWidget {
                                     ),
                                     SizedBox(height: 10),
                                     Text(
-                                      "Veri bulunamadı.\nUygulama bağlantıları veya test soruları yüklenemedi.",
+                                      "tests.create_data_missing".tr,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -105,8 +105,8 @@ class CreateTest extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      "Branş Seç",
+                                    Text(
+                                      "tests.select_branch".tr,
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 20,
@@ -135,7 +135,10 @@ class CreateTest extends StatelessWidget {
                                                 children: [
                                                   Expanded(
                                                     child: Text(
-                                                      bransDersleri[index],
+                                                      controller
+                                                          .localizedLesson(
+                                                        bransDersleri[index],
+                                                      ),
                                                       style: TextStyle(
                                                         color: controller
                                                                 .selectedDers
@@ -244,8 +247,8 @@ class CreateTest extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      "Dil Seç",
+                                    Text(
+                                      "tests.select_language".tr,
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 20,
@@ -272,7 +275,10 @@ class CreateTest extends StatelessWidget {
                                                 children: [
                                                   Expanded(
                                                     child: Text(
-                                                      yabanciDiller[index],
+                                                      controller
+                                                          .localizedLesson(
+                                                        yabanciDiller[index],
+                                                      ),
                                                       style: TextStyle(
                                                         color: yabanciDiller[
                                                                     index] ==

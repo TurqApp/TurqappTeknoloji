@@ -5,8 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class SavedItemsController extends GetxController {
@@ -16,7 +16,7 @@ class SavedItemsController extends GetxController {
   final bookmarkedScholarships = <Map<String, dynamic>>[].obs;
   final selectedTabIndex = 0.obs;
   final pageController = PageController();
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
 
@@ -29,7 +29,7 @@ class SavedItemsController extends GetxController {
   Future<void> _bootstrapSavedItems() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
 
@@ -73,7 +73,7 @@ class SavedItemsController extends GetxController {
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
     final shouldShowLoader =
@@ -130,21 +130,17 @@ class SavedItemsController extends GetxController {
       }
 
       final userDataMap = <String, Map<String, dynamic>>{};
-      final users = await _userRepository.getUsersRaw(
+      final users = await _userSummaryResolver.resolveMany(
         userIds.toList(growable: false),
         preferCache: true,
         cacheOnly: cacheOnly,
       );
       for (final entry in users.entries) {
         final user = entry.value;
-        final profileImage = (user['avatarUrl'] ?? '').toString();
-        final profileName =
-            (user['displayName'] ?? user['username'] ?? user['nickname'] ?? '')
-                .toString();
         userDataMap[entry.key] = {
-          'avatarUrl': profileImage,
-          'nickname': profileName,
-          'displayName': profileName,
+          'avatarUrl': user.avatarUrl,
+          'nickname': user.nickname,
+          'displayName': user.preferredName,
           'userID': entry.key,
         };
       }
@@ -167,7 +163,7 @@ class SavedItemsController extends GetxController {
             'bookmarksCount': kaydedenler.length,
           });
         } catch (e) {
-          AppSnackbar('Hata', 'Burs verisi işlenemedi.');
+          AppSnackbar('common.error'.tr, 'common.item_process_failed'.tr);
         }
       }
 
@@ -180,7 +176,7 @@ class SavedItemsController extends GetxController {
       }
       return scholarships;
     } catch (e) {
-      AppSnackbar('Hata', 'Veriler yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
       return const <Map<String, dynamic>>[];
     }
   }
@@ -188,7 +184,7 @@ class SavedItemsController extends GetxController {
   Future<void> toggleLike(String docId, String type) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
     final userId = user.uid;
@@ -200,14 +196,14 @@ class SavedItemsController extends GetxController {
       );
       await _fetchScholarships(userId, isLiked: true, forceRefresh: true);
     } catch (e) {
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.like_failed'.tr);
     }
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
     final userId = user.uid;
@@ -223,7 +219,7 @@ class SavedItemsController extends GetxController {
         forceRefresh: true,
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.bookmark_failed'.tr);
     }
   }
 

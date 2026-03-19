@@ -20,7 +20,8 @@ class StoryLikes extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
               child: AppSheetHeader(
-                title: "Beğeniler (${controller.totalLike})",
+                title: "story.likes_title"
+                    .trParams({"count": controller.totalLike.toString()}),
               ),
             ),
             Expanded(
@@ -33,7 +34,7 @@ class StoryLikes extends StatelessWidget {
                       },
                     )
                   : Center(
-                      child: EmptyRow(text: "Kimse hikayeni beğenmedi"),
+                      child: EmptyRow(text: "story.no_likes".tr),
                     ),
             )
           ],

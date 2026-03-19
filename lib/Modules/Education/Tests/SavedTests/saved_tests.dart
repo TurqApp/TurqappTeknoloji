@@ -18,7 +18,7 @@ class SavedTests extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kaydedilenler"),
+            BackButtons(text: "common.saved".tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -35,7 +35,7 @@ class SavedTests extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 EmptyRow(
-                                    text: "Kaydedilen test bulunmamaktadır."),
+                                    text: "tests.saved_empty".tr),
                               ],
                             )
                           : Padding(

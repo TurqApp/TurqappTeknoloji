@@ -18,7 +18,7 @@ class OpticalFormEntry extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sınava Katıl"),
+            BackButtons(text: 'answer_key.join_exam_title'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -29,8 +29,8 @@ class OpticalFormEntry extends StatelessWidget {
                       child: Column(
                         children: [
                           const SizedBox(height: 20),
-                          const Text(
-                            "Sınav Ara",
+                          Text(
+                            'tests.search_title'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -38,8 +38,8 @@ class OpticalFormEntry extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Öğretmeniniz tarafından size iletilen Test ID değerini buraya girerek teste başlayabilirsiniz.",
+                          Text(
+                            'tests.join_help'.tr,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.black,
@@ -68,8 +68,8 @@ class OpticalFormEntry extends StatelessWidget {
                                 inputFormatters: [
                                   LengthLimitingTextInputFormatter(50),
                                 ],
-                                decoration: const InputDecoration(
-                                  hintText: "Sınav ID",
+                                decoration: InputDecoration(
+                                  hintText: 'answer_key.exam_id_hint'.tr,
                                   hintStyle: TextStyle(
                                     color: Colors.grey,
                                     fontFamily: "MontserratMedium",

@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
 class SocialQrCodeController extends GetxController {
@@ -17,7 +16,7 @@ class SocialQrCodeController extends GetxController {
   var profileImage = "".obs;
   final RxString profileLink = ''.obs;
   final ShortLinkService _shortLinkService = ShortLinkService();
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   @override
   void onInit() {
     // TODO: implement onInit
@@ -26,10 +25,13 @@ class SocialQrCodeController extends GetxController {
   }
 
   Future<void> _loadUser() async {
-    final data = await _userRepository.getUserRaw(userID);
+    final data = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
     if (data == null) return;
-    nickname.value = (data["nickname"] ?? data["username"] ?? "").toString();
-    profileImage.value = resolveAvatarUrl(data);
+    nickname.value = data.nickname;
+    profileImage.value = data.avatarUrl;
     unawaited(_prepareProfileLink());
   }
 
@@ -40,7 +42,7 @@ class SocialQrCodeController extends GetxController {
       userId: userID,
       slug: safeSlug,
       title: '@${nickname.value} - TurqApp',
-      desc: 'TurqApp profilini görüntüle',
+      desc: 'qr.profile_desc'.tr,
       imageUrl: profileImage.value.trim().isNotEmpty
           ? profileImage.value.trim()
           : null,
@@ -78,7 +80,7 @@ class SocialQrCodeController extends GetxController {
       await ShareLinkService.shareUrl(
         url: link,
         title: '@${nickname.value} - TurqApp',
-        subject: 'TurqApp Profili',
+        subject: 'profile.profile_share_title'.tr,
       );
     });
   }
@@ -87,6 +89,6 @@ class SocialQrCodeController extends GetxController {
     final link = await _buildProfileLink();
     profileLink.value = link;
     await Clipboard.setData(ClipboardData(text: link));
-    AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
+    AppSnackbar('qr.link_copied_title'.tr, 'qr.link_copied_body'.tr);
   }
 }

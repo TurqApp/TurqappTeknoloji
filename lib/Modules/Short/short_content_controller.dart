@@ -14,8 +14,8 @@ import '../../Services/post_delete_service.dart';
 import 'short_controller.dart';
 import '../../Services/post_interaction_service.dart';
 import '../../Core/Repositories/post_repository.dart';
-import '../../Core/Repositories/user_repository.dart';
 import '../../Core/Repositories/follow_repository.dart';
+import '../../Core/Services/user_summary_resolver.dart';
 
 class ShortContentController extends GetxController {
   String postID;
@@ -36,7 +36,7 @@ class ShortContentController extends GetxController {
   var pageCounter = 0.obs;
   // Yeni interaction service
   late PostInteractionService _interactionService;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   // Stats observables - PostsModel.stats'tan alinacak
   RxInt likeCount = 0.obs;
@@ -439,25 +439,28 @@ class ShortContentController extends GetxController {
       return;
     }
 
-    final data =
-        await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
+    final summary = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
     if (isClosed) return;
-    final resolvedAvatar = (data["avatarUrl"] ?? "").toString().trim();
+    final resolvedAvatar = summary?.avatarUrl.trim().isNotEmpty == true
+        ? summary!.avatarUrl.trim()
+        : '';
     avatarUrl.value =
         postLevelAvatar.isNotEmpty ? postLevelAvatar : resolvedAvatar;
     nickname.value = postLevelNickname.isNotEmpty
         ? postLevelNickname
-        : (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-            .toString();
-    token.value = (data["token"] ?? "").toString();
-    final fetchedFullName =
-        "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-            .trim();
+        : (summary?.nickname.trim().isNotEmpty == true
+            ? summary!.nickname.trim()
+            : '');
+    token.value = summary?.token ?? '';
     fullName.value = postLevelDisplayName.isNotEmpty
         ? postLevelDisplayName
-        : (fetchedFullName.isNotEmpty
-            ? fetchedFullName
-            : (data["displayName"] ?? nickname.value).toString());
+        : (summary?.displayName.trim().isNotEmpty == true
+            ? summary!.displayName.trim()
+            : nickname.value);
 
     takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
       userID,

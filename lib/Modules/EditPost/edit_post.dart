@@ -61,8 +61,8 @@ class EditPost extends StatelessWidget {
                                           onPressed: () async {
                                             controller.setData();
                                           },
-                                          child: const Text(
-                                            'Kaydet',
+                                          child: Text(
+                                            'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.blueAccent,
                                               fontSize: 15,
@@ -72,8 +72,8 @@ class EditPost extends StatelessWidget {
                                         ),
                                       ],
                                     ),
-                                    const Text(
-                                      'Düzenle',
+                                    Text(
+                                      'common.edit'.tr,
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 16,
@@ -99,10 +99,10 @@ class EditPost extends StatelessWidget {
                                     maxLength: 1000,
                                     maxLines: null,
                                     keyboardType: TextInputType.multiline,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       border: InputBorder.none,
-                                      hintText: 'Gönderi metni',
-                                      hintStyle: TextStyle(
+                                      hintText: 'post_creator.text_hint'.tr,
+                                      hintStyle: const TextStyle(
                                         color: Colors.grey,
                                         fontFamily: 'MontserratMedium',
                                         fontSize: 15,
@@ -314,7 +314,7 @@ class EditPost extends StatelessWidget {
                     ),
                     Center(
                       child: Text(
-                        "Lütfen Bekle. Gönderiniz güncelleniyor",
+                        'edit_post.updating'.tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -347,14 +347,14 @@ class EditPost extends StatelessWidget {
                               controller.pickImageCamera(
                                   source: ImageSource.camera);
                             },
-                            title: 'Kamerdan Çek',
+                            title: 'profile_photo.camera'.tr,
                             icon: CupertinoIcons.camera,
                           ),
                           PullDownMenuItem(
                             onTap: () {
                               controller.pickImageGallery();
                             },
-                            title: 'Galeriden Seç',
+                            title: 'profile_photo.gallery'.tr,
                             icon: CupertinoIcons.photo,
                           ),
                         ],
@@ -376,14 +376,14 @@ class EditPost extends StatelessWidget {
                             onTap: () {
                               controller.pickVideo(source: ImageSource.camera);
                             },
-                            title: 'Kamerdan Çek',
+                            title: 'profile_photo.camera'.tr,
                             icon: CupertinoIcons.camera,
                           ),
                           PullDownMenuItem(
                             onTap: () {
                               controller.pickVideo(source: ImageSource.gallery);
                             },
-                            title: 'Galeriden Seç',
+                            title: 'profile_photo.gallery'.tr,
                             icon: CupertinoIcons.photo,
                           ),
                         ],

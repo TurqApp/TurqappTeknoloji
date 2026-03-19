@@ -24,7 +24,7 @@ class SinavSonuclariPreview extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            BackButtons(text: "Sonuçlarım"),
+            BackButtons(text: 'practice.results_title'.tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
@@ -46,7 +46,7 @@ class SinavSonuclariPreview extends StatelessWidget {
                                   ),
                                   SizedBox(height: 10),
                                   Text(
-                                    "Bu sınav için soru bulunamadı. Lütfen sınav içeriğini kontrol edin veya yeni sorular ekleyin.",
+                                    'practice.preview_no_questions'.tr,
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 15,
@@ -171,7 +171,8 @@ class SinavSonuclariPreview extends StatelessWidget {
                                                 ),
                                                 SizedBox(height: 10),
                                                 Text(
-                                                  "Bu sınav için sonuç bulunamadı. Lütfen yanıtlarınızı kontrol edin veya sınavı tekrar çözün.",
+                                                  'practice.preview_no_results'
+                                                      .tr,
                                                   style: TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 15,
@@ -197,7 +198,8 @@ class SinavSonuclariPreview extends StatelessWidget {
                                                     Expanded(
                                                       flex: 3,
                                                       child: Text(
-                                                        "Dersler",
+                                                        'practice.lesson_header'
+                                                            .tr,
                                                         style: TextStyle(
                                                           color: Colors.black,
                                                           fontSize: 15,
@@ -208,7 +210,7 @@ class SinavSonuclariPreview extends StatelessWidget {
                                                     ),
                                                     Expanded(
                                                       child: Text(
-                                                        "D",
+                                                        "tests.correct".tr,
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: TextStyle(
@@ -221,7 +223,7 @@ class SinavSonuclariPreview extends StatelessWidget {
                                                     ),
                                                     Expanded(
                                                       child: Text(
-                                                        "Y",
+                                                        "tests.wrong".tr,
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: TextStyle(
@@ -234,7 +236,7 @@ class SinavSonuclariPreview extends StatelessWidget {
                                                     ),
                                                     Expanded(
                                                       child: Text(
-                                                        "B",
+                                                        "tests.blank".tr,
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: TextStyle(
@@ -247,7 +249,7 @@ class SinavSonuclariPreview extends StatelessWidget {
                                                     ),
                                                     Expanded(
                                                       child: Text(
-                                                        "Net",
+                                                        "tests.net".tr,
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: TextStyle(
@@ -453,7 +455,7 @@ class SinavSonuclariPreview extends StatelessWidget {
                     child: CupertinoActivityIndicator(),
                   ),
                   errorWidget: (context, url, error) => Text(
-                    "Soru resmi yüklenemedi.",
+                    "practice.question_image_failed".tr,
                     style: TextStyle(
                       color: Colors.red,
                       fontSize: 15,
@@ -467,7 +469,12 @@ class SinavSonuclariPreview extends StatelessWidget {
                 child: Container(
                   height: 40,
                   alignment: Alignment.centerLeft,
-                  child: Text("$index. Soru", style: TextStyles.bold18Black),
+                  child: Text(
+                    "tests.question_number".trParams({
+                      "index": index.toString(),
+                    }),
+                    style: TextStyles.bold18Black,
+                  ),
                 ),
               ),
             ],

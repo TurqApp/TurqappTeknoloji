@@ -63,7 +63,9 @@ class CreateTutoringView extends StatelessWidget {
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
         title: Text(
-          initialData == null ? 'İlan Ekle' : 'İlan Düzenle',
+          initialData == null
+              ? 'tutoring.create_listing'.tr
+              : 'common.update'.tr,
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -79,12 +81,12 @@ class CreateTutoringView extends StatelessWidget {
             children: [
               _buildImagePicker(context, controller, initialData),
               const SizedBox(height: 18),
-              _sectionTitle('Temel Bilgiler'),
+              _sectionTitle('scholarship.basic_info'.tr),
               const SizedBox(height: 8),
               TextField(
                 controller: controller.titleController,
                 inputFormatters: [LengthLimitingTextInputFormatter(100)],
-                decoration: _inputDecoration('İlan Başlığı'),
+                decoration: _inputDecoration('scholarship.title_label'.tr),
               ),
               const SizedBox(height: 8),
               _selectionField(
@@ -101,10 +103,10 @@ class CreateTutoringView extends StatelessWidget {
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(6),
                 ],
-                decoration: _inputDecoration('Ücret'),
+                decoration: _inputDecoration('common.price'.tr),
               ),
               const SizedBox(height: 18),
-              _sectionTitle('Konum'),
+              _sectionTitle('common.location'.tr),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -128,15 +130,15 @@ class CreateTutoringView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              _sectionTitle('Ders Tanımı'),
+              _sectionTitle('common.description'.tr),
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedLessonPlace.value.isEmpty
-                    ? 'Ders Yeri'
+                    ? 'tutoring.lesson_place_title'.tr
                     : controller.selectedLessonPlace.value,
                 onTap: () => _showListSelector(
                   context: context,
-                  title: 'Ders Yeri',
+                  title: 'tutoring.lesson_place_title'.tr,
                   items: const [
                     'Öğrencinin Evi',
                     'Öğretmenin Evi',
@@ -152,11 +154,11 @@ class CreateTutoringView extends StatelessWidget {
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedGender.value.isEmpty
-                    ? 'Cinsiyet Tercihi'
+                    ? 'tutoring.gender_title'.tr
                     : controller.selectedGender.value,
                 onTap: () => _showListSelector(
                   context: context,
-                  title: 'Cinsiyet Tercihi',
+                  title: 'tutoring.gender_title'.tr,
                   items: const ['Erkek', 'Kadın', 'Farketmez'],
                   selected: controller.selectedGender.value,
                   onSelect: (value) => controller.selectedGender.value = value,
@@ -168,7 +170,7 @@ class CreateTutoringView extends StatelessWidget {
                 minLines: 4,
                 maxLines: 8,
                 inputFormatters: [LengthLimitingTextInputFormatter(2000)],
-                decoration: _inputDecoration('Açıklama'),
+                decoration: _inputDecoration('common.description'.tr),
               ),
               const SizedBox(height: 8),
               Container(
@@ -181,9 +183,9 @@ class CreateTutoringView extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Arama İzni',
+                        'search_permission.title'.tr,
                         style: TextStyle(
                           color: Colors.black87,
                           fontSize: 15,
@@ -201,7 +203,7 @@ class CreateTutoringView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              _sectionTitle('Müsaitlik Takvimi'),
+              _sectionTitle('tutoring.detail_availability'.tr),
               const SizedBox(height: 8),
               _buildAvailabilityCard(controller),
               const SizedBox(height: 22),
@@ -228,7 +230,9 @@ class CreateTutoringView extends StatelessWidget {
                   child: controller.isLoading.value
                       ? const CupertinoActivityIndicator(color: Colors.white)
                       : Text(
-                          initialData == null ? 'Yayınla' : 'Güncelle',
+                          initialData == null
+                              ? 'common.publish'.tr
+                              : 'common.update'.tr,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
@@ -263,11 +267,11 @@ class CreateTutoringView extends StatelessWidget {
 
     final result = await OptimizedNSFWService.checkImage(file);
     if (result.errorMessage != null) {
-      AppSnackbar('Hata', 'Görsel kontrolü başarısız oldu.');
+      AppSnackbar('common.error'.tr, 'tutoring.create.nsfw_check_failed'.tr);
       return;
     }
     if (result.isNSFW) {
-      AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+      AppSnackbar('common.error'.tr, 'tutoring.create.nsfw_detected'.tr);
       return;
     }
 
@@ -335,7 +339,7 @@ class CreateTutoringView extends StatelessWidget {
           child: Column(
             children: [
               _imageActionButton(
-                label: 'Galeriden Seç',
+                label: 'profile_photo.gallery'.tr,
                 primary: true,
                 onTap: () => _pickImage(
                   context,
@@ -345,7 +349,7 @@ class CreateTutoringView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _imageActionButton(
-                label: 'Kameradan Çek',
+                label: 'profile_photo.camera'.tr,
                 onTap: () => _pickImage(
                   context,
                   controller,
@@ -472,7 +476,7 @@ class CreateTutoringView extends StatelessWidget {
   ) {
     AppBottomSheet.show(
       context: context,
-      title: 'Branş',
+      title: 'tutoring.branch'.tr,
       items: controller.branchIconMap.keys.toList(),
       selectedItem: controller.selectedBranch.value,
       onSelect: (value) {

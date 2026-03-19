@@ -36,7 +36,7 @@ class TutoringFilterController extends GetxController {
     ListBottomSheet.show(
       context: Get.context!,
       items: sehirler,
-      title: "Şehir Seç",
+      title: "common.select_city".tr,
       selectedItem: city.value,
       onSelect: (v) {
         city.value = v.toString();
@@ -57,7 +57,7 @@ class TutoringFilterController extends GetxController {
     ListBottomSheet.show(
       context: Get.context!,
       items: ilceListesi,
-      title: "İlçe Seç",
+      title: "common.select_district".tr,
       selectedItem: town.value,
       onSelect: (v) {
         town.value = v.toString();

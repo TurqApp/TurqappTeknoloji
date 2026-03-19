@@ -78,7 +78,7 @@ class SinavSonuclarimController extends GetxController {
       SilentRefreshGate.markRefreshed('practice_exams:results:$currentUserID');
     } catch (e) {
       log("SinavSonuclarimController error: $e");
-      AppSnackbar("Hata", "Sınav sonuçları yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'tests.results_load_failed'.tr);
     } finally {
       isLoading.value = false;
     }

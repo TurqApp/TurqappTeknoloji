@@ -13,9 +13,7 @@ import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -24,14 +22,6 @@ class ThenSolve extends StatelessWidget {
 
   final AntremanController controller = Get.find<AntremanController>();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
-
-  int _fallbackAntPoint() {
-    final current = CurrentUserService.instance.currentUser;
-    if (current?.userID == controller.userID) {
-      return current?.antPoint ?? 100;
-    }
-    return 100;
-  }
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -58,38 +48,12 @@ class ThenSolve extends StatelessWidget {
                           controller.onScreenReEnter();
                           Get.back();
                         },
-                        child: BackButtons(text: "Sonra Çöz"),
+                        child: BackButtons(
+                          text: 'pasaj.question_bank.solve_later'.tr,
+                        ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Get.to(AntremanScore()),
-                      child: Row(
-                        children: [
-                          StreamBuilder<int?>(
-                            stream: _antremanRepository.scoreStream(
-                              controller.userID,
-                            ),
-                            builder: (context, snapshot) {
-                              final antPoint = snapshot.hasError ||
-                                      !snapshot.hasData ||
-                                      snapshot.data == null
-                                  ? _fallbackAntPoint()
-                                  : snapshot.data!;
-                              return Text(
-                                antPoint.toString(),
-                                style: TextStyles.textFieldTitle,
-                              );
-                            },
-                          ),
-                          Image.asset(
-                            "assets/icons/trophy.webp",
-                            height: 25,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                    ),
-                    15.pw
+                    15.pw,
                   ],
                 ),
                 Expanded(
@@ -102,7 +66,7 @@ class ThenSolve extends StatelessWidget {
                             CupertinoActivityIndicator(),
                             10.ph,
                             Text(
-                              "Sorular Yükleniyor...",
+                              'training.questions_loading'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black,
@@ -117,9 +81,7 @@ class ThenSolve extends StatelessWidget {
                     final savedQuestions = controller.savedQuestionsList;
 
                     if (savedQuestions.isEmpty) {
-                      return EmptyRow(
-                        text: 'Sonra Çözülecek soru bulunamadı!',
-                      );
+                      return EmptyRow(text: 'training.solve_later_empty'.tr);
                     }
 
                     return ListView.builder(
@@ -159,7 +121,7 @@ class ThenSolve extends StatelessWidget {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "${index + 1}. Soru ${question.sinavTuru} - ${question.ders}",
+                                    '${'tests.question_number'.trParams({'index': '${index + 1}'})} ${question.sinavTuru} - ${question.ders}',
                                     style: TextStyle(
                                       fontSize: 20,
                                       color: Colors.black,
@@ -169,7 +131,7 @@ class ThenSolve extends StatelessWidget {
                                   PullDownButton(
                                     itemBuilder: (context) => [
                                       PullDownMenuItem(
-                                        title: 'Bildir',
+                                        title: 'training.report'.tr,
                                         icon: AppIcons.info,
                                         onTap: () {
                                           Get.bottomSheet(
@@ -180,7 +142,7 @@ class ThenSolve extends StatelessWidget {
                                         },
                                       ),
                                       PullDownMenuItem(
-                                        title: 'Sonra Çözden Kaldır',
+                                        title: 'training.remove_solve_later'.tr,
                                         icon: AppIcons.delete,
                                         onTap: () async {
                                           await controller
@@ -433,7 +395,7 @@ class ThenSolve extends StatelessWidget {
                                                 }
                                               },
                                       ),
-                                      Text("Sonra Çöz"),
+                                      Text("pasaj.question_bank.solve_later".tr),
                                     ],
                                   ),
                                 ),
@@ -450,7 +412,7 @@ class ThenSolve extends StatelessWidget {
                                         question,
                                       ),
                                     ),
-                                    Text("Paylaş"),
+                                    Text("training.share".tr),
                                   ],
                                 ),
                               ],

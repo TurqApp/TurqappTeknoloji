@@ -125,16 +125,16 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     final nsfw = await OptimizedNSFWService.checkImage(file);
     if (nsfw.errorMessage != null) {
       AppSnackbar(
-        "Güvenlik Kontrolü Başarısız",
-        "Görsel analiz edilemedi. Lütfen farklı bir görsel deneyin.",
+        'common.error'.tr,
+        'tests.nsfw_check_failed'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
       return;
     }
     if (nsfw.isNSFW) {
       AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        'post_creator.upload_failed_title'.tr,
+        'post_creator.upload_failed_body'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
       return;
@@ -194,8 +194,8 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
     if (nsfwVideo.isNSFW) {
       AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        'post_creator.upload_failed_title'.tr,
+        'post_creator.upload_failed_body'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
       return;
@@ -255,11 +255,10 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       bool muteVideosDecision = false;
       if (hasAnyUnmutedVideo) {
         await noYesAlert(
-          title: 'Video Sesleri',
-          message:
-              'Müzik eklemek üzeresiniz. Videoların sesini kapatmak ister misiniz?',
-          yesText: 'Evet, Kapat',
-          cancelText: 'Hayır',
+          title: 'story.video_audio_title'.tr,
+          message: 'story.music_mute_videos_message'.tr,
+          yesText: 'story.music_mute_videos_yes'.tr,
+          cancelText: 'common.no'.tr,
           onYesPressed: () {
             muteVideosDecision = true;
           },

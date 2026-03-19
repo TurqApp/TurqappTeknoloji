@@ -29,9 +29,7 @@ class SolveTest extends StatelessWidget {
               : controller.soruList.isEmpty
                   ? Padding(
                       padding: EdgeInsets.all(15),
-                      child: EmptyRow(
-                          text:
-                              "Soru bulunamadı.\nBu test için soru yüklenemedi."))
+                      child: EmptyRow(text: "tests.solve_no_questions".tr))
                   : Column(
                       children: [
                         Expanded(
@@ -111,7 +109,7 @@ class SolveTest extends StatelessWidget {
                                       height: 50,
                                       color: Colors.green,
                                       alignment: Alignment.center,
-                                      child: Text("Testi Bitir",
+                                      child: Text("tests.finish_test".tr,
                                           style: TextStyles.medium15white),
                                     ),
                                   );
@@ -163,7 +161,9 @@ class SolveTest extends StatelessWidget {
                                                 height: 40,
                                                 alignment: Alignment.centerLeft,
                                                 child: Text(
-                                                  "${index.toString()}. Soru",
+                                                  "tests.question_number".trParams({
+                                                    'index': index.toString(),
+                                                  }),
                                                   style: TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 20,

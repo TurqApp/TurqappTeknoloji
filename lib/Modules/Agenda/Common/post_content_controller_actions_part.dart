@@ -356,8 +356,8 @@ extension PostContentControllerActionsPart on PostContentController {
       return;
     }
 
-    final userRepository = UserRepository.ensure();
-    final warmProfile = userRepository.peekUser(userID, allowStale: true);
+    final userSummaryResolver = UserSummaryResolver.ensure();
+    final warmProfile = userSummaryResolver.peek(userID, allowStale: true);
     if (warmProfile != null) {
       applyProfile(
         nick: warmProfile.nickname,
@@ -382,7 +382,7 @@ extension PostContentControllerActionsPart on PostContentController {
     }
 
     try {
-      final summary = await userRepository.getUser(
+      final summary = await userSummaryResolver.resolve(
         userID,
         preferCache: true,
         cacheOnly: false,

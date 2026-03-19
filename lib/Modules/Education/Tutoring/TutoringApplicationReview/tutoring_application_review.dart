@@ -33,9 +33,9 @@ class TutoringApplicationReview extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          "Başvuranlar",
-          style: TextStyle(
+        title: Text(
+          'tutoring.applicants_title'.tr,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontFamily: "MontserratBold",
@@ -50,10 +50,10 @@ class TutoringApplicationReview extends StatelessWidget {
             return const Center(child: CupertinoActivityIndicator());
           }
           if (controller.applicants.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                "Henüz başvuru yok",
-                style: TextStyle(
+                'tutoring.no_applications'.tr,
+                style: const TextStyle(
                   fontFamily: "MontserratMedium",
                   fontSize: 15,
                   color: Colors.grey,
@@ -90,11 +90,11 @@ class TutoringApplicationReview extends StatelessWidget {
             .trim();
         final name = fetchedName.isNotEmpty
             ? fetchedName
-            : app.tutorName.isNotEmpty
-                ? app.tutorName
-                : fetchedNickname.isNotEmpty
-                    ? fetchedNickname
-                : 'Bilinmeyen Kullanıcı';
+                : app.tutorName.isNotEmpty
+                    ? app.tutorName
+                    : fetchedNickname.isNotEmpty
+                        ? fetchedNickname
+                : 'common.unknown_user'.tr;
         final avatarUrl = (profile?['avatarUrl'] as String?)?.trim().isNotEmpty ==
                 true
             ? (profile?['avatarUrl'] as String).trim()
@@ -146,7 +146,7 @@ class TutoringApplicationReview extends StatelessWidget {
                           Text(
                             fetchedNickname.isNotEmpty
                                 ? '@$fetchedNickname'
-                                : 'Özel ders başvurusu',
+                                : 'tutoring.application_label'.tr,
                             style: TextStyle(
                               fontFamily: "MontserratMedium",
                               fontSize: 12,
@@ -187,9 +187,9 @@ class TutoringApplicationReview extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Profili Aç',
-                              style: TextStyle(
+                            child: Text(
+                              'common.open_profile'.tr,
+                              style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 13,
                                 fontFamily: 'MontserratBold',
@@ -214,9 +214,9 @@ class TutoringApplicationReview extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Reddet',
-                              style: TextStyle(
+                            child: Text(
+                              'common.reject'.tr,
+                              style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 13,
                                 fontFamily: 'MontserratBold',
@@ -240,9 +240,9 @@ class TutoringApplicationReview extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Kabul Et',
-                              style: TextStyle(
+                            child: Text(
+                              'common.accept'.tr,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
                                 fontFamily: 'MontserratBold',

@@ -10,6 +10,10 @@ import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 
 class FamilyInfoController extends GetxController {
+  static const String _selectValue = "Seçiniz";
+  static const String _selectHomeOwnership = "Seçim Yap";
+  static const String _selectJob = "Meslek Seç";
+  static const String _yesValue = "Evet";
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
@@ -20,25 +24,36 @@ class FamilyInfoController extends GetxController {
   final fatherSurname = TextEditingController().obs;
   final fatherSalary = TextEditingController().obs;
   final fatherPhoneNumber = TextEditingController().obs;
-  final fatherLiving = "Seçiniz".obs;
-  final fatherJob = "Meslek Seç".obs;
+  final fatherLiving = _selectValue.obs;
+  final fatherJob = _selectJob.obs;
   final motherName = TextEditingController().obs;
   final motherSurname = TextEditingController().obs;
   final motherSalary = TextEditingController().obs;
   final motherPhoneNumber = TextEditingController().obs;
-  final motherLiving = "Seçiniz".obs;
-  final motherJob = "Meslek Seç".obs;
+  final motherLiving = _selectValue.obs;
+  final motherJob = _selectJob.obs;
   final totalLiving = TextEditingController().obs;
-  final evMulkiyeti = "Seçim Yap".obs;
+  final evMulkiyeti = _selectHomeOwnership.obs;
   final city = "".obs;
   final town = "".obs;
   final ScrollController scrollController = ScrollController();
 
   final evevMulkiyeti =
       ["Kendinize Ait Ev", "Yakınınıza Ait Ev", "Lojman", "Kira"].obs;
-  final living = ["Evet", "Hayır"].obs;
+  final living = [_yesValue, "Hayır"].obs;
   final sehirler = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
+
+  bool get isFatherUnselected => fatherLiving.value == _selectValue;
+  bool get isMotherUnselected => motherLiving.value == _selectValue;
+  bool get isFatherAlive => fatherLiving.value == _yesValue;
+  bool get isMotherAlive => motherLiving.value == _yesValue;
+  bool get isHomeOwnershipUnselected =>
+      evMulkiyeti.value == _selectHomeOwnership;
+
+  String get defaultSelection => _selectValue;
+  String get defaultHomeOwnershipSelection => _selectHomeOwnership;
+  String get defaultJobSelection => _selectJob;
 
   @override
   void onInit() {
@@ -51,16 +66,35 @@ class FamilyInfoController extends GetxController {
 
     // Hayatta mı sorusu değiştiğinde ilgili alanları temizle
     ever(fatherLiving, (value) {
-      if (value != "Evet") {
+      if (value != _yesValue) {
         _clearFatherFields();
       }
     });
 
     ever(motherLiving, (value) {
-      if (value != "Evet") {
+      if (value != _yesValue) {
         _clearMotherFields();
       }
     });
+  }
+
+  String localizedSelection(String value) {
+    switch (value) {
+      case _yesValue:
+        return 'common.yes'.tr;
+      case 'Hayır':
+        return 'common.no'.tr;
+      case 'Kendinize Ait Ev':
+        return 'family_info.home_owned'.tr;
+      case 'Yakınınıza Ait Ev':
+        return 'family_info.home_relative'.tr;
+      case 'Lojman':
+        return 'family_info.home_lodging'.tr;
+      case 'Kira':
+        return 'family_info.home_rent'.tr;
+      default:
+        return value;
+    }
   }
 
   Future<void> loadSehirler() async {
@@ -144,11 +178,11 @@ class FamilyInfoController extends GetxController {
   }
 
   void _resetToDefaults() {
-    fatherLiving.value = "Seçiniz";
-    fatherJob.value = "Meslek Seç";
-    motherLiving.value = "Seçiniz";
-    motherJob.value = "Meslek Seç";
-    evMulkiyeti.value = "Seçim Yap";
+    fatherLiving.value = _selectValue;
+    fatherJob.value = _selectJob;
+    motherLiving.value = _selectValue;
+    motherJob.value = _selectJob;
+    evMulkiyeti.value = _selectHomeOwnership;
   }
 
   void _clearFatherFields() {
@@ -156,7 +190,7 @@ class FamilyInfoController extends GetxController {
     fatherSurname.value.clear();
     fatherSalary.value.clear();
     fatherPhoneNumber.value.clear();
-    fatherJob.value = "Meslek Seç";
+    fatherJob.value = _selectJob;
   }
 
   void _clearMotherFields() {
@@ -164,14 +198,14 @@ class FamilyInfoController extends GetxController {
     motherSurname.value.clear();
     motherSalary.value.clear();
     motherPhoneNumber.value.clear();
-    motherJob.value = "Meslek Seç";
+    motherJob.value = _selectJob;
   }
 
   void showIlSec() {
     Get.bottomSheet(
       ListBottomSheet(
         list: sehirler,
-        title: "Şehir Seç",
+        title: 'common.select_city'.tr,
         startSelection: city.value,
         onBackData: (v) {
           city.value = v;
@@ -195,7 +229,7 @@ class FamilyInfoController extends GetxController {
     Get.bottomSheet(
       ListBottomSheet(
         list: ilceListesi,
-        title: "İlçe Seç",
+        title: 'common.select_district'.tr,
         startSelection: town.value,
         onBackData: (v) {
           town.value = v;
@@ -236,13 +270,18 @@ class FamilyInfoController extends GetxController {
     RxString selectedValue,
     List<String> list,
   ) {
+    final localizedList = list.map(localizedSelection).toList();
+    final currentSelection = selectedValue.value.isEmpty
+        ? ''
+        : localizedSelection(selectedValue.value);
     Get.bottomSheet(
       AppBottomSheet(
-        list: list,
+        list: localizedList,
         title: title,
-        startSelection: selectedValue.value,
+        startSelection: currentSelection,
         onBackData: (v) {
-          selectedValue.value = v;
+          final selectedIndex = localizedList.indexOf(v);
+          selectedValue.value = selectedIndex >= 0 ? list[selectedIndex] : v;
         },
       ),
       isScrollControlled: true,
@@ -255,89 +294,117 @@ class FamilyInfoController extends GetxController {
 
   void setData() async {
     // Temel validasyonlar
-    if (fatherLiving.value == "Seçiniz") {
-      AppSnackbar("Eksik alan!", "Baba hayatta mı? seçimini yapınız");
+    if (fatherLiving.value == _selectValue) {
+      AppSnackbar(
+        'common.warning'.tr,
+        'family_info.select_father_alive'.tr,
+      );
       return;
     }
 
-    if (motherLiving.value == "Seçiniz") {
-      AppSnackbar("Eksik alan!", "Anne hayatta mı? seçimini yapınız");
+    if (motherLiving.value == _selectValue) {
+      AppSnackbar(
+        'common.warning'.tr,
+        'family_info.select_mother_alive'.tr,
+      );
       return;
     }
 
     // Baba hayatta ise validasyon
-    if (fatherLiving.value == "Evet") {
+    if (fatherLiving.value == _yesValue) {
       if (fatherName.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Baba Adı");
+        AppSnackbar('common.warning'.tr, 'scholarship.applicant.father_name'.tr);
         return;
       }
       if (fatherSurname.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Baba Soyadı");
+        AppSnackbar(
+          'common.warning'.tr,
+          'scholarship.applicant.father_surname'.tr,
+        );
         return;
       }
-      if (fatherJob.value == "Meslek Seç") {
-        AppSnackbar("Eksik alan!", "Baba mesleği");
+      if (fatherJob.value == _selectJob) {
+        AppSnackbar('common.warning'.tr, 'scholarship.applicant.father_job'.tr);
         return;
       }
       if (fatherSalary.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Baba maaş bilgisi");
+        AppSnackbar(
+          'common.warning'.tr,
+          'family_info.father_salary_missing'.tr,
+        );
         return;
       }
       if (fatherPhoneNumber.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Baba telefon numarası");
+        AppSnackbar(
+          'common.warning'.tr,
+          'family_info.father_phone_missing'.tr,
+        );
         return;
       }
       if (fatherPhoneNumber.value.text.length < 10) {
-        AppSnackbar(
-            "Hatalı alan!", "Baba telefon numarası 10 haneli olmalıdır");
+        AppSnackbar('common.error'.tr, 'family_info.father_phone_invalid'.tr);
         return;
       }
     }
 
     // Anne hayatta ise validasyon
-    if (motherLiving.value == "Evet") {
+    if (motherLiving.value == _yesValue) {
       if (motherName.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Anne Adı");
+        AppSnackbar('common.warning'.tr, 'scholarship.applicant.mother_name'.tr);
         return;
       }
       if (motherSurname.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Anne Soyadı");
+        AppSnackbar(
+          'common.warning'.tr,
+          'scholarship.applicant.mother_surname'.tr,
+        );
         return;
       }
-      if (motherJob.value == "Meslek Seç") {
-        AppSnackbar("Eksik alan!", "Anne Mesleği");
+      if (motherJob.value == _selectJob) {
+        AppSnackbar('common.warning'.tr, 'scholarship.applicant.mother_job'.tr);
         return;
       }
       if (motherSalary.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Anne maaş bilgisi");
+        AppSnackbar(
+          'common.warning'.tr,
+          'family_info.mother_salary_missing'.tr,
+        );
         return;
       }
       if (motherPhoneNumber.value.text.isEmpty) {
-        AppSnackbar("Eksik alan!", "Anne telefon numarası");
+        AppSnackbar(
+          'common.warning'.tr,
+          'family_info.mother_phone_missing'.tr,
+        );
         return;
       }
       if (motherPhoneNumber.value.text.length < 10) {
-        AppSnackbar(
-            "Hatalı alan!", "Anne telefon numarası 10 haneli olmalıdır");
+        AppSnackbar('common.error'.tr, 'family_info.mother_phone_invalid'.tr);
         return;
       }
     }
 
     // Genel validasyonlar
     if (totalLiving.value.text.isEmpty) {
-      AppSnackbar("Eksik alan!", "Ailede Yaşayan Sayısı");
+      AppSnackbar('common.warning'.tr, 'family_info.family_size'.tr);
       return;
     }
-    if (evMulkiyeti.value == "Seçim Yap") {
-      AppSnackbar("Eksik alan!", "Ev Mülkiyeti");
+    if (evMulkiyeti.value == _selectHomeOwnership) {
+      AppSnackbar('common.warning'.tr, 'scholarship.applicant.home_ownership'.tr);
       return;
     }
     if (city.value.isEmpty) {
-      AppSnackbar("Eksik alan!", "İkametgâh Şehiri");
+      AppSnackbar(
+        'common.warning'.tr,
+        'scholarship.applicant.residence_city'.tr,
+      );
       return;
     }
     if (town.value.isEmpty) {
-      AppSnackbar("Eksik alan!", "İkametgâh İlçesi");
+      AppSnackbar(
+        'common.warning'.tr,
+        'scholarship.applicant.residence_district'.tr,
+      );
       return;
     }
 
@@ -351,27 +418,27 @@ class FamilyInfoController extends GetxController {
             values: {
               "familyInfo": familyInfo.value,
               "fatherName":
-                  fatherLiving.value == "Evet" ? fatherName.value.text : "",
+                  fatherLiving.value == _yesValue ? fatherName.value.text : "",
               "fatherSurname":
-                  fatherLiving.value == "Evet" ? fatherSurname.value.text : "",
-              "fatherJob": fatherLiving.value == "Evet" ? fatherJob.value : "",
-              "fatherPhone": fatherLiving.value == "Evet"
+                  fatherLiving.value == _yesValue ? fatherSurname.value.text : "",
+              "fatherJob": fatherLiving.value == _yesValue ? fatherJob.value : "",
+              "fatherPhone": fatherLiving.value == _yesValue
                   ? fatherPhoneNumber.value.text
                   : "",
               "fatherLiving": fatherLiving.value,
               "fatherSalary":
-                  fatherLiving.value == "Evet" ? fatherSalary.value.text : "",
+                  fatherLiving.value == _yesValue ? fatherSalary.value.text : "",
               "motherName":
-                  motherLiving.value == "Evet" ? motherName.value.text : "",
+                  motherLiving.value == _yesValue ? motherName.value.text : "",
               "motherSurname":
-                  motherLiving.value == "Evet" ? motherSurname.value.text : "",
-              "motherJob": motherLiving.value == "Evet" ? motherJob.value : "",
-              "motherPhone": motherLiving.value == "Evet"
+                  motherLiving.value == _yesValue ? motherSurname.value.text : "",
+              "motherJob": motherLiving.value == _yesValue ? motherJob.value : "",
+              "motherPhone": motherLiving.value == _yesValue
                   ? motherPhoneNumber.value.text
                   : "",
               "motherLiving": motherLiving.value,
               "motherSalary":
-                  motherLiving.value == "Evet" ? motherSalary.value.text : "",
+                  motherLiving.value == _yesValue ? motherSalary.value.text : "",
               "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
               "evMulkiyeti": evMulkiyeti.value,
             },
@@ -387,9 +454,9 @@ class FamilyInfoController extends GetxController {
       );
 
       Get.back();
-      AppSnackbar("Başarılı", "Aile Bilgileriniz Kaydedildi.");
+      AppSnackbar('common.success'.tr, 'family_info.saved'.tr);
     } catch (e) {
-      AppSnackbar("Hata!", "Bilgiler kaydedilemedi. Lütfen tekrar deneyin.");
+      AppSnackbar('common.error'.tr, 'family_info.save_failed'.tr);
     }
   }
   // FamilyInfoController.dart içine bu fonksiyonu ekleyin:
@@ -408,16 +475,16 @@ class FamilyInfoController extends GetxController {
               "fatherSurname": "",
               "fatherJob": "",
               "fatherPhone": "",
-              "fatherLiving": "Seçiniz",
+              "fatherLiving": _selectValue,
               "fatherSalary": "",
               "motherName": "",
               "motherSurname": "",
               "motherJob": "",
               "motherPhone": "",
-              "motherLiving": "Seçiniz",
+              "motherLiving": _selectValue,
               "motherSalary": "",
               "totalLiving": 0,
-              "evMulkiyeti": "Seçim Yap",
+              "evMulkiyeti": _selectHomeOwnership,
             },
           ),
           ...scopedUserUpdate(
@@ -436,23 +503,23 @@ class FamilyInfoController extends GetxController {
       fatherSurname.value.clear();
       fatherSalary.value.clear();
       fatherPhoneNumber.value.clear();
-      fatherLiving.value = "Seçiniz";
-      fatherJob.value = "Meslek Seç";
+      fatherLiving.value = _selectValue;
+      fatherJob.value = _selectJob;
       motherName.value.clear();
       motherSurname.value.clear();
       motherSalary.value.clear();
       motherPhoneNumber.value.clear();
-      motherLiving.value = "Seçiniz";
-      motherJob.value = "Meslek Seç";
+      motherLiving.value = _selectValue;
+      motherJob.value = _selectJob;
       totalLiving.value.clear();
-      evMulkiyeti.value = "Seçim Yap";
+      evMulkiyeti.value = _selectHomeOwnership;
       city.value = "";
       town.value = "";
 
       Navigator.of(Get.context!).pop();
-      AppSnackbar("Başarılı", "Aile Bilgileri Sıfırlandı.");
+      AppSnackbar('common.success'.tr, 'family_info.reset_success'.tr);
     } catch (e) {
-      AppSnackbar("Hata!", "Bilgiler sıfırlanamadı. Lütfen tekrar deneyin.");
+      AppSnackbar('common.error'.tr, 'family_info.reset_failed'.tr);
     }
   }
 }

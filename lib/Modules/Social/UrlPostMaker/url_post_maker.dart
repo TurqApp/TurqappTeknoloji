@@ -72,7 +72,7 @@ class _UrlPostMakerState extends State<UrlPostMaker> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          BackButtons(text: "Yeni Gönderi"),
+                          BackButtons(text: 'post_creator.title_new'.tr),
                           Obx(() => GestureDetector(
                                 onTap: controller.isSharing.value
                                     ? null
@@ -88,7 +88,7 @@ class _UrlPostMakerState extends State<UrlPostMaker> {
                                         );
                                       },
                                 child: Text(
-                                  "Paylaş",
+                                  'common.share'.tr,
                                   style: TextStyle(
                                       color: controller.isSharing.value
                                           ? Colors.grey
@@ -113,10 +113,10 @@ class _UrlPostMakerState extends State<UrlPostMaker> {
                           maxLength: 100,
                           maxLines: null,
                           keyboardType: TextInputType.multiline,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: "Gönderi metini oluştur",
-                            hintStyle: TextStyle(
+                            hintText: 'post_creator.text_hint'.tr,
+                            hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
                                 fontSize: 15),

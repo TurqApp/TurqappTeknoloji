@@ -4,11 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/music_model.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
@@ -28,7 +28,7 @@ class StoryMusicProfileView extends StatefulWidget {
 }
 
 class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final StoryRepository _storyRepository = StoryRepository.ensure();
   bool _isLoading = true;
   MusicModel? _track;
@@ -93,14 +93,13 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
         .toSet()
         .toList(growable: false);
 
-    final userDataById = <String, Map<String, dynamic>>{};
+    final userDataById = await _userSummaryResolver.resolveMany(userIds);
     if (userIds.isNotEmpty) {
-      userDataById.addAll(await _userRepository.getUsersRaw(userIds));
     }
 
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final entries = activeStories.map((story) {
-      final userData = userDataById[story.userId] ?? const <String, dynamic>{};
+      final userData = userDataById[story.userId];
       final nickname = _resolveNickname(userData, story.userId == currentUid);
       final fullName = _resolveFullName(userData);
       final avatarUrl = _resolveAvatar(userData, story.userId == currentUid);
@@ -123,30 +122,28 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
     });
   }
 
-  String _resolveNickname(Map<String, dynamic> data, bool isCurrentUser) {
+  String _resolveNickname(UserSummary? data, bool isCurrentUser) {
     if (isCurrentUser) {
       final current = FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
       if (current.isNotEmpty) return current;
     }
-    final nickname = (data['nickname'] ?? '').toString().trim();
+    final nickname = data?.nickname.trim() ?? '';
     if (nickname.isNotEmpty) return nickname;
-    final username = (data['username'] ?? '').toString().trim();
-    if (username.isNotEmpty) return username;
+    final displayName = data?.displayName.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
     return '@kullanici';
   }
 
-  String _resolveFullName(Map<String, dynamic> data) {
-    final first = (data['firstName'] ?? '').toString().trim();
-    final last = (data['lastName'] ?? '').toString().trim();
-    return [first, last].where((e) => e.isNotEmpty).join(' ').trim();
+  String _resolveFullName(UserSummary? data) {
+    return data?.displayName.trim() ?? '';
   }
 
-  String _resolveAvatar(Map<String, dynamic> data, bool isCurrentUser) {
+  String _resolveAvatar(UserSummary? data, bool isCurrentUser) {
     if (isCurrentUser) {
       final currentPhoto = FirebaseAuth.instance.currentUser?.photoURL?.trim() ?? '';
       if (currentPhoto.isNotEmpty) return currentPhoto;
     }
-    return resolveAvatarUrl(data);
+    return data?.avatarUrl ?? '';
   }
 
   StoryElement? _resolvePreviewElement(StoryModel story) {

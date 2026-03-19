@@ -224,7 +224,7 @@ class PhotoShortsContentController extends GetxController {
     try {
       await _postRepository.toggleLike(model);
     } catch (e) {
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.like_failed'.tr);
     }
   }
 
@@ -234,7 +234,7 @@ class PhotoShortsContentController extends GetxController {
     try {
       await _postRepository.toggleSave(model);
     } catch (e) {
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.save_failed'.tr);
     }
   }
 
@@ -253,7 +253,7 @@ class PhotoShortsContentController extends GetxController {
         } catch (_) {}
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Yeniden paylaşma işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.reshare_failed'.tr);
     }
   }
 
@@ -264,10 +264,10 @@ class PhotoShortsContentController extends GetxController {
       final success = await _interactionService.reportPost(model.docID);
       if (success) {
         isReported.value = true;
-        AppSnackbar('Başarılı', 'Post şikayet edildi');
+        AppSnackbar('common.success'.tr, 'post.report_success'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Şikayet işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.report_failed'.tr);
     }
   }
 
@@ -484,8 +484,7 @@ class PhotoShortsContentController extends GetxController {
         agendaController.agendaList.refresh();
       }
     } catch (e) {
-      AppSnackbar(
-          "Hata", "Gizleme işleminde bir sorun oluştu : sikayet edilme");
+      AppSnackbar('common.error'.tr, 'post.hide_failed'.tr);
     }
   }
 
@@ -504,8 +503,7 @@ class PhotoShortsContentController extends GetxController {
         agendaController.agendaList.refresh();
       }
     } catch (e) {
-      AppSnackbar(
-          "Hata", "Gizleme işleminde bir sorun oluştu : sikayet edilme");
+      AppSnackbar('common.error'.tr, 'post.hide_failed'.tr);
     }
   }
 
@@ -566,7 +564,7 @@ class PhotoShortsContentController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       takipEdiyorum.value = outcome.nowFollowing;
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
     } catch (e) {
       takipEdiyorum.value = wasFollowing; // revert on error
@@ -662,8 +660,8 @@ class PhotoShortsContentController extends GetxController {
                   Text(
                     reSharedUsers
                             .contains(FirebaseAuth.instance.currentUser!.uid)
-                        ? "Yeniden paylaşmayı geri al"
-                        : "Yeniden paylaş",
+                        ? 'post.reshare_undo'.tr
+                        : 'post.reshare_action'.tr,
                     style: TextStyle(
                       color: reSharedUsers
                               .contains(FirebaseAuth.instance.currentUser!.uid)
@@ -689,8 +687,8 @@ class PhotoShortsContentController extends GetxController {
                     size: 30,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    "Alıntıla",
+                  Text(
+                    'common.quote'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -711,8 +709,8 @@ class PhotoShortsContentController extends GetxController {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.black),
                 ),
-                child: const Text(
-                  "İptal",
+                child: Text(
+                  'common.cancel'.tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -915,15 +913,18 @@ class PhotoShortsContentController extends GetxController {
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
       }
-      AppSnackbar('Push', '$written kullaniciya push kuyruga alindi');
+      AppSnackbar(
+        'admin_push.queue_title'.tr,
+        'admin_push.queue_body_count'.trParams({'count': '$written'}),
+      );
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
-        AppSnackbar('Push', 'Push kuyruga alindi');
+        AppSnackbar('admin_push.queue_title'.tr, 'admin_push.queue_body'.tr);
         return;
       }
-      AppSnackbar('Hata', 'Push gonderilemedi: $e');
+      AppSnackbar('common.error'.tr, 'admin_push.failed_body'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Push gonderilemedi: $e');
+      AppSnackbar('common.error'.tr, 'admin_push.failed_body'.tr);
     }
   }
 }

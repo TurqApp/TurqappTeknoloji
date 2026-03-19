@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
 
 class TestEntryController extends GetxController {
@@ -11,6 +12,7 @@ class TestEntryController extends GetxController {
   final model = Rx<TestsModel?>(null);
   final isLoading = false.obs;
   final TestRepository _testRepository = TestRepository.ensure();
+  final _helper = CreateTestController(null);
 
   @override
   void onInit() {
@@ -78,11 +80,15 @@ class TestEntryController extends GetxController {
     }
   }
 
+  String localizedTestType(String raw) => _helper.localizedTestType(raw);
+
+  String localizedLessons(List<String> lessons) => _helper.localizedLessons(lessons);
+
   void showAlert() {
     showAlertDialog(
       Get.context!,
-      "Testi Bitirdin!",
-      "Sonuçlarım ekranında puanına ve doğru yanlış oranlarına bakabilirsin.",
+      "tests.completed_title".tr,
+      "tests.completed_body".tr,
     );
   }
 }

@@ -23,8 +23,8 @@ class MyTutoringApplications extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Başvurularım',
+        title: Text(
+          'tutoring.my_applications'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -43,9 +43,9 @@ class MyTutoringApplications extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(0, 10, 0, 24),
             children: [
               if (controller.applications.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 60),
-                  child: EmptyRow(text: "Henüz özel ders başvurusu yapmadınız"),
+                Padding(
+                  padding: const EdgeInsets.only(top: 60),
+                  child: EmptyRow(text: "tutoring.my_applications_empty".tr),
                 )
               else
                 ...controller.applications.map(_applicationCard),
@@ -90,7 +90,9 @@ class MyTutoringApplications extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  app.tutoringTitle.isNotEmpty ? app.tutoringTitle : 'Özel Ders',
+                  app.tutoringTitle.isNotEmpty
+                      ? app.tutoringTitle
+                      : 'tutoring.title'.tr,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -101,7 +103,9 @@ class MyTutoringApplications extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  app.tutorName.isNotEmpty ? app.tutorName : 'Eğitmen',
+                  app.tutorName.isNotEmpty
+                      ? app.tutorName
+                      : 'tutoring.instructor_fallback'.tr,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -196,7 +200,7 @@ class MyTutoringApplications extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        TutoringApplicationModel.statusText(status),
+        _statusText(status),
         style: TextStyle(
           color: textColor,
           fontSize: 12,
@@ -241,19 +245,19 @@ class MyTutoringApplications extends StatelessWidget {
   void _showCancelDialog(String tutoringDocID) {
     Get.dialog(
       AlertDialog(
-        title: const Text(
-          "Başvuruyu İptal Et",
+        title: Text(
+          "tutoring.cancel_application_title".tr,
           style: TextStyle(fontFamily: "MontserratBold", fontSize: 16),
         ),
-        content: const Text(
-          "Bu başvuruyu iptal etmek istediğinize emin misiniz?",
+        content: Text(
+          "tutoring.cancel_application_body".tr,
           style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text(
-              "Vazgeç",
+            child: Text(
+              "common.cancel".tr,
               style: TextStyle(fontFamily: "MontserratMedium"),
             ),
           ),
@@ -262,8 +266,8 @@ class MyTutoringApplications extends StatelessWidget {
               Get.back();
               controller.cancelApplication(tutoringDocID);
             },
-            child: const Text(
-              "İptal Et",
+            child: Text(
+              "tutoring.cancel_application_action".tr,
               style: TextStyle(
                 color: Colors.red,
                 fontFamily: "MontserratBold",
@@ -273,5 +277,18 @@ class MyTutoringApplications extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _statusText(String status) {
+    switch (status) {
+      case 'reviewing':
+        return 'pasaj.job_finder.status.reviewing'.tr;
+      case 'accepted':
+        return 'pasaj.job_finder.status.accepted'.tr;
+      case 'rejected':
+        return 'pasaj.job_finder.status.rejected'.tr;
+      default:
+        return 'pasaj.job_finder.status.pending'.tr;
+    }
   }
 }

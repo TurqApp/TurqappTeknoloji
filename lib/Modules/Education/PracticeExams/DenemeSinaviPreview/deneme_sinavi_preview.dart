@@ -41,8 +41,8 @@ class DenemeSinaviPreview extends StatelessWidget {
             controller.examTime.value - controller.fifteenMinutes &&
         controller.currentTime.value < controller.examTime.value) {
       AppSnackbar(
-        'Başvuruya Kapanmıştır!',
-        'Başvurular sınav tarihinden 15 dk önce kapanacaktır.',
+        'practice.application_closed_title'.tr,
+        'practice.application_closed_body'.tr,
       );
       return;
     }
@@ -60,14 +60,14 @@ class DenemeSinaviPreview extends StatelessWidget {
           );
         } else {
           AppSnackbar(
-            'Başvuru Yapmadın!',
-            'Başvuru yapılmayan sınavlara katılamazsın. Sadece başvuru yapanlar katılabilir.',
+            'practice.not_applied_title'.tr,
+            'practice.not_applied_body'.tr,
           );
         }
       } else {
         AppSnackbar(
-          'Sınava Giremezsiniz!',
-          'Bu sınava giriş hakkınız bulunmuyor. Daha önce bu sınavda geçersiz sayıldınız. Sınav sonlanmadan sınava bir daha giremezsiniz!',
+          'practice.not_allowed_title'.tr,
+          'practice.not_allowed_body'.tr,
         );
       }
       return;
@@ -84,8 +84,8 @@ class DenemeSinaviPreview extends StatelessWidget {
       return;
     }
     AppSnackbar(
-      'Sınav Bitti!',
-      'Bir sonraki sınavlara başvurabilirsiniz. Bu sınav sonlanmıştır.',
+      'practice.finished_title'.tr,
+      'practice.finished_body'.tr,
     );
   }
 
@@ -115,8 +115,8 @@ class DenemeSinaviPreview extends StatelessWidget {
     if (controller.currentTime.value <
         controller.examTime.value - controller.fifteenMinutes) {
       return controller.dahaOnceBasvurdu.value
-          ? 'Başvuru Yapıldı'
-          : 'Hemen Başvur';
+          ? 'practice.applied_short'.tr
+          : 'practice.apply_now'.tr;
     }
     if (controller.currentTime.value >=
             controller.examTime.value - controller.fifteenMinutes &&
@@ -125,18 +125,19 @@ class DenemeSinaviPreview extends StatelessWidget {
                   controller.currentTime.value) /
               (60 * 1000))
           .floor();
-      return 'Başvuruya Kapandı.\n$minutes dk sonra başlayacak.';
+      return 'practice.closed_starts_in'
+          .trParams({'minutes': minutes.toString()});
     }
     if (controller.currentTime.value >= controller.examTime.value &&
         controller.currentTime.value < controller.model.bitis) {
-      return 'Sınav Başladı';
+      return 'practice.started'.tr;
     }
     if (controller.currentTime.value >= controller.examTime.value &&
         controller.currentTime.value > controller.model.bitis &&
         controller.model.public == false) {
-      return 'Sınav Bitti';
+      return 'practice.finished_short'.tr;
     }
-    return 'Hemen Başla';
+    return 'practice.start_now'.tr;
   }
 
   Widget _infoRow(String label, String value) {
@@ -235,7 +236,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                       Flexible(
                         child: Text(
                           controller.nickname.value.isEmpty
-                              ? 'Turq Kullanıcı'
+                              ? 'common.user'.tr
                               : controller.nickname.value,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -252,8 +253,8 @@ class DenemeSinaviPreview extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     _isOwner(controller.model.userID)
-                        ? 'Sınav sahibi'
-                        : 'Profili görüntüle',
+                        ? 'practice.owner'.tr
+                        : 'social_profile.view_profile'.tr,
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 13,
@@ -307,8 +308,8 @@ class DenemeSinaviPreview extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Başvurun Tamamlandı!',
+                Text(
+                  'practice.apply_completed_title'.tr,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 20,
@@ -316,8 +317,8 @@ class DenemeSinaviPreview extends StatelessWidget {
                   ),
                 ),
                 15.ph,
-                const Text(
-                  'Sınavdan önce size bildirim göndererek gerekli hatırlatmaları yapacağız. Başarılar diliyoruz!',
+                Text(
+                  'practice.apply_completed_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.black,
@@ -335,8 +336,8 @@ class DenemeSinaviPreview extends StatelessWidget {
                       color: Colors.black,
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
-                    child: const Text(
-                      'Tamam',
+                    child: Text(
+                      'common.ok'.tr,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 15,
@@ -366,7 +367,7 @@ class DenemeSinaviPreview extends StatelessWidget {
               ),
             );
           },
-          title: 'Sınavı Bildir',
+          title: 'practice.report_exam'.tr,
           icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],
@@ -395,8 +396,8 @@ class DenemeSinaviPreview extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Sınav Detayı',
+        title: Text(
+          'practice.preview_title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -447,11 +448,11 @@ class DenemeSinaviPreview extends StatelessWidget {
                 }
                 if (controller.isInitialized.value &&
                     controller.nickname.value.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
-                        'Kullanıcı bilgileri yüklenemedi. Lütfen tekrar deneyin veya sınav sahibini kontrol edin.',
+                        'practice.user_load_failed_body'.tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
@@ -474,9 +475,9 @@ class DenemeSinaviPreview extends StatelessWidget {
                           child: CachedNetworkImage(
                             imageUrl: controller.model.cover,
                             fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => const Center(
+                            errorWidget: (context, url, error) => Center(
                               child: Text(
-                                'Kapak resmi yüklenemedi.',
+                                'practice.cover_load_failed'.tr,
                                 style: TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,
@@ -506,8 +507,8 @@ class DenemeSinaviPreview extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Açıklama',
+                      Text(
+                        'common.description'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 16,
@@ -517,7 +518,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         controller.model.sinavAciklama.isEmpty
-                            ? 'Bu sınav için açıklama eklenmemiş.'
+                            ? 'practice.no_description'.tr
                             : controller.model.sinavAciklama,
                         style: const TextStyle(
                           color: Colors.black87,
@@ -528,24 +529,28 @@ class DenemeSinaviPreview extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
                       _infoCard(
-                        title: 'Sınav Bilgileri',
+                        title: 'practice.exam_info'.tr,
                         children: [
                           _infoRow(
-                            'Sınav Türü',
-                            '${controller.model.sinavTuru} Sınavı',
+                            'practice.exam_type'.tr,
+                            'practice.exam_suffix'
+                                .trParams({'type': controller.model.sinavTuru}),
                           ),
                           _infoRow(
-                            'Sınav Tarihi ve Saati',
+                            'practice.exam_datetime'.tr,
                             formatTimestamp(controller.model.timeStamp.toInt()),
                           ),
                           _infoRow(
-                            'Sınav Süresi',
-                            '${controller.model.bitisDk} dk',
+                            'practice.exam_duration'.tr,
+                            'practice.duration_minutes'
+                                .trParams({'minutes': '${controller.model.bitisDk}'}),
                           ),
                           Obx(
                             () => _infoRow(
-                              'Başvuru',
-                              '${controller.basvuranSayisi.value} kişi',
+                              'practice.application_count'.tr,
+                              'practice.people_count'.trParams({
+                                'count': '${controller.basvuranSayisi.value}',
+                              }),
                             ),
                           ),
                         ],

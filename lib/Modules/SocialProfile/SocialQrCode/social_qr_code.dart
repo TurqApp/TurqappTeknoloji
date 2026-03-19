@@ -151,7 +151,7 @@ class SocialQrCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "Paylaş",
+                                      'common.share'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,
@@ -189,7 +189,7 @@ class SocialQrCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "Linki Kopyala",
+                                      'common.copy_link'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,

@@ -26,30 +26,31 @@ class DormitoryInfoView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                 Expanded(
-                  child: BackButtons(text: "Yurt Bilgileri"),
+                  child: BackButtons(text: 'dormitory.title'.tr),
                 ),
                 PullDownButton(
                   itemBuilder: (context) => [
                     PullDownMenuItem(
-                      title: 'Yurt Bilgilerimi Sıfırla',
+                      title: 'dormitory.reset_menu'.tr,
                       icon: CupertinoIcons.restart,
                       onTap: () {
                         noYesAlert(
-                          title: "Emin misiniz?",
-                          message:
-                              "Yurt bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.",
-                          cancelText: "İptal",
-                          yesText: "Sıfırla",
+                          title: 'dormitory.reset_title'.tr,
+                          message: 'dormitory.reset_body'.tr,
+                          cancelText: 'common.cancel'.tr,
+                          yesText: 'common.reset'.tr,
                           yesButtonColor: CupertinoColors.destructiveRed,
                           onYesPressed: () async {
                             controller.yurt.value = "";
-                            controller.sehir.value = "Şehir Seç";
-                            controller.ilce.value = "İlçe Seç";
-                            controller.sub.value = "İdari Seç";
+                            controller.sehir.value = controller.selectCityValue;
+                            controller.ilce.value =
+                                controller.selectDistrictValue;
+                            controller.sub.value =
+                                controller.selectAdminTypeValue;
                             controller.listedeYok.value = false;
                             controller.yurtInput.clear();
                             controller.yurtInputText.value = "";
@@ -64,8 +65,8 @@ class DormitoryInfoView extends StatelessWidget {
                             );
 
                             AppSnackbar(
-                              "Başarılı",
-                              "Yurt Bilgileriniz sıfırlandı.",
+                              'common.success'.tr,
+                              'dormitory.reset_success'.tr,
                             );
                           },
                         );
@@ -110,7 +111,7 @@ class DormitoryInfoView extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "Mevcut Yurt Bilgisi",
+                                          'dormitory.current_info'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -157,7 +158,11 @@ class DormitoryInfoView extends StatelessWidget {
                                                       .spaceBetween,
                                               children: [
                                                 Text(
-                                                  controller.sehir.value,
+                                                  controller.sehir.value ==
+                                                          controller
+                                                              .selectCityValue
+                                                      ? 'common.select_city'.tr
+                                                      : controller.sehir.value,
                                                   style: TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 15,
@@ -203,7 +208,9 @@ class DormitoryInfoView extends StatelessWidget {
                                               children: [
                                                 Text(
                                                   controller.capitalize(
-                                                    controller.sub.value,
+                                                    controller.localizedAdminType(
+                                                      controller.sub.value,
+                                                    ),
                                                   ),
                                                   style: TextStyle(
                                                     color: Colors.black,
@@ -226,8 +233,10 @@ class DormitoryInfoView extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              if (controller.sehir.value != "Şehir Seç" &&
-                                  controller.sub.value != "İdari Seç")
+                              if (controller.sehir.value !=
+                                      controller.selectCityValue &&
+                                  controller.sub.value !=
+                                      controller.selectAdminTypeValue)
                                 Padding(
                                   padding: EdgeInsets.symmetric(vertical: 16),
                                   child: GestureDetector(
@@ -250,7 +259,8 @@ class DormitoryInfoView extends StatelessWidget {
                                               .yurtSelectionController,
                                           enabled: false,
                                           decoration: InputDecoration(
-                                            hintText: "Yurt Seç",
+                                            hintText:
+                                                'dormitory.select_dormitory'.tr,
                                             hintStyle: TextStyle(
                                               color: Colors.grey,
                                               fontFamily: "MontserratMedium",
@@ -274,8 +284,10 @@ class DormitoryInfoView extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              if (controller.sehir.value != "Şehir Seç" &&
-                                  controller.sub.value != "İdari Seç")
+                              if (controller.sehir.value !=
+                                      controller.selectCityValue &&
+                                  controller.sub.value !=
+                                      controller.selectAdminTypeValue)
                                 Padding(
                                   padding: EdgeInsets.symmetric(vertical: 16),
                                   child: Row(
@@ -308,7 +320,7 @@ class DormitoryInfoView extends StatelessWidget {
                                       ),
                                       SizedBox(width: 12),
                                       Text(
-                                        "Listede Yok",
+                                        "common.not_listed".tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 15,
@@ -319,8 +331,10 @@ class DormitoryInfoView extends StatelessWidget {
                                   ),
                                 ),
                               if (controller.listedeYok.value &&
-                                  controller.sehir.value != "Şehir Seç" &&
-                                  controller.sub.value != "İdari Seç")
+                                  controller.sehir.value !=
+                                      controller.selectCityValue &&
+                                  controller.sub.value !=
+                                      controller.selectAdminTypeValue)
                                 Container(
                                   alignment: Alignment.center,
                                   height: 50,
@@ -344,7 +358,9 @@ class DormitoryInfoView extends StatelessWidget {
                                         LengthLimitingTextInputFormatter(50),
                                       ],
                                       decoration: InputDecoration(
-                                        hintText: "Yurt Adı",
+                                        hintText:
+                                            "scholarship.dormitory_name_hint"
+                                                .tr,
                                         hintStyle: TextStyle(
                                           color: Colors.grey,
                                           fontFamily: "MontserratMedium",
@@ -410,9 +426,9 @@ class DormitoryInfoView extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: Text(
-                            "Kaydet",
-                            style: TextStyle(
+                                child: Text(
+                                  'common.save'.tr,
+                                  style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,
                               fontFamily: "MontserratMedium",

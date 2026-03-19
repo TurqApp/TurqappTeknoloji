@@ -17,7 +17,7 @@ class SearchDeneme extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Deneme Sınavı Ara"),
+            BackButtons(text: 'practice.search_title'.tr),
             Container(
               color: Colors.white,
               child: Padding(
@@ -39,10 +39,10 @@ class SearchDeneme extends StatelessWidget {
                             controller: controller.searchController,
                             focusNode: controller.focusNode,
                             onChanged: controller.filterSearchResults,
-                            decoration: const InputDecoration(
-                              hintText: 'Ara',
-                              hintStyle: TextStyle(color: Colors.grey),
-                              border: OutlineInputBorder(
+                            decoration: InputDecoration(
+                              hintText: 'common.search'.tr,
+                              hintStyle: const TextStyle(color: Colors.grey),
+                              border: const OutlineInputBorder(
                                 borderSide: BorderSide.none,
                               ),
                             ),
@@ -79,8 +79,8 @@ class SearchDeneme extends StatelessWidget {
                             color: Colors.grey,
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Hiçbir Deneme Sınavı Bulunamadı",
+                          Text(
+                            'practice.search_empty_title'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -91,8 +91,8 @@ class SearchDeneme extends StatelessWidget {
                           const SizedBox(height: 10),
                           Text(
                             controller.searchController.text.isEmpty
-                                ? "Sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir."
-                                : "Arama kriterlerinize uygun deneme sınavı bulunamadı. Lütfen farklı bir arama terimi deneyin.",
+                                ? 'practice.search_empty_body_empty'.tr
+                                : 'practice.search_empty_body_query'.tr,
                             style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 16,

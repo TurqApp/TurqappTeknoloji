@@ -50,8 +50,8 @@ class MyTutorings extends StatelessWidget {
               onPressed: Get.back,
               icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
             ),
-            title: const Text(
-              'İlanlarım',
+            title: Text(
+              'tutoring.my_listings_title'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 20,
@@ -65,7 +65,10 @@ class MyTutorings extends StatelessWidget {
             child: Column(
               children: [
                 PageLineBar(
-                  barList: ["Yayında", "Süresi Doldu"],
+                  barList: [
+                    'tutoring.published'.tr,
+                    'tutoring.expired'.tr,
+                  ],
                   pageName: "MyTutorings",
                   pageController: controller.pageController,
                 ),
@@ -81,7 +84,7 @@ class MyTutorings extends StatelessWidget {
                         () => controller.activeTutorings.isEmpty
                             ? Center(
                                 child: Text(
-                                  "Aktif özel ders ilanı bulunmuyor.",
+                                  'tutoring.active_listings_empty'.tr,
                                   style: TextStyles.textFieldTitle,
                                 ),
                               )
@@ -94,7 +97,7 @@ class MyTutorings extends StatelessWidget {
                                         viewModeController.isGridView.value,
                                     infoMessage: Infomessage(
                                       infoMessage:
-                                          "Aktif özel ders ilanı bulunmuyor.",
+                                          'tutoring.active_listings_empty'.tr,
                                     ),
                                   );
                                   if (viewModeController.isGridView.value) {
@@ -113,7 +116,7 @@ class MyTutorings extends StatelessWidget {
                         () => controller.expiredTutorings.isEmpty
                             ? Center(
                                 child: Text(
-                                  "Süresi dolmuş özel ders ilanı bulunmuyor.",
+                                  'tutoring.expired_listings_empty'.tr,
                                   style: TextStyles.textFieldTitle,
                                 ),
                               )
@@ -125,7 +128,7 @@ class MyTutorings extends StatelessWidget {
                                   allowReactivate: true,
                                   infoMessage: Infomessage(
                                     infoMessage:
-                                        "Süresi dolmuş özel ders ilanı bulunmuyor.",
+                                        'tutoring.expired_listings_empty'.tr,
                                   ),
                                 ),
                               ),

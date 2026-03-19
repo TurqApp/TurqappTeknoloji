@@ -38,16 +38,26 @@ class TutoringView extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final TutoringController tutoringController = Get.put(TutoringController());
-  final ViewModeController viewModeController = Get.put(ViewModeController());
+  final TutoringController tutoringController =
+      Get.isRegistered<TutoringController>()
+          ? Get.find<TutoringController>()
+          : Get.put(TutoringController(), permanent: true);
+  final ViewModeController viewModeController =
+      Get.isRegistered<ViewModeController>()
+          ? Get.find<ViewModeController>()
+          : Get.put(ViewModeController(), permanent: true);
   final TutoringFilterController filterController =
-      Get.put(TutoringFilterController());
+      Get.isRegistered<TutoringFilterController>()
+          ? Get.find<TutoringFilterController>()
+          : Get.put(TutoringFilterController(), permanent: true);
   final applyFilterTrigger = false.obs;
   ScrollController get _scrollController => tutoringController.scrollController;
 
   @override
   Widget build(BuildContext context) {
-    Get.put(SavedTutoringsController());
+    if (!Get.isRegistered<SavedTutoringsController>()) {
+      Get.put(SavedTutoringsController(), permanent: true);
+    }
     final bodyContent = Expanded(
       child: RefreshIndicator(
         color: Colors.white,
@@ -60,6 +70,12 @@ class TutoringView extends StatelessWidget {
           controller: _scrollController,
           physics: AlwaysScrollableScrollPhysics(),
           child: Obx(() {
+            if (!viewModeController.isReady.value) {
+              return const SizedBox(
+                height: 280,
+                child: Center(child: CupertinoActivityIndicator()),
+              );
+            }
             List<TutoringModel> filteredList =
                 (tutoringController.hasActiveSearch
                         ? tutoringController.searchResults
@@ -176,7 +192,7 @@ class TutoringView extends StatelessWidget {
                             controller: TextEditingController(
                               text: tutoringController.searchQuery.value,
                             ),
-                            hintText: "Ne tür ders arıyorsun ?",
+                            hintText: 'tutoring.search_hint'.tr,
                             onTap: () => Get.to(() => const TutoringSearch()),
                           ),
                         ),
@@ -311,55 +327,55 @@ class TutoringView extends StatelessWidget {
               context: context,
               menuItems: [
                 PullDownMenuItem(
-                  title: 'Ara',
+                  title: 'common.search'.tr,
                   icon: CupertinoIcons.search,
                   onTap: () {
                     Get.to(() => const TutoringSearch());
                   },
                 ),
                 PullDownMenuItem(
-                  title: 'Başvurularım',
+                  title: 'tutoring.my_applications'.tr,
                   icon: CupertinoIcons.doc_text,
                   onTap: () {
                     Get.to(() => MyTutoringApplications());
                   },
                 ),
                 PullDownMenuItem(
-                  title: 'İlan Ver',
+                  title: 'tutoring.create_listing'.tr,
                   icon: CupertinoIcons.add_circled,
                   onTap: () {
                     Get.to(CreateTutoringView());
                   },
                 ),
                 PullDownMenuItem(
-                  title: 'İlanlarım',
+                  title: 'tutoring.my_listings'.tr,
                   icon: CupertinoIcons.list_bullet,
                   onTap: () {
                     Get.to(MyTutorings());
                   },
                 ),
                 PullDownMenuItem(
-                  title: 'Kaydedilenler',
+                  title: 'tutoring.saved'.tr,
                   icon: AppIcons.save,
                   onTap: () {
                     Get.to(() => SavedTutorings());
                   },
                 ),
                 PullDownMenuItem(
-                  title: 'Bölgemdeki İlanlar',
+                  title: 'pasaj.tutoring.nearby_listings'.tr,
                   icon: AppIcons.locationSolid,
                   onTap: () {
                     Get.to(() => LocationBasedTutoring());
                   },
                 ),
                 PullDownMenuItem(
-                  title: 'Slider Yönetimi',
+                  title: 'tutoring.slider_admin'.tr,
                   icon: CupertinoIcons.slider_horizontal_3,
                   onTap: () {
                     Get.to(
-                      () => const SliderAdminView(
+                      () => SliderAdminView(
                         sliderId: 'ozel_ders',
-                        title: 'Özel Ders',
+                        title: 'tutoring.title'.tr,
                       ),
                     );
                   },
@@ -407,7 +423,7 @@ class TutoringView extends StatelessWidget {
                         ),
                       ),
                       TypewriterText(
-                        text: "Özel Ders",
+                        text: 'tutoring.title'.tr,
                       ),
                     ],
                   ),

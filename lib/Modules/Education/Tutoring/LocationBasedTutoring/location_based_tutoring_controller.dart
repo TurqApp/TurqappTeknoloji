@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class LocationBasedTutoringController extends GetxController {
   static const String _cacheKey = 'location_tutoring_cache_v1';
-  final UserRepository _userRepository = UserRepository.ensure();
+  final TutoringSnapshotRepository _tutoringSnapshotRepository =
+      TutoringSnapshotRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   var isLoading = true.obs;
   var tutoringList = <TutoringModel>[].obs;
   var users = <String, Map<String, dynamic>>{}.obs;
@@ -45,11 +48,13 @@ class LocationBasedTutoringController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      final fetched = await _userRepository.getUsersRaw(
+      final fetched = await _userSummaryResolver.resolveMany(
         toFetch,
         cacheOnly: cacheOnly,
       );
-      users.addAll(fetched);
+      users.addAll(
+        fetched.map((key, value) => MapEntry(key, value.toMap())),
+      );
     } catch (_) {
     }
   }
@@ -78,14 +83,12 @@ class LocationBasedTutoringController extends GetxController {
         position.longitude,
       );
 
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
+      final result = await _tutoringSnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 250,
-        page: 1,
+        forceSync: !silent,
       );
-      final tempList = result.hits
-          .map(TutoringModel.fromTypesenseHit)
+      final tempList = (result.data ?? const <TutoringModel>[])
           .where((item) => item.docID.isNotEmpty)
           .where((item) =>
               item.sehir.trim().toLowerCase() == currentCity.trim().toLowerCase())

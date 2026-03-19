@@ -102,11 +102,11 @@ class TestsGridController extends GetxController {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Test Hakkında",
+                        "tests.report_title".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -128,9 +128,9 @@ class TestsGridController extends GetxController {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Test yanlış cevaplar içeriyor",
+                              "tests.report_wrong_answers".tr,
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
@@ -182,9 +182,9 @@ class TestsGridController extends GetxController {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Test yanlış bölümde",
+                              "tests.report_wrong_section".tr,
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
@@ -302,8 +302,8 @@ class TestsGridController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  "İşlem Seç",
+                Text(
+                  "tests.action_select".tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.black,
@@ -312,8 +312,8 @@ class TestsGridController extends GetxController {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  "Bu testle ilgili bir işlem yapmak istiyorsanız aşağıdaki seçeneklerden birini seçebilirsiniz.",
+                Text(
+                  "tests.action_select_body".tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.black,
@@ -325,13 +325,13 @@ class TestsGridController extends GetxController {
                 Column(
                   children: [
                     _actionButton(
-                      label: "Testi Sil",
+                      label: "tests.delete_test".tr,
                       color: Colors.red,
                       onTap: () => showDeleteConfirmation(context),
                     ),
                     const SizedBox(height: 10),
                     _actionButton(
-                      label: "Testi Düzenle",
+                      label: "tests.edit_title".tr,
                       color: Colors.purple,
                       onTap: () {
                         Get.back();
@@ -342,13 +342,17 @@ class TestsGridController extends GetxController {
                     if (model.paylasilabilir) ...[
                       const SizedBox(height: 10),
                       _actionButton(
-                        label: "Test ID Kopyala",
+                        label: "tests.copy_test_id".tr,
                         color: Colors.green,
                         onTap: () {
                           Clipboard.setData(
                             ClipboardData(
-                              text:
-                                  "${model.testTuru} Testi\n\nTeste katılmak için hemen TurqApp'ı indirin. Teste katılmak için gerekli TestID'niz ${model.docID}\n\nUygulamayı hemen edinin:\n\nAppStore: ${appStore.value}\nPlay Store: ${googlePlay.value}\n\nTeste Katılmak için Talebe ekranına bulunan Testler ekranından Test ID girerek hemen çözmeye başlayabilirsiniz.",
+                              text: "tests.share_test_id_text".trParams({
+                                "type": model.testTuru,
+                                "id": model.docID,
+                                "appStore": appStore.value,
+                                "playStore": googlePlay.value,
+                              }),
                             ),
                           );
                           Get.back();
@@ -357,7 +361,7 @@ class TestsGridController extends GetxController {
                     ],
                     const SizedBox(height: 10),
                     _actionButton(
-                      label: "Testi Çöz",
+                      label: "tests.solve_title".tr,
                       color: Colors.indigo,
                       onTap: () {
                         Get.back();
@@ -367,7 +371,7 @@ class TestsGridController extends GetxController {
                     ),
                     const SizedBox(height: 10),
                     _actionButton(
-                      label: "Vazgeç",
+                      label: "common.close".tr,
                       color: Colors.black,
                       onTap: Get.back,
                     ),
@@ -389,10 +393,10 @@ class TestsGridController extends GetxController {
 
   void showDeleteConfirmation(BuildContext context) {
     noYesAlert(
-      title: "Testi Sil",
-      message: "Bu testi silmek istediğinden emin misin?",
-      cancelText: "Vazgeç",
-      yesText: "Testi Sil",
+      title: "tests.delete_test".tr,
+      message: "tests.delete_confirm".tr,
+      cancelText: "common.close".tr,
+      yesText: "tests.delete_test".tr,
       onYesPressed: () {
         FirebaseFirestore.instance
             .collection("Testler")
@@ -405,7 +409,7 @@ class TestsGridController extends GetxController {
 
   void copyTestId(BuildContext context) {
     Clipboard.setData(ClipboardData(text: model.docID));
-    AppSnackbar("ID Kopyalandı", "Test ID'si panoya kopyalandı");
+    AppSnackbar("common.success".tr, "tests.id_copied".tr);
   }
 
   void showAlert() {
@@ -421,8 +425,8 @@ class TestsGridController extends GetxController {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                "Testi Bitirdin!",
+              Text(
+                "tests.completed_title".tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.black,
@@ -431,8 +435,8 @@ class TestsGridController extends GetxController {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                "Sonuçlarım ekranında puanına ve doğru yanlış oranlarına bakabilirsin.",
+              Text(
+                "tests.completed_body".tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.black,
@@ -450,8 +454,8 @@ class TestsGridController extends GetxController {
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "Tamam",
+                  child: Text(
+                    "common.close".tr,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,

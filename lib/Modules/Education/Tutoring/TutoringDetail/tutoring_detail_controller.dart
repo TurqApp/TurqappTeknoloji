@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_review_model.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class TutoringDetailController extends GetxController {
   var isLoading = true.obs;
@@ -40,7 +40,7 @@ class TutoringDetailController extends GetxController {
   // Reviews
   final reviews = <TutoringReviewModel>[].obs;
   final reviewUsers = <String, Map<String, dynamic>>{}.obs;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
 
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
@@ -61,9 +61,12 @@ class TutoringDetailController extends GetxController {
 
   Future<void> fetchUserData(String userID) async {
     try {
-      final raw = await _userRepository.getUserRaw(userID);
-      if (raw != null) {
-        users[userID] = raw;
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      if (summary != null) {
+        users[userID] = summary.toMap();
       }
     } catch (_) {
     }
@@ -100,7 +103,7 @@ class TutoringDetailController extends GetxController {
   Future<void> toggleBasvuru(String docId) async {
     final uid = _uid;
     if (uid == null) {
-      AppSnackbar('Hata', 'Başvuru için tekrar giriş yapın.');
+      AppSnackbar('common.error'.tr, 'tutoring.apply_login_required'.tr);
       return;
     }
 
@@ -108,10 +111,14 @@ class TutoringDetailController extends GetxController {
       final t = tutoring.value;
       final ownerData = users[t.userID];
       final tutorName =
-          '${ownerData?['firstName'] ?? ''} ${ownerData?['lastName'] ?? ''}'
+          (ownerData?['displayName'] ?? ownerData?['nickname'] ?? '')
+              .toString()
               .trim();
       final tutorImage = (ownerData?['avatarUrl'] ?? '').toString();
-      final currentUserSummary = await _userRepository.getUser(uid);
+      final currentUserSummary = await _userSummaryResolver.resolve(
+        uid,
+        preferCache: true,
+      );
       final applicantName = currentUserSummary?.displayName.trim() ?? '';
       final applicantLabel =
           applicantName.isNotEmpty ? applicantName : 'Bir kullanıcı';
@@ -129,10 +136,10 @@ class TutoringDetailController extends GetxController {
       );
       basvuruldu.value = isApplied;
       if (isApplied) {
-        AppSnackbar('Başarılı', 'Başvurun gönderildi.');
+        AppSnackbar('common.success'.tr, 'tutoring.application_sent'.tr);
       }
     } catch (_) {
-      AppSnackbar('Hata', 'Başvuru sırasında bir sorun oluştu.');
+      AppSnackbar('common.error'.tr, 'tutoring.application_failed'.tr);
     }
   }
 
@@ -173,7 +180,7 @@ class TutoringDetailController extends GetxController {
       if (toFetch.isNotEmpty) {
         for (var i = 0; i < toFetch.length; i += 30) {
           final batch = toFetch.skip(i).take(30).toList();
-          final summaries = await _userRepository.getUsers(batch);
+          final summaries = await _userSummaryResolver.resolveMany(batch);
           for (final entry in summaries.entries) {
             similarUsers[entry.key] = entry.value.toMap();
           }
@@ -198,7 +205,7 @@ class TutoringDetailController extends GetxController {
       if (toFetch.isNotEmpty) {
         for (var i = 0; i < toFetch.length; i += 30) {
           final batch = toFetch.skip(i).take(30).toList();
-          final summaries = await _userRepository.getUsers(batch);
+          final summaries = await _userSummaryResolver.resolveMany(batch);
           for (final entry in summaries.entries) {
             reviewUsers[entry.key] = entry.value.toMap();
           }

@@ -52,7 +52,7 @@ class MyStatisticView extends StatelessWidget {
           return SingleChildScrollView(
             child: Column(
               children: [
-                BackButtons(text: "İstatistikler"),
+                BackButtons(text: "statistics.title".tr),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Column(
@@ -119,8 +119,8 @@ class MyStatisticView extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              const Text(
-                                "Siz",
+                              Text(
+                                "statistics.you".tr,
                                 style: TextStyle(
                                   color: Colors.green,
                                   fontSize: 15,
@@ -133,10 +133,10 @@ class MyStatisticView extends StatelessWidget {
                       ),
 
                       const SizedBox(height: 12),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          "İstatistiksel bilgiler son 60 gününüzü baz alarak güncellenmektedir",
+                          "statistics.notice".tr,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.black,
@@ -148,13 +148,13 @@ class MyStatisticView extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       // Renk paletinden sırasıyla 0, 1, 2 indexlerini kullanıyoruz:
-                      _statItem(535000, "Profil Ziyareti", 0),
-                      _statItem(86, "Gönderi Görüntülemesi Yüzdesi", 2,
+                      _statItem(535000, "statistics.profile_visits_30d".tr, 0),
+                      _statItem(86, "statistics.post_views_pct".tr, 2,
                           isPercentage: true),
-                      _statItem(234000, "Gönderi Görüntülemesi", 1),
-                      _statItem(18, "Takipçi Artışı Yüzdeliği", 6,
+                      _statItem(234000, "statistics.post_views".tr, 1),
+                      _statItem(18, "statistics.follower_growth_pct".tr, 6,
                           isPercentage: true),
-                      _statItem(123000, "Takipçi Artışı", 8),
+                      _statItem(123000, "statistics.follower_growth".tr, 8),
                     ],
                   ),
                 )

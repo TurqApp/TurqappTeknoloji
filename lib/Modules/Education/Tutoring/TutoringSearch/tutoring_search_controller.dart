@@ -1,13 +1,16 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class TutoringSearchController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final TutoringSnapshotRepository _tutoringSnapshotRepository =
+      TutoringSnapshotRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TextEditingController searchController = TextEditingController();
   var isLoading = true.obs;
   var searchQuery = ''.obs;
@@ -40,25 +43,21 @@ class TutoringSearchController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      final fetched = await _userRepository.getUsersRaw(toFetch);
-      users.addAll(fetched);
+      final fetched = await _userSummaryResolver.resolveMany(toFetch);
+      users.addAll(
+        fetched.map((key, value) => MapEntry(key, value.toMap())),
+      );
     } catch (_) {
     }
   }
 
   Future<void> _bootstrapInitialData() async {
     try {
-      final cached = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
+      final resource = await _tutoringSnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 60,
-        page: 1,
-        cacheOnly: true,
       );
-      final cachedItems = cached.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
+      final cachedItems = resource.data ?? const <TutoringModel>[];
       if (cachedItems.isNotEmpty) {
         _initialTutorings = cachedItems;
         await _batchFetchUsers(cachedItems.map((t) => t.userID).toSet());
@@ -81,17 +80,12 @@ class TutoringSearchController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
+      final result = await _tutoringSnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 60,
-        page: 1,
-        forceRefresh: forceRefresh,
+        forceSync: forceRefresh,
       );
-      _initialTutorings = result.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
+      _initialTutorings = result.data ?? const <TutoringModel>[];
 
       final userIds = _initialTutorings.map((t) => t.userID).toSet();
       await _batchFetchUsers(userIds);
@@ -113,16 +107,13 @@ class TutoringSearchController extends GetxController {
     }
 
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
+      final result = await _tutoringSnapshotRepository.search(
         query: normalized,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 60,
-        page: 1,
+        forceSync: true,
       );
-      final items = result.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
+      final items = result.data ?? const <TutoringModel>[];
       await _batchFetchUsers(items.map((t) => t.userID).toSet());
       searchResults.value = items;
     } catch (_) {

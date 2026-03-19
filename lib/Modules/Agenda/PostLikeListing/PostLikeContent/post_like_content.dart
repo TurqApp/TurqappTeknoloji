@@ -122,11 +122,13 @@ class PostLikeContent extends StatelessWidget {
                 return;
               }
               noYesAlert(
-                title: 'Takipten Çık',
-                message:
-                    '${item.nickname.isEmpty ? item.fullName : item.nickname} kullanıcısını takipten çıkmak istediğinizden emin misiniz?',
-                cancelText: 'Vazgeç',
-                yesText: 'Takipten Çık',
+                title: 'profile.unfollow_title'.tr,
+                message: 'profile.unfollow_body'.trParams({
+                  'nickname':
+                      item.nickname.isEmpty ? item.fullName : item.nickname,
+                }),
+                cancelText: 'common.cancel'.tr,
+                yesText: 'profile.unfollow_confirm'.tr,
                 onYesPressed: () {
                   controller.follow(item.userID);
                 },

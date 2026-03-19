@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/external.dart';
 
 class CikmisSoruOlustur extends StatefulWidget {
@@ -62,7 +63,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                       Icon(Icons.arrow_back, color: Colors.black),
                       SizedBox(width: 12),
                       Text(
-                        "Çıkmış Sınav Oluştur",
+                        "education.past_exam_create_title".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 25,
@@ -87,7 +88,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(color: Colors.indigo),
                       child: Text(
-                        "Oluşturmaya Başla",
+                        "education.start_creating".tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -112,7 +113,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
           child: Text(
-            "Sınav Türleri",
+            "education.exam_types".tr,
             style: TextStyle(
               color: Colors.black,
               fontSize: 20,
@@ -314,7 +315,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -372,7 +373,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -430,7 +431,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -491,7 +492,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -549,7 +550,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -607,7 +608,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -665,7 +666,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -723,7 +724,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -781,7 +782,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                             maxLines: 1,
                             keyboardType: TextInputType.text,
                             decoration: InputDecoration(
-                              hintText: "Soru Sayısı",
+                              hintText: "education.question_count_hint".tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",

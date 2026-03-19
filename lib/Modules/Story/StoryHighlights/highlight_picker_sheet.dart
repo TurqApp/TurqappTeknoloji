@@ -103,12 +103,12 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Öne Çıkarılanlar',
+                              'story.highlights_title'.tr,
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 18,
@@ -117,7 +117,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Bu hikayeyi profilinde sabit bir koleksiyona ekle.',
+                              'story.highlights_subtitle'.tr,
                               style: TextStyle(
                                 color: Color(0xFF6D6D6D),
                                 fontSize: 12,
@@ -149,10 +149,10 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(left: 2, bottom: 8),
                         child: Text(
-                          'Koleksiyonların',
+                          'story.highlights_collections'.tr,
                           style: TextStyle(
                             color: Color(0xFF6D6D6D),
                             fontSize: 12,
@@ -205,7 +205,9 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
                               ),
                             ),
                             subtitle: Text(
-                              '${h.storyIds.length} hikaye',
+                              'story.highlights_story_count'.trParams({
+                                'count': h.storyIds.length.toString(),
+                              }),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF8A8A8A),
@@ -271,8 +273,8 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'İlk koleksiyonunu oluştur',
+          Text(
+            'story.highlights_first_create'.tr,
             style: TextStyle(
               color: Colors.black,
               fontSize: 15,
@@ -280,8 +282,8 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Bu hikaye için bir başlık belirle. Sonra profilinde sabit görünsün.',
+          Text(
+            'story.highlights_first_create_body'.tr,
             style: TextStyle(
               color: Color(0xFF6D6D6D),
               fontSize: 12,
@@ -309,7 +311,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
           ),
-          child: const Row(
+          child: Row(
             children: [
               CircleAvatar(
                 radius: 22,
@@ -323,7 +325,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Yeni öne çıkarılan oluştur',
+                  'story.highlights_new'.tr,
                   style: TextStyle(
                     fontFamily: 'MontserratSemiBold',
                     fontSize: 14,
@@ -356,7 +358,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
               autofocus: false,
               textInputAction: TextInputAction.done,
               decoration: InputDecoration(
-                hintText: 'Başlık girin...',
+                hintText: 'story.highlights_title_hint'.tr,
                 hintStyle: TextStyle(
                   color: Colors.grey.withAlpha(150),
                   fontSize: 14,
@@ -399,8 +401,8 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Text(
-                      'Oluştur',
+                  : Text(
+                      'common.create'.tr,
                       style: TextStyle(
                         fontFamily: 'MontserratSemiBold',
                         fontSize: 14,
@@ -425,10 +427,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
       if (created != null) {
         Get.back();
       } else {
-        AppSnackbar(
-          'Hata',
-          'Öne çıkarılan oluşturulamadı. Lütfen tekrar deneyin.',
-        );
+        AppSnackbar('common.error'.tr, 'story.highlights_create_failed'.tr);
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

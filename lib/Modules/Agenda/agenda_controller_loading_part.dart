@@ -522,7 +522,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     final validUserIds = <String>{};
     for (final chunk in _chunkList(userIds.toList(), 20)) {
-      final users = await _userRepository.getUsersRaw(
+      final users = await _profileCache.getProfiles(
         chunk,
         preferCache: preferCache,
         cacheOnly: cacheOnly,

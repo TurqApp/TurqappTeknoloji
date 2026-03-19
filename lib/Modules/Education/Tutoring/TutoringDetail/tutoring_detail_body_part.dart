@@ -22,9 +22,9 @@ extension TutoringDetailBodyPart on TutoringDetail {
             .doc(docId)
             .delete();
         Get.back();
-        AppSnackbar('Başarılı', 'İlan silindi!');
+        AppSnackbar('common.success'.tr, 'tutoring.delete_success'.tr);
       } catch (_) {
-        AppSnackbar('Hata', 'İlan silinirken bir hata oluştu.');
+        AppSnackbar('common.error'.tr, 'tutoring.delete_failed'.tr);
       }
     }
 
@@ -38,8 +38,8 @@ extension TutoringDetailBodyPart on TutoringDetail {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Özel Ders',
+        title: Text(
+          'tutoring.title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -137,8 +137,8 @@ extension TutoringDetailBodyPart on TutoringDetail {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Açıklama',
+              Text(
+                'tutoring.detail_description'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,
@@ -148,7 +148,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
               const SizedBox(height: 8),
               Text(
                 current.aciklama.trim().isEmpty
-                    ? 'Bu ilan için açıklama eklenmemiş.'
+                    ? 'tutoring.detail_no_description'.tr
                     : current.aciklama,
                 style: const TextStyle(
                   color: Colors.black87,
@@ -159,41 +159,62 @@ extension TutoringDetailBodyPart on TutoringDetail {
               ),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'Ders Bilgileri',
+                title: 'tutoring.detail_lesson_info'.tr,
                 children: [
-                  _infoRow('Branş', current.brans),
+                  _infoRow('tutoring.detail_branch'.tr, current.brans),
                   if (current.dersYeri.isNotEmpty)
-                    _infoRow('Ders Yeri', current.dersYeri.join(', ')),
-                  _infoRow('Ücret', _formatPrice(current.fiyat)),
+                    _infoRow(
+                      'tutoring.lesson_place_title'.tr,
+                      current.dersYeri.join(', '),
+                    ),
+                  _infoRow('tutoring.detail_price'.tr, _formatPrice(current.fiyat)),
                   _infoRow(
-                    'İletişim',
-                    current.telefon == true ? 'Telefon + Mesaj' : 'Sadece Mesaj',
+                    'tutoring.detail_contact'.tr,
+                    current.telefon == true
+                        ? 'tutoring.detail_phone_and_message'.tr
+                        : 'tutoring.detail_message_only'.tr,
                   ),
                   if (current.cinsiyet.trim().isNotEmpty)
-                    _infoRow('Cinsiyet Tercihi', current.cinsiyet),
+                    _infoRow(
+                      'tutoring.detail_gender_preference'.tr,
+                      current.cinsiyet,
+                    ),
                   if (_availabilityText(current).isNotEmpty)
-                    _infoRow('Müsaitlik', _availabilityText(current)),
+                    _infoRow(
+                      'tutoring.detail_availability'.tr,
+                      _availabilityText(current),
+                    ),
                 ],
               ),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'İlan Bilgileri',
+                title: 'tutoring.detail_listing_info'.tr,
                 children: [
                   _infoRow(
-                    'Eğitmen',
-                    teacherName.isEmpty ? 'Belirtilmedi' : teacherName,
+                    'tutoring.detail_instructor'.tr,
+                    teacherName.isEmpty
+                        ? 'tutoring.detail_not_specified'.tr
+                        : teacherName,
                   ),
-                  _infoRow('Şehir', '${current.sehir}, ${current.ilce}'),
-                  _infoRow('Görüntülenme', '${current.viewCount ?? 0}'),
                   _infoRow(
-                    'Durum',
-                    current.ended == true ? 'Pasif' : 'Aktif',
+                    'tutoring.detail_city'.tr,
+                    '${current.sehir}, ${current.ilce}',
+                  ),
+                  _infoRow(
+                    'tutoring.detail_views'.tr,
+                    '${current.viewCount ?? 0}',
+                  ),
+                  _infoRow(
+                    'tutoring.detail_status'.tr,
+                    current.ended == true
+                        ? 'tutoring.detail_status_passive'.tr
+                        : 'tutoring.detail_status_active'.tr,
                   ),
                 ],
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Konum',
+              Text(
+                'tutoring.detail_location'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,
@@ -458,14 +479,14 @@ extension TutoringDetailBodyPart on TutoringDetail {
           Expanded(
             child: GestureDetector(
               onTap: () => Get.to(() => const CreateTutoringView(), arguments: current),
-              child: _solidAction('Düzenle'),
+              child: _solidAction('common.edit'.tr),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: GestureDetector(
               onTap: () => Get.to(() => ChatListing()),
-              child: _outlinedAction('Mesajlar'),
+              child: _outlinedAction('tutoring.messages'.tr),
             ),
           ),
           const SizedBox(width: 8),
@@ -473,18 +494,20 @@ extension TutoringDetailBodyPart on TutoringDetail {
             child: GestureDetector(
               onTap: () {
                 noYesAlert(
-                  title: 'İlanı Kaldır',
-                  message:
-                      'Bu özel ders ilanını yayından kaldırmak istediğinizden emin misiniz?',
-                  yesText: 'Kaldır',
-                  cancelText: 'Vazgeç',
+                  title: 'tutoring.unpublish_title'.tr,
+                  message: 'tutoring.unpublish_body'.tr,
+                  yesText: 'common.remove'.tr,
+                  cancelText: 'common.cancel'.tr,
                   onYesPressed: () async {
                     await controller.unpublishTutoring();
-                    AppSnackbar('Başarılı', 'İlan yayından kaldırıldı.');
+                    AppSnackbar(
+                      'common.success'.tr,
+                      'tutoring.unpublished'.tr,
+                    );
                   },
                 );
               },
-              child: _dangerAction('Kaldır'),
+              child: _dangerAction('common.remove'.tr),
             ),
           ),
         ],
@@ -500,7 +523,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
               model: current,
               chatListingController: chatListingController,
             ),
-            child: _solidAction('Mesaj'),
+            child: _solidAction('tutoring.message'.tr),
           ),
         ),
         if (current.telefon == true) ...[
@@ -512,7 +535,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
                 ownerRaw: controller.users[current.userID] ??
                     const <String, dynamic>{},
               ),
-              child: _outlinedAction('Ara'),
+              child: _outlinedAction('common.call'.tr),
             ),
           ),
         ],
@@ -526,11 +549,17 @@ extension TutoringDetailBodyPart on TutoringDetail {
     required ChatListingController chatListingController,
   }) async {
     if (currentUserId == null || currentUserId.trim().isEmpty) {
-      AppSnackbar('Giriş Gerekli', 'Mesaj göndermek için giriş yapmalısın.');
+      AppSnackbar(
+        'login.sign_in'.tr,
+        'chat.sign_in_required'.tr,
+      );
       return;
     }
     if (currentUserId == model.userID) {
-      AppSnackbar('Bilgi', 'Kendi ilanına mesaj gönderemezsin.');
+      AppSnackbar(
+        'common.info'.tr,
+        'chat.cannot_message_self_listing'.tr,
+      );
       return;
     }
     final existing = chatListingController.list.firstWhereOrNull(
@@ -564,12 +593,12 @@ extension TutoringDetailBodyPart on TutoringDetail {
     required Map<String, dynamic> ownerRaw,
   }) async {
     if (model.telefon != true) {
-      AppSnackbar('Bilgi', 'Bu ilanda arama izni kapalı.');
+      AppSnackbar('common.info'.tr, 'tutoring.call_disabled'.tr);
       return;
     }
     final rawPhone = (ownerRaw['phoneNumber'] ?? '').toString().trim();
     if (rawPhone.isEmpty) {
-      AppSnackbar('Bilgi Yok', 'Eğitmenin telefon bilgisi bulunamadı.');
+      AppSnackbar('common.info'.tr, 'tutoring.phone_missing'.tr);
       return;
     }
     final digits = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
@@ -583,7 +612,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
     }
     final opened = await launchUrl(Uri.parse('tel:$dialValue'));
     if (!opened) {
-      AppSnackbar('Hata', 'Telefon uygulaması açılamadı.');
+      AppSnackbar('common.error'.tr, 'tutoring.phone_open_failed'.tr);
     }
   }
 

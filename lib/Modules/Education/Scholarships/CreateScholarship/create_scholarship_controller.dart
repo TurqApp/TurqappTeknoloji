@@ -224,7 +224,7 @@ class CreateScholarshipController extends GetxController {
         _initializeFieldsForEdit(model);
       } else {
         // Model null ise hata mesajı göster
-        AppSnackbar('Hata', 'Burs verisi yüklenemedi.');
+        AppSnackbar('common.error'.tr, 'scholarship.data_load_failed'.tr);
       }
     } else {
       // Yeni burs oluşturma için varsayılan değerler
@@ -333,7 +333,7 @@ class CreateScholarshipController extends GetxController {
       iller.assignAll(await _cityDirectoryService.getSortedCities());
       ilIlceMap.assignAll(tempMap);
     } catch (e) {
-      AppSnackbar('Hata', 'İl-ilçe verisi yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'scholarship.city_data_failed'.tr);
     }
   }
 
@@ -361,7 +361,7 @@ class CreateScholarshipController extends GetxController {
       universiteMap.assignAll(tempMap);
       higherEducationData.assignAll(data);
     } catch (e) {
-      AppSnackbar('Hata', 'Üniversite verisi yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'scholarship.university_data_failed'.tr);
     }
   }
 
@@ -462,22 +462,22 @@ class CreateScholarshipController extends GetxController {
     try {
       final file = File(localPath);
       if (!await file.exists()) {
-        AppSnackbar('Hata', 'Seçilen dosya bulunamadı.');
+        AppSnackbar('common.error'.tr, 'scholarship.file_missing'.tr);
         return null;
       }
       final nsfw = await OptimizedNSFWService.checkImage(file);
       if (nsfw.errorMessage != null) {
-        AppSnackbar('Hata', 'NSFW görsel kontrolü başarısız.');
+        AppSnackbar('common.error'.tr, 'tests.image_analyze_failed'.tr);
         return null;
       }
       if (nsfw.isNSFW) {
-        AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+        AppSnackbar('common.error'.tr, 'tests.image_invalid'.tr);
         return null;
       }
 
       final webpBytes = await _compressFileToWebp(file, quality: 85);
       if (webpBytes == null || webpBytes.isEmpty) {
-        AppSnackbar('Hata', 'Görsel WebP formatına dönüştürülemedi.');
+        AppSnackbar('common.error'.tr, 'scholarship.image_convert_failed'.tr);
         return null;
       }
 
@@ -495,7 +495,7 @@ class CreateScholarshipController extends GetxController {
       final downloadUrl = await ref.getDownloadURL();
       return downloadUrl;
     } catch (_) {
-      AppSnackbar('Hata', 'Görsel yüklenirken bir hata oluştu.');
+      AppSnackbar('common.error'.tr, 'scholarship.image_upload_failed'.tr);
       return null;
     }
   }
@@ -537,17 +537,17 @@ class CreateScholarshipController extends GetxController {
       }
       final nsfw = await OptimizedNSFWService.checkImage(file);
       if (nsfw.errorMessage != null) {
-        AppSnackbar('Hata', 'NSFW görsel kontrolü başarısız.');
+        AppSnackbar('common.error'.tr, 'tests.image_analyze_failed'.tr);
         return null;
       }
       if (nsfw.isNSFW) {
-        AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+        AppSnackbar('common.error'.tr, 'tests.image_invalid'.tr);
         return null;
       }
 
       final webpBytes = await _compressBytesToWebp(bytes, quality: 85);
       if (webpBytes == null || webpBytes.isEmpty) {
-        AppSnackbar('Hata', 'Şablon görseli WebP formatına dönüştürülemedi.');
+        AppSnackbar('common.error'.tr, 'scholarship.template_convert_failed'.tr);
         return null;
       }
 
@@ -566,7 +566,7 @@ class CreateScholarshipController extends GetxController {
           'template${selectedTemplateIndex.value + 1}'; // Şablon adını güncelle
       return downloadUrl;
     } catch (_) {
-      AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
+      AppSnackbar('common.error'.tr, 'scholarship.template_capture_failed'.tr);
       return null;
     }
   }
@@ -631,7 +631,10 @@ class CreateScholarshipController extends GetxController {
           if (selectedTemplateIndex.value != -1) {
             final templateUrlResult = await _captureAndUploadTemplate();
             if (templateUrlResult == null) {
-              AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
+              AppSnackbar(
+                'common.error'.tr,
+                'scholarship.template_capture_failed'.tr,
+              );
               return;
             }
           }
@@ -738,11 +741,11 @@ class CreateScholarshipController extends GetxController {
 
           // Bursları Education sekmesi açıkken göster
           Get.to(() => ScholarshipsView());
-          AppSnackbar('Başarılı', 'Burs başarıyla paylaşıldı!');
+          AppSnackbar('common.success'.tr, 'scholarship.published_success'.tr);
 
           resetForm();
         } catch (_) {
-          AppSnackbar('Hata', 'Burs paylaşılırken bir hata oluştu.');
+          AppSnackbar('common.error'.tr, 'scholarship.publish_failed'.tr);
         }
       }
     } finally {
@@ -761,7 +764,10 @@ class CreateScholarshipController extends GetxController {
               templateKey.currentContext != null) {
             final templateUrlResult = await _captureAndUploadTemplate();
             if (templateUrlResult == null) {
-              AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
+              AppSnackbar(
+                'common.error'.tr,
+                'scholarship.template_capture_failed'.tr,
+              );
               return;
             }
           }
@@ -859,11 +865,11 @@ class CreateScholarshipController extends GetxController {
             } catch (_) {}
           }
           Get.to(() => ScholarshipsView());
-          AppSnackbar('Başarılı', 'Burs başarıyla güncellendi!');
+          AppSnackbar('common.success'.tr, 'scholarship.updated_success'.tr);
 
           resetForm();
         } catch (e) {
-          AppSnackbar('Hata', 'Burs güncellenirken bir hata oluştu.');
+          AppSnackbar('common.error'.tr, 'scholarship.update_failed'.tr);
         }
       }
     } finally {

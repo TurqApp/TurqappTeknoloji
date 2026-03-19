@@ -1,10 +1,10 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 
 class TutoringApplicationReviewController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final String tutoringDocID;
   TutoringApplicationReviewController({required this.tutoringDocID});
@@ -34,7 +34,11 @@ class TutoringApplicationReviewController extends GetxController {
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
-      return await _userRepository.getUserRaw(userID);
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      return summary?.toMap();
     } catch (_) {
     }
     return null;

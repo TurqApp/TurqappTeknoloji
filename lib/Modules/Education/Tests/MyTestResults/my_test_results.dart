@@ -17,7 +17,7 @@ class MyTestResults extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sonuçlar"),
+            BackButtons(text: "tests.results_title".tr),
             Expanded(
               child: RefreshIndicator(
                 color: Colors.white,
@@ -31,7 +31,7 @@ class MyTestResults extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 15),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
+                                children: [
                                   Icon(
                                     Icons.info_outline,
                                     color: Colors.black,
@@ -39,7 +39,7 @@ class MyTestResults extends StatelessWidget {
                                   ),
                                   SizedBox(height: 10),
                                   Text(
-                                    "Sonuç bulunamadı.\nDaha önce hiç test çözmediniz.",
+                                    "tests.my_results_empty".tr,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: Colors.black,

@@ -400,7 +400,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
               videoController?.play();
             });
           },
-          title: 'Gönderi olarak yayınla',
+          title: 'short.publish_as_post'.tr,
           icon: CupertinoIcons.add_circled,
         ),
         PullDownMenuItem(
@@ -409,7 +409,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             await PostStoryShareService.openStoryMakerForPost(widget.model);
             videoController?.play();
           },
-          title: 'Hikayene ekle',
+          title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
         if (canManagePost)
@@ -424,14 +424,14 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                 videoController?.play();
               });
             },
-            title: 'Gönderi olarak paylaşanlar',
+            title: 'short.shared_as_post_by'.tr,
             icon: CupertinoIcons.person_2,
           ),
         PullDownMenuItem(
           onTap: () {
             controller.sendPost();
           },
-          title: 'Gönder',
+          title: 'common.send'.tr,
           icon: CupertinoIcons.paperplane,
         ),
         PullDownMenuItem(
@@ -439,7 +439,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             videoController?.pause();
             controller.gizle();
           },
-          title: 'Gizle',
+          title: 'common.hide'.tr,
           icon: CupertinoIcons.eye_slash,
         ),
         if (canManagePost)
@@ -453,7 +453,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                 videoController?.play();
               });
             },
-            title: 'Düzenle',
+            title: 'common.edit'.tr,
             icon: CupertinoIcons.pencil_circle,
           ),
         if (controller.canSendAdminPush)
@@ -466,7 +466,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                 }
               });
             },
-            title: 'Push',
+            title: 'common.push'.tr,
             icon: CupertinoIcons.bell,
           ),
         PullDownMenuItem(
@@ -762,7 +762,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           ),
           PullDownMenuItem(
             onTap: canReshare ? _openQuoteComposer : null,
-            title: 'Alıntıla',
+            title: 'common.quote'.tr,
             icon: CupertinoIcons.quote_bubble,
           ),
         ],
@@ -958,8 +958,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       );
       await ShareLinkService.shareUrl(
         url: url,
-        title: 'TurqApp Gönderisi',
-        subject: 'TurqApp Gönderisi',
+        title: 'post.share_title'.tr,
+        subject: 'post.share_title'.tr,
       );
     });
   }

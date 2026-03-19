@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'cikmis_sorular_yil_sectirme.dart';
@@ -52,6 +53,51 @@ class _CikmisSorularBransSectirmeState
     {"name": "İngilizce öğretmenliği", "icon": Icons.translate_outlined},
   ];
 
+  String _localizedTeaching(String raw) {
+    switch (raw) {
+      case 'Almanca öğretmenliği':
+        return 'past_questions.teaching.german'.tr;
+      case 'Beden eğitim öğretmenliği':
+        return 'past_questions.teaching.physical_education'.tr;
+      case 'Biyoloji öğretmenliği':
+        return 'past_questions.teaching.biology'.tr;
+      case 'Coğrafya öğretmenliği':
+        return 'past_questions.teaching.geography'.tr;
+      case 'Din kültürü öğretmenliği':
+        return 'past_questions.teaching.religious_culture'.tr;
+      case 'Edebiyat öğretmenliği':
+        return 'past_questions.teaching.literature'.tr;
+      case 'Fen bilimleri öğretmenliği':
+        return 'past_questions.teaching.science'.tr;
+      case 'Fizik öğretmenliği':
+        return 'past_questions.teaching.physics'.tr;
+      case 'Kimya öğretmenliği':
+        return 'past_questions.teaching.chemistry'.tr;
+      case 'Lise matematik':
+        return 'past_questions.teaching.high_school_math'.tr;
+      case 'Okul öncesi':
+        return 'past_questions.teaching.preschool'.tr;
+      case 'Rehberlik':
+        return 'past_questions.teaching.guidance'.tr;
+      case 'Sosyal bilgiler öğretmenliği':
+        return 'past_questions.teaching.social_studies'.tr;
+      case 'Sınıf öğretmenliği':
+        return 'past_questions.teaching.classroom'.tr;
+      case 'Tarih öğretmenliği':
+        return 'past_questions.teaching.history'.tr;
+      case 'Türkçe öğretmenliği':
+        return 'past_questions.teaching.turkish'.tr;
+      case 'İlköğretim matematik':
+        return 'past_questions.teaching.primary_math'.tr;
+      case 'İmam hatip':
+        return 'past_questions.teaching.imam_hatip'.tr;
+      case 'İngilizce öğretmenliği':
+        return 'past_questions.teaching.english'.tr;
+      default:
+        return raw;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,7 +105,7 @@ class _CikmisSorularBransSectirmeState
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Öğretmenlikler"),
+            BackButtons(text: 'past_questions.teaching.title'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -131,14 +177,20 @@ class _CikmisSorularBransSectirmeState
                                 Text(
                                   ogretmenlikler[index]["name"] ==
                                           "İlköğretim matematik"
-                                      ? "İ. Matematik"
+                                      ? 'past_questions.teaching.primary_math_short'
+                                          .tr
                                       : ogretmenlikler[index]["name"] ==
                                               "Lise matematik"
-                                          ? "L. Matematik"
+                                          ? 'past_questions.teaching.high_school_math_short'
+                                              .tr
                                           : capitalizeEachWord(
-                                              ogretmenlikler[index]['name']
-                                                  .replaceAll(
-                                                      "öğretmenliği", ""),
+                                              _localizedTeaching(
+                                                ogretmenlikler[index]['name'],
+                                              ).replaceAll(
+                                                'past_questions.teaching.suffix'
+                                                    .tr,
+                                                '',
+                                              ),
                                             ),
                                   style: TextStyle(
                                     color: Colors.black,

@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
@@ -16,6 +15,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import '../../Models/posts_model.dart';
 
 /// Kısa videoları Firestore'dan çekip saklayan ve
@@ -71,7 +71,7 @@ class ShortController extends GetxController {
     capacity: 500,
     ttl: const Duration(minutes: 10),
   );
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ShortRepository _shortRepository = ShortRepository.ensure();
 
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
@@ -558,13 +558,13 @@ class ShortController extends GetxController {
     for (int i = 0; i < missing.length; i += chunk) {
       final part = missing.sublist(i, (i + chunk).clamp(0, missing.length));
       try {
-        final users = await _userRepository.getUsersRaw(
+        final users = await _userSummaryResolver.resolveMany(
           part,
           preferCache: true,
         );
 
         for (final entry in users.entries) {
-          final isPrivate = (entry.value['isPrivate'] ?? false) == true;
+          final isPrivate = entry.value.isPrivate;
           result[entry.key] = isPrivate;
           _privacyCache.put(entry.key, isPrivate);
         }
@@ -824,7 +824,7 @@ class ShortController extends GetxController {
 
     final validUserIds = <String>{};
     for (final chunk in _chunkList(userIds.toList(), 10)) {
-      final users = await _userRepository.getUsersRaw(
+      final users = await _userSummaryResolver.resolveMany(
         chunk,
         preferCache: true,
       );

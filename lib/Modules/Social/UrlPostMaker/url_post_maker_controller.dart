@@ -295,7 +295,7 @@ class UrlPostMakerController extends GetxController {
                   Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
                   SizedBox(width: 12),
                   Text(
-                    "Yorumlar",
+                    "comments.title".tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,

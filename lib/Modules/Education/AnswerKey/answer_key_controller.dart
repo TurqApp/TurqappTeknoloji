@@ -5,19 +5,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class AnswerKeyController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_answer_key_listing_selection';
+  final AnswerKeySnapshotRepository _answerKeySnapshotRepository =
+      AnswerKeySnapshotRepository.ensure();
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   var isLoading = false.obs;
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
   final RxInt listingSelection = 0.obs;
+  final RxBool listingSelectionReady = false.obs;
   var bookList = <BookletModel>[].obs;
   var searchResults = <BookletModel>[].obs;
   final RxString searchQuery = ''.obs;
@@ -25,6 +29,7 @@ class AnswerKeyController extends GetxController {
   final RxDouble scrollOffset = 0.0.obs;
   DocumentSnapshot? _lastDocument;
   static const int _pageSize = 30;
+  StreamSubscription<CachedResource<List<BookletModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchToken = 0;
 
@@ -35,6 +40,7 @@ class AnswerKeyController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
       listingSelection.value = 0;
+      listingSelectionReady.value = true;
       return;
     }
     try {
@@ -43,6 +49,8 @@ class AnswerKeyController extends GetxController {
           (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
     } catch (_) {
       listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
     }
   }
 
@@ -74,21 +82,14 @@ class AnswerKeyController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    try {
-      final cached = await _bookletRepository.fetchPage(
-        limit: _pageSize,
-        cacheOnly: true,
-      );
-      if (cached.items.isNotEmpty) {
-        bookList.assignAll(cached.items);
-        _lastDocument = cached.lastDocument;
-        hasMore.value = cached.hasMore;
-        isLoading.value = false;
-        await refreshData();
-        return;
-      }
-    } catch (_) {}
-    await refreshData();
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _answerKeySnapshotRepository
+        .openHome(
+          userId: userId,
+          limit: _pageSize,
+        )
+        .listen(_applyHomeSnapshotResource);
   }
 
   void _onScroll() {
@@ -171,10 +172,13 @@ class AnswerKeyController extends GetxController {
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final page = await _bookletRepository.fetchPage(limit: _pageSize);
-      bookList.assignAll(page.items);
-      _lastDocument = page.lastDocument;
-      hasMore.value = page.hasMore;
+      final resource = await _answerKeySnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        limit: _pageSize,
+      );
+      final items = resource.data ?? const <BookletModel>[];
+      bookList.assignAll(items);
+      hasMore.value = items.length >= _pageSize;
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -219,16 +223,16 @@ class AnswerKeyController extends GetxController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
-        entity: EducationTypesenseEntity.answerKey,
+      final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
 
-      final results = await _fetchByDocIds(docIds);
+      final results = resource.data ?? const <BookletModel>[];
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       searchResults.assignAll(results);
@@ -243,12 +247,27 @@ class AnswerKeyController extends GetxController {
     }
   }
 
-  Future<List<BookletModel>> _fetchByDocIds(List<String> docIds) async {
-    return _bookletRepository.fetchByIds(docIds);
+  void _applyHomeSnapshotResource(
+    CachedResource<List<BookletModel>> resource,
+  ) {
+    final items = resource.data ?? const <BookletModel>[];
+    if (items.isNotEmpty) {
+      bookList.assignAll(items);
+      hasMore.value = items.length >= _pageSize;
+    }
+
+    if (!resource.isRefreshing || items.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (bookList.isEmpty) {
+      isLoading.value = true;
+    }
   }
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
     scrollController.dispose();
     super.onClose();

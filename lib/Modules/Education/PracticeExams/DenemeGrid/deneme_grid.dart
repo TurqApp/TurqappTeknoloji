@@ -84,7 +84,7 @@ class DenemeGrid extends StatelessWidget {
           backgroundColor: Colors.white,
           actions: [
             _ownerAction(
-              label: 'Görüntüle',
+              label: 'common.view'.tr,
               color: Colors.purpleAccent,
               onTap: () {
                 Get.back();
@@ -93,17 +93,16 @@ class DenemeGrid extends StatelessWidget {
             ),
             4.ph,
             _ownerAction(
-              label: 'Sınavı Sil',
+              label: 'common.delete'.tr,
               color: Colors.red,
               onTap: () {
                 Get.back();
                 Future.delayed(const Duration(milliseconds: 300), () {
                   noYesAlert(
-                    title: 'Sınavı Sil',
-                    message:
-                        'Bu sınavı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!',
-                    cancelText: 'Vazgeç',
-                    yesText: 'Sınavı Sil',
+                    title: 'common.delete'.tr,
+                    message: 'tests.delete_confirm'.tr,
+                    cancelText: 'common.cancel'.tr,
+                    yesText: 'common.delete'.tr,
                     onYesPressed: () async {
                       await FirebaseFirestore.instance
                           .collection('practiceExams')
@@ -117,7 +116,7 @@ class DenemeGrid extends StatelessWidget {
             ),
             4.ph,
             _ownerAction(
-              label: 'Sınavı Düzenle',
+              label: 'tests.edit_title'.tr,
               color: Colors.indigo,
               onTap: () {
                 Get.back();
@@ -126,7 +125,7 @@ class DenemeGrid extends StatelessWidget {
             ),
             4.ph,
             _ownerAction(
-              label: 'Vazgeç',
+              label: 'common.cancel'.tr,
               color: Colors.black,
               onTap: Get.back,
             ),

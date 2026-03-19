@@ -66,7 +66,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         userId: widget.userID,
                         slug: safeSlug,
                         title: '@${controller.nickname.value} - TurqApp',
-                        desc: 'TurqApp profilini görüntüle',
+                        desc: 'qr.profile_desc'.tr,
                         imageUrl: controller.avatarUrl.value,
                       );
                       final link =
@@ -75,9 +75,9 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                               : 'https://turqapp.com/u/$safeSlug';
                       await Clipboard.setData(ClipboardData(text: link));
                       AppSnackbar(
-                          "Kopyalandı", "Bağlantı linki panoya kopyalandı");
+                          'common.copied'.tr, 'common.link_copied'.tr);
                     },
-                    title: 'Profil linkini kopyala',
+                    title: 'profile.copy_profile_link'.tr,
                     icon: CupertinoIcons.doc_on_doc,
                   ),
                   PullDownMenuItem(
@@ -90,7 +90,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                           userId: widget.userID,
                           slug: safeSlug,
                           title: '@${controller.nickname.value} - TurqApp',
-                          desc: 'TurqApp profilini görüntüle',
+                          desc: 'qr.profile_desc'.tr,
                           imageUrl: controller.avatarUrl.value,
                         );
                         final link =
@@ -100,11 +100,11 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         await ShareLinkService.shareUrl(
                           url: link,
                           title: '@${controller.nickname} - TurqApp',
-                          subject: 'TurqApp Profili',
+                          subject: 'profile.profile_share_title'.tr,
                         );
                       });
                     },
-                    title: 'Paylaş',
+                    title: 'common.share'.tr,
                     icon: CupertinoIcons.share_up,
                   ),
                   if (!_isBlockedByMe(widget.userID))
@@ -113,7 +113,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         controller.centeredIndex.value = -1;
                         controller.block();
                       },
-                      title: 'Engelle',
+                      title: 'common.block'.tr,
                       icon: CupertinoIcons.xmark_circle,
                     ),
                   if (_isBlockedByMe(widget.userID))
@@ -122,7 +122,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         controller.centeredIndex.value = -1;
                         controller.unblock();
                       },
-                      title: "Engeli Kaldır",
+                      title: 'profile.unblock'.tr,
                       icon: CupertinoIcons.xmark_circle,
                     ),
                   PullDownMenuItem(
@@ -139,7 +139,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         controller.getUserData();
                       });
                     },
-                    title: 'Şikayet Et',
+                    title: 'common.report'.tr,
                     icon: CupertinoIcons.shield,
                   ),
                 ],
@@ -184,8 +184,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   controller.takipEdiyorum.value == false &&
                   widget.userID != _myUserId;
               if (isPrivateBlocked) {
-                AppSnackbar("Gizli hesap",
-                    "Hikayeleri görmek için önce takip etmeniz gerekir.");
+                AppSnackbar('profile.private_account_title'.tr,
+                    'profile.private_story_follow_required'.tr);
                 return;
               }
 
@@ -300,10 +300,11 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                               controller.toggleFollowStatus();
                             } else {
                               noYesAlert(
-                                title: "Takipten Çık",
-                                message:
-                                    "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz ?",
-                                yesText: "Takipten Çık",
+                                title: 'profile.unfollow_title'.tr,
+                                message: 'profile.unfollow_body'.trParams({
+                                  'nickname': controller.nickname.value,
+                                }),
+                                yesText: 'profile.unfollow_confirm'.tr,
                                 onYesPressed: () {
                                   _setCenteredIndex(-1);
                                   controller.toggleFollowStatus();
@@ -340,8 +341,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                               )
                             : Text(
                                 controller.takipEdiyorum.value
-                                    ? "Takiptesin"
-                                    : "Takip Et",
+                                    ? 'profile.following_status'.tr
+                                    : 'profile.follow_button'.tr,
                                 style: TextStyle(
                                   color: controller.takipEdiyorum.value
                                       ? Colors.black
@@ -403,7 +404,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     height: 30,
                     child: Center(
                       child: Text(
-                        "Mesaj",
+                        'common.message'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 13,
@@ -463,8 +464,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                                 Container(
                                   alignment: Alignment.center,
                                   margin: const EdgeInsets.only(bottom: 12),
-                                  child: const Text(
-                                    "İletişim Seçenekleri",
+                                  child: Text(
+                                    'profile.contact_options'.tr,
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 16,
@@ -575,11 +576,11 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       padding: EdgeInsets.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const SizedBox(
+                    child: SizedBox(
                       height: 30,
                       child: Center(
                         child: Text(
-                          'İletişim',
+                          'common.contact'.tr,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.black,
@@ -616,7 +617,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           height: 30,
           child: Center(
             child: Text(
-              "Engeli Kaldır",
+              'profile.unblock'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 13,
@@ -693,11 +694,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     final myUid = FirebaseAuth.instance.currentUser?.uid;
                     if (widget.userID == myUid) {
                       noYesAlert(
-                        title: "Öne Çıkarılanı Kaldır",
-                        message:
-                            "Bu öne çıkarılanı kaldırmak istediğinizden emin misiniz?",
-                        cancelText: "Vazgeç",
-                        yesText: "Kaldır",
+                        title: 'profile.remove_highlight_title'.tr,
+                        message: 'profile.remove_highlight_body'.tr,
+                        cancelText: 'common.cancel'.tr,
+                        yesText: 'profile.remove_highlight_confirm'.tr,
                         onYesPressed: () {
                           hlController.deleteHighlight(hl.id);
                         },

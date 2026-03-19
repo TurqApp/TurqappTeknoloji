@@ -107,8 +107,8 @@ class PostCommentContent extends StatelessWidget {
                             color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Gönderiliyor',
+                          child: Text(
+                            'comments.sending'.tr,
                             style: TextStyle(
                               color: Colors.orange,
                               fontSize: 10,
@@ -173,12 +173,12 @@ class PostCommentContent extends StatelessWidget {
                             onReplyTap?.call(
                               model.docID,
                               controller.nickname.value.trim().isEmpty
-                                  ? 'kullanıcı'
+                                  ? 'common.unknown_user'.tr
                                   : controller.nickname.value.trim(),
                             );
                           },
                           child: Text(
-                            'Yanıtla',
+                            'comments.reply'.tr,
                             style: TextStyle(
                               color: Colors.black54,
                               fontSize: 12,
@@ -192,7 +192,7 @@ class PostCommentContent extends StatelessWidget {
                             behavior: HitTestBehavior.opaque,
                             onTap: () => _confirmDelete(controller),
                             child: Text(
-                              'Sil',
+                              'common.delete'.tr,
                               style: TextStyle(
                                 color: AppColors.deleteText,
                                 fontSize: 12,
@@ -249,12 +249,14 @@ class PostCommentContent extends StatelessWidget {
 
   void _confirmDelete(PostCommentContentController controller) {
     noYesAlert(
-      title: 'Sil',
-      message: 'Bu yorumu silmek istediğinizden emin misiniz?',
+      title: 'common.delete'.tr,
+      message: 'comments.delete_message'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'common.delete'.tr,
       onYesPressed: () async {
         final ok = await controller.deleteComment();
         if (!ok) {
-          AppSnackbar('Hata', 'Yorum silinemedi.');
+          AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
         }
       },
     );

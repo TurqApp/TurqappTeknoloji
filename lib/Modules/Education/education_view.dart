@@ -64,9 +64,34 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 class EducationView extends StatelessWidget {
   EducationView({super.key});
 
-  final EducationController controller = Get.put(EducationController());
+  final EducationController controller = Get.isRegistered<EducationController>()
+      ? Get.find<EducationController>()
+      : Get.put(EducationController(), permanent: true);
 
   String _titleForIndex(int actualIndex) => controller.titles[actualIndex];
+
+  String _localizedPasajTitle(String title) {
+    switch (title) {
+      case "Burslar":
+        return 'pasaj.tabs.scholarships'.tr;
+      case "Mabil Pazar":
+        return 'pasaj.tabs.market'.tr;
+      case "Soru Bankası":
+        return 'pasaj.tabs.question_bank'.tr;
+      case "Denemeler":
+        return 'pasaj.tabs.practice_exams'.tr;
+      case "Online Sınav":
+        return 'pasaj.tabs.online_exam'.tr;
+      case "Cevap Anahtarı":
+        return 'pasaj.tabs.answer_key'.tr;
+      case "Özel Ders":
+        return 'pasaj.tabs.tutoring'.tr;
+      case "İş Veren":
+        return 'pasaj.tabs.job_finder'.tr;
+      default:
+        return title;
+    }
+  }
 
   void _focusGlobalSearch() {
     controller.isSearchMode.value = true;
@@ -78,7 +103,7 @@ class EducationView extends StatelessWidget {
       return null;
     }
     if (!Get.isRegistered<MarketController>()) {
-      Get.put(MarketController());
+      Get.put(MarketController(), permanent: true);
     }
     return Get.find<MarketController>();
   }
@@ -92,7 +117,7 @@ class EducationView extends StatelessWidget {
   JobFinderController? _activeJobFinderController() {
     if (_titleForIndex(controller.selectedTab.value) != "İş Veren") return null;
     if (!Get.isRegistered<JobFinderController>()) {
-      Get.put(JobFinderController());
+      Get.put(JobFinderController(), permanent: true);
     }
     return Get.find<JobFinderController>();
   }
@@ -108,7 +133,7 @@ class EducationView extends StatelessWidget {
       return null;
     }
     if (!Get.isRegistered<DenemeSinavlariController>()) {
-      Get.put(DenemeSinavlariController());
+      Get.put(DenemeSinavlariController(), permanent: true);
     }
     return Get.find<DenemeSinavlariController>();
   }
@@ -124,7 +149,7 @@ class EducationView extends StatelessWidget {
       return null;
     }
     if (!Get.isRegistered<AnswerKeyController>()) {
-      Get.put(AnswerKeyController());
+      Get.put(AnswerKeyController(), permanent: true);
     }
     return Get.find<AnswerKeyController>();
   }
@@ -139,7 +164,7 @@ class EducationView extends StatelessWidget {
     if (_titleForIndex(controller.selectedTab.value) != "Özel Ders")
       return null;
     if (!Get.isRegistered<TutoringController>()) {
-      Get.put(TutoringController());
+      Get.put(TutoringController(), permanent: true);
     }
     return Get.find<TutoringController>();
   }
@@ -148,7 +173,7 @@ class EducationView extends StatelessWidget {
     if (_titleForIndex(controller.selectedTab.value) != "Özel Ders")
       return null;
     if (!Get.isRegistered<TutoringFilterController>()) {
-      Get.put(TutoringFilterController());
+      Get.put(TutoringFilterController(), permanent: true);
     }
     return Get.find<TutoringFilterController>();
   }
@@ -350,12 +375,12 @@ class EducationView extends StatelessWidget {
       case "Burslar":
         return [
           PullDownMenuItem(
-            title: 'Ara',
+            title: 'common.search'.tr,
             icon: CupertinoIcons.search,
             onTap: _focusGlobalSearch,
           ),
           PullDownMenuItem(
-            title: 'Ayarlar',
+            title: 'settings.title'.tr,
             icon: CupertinoIcons.gear,
             onTap: () {
               if (Get.isRegistered<ScholarshipsController>()) {
@@ -364,12 +389,12 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Başvurular',
+            title: 'common.applications'.tr,
             icon: CupertinoIcons.doc_plaintext,
             onTap: () => Get.to(() => ApplicationsView()),
           ),
           PullDownMenuItem(
-            title: 'Burs Oluştur',
+            title: 'scholarship.create_title'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
@@ -382,7 +407,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'İlanlarım',
+            title: 'scholarship.my_listings'.tr,
             icon: CupertinoIcons.doc_text,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
@@ -394,12 +419,12 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Kaydedilenler',
+            title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
             onTap: () => Get.to(() => SavedItemsView()),
           ),
           PullDownMenuItem(
-            title: 'Sana Özel',
+            title: 'explore.tab.for_you'.tr,
             icon: CupertinoIcons.star,
             onTap: () => Get.to(PersonalizedView()),
           ),
@@ -407,7 +432,7 @@ class EducationView extends StatelessWidget {
       case "Soru Bankası":
         return [
           PullDownMenuItem(
-            title: 'Ana Kategori Değiştir',
+            title: 'education.change_main_category'.tr,
             icon: CupertinoIcons.square_grid_2x2,
             onTap: () {
               final antController = Get.isRegistered<AntremanController>()
@@ -417,7 +442,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Sonra Çöz',
+            title: 'pasaj.question_bank.solve_later'.tr,
             icon: CupertinoIcons.repeat,
             onTap: () => Get.to(() => ThenSolve()),
           ),
@@ -425,12 +450,12 @@ class EducationView extends StatelessWidget {
       case "Mabil Pazar":
         return [
           PullDownMenuItem(
-            title: 'Ara',
+            title: 'common.search'.tr,
             icon: CupertinoIcons.search,
             onTap: () => Get.to(() => const MarketSearchView()),
           ),
           PullDownMenuItem(
-            title: 'İlan Ekle',
+            title: 'pasaj.market.add_listing'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
@@ -441,7 +466,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'İlanlarım',
+            title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.cube_box,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
@@ -450,7 +475,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Beğendiklerim',
+            title: 'pasaj.market.saved_items'.tr,
             icon: CupertinoIcons.hand_thumbsup,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
@@ -459,7 +484,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Tekliflerim',
+            title: 'pasaj.market.my_offers'.tr,
             icon: CupertinoIcons.tag,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
@@ -468,12 +493,12 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Slider Yönetimi',
+            title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
             onTap: () => Get.to(
-              () => const SliderAdminView(
+              () => SliderAdminView(
                 sliderId: 'market',
-                title: 'Mabil Pazar',
+                title: 'pasaj.tabs.market'.tr,
               ),
             ),
           ),
@@ -482,16 +507,16 @@ class EducationView extends StatelessWidget {
         return [
           PullDownMenuItem(
             icon: Icons.history,
-            title: 'Sonuçlarım',
+            title: 'pasaj.common.my_results'.tr,
             onTap: () => Get.to(() => CikmisSoruSonuclar()),
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
-            title: 'Slider Yönetimi',
+            title: 'pasaj.common.slider_admin'.tr,
             onTap: () => Get.to(
-              () => const SliderAdminView(
+              () => SliderAdminView(
                 sliderId: 'denemeler',
-                title: 'Denemeler',
+                title: 'pasaj.tabs.practice_exams'.tr,
               ),
             ),
           ),
@@ -500,12 +525,12 @@ class EducationView extends StatelessWidget {
         return [
           PullDownMenuItem(
             icon: CupertinoIcons.search,
-            title: 'Ara',
+            title: 'common.search'.tr,
             onTap: () => Get.to(() => SearchDeneme()),
           ),
           PullDownMenuItem(
             icon: Icons.add,
-            title: 'Oluştur',
+            title: 'common.create'.tr,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
                 minimumRozet: 'Sarı',
@@ -517,49 +542,49 @@ class EducationView extends StatelessWidget {
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
-            title: 'Slider Yönetimi',
+            title: 'pasaj.common.slider_admin'.tr,
             onTap: () => Get.to(
-              () => const SliderAdminView(
+              () => SliderAdminView(
                 sliderId: 'online_sinav',
-                title: 'Online Sınav',
+                title: 'pasaj.tabs.online_exam'.tr,
               ),
             ),
           ),
           PullDownMenuItem(
             icon: Icons.history,
-            title: 'Sonuçlarım',
+            title: 'pasaj.common.my_results'.tr,
             onTap: () => Get.to(() => SinavSonuclarim()),
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.doc_text,
-            title: 'Yayınladıklarım',
+            title: 'pasaj.common.published'.tr,
             onTap: () => Get.to(() => const MyPracticeExams()),
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.bookmark,
-            title: 'Kaydedilenler',
+            title: 'common.saved'.tr,
             onTap: () => Get.to(() => const SavedPracticeExams()),
           ),
         ];
       case "Cevap Anahtarı":
         return [
           PullDownMenuItem(
-            title: 'Ara',
+            title: 'common.search'.tr,
             icon: CupertinoIcons.search,
             onTap: () => Get.to(() => const SearchAnswerKey()),
           ),
           PullDownMenuItem(
-            title: 'Kaydedilenler',
+            title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
             onTap: () => Get.to(SavedOpticalForms()),
           ),
           PullDownMenuItem(
-            title: 'Katıl',
+            title: 'pasaj.answer_key.join'.tr,
             icon: CupertinoIcons.arrow_right,
             onTap: () => Get.to(OpticalFormEntry()),
           ),
           PullDownMenuItem(
-            title: 'Oluştur',
+            title: 'common.create'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(AnswerKeyCreatingOption(
               onBack: () {
@@ -570,22 +595,22 @@ class EducationView extends StatelessWidget {
             )),
           ),
           PullDownMenuItem(
-            title: 'Sonuçlarım',
+            title: 'pasaj.common.my_results'.tr,
             icon: CupertinoIcons.chart_bar_square,
             onTap: () => Get.to(MyBookletResults()),
           ),
           PullDownMenuItem(
-            title: 'Slider Yönetimi',
+            title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
             onTap: () => Get.to(
-              () => const SliderAdminView(
+              () => SliderAdminView(
                 sliderId: 'cevap_anahtari',
-                title: 'Cevap Anahtarı',
+                title: 'pasaj.tabs.answer_key'.tr,
               ),
             ),
           ),
           PullDownMenuItem(
-            title: 'Yayınladıklarım',
+            title: 'pasaj.common.published'.tr,
             icon: CupertinoIcons.book,
             onTap: () => Get.to(OpticsAndBooksPublished()),
           ),
@@ -593,42 +618,42 @@ class EducationView extends StatelessWidget {
       case "Özel Ders":
         return [
           PullDownMenuItem(
-            title: 'Ara',
+            title: 'common.search'.tr,
             icon: CupertinoIcons.search,
             onTap: () => Get.to(() => const TutoringSearch()),
           ),
           PullDownMenuItem(
-            title: 'Başvurularım',
+            title: 'pasaj.common.my_applications'.tr,
             icon: CupertinoIcons.doc_text_search,
             onTap: () => Get.to(() => MyTutoringApplications()),
           ),
           PullDownMenuItem(
-            title: 'İlan Ver',
+            title: 'pasaj.common.post_listing'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(CreateTutoringView()),
           ),
           PullDownMenuItem(
-            title: 'İlanlarım',
+            title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.list_bullet,
             onTap: () => Get.to(MyTutorings()),
           ),
           PullDownMenuItem(
-            title: 'Kaydedilenler',
+            title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
             onTap: () => Get.to(() => SavedTutorings()),
           ),
           PullDownMenuItem(
-            title: 'Bölgemdeki İlanlar',
+            title: 'pasaj.tutoring.nearby_listings'.tr,
             icon: CupertinoIcons.location_solid,
             onTap: () => Get.to(() => LocationBasedTutoring()),
           ),
           PullDownMenuItem(
-            title: 'Slider Yönetimi',
+            title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
             onTap: () => Get.to(
-              () => const SliderAdminView(
+              () => SliderAdminView(
                 sliderId: 'ozel_ders',
-                title: 'Özel Ders',
+                title: 'pasaj.tabs.tutoring'.tr,
               ),
             ),
           ),
@@ -636,17 +661,17 @@ class EducationView extends StatelessWidget {
       case "İş Veren":
         return [
           PullDownMenuItem(
-            title: 'Ara',
+            title: 'common.search'.tr,
             icon: CupertinoIcons.search,
             onTap: _focusGlobalSearch,
           ),
           PullDownMenuItem(
-            title: 'Başvurularım',
+            title: 'pasaj.common.my_applications'.tr,
             icon: CupertinoIcons.doc_text_search,
             onTap: () => Get.to(() => MyApplications()),
           ),
           PullDownMenuItem(
-            title: 'İlan Ver',
+            title: 'pasaj.common.post_listing'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
@@ -658,7 +683,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'İlanlarım',
+            title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.doc_text,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
@@ -670,22 +695,22 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Kariyer Profili',
+            title: 'pasaj.job_finder.career_profile'.tr,
             icon: CupertinoIcons.person_crop_circle,
             onTap: () => Get.to(() => CareerProfile()),
           ),
           PullDownMenuItem(
-            title: 'Kaydedilenler',
+            title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
             onTap: () => Get.to(() => SavedJobs()),
           ),
           PullDownMenuItem(
-            title: 'Slider Yönetimi',
+            title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
             onTap: () => Get.to(
-              () => const SliderAdminView(
+              () => SliderAdminView(
                 sliderId: 'is_bul',
-                title: 'İş Veren',
+                title: 'pasaj.tabs.job_finder'.tr,
               ),
             ),
           ),
@@ -734,7 +759,7 @@ class EducationView extends StatelessWidget {
                           child: TurqSearchBar(
                             controller: controller.searchController,
                             focusNode: controller.searchFocus,
-                            hintText: "Ara",
+                            hintText: "common.search".tr,
                             onTap: () {
                               if (_titleForIndex(
                                       controller.selectedTab.value) ==
@@ -929,7 +954,9 @@ class EducationView extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                controller.titles[actualIndex],
+                                _localizedPasajTitle(
+                                  controller.titles[actualIndex],
+                                ),
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 14,
@@ -953,9 +980,9 @@ class EducationView extends StatelessWidget {
                   child: Obx(() {
                     if (!controller.hasVisibleTabs &&
                         controller.pasajConfigLoaded.value) {
-                      return const Center(
+                      return Center(
                         child: Text(
-                          "Pasaj şu anda kapalı",
+                          "pasaj.closed".tr,
                           style: TextStyle(
                             color: Colors.black54,
                             fontSize: 16,
@@ -994,7 +1021,8 @@ class EducationView extends StatelessWidget {
                               final marketController =
                                   Get.isRegistered<MarketController>()
                                       ? Get.find<MarketController>()
-                                      : Get.put(MarketController());
+                                      : Get.put(MarketController(),
+                                          permanent: true);
                               return MarketView(
                                 embedded: true,
                                 showEmbeddedControls: false,
@@ -1067,6 +1095,10 @@ class EducationView extends StatelessWidget {
                       child: ActionButton(
                         context: context,
                         menuItems: menuItems,
+                        size: 56,
+                        lift: 62,
+                        backgroundColor: Colors.green,
+                        iconColor: Colors.white,
                         permissionScope: switch (
                             _titleForIndex(controller.selectedTab.value)) {
                           "Burslar" => ActionButtonPermissionScope.scholarships,

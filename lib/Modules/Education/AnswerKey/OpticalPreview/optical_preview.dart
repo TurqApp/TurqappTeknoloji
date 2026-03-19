@@ -309,7 +309,8 @@ class OpticalPreview extends StatelessWidget {
                                           keyboardType: TextInputType.text,
                                           textAlign: TextAlign.center,
                                           decoration: InputDecoration(
-                                            hintText: "Ad Soyad",
+                                            hintText:
+                                                "answer_key.full_name_hint".tr,
                                             hintStyle: TextStyle(
                                               color: Colors.grey,
                                               fontFamily: "MontserratMedium",
@@ -345,7 +346,9 @@ class OpticalPreview extends StatelessWidget {
                                           keyboardType: TextInputType.number,
                                           textAlign: TextAlign.center,
                                           decoration: InputDecoration(
-                                            hintText: "Öğrenci Numaranız",
+                                            hintText:
+                                                "answer_key.student_number_hint"
+                                                    .tr,
                                             hintStyle: TextStyle(
                                               color: Colors.grey,
                                               fontFamily: "MontserratMedium",

@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 import '../../Core/Services/video_state_manager.dart';
@@ -44,7 +44,7 @@ class AgendaController extends GetxController {
       Get.isRegistered<UserProfileCacheService>()
           ? Get.find<UserProfileCacheService>()
           : Get.put(UserProfileCacheService(), permanent: true);
-  UserRepository get _userRepository => UserRepository.ensure();
+  UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
   PostRepository get _postRepository => PostRepository.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
@@ -210,16 +210,15 @@ class AgendaController extends GetxController {
     );
     if (publicIzBirakPosts.isEmpty) return const <PostsModel>[];
 
-    final authorMeta = await _userRepository.getUsersRaw(
+    final authorMeta = await _userSummaryResolver.resolveMany(
       publicIzBirakPosts.map((p) => p.userID).toSet().toList(),
       preferCache: effectivePreferCache,
       cacheOnly: cacheOnly,
     );
     return publicIzBirakPosts.where((post) {
       final meta = authorMeta[post.userID];
-      final rozet = (meta?['rozet'] ?? '').toString().trim();
-      final isApproved =
-          (meta?['isApproved'] ?? meta?['hesapOnayi'] ?? false) == true;
+      final rozet = meta?.rozet.trim() ?? '';
+      final isApproved = meta?.isApproved == true;
       if (rozet.isEmpty && !isApproved) return false;
       return true;
     }).toList(growable: false);

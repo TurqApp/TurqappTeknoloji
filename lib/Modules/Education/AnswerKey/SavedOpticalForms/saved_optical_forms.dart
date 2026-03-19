@@ -17,7 +17,7 @@ class SavedOpticalForms extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kaydedilenler"),
+            BackButtons(text: 'common.saved'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Obx(
@@ -25,10 +25,10 @@ class SavedOpticalForms extends StatelessWidget {
                       ? const Center(child: CupertinoActivityIndicator())
                       : Obx(
                           () => controller.list.isEmpty
-                              ? const Padding(
-                                  padding: EdgeInsets.all(15),
+                              ? Padding(
+                                  padding: const EdgeInsets.all(15),
                                   child: Text(
-                                    "Kaydedilen kitap yok.",
+                                    'answer_key.saved_empty'.tr,
                                     style: TextStyle(
                                       fontFamily: "MontserratMedium",
                                       fontSize: 16,

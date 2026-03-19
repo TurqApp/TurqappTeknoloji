@@ -104,9 +104,9 @@ class _PostReshareListingState extends State<PostReshareListing> {
                         fontSize: 13,
                         fontFamily: 'MontserratMedium',
                       ),
-                      tabs: const [
-                        Tab(text: 'Yeniden Paylaşanlar'),
-                        Tab(text: 'Alıntılayanlar'),
+                      tabs: [
+                        Tab(text: 'profile.reshare_users_tab'.tr),
+                        Tab(text: 'profile.quote_users_tab'.tr),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -117,14 +117,14 @@ class _PostReshareListingState extends State<PostReshareListing> {
                             users: controller.reshareUsers,
                             isLoading: controller.isLoadingReshares,
                             isLoadingMore: controller.isLoadingMoreReshares,
-                            emptyText: 'Henüz yeniden paylaşım yok',
+                            emptyText: 'profile.no_reshares'.tr,
                             scrollController: controller.reshareScrollController,
                           ),
                           _buildList(
                             users: controller.quoteUsers,
                             isLoading: controller.isLoadingQuotes,
                             isLoadingMore: controller.isLoadingMoreQuotes,
-                            emptyText: 'Henüz alıntı yok',
+                            emptyText: 'profile.no_quotes'.tr,
                             scrollController: controller.quoteScrollController,
                           ),
                         ],
@@ -149,8 +149,8 @@ class _PostReshareListingState extends State<PostReshareListing> {
           ),
         ),
         12.pw,
-        const Text(
-          'Paylaşanlar',
+        Text(
+          'short.shared_as_post_by'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 16,

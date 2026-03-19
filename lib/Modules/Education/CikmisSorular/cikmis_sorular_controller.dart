@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_model.dart';
 
 class CikmisSorularController extends GetxController {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularSnapshotRepository _snapshotRepository =
+      CikmisSorularSnapshotRepository.ensure();
 
   final covers = <Map<String, dynamic>>[].obs;
   final searchResults = <Map<String, dynamic>>[].obs;
@@ -17,6 +19,8 @@ class CikmisSorularController extends GetxController {
 
   Timer? _searchDebounce;
   int _searchToken = 0;
+  StreamSubscription<CachedResource<List<Map<String, dynamic>>>>?
+      _homeSnapshotSub;
 
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
@@ -27,17 +31,11 @@ class CikmisSorularController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    try {
-      final cachedItems = await _repository.fetchCovers(cacheOnly: true);
-      if (cachedItems.isNotEmpty) {
-        _assignCovers(cachedItems);
-        isLoading.value = false;
-        await refreshData(silent: true);
-        return;
-      }
-    } catch (_) {}
-
-    await refreshData();
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _snapshotRepository
+        .openHome(userId: userId)
+        .listen(_applyHomeSnapshotResource);
   }
 
   Future<void> refreshData({bool silent = false}) async {
@@ -46,8 +44,12 @@ class CikmisSorularController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final items = await _repository.fetchCovers();
-      _assignCovers(items);
+      final resource = await _snapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        forceSync: !silent,
+      );
+      final items = resource.data ?? const <Map<String, dynamic>>[];
+      _assignCoverDocs(items);
     } finally {
       if (shouldShowLoader || covers.isEmpty) {
         isLoading.value = false;
@@ -55,7 +57,7 @@ class CikmisSorularController extends GetxController {
     }
   }
 
-  void _assignCovers(List<CikmisSorularCoverModel> rawItems) {
+  void _assignCoverDocs(List<Map<String, dynamic>> rawDocs) {
     const baslikSirasi = <String>[
       'LGS',
       'YKS',
@@ -66,7 +68,16 @@ class CikmisSorularController extends GetxController {
       'TUS',
       'DUS',
     ];
-    final items = rawItems.toList(growable: true);
+    final items = rawDocs
+        .map(
+          (doc) => CikmisSorularCoverModel(
+            anaBaslik: (doc['anaBaslik'] ?? '').toString(),
+            docID: (doc['_docId'] ?? '').toString(),
+            sinavTuru: (doc['sinavTuru'] ?? '').toString(),
+          ),
+        )
+        .where((item) => item.anaBaslik.isNotEmpty)
+        .toList(growable: true);
     items.sort((a, b) {
       var indexA = baslikSirasi.indexOf(a.anaBaslik);
       var indexB = baslikSirasi.indexOf(b.anaBaslik);
@@ -107,17 +118,17 @@ class CikmisSorularController extends GetxController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
-        entity: EducationTypesenseEntity.pastQuestion,
+      final resource = await _snapshotRepository.search(
         query: normalized,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
 
-      final docs = await _repository.fetchRootDocsByIds(docIds);
+      final docs = resource.data ?? const <Map<String, dynamic>>[];
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
@@ -136,7 +147,25 @@ class CikmisSorularController extends GetxController {
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
     super.onClose();
+  }
+
+  void _applyHomeSnapshotResource(
+    CachedResource<List<Map<String, dynamic>>> resource,
+  ) {
+    final docs = resource.data ?? const <Map<String, dynamic>>[];
+    if (docs.isNotEmpty) {
+      _assignCoverDocs(docs);
+    }
+
+    if (!resource.isRefreshing || docs.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (covers.isEmpty) {
+      isLoading.value = true;
+    }
   }
 }

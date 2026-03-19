@@ -6,10 +6,11 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class MyScholarshipController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -25,7 +26,7 @@ class MyScholarshipController extends GetxController {
   Future<void> _bootstrapMyScholarships() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
       return;
     }
@@ -60,7 +61,7 @@ class MyScholarshipController extends GetxController {
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
       return;
     }
@@ -79,7 +80,7 @@ class MyScholarshipController extends GetxController {
       myScholarships.value = await _buildScholarshipCards(rawScholarships);
       SilentRefreshGate.markRefreshed('scholarships:mine:${user.uid}');
     } catch (e) {
-      AppSnackbar('Hata', 'Veriler yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
     } finally {
       if (shouldShowLoader || myScholarships.isEmpty) {
         isLoading.value = false;
@@ -100,22 +101,18 @@ class MyScholarshipController extends GetxController {
 
     final userDataMap = <String, Map<String, dynamic>>{};
     final fetchedUsers = userIds.isEmpty
-        ? <String, Map<String, dynamic>>{}
-        : await _userRepository.getUsersRaw(
+        ? <String, UserSummary>{}
+        : await _userSummaryResolver.resolveMany(
             userIds.toList(),
             preferCache: true,
             cacheOnly: userCacheOnly,
           );
     for (final entry in fetchedUsers.entries) {
       final user = entry.value;
-      final profileImage = (user['avatarUrl'] ?? '').toString();
-      final profileName =
-          (user['displayName'] ?? user['username'] ?? user['nickname'] ?? '')
-              .toString();
       userDataMap[entry.key] = {
-        'avatarUrl': profileImage,
-        'nickname': profileName,
-        'displayName': profileName,
+        'avatarUrl': user.avatarUrl,
+        'nickname': user.nickname,
+        'displayName': user.preferredName,
         'userID': entry.key,
       };
     }
@@ -138,7 +135,7 @@ class MyScholarshipController extends GetxController {
           'docId': (data['docId'] ?? '').toString(),
         });
       } catch (_) {
-        AppSnackbar('Hata', 'Burs verisi işlenemedi.');
+        AppSnackbar('common.error'.tr, 'common.item_process_failed'.tr);
       }
     }
     return scholarships;

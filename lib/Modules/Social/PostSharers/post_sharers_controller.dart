@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/post_sharers_model.dart';
 
 class PostSharersController extends GetxController {
@@ -19,7 +19,7 @@ class PostSharersController extends GetxController {
   final RxBool isLoadingMore = false.obs;
   final RxBool hasMore = true.obs;
   final ScrollController scrollController = ScrollController();
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PostRepository _postRepository = PostRepository.ensure();
   DocumentSnapshot<Map<String, dynamic>>? _lastSharerDoc;
   String _resolvedPostId = '';
@@ -164,41 +164,28 @@ class PostSharersController extends GetxController {
     try {
       final userData = Map<String, Map<String, dynamic>>.from(usersData);
       final rawUsers =
-          await _userRepository.getUsersRaw(userIDs.toSet().toList());
+          await _userSummaryResolver.resolveMany(userIDs.toSet().toList());
       for (final userID in userIDs.toSet()) {
         final data = rawUsers[userID];
         if (data == null) {
           userData[userID] = {
-            'nickname': 'Bilinmeyen Kullanıcı',
+            'nickname': 'common.unknown_user'.tr,
             'avatarUrl': '',
-            'fullName': 'Bilinmeyen Kullanıcı',
+            'fullName': 'common.unknown_user'.tr,
             'firstName': '',
             'lastName': '',
           };
           continue;
         }
-        final profile = (data['profile'] is Map)
-            ? Map<String, dynamic>.from(data['profile'] as Map)
-            : const <String, dynamic>{};
-        final firstName = (data['firstName'] ?? '').toString();
-        final lastName = (data['lastName'] ?? '').toString();
-        final fullName = ('$firstName $lastName').trim();
-        final nickname = [
-          (data['nickname'] ?? '').toString().trim(),
-          (profile['nickname'] ?? '').toString().trim(),
-          (data['username'] ?? '').toString().trim(),
-          (profile['username'] ?? '').toString().trim(),
-          (data['usernameLower'] ?? '').toString().trim(),
-          (profile['usernameLower'] ?? '').toString().trim(),
-          (data['displayName'] ?? '').toString().trim(),
-        ].firstWhere((item) => item.isNotEmpty, orElse: () => '');
+        final fullName = data.displayName.trim();
+        final nickname = data.nickname.trim();
 
         userData[userID] = {
           'nickname': nickname,
-          'avatarUrl': (data['avatarUrl'] ?? '').toString(),
-          'fullName': fullName.isNotEmpty ? fullName : 'Bilinmeyen Kullanıcı',
-          'firstName': firstName,
-          'lastName': lastName,
+          'avatarUrl': data.avatarUrl,
+          'fullName': fullName.isNotEmpty ? fullName : 'common.unknown_user'.tr,
+          'firstName': fullName,
+          'lastName': '',
         };
       }
 

@@ -157,9 +157,9 @@ class StoryCommentUser extends StatelessWidget {
                       child: IconButton(
                         onPressed: () {
                           noYesAlert(
-                              title: "Sil",
+                              title: 'common.delete'.tr,
                               message:
-                                  "Bu yorumu silmek istediğinizden emin misiniz ?",
+                                  'story.comment_delete_message'.tr,
                               onYesPressed: () {
                                 final store = Get.find<StoryCommentsController>(
                                     tag: storyID);

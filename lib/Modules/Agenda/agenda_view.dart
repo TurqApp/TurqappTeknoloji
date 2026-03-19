@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../Models/posts_model.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
@@ -101,6 +102,7 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    unawaited(AdmobBannerWarmupService.ensure().warmForFeedEntry());
     if (GetPlatform.isAndroid && !_androidVisibilityTuned) {
       // Feed'de fazla sık visibility callback'i scroll sırasında jank üretebiliyor.
       VisibilityDetectorController.instance.updateInterval =

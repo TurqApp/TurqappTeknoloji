@@ -19,7 +19,9 @@ class StorySeens extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
               child: AppSheetHeader(
-                title: "Görüntüleme (${controller.totalSeen})",
+                title: 'story.seens_title'.trParams({
+                  'count': '${controller.totalSeen}',
+                }),
               ),
             ),
             Expanded(
@@ -32,7 +34,7 @@ class StorySeens extends StatelessWidget {
                       },
                     )
                   : Center(
-                      child: EmptyRow(text: "Kimse hikayeni görüntülemedi"),
+                      child: EmptyRow(text: 'story.no_seens'.tr),
                     ),
             )
           ],

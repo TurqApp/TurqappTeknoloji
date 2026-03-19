@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik2_secimi.dart';
@@ -28,7 +29,37 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> yillar = [];
 
-  String _denemeLabel(int index) => "Deneme ${index + 1}";
+  String _denemeLabel(int index) =>
+      'past_questions.mock_label'.trParams({'index': '${index + 1}'});
+
+  String _localizedExamType(String raw) {
+    switch (raw) {
+      case 'İngilizce':
+        return 'tests.language.english'.tr;
+      case 'Almanca':
+        return 'tests.language.german'.tr;
+      case 'Arapça':
+        return 'tests.language.arabic'.tr;
+      case 'Fransızca':
+        return 'tests.language.french'.tr;
+      case 'Rusça':
+        return 'tests.language.russian'.tr;
+      case 'Ön Lisans':
+        return 'past_questions.exam_type.associate'.tr;
+      case 'Lisans':
+        return 'past_questions.exam_type.undergraduate'.tr;
+      case 'GK - GY':
+        return 'past_questions.branch.general_ability_culture'.tr;
+      case 'A Grubu':
+        return 'past_questions.branch.group_a'.tr;
+      case 'Eğitim Bilimleri':
+        return 'past_questions.branch.education_sciences'.tr;
+      case 'Alan Bilgisi':
+        return 'past_questions.branch.field_knowledge'.tr;
+      default:
+        return raw;
+    }
+  }
 
   @override
   void initState() {
@@ -82,7 +113,10 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "${widget.sinavTuru} Denemeleri"),
+            BackButtons(
+              text: 'past_questions.tests_by_type'
+                  .trParams({'type': _localizedExamType(widget.sinavTuru)}),
+            ),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -311,35 +345,66 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                         ),
                                       ],
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        children: [
-                                          Expanded(
-                                            child: Center(
-                                              child: Text(
-                                                widget.sinavTuru,
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 22,
-                                                  fontFamily: "MontserratBold",
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final compact =
+                                            constraints.maxHeight < 110;
+                                        return Padding(
+                                          padding: EdgeInsets.all(
+                                            compact ? 12 : 16,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Expanded(
+                                                child: Center(
+                                                  child: SizedBox(
+                                                    width: double.infinity,
+                                                    child: FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      child: Text(
+                                                        _localizedExamType(
+                                                          widget.sinavTuru,
+                                                        ),
+                                                        textScaler: TextScaler
+                                                            .noScaling,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 22,
+                                                          fontFamily:
+                                                              "MontserratBold",
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                              SizedBox(
+                                                height: compact ? 4 : 6,
+                                              ),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    _denemeLabel(index),
+                                                    textScaler: TextScaler
+                                                        .noScaling,
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 16,
+                                                      fontFamily:
+                                                          "MontserratBold",
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            _denemeLabel(index),
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 16,
-                                              fontFamily: "MontserratBold",
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
                                   ),
                                   Padding(

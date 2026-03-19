@@ -1,13 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class SearchDenemeController extends GetxController {
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
+  final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
+      PracticeExamSnapshotRepository.ensure();
   final filteredList = <SinavModel>[].obs;
   final isLoading = false.obs;
   final TextEditingController searchController = TextEditingController();
@@ -37,15 +37,14 @@ class SearchDenemeController extends GetxController {
 
     isLoading.value = true;
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
-        entity: EducationTypesenseEntity.practiceExam,
+      final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (token != _searchToken) return;
-      final results = await _practiceExamRepository.fetchByIds(docIds);
-      if (token != _searchToken) return;
+      final results = resource.data ?? const <SinavModel>[];
       filteredList.assignAll(results);
     } finally {
       if (token == _searchToken) {

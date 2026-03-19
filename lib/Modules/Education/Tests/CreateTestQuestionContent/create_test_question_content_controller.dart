@@ -60,11 +60,11 @@ class CreateTestQuestionContentController extends GetxController {
     try {
       final nsfw = await OptimizedNSFWService.checkImage(imageFile);
       if (nsfw.errorMessage != null) {
-        AppSnackbar('Hata', 'Görsel güvenlik kontrolü tamamlanamadı.');
+        AppSnackbar('common.error'.tr, 'tests.nsfw_check_failed'.tr);
         return;
       }
       if (nsfw.isNSFW) {
-        AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+        AppSnackbar('common.error'.tr, 'tests.nsfw_detected'.tr);
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(

@@ -12,7 +12,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
       return Scaffold(
         body: Center(
           child: Text(
-            "Hata: Burs verisi bulunamadı.",
+            'scholarship.detail_missing'.tr,
             style: TextStyle(fontSize: 16, fontFamily: "MontserratMedium"),
           ),
         ),
@@ -32,7 +32,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
     final userNick = (userData['displayName'] ??
             userData['username'] ??
             userData['nickname'] ??
-            'Kullanıcı')
+            'common.user'.tr)
         .toString();
     // Yeni ScrollController tanımlıyoruz
     final ScrollController detailScrollController = ScrollController();
@@ -55,7 +55,9 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: BackButtons(text: "Burs Detayı")),
+                    Expanded(
+                      child: BackButtons(text: 'scholarship.detail_title'.tr),
+                    ),
                     EducationFeedShareIconButton(
                       onTap: () => shareService.shareScholarship(
                         scholarshipData,
@@ -75,9 +77,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                           ),
                           onTap: () {
                             noYesAlert(
-                              title: "Bursu Sil",
-                              message:
-                                  "Bu bursu silmek istediğinizden emin misiniz?",
+                              title: 'scholarship.delete_title'.tr,
+                              message: 'scholarship.delete_confirm'.tr,
                               onYesPressed: () async {
                                 await controller.deleteScholarship(
                                   scholarshipData['docId'] ??
@@ -192,7 +193,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "${model.baslik} BURS BAŞVURULARI",
+                                'scholarship.applications_heading'
+                                    .trParams({'title': model.baslik}),
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontFamily: "MontserratBold",

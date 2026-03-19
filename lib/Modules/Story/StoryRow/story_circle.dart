@@ -18,8 +18,14 @@ import 'package:turqappv2/Themes/app_colors.dart';
 class StoryCircle extends StatefulWidget {
   final StoryUserModel model;
   final List<StoryUserModel> users;
+  final bool isFirst;
 
-  StoryCircle({super.key, required this.model, required this.users});
+  StoryCircle({
+    super.key,
+    required this.model,
+    required this.users,
+    this.isFirst = false,
+  });
 
   @override
   State<StoryCircle> createState() => _StoryCircleState();
@@ -171,6 +177,32 @@ class _StoryCircleState extends State<StoryCircle> {
                   return Stack(
                     fit: StackFit.expand,
                     children: [
+                      if (widget.isFirst && hasStory)
+                        Positioned(
+                          left: -34,
+                          top: (_storyCircleSize / 2) - 2,
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 30),
+                            duration: const Duration(milliseconds: 900),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, width, child) {
+                              return Container(
+                                width: width,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFFB7D8FF).withAlpha(0),
+                                      const Color(0xFF6EB6FF),
+                                      const Color(0xFF0E5BFF),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       Container(
                         decoration: highlight
                             ? highlightRingDecoration

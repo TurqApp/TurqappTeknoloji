@@ -60,7 +60,7 @@ class DenemeTurleriListesiController extends GetxController {
       list.assignAll(items);
       SilentRefreshGate.markRefreshed('practice_exams:type:$sinavTuru');
     } catch (error) {
-      AppSnackbar("Hata", "Sınavlar yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'tests.exams_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;

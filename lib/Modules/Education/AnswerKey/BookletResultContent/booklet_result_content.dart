@@ -68,7 +68,9 @@ class BookletResultContent extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          "${timeAgo(model.timeStamp)} cevaplandı",
+                          "answer_key.answered_suffix".trParams({
+                            "time": timeAgo(model.timeStamp),
+                          }),
                           style: const TextStyle(
                             color: Colors.indigo,
                             fontSize: 15,
@@ -77,7 +79,7 @@ class BookletResultContent extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "${model.dogru.toString()} D",
+                        "${model.dogru} ${'tests.correct'.tr}",
                         style: const TextStyle(
                           color: Colors.green,
                           fontSize: 15,
@@ -86,7 +88,7 @@ class BookletResultContent extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "${model.yanlis.toString()} Y",
+                        "${model.yanlis} ${'tests.wrong'.tr}",
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 15,
@@ -95,7 +97,7 @@ class BookletResultContent extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "${model.bos.toString()} B",
+                        "${model.bos} ${'tests.blank'.tr}",
                         style: const TextStyle(
                           color: Colors.orange,
                           fontSize: 15,

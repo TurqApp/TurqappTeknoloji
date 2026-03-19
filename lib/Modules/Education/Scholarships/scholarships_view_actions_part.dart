@@ -325,7 +325,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
               canExpandDescription &&
               (_isTextLongerThanTwoLines(displayDescription, Get.context!) ||
                   _isTextLongerThanTwoLines(
-                    "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
+                    'scholarship.applications_suffix'.trParams({
+                      'title': burs.baslik.toString(),
+                    }),
                     Get.context!,
                   )))
             _buildExpandButton(index),
@@ -352,7 +354,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                   onTap: () => controller.toggleExpanded(index),
                   child: Obx(
                     () => Text(
-                      "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
+                      'scholarship.applications_suffix'.trParams({
+                        'title': burs.baslik.toString(),
+                      }),
                       style: TextStyle(
                         fontSize: 15,
                         fontFamily: "MontserratBold",
@@ -500,8 +504,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
             onTap: () => controller.toggleExpanded(index),
             child: Text(
               controller.isExpandedList[index].value
-                  ? 'Daha Az Göster'
-                  : 'Daha Fazla Göster',
+                  ? 'common.show_less'.tr
+                  : 'common.show_more'.tr,
               style: TextStyle(
                 fontSize: 13,
                 fontFamily: "Montserrat",
@@ -673,7 +677,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
             permissionScope: ActionButtonPermissionScope.scholarships,
             menuItems: [
               PullDownMenuItem(
-                title: 'Burs Oluştur',
+                title: 'scholarship.create_title'.tr,
                 icon: CupertinoIcons.add_circled,
                 onTap: () async {
                   final allowed = await ensureCurrentUserRozetPermission(
@@ -689,7 +693,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                 },
               ),
               PullDownMenuItem(
-                title: 'İlanlarım',
+                title: 'scholarship.my_listings'.tr,
                 icon: CupertinoIcons.doc_text,
                 onTap: () async {
                   final allowed = await ensureCurrentUserRozetPermission(
@@ -704,22 +708,22 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                 },
               ),
               PullDownMenuItem(
-                title: 'Kaydedilenler',
+                title: 'common.saved'.tr,
                 icon: CupertinoIcons.bookmark,
                 onTap: () => Get.to(() => SavedItemsView()),
               ),
               PullDownMenuItem(
-                title: 'Başvurular',
+                title: 'common.applications'.tr,
                 icon: CupertinoIcons.doc_plaintext,
                 onTap: () => Get.to(() => ApplicationsView()),
               ),
               PullDownMenuItem(
-                title: 'Sana Özel',
+                title: 'explore.tab.for_you'.tr,
                 icon: CupertinoIcons.star,
                 onTap: () => Get.to(PersonalizedView()),
               ),
               PullDownMenuItem(
-                title: 'Ayarlar',
+                title: 'settings.title'.tr,
                 icon: CupertinoIcons.gear,
                 onTap: () => controller.settings(context),
               ),

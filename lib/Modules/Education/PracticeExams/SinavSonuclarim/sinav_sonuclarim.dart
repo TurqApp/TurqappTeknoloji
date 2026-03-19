@@ -19,7 +19,7 @@ class SinavSonuclarim extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Deneme Sonuçlarım"),
+            BackButtons(text: 'practice.results_title'.tr),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
@@ -40,8 +40,8 @@ class SinavSonuclarim extends StatelessWidget {
                             color: Colors.grey,
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Henüz Sınava Girmediniz",
+                          Text(
+                            'practice.results_empty_title'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -50,8 +50,8 @@ class SinavSonuclarim extends StatelessWidget {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 10),
-                          const Text(
-                            "Henüz herhangi bir deneme sınavına katılmadınız. Sınavlara katıldığınızda sonuçlarınız burada görünecektir.",
+                          Text(
+                            'practice.results_empty_body'.tr,
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 16,

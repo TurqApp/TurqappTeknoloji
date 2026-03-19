@@ -40,14 +40,14 @@ class AddTestQuestion extends StatelessWidget {
               child: Container(
                 height: 70,
                 color: Colors.black,
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(15),
                   child: Row(
                     children: [
                       Icon(Icons.arrow_back_sharp, color: Colors.white),
                       SizedBox(width: 12),
                       Text(
-                        "Soru Ekle",
+                        "tests.add_question".tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 25,
@@ -79,7 +79,7 @@ class AddTestQuestion extends StatelessWidget {
                                       child: Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
-                                        children: const [
+                                        children: [
                                           Icon(
                                             Icons.info_outline,
                                             color: Colors.black,
@@ -87,7 +87,7 @@ class AddTestQuestion extends StatelessWidget {
                                           ),
                                           SizedBox(height: 10),
                                           Text(
-                                            "Soru bulunamadı.\nHenüz bu test için soru eklenmemiş.",
+                                            "tests.no_questions_added".tr,
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                               color: Colors.black,
@@ -151,13 +151,13 @@ class AddTestQuestion extends StatelessWidget {
                                                       ),
                                                     ),
                                                   ),
-                                                  child: const Padding(
+                                                  child: Padding(
                                                     padding:
                                                         EdgeInsets.symmetric(
                                                       horizontal: 20,
                                                     ),
                                                     child: Text(
-                                                      "Sil",
+                                                      "common.delete".tr,
                                                       style: TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 15,
@@ -180,10 +180,10 @@ class AddTestQuestion extends StatelessWidget {
                                 height: 50,
                                 color: Colors.purple,
                                 alignment: Alignment.center,
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.all(8.0),
                                   child: Text(
-                                    "Yayınla",
+                                    "post_creator.publish".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,

@@ -2,13 +2,16 @@ part of 'story_maker_controller.dart';
 
 extension StoryMakerControllerSavePart on StoryMakerController {
   void onScheduleStoryPressed() async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishStory)) {
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar("Hata", "Oturum acilmis kullanici yok");
+      AppSnackbar("common.error".tr, "story.no_user".tr);
       return;
     }
     if (elements.isEmpty) {
-      AppSnackbar("Hata", "Hikayeye en az bir element ekleyin");
+      AppSnackbar("common.error".tr, "story.empty_elements".tr);
       return;
     }
 
@@ -30,7 +33,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     final scheduledAt =
         DateTime(date.year, date.month, date.day, time.hour, time.minute);
     if (scheduledAt.isBefore(now)) {
-      AppSnackbar("Hata", "Gecmis bir zaman secilemez");
+      AppSnackbar("common.error".tr, "story.past_time_invalid".tr);
       return;
     }
 
@@ -53,14 +56,17 @@ extension StoryMakerControllerSavePart on StoryMakerController {
   }
 
   void onSaveStoryPressed() {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishStory)) {
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar("Hata", "Oturum açılmış kullanıcı yok");
+      AppSnackbar("common.error".tr, "story.no_user".tr);
       return;
     }
 
     if (elements.isEmpty) {
-      AppSnackbar("Hata", "Hikayeye en az bir element ekleyin");
+      AppSnackbar("common.error".tr, "story.empty_elements".tr);
       return;
     }
     final elementsSnapshot = List<StoryElement>.from(elements);
@@ -95,7 +101,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       final elementsCopy = List<StoryElement>.from(elementsSnapshot);
 
       if (elementsCopy.isEmpty) {
-        AppSnackbar("Hata", "Hikayeye en az bir element ekleyin");
+        AppSnackbar("common.error".tr, "story.empty_elements".tr);
         return;
       }
 
@@ -169,7 +175,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       if (serialized.isEmpty) {
-        AppSnackbar("Hata", "Hiçbir element kaydedilemedi");
+        AppSnackbar("common.error".tr, "story.no_elements_saved".tr);
         return;
       }
 
@@ -217,7 +223,10 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         debugPrint("Story UI refresh error: $e");
       }
     } catch (err) {
-      AppSnackbar("Hata", "Hikaye kaydedilemedi: ${err.toString()}");
+      AppSnackbar(
+        "common.error".tr,
+        "story.save_failed".trParams({"error": err.toString()}),
+      );
       debugPrint("saveStory error: $err");
     } finally {
       StoryMakerController.isUploadingStory.value = false;

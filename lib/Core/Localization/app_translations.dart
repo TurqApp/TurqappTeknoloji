@@ -104,6 +104,314 @@ class AppTranslations extends Translations {
           'settings.permissions': 'İzinler',
           'settings.pasaj': 'Pasaj',
           'settings.pasaj.practice_exam': 'Deneme Sınavı',
+          'education.previous_questions': 'Denemeler',
+          'tests.results_title': 'Sonuçlar',
+          'tests.results_empty':
+              'Sonuç bulunamadı.\nBu test için yanıt veya soru verisi mevcut değil.',
+          'tests.correct': 'Doğru',
+          'tests.wrong': 'Yanlış',
+          'tests.blank': 'Boş',
+          'tests.net': 'Net',
+          'tests.score': 'Puan',
+          'tests.question_number': '@index. Soru',
+          'tests.solve_no_questions':
+              'Soru bulunamadı.\nBu test için soru yüklenemedi.',
+          'tests.finish_test': 'Testi Bitir',
+          'tests.my_results_empty':
+              'Sonuç bulunamadı.\nDaha önce hiç test çözmediniz.',
+          'tests.saved_empty': 'Kaydedilen test bulunmamaktadır.',
+          'tests.result_answer_missing':
+              'Sonuç bulunamadı.\nBu test için yanıt verisi mevcut değil.',
+          'tests.type_test': '@type Testi',
+          'tests.description_test': '@description Testi',
+          'tests.solve_count': '@count. kez çözdün',
+          'tests.create_title': 'Test Oluştur',
+          'tests.edit_title': 'Testi Düzenle',
+          'tests.create_data_missing':
+              'Veri bulunamadı.\nUygulama bağlantıları veya test soruları yüklenemedi.',
+          'tests.create_upload_failed':
+              'Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.',
+          'tests.select_branch': 'Branş Seç',
+          'tests.select_language': 'Dil Seç',
+          'tests.cover_select': 'Kapak Fotoğrafı Seç',
+          'tests.cover_load_failed':
+              'Kapak fotoğrafı yüklenemedi. Lütfen tekrar deneyin.',
+          'tests.create_description_hint':
+              '9. Sınıf Üslü İfadeler Köklü İfadeler',
+          'tests.details': 'Sınav Detayları',
+          'tests.question_counts': 'Soru Sayıları',
+          'tests.question_count': 'Soru Sayısı',
+          'tests.date': 'Sınav Tarihi',
+          'tests.time': 'Sınav Saati',
+          'tests.duration': 'Sınav Süresi',
+          'tests.questions_data_failed':
+              'Ders bilgileri yüklenemedi. Lütfen sınav türünü kontrol edin veya tekrar deneyin.',
+          'tests.creating': 'Sınav Oluşturuluyor...',
+          'tests.image_pick_failed': 'Resim seçilemedi.',
+          'tests.image_invalid': 'Seçilen resim uygun değil!',
+          'tests.image_analyze_failed': 'Resim analizi yapılamadı.',
+          'tests.image_upload_failed_short': 'Resim yüklenemedi.',
+          'tests.save_failed': 'Sınav kaydedilemedi.',
+          'tests.results_load_failed': 'Sınav sonuçları yüklenemedi.',
+          'tests.exams_load_failed': 'Sınavlar yüklenemedi.',
+          'tests.prepare_questions': 'Soru Hazırla',
+          'tests.no_questions_for_lesson':
+              'Bu ders için soru bulunamadı. Lütfen soruları ekleyin veya sınav türünü kontrol edin.',
+          'tests.no_questions_at_all':
+              'Hiç soru bulunamadı. Lütfen soruları ekleyin veya sınav türünü kontrol edin.',
+          'tests.complete': 'Tamamla',
+          'tests.questions_create_failed': 'Sorular oluşturulamadı.',
+          'tests.complete_failed': 'Sınav tamamlanamadı.',
+          'tests.not_found_in_type':
+              '@type türünde sınav bulunamadı. Lütfen yeni bir sınav oluşturun veya farklı bir sınav türü seçin.',
+          'tests.share_status': 'Herkese @status',
+          'tests.status.open': 'Açık',
+          'tests.status.closed': 'Kapalı',
+          'tests.share_public_info':
+              'Dijital etik kurallarına uygun olarak, telifli testler paylaşılmamalıdır.\nLütfen herkesin çözebileceği, telif hakkı içermeyen testler kullanın ve yayınlayın.',
+          'tests.share_private_info':
+              'Bu test yalnızca kendi öğrencilerinizle paylaşılabilir. Yayınladığınız teste, yalnızca size verilen ID değerini giren öğrenciler erişebilir ve çözebilir.',
+          'tests.test_id': 'Test ID: @id',
+          'tests.test_type': 'Test Türü',
+          'tests.subjects': 'Dersler',
+          'tests.exam_prep': 'Sınavlara Hazırlık',
+          'tests.foreign_language': 'Yabancı Dil',
+          'tests.delete_test': 'Testi Sil',
+          'tests.prepare_test': 'Testi Hazırla',
+          'tests.join_title': 'Teste Katıl',
+          'tests.search_title': 'Test Ara',
+          'tests.search_id_hint': 'Test ID Ara',
+          'tests.join_help':
+              'Öğretmeniniz tarafından size iletilen Test ID değerini buraya girerek teste başlayabilirsiniz.',
+          'tests.join_not_found':
+              'Test bulunamadı.\nGirilen Test ID ile eşleşen bir test bulunamadı.',
+          'tests.join_button': 'Test''e Katıl',
+          'tests.no_shared': 'Paylaşılan test yok.',
+          'tests.my_tests_title': 'Testlerim',
+          'tests.my_tests_empty':
+              'Sonuç bulunamadı.\nDaha önce hiç test oluşturmadınız.',
+          'tests.completed_title': 'Testi Bitirdin!',
+          'tests.completed_body':
+              'Sonuçlarım ekranında puanına ve doğru yanlış oranlarına bakabilirsin.',
+          'tests.completed_short': 'Testi tamamladınız!',
+          'tests.action_select': 'İşlem Seç',
+          'tests.action_select_body':
+              'Bu testle ilgili bir işlem yapmak istiyorsanız aşağıdaki seçeneklerden birini seçebilirsiniz.',
+          'tests.copy_test_id': 'Test ID Kopyala',
+          'tests.solve_title': 'Testi Çöz',
+          'tests.delete_confirm': 'Bu testi silmek istediğinden emin misin?',
+          'tests.id_copied': 'Test ID''si panoya kopyalandı',
+          'tests.share_test_id_text':
+              '@type Testi\n\nTeste katılmak için hemen TurqApp''ı indirin. Teste katılmak için gerekli TestID''niz @id\n\nUygulamayı hemen edinin:\n\nAppStore: @appStore\nPlay Store: @playStore\n\nTeste Katılmak için Talebe ekranına bulunan Testler ekranından Test ID girerek hemen çözmeye başlayabilirsiniz.',
+          'tests.type.middle_school': 'Ortaokul',
+          'tests.type.high_school': 'Lise',
+          'tests.type.prep': 'Hazırlık',
+          'tests.type.language': 'Dil',
+          'tests.type.branch': 'Branş',
+          'tests.lesson.turkish': 'Türkçe',
+          'tests.lesson.literature': 'Edebiyat',
+          'tests.lesson.math': 'Matematik',
+          'tests.lesson.geometry': 'Geometri',
+          'tests.lesson.physics': 'Fizik',
+          'tests.lesson.chemistry': 'Kimya',
+          'tests.lesson.biology': 'Biyoloji',
+          'tests.lesson.history': 'Tarih',
+          'tests.lesson.geography': 'Coğrafya',
+          'tests.lesson.philosophy': 'Felsefe',
+          'tests.lesson.psychology': 'Psikoloji',
+          'tests.lesson.sociology': 'Sosyoloji',
+          'tests.lesson.logic': 'Mantık',
+          'tests.lesson.religion': 'Din Kültürü',
+          'tests.lesson.science': 'Fen Bilimleri',
+          'tests.lesson.revolution_history': 'İnkılap Tarihi',
+          'tests.lesson.foreign_language': 'Yabancı Dil',
+          'tests.lesson.basic_math': 'Temel Matematik',
+          'tests.lesson.social_sciences': 'Sosyal Bilimler',
+          'tests.lesson.literature_social_1':
+              'Edebiyat - Sosyal Bilimler 1',
+          'tests.lesson.social_sciences_2': 'Sosyal Bilimler 2',
+          'tests.lesson.general_ability': 'Genel Yetenek',
+          'tests.lesson.general_culture': 'Genel Kültür',
+          'tests.language.english': 'İngilizce',
+          'tests.language.german': 'Almanca',
+          'tests.language.arabic': 'Arapça',
+          'tests.language.french': 'Fransızca',
+          'tests.language.russian': 'Rusça',
+          'tests.lesson_based_title': '@type Testleri',
+          'tests.none_in_category': 'Her hangi bir test yok',
+          'tests.add_question': 'Soru Ekle',
+          'tests.no_questions_added':
+              'Soru bulunamadı.\nHenüz bu test için soru eklenmemiş.',
+          'tests.level_easy': 'Kolay',
+          'tests.title': 'Testler',
+          'tests.report_title': 'Test Hakkında',
+          'tests.report_wrong_answers':
+              'Test yanlış cevaplar içeriyor',
+          'tests.report_wrong_section': 'Test yanlış bölümde',
+          'tests.question_content_failed':
+              'Soru içeriği yüklenemedi.\nLütfen tekrar deneyin.',
+          'tests.capture_and_upload': 'Çek ve Yükle',
+          'tests.capture_and_upload_body':
+              'Sorunun fotoğrafını çek, doğru cevabı seç ve kolayca hazırla!',
+          'tests.select_from_gallery': 'Galeriden Seç',
+          'tests.upload_from_camera': 'Kameradan Yükle',
+          'tests.nsfw_check_failed':
+              'Görsel güvenlik kontrolü tamamlanamadı.',
+          'tests.nsfw_detected': 'Uygunsuz görsel tespit edildi.',
+          'practice.title': 'Online Sınav',
+          'practice.search_title': 'Deneme Sınavı Ara',
+          'practice.empty_title': 'Henüz Deneme Sınavı Bulunmuyor',
+          'practice.empty_body':
+              'Şu anda sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.',
+          'practice.search_empty_title': 'Aramana uygun sınav bulunamadı',
+          'practice.search_empty_body_empty':
+              'Sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.',
+          'practice.search_empty_body_query':
+              'Farklı bir anahtar kelime deneyin.',
+          'practice.results_title': 'Deneme Sonuçlarım',
+          'practice.saved_empty': 'Kaydedilen sınav bulunmuyor.',
+          'practice.preview_no_questions':
+              'Bu sınav için soru bulunamadı. Lütfen sınav içeriğini kontrol edin veya yeni sorular ekleyin.',
+          'practice.preview_no_results':
+              'Bu sınav için sonuç bulunamadı. Lütfen yanıtlarınızı kontrol edin veya sınavı tekrar çözün.',
+          'practice.lesson_header': 'Dersler',
+          'practice.answers_load_failed': 'Yanıtlar yüklenemedi.',
+          'practice.lesson_results_load_failed':
+              'Ders sonuçları yüklenemedi.',
+          'practice.results_empty_title': 'Henüz Sınava Girmediniz',
+          'practice.results_empty_body':
+              'Henüz herhangi bir deneme sınavına katılmadınız. Sınavlara katıldığınızda sonuçlarınız burada görünecektir.',
+          'practice.published_empty':
+              'Henüz yayınladığınız bir online sınav yok.',
+          'practice.user_session_missing': 'Kullanıcı oturumu bulunamadı.',
+          'practice.school_info_failed': 'Okul bilgisi alınamadı.',
+          'practice.load_failed': 'Veriler yüklenemedi.',
+          'practice.slider_management': 'Slider Yönetimi',
+          'practice.create_disabled_title': 'Sarı Rozet ve Üstüne Özel',
+          'practice.create_disabled_body':
+              'Online sınav oluşturmak için sarı rozet veya üstü doğrulanmış hesaba sahip olmanız gerekmektedir.',
+          'practice.preview_title': 'Sınav Detayı',
+          'practice.report_exam': 'Sınavı Bildir',
+          'practice.user_load_failed':
+              'Kullanıcı bilgileri yüklenemedi.',
+          'practice.user_load_failed_body':
+              'Kullanıcı bilgileri yüklenemedi. Lütfen tekrar deneyin veya sınav sahibini kontrol edin.',
+          'practice.invalidity_load_failed':
+              'Geçersizlik durumu yüklenemedi.',
+          'practice.cover_load_failed': 'Kapak resmi yüklenemedi.',
+          'practice.no_description': 'Bu sınav için açıklama eklenmemiş.',
+          'practice.exam_info': 'Sınav Bilgileri',
+          'practice.exam_type': 'Sınav Türü',
+          'practice.exam_suffix': '@type Sınavı',
+          'practice.exam_datetime': 'Sınav Tarihi ve Saati',
+          'practice.exam_duration': 'Sınav Süresi',
+          'practice.duration_minutes': '@minutes dk',
+          'practice.application_count': 'Başvuru',
+          'practice.people_count': '@count kişi',
+          'practice.owner': 'Sınav sahibi',
+          'practice.apply_now': 'Hemen Başvur',
+          'practice.applied_short': 'Başvuru Yapıldı',
+          'practice.closed_starts_in':
+              'Başvuruya kapandı.\n@minutes dk sonra başlayacak.',
+          'practice.started': 'Sınav Başladı',
+          'practice.start_now': 'Hemen Başla',
+          'practice.finished_short': 'Sınav Bitti',
+          'practice.application_closed_title': 'Başvuruya Kapanmıştır!',
+          'practice.application_closed_body':
+              'Başvurular sınav tarihinden 15 dk önce kapanacaktır.',
+          'practice.not_applied_title': 'Başvuru Yapmadın!',
+          'practice.not_applied_body':
+              'Başvuru yapılmayan sınavlara katılamazsın. Sadece başvuru yapanlar katılabilir.',
+          'practice.not_allowed_title': 'Sınava Giremezsiniz!',
+          'practice.not_allowed_body':
+              'Bu sınava giriş hakkınız bulunmuyor. Daha önce bu sınavda geçersiz sayıldınız. Sınav sonlanmadan sınava bir daha giremezsiniz!',
+          'practice.finished_title': 'Sınav Bitti!',
+          'practice.finished_body':
+              'Bir sonraki sınavlara başvurabilirsiniz. Bu sınav sonlanmıştır.',
+          'practice.result_unavailable': 'Sonuç hesaplanamadı.',
+          'practice.result_summary':
+              'Doğru: @correct   •   Yanlış: @wrong   •   Boş: @blank   •   Net: @net',
+          'practice.congrats_title': 'Tebrikler!',
+          'practice.removed_title': 'Sınavdan Atıldınız!',
+          'practice.removed_body':
+              'Bir çok kez seni uyardık! Maalesef sınav kurallarına uymadığınız için sınavdan atıldınız ve sınavınız geçersiz sayıldı',
+          'practice.applied_title': 'Başvurunuz Alınmıştır!',
+          'practice.applied_body':
+              'Başvurunuz başarıyla alınmıştır. Şu anda yapılacak başka bir işlem bulunmamaktadır',
+          'practice.apply_completed_title': 'Başvurun Tamamlandı!',
+          'practice.apply_completed_body':
+              'Sınavdan önce size bildirim göndererek gerekli hatırlatmaları yapacağız. Başarılar diliyoruz!',
+          'practice.apply_failed': 'Başvuru işlemi başarısız.',
+          'practice.application_check_failed':
+              'Başvuru kontrolü başarısız.',
+          'practice.question_image_failed': 'Soru resmi yüklenemedi.',
+          'practice.exam_started_title': 'Sınav Başlamıştır!',
+          'practice.exam_started_body':
+              'Sınava gösterdiğiniz özen ve çabanın başarıya giden yolu açacağına inanıyoruz. Bol şans ve başarılar dileriz!',
+          'practice.rules_title': 'Sınav Kuralları',
+          'practice.rule_1':
+              'Lütfen telefonunuzun internet bağlantısını kapatınız. Sınavınız tamamlandığında, internetinizi yeniden açarak cevaplarınızı gönderebileceğiniz ekranı görüntüleyebilirsiniz.',
+          'practice.rule_2':
+              'Sınavdan çıkmak isterseniz, tüm cevaplarınız geçersiz sayılacaktır ve puanınız kaydedilmeyecektir. Bu işlemi onaylamadan önce dikkatlice düşünmeniz önerilir.',
+          'practice.rule_3':
+              'Uygulamayı arka plana aldığınızda sınavınız geçersiz sayılacaktır. Bu yüzden uygulamayı arka plana almamaya özen gösteriniz.',
+          'practice.start_exam': 'Sınav\'a Başla',
+          'practice.finish_exam': 'Sınavı Bitir',
+          'practice.background_warning':
+              'Uygulamayı arka plana almanız gibi kritik durumlarda, sınavınız geçersiz sayılacaktır. Lütfen dikkatli olun ve kurallara uygun hareket edin.',
+          'practice.questions_load_failed': 'Sorular yüklenemedi.',
+          'practice.answers_save_failed': 'Yanıtlar kaydedilemedi.',
+          'past_questions.no_results': 'Her hangi bir sonuç yok',
+          'past_questions.title': 'Denemeler',
+          'past_questions.mock_fallback': 'Deneme',
+          'past_questions.search_empty': 'Aramaya uygun deneme bulunamadı.',
+          'past_questions.results_suffix': '@title Sonuçlarım',
+          'past_questions.local_result_summary':
+              '@count soru çözüldü. Sonuç local olarak tutuluyor; bu ekranda sadece net özeti gösteriliyor.',
+          'past_questions.mock_label': 'Deneme @index',
+          'past_questions.question_count': '@count Soru',
+          'past_questions.net_label': 'Net',
+          'past_questions.tests_by_year': '@type @year Testleri',
+          'past_questions.languages_title': '@type Dilleri',
+          'past_questions.tests_by_type': '@type Testleri',
+          'past_questions.select_exam': 'Sınav Seç',
+          'past_questions.questions_title': 'Sorular',
+          'past_questions.continue_solving': 'Soru Çözmeye Devam Et',
+          'past_questions.oabt_short': 'ÖABT',
+          'past_questions.exam_type.associate': 'Ön Lisans',
+          'past_questions.exam_type.undergraduate': 'Lisans',
+          'past_questions.exam_type.middle_school': 'Orta Öğretim',
+          'past_questions.branch.general_ability_culture': 'GK - GY',
+          'past_questions.branch.group_a': 'A Grubu',
+          'past_questions.branch.education_sciences': 'Eğitim Bilimleri',
+          'past_questions.branch.field_knowledge': 'Alan Bilgisi',
+          'past_questions.sessions_by_year': '@year Yılı Oturumlar',
+          'past_questions.teaching.title': 'Öğretmenlikler',
+          'past_questions.teaching.suffix': 'öğretmenliği',
+          'past_questions.teaching.primary_math_short': 'İ. Matematik',
+          'past_questions.teaching.high_school_math_short': 'L. Matematik',
+          'past_questions.teaching.german': 'Almanca öğretmenliği',
+          'past_questions.teaching.physical_education':
+              'Beden eğitim öğretmenliği',
+          'past_questions.teaching.biology': 'Biyoloji öğretmenliği',
+          'past_questions.teaching.geography': 'Coğrafya öğretmenliği',
+          'past_questions.teaching.religious_culture':
+              'Din kültürü öğretmenliği',
+          'past_questions.teaching.literature': 'Edebiyat öğretmenliği',
+          'past_questions.teaching.science': 'Fen bilimleri öğretmenliği',
+          'past_questions.teaching.physics': 'Fizik öğretmenliği',
+          'past_questions.teaching.chemistry': 'Kimya öğretmenliği',
+          'past_questions.teaching.high_school_math': 'Lise matematik',
+          'past_questions.teaching.preschool': 'Okul öncesi',
+          'past_questions.teaching.guidance': 'Rehberlik',
+          'past_questions.teaching.social_studies':
+              'Sosyal bilgiler öğretmenliği',
+          'past_questions.teaching.classroom': 'Sınıf öğretmenliği',
+          'past_questions.teaching.history': 'Tarih öğretmenliği',
+          'past_questions.teaching.turkish': 'Türkçe öğretmenliği',
+          'past_questions.teaching.primary_math': 'İlköğretim matematik',
+          'past_questions.teaching.imam_hatip': 'İmam hatip',
+          'past_questions.teaching.english': 'İngilizce öğretmenliği',
           'settings.about': 'Hakkında',
           'settings.policies': 'Politikalar',
           'settings.contact_us': 'Bize Yazın',
@@ -291,12 +599,23 @@ class AppTranslations extends Translations {
           'common.photos': 'Fotoğraflar',
           'common.no_results': 'Sonuç bulunamadı',
           'common.success': 'Başarılı',
+          'common.warning': 'Uyarı',
           'common.delete': 'Sil',
           'common.search': 'Ara',
+          'common.call': 'Ara',
+          'common.view': 'Görüntüle',
           'common.create': 'Oluştur',
+          'common.applications': 'Başvurular',
+          'common.liked': 'Beğenilenler',
           'common.saved': 'Kaydedilenler',
+          'common.unknown_category': 'Bilinmeyen Kategori',
           'common.clear': 'Temizle',
           'common.share': 'Paylaş',
+          'common.show_more': 'Daha Fazla Göster',
+          'common.show_less': 'Daha Az Göster',
+          'common.hide': 'Gizle',
+          'common.push': 'Push',
+          'common.quote': 'Alıntıla',
           'common.user': 'Kullanıcı',
           'common.close': 'Kapat',
           'common.retry': 'Tekrar Dene',
@@ -411,6 +730,19 @@ class AppTranslations extends Translations {
               'Gönderi etkileşimleri, yorumlar ve duyurular.',
           'notifications.comments': 'Yorumlar',
           'notifications.comments_desc': 'Gönderine yapılan yorumlar.',
+          'comments.delete_message':
+              'Bu yorumu silmek istediğinizden emin misiniz?',
+          'comments.delete_failed': 'Yorum silinemedi.',
+          'comments.title': 'Yorumlar',
+          'comments.empty': 'İlk yorumu sen yap...',
+          'comments.reply': 'Yanıtla',
+          'comments.replying_to': '@nickname kullanıcısına yanıt',
+          'comments.sending': 'Gönderiliyor',
+          'comments.community_violation_title':
+              'Topluluk Kurallarına Aykırı',
+          'comments.community_violation_body':
+              'Kullandığınız dil, topluluk kurallarımıza uymamaktadır. Lütfen saygılı bir dil kullanınız.',
+          'post_sharers.empty': 'Henüz kimse bu gönderiyi paylaşmamış',
           'notifications.post_activity': 'Gönderi etkileşimleri',
           'notifications.post_activity_desc':
               'Beğeniler, paylaşımlar ve gönderi pushları.',
@@ -613,6 +945,51 @@ class AppTranslations extends Translations {
           'pasaj.tabs.job_finder': 'İş Veren',
           'pasaj.question_bank.solve_later': 'Sonra Çöz',
           'pasaj.answer_key.join': 'Katıl',
+          'answer_key.published': 'Yayınladıklarım',
+          'answer_key.my_results': 'Sonuçlarım',
+          'answer_key.title': 'Cevap Anahtarı',
+          'answer_key.book_detail': 'Kitap Detayı',
+          'answer_key.book_info': 'Kitap Bilgileri',
+          'answer_key.exam_type': 'Sınav Türü',
+          'answer_key.publish_date': 'Basım Tarihi',
+          'answer_key.answer_keys': 'Cevap Anahtarları',
+          'answer_key.no_answer_keys':
+              'Bu kitap için henüz cevap anahtarı bulunmuyor.',
+          'answer_key.report_book': 'Kitabı Bildir',
+          'answer_key.saved_empty': 'Kaydedilen kitap yok.',
+          'answer_key.new_create': 'Yeni Oluştur',
+          'answer_key.create_optical_form': 'Optik Form\nOluştur',
+          'answer_key.create_booklet_answer_key':
+              'Kitap Cevap Anahtarı\nOluştur',
+          'answer_key.create_optical_form_single': 'Optik Form Oluştur',
+          'answer_key.give_exam_name': 'Sınavınıza bir ad verin',
+          'answer_key.join_exam_title': 'Sınava Katıl',
+          'answer_key.exam_id_hint': 'Sınav ID',
+          'answer_key.book': 'Kitap',
+          'answer_key.create_book': 'Kitap Oluştur',
+          'answer_key.optical_form': 'Optik Form',
+          'answer_key.search_min_chars': 'Aramak için en az 2 karakter yaz.',
+          'answer_key.delete_book': 'Kitabı Sil',
+          'answer_key.delete_book_confirm':
+              'Bu kitabı silmek istediğinizden emin misiniz?',
+          'answer_key.cover_select_short': 'Kapak Fotoğrafı\nSeç',
+          'answer_key.cover_updated': 'Kapak Güncellendi',
+          'answer_key.cover_updated_body':
+              'Kapak görseli başarıyla yüklendi.',
+          'answer_key.cover_update_failed':
+              'Kapak görseli yüklenirken bir sorun oluştu.',
+          'answer_key.answered_suffix': '@time cevaplandı',
+          'answer_key.full_name_hint': 'Ad Soyad',
+          'answer_key.student_number_hint': 'Öğrenci Numaranız',
+          'answer_key.book_title_hint': 'Başlık (Ör: Türkçe Soru Bankası)',
+          'answer_key.publisher_hint': 'Yayın Evi',
+          'answer_key.publish_year_hint': 'Basım Yılı',
+          'answer_key.answer_list_hint': 'Cevap Anahtar Listesi',
+          'answer_key.questions_prepared': '@count soru hazırlandı',
+          'answer_key.add_answer_key': 'Cevap Anahtarı Ekle',
+          'answer_key.share_owner_only':
+              'Sadece admin ve ilan sahibi paylaşabilir.',
+          'answer_key.book_answer_key_desc': 'cevap anahtarı',
           'pasaj.tutoring.nearby_listings': 'Bölgemdeki İlanlar',
           'pasaj.job_finder.title': 'İş Veren',
           'pasaj.job_finder.search_hint': 'Ne tür iş arıyorsun ?',
@@ -1450,8 +1827,11 @@ class AppTranslations extends Translations {
               'Sıra {order} • Kullanım {count}',
           'common.cancel': 'Vazgeç',
           'common.save': 'Kaydet',
+          'common.add': 'Ekle',
+          'common.done': 'Bitti',
           'common.select': 'Seç',
           'common.remove': 'Kaldır',
+          'common.not_listed': 'Listede Yok',
           'common.unspecified': 'Belirtilmemiş',
           'common.yes': 'Evet',
           'common.no': 'Hayır',
@@ -1497,6 +1877,46 @@ class AppTranslations extends Translations {
           'profile.remove_highlight_body':
               'Bu öne çıkarılanı kaldırmak istediğinizden emin misiniz?',
           'profile.remove_highlight_confirm': 'Kaldır',
+          'story.highlight_no_stories': 'Öne çıkarılanda hikaye yok.',
+          'story.highlight_missing_stories':
+              'Bu öne çıkarılandaki hikayeler artık mevcut değil.',
+          'story.highlight_open_failed':
+              'Öne çıkarılan açılamadı. Lütfen tekrar deneyin.',
+          'story.highlights_title': 'Öne Çıkarılanlar',
+          'story.highlights_subtitle':
+              'Bu hikayeyi profilinde sabit bir koleksiyona ekle.',
+          'story.highlights_collections': 'Koleksiyonların',
+          'story.highlights_story_count': '@count hikaye',
+          'story.highlights_first_create': 'İlk koleksiyonunu oluştur',
+          'story.highlights_first_create_body':
+              'Bu hikaye için bir başlık belirle. Sonra profilinde sabit görünsün.',
+          'story.highlights_new': 'Yeni öne çıkarılan oluştur',
+          'story.highlights_title_hint': 'Başlık girin...',
+          'story.highlights_create_failed':
+              'Öne çıkarılan oluşturulamadı. Lütfen tekrar deneyin.',
+          'story.add_sticker': 'Sticker Ekle',
+          'story.text_title': 'Metin',
+          'story.write_text': 'Metin yaz...',
+          'story.sticker_link': 'Bağlantı',
+          'story.sticker_hashtag': 'Konu etiketi',
+          'story.sticker_countdown': 'Geri sayım',
+          'story.sticker_add_yours': 'Sen de ekle',
+          'story.sticker_question': 'Soru',
+          'story.sticker_mention': 'Bahsetme',
+          'story.sticker_gif': 'GIF',
+          'story.sticker_text': 'Metin',
+          'story.sticker_topic_label': 'Konu etiketi',
+          'story.sticker_countdown_label': 'Geri sayım başlığı',
+          'story.sticker_title_label': 'Başlık',
+          'story.sticker_question_label': 'Soru',
+          'story.sticker_user_label': 'Kullanıcı',
+          'story.link_add': 'Bağlantı Ekle',
+          'story.link_text_label': 'Bağlantı metni',
+          'story.link_text_hint': 'Haberi oku',
+          'story.video_audio_title': 'Video Sesleri',
+          'story.music_mute_videos_message':
+              'Müzik eklemek üzeresiniz. Videoların sesini kapatmak ister misiniz?',
+          'story.music_mute_videos_yes': 'Evet, Kapat',
           'social_profile.private_follow_to_see_posts':
               'Gönderileri görmek için takip et.',
           'social_profile.blocked_user': 'Bu kullanıcıyı engellediniz',
@@ -1504,6 +1924,9 @@ class AppTranslations extends Translations {
           'profile.no_photos': 'Fotoğraf Yok',
           'profile.no_videos': 'Video Yok',
           'profile.no_reshares': 'Yeniden paylaşım yok',
+          'profile.no_quotes': 'Henüz alıntı yok',
+          'profile.reshare_users_tab': 'Yeniden Paylaşanlar',
+          'profile.quote_users_tab': 'Alıntılayanlar',
           'profile.no_listings': 'İlan Yok',
           'profile.post_about_title': 'Gönderi hakkında',
           'profile.post_about_body':
@@ -1647,6 +2070,7 @@ class AppTranslations extends Translations {
           'common.features': 'Özellikler',
           'common.contact': 'İletişim',
           'common.city': 'Şehir',
+          'comments.input_hint': 'Bunun hakkında ne düşünüyorsun?',
           'explore.tab.trending': 'Gündem',
           'explore.tab.for_you': 'Sana Özel',
           'explore.tab.series': 'Dizi',
@@ -1665,15 +2089,47 @@ class AppTranslations extends Translations {
               'Bu gönderiyi arşivlediniz.\nArtık kimseye bu gönderi gözükmeyecektir.',
           'post_state.deleted_title': 'Gönderi Sildiniz',
           'post_state.deleted_body': 'Bu gönderi artık yayında değil.',
+          'post.share_title': 'TurqApp Gönderisi',
+          'post.archive': 'Arşivle',
+          'post.unarchive': 'Arşivden Çıkart',
+          'post.like_failed': 'Beğeni işlemi tamamlanamadı.',
+          'post.save_failed': 'Kaydetme işlemi tamamlanamadı.',
+          'post.reshare_failed': 'Yeniden paylaşma işlemi tamamlanamadı.',
+          'post.report_success': 'Gönderi şikayet edildi.',
+          'post.report_failed': 'Şikayet işlemi tamamlanamadı.',
+          'post.hide_failed': 'Gizleme işlemi tamamlanamadı.',
+          'post.reshare_action': 'Yeniden paylaş',
+          'post.reshare_undo': 'Yeniden paylaşmayı geri al',
+          'post.reshared_you': 'yeniden paylaştın',
+          'post.reshared_by': '@name yeniden paylaştı',
           'short.next_post': 'Sonraki Gönderiye Geç',
           'short.publish_as_post': 'Gönderi olarak yayınla',
           'short.add_to_story': 'Hikayene ekle',
           'short.shared_as_post_by': 'Gönderi olarak paylaşanlar',
           'story.seens_title': 'Görüntüleme (@count)',
+          'story.likes_title': 'Beğeniler (@count)',
+          'story.no_likes': 'Kimse hikayeni beğenmedi',
           'story.no_seens': 'Kimse hikayeni görüntülemedi',
           'story.comments_title': 'Yorumlar (@count)',
+          'story.share_title': '@name hikayesi',
+          'story.share_desc': 'TurqApp üzerinde hikayeyi görüntüle',
+          'story.drawing_title': 'Çizim Ekle',
+          'story.brush_color': 'Fırça Rengi',
           'story.no_comments': 'Kimse yorum yapmadı',
           'story.add_comment_for': '@nickname için yorum ekle..',
+          'story.comment_placeholder': 'Hikayeye yorum yaz..',
+          'story.gif_load_failed': 'GIF yüklenemedi',
+          'story.create_title': 'Hikaye Oluştur',
+          'story.no_user': 'Oturum açılmış kullanıcı yok',
+          'story.empty_elements': 'Hikayeye en az bir element ekleyin',
+          'story.past_time_invalid': 'Geçmiş bir zaman seçilemez',
+          'story.no_elements_saved': 'Hiçbir element kaydedilemedi',
+          'story.save_failed': 'Hikaye kaydedilemedi: @error',
+          'admin_push.queue_title': 'Push',
+          'admin_push.queue_body_count':
+              '@count kullanıcıya push kuyruğa alındı',
+          'admin_push.queue_body': 'Push kuyruğa alındı',
+          'admin_push.failed_body': 'Push gönderilemedi.',
           'story.delete_message': 'Bu hikaye silinsin mi?',
           'story.permanent_delete': 'Kalıcı Sil',
           'story.permanent_delete_message':
@@ -1690,6 +2146,7 @@ class AppTranslations extends Translations {
               'Hikaye kalici olarak silindi',
           'story.deleted_stories.deleted_at': 'Silindi: @time',
           'story_music.title': 'Muzik',
+          'story_music.search_hint': 'Müzik ara',
           'story_music.no_active_stories': 'Bu muzikle aktif hikaye yok',
           'story_music.untitled': 'Isimsiz Parca',
           'story_music.active_story_count': '@count aktif hikaye',
@@ -1769,6 +2226,7 @@ class AppTranslations extends Translations {
           'chat.notif_contact': 'Bir rehber bilgisi paylasti',
           'chat.notif_gif': 'Bir GIF gonderdi',
           'chat.reply_target_missing': 'Yanitlanan mesaj bulunamadi',
+          'chat.forward_target_missing': 'İletilecek sohbet bulunamadı',
           'chat.forwarded_title': 'Iletildi',
           'chat.forwarded_body': 'Mesaj secilen sohbete iletildi',
           'chat.tap_to_chat': 'Sohbet etmek icin dokun.',
@@ -1818,9 +2276,21 @@ class AppTranslations extends Translations {
               'Fotograf yuklenirken bir hata olustu!',
           'training.question_bank_title': 'Soru Bankasi',
           'training.questions_loading': 'Sorular Yukleniyor...',
+          'training.solve_later_empty':
+              'Sonra çözülecek soru bulunamadı!',
+          'training.remove_solve_later': 'Sonra Çözden Kaldır',
+          'training.search_no_match': 'Aramaya uygun soru bulunamadı.',
           'training.no_questions': 'Soru bulunamadi!',
           'training.answer_first': 'Once soruyu cevaplayin!',
           'training.share': 'Paylas',
+          'training.correct_ratio': '%@value Doğru',
+          'training.wrong_ratio': '%@value Yanlış',
+          'training.complaint_select_one':
+              'Lütfen en az bir bildiri seçeneği seçin!',
+          'training.complaint_thanks':
+              'Bilgilendirmeniz için teşekkürler.',
+          'training.complaint_submit_failed':
+              'Bildiriminiz gönderilirken bir hata oluştu.',
           'training.no_questions_in_category':
               'Bu kategoride soru bulunamadi',
           'training.saved_load_failed':
@@ -1840,6 +2310,19 @@ class AppTranslations extends Translations {
               'Begeni kaldirma sirasinda hata olustu.',
           'training.like_add_failed': 'Begeni eklenirken hata olustu.',
           'training.share_failed': 'Paylasim baslatilamadi',
+          'training.share_question_link_title':
+              '@exam - @lesson @number. Soru',
+          'training.share_question_title':
+              'TurqApp - @exam @lesson Sorusu',
+          'training.share_question_desc': 'TurqApp Soru Bankasi sorusu',
+          'training.leaderboard_empty': 'Henüz puan tablosu oluşmadı.',
+          'training.leaderboard_empty_body':
+              "Listeye girmek için Soru Bankası'nda soru çöz.",
+          'education.past_exam_create_title': 'Çıkmış Sınav Oluştur',
+          'education.start_creating': 'Oluşturmaya Başla',
+          'education.exam_types': 'Sınav Türleri',
+          'education.question_count_hint': 'Soru Sayısı',
+          'education.change_main_category': 'Ana Kategori Değiştir',
           'training.answer_locked':
               'Bu sorunun cevabini degistiremezsiniz!',
           'training.answer_saved':
@@ -1922,9 +2405,61 @@ class AppTranslations extends Translations {
               'Bu bolgede ders ilani bulunmuyor.',
           'tutoring.no_lessons_in_category':
               '{category} alaninda ders bulunamadi.',
+          'tutoring.search_empty': 'Aramana uygun ilan bulunamadı',
+          'tutoring.search_empty_info': 'Eşleşen özel ders bulunmuyor!',
           'tutoring.similar_listings': 'Benzer Ilanlar',
           'tutoring.open_listing': 'Ilana Git',
           'tutoring.report_listing': 'Ilani Bildir',
+          'tutoring.saved_empty': 'Kaydedilen ilan yok.',
+          'tutoring.detail_description': 'Açıklama',
+          'tutoring.detail_no_description':
+              'Bu ilan için açıklama eklenmemiş.',
+          'tutoring.detail_lesson_info': 'Ders Bilgileri',
+          'tutoring.detail_branch': 'Branş',
+          'tutoring.detail_price': 'Ücret',
+          'tutoring.detail_contact': 'İletişim',
+          'tutoring.detail_phone_and_message': 'Telefon + Mesaj',
+          'tutoring.detail_message_only': 'Sadece Mesaj',
+          'tutoring.detail_gender_preference': 'Cinsiyet Tercihi',
+          'tutoring.detail_availability': 'Müsaitlik',
+          'tutoring.detail_listing_info': 'İlan Bilgileri',
+          'tutoring.detail_instructor': 'Eğitmen',
+          'tutoring.detail_not_specified': 'Belirtilmedi',
+          'tutoring.detail_city': 'Şehir',
+          'tutoring.detail_views': 'Görüntülenme',
+          'tutoring.detail_status': 'Durum',
+          'tutoring.detail_status_passive': 'Pasif',
+          'tutoring.detail_status_active': 'Aktif',
+          'tutoring.detail_location': 'Konum',
+          'tutoring.create.city_select': 'Şehir Seç',
+          'tutoring.create.district_select': 'İlçe Seç',
+          'tutoring.create.nsfw_check_failed':
+              'NSFW görsel kontrolü başarısız.',
+          'tutoring.create.nsfw_detected':
+              'Uygunsuz görsel tespit edildi.',
+          'tutoring.create.fill_required': 'Boş alanları doldurunuz!',
+          'tutoring.create.published': 'Özel ders ilanı paylaşıldı!',
+          'tutoring.create.publish_failed':
+              'İlan paylaşılırken bir hata oluştu.',
+          'tutoring.create.updated': 'İlan güncellendi!',
+          'tutoring.create.no_changes': 'Değişiklik yapılmadı!',
+          'tutoring.create.update_failed':
+              'İlan güncellenirken bir hata oluştu.',
+          'tutoring.call_disabled': 'Bu ilanda arama izni kapalı.',
+          'tutoring.message': 'Mesaj',
+          'tutoring.messages': 'Mesajlar',
+          'tutoring.phone_missing': 'Eğitmenin telefon bilgisi bulunamadı.',
+          'tutoring.phone_open_failed': 'Telefon uygulaması açılamadı.',
+          'tutoring.unpublish_title': 'İlanı Kaldır',
+          'tutoring.unpublish_body':
+              'Bu özel ders ilanını yayından kaldırmak istediğinizden emin misiniz?',
+          'tutoring.unpublished': 'İlan yayından kaldırıldı.',
+          'tutoring.apply_login_required': 'Başvuru için tekrar giriş yapın.',
+          'tutoring.application_sent': 'Başvurun gönderildi.',
+          'tutoring.application_failed':
+              'Başvuru sırasında bir sorun oluştu.',
+          'tutoring.delete_success': 'İlan silindi!',
+          'tutoring.delete_failed': 'İlan silinirken bir hata oluştu.',
           'tutoring.filter_title': 'Filtreler',
           'tutoring.gender_title': 'Cinsiyet',
           'tutoring.sort_title': 'Siralama',
@@ -1958,6 +2493,7 @@ class AppTranslations extends Translations {
           'tutoring.branch.children': 'Cocuk',
           'tutoring.branch.diction': 'Diksiyon',
           'tutoring.branch.photography': 'Fotografcilik',
+          'tutoring.branch': 'Branş',
           'scholarship.applications_title': 'Başvurular (@count)',
           'scholarship.no_applications': 'Henüz başvuru bulunmamaktadır',
           'scholarship.my_listings': 'Burs İlanlarım',
@@ -1966,6 +2502,18 @@ class AppTranslations extends Translations {
           'scholarship.my_applications_title': 'Burs Başvurularım',
           'scholarship.no_user_applications':
               'Burs başvurunuz bulunmamaktadır!',
+          'scholarship.saved_empty': 'Kaydedilen burs bulunamadı.',
+          'scholarship.liked_empty': 'Beğenilen burs bulunamadı.',
+          'scholarship.remove_saved': 'Kaydedilenlerden Kaldır',
+          'scholarship.remove_liked': 'Beğenilenlerden Kaldır',
+          'scholarship.remove_saved_confirm':
+              'Bu bursu kaydedilenlerden kaldırmak istediğinize emin misiniz?',
+          'scholarship.remove_liked_confirm':
+              'Bu bursu beğenilenlerden kaldırmak istediğinize emin misiniz?',
+          'scholarship.removed_saved':
+              'Burs kaydedilenlerden kaldırıldı.',
+          'scholarship.removed_liked':
+              'Burs beğenilenlerden kaldırıldı.',
           'scholarship.list_title': 'Burslar (@count)',
           'scholarship.search_results_title': 'Arama Sonuçları (@count)',
           'scholarship.empty_title': 'Henüz burs yok',
@@ -1988,6 +2536,9 @@ class AppTranslations extends Translations {
           'scholarship.providers_empty': 'Burs veren bulunamadı.',
           'scholarship.providers_load_failed':
               'Burs verenler yüklenemedi.',
+          'scholarship.applications_load_failed': 'Başvurular yüklenemedi.',
+          'scholarship.applicant_load_failed':
+              'Veriler yüklenirken bir hata oluştu.',
           'scholarship.withdraw_application': 'Başvurunu Geri Al',
           'scholarship.withdraw_confirm_title': 'Dikkat!',
           'scholarship.withdraw_confirm_body':
@@ -2007,6 +2558,7 @@ class AppTranslations extends Translations {
           'scholarship.website_label': 'Web Sitesi',
           'scholarship.description_help':
               'Burs açıklamasını tek parça ve anlaşılır şekilde yazınız.',
+          'scholarship.no_description': 'Açıklama yok',
           'scholarship.conditions_label': 'Başvuru Koşulları',
           'scholarship.required_docs_label': 'Gerekli Belgeler',
           'scholarship.award_months_label': 'Burs Verilecek Aylar',
@@ -2015,6 +2567,206 @@ class AppTranslations extends Translations {
           'scholarship.application_place_website': 'Burs Web Sitesi',
           'scholarship.application_website_label': 'Burs Web Sitesi',
           'scholarship.application_dates_label': 'Burs Başvuru Tarihleri',
+          'scholarship.detail_missing': 'Hata: Burs verisi bulunamadı.',
+          'scholarship.detail_title': 'Burs Detayı',
+          'scholarship.delete_title': 'Bursu Sil',
+          'scholarship.delete_confirm':
+              'Bu bursu silmek istediğinizden emin misiniz?',
+          'scholarship.applications_heading': '@title burs başvuruları',
+          'scholarship.applicant.personal_section': 'Kişisel Bilgiler',
+          'scholarship.applicant.education_section': 'Eğitim Bilgileri',
+          'scholarship.applicant.family_section': 'Aile Bilgileri',
+          'scholarship.applicant.full_name': 'Ad Soyad',
+          'scholarship.applicant.email': 'Mail Adresi',
+          'scholarship.applicant.phone': 'Telefon Numarası',
+          'scholarship.applicant.phone_open_failed':
+              'Telefon araması başlatılamadı',
+          'scholarship.applicant.email_open_failed':
+              'E-posta istemcisi açılamadı',
+          'chat.sign_in_required': 'Mesaj göndermek için giriş yapmalısın.',
+          'chat.cannot_message_self_listing':
+              'Kendi ilanına mesaj gönderemezsin.',
+          'scholarship.applicant.country': 'Ülke',
+          'scholarship.applicant.registry_city': 'Nüfus İl',
+          'scholarship.applicant.registry_district': 'Nüfus İlçe',
+          'scholarship.applicant.birth_date': 'Doğum Tarihi',
+          'scholarship.applicant.marital_status': 'Medeni Hal',
+          'scholarship.applicant.gender': 'Cinsiyet',
+          'scholarship.applicant.disability_report': 'Engelli Raporu',
+          'scholarship.applicant.employment_status': 'Çalışma Durumu',
+          'scholarship.applicant.education_level': 'Eğitim Düzeyi',
+          'scholarship.applicant.university': 'Üniversite',
+          'scholarship.applicant.faculty': 'Fakülte',
+          'scholarship.applicant.department': 'Bölüm',
+          'scholarship.applicant.father_alive': 'Baba Hayatta mı?',
+          'scholarship.applicant.father_name': 'Baba Adı',
+          'scholarship.applicant.father_surname': 'Baba Soyadı',
+          'scholarship.applicant.father_phone': 'Baba Telefon',
+          'scholarship.applicant.father_job': 'Baba Meslek',
+          'scholarship.applicant.father_income': 'Baba Gelir',
+          'scholarship.applicant.mother_alive': 'Anne Hayatta mı?',
+          'scholarship.applicant.mother_name': 'Anne Adı',
+          'scholarship.applicant.mother_surname': 'Anne Soyadı',
+          'scholarship.applicant.mother_phone': 'Anne Telefon',
+          'scholarship.applicant.mother_job': 'Anne Meslek',
+          'scholarship.applicant.mother_income': 'Anne Gelir',
+          'scholarship.applicant.home_ownership': 'Ev Mülkiyeti',
+          'scholarship.applicant.residence_city': 'İkamet Şehir',
+          'scholarship.applicant.residence_district': 'İkamet İlçe',
+          'scholarship.dormitory_name_hint': 'Yurt Adı',
+          'family_info.title': 'Aile Bilgileri',
+          'family_info.reset_menu': 'Aile Bilgilerini Sıfırla',
+          'family_info.reset_title': 'Aile Bilgilerini Sıfırla',
+          'family_info.reset_body':
+              'Tüm aile bilgileriniz silinecektir. Bu işlem geri alınamaz. Emin misiniz?',
+          'family_info.select_father_alive':
+              'Baba hayatta mı? seçimini yapınız',
+          'family_info.select_mother_alive':
+              'Anne hayatta mı? seçimini yapınız',
+          'family_info.father_name_surname': 'Baba Ad - Soyad',
+          'family_info.mother_name_surname': 'Anne Ad - Soyad',
+          'family_info.select_job': 'Meslek Seç',
+          'family_info.father_salary': 'Baba Net Maaş',
+          'family_info.mother_salary': 'Anne Net Maaş',
+          'family_info.father_phone': 'Baba İletişim Numarası',
+          'family_info.mother_phone': 'Anne İletişim Numarası',
+          'family_info.salary_hint': 'Net Maaş',
+          'family_info.family_size': 'Aile Sayısı',
+          'family_info.family_size_hint': 'Ailede (Siz Dahil) Yaşayan Sayısı',
+          'family_info.residence_info': 'İkametgâh Bilgisi',
+          'family_info.father_salary_missing': 'Baba maaş bilgisi',
+          'family_info.father_phone_missing': 'Baba telefon numarası',
+          'family_info.father_phone_invalid':
+              'Baba telefon numarası 10 haneli olmalıdır',
+          'family_info.mother_salary_missing': 'Anne maaş bilgisi',
+          'family_info.mother_phone_missing': 'Anne telefon numarası',
+          'family_info.mother_phone_invalid':
+              'Anne telefon numarası 10 haneli olmalıdır',
+          'family_info.saved': 'Aile bilgileriniz kaydedildi.',
+          'family_info.save_failed':
+              'Bilgiler kaydedilemedi. Lütfen tekrar deneyin.',
+          'family_info.reset_success': 'Aile bilgileri sıfırlandı.',
+          'family_info.reset_failed':
+              'Bilgiler sıfırlanamadı. Lütfen tekrar deneyin.',
+          'family_info.home_owned': 'Kendinize Ait Ev',
+          'family_info.home_relative': 'Yakınınıza Ait Ev',
+          'family_info.home_lodging': 'Lojman',
+          'family_info.home_rent': 'Kira',
+          'personal_info.title': 'Kişisel Bilgiler',
+          'personal_info.reset_menu': 'Bilgilerimi Sıfırla',
+          'personal_info.reset_title': 'Emin misiniz?',
+          'personal_info.reset_body':
+              'Kişisel bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.',
+          'personal_info.reset_success': 'Kişisel bilgileriniz sıfırlandı.',
+          'personal_info.registry_info': 'Nüfusa Kayıtlı İl - İlçe',
+          'personal_info.birth_date_title': 'Doğum Tarihiniz',
+          'personal_info.select_birth_date': 'Doğum Tarihi Seç',
+          'personal_info.select_marital_status': 'Medeni Hal Seç',
+          'personal_info.select_gender': 'Cinsiyet Seç',
+          'personal_info.select_disability': 'Engel Durumu Seç',
+          'personal_info.select_employment': 'Çalışma Durumu Seç',
+          'personal_info.select_field': '@field Seç',
+          'personal_info.city_load_failed': 'Şehir ve ilçe verileri yüklenemedi.',
+          'personal_info.user_data_missing':
+              'Kullanıcı verisi bulunamadı. Yeni kayıt oluşturabilirsiniz.',
+          'personal_info.load_failed': 'Veriler yüklenemedi.',
+          'personal_info.select_country_error': 'Lütfen ülkeyi seçin.',
+          'personal_info.fill_city_district':
+              'Lütfen şehir ve ilçe bilgilerini doldurun.',
+          'personal_info.saved': 'Kişisel bilgileriniz kaydedildi.',
+          'personal_info.save_failed': 'Bilgiler kaydedilemedi.',
+          'personal_info.marital_single': 'Bekar',
+          'personal_info.marital_married': 'Evli',
+          'personal_info.marital_divorced': 'Boşanmış',
+          'personal_info.gender_male': 'Erkek',
+          'personal_info.gender_female': 'Kadın',
+          'personal_info.disability_yes': 'Var',
+          'personal_info.disability_no': 'Yok',
+          'personal_info.working_yes': 'Çalışıyor',
+          'personal_info.working_no': 'Çalışmıyor',
+          'education_info.title': 'Eğitim Bilgileri',
+          'education_info.reset_menu': 'Eğitim Bilgilerimi Sıfırla',
+          'education_info.reset_title': 'Emin misiniz?',
+          'education_info.reset_body':
+              'Eğitim bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.',
+          'education_info.reset_success': 'Eğitim bilgileriniz sıfırlandı.',
+          'education_info.select_level': 'Lütfen bir eğitim seviyesi seçin!',
+          'education_info.middle_school': 'Okul',
+          'education_info.high_school': 'Lise',
+          'education_info.class_level': 'Sınıf',
+          'education_info.level_middle_school': 'Ortaokul',
+          'education_info.level_high_school': 'Lise',
+          'education_info.level_associate': 'Önlisans',
+          'education_info.level_bachelor': 'Lisans',
+          'education_info.level_masters': 'Yüksek Lisans',
+          'education_info.level_doctorate': 'Doktora',
+          'education_info.class_grade': '@grade. Sınıf',
+          'education_info.select_field': '@field Seç',
+          'education_info.initial_load_failed':
+              'Başlangıç verileri yüklenemedi.',
+          'education_info.countries_load_failed': 'Ülkeler yüklenemedi.',
+          'education_info.city_data_failed': 'İl-ilçe verileri yüklenemedi.',
+          'education_info.middle_schools_failed': 'Okul verileri yüklenemedi.',
+          'education_info.high_schools_failed': 'Lise verileri yüklenemedi.',
+          'education_info.higher_education_failed':
+              'Yükseköğretim verileri yüklenemedi.',
+          'education_info.saved_data_failed':
+              'Kayıtlı veriler yüklenemedi.',
+          'education_info.level_load_failed': 'Seviye verileri yüklenemedi.',
+          'education_info.select_city_error': 'Lütfen bir il seçin.',
+          'education_info.select_district_error': 'Lütfen bir ilçe seçin.',
+          'education_info.select_middle_school_error':
+              'Lütfen bir ortaokul seçin.',
+          'education_info.select_high_school_error':
+              'Lütfen bir lise seçin.',
+          'education_info.select_class_level_error':
+              'Lütfen bir sınıf seviyesi seçin.',
+          'education_info.select_university_error':
+              'Lütfen bir üniversite seçin.',
+          'education_info.select_faculty_error':
+              'Lütfen bir fakülte seçin.',
+          'education_info.select_department_error':
+              'Lütfen bir bölüm seçin.',
+          'education_info.saved': 'Eğitim bilgileriniz kaydedildi.',
+          'education_info.save_failed': 'Kayıt başarısız.',
+          'bank_info.title': 'Banka Bilgileri',
+          'bank_info.reset_menu': 'Banka Bilgilerimi Sıfırla',
+          'bank_info.reset_title': 'Emin misiniz?',
+          'bank_info.reset_body':
+              'Banka bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.',
+          'bank_info.reset_success': 'Banka bilgileriniz sıfırlandı.',
+          'bank_info.fast_title': 'Kolay Adres (FAST)',
+          'bank_info.fast_email': 'E-Posta',
+          'bank_info.fast_phone': 'Telefon',
+          'bank_info.fast_iban': 'IBAN',
+          'bank_info.bank_label': 'Banka',
+          'bank_info.select_bank': 'Banka Seç',
+          'bank_info.select_fast_type': 'Kolay Adres Tipi Seç',
+          'bank_info.load_failed': 'Veri yüklenemedi.',
+          'bank_info.missing_value':
+              'IBAN bilgisini tamamlamadan devam edemeyiz.',
+          'bank_info.missing_bank':
+              'Ödeme alacağınız banka seçmediniz. Bursunuz onaylanması durumunda bu bilgi paylaşılacaktır.',
+          'bank_info.invalid_email': 'Lütfen geçerli bir e-posta adresi girin.',
+          'bank_info.saved': 'Banka bilgileri kaydedildi.',
+          'bank_info.save_failed': 'Bilgiler kaydedilemedi.',
+          'dormitory.title': 'Yurt Bilgileri',
+          'dormitory.reset_menu': 'Yurt Bilgilerimi Sıfırla',
+          'dormitory.reset_title': 'Emin misiniz?',
+          'dormitory.reset_body':
+              'Yurt bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.',
+          'dormitory.reset_success': 'Yurt bilgileriniz sıfırlandı.',
+          'dormitory.current_info': 'Mevcut Yurt Bilgisi',
+          'dormitory.select_admin_type': 'İdari Seç',
+          'dormitory.admin_public': 'Devlet',
+          'dormitory.admin_private': 'Özel',
+          'dormitory.select_dormitory': 'Yurt Seç',
+          'dormitory.not_found_for_filters':
+              'Bu şehir ve idari tür için yurt bulunamadı',
+          'dormitory.saved': 'Yurt bilgileriniz kaydedildi.',
+          'dormitory.save_failed': 'Veri kaydedilemedi.',
+          'dormitory.select_or_enter':
+              'Lütfen bir yurt seçin veya yurt adı girin',
           'scholarship.application_start_date':
               'Burs Başvuru Başlangıç Tarihi',
           'scholarship.application_end_date':
@@ -2044,6 +2796,26 @@ class AppTranslations extends Translations {
           'scholarship.website_open_failed':
               'Web sitesi açılamadı. Lütfen geçerli bir URL girin.',
           'scholarship.checking_info': 'Bilgiler kontrol ediliyor',
+          'scholarship.user_data_missing':
+              'Kullanıcı verisi bulunamadı. Lütfen bilgilerinizi doldurun.',
+          'scholarship.check_info_failed':
+              'Bilgiler kontrol edilirken hata oluştu.',
+          'scholarship.application_check_failed':
+              'Başvuru durumu kontrol edilirken hata oluştu.',
+          'scholarship.login_required': 'Lütfen oturum açın.',
+          'scholarship.profile_missing':
+              'Bu burs için profil bilgisi bulunmamaktadır.',
+          'scholarship.applied_success': 'Burs başvurunuz alınmıştır.',
+          'scholarship.apply_failed': 'Başvuru kaydedilemedi.',
+          'scholarship.follow_limit_title': 'Takip Limiti',
+          'scholarship.follow_limit_body':
+              'Günlük daha fazla kişi takip edilemiyor.',
+          'scholarship.follow_failed': 'Takip işlemi başarısız.',
+          'scholarship.invalid': 'Geçersiz burs.',
+          'scholarship.delete_success': 'Burs başarıyla silindi.',
+          'scholarship.delete_failed': 'Burs silinirken bir hata oluştu.',
+          'scholarship.cancel_success': 'Burs başvurunuz iptal edildi.',
+          'scholarship.cancel_failed': 'Başvuru iptal edilemedi.',
           'scholarship.info_missing_title': 'Bilgilerin Eksik',
           'scholarship.info_missing_body':
               'Kişisel, Okul ve Aile bilgilerini doldurmadan burslara başvuru yapamazsınız!',
@@ -2071,6 +2843,26 @@ class AppTranslations extends Translations {
           'scholarship.custom_image_pick': 'Görsel Seçin',
           'scholarship.template_select': 'Şablon Seç',
           'scholarship.file_copy_failed': 'Dosya kopyalanamadı.',
+          'scholarship.data_load_failed': 'Burs verisi yüklenemedi.',
+          'scholarship.city_data_failed': 'İl-ilçe verisi yüklenemedi.',
+          'scholarship.university_data_failed':
+              'Üniversite verisi yüklenemedi.',
+          'scholarship.file_missing': 'Seçilen dosya bulunamadı.',
+          'scholarship.image_convert_failed':
+              'Görsel WebP formatına dönüştürülemedi.',
+          'scholarship.image_upload_failed':
+              'Görsel yüklenirken bir hata oluştu.',
+          'scholarship.template_convert_failed':
+              'Şablon görseli WebP formatına dönüştürülemedi.',
+          'scholarship.template_capture_failed':
+              'Şablon görüntüsü yakalanamadı.',
+          'scholarship.published_success': 'Burs başarıyla paylaşıldı!',
+          'scholarship.publish_failed':
+              'Burs paylaşılırken bir hata oluştu.',
+          'scholarship.updated_success': 'Burs başarıyla güncellendi!',
+          'scholarship.update_failed':
+              'Burs güncellenirken bir hata oluştu.',
+          'search_permission.title': 'Arama İzni',
           'scholarship.duplicate_status.can_receive': 'Alabilir',
           'scholarship.duplicate_status.cannot_receive_except_kyk':
               'Alamaz (KYK Hariç)',
@@ -2097,6 +2889,7 @@ class AppTranslations extends Translations {
           'common.company': 'Şirket',
           'common.salary': 'Ücret',
           'common.address': 'Adres',
+          'common.language': 'Dil',
           'profile_photo.camera': 'Kameradan Çek',
           'profile_photo.gallery': 'Galeriden Seç',
           'edit_profile.title': 'Profil Bilgileri',
@@ -2109,6 +2902,11 @@ class AppTranslations extends Translations {
           'edit_profile.contact_info': 'İletişim Bilgileri',
           'edit_profile.address_info': 'Adres Bilgileri',
           'edit_profile.career_profile': 'Kariyer Profili',
+          'personal_info.select_country_title': 'Ülke Seç',
+          'personal_info.select_marital_status_title': 'Medeni Hal Seç',
+          'personal_info.select_gender_title': 'Cinsiyet Seç',
+          'personal_info.select_disability_title': 'Engel Durumu Seç',
+          'personal_info.select_work_status_title': 'Çalışma Durumu Seç',
           'edit_profile.update_success': 'Profil bilgilerin güncellendi!',
           'edit_profile.update_failed': 'Güncelleme hatası: {error}',
           'edit_profile.remove_photo_title': 'Profil Fotoğrafını Kaldır',
@@ -2277,6 +3075,7 @@ class AppTranslations extends Translations {
           'qr.download_failed': 'İndirme sırasında hata oluştu.',
           'post_creator.title_new': 'Gönderi Hazırla',
           'post_creator.title_edit': 'Gönderi Düzenle',
+          'post_creator.text_hint': 'Gönderi metni',
           'post_creator.publish': 'Yayınla',
           'post_creator.uploading': 'Yükleniyor...',
           'post_creator.saving': 'Kaydediliyor...',
@@ -2476,6 +3275,329 @@ class AppTranslations extends Translations {
           'settings.permissions': 'Permissions',
           'settings.pasaj': 'Pasaj',
           'settings.pasaj.practice_exam': 'Practice Exam',
+          'education.previous_questions': 'Practice Tests',
+          'tests.results_title': 'Results',
+          'tests.results_empty':
+              'No results found.\nThere is no answer or question data for this test.',
+          'tests.correct': 'Correct',
+          'tests.wrong': 'Wrong',
+          'tests.blank': 'Blank',
+          'tests.net': 'Net',
+          'tests.score': 'Score',
+          'tests.question_number': 'Question @index',
+          'tests.solve_no_questions':
+              'Question not found.\nQuestions for this test could not be loaded.',
+          'tests.finish_test': 'Finish Test',
+          'tests.my_results_empty':
+              'No results found.\nYou have not solved any tests before.',
+          'tests.saved_empty': 'There are no saved tests.',
+          'tests.result_answer_missing':
+              'No results found.\nThere is no answer data for this test.',
+          'tests.type_test': '@type Test',
+          'tests.description_test': '@description Test',
+          'tests.solve_count': 'You solved it @count times',
+          'tests.create_title': 'Create Test',
+          'tests.edit_title': 'Edit Test',
+          'tests.create_data_missing':
+              'Data not found.\nApp links or test questions could not be loaded.',
+          'tests.create_upload_failed':
+              'This content cannot be processed right now. Please try a different one.',
+          'tests.select_branch': 'Select Branch',
+          'tests.select_language': 'Select Language',
+          'tests.cover_select': 'Select Cover Image',
+          'tests.cover_load_failed':
+              'Cover image could not be loaded. Please try again.',
+          'tests.create_description_hint':
+              '9th Grade Exponential Expressions and Radical Expressions',
+          'tests.details': 'Exam Details',
+          'tests.question_counts': 'Question Counts',
+          'tests.question_count': 'Question Count',
+          'tests.date': 'Exam Date',
+          'tests.time': 'Exam Time',
+          'tests.duration': 'Exam Duration',
+          'tests.questions_data_failed':
+              'Lesson information could not be loaded. Please check the exam type or try again.',
+          'tests.creating': 'Creating Exam...',
+          'tests.image_pick_failed': 'Image could not be selected.',
+          'tests.image_invalid': 'The selected image is not suitable.',
+          'tests.image_analyze_failed':
+              'Image analysis could not be completed.',
+          'tests.image_upload_failed_short': 'Image could not be uploaded.',
+          'tests.save_failed': 'Exam could not be saved.',
+          'tests.results_load_failed': 'Exam results could not be loaded.',
+          'tests.exams_load_failed': 'Exams could not be loaded.',
+          'tests.prepare_questions': 'Prepare Questions',
+          'tests.no_questions_for_lesson':
+              'No questions were found for this lesson. Please add questions or check the exam type.',
+          'tests.no_questions_at_all':
+              'No questions were found. Please add questions or check the exam type.',
+          'tests.complete': 'Complete',
+          'tests.questions_create_failed': 'Questions could not be created.',
+          'tests.complete_failed': 'Exam could not be completed.',
+          'tests.not_found_in_type':
+              'No exams were found in the @type type. Please create a new exam or choose a different type.',
+          'tests.share_status': 'For everyone: @status',
+          'tests.status.open': 'Open',
+          'tests.status.closed': 'Closed',
+          'tests.share_public_info':
+              'In accordance with digital ethics, copyrighted tests should not be shared.\nPlease use and publish tests that everyone can solve and that do not contain copyrighted content.',
+          'tests.share_private_info':
+              'This test can only be shared with your own students. Only students who enter the ID value provided by you can access and solve the published test.',
+          'tests.test_id': 'Test ID: @id',
+          'tests.test_type': 'Test Type',
+          'tests.subjects': 'Subjects',
+          'tests.exam_prep': 'Exam Preparation',
+          'tests.foreign_language': 'Foreign Language',
+          'tests.delete_test': 'Delete Test',
+          'tests.prepare_test': 'Prepare Test',
+          'tests.join_title': 'Join Test',
+          'tests.search_title': 'Search Test',
+          'tests.search_id_hint': 'Search Test ID',
+          'tests.join_help':
+              'You can start the test by entering the Test ID shared with you by your teacher.',
+          'tests.join_not_found':
+              'Test not found.\nNo test matched the entered Test ID.',
+          'tests.join_button': 'Join Test',
+          'tests.no_shared': 'There are no shared tests.',
+          'tests.my_tests_title': 'My Tests',
+          'tests.my_tests_empty':
+              'No results found.\nYou have not created any tests before.',
+          'tests.completed_title': 'You Finished the Test!',
+          'tests.completed_body':
+              'You can check your score and correct/incorrect ratios on My Results.',
+          'tests.completed_short': 'You completed the test!',
+          'tests.action_select': 'Select Action',
+          'tests.action_select_body':
+              'If you want to take action on this test, choose one of the options below.',
+          'tests.copy_test_id': 'Copy Test ID',
+          'tests.solve_title': 'Solve Test',
+          'tests.delete_confirm':
+              'Are you sure you want to delete this test?',
+          'tests.id_copied': 'Test ID copied to clipboard',
+          'tests.share_test_id_text':
+              '@type Test\n\nDownload TurqApp now to join the test. Your required Test ID is @id\n\nGet the app now:\n\nAppStore: @appStore\nPlay Store: @playStore\n\nTo join the test, enter the Test ID from the Tests screen in the student area and start solving right away.',
+          'tests.type.middle_school': 'Middle School',
+          'tests.type.high_school': 'High School',
+          'tests.type.prep': 'Preparation',
+          'tests.type.language': 'Language',
+          'tests.type.branch': 'Branch',
+          'tests.lesson.turkish': 'Turkish',
+          'tests.lesson.literature': 'Literature',
+          'tests.lesson.math': 'Mathematics',
+          'tests.lesson.geometry': 'Geometry',
+          'tests.lesson.physics': 'Physics',
+          'tests.lesson.chemistry': 'Chemistry',
+          'tests.lesson.biology': 'Biology',
+          'tests.lesson.history': 'History',
+          'tests.lesson.geography': 'Geography',
+          'tests.lesson.philosophy': 'Philosophy',
+          'tests.lesson.psychology': 'Psychology',
+          'tests.lesson.sociology': 'Sociology',
+          'tests.lesson.logic': 'Logic',
+          'tests.lesson.religion': 'Religious Culture',
+          'tests.lesson.science': 'Science',
+          'tests.lesson.revolution_history': 'Revolution History',
+          'tests.lesson.foreign_language': 'Foreign Language',
+          'tests.lesson.basic_math': 'Basic Mathematics',
+          'tests.lesson.social_sciences': 'Social Sciences',
+          'tests.lesson.literature_social_1':
+              'Literature - Social Sciences 1',
+          'tests.lesson.social_sciences_2': 'Social Sciences 2',
+          'tests.lesson.general_ability': 'General Ability',
+          'tests.lesson.general_culture': 'General Culture',
+          'tests.language.english': 'English',
+          'tests.language.german': 'German',
+          'tests.language.arabic': 'Arabic',
+          'tests.language.french': 'French',
+          'tests.language.russian': 'Russian',
+          'tests.lesson_based_title': '@type Tests',
+          'tests.none_in_category': 'There are no tests',
+          'tests.add_question': 'Add Question',
+          'tests.no_questions_added':
+              'No questions found.\nNo questions have been added for this test yet.',
+          'tests.level_easy': 'Easy',
+          'tests.title': 'Tests',
+          'tests.report_title': 'About the Test',
+          'tests.report_wrong_answers':
+              'The test contains wrong answers',
+          'tests.report_wrong_section':
+              'The test is in the wrong section',
+          'tests.question_content_failed':
+              'Question content could not be loaded.\nPlease try again.',
+          'tests.capture_and_upload': 'Capture and Upload',
+          'tests.capture_and_upload_body':
+              'Take a photo of the question, choose the correct answer, and prepare it easily!',
+          'tests.select_from_gallery': 'Select from Gallery',
+          'tests.upload_from_camera': 'Upload from Camera',
+          'tests.nsfw_check_failed':
+              'Image safety check could not be completed.',
+          'tests.nsfw_detected': 'Inappropriate image detected.',
+          'practice.title': 'Online Exam',
+          'practice.search_title': 'Search Practice Exam',
+          'practice.empty_title': 'No Practice Exams Yet',
+          'practice.empty_body':
+              'There are currently no practice exams in the system. New exams will appear here when they are added.',
+          'practice.search_empty_title': 'No exam matched your search',
+          'practice.search_empty_body_empty':
+              'There are currently no practice exams in the system. New exams will appear here when they are added.',
+          'practice.search_empty_body_query':
+              'Try a different keyword.',
+          'practice.results_title': 'My Practice Results',
+          'practice.saved_empty': 'There are no saved practice exams.',
+          'practice.preview_no_questions':
+              'No questions were found for this exam. Please check the exam content or add new questions.',
+          'practice.preview_no_results':
+              'No results were found for this exam. Please check your answers or solve the exam again.',
+          'practice.lesson_header': 'Lessons',
+          'practice.answers_load_failed': 'Answers could not be loaded.',
+          'practice.lesson_results_load_failed':
+              'Lesson results could not be loaded.',
+          'practice.results_empty_title': 'You Have Not Taken an Exam Yet',
+          'practice.results_empty_body':
+              'You have not joined any practice exam yet. Your results will appear here after you participate.',
+          'practice.published_empty':
+              'You have not published an online exam yet.',
+          'practice.user_session_missing': 'User session not found.',
+          'practice.school_info_failed':
+              'School information could not be loaded.',
+          'practice.load_failed': 'Data could not be loaded.',
+          'practice.slider_management': 'Slider Management',
+          'practice.create_disabled_title':
+              'Only for Yellow Badge and Above',
+          'practice.create_disabled_body':
+              'To create an online exam, you need a verified account with a yellow badge or higher.',
+          'practice.preview_title': 'Exam Details',
+          'practice.report_exam': 'Report Exam',
+          'practice.user_load_failed':
+              'User information could not be loaded.',
+          'practice.user_load_failed_body':
+              'User information could not be loaded. Please try again or check the exam owner.',
+          'practice.invalidity_load_failed':
+              'Invalidity status could not be loaded.',
+          'practice.cover_load_failed': 'Cover image could not be loaded.',
+          'practice.no_description':
+              'No description was added for this exam.',
+          'practice.exam_info': 'Exam Information',
+          'practice.exam_type': 'Exam Type',
+          'practice.exam_suffix': '@type Exam',
+          'practice.exam_datetime': 'Exam Date and Time',
+          'practice.exam_duration': 'Exam Duration',
+          'practice.duration_minutes': '@minutes min',
+          'practice.application_count': 'Applications',
+          'practice.people_count': '@count people',
+          'practice.owner': 'Exam owner',
+          'practice.apply_now': 'Apply Now',
+          'practice.applied_short': 'Applied',
+          'practice.closed_starts_in':
+              'Applications closed.\nStarts in @minutes min.',
+          'practice.started': 'Exam Started',
+          'practice.start_now': 'Start Now',
+          'practice.finished_short': 'Exam Ended',
+          'practice.not_started': 'Exam Not Started',
+          'practice.application_closed_title': 'Applications Closed!',
+          'practice.application_closed_body':
+              'Applications close 15 minutes before the exam starts.',
+          'practice.not_applied_title': 'You Did Not Apply!',
+          'practice.not_applied_body':
+              'You cannot join exams you did not apply for. Only applicants can participate.',
+          'practice.not_allowed_title':
+              'You Cannot Enter the Exam!',
+          'practice.not_allowed_body':
+              'You do not have access to this exam. You were previously invalidated in this exam and cannot re-enter before it ends.',
+          'practice.finished_title': 'Exam Ended!',
+          'practice.finished_body':
+              'You can apply to the next exams. This exam has ended.',
+          'practice.result_unavailable':
+              'Result could not be calculated.',
+          'practice.result_summary':
+              'Correct: @correct   •   Wrong: @wrong   •   Blank: @blank   •   Net: @net',
+          'practice.congrats_title': 'Congratulations!',
+          'practice.removed_title':
+              'You Were Removed From the Exam!',
+          'practice.removed_body':
+              'We warned you several times. Unfortunately, because you did not follow the exam rules, you were removed and your exam was marked invalid.',
+          'practice.applied_title':
+              'Your Application Has Been Received!',
+          'practice.applied_body':
+              'Your application was received successfully. There is nothing else you need to do right now.',
+          'practice.apply_completed_title':
+              'Your Application Is Complete!',
+          'practice.apply_completed_body':
+              'We will send you reminders before the exam. We wish you success!',
+          'practice.apply_failed': 'Application failed.',
+          'practice.application_check_failed':
+              'Application check failed.',
+          'practice.question_image_failed':
+              'Question image could not be loaded.',
+          'practice.exam_started_title': 'The Exam Has Started!',
+          'practice.exam_started_body':
+              'We believe your care and effort in this exam will pave the way to success. Good luck!',
+          'practice.rules_title': 'Exam Rules',
+          'practice.rule_1':
+              'Please turn off your phone\'s internet connection. When your exam is complete, you can turn it back on to submit your answers.',
+          'practice.rule_2':
+              'If you leave the exam, all your answers will be considered invalid and your score will not be saved. Please think carefully before confirming this action.',
+          'practice.rule_3':
+              'If you send the app to the background, your exam will be considered invalid. Please make sure not to background the app.',
+          'practice.start_exam': 'Start Exam',
+          'practice.finish_exam': 'Finish Exam',
+          'practice.background_warning':
+              'In critical situations such as putting the app in the background, your exam will be considered invalid. Please be careful and follow the rules.',
+          'practice.questions_load_failed':
+              'Questions could not be loaded.',
+          'practice.answers_save_failed':
+              'Answers could not be saved.',
+          'past_questions.no_results': 'There are no results.',
+          'past_questions.title': 'Practice Exams',
+          'past_questions.mock_fallback': 'Mock',
+          'past_questions.search_empty': 'No practice exam matches your search.',
+          'past_questions.results_suffix': '@title Results',
+          'past_questions.local_result_summary':
+              '@count questions were solved. The result is stored locally; only the net summary is shown on this screen.',
+          'past_questions.mock_label': 'Mock @index',
+          'past_questions.question_count': '@count Questions',
+          'past_questions.net_label': 'Net',
+          'past_questions.tests_by_year': '@type @year Tests',
+          'past_questions.languages_title': '@type Languages',
+          'past_questions.tests_by_type': '@type Tests',
+          'past_questions.select_exam': 'Select Exam',
+          'past_questions.questions_title': 'Questions',
+          'past_questions.continue_solving': 'Continue Solving Questions',
+          'past_questions.oabt_short': 'ÖABT',
+          'past_questions.exam_type.associate': 'Associate Degree',
+          'past_questions.exam_type.undergraduate': 'Undergraduate',
+          'past_questions.exam_type.middle_school': 'Secondary Education',
+          'past_questions.branch.general_ability_culture':
+              'General Ability and General Culture',
+          'past_questions.branch.group_a': 'Group A',
+          'past_questions.branch.education_sciences': 'Educational Sciences',
+          'past_questions.branch.field_knowledge': 'Field Knowledge',
+          'past_questions.sessions_by_year': '@year Sessions',
+          'past_questions.teaching.title': 'Teaching Branches',
+          'past_questions.teaching.suffix': 'teaching',
+          'past_questions.teaching.primary_math_short': 'P. Math',
+          'past_questions.teaching.high_school_math_short': 'H. Math',
+          'past_questions.teaching.german': 'German teaching',
+          'past_questions.teaching.physical_education':
+              'Physical education teaching',
+          'past_questions.teaching.biology': 'Biology teaching',
+          'past_questions.teaching.geography': 'Geography teaching',
+          'past_questions.teaching.religious_culture':
+              'Religious culture teaching',
+          'past_questions.teaching.literature': 'Literature teaching',
+          'past_questions.teaching.science': 'Science teaching',
+          'past_questions.teaching.physics': 'Physics teaching',
+          'past_questions.teaching.chemistry': 'Chemistry teaching',
+          'past_questions.teaching.high_school_math': 'High school math',
+          'past_questions.teaching.preschool': 'Preschool',
+          'past_questions.teaching.guidance': 'Guidance',
+          'past_questions.teaching.social_studies': 'Social studies teaching',
+          'past_questions.teaching.classroom': 'Classroom teaching',
+          'past_questions.teaching.history': 'History teaching',
+          'past_questions.teaching.turkish': 'Turkish teaching',
+          'past_questions.teaching.primary_math': 'Primary math',
+          'past_questions.teaching.imam_hatip': 'Imam Hatip',
+          'past_questions.teaching.english': 'English teaching',
           'settings.about': 'About',
           'settings.policies': 'Policies',
           'settings.contact_us': 'Contact Us',
@@ -2660,12 +3782,23 @@ class AppTranslations extends Translations {
           'common.photos': 'Photos',
           'common.no_results': 'No results found',
           'common.success': 'Success',
+          'common.warning': 'Warning',
           'common.delete': 'Delete',
           'common.search': 'Search',
+          'common.call': 'Call',
+          'common.view': 'View',
           'common.create': 'Create',
+          'common.applications': 'Applications',
+          'common.liked': 'Liked',
           'common.saved': 'Saved',
+          'common.unknown_category': 'Unknown Category',
           'common.clear': 'Clear',
           'common.share': 'Share',
+          'common.show_more': 'Show More',
+          'common.show_less': 'Show Less',
+          'common.hide': 'Hide',
+          'common.push': 'Push',
+          'common.quote': 'Quote',
           'common.user': 'User',
           'common.close': 'Close',
           'common.retry': 'Retry',
@@ -2778,6 +3911,18 @@ class AppTranslations extends Translations {
               'Post interactions, comments, and announcements.',
           'notifications.comments': 'Comments',
           'notifications.comments_desc': 'Comments made on your post.',
+          'comments.delete_message':
+              'Are you sure you want to delete this comment?',
+          'comments.delete_failed': 'Comment could not be deleted.',
+          'comments.title': 'Comments',
+          'comments.empty': 'Be the first to comment...',
+          'comments.reply': 'Reply',
+          'comments.replying_to': 'Replying to @nickname',
+          'comments.sending': 'Sending',
+          'comments.community_violation_title': 'Against Community Rules',
+          'comments.community_violation_body':
+              'The language you used does not comply with our community rules. Please use respectful language.',
+          'post_sharers.empty': 'No one has shared this post yet',
           'notifications.post_activity': 'Post activity',
           'notifications.post_activity_desc':
               'Likes, reshares, and post pushes.',
@@ -2986,6 +4131,52 @@ class AppTranslations extends Translations {
           'pasaj.tabs.job_finder': 'Employers',
           'pasaj.question_bank.solve_later': 'Solve Later',
           'pasaj.answer_key.join': 'Join',
+          'answer_key.published': 'Published',
+          'answer_key.my_results': 'My Results',
+          'answer_key.title': 'Answer Key',
+          'answer_key.book_detail': 'Book Detail',
+          'answer_key.book_info': 'Book Information',
+          'answer_key.exam_type': 'Exam Type',
+          'answer_key.publish_date': 'Publication Date',
+          'answer_key.answer_keys': 'Answer Keys',
+          'answer_key.no_answer_keys':
+              'There is no answer key for this book yet.',
+          'answer_key.report_book': 'Report Book',
+          'answer_key.saved_empty': 'There are no saved books.',
+          'answer_key.new_create': 'Create New',
+          'answer_key.create_optical_form': 'Create\nOptical Form',
+          'answer_key.create_booklet_answer_key':
+              'Create\nBook Answer Key',
+          'answer_key.create_optical_form_single': 'Create Optical Form',
+          'answer_key.give_exam_name': 'Give your exam a name',
+          'answer_key.join_exam_title': 'Join Exam',
+          'answer_key.exam_id_hint': 'Exam ID',
+          'answer_key.book': 'Book',
+          'answer_key.create_book': 'Create Book',
+          'answer_key.optical_form': 'Optical Form',
+          'answer_key.search_min_chars':
+              'Type at least 2 characters to search.',
+          'answer_key.delete_book': 'Delete Book',
+          'answer_key.delete_book_confirm':
+              'Are you sure you want to delete this book?',
+          'answer_key.cover_select_short': 'Select Cover\nImage',
+          'answer_key.cover_updated': 'Cover Updated',
+          'answer_key.cover_updated_body':
+              'Cover image uploaded successfully.',
+          'answer_key.cover_update_failed':
+              'There was a problem uploading the cover image.',
+        'answer_key.answered_suffix': 'Answered @time ago',
+        'answer_key.full_name_hint': 'Full Name',
+        'answer_key.student_number_hint': 'Your Student Number',
+        'answer_key.book_title_hint': 'Title (Ex: Turkish Question Bank)',
+        'answer_key.publisher_hint': 'Publisher',
+        'answer_key.publish_year_hint': 'Publication Year',
+        'answer_key.answer_list_hint': 'Answer Key List',
+        'answer_key.questions_prepared': '@count questions prepared',
+        'answer_key.add_answer_key': 'Add Answer Key',
+        'answer_key.share_owner_only':
+            'Only admins and the listing owner can share.',
+          'answer_key.book_answer_key_desc': 'answer key',
           'pasaj.tutoring.nearby_listings': 'Listings Near Me',
           'pasaj.job_finder.title': 'Employers',
           'pasaj.job_finder.search_hint': 'What kind of job are you looking for?',
@@ -3727,6 +4918,7 @@ class AppTranslations extends Translations {
               'Order {order} • Usage {count}',
           'common.cancel': 'Cancel',
           'common.save': 'Save',
+          'common.done': 'Done',
           'common.select': 'Select',
           'common.remove': 'Remove',
           'common.unspecified': 'Not specified',
@@ -3775,6 +4967,46 @@ class AppTranslations extends Translations {
           'profile.remove_highlight_body':
               'Are you sure you want to remove this highlight?',
           'profile.remove_highlight_confirm': 'Remove',
+          'story.highlight_no_stories': 'There are no stories in this highlight.',
+          'story.highlight_missing_stories':
+              'The stories in this highlight are no longer available.',
+          'story.highlight_open_failed':
+              'The highlight could not be opened. Please try again.',
+          'story.highlights_title': 'Highlights',
+          'story.highlights_subtitle':
+              'Add this story to a fixed collection on your profile.',
+          'story.highlights_collections': 'Your collections',
+          'story.highlights_story_count': '@count stories',
+          'story.highlights_first_create': 'Create your first collection',
+          'story.highlights_first_create_body':
+              'Set a title for this story so it appears fixed on your profile.',
+          'story.highlights_new': 'Create new highlight',
+          'story.highlights_title_hint': 'Enter a title...',
+          'story.highlights_create_failed':
+              'The highlight could not be created. Please try again.',
+          'story.add_sticker': 'Add Sticker',
+          'story.text_title': 'Text',
+          'story.write_text': 'Write text...',
+          'story.sticker_link': 'Link',
+          'story.sticker_hashtag': 'Hashtag',
+          'story.sticker_countdown': 'Countdown',
+          'story.sticker_add_yours': 'Add Yours',
+          'story.sticker_question': 'Question',
+          'story.sticker_mention': 'Mention',
+          'story.sticker_gif': 'GIF',
+          'story.sticker_text': 'Text',
+          'story.sticker_topic_label': 'Hashtag',
+          'story.sticker_countdown_label': 'Countdown title',
+          'story.sticker_title_label': 'Title',
+          'story.sticker_question_label': 'Question',
+          'story.sticker_user_label': 'User',
+          'story.link_add': 'Add Link',
+          'story.link_text_label': 'Link text',
+          'story.link_text_hint': 'Read the news',
+          'story.video_audio_title': 'Video Audio',
+          'story.music_mute_videos_message':
+              'You are about to add music. Do you want to mute the videos?',
+          'story.music_mute_videos_yes': 'Yes, mute',
           'social_profile.private_follow_to_see_posts':
               'Follow this account to view posts.',
           'social_profile.blocked_user': 'You blocked this user',
@@ -3782,6 +5014,9 @@ class AppTranslations extends Translations {
           'profile.no_photos': 'No Photos',
           'profile.no_videos': 'No Videos',
           'profile.no_reshares': 'No reshares',
+          'profile.no_quotes': 'No quotes yet',
+          'profile.reshare_users_tab': 'Resharers',
+          'profile.quote_users_tab': 'Quoters',
           'profile.no_listings': 'No listings',
           'profile.post_about_title': 'About the post',
           'profile.post_about_body':
@@ -3813,8 +5048,10 @@ class AppTranslations extends Translations {
           'common.ok': 'OK',
           'common.apply': 'Apply',
           'common.reset': 'Reset',
+          'common.add': 'Add',
           'common.select_city': 'Select City',
           'common.select_district': 'Select District',
+          'common.not_listed': 'Not Listed',
           'common.download': 'Download',
           'app.name': 'TurqApp',
           'common.copy': 'Copy',
@@ -3924,6 +5161,7 @@ class AppTranslations extends Translations {
           'common.features': 'Features',
           'common.contact': 'Contact',
           'common.city': 'City',
+          'comments.input_hint': 'What do you think about this?',
           'explore.tab.trending': 'Trending',
           'explore.tab.for_you': 'For You',
           'explore.tab.series': 'Series',
@@ -3942,15 +5180,46 @@ class AppTranslations extends Translations {
               'You archived this post.\nThis post will no longer be visible to anyone.',
           'post_state.deleted_title': 'Post Deleted',
           'post_state.deleted_body': 'This post is no longer live.',
+          'post.share_title': 'TurqApp Post',
+          'post.archive': 'Archive',
+          'post.unarchive': 'Remove from archive',
+          'post.like_failed': 'Like action could not be completed.',
+          'post.save_failed': 'Save action could not be completed.',
+          'post.reshare_failed': 'Reshare action could not be completed.',
+          'post.report_success': 'Post reported.',
+          'post.report_failed': 'Report action could not be completed.',
+          'post.hide_failed': 'The hide action could not be completed.',
+          'post.reshare_action': 'Reshare',
+          'post.reshare_undo': 'Undo reshare',
+          'post.reshared_you': 'you reshared this',
+          'post.reshared_by': '@name reshared this',
           'short.next_post': 'Go to next post',
           'short.publish_as_post': 'Publish as post',
           'short.add_to_story': 'Add to your story',
           'short.shared_as_post_by': 'Shared as posts by',
           'story.seens_title': 'Views (@count)',
+          'story.likes_title': 'Likes (@count)',
+          'story.no_likes': 'No one liked your story',
           'story.no_seens': 'No one has viewed your story yet',
           'story.comments_title': 'Comments (@count)',
+          'story.share_title': '@name story',
+          'story.share_desc': 'View the story on TurqApp',
+          'story.drawing_title': 'Add Drawing',
+          'story.brush_color': 'Brush Color',
           'story.no_comments': 'No one has commented yet',
           'story.add_comment_for': 'Add a comment for @nickname..',
+          'story.comment_placeholder': 'Write a comment on the story..',
+          'story.gif_load_failed': 'GIF could not be loaded',
+          'story.create_title': 'Create Story',
+          'story.no_user': 'No signed-in user found',
+          'story.empty_elements': 'Add at least one element to the story',
+          'story.past_time_invalid': 'A past time cannot be selected',
+          'story.no_elements_saved': 'No elements could be saved',
+          'story.save_failed': 'Story could not be saved: @error',
+          'admin_push.queue_title': 'Push',
+          'admin_push.queue_body_count': 'Push queued for @count users',
+          'admin_push.queue_body': 'Push queued',
+          'admin_push.failed_body': 'Push could not be sent.',
           'story.delete_message': 'Delete this story?',
           'story.permanent_delete': 'Delete Permanently',
           'story.permanent_delete_message':
@@ -3967,6 +5236,7 @@ class AppTranslations extends Translations {
               'Story deleted permanently',
           'story.deleted_stories.deleted_at': 'Deleted: @time',
           'story_music.title': 'Music',
+          'story_music.search_hint': 'Search music',
           'story_music.no_active_stories':
               'There are no active stories with this music',
           'story_music.untitled': 'Untitled Track',
@@ -4049,6 +5319,7 @@ class AppTranslations extends Translations {
           'chat.notif_contact': 'Shared a contact',
           'chat.notif_gif': 'Sent a GIF',
           'chat.reply_target_missing': 'The replied message could not be found',
+          'chat.forward_target_missing': 'No chat found to forward to',
           'chat.forwarded_title': 'Forwarded',
           'chat.forwarded_body': 'The message was forwarded to the selected chat',
           'chat.tap_to_chat': 'Tap to start chatting.',
@@ -4099,9 +5370,20 @@ class AppTranslations extends Translations {
               'An error occurred while uploading the photo!',
           'training.question_bank_title': 'Question Bank',
           'training.questions_loading': 'Loading Questions...',
+          'training.solve_later_empty': 'No questions to solve later were found!',
+          'training.remove_solve_later': 'Remove from Solve Later',
+          'training.search_no_match': 'No question matched your search.',
           'training.no_questions': 'No questions found!',
           'training.answer_first': 'Answer the question first!',
           'training.share': 'Share',
+          'training.correct_ratio': '%@value Correct',
+          'training.wrong_ratio': '%@value Wrong',
+          'training.complaint_select_one':
+              'Please select at least one complaint option.',
+          'training.complaint_thanks':
+              'Thank you for your report.',
+          'training.complaint_submit_failed':
+              'There was a problem while sending your report.',
           'training.no_questions_in_category':
               'No questions were found in this category.',
           'training.saved_load_failed':
@@ -4122,6 +5404,19 @@ class AppTranslations extends Translations {
           'training.like_add_failed':
               'An error occurred while adding the like.',
           'training.share_failed': 'Sharing could not be started',
+          'training.share_question_link_title':
+              '@exam - @lesson Question @number',
+          'training.share_question_title':
+              'TurqApp - @exam @lesson Question',
+          'training.share_question_desc': 'TurqApp question bank question',
+          'training.leaderboard_empty': 'No leaderboard has been created yet.',
+          'training.leaderboard_empty_body':
+              'Solve questions in the Question Bank to enter the leaderboard.',
+          'education.past_exam_create_title': 'Create Past Exam',
+          'education.start_creating': 'Start Creating',
+          'education.exam_types': 'Exam Types',
+          'education.question_count_hint': 'Question Count',
+          'education.change_main_category': 'Change Main Category',
           'training.answer_locked':
               'You cannot change the answer to this question!',
           'training.answer_saved':
@@ -4206,9 +5501,65 @@ class AppTranslations extends Translations {
               'There are no tutoring listings in this area.',
           'tutoring.no_lessons_in_category':
               'There are no lessons in the {category} category.',
+          'tutoring.search_empty': 'No listing matched your search.',
+          'tutoring.search_empty_info': 'No matching tutoring listing found!',
           'tutoring.similar_listings': 'Similar Listings',
           'tutoring.open_listing': 'Open Listing',
           'tutoring.report_listing': 'Report Listing',
+          'tutoring.saved_empty': 'No saved listings.',
+          'tutoring.detail_description': 'Description',
+          'tutoring.detail_no_description':
+              'No description has been added for this listing.',
+          'tutoring.detail_lesson_info': 'Lesson Details',
+          'tutoring.detail_branch': 'Branch',
+          'tutoring.detail_price': 'Price',
+          'tutoring.detail_contact': 'Contact',
+          'tutoring.detail_phone_and_message': 'Phone + Message',
+          'tutoring.detail_message_only': 'Message Only',
+          'tutoring.detail_gender_preference': 'Gender Preference',
+          'tutoring.detail_availability': 'Availability',
+          'tutoring.detail_listing_info': 'Listing Details',
+          'tutoring.detail_instructor': 'Instructor',
+          'tutoring.detail_not_specified': 'Not specified',
+          'tutoring.detail_city': 'City',
+          'tutoring.detail_views': 'Views',
+          'tutoring.detail_status': 'Status',
+          'tutoring.detail_status_passive': 'Passive',
+          'tutoring.detail_status_active': 'Active',
+          'tutoring.detail_location': 'Location',
+          'tutoring.create.city_select': 'Select City',
+          'tutoring.create.district_select': 'Select District',
+          'tutoring.create.nsfw_check_failed':
+              'NSFW image check failed.',
+          'tutoring.create.nsfw_detected': 'Inappropriate image detected.',
+          'tutoring.create.fill_required':
+              'Please fill in all required fields!',
+          'tutoring.create.published': 'Tutoring listing has been published!',
+          'tutoring.create.publish_failed':
+              'An error occurred while publishing the listing.',
+          'tutoring.create.updated': 'Listing updated!',
+          'tutoring.create.no_changes': 'No changes were made!',
+          'tutoring.create.update_failed':
+              'An error occurred while updating the listing.',
+          'tutoring.call_disabled': 'Calling is disabled for this listing.',
+          'tutoring.message': 'Message',
+          'tutoring.messages': 'Messages',
+          'tutoring.phone_missing':
+              'The tutor''s phone information could not be found.',
+          'tutoring.phone_open_failed':
+              'The phone app could not be opened.',
+          'tutoring.unpublish_title': 'Remove Listing',
+          'tutoring.unpublish_body':
+              'Are you sure you want to remove this tutoring listing from publication?',
+          'tutoring.unpublished': 'Listing removed from publication.',
+          'tutoring.apply_login_required':
+              'Please sign in again to apply.',
+          'tutoring.application_sent': 'Your application has been sent.',
+          'tutoring.application_failed':
+              'There was a problem during the application.',
+          'tutoring.delete_success': 'Listing deleted!',
+          'tutoring.delete_failed':
+              'An error occurred while deleting the listing.',
           'tutoring.filter_title': 'Filters',
           'tutoring.gender_title': 'Gender',
           'tutoring.sort_title': 'Sorting',
@@ -4241,6 +5592,7 @@ class AppTranslations extends Translations {
           'tutoring.branch.children': 'Children',
           'tutoring.branch.diction': 'Diction',
           'tutoring.branch.photography': 'Photography',
+          'tutoring.branch': 'Branch',
           'scholarship.applications_title': 'Applications (@count)',
           'scholarship.no_applications': 'There are no applications yet',
           'scholarship.my_listings': 'My Scholarship Listings',
@@ -4249,6 +5601,18 @@ class AppTranslations extends Translations {
           'scholarship.my_applications_title': 'My Scholarship Applications',
           'scholarship.no_user_applications':
               'You do not have any scholarship applications!',
+          'scholarship.saved_empty': 'No saved scholarships found.',
+          'scholarship.liked_empty': 'No liked scholarships found.',
+          'scholarship.remove_saved': 'Remove from Saved',
+          'scholarship.remove_liked': 'Remove from Liked',
+          'scholarship.remove_saved_confirm':
+              'Are you sure you want to remove this scholarship from saved items?',
+          'scholarship.remove_liked_confirm':
+              'Are you sure you want to remove this scholarship from liked items?',
+          'scholarship.removed_saved':
+              'Scholarship removed from saved items.',
+          'scholarship.removed_liked':
+              'Scholarship removed from liked items.',
           'scholarship.list_title': 'Scholarships (@count)',
           'scholarship.search_results_title': 'Search Results (@count)',
           'scholarship.empty_title': 'No scholarships yet',
@@ -4273,6 +5637,10 @@ class AppTranslations extends Translations {
               'No scholarship providers were found.',
           'scholarship.providers_load_failed':
               'Scholarship providers could not be loaded.',
+          'scholarship.applications_load_failed':
+              'Applications could not be loaded.',
+          'scholarship.applicant_load_failed':
+              'An error occurred while loading the data.',
           'scholarship.withdraw_application': 'Withdraw Application',
           'scholarship.withdraw_confirm_title': 'Attention!',
           'scholarship.withdraw_confirm_body':
@@ -4294,6 +5662,7 @@ class AppTranslations extends Translations {
           'scholarship.website_label': 'Website',
           'scholarship.description_help':
               'Please write the scholarship description in one clear section.',
+          'scholarship.no_description': 'No description',
           'scholarship.conditions_label': 'Application Requirements',
           'scholarship.required_docs_label': 'Required Documents',
           'scholarship.award_months_label': 'Scholarship Award Months',
@@ -4302,6 +5671,213 @@ class AppTranslations extends Translations {
           'scholarship.application_place_website': 'Scholarship Website',
           'scholarship.application_website_label': 'Scholarship Website',
           'scholarship.application_dates_label': 'Application Dates',
+          'scholarship.detail_missing': 'Error: Scholarship data not found.',
+          'scholarship.detail_title': 'Scholarship Detail',
+          'scholarship.delete_title': 'Delete Scholarship',
+          'scholarship.delete_confirm':
+              'Are you sure you want to delete this scholarship?',
+          'scholarship.applications_heading': '@title scholarship applications',
+          'scholarship.applicant.personal_section': 'Personal Information',
+          'scholarship.applicant.education_section': 'Education Information',
+          'scholarship.applicant.family_section': 'Family Information',
+          'scholarship.applicant.full_name': 'Full Name',
+          'scholarship.applicant.email': 'Email Address',
+          'scholarship.applicant.phone': 'Phone Number',
+          'scholarship.applicant.phone_open_failed':
+              'Phone call could not be started',
+          'scholarship.applicant.email_open_failed':
+              'Email client could not be opened',
+          'chat.sign_in_required':
+              'You need to sign in to send a message.',
+          'chat.cannot_message_self_listing':
+              'You cannot message your own listing.',
+          'scholarship.applicant.country': 'Country',
+          'scholarship.applicant.registry_city': 'Registry City',
+          'scholarship.applicant.registry_district': 'Registry District',
+          'scholarship.applicant.birth_date': 'Birth Date',
+          'scholarship.applicant.marital_status': 'Marital Status',
+          'scholarship.applicant.gender': 'Gender',
+          'scholarship.applicant.disability_report': 'Disability Report',
+          'scholarship.applicant.employment_status': 'Employment Status',
+          'scholarship.applicant.education_level': 'Education Level',
+          'scholarship.applicant.university': 'University',
+          'scholarship.applicant.faculty': 'Faculty',
+          'scholarship.applicant.department': 'Department',
+          'scholarship.applicant.father_alive': 'Is Father Alive?',
+          'scholarship.applicant.father_name': 'Father Name',
+          'scholarship.applicant.father_surname': 'Father Surname',
+          'scholarship.applicant.father_phone': 'Father Phone',
+          'scholarship.applicant.father_job': 'Father Job',
+          'scholarship.applicant.father_income': 'Father Income',
+          'scholarship.applicant.mother_alive': 'Is Mother Alive?',
+          'scholarship.applicant.mother_name': 'Mother Name',
+          'scholarship.applicant.mother_surname': 'Mother Surname',
+          'scholarship.applicant.mother_phone': 'Mother Phone',
+          'scholarship.applicant.mother_job': 'Mother Job',
+          'scholarship.applicant.mother_income': 'Mother Income',
+          'scholarship.applicant.home_ownership': 'Home Ownership',
+          'scholarship.applicant.residence_city': 'Residence City',
+          'scholarship.applicant.residence_district': 'Residence District',
+          'family_info.title': 'Family Information',
+          'family_info.reset_menu': 'Reset Family Information',
+          'family_info.reset_title': 'Reset Family Information',
+          'family_info.reset_body':
+              'All your family information will be deleted. This action cannot be undone. Are you sure?',
+          'family_info.select_father_alive': 'Please select whether your father is alive',
+          'family_info.select_mother_alive': 'Please select whether your mother is alive',
+          'family_info.father_name_surname': 'Father Name - Surname',
+          'family_info.mother_name_surname': 'Mother Name - Surname',
+          'family_info.select_job': 'Select Occupation',
+          'family_info.father_salary': 'Father Net Salary',
+          'family_info.mother_salary': 'Mother Net Salary',
+          'family_info.father_phone': 'Father Contact Number',
+          'family_info.mother_phone': 'Mother Contact Number',
+          'family_info.salary_hint': 'Net Salary',
+          'family_info.family_size': 'Family Size',
+          'family_info.family_size_hint': 'Number of Household Members (Including You)',
+          'family_info.residence_info': 'Residence Information',
+          'family_info.father_salary_missing': 'Father salary information',
+          'family_info.father_phone_missing': 'Father phone number',
+          'family_info.father_phone_invalid':
+              'Father phone number must be 10 digits',
+          'family_info.mother_salary_missing': 'Mother salary information',
+          'family_info.mother_phone_missing': 'Mother phone number',
+          'family_info.mother_phone_invalid':
+              'Mother phone number must be 10 digits',
+          'family_info.saved': 'Your family information has been saved.',
+          'family_info.save_failed':
+              'Information could not be saved. Please try again.',
+          'family_info.reset_success': 'Family information has been reset.',
+          'family_info.reset_failed':
+              'Information could not be reset. Please try again.',
+          'family_info.home_owned': 'Own Home',
+          'family_info.home_relative': 'Relative\'s Home',
+          'family_info.home_lodging': 'Lodging',
+          'family_info.home_rent': 'Rent',
+          'personal_info.title': 'Personal Information',
+          'personal_info.reset_menu': 'Reset My Information',
+          'personal_info.reset_title': 'Are you sure?',
+          'personal_info.reset_body':
+              'Your personal information will be reset. This action cannot be undone.',
+          'personal_info.reset_success': 'Your personal information has been reset.',
+          'personal_info.registry_info': 'Registered City - District',
+          'personal_info.birth_date_title': 'Your Birth Date',
+          'personal_info.select_birth_date': 'Select Birth Date',
+          'personal_info.select_marital_status': 'Select Marital Status',
+          'personal_info.select_gender': 'Select Gender',
+          'personal_info.select_disability': 'Select Disability Status',
+          'personal_info.select_employment': 'Select Employment Status',
+          'personal_info.select_field': 'Select @field',
+          'personal_info.city_load_failed': 'City and district data could not be loaded.',
+          'personal_info.user_data_missing':
+              'User data could not be found. You can create a new record.',
+          'personal_info.load_failed': 'Data could not be loaded.',
+          'personal_info.select_country_error': 'Please select a country.',
+          'personal_info.fill_city_district':
+              'Please fill in the city and district information.',
+          'personal_info.saved': 'Your personal information has been saved.',
+          'personal_info.save_failed': 'Information could not be saved.',
+          'personal_info.marital_single': 'Single',
+          'personal_info.marital_married': 'Married',
+          'personal_info.marital_divorced': 'Divorced',
+          'personal_info.gender_male': 'Male',
+          'personal_info.gender_female': 'Female',
+          'personal_info.disability_yes': 'Yes',
+          'personal_info.disability_no': 'No',
+          'personal_info.working_yes': 'Working',
+          'personal_info.working_no': 'Not Working',
+          'education_info.title': 'Education Information',
+          'education_info.reset_menu': 'Reset My Education Information',
+          'education_info.reset_title': 'Are you sure?',
+          'education_info.reset_body':
+              'Your education information will be reset. This action cannot be undone.',
+          'education_info.reset_success':
+              'Your education information has been reset.',
+          'education_info.select_level':
+              'Please select an education level first!',
+          'education_info.middle_school': 'School',
+          'education_info.high_school': 'High School',
+          'education_info.class_level': 'Class',
+          'education_info.level_middle_school': 'Middle School',
+          'education_info.level_high_school': 'High School',
+          'education_info.level_associate': 'Associate',
+          'education_info.level_bachelor': 'Bachelor',
+          'education_info.level_masters': 'Master\'s',
+          'education_info.level_doctorate': 'Doctorate',
+          'education_info.class_grade': 'Grade @grade',
+          'education_info.select_field': 'Select @field',
+          'education_info.initial_load_failed':
+              'Initial data could not be loaded.',
+          'education_info.countries_load_failed':
+              'Countries could not be loaded.',
+          'education_info.city_data_failed':
+              'City and district data could not be loaded.',
+          'education_info.middle_schools_failed':
+              'School data could not be loaded.',
+          'education_info.high_schools_failed':
+              'High school data could not be loaded.',
+          'education_info.higher_education_failed':
+              'Higher education data could not be loaded.',
+          'education_info.saved_data_failed':
+              'Saved data could not be loaded.',
+          'education_info.level_load_failed':
+              'Level data could not be loaded.',
+          'education_info.select_city_error': 'Please select a city.',
+          'education_info.select_district_error': 'Please select a district.',
+          'education_info.select_middle_school_error':
+              'Please select a middle school.',
+          'education_info.select_high_school_error':
+              'Please select a high school.',
+          'education_info.select_class_level_error':
+              'Please select a class level.',
+          'education_info.select_university_error':
+              'Please select a university.',
+          'education_info.select_faculty_error':
+              'Please select a faculty.',
+          'education_info.select_department_error':
+              'Please select a department.',
+          'education_info.saved': 'Your education information has been saved.',
+          'education_info.save_failed': 'Save failed.',
+          'bank_info.title': 'Bank Information',
+          'bank_info.reset_menu': 'Reset My Bank Information',
+          'bank_info.reset_title': 'Are you sure?',
+          'bank_info.reset_body':
+              'Your bank information will be reset. This action cannot be undone.',
+          'bank_info.reset_success': 'Your bank information has been reset.',
+          'bank_info.fast_title': 'Easy Address (FAST)',
+          'bank_info.fast_email': 'Email',
+          'bank_info.fast_phone': 'Phone',
+          'bank_info.fast_iban': 'IBAN',
+          'bank_info.bank_label': 'Bank',
+          'bank_info.select_bank': 'Select Bank',
+          'bank_info.select_fast_type': 'Select Easy Address Type',
+          'bank_info.load_failed': 'Data could not be loaded.',
+          'bank_info.missing_value':
+              'We cannot continue without completing the IBAN information.',
+          'bank_info.missing_bank':
+              'You have not selected the bank where you will receive payment. This information will be shared if your scholarship is approved.',
+          'bank_info.invalid_email':
+              'Please enter a valid email address.',
+          'bank_info.saved': 'Bank information has been saved.',
+          'bank_info.save_failed': 'Information could not be saved.',
+          'dormitory.title': 'Dormitory Information',
+          'dormitory.reset_menu': 'Reset My Dormitory Information',
+          'dormitory.reset_title': 'Are you sure?',
+          'dormitory.reset_body':
+              'Your dormitory information will be reset. This action cannot be undone.',
+          'dormitory.reset_success':
+              'Your dormitory information has been reset.',
+          'dormitory.current_info': 'Current Dormitory Information',
+          'dormitory.select_admin_type': 'Select Administration Type',
+          'dormitory.admin_public': 'Public',
+          'dormitory.admin_private': 'Private',
+          'dormitory.select_dormitory': 'Select Dormitory',
+          'dormitory.not_found_for_filters':
+              'No dormitory was found for this city and administration type',
+          'dormitory.saved': 'Your dormitory information has been saved.',
+          'dormitory.save_failed': 'Data could not be saved.',
+          'dormitory.select_or_enter':
+              'Please select a dormitory or enter a dormitory name',
           'scholarship.application_start_date': 'Application Start Date',
           'scholarship.application_end_date': 'Application End Date',
           'scholarship.select_from_list': 'Select from list',
@@ -4329,6 +5905,29 @@ class AppTranslations extends Translations {
           'scholarship.website_open_failed':
               'Website could not be opened. Please enter a valid URL.',
           'scholarship.checking_info': 'Checking information',
+          'scholarship.user_data_missing':
+              'User data could not be found. Please complete your information.',
+          'scholarship.check_info_failed':
+              'An error occurred while checking the information.',
+          'scholarship.application_check_failed':
+              'An error occurred while checking the application status.',
+          'scholarship.login_required': 'Please sign in.',
+          'scholarship.profile_missing':
+              'No profile information is available for this scholarship.',
+          'scholarship.applied_success':
+              'Your scholarship application has been received.',
+          'scholarship.apply_failed': 'Application could not be saved.',
+          'scholarship.follow_limit_title': 'Follow Limit',
+          'scholarship.follow_limit_body':
+              'You cannot follow more people today.',
+          'scholarship.follow_failed': 'Follow action failed.',
+          'scholarship.invalid': 'Invalid scholarship.',
+          'scholarship.delete_success': 'Scholarship deleted successfully.',
+          'scholarship.delete_failed':
+              'An error occurred while deleting the scholarship.',
+          'scholarship.cancel_success':
+              'Your scholarship application has been canceled.',
+          'scholarship.cancel_failed': 'Application could not be canceled.',
           'scholarship.info_missing_title': 'Missing Information',
           'scholarship.info_missing_body':
               'You cannot apply for scholarships without completing your personal, school and family information.',
@@ -4357,6 +5956,30 @@ class AppTranslations extends Translations {
           'scholarship.custom_image_pick': 'Select Image',
           'scholarship.template_select': 'Select Template',
           'scholarship.file_copy_failed': 'The file could not be copied.',
+          'scholarship.data_load_failed':
+              'Scholarship data could not be loaded.',
+          'scholarship.city_data_failed':
+              'City and district data could not be loaded.',
+          'scholarship.university_data_failed':
+              'University data could not be loaded.',
+          'scholarship.file_missing': 'The selected file could not be found.',
+          'scholarship.image_convert_failed':
+              'The image could not be converted to WebP format.',
+          'scholarship.image_upload_failed':
+              'An error occurred while uploading the image.',
+          'scholarship.template_convert_failed':
+              'The template image could not be converted to WebP format.',
+          'scholarship.template_capture_failed':
+              'The template image could not be captured.',
+          'scholarship.published_success':
+              'Scholarship has been published successfully!',
+          'scholarship.publish_failed':
+              'An error occurred while publishing the scholarship.',
+          'scholarship.updated_success':
+              'Scholarship has been updated successfully!',
+          'scholarship.update_failed':
+              'An error occurred while updating the scholarship.',
+          'search_permission.title': 'Search Permission',
           'scholarship.duplicate_status.can_receive': 'Can Receive',
           'scholarship.duplicate_status.cannot_receive_except_kyk':
               'Cannot Receive (Except KYK)',
@@ -4383,6 +6006,7 @@ class AppTranslations extends Translations {
           'common.company': 'Company',
           'common.salary': 'Salary',
           'common.address': 'Address',
+          'common.language': 'Language',
           'profile_photo.camera': 'Take Photo',
           'profile_photo.gallery': 'Choose from Gallery',
           'edit_profile.title': 'Profile Information',
@@ -4395,6 +6019,14 @@ class AppTranslations extends Translations {
           'edit_profile.contact_info': 'Contact Information',
           'edit_profile.address_info': 'Address Information',
           'edit_profile.career_profile': 'Career Profile',
+          'personal_info.select_country_title': 'Select Country',
+          'personal_info.select_marital_status_title':
+              'Select Marital Status',
+          'personal_info.select_gender_title': 'Select Gender',
+          'personal_info.select_disability_title':
+              'Select Disability Status',
+          'personal_info.select_work_status_title':
+              'Select Employment Status',
           'edit_profile.update_success': 'Your profile information has been updated!',
           'edit_profile.update_failed': 'Update error: {error}',
           'edit_profile.remove_photo_title': 'Remove Profile Photo',
@@ -4565,6 +6197,7 @@ class AppTranslations extends Translations {
           'qr.download_failed': 'An error occurred during download.',
           'post_creator.title_new': 'Prepare Post',
           'post_creator.title_edit': 'Edit Post',
+          'post_creator.text_hint': 'Post text',
           'post_creator.publish': 'Publish',
           'post_creator.uploading': 'Uploading...',
           'post_creator.saving': 'Saving...',
@@ -4886,6 +6519,312 @@ class AppTranslations extends Translations {
           'settings.permissions': 'Berechtigungen',
           'settings.pasaj': 'Pasaj',
           'settings.pasaj.practice_exam': 'Probeprüfung',
+          'education.previous_questions': 'Probetests',
+          'tests.results_title': 'Ergebnisse',
+          'tests.results_empty':
+              'Keine Ergebnisse gefunden.\nFür diesen Test liegen keine Antwort- oder Fragendaten vor.',
+          'tests.correct': 'Richtig',
+          'tests.wrong': 'Falsch',
+          'tests.blank': 'Leer',
+          'tests.net': 'Netto',
+          'tests.score': 'Punktzahl',
+          'tests.question_number': 'Frage @index',
+          'tests.solve_no_questions':
+              'Frage nicht gefunden.\nFür diesen Test konnten keine Fragen geladen werden.',
+          'tests.finish_test': 'Test beenden',
+          'tests.my_results_empty':
+              'Keine Ergebnisse gefunden.\nDu hast bisher noch keinen Test gelöst.',
+          'tests.saved_empty': 'Es sind keine gespeicherten Tests vorhanden.',
+          'tests.result_answer_missing':
+              'Keine Ergebnisse gefunden.\nFür diesen Test liegen keine Antwortdaten vor.',
+          'tests.type_test': '@type-Test',
+          'tests.description_test': '@description-Test',
+          'tests.solve_count': 'Du hast ihn @count Mal gelöst',
+          'tests.create_title': 'Test erstellen',
+          'tests.edit_title': 'Test bearbeiten',
+          'tests.create_data_missing':
+              'Keine Daten gefunden.\nApp-Links oder Testfragen konnten nicht geladen werden.',
+          'tests.create_upload_failed':
+              'Dieser Inhalt kann derzeit nicht verarbeitet werden. Bitte versuche einen anderen.',
+          'tests.select_branch': 'Bereich wählen',
+          'tests.select_language': 'Sprache wählen',
+          'tests.cover_select': 'Titelbild auswählen',
+          'tests.name_hint': 'Prüfungsname',
+          'tests.post_exam_status': 'Nach der Prüfung @status',
+          'tests.types': 'Prüfungstypen',
+          'tests.date_duration': 'Prüfungsdatum und Dauer',
+          'tests.duration_select': 'Prüfungsdauer wählen',
+          'tests.create_description_hint':
+              '9. Klasse Exponentialausdrücke und Wurzelausdrücke',
+          'tests.share_status': 'Für alle: @status',
+          'tests.status.open': 'Offen',
+          'tests.status.closed': 'Geschlossen',
+          'tests.share_public_info':
+              'Gemäß der digitalen Ethik sollten urheberrechtlich geschützte Tests nicht geteilt werden.\nBitte verwende und veröffentliche Tests, die jeder lösen kann und die keine urheberrechtlich geschützten Inhalte enthalten.',
+          'tests.share_private_info':
+              'Dieser Test kann nur mit deinen eigenen Schülern geteilt werden. Nur Schüler, die die von dir angegebene ID eingeben, können auf den veröffentlichten Test zugreifen und ihn lösen.',
+          'tests.test_id': 'Test-ID: @id',
+          'tests.test_type': 'Testtyp',
+          'tests.subjects': 'Fächer',
+          'tests.exam_prep': 'Prüfungsvorbereitung',
+          'tests.foreign_language': 'Fremdsprache',
+          'tests.delete_test': 'Test löschen',
+          'tests.prepare_test': 'Test vorbereiten',
+          'tests.join_title': 'Am Test teilnehmen',
+          'tests.search_title': 'Test suchen',
+          'tests.search_id_hint': 'Test-ID suchen',
+          'tests.join_help':
+              'Du kannst den Test starten, indem du die Test-ID eingibst, die dir dein Lehrer mitgeteilt hat.',
+          'tests.join_not_found':
+              'Test nicht gefunden.\nEs wurde kein Test mit der eingegebenen Test-ID gefunden.',
+          'tests.join_button': 'Test beitreten',
+          'tests.no_shared': 'Keine geteilten Tests vorhanden.',
+          'tests.my_tests_title': 'Meine Tests',
+          'tests.my_tests_empty':
+              'Keine Ergebnisse gefunden.\nDu hast bisher noch keine Tests erstellt.',
+          'tests.completed_title': 'Du hast den Test beendet!',
+          'tests.completed_body':
+              'Du kannst deine Punktzahl und dein Verhältnis von richtigen und falschen Antworten unter „Meine Ergebnisse“ ansehen.',
+          'tests.completed_short': 'Du hast den Test abgeschlossen!',
+          'tests.action_select': 'Aktion wählen',
+          'tests.action_select_body':
+              'Wenn du eine Aktion für diesen Test ausführen möchtest, wähle unten eine der Optionen aus.',
+          'tests.copy_test_id': 'Test-ID kopieren',
+          'tests.solve_title': 'Test lösen',
+          'tests.delete_confirm':
+              'Möchtest du diesen Test wirklich löschen?',
+          'tests.id_copied':
+              'Test-ID wurde in die Zwischenablage kopiert',
+          'tests.share_test_id_text':
+              '@type-Test\n\nLade TurqApp jetzt herunter, um am Test teilzunehmen. Deine benötigte Test-ID ist @id\n\nApp jetzt herunterladen:\n\nAppStore: @appStore\nPlay Store: @playStore\n\nUm am Test teilzunehmen, gib die Test-ID auf dem Testbildschirm im Schülerbereich ein und beginne sofort mit dem Lösen.',
+          'tests.type.middle_school': 'Mittelschule',
+          'tests.type.high_school': 'Gymnasium',
+          'tests.type.prep': 'Vorbereitung',
+          'tests.type.language': 'Sprache',
+          'tests.type.branch': 'Bereich',
+          'tests.lesson.turkish': 'Türkisch',
+          'tests.lesson.literature': 'Literatur',
+          'tests.lesson.math': 'Mathematik',
+          'tests.lesson.geometry': 'Geometrie',
+          'tests.lesson.physics': 'Physik',
+          'tests.lesson.chemistry': 'Chemie',
+          'tests.lesson.biology': 'Biologie',
+          'tests.lesson.history': 'Geschichte',
+          'tests.lesson.geography': 'Geografie',
+          'tests.lesson.philosophy': 'Philosophie',
+          'tests.lesson.psychology': 'Psychologie',
+          'tests.lesson.sociology': 'Soziologie',
+          'tests.lesson.logic': 'Logik',
+          'tests.lesson.religion': 'Religionskunde',
+          'tests.lesson.science': 'Naturwissenschaften',
+          'tests.lesson.revolution_history': 'Revolutionsgeschichte',
+          'tests.lesson.foreign_language': 'Fremdsprache',
+          'tests.lesson.basic_math': 'Grundlagen Mathematik',
+          'tests.lesson.social_sciences': 'Sozialwissenschaften',
+          'tests.lesson.literature_social_1':
+              'Literatur - Sozialwissenschaften 1',
+          'tests.lesson.social_sciences_2': 'Sozialwissenschaften 2',
+          'tests.lesson.general_ability': 'Allgemeine Fähigkeiten',
+          'tests.lesson.general_culture': 'Allgemeinbildung',
+          'tests.language.english': 'Englisch',
+          'tests.language.german': 'Deutsch',
+          'tests.language.arabic': 'Arabisch',
+          'tests.language.french': 'Französisch',
+          'tests.language.russian': 'Russisch',
+          'tests.lesson_based_title': '@type-Tests',
+          'tests.none_in_category': 'Keine Tests vorhanden',
+          'tests.add_question': 'Frage hinzufügen',
+          'tests.no_questions_added':
+              'Keine Fragen gefunden.\nFür diesen Test wurden noch keine Fragen hinzugefügt.',
+          'tests.level_easy': 'Einfach',
+          'tests.title': 'Tests',
+          'tests.report_title': 'Über den Test',
+          'tests.report_wrong_answers':
+              'Der Test enthält falsche Antworten',
+          'tests.report_wrong_section':
+              'Der Test befindet sich im falschen Bereich',
+          'tests.question_content_failed':
+              'Der Frageninhalt konnte nicht geladen werden.\nBitte versuche es erneut.',
+          'tests.capture_and_upload': 'Aufnehmen und hochladen',
+          'tests.capture_and_upload_body':
+              'Mache ein Foto der Frage, wähle die richtige Antwort und bereite sie ganz einfach vor!',
+          'tests.select_from_gallery': 'Aus Galerie wählen',
+          'tests.upload_from_camera': 'Von Kamera hochladen',
+          'tests.nsfw_check_failed':
+              'Die Bildsicherheitsprüfung konnte nicht abgeschlossen werden.',
+          'tests.nsfw_detected': 'Unangemessenes Bild erkannt.',
+          'practice.title': 'Online-Prüfung',
+          'practice.search_title': 'Probeprüfung suchen',
+          'practice.empty_title': 'Noch keine Probeprüfungen vorhanden',
+          'practice.empty_body':
+              'Derzeit sind keine Probeprüfungen im System vorhanden. Neue Prüfungen erscheinen hier, sobald sie hinzugefügt werden.',
+          'practice.search_empty_title':
+              'Keine Prüfung passt zu deiner Suche',
+          'practice.search_empty_body_empty':
+              'Derzeit sind keine Probeprüfungen im System vorhanden. Neue Prüfungen erscheinen hier, sobald sie hinzugefügt werden.',
+          'practice.search_empty_body_query':
+              'Versuche ein anderes Stichwort.',
+          'practice.results_title': 'Meine Prüfungsergebnisse',
+          'practice.saved_empty': 'Keine gespeicherten Probeprüfungen.',
+          'practice.preview_no_questions':
+              'Für diese Prüfung wurden keine Fragen gefunden. Bitte prüfe den Prüfungsinhalt oder füge neue Fragen hinzu.',
+          'practice.preview_no_results':
+              'Für diese Prüfung wurden keine Ergebnisse gefunden. Bitte prüfe deine Antworten oder löse die Prüfung erneut.',
+          'practice.lesson_header': 'Fächer',
+          'practice.answers_load_failed':
+              'Antworten konnten nicht geladen werden.',
+          'practice.lesson_results_load_failed':
+              'Fachergebnisse konnten nicht geladen werden.',
+          'practice.results_empty_title':
+              'Du hast noch keine Prüfung abgelegt',
+          'practice.results_empty_body':
+              'Du hast noch an keiner Probeprüfung teilgenommen. Deine Ergebnisse erscheinen hier nach deiner Teilnahme.',
+          'practice.published_empty':
+              'Du hast noch keine Online-Prüfung veröffentlicht.',
+          'practice.user_session_missing': 'Benutzersitzung nicht gefunden.',
+          'practice.school_info_failed':
+              'Schulinformationen konnten nicht geladen werden.',
+          'practice.load_failed': 'Daten konnten nicht geladen werden.',
+          'practice.slider_management': 'Slider-Verwaltung',
+          'practice.create_disabled_title':
+              'Nur für gelbes Abzeichen und höher',
+          'practice.create_disabled_body':
+              'Um eine Online-Prüfung zu erstellen, benötigst du ein verifiziertes Konto mit gelbem Abzeichen oder höher.',
+          'practice.preview_title': 'Prüfungsdetails',
+          'practice.report_exam': 'Prüfung melden',
+          'practice.user_load_failed':
+              'Benutzerinformationen konnten nicht geladen werden.',
+          'practice.user_load_failed_body':
+              'Benutzerinformationen konnten nicht geladen werden. Bitte versuche es erneut oder prüfe den Eigentümer der Prüfung.',
+          'practice.invalidity_load_failed':
+              'Ungültigkeitsstatus konnte nicht geladen werden.',
+          'practice.cover_load_failed':
+              'Titelbild konnte nicht geladen werden.',
+          'practice.no_description':
+              'Für diese Prüfung wurde keine Beschreibung hinzugefügt.',
+          'practice.exam_info': 'Prüfungsinformationen',
+          'practice.exam_type': 'Prüfungsart',
+          'practice.exam_suffix': '@type-Prüfung',
+          'practice.exam_datetime': 'Prüfungsdatum und Uhrzeit',
+          'practice.exam_duration': 'Prüfungsdauer',
+          'practice.duration_minutes': '@minutes Min',
+          'practice.application_count': 'Bewerbungen',
+          'practice.people_count': '@count Personen',
+          'practice.owner': 'Prüfungsinhaber',
+          'practice.apply_now': 'Jetzt bewerben',
+          'practice.applied_short': 'Beworben',
+          'practice.closed_starts_in':
+              'Bewerbungen geschlossen.\nBeginnt in @minutes Min.',
+          'practice.started': 'Prüfung gestartet',
+          'practice.start_now': 'Jetzt starten',
+          'practice.finished_short': 'Prüfung beendet',
+          'practice.not_started': 'Prüfung nicht gestartet',
+          'practice.application_closed_title':
+              'Bewerbung geschlossen!',
+          'practice.application_closed_body':
+              'Bewerbungen schließen 15 Minuten vor Prüfungsbeginn.',
+          'practice.not_applied_title': 'Du hast dich nicht beworben!',
+          'practice.not_applied_body':
+              'Du kannst nur an Prüfungen teilnehmen, für die du dich beworben hast.',
+          'practice.not_allowed_title':
+              'Du kannst die Prüfung nicht betreten!',
+          'practice.not_allowed_body':
+              'Du hast keinen Zugriff auf diese Prüfung. Du wurdest in dieser Prüfung zuvor als ungültig markiert und kannst vor dem Ende nicht erneut teilnehmen.',
+          'practice.finished_title': 'Prüfung beendet!',
+          'practice.finished_body':
+              'Du kannst dich für die nächsten Prüfungen bewerben. Diese Prüfung ist beendet.',
+          'practice.result_unavailable':
+              'Das Ergebnis konnte nicht berechnet werden.',
+          'practice.result_summary':
+              'Richtig: @correct   •   Falsch: @wrong   •   Leer: @blank   •   Netto: @net',
+          'practice.congrats_title': 'Glückwunsch!',
+          'practice.removed_title':
+              'Du wurdest aus der Prüfung entfernt!',
+          'practice.removed_body':
+              'Wir haben dich mehrfach gewarnt. Leider wurdest du wegen Verstoßes gegen die Prüfungsregeln entfernt und deine Prüfung wurde als ungültig markiert.',
+          'practice.applied_title':
+              'Deine Bewerbung wurde erhalten!',
+          'practice.applied_body':
+              'Deine Bewerbung wurde erfolgreich erhalten. Derzeit ist nichts weiter erforderlich.',
+          'practice.apply_completed_title':
+              'Deine Bewerbung ist abgeschlossen!',
+          'practice.apply_completed_body':
+              'Wir senden dir vor der Prüfung Erinnerungen. Viel Erfolg!',
+          'practice.apply_failed': 'Bewerbung fehlgeschlagen.',
+          'practice.application_check_failed':
+              'Bewerbungsprüfung fehlgeschlagen.',
+          'practice.question_image_failed':
+              'Fragenbild konnte nicht geladen werden.',
+          'practice.exam_started_title': 'Die Prüfung hat begonnen!',
+          'practice.exam_started_body':
+              'Wir glauben, dass deine Sorgfalt und Mühe in dieser Prüfung den Weg zum Erfolg ebnen werden. Viel Glück!',
+          'practice.rules_title': 'Prüfungsregeln',
+          'practice.rule_1':
+              'Bitte schalte die Internetverbindung deines Telefons aus. Nach Abschluss der Prüfung kannst du sie wieder einschalten, um deine Antworten zu senden.',
+          'practice.rule_2':
+              'Wenn du die Prüfung verlässt, gelten alle Antworten als ungültig und dein Ergebnis wird nicht gespeichert. Bitte überlege sorgfältig, bevor du dies bestätigst.',
+          'practice.rule_3':
+              'Wenn du die App in den Hintergrund schickst, wird deine Prüfung als ungültig gewertet. Bitte achte darauf, die App nicht in den Hintergrund zu legen.',
+          'practice.start_exam': 'Prüfung starten',
+          'practice.finish_exam': 'Prüfung beenden',
+          'practice.background_warning':
+              'In kritischen Situationen wie dem Wechsel der App in den Hintergrund wird deine Prüfung als ungültig gewertet. Bitte sei vorsichtig und halte dich an die Regeln.',
+          'practice.questions_load_failed':
+              'Fragen konnten nicht geladen werden.',
+          'practice.answers_save_failed':
+              'Antworten konnten nicht gespeichert werden.',
+          'past_questions.no_results': 'Es gibt keine Ergebnisse.',
+          'past_questions.title': 'Probeprüfungen',
+          'past_questions.mock_fallback': 'Probe',
+          'past_questions.search_empty':
+              'Keine Probeprüfung passt zu deiner Suche.',
+          'past_questions.results_suffix': '@title Ergebnisse',
+          'past_questions.local_result_summary':
+              '@count Fragen wurden gelöst. Das Ergebnis wird lokal gespeichert; auf diesem Bildschirm wird nur die Nettoübersicht angezeigt.',
+          'past_questions.mock_label': 'Probe @index',
+          'past_questions.question_count': '@count Fragen',
+          'past_questions.net_label': 'Netto',
+          'past_questions.tests_by_year': '@type @year Tests',
+          'past_questions.languages_title': '@type Sprachen',
+          'past_questions.tests_by_type': '@type Tests',
+          'past_questions.select_exam': 'Prüfung auswählen',
+          'past_questions.questions_title': 'Fragen',
+          'past_questions.continue_solving': 'Fragen weiter lösen',
+          'past_questions.oabt_short': 'ÖABT',
+          'past_questions.exam_type.associate': 'Associate Degree',
+          'past_questions.exam_type.undergraduate': 'Bachelor',
+          'past_questions.exam_type.middle_school': 'Sekundarstufe',
+          'past_questions.branch.general_ability_culture':
+              'Allgemeinwissen und Fähigkeiten',
+          'past_questions.branch.group_a': 'Gruppe A',
+          'past_questions.branch.education_sciences': 'Erziehungswissenschaften',
+          'past_questions.branch.field_knowledge': 'Fachwissen',
+          'past_questions.sessions_by_year': 'Sitzungen @year',
+          'past_questions.teaching.title': 'Lehrämter',
+          'past_questions.teaching.suffix': 'Lehramt',
+          'past_questions.teaching.primary_math_short': 'P. Mathe',
+          'past_questions.teaching.high_school_math_short': 'L. Mathe',
+          'past_questions.teaching.german': 'Deutsch Lehramt',
+          'past_questions.teaching.physical_education':
+              'Sport Lehramt',
+          'past_questions.teaching.biology': 'Biologie Lehramt',
+          'past_questions.teaching.geography': 'Geografie Lehramt',
+          'past_questions.teaching.religious_culture':
+              'Religionskultur Lehramt',
+          'past_questions.teaching.literature': 'Literatur Lehramt',
+          'past_questions.teaching.science': 'Naturwissenschaften Lehramt',
+          'past_questions.teaching.physics': 'Physik Lehramt',
+          'past_questions.teaching.chemistry': 'Chemie Lehramt',
+          'past_questions.teaching.high_school_math': 'Gymnasialmathematik',
+          'past_questions.teaching.preschool': 'Vorschule',
+          'past_questions.teaching.guidance': 'Beratung',
+          'past_questions.teaching.social_studies': 'Sozialkunde Lehramt',
+          'past_questions.teaching.classroom': 'Grundschullehramt',
+          'past_questions.teaching.history': 'Geschichte Lehramt',
+          'past_questions.teaching.turkish': 'Türkisch Lehramt',
+          'past_questions.teaching.primary_math': 'Primarstufenmathematik',
+          'past_questions.teaching.imam_hatip': 'Imam Hatip',
+          'past_questions.teaching.english': 'Englisch Lehramt',
           'settings.about': 'Über',
           'settings.policies': 'Richtlinien',
           'settings.contact_us': 'Schreib uns',
@@ -5080,12 +7019,23 @@ class AppTranslations extends Translations {
           'common.photos': 'Fotos',
           'common.no_results': 'Keine Ergebnisse gefunden',
           'common.success': 'Erfolgreich',
+          'common.warning': 'Warnung',
           'common.delete': 'Löschen',
           'common.search': 'Suchen',
+          'common.call': 'Anrufen',
+          'common.view': 'Anzeigen',
           'common.create': 'Erstellen',
+          'common.applications': 'Bewerbungen',
+          'common.liked': 'Gefällt mir',
           'common.saved': 'Gespeichert',
+          'common.unknown_category': 'Unbekannte Kategorie',
           'common.clear': 'Zurücksetzen',
           'common.share': 'Teilen',
+          'common.show_more': 'Mehr anzeigen',
+          'common.show_less': 'Weniger anzeigen',
+          'common.hide': 'Ausblenden',
+          'common.push': 'Push',
+          'common.quote': 'Zitieren',
           'common.user': 'Nutzer',
           'common.close': 'Schließen',
           'common.retry': 'Erneut versuchen',
@@ -5206,6 +7156,19 @@ class AppTranslations extends Translations {
               'Beitragsinteraktionen, Kommentare und Ankündigungen.',
           'notifications.comments': 'Kommentare',
           'notifications.comments_desc': 'Kommentare zu deinem Beitrag.',
+          'comments.delete_message':
+              'Möchtest du diesen Kommentar wirklich löschen?',
+          'comments.delete_failed': 'Kommentar konnte nicht gelöscht werden.',
+          'comments.title': 'Kommentare',
+          'comments.empty': 'Sei der Erste mit einem Kommentar...',
+          'comments.reply': 'Antworten',
+          'comments.replying_to': 'Antwort an @nickname',
+          'comments.sending': 'Wird gesendet',
+          'comments.community_violation_title':
+              'Verstoss gegen die Community-Regeln',
+          'comments.community_violation_body':
+              'Die von dir verwendete Sprache entspricht nicht unseren Community-Regeln. Bitte verwende eine respektvolle Sprache.',
+          'post_sharers.empty': 'Noch hat niemand diesen Beitrag geteilt',
           'notifications.post_activity': 'Beitragsaktivität',
           'notifications.post_activity_desc':
               'Likes, Reposts und Beitrags-Pushs.',
@@ -5424,6 +7387,32 @@ class AppTranslations extends Translations {
           'pasaj.tabs.job_finder': 'Arbeitgeber',
           'pasaj.question_bank.solve_later': 'Später lösen',
           'pasaj.answer_key.join': 'Beitreten',
+          'answer_key.published': 'Veröffentlicht',
+          'answer_key.my_results': 'Meine Ergebnisse',
+          'answer_key.saved_empty': 'Keine gespeicherten Bücher.',
+          'answer_key.new_create': 'Neu erstellen',
+          'answer_key.create_optical_form': 'Optisches Formular\nErstellen',
+          'answer_key.create_booklet_answer_key':
+              'Buchlösungsschlüssel\nErstellen',
+          'answer_key.create_optical_form_single':
+              'Optisches Formular erstellen',
+          'answer_key.give_exam_name': 'Gib deiner Prüfung einen Namen',
+          'answer_key.join_exam_title': 'Prüfung beitreten',
+          'answer_key.exam_id_hint': 'Prüfungs-ID',
+          'answer_key.book': 'Buch',
+          'answer_key.create_book': 'Buch erstellen',
+          'answer_key.optical_form': 'Optisches Formular',
+          'answer_key.delete_book': 'Buch löschen',
+          'answer_key.share_owner_only':
+              'Nur Admins und der Anzeigeninhaber können teilen.',
+          'answer_key.book_answer_key_desc': 'Antwortschlüssel',
+          'answer_key.delete_operation': 'Löschvorgang',
+          'answer_key.delete_optical_confirm':
+              'Möchtest du das optische Formular @name wirklich löschen?',
+          'answer_key.total_questions': 'Insgesamt @count Fragen',
+          'answer_key.participant_count': '@count Personen',
+          'answer_key.id_copied': 'ID kopiert',
+          'answer_key.answered_suffix': 'Vor @time beantwortet',
           'pasaj.tutoring.nearby_listings': 'Anzeigen in meiner Nähe',
           'pasaj.job_finder.title': 'Arbeitgeber',
           'pasaj.job_finder.search_hint':
@@ -6286,6 +8275,9 @@ class AppTranslations extends Translations {
           'profile.no_photos': 'Keine Fotos',
           'profile.no_videos': 'Keine Videos',
           'profile.no_reshares': 'Keine Reshares',
+          'profile.no_quotes': 'Noch keine Zitate',
+          'profile.reshare_users_tab': 'Erneut geteilt von',
+          'profile.quote_users_tab': 'Zitiert von',
           'profile.no_listings': 'Keine Anzeigen',
           'profile.post_about_title': 'Über den Beitrag',
           'profile.post_about_body':
@@ -6429,6 +8421,7 @@ class AppTranslations extends Translations {
           'common.features': 'Merkmale',
           'common.contact': 'Kontakt',
           'common.city': 'Stadt',
+          'comments.input_hint': 'Was denkst du daruber?',
           'explore.tab.trending': 'Trendthemen',
           'explore.tab.for_you': 'Für dich',
           'explore.tab.series': 'Serie',
@@ -6448,6 +8441,23 @@ class AppTranslations extends Translations {
               'Du hast diesen Beitrag archiviert.\nEr ist nun für niemanden mehr sichtbar.',
           'post_state.deleted_title': 'Beitrag gelöscht',
           'post_state.deleted_body': 'Dieser Beitrag ist nicht mehr veröffentlicht.',
+          'post.share_title': 'TurqApp Beitrag',
+          'post.archive': 'Archivieren',
+          'post.unarchive': 'Aus Archiv entfernen',
+          'post.like_failed':
+              'Die Like-Aktion konnte nicht abgeschlossen werden.',
+          'post.save_failed':
+              'Die Speicheraktion konnte nicht abgeschlossen werden.',
+          'post.reshare_failed':
+              'Die Teilen-Aktion konnte nicht abgeschlossen werden.',
+          'post.report_success': 'Beitrag gemeldet.',
+          'post.report_failed':
+              'Die Meldung konnte nicht abgeschlossen werden.',
+          'post.hide_failed': 'Das Ausblenden konnte nicht abgeschlossen werden.',
+          'post.reshare_action': 'Erneut teilen',
+          'post.reshare_undo': 'Erneutes Teilen ruckgangig machen',
+          'post.reshared_you': 'du hast es erneut geteilt',
+          'post.reshared_by': '@name hat es erneut geteilt',
           'short.next_post': 'Zum nächsten Beitrag',
           'short.publish_as_post': 'Als Beitrag veröffentlichen',
           'short.add_to_story': 'Zu deiner Story hinzufügen',
@@ -6455,6 +8465,10 @@ class AppTranslations extends Translations {
           'story.seens_title': 'Aufrufe (@count)',
           'story.no_seens': 'Niemand hat deine Story angesehen',
           'story.comments_title': 'Kommentare (@count)',
+          'story.share_title': '@name Story',
+          'story.share_desc': 'Story auf TurqApp ansehen',
+          'story.drawing_title': 'Zeichnung hinzufugen',
+          'story.brush_color': 'Pinselfarbe',
           'story.no_comments': 'Noch keine Kommentare',
           'story.add_comment_for': 'Kommentar für @nickname hinzufügen..',
           'story.delete_message': 'Diese Story löschen?',
@@ -6472,7 +8486,13 @@ class AppTranslations extends Translations {
           'story.deleted_stories.deleted_forever':
               'Story dauerhaft geloescht',
           'story.deleted_stories.deleted_at': 'Geloescht: @time',
+          'admin_push.queue_title': 'Push',
+          'admin_push.queue_body_count':
+              'Push fur @count Nutzer in die Warteschlange gestellt',
+          'admin_push.queue_body': 'Push in die Warteschlange gestellt',
+          'admin_push.failed_body': 'Push konnte nicht gesendet werden.',
           'story_music.title': 'Musik',
+          'story_music.search_hint': 'Musik suchen',
           'story_music.no_active_stories':
               'Es gibt keine aktiven Storys mit dieser Musik',
           'story_music.untitled': 'Unbenannter Titel',
@@ -6611,9 +8631,20 @@ class AppTranslations extends Translations {
               'Beim Hochladen des Fotos ist ein Fehler aufgetreten!',
           'training.question_bank_title': 'Fragenbank',
           'training.questions_loading': 'Fragen werden geladen...',
+          'training.solve_later_empty':
+              'Keine Später-lösen-Fragen gefunden!',
+          'training.remove_solve_later': 'Aus Später lösen entfernen',
           'training.no_questions': 'Keine Fragen gefunden!',
           'training.answer_first': 'Beantworte zuerst die Frage!',
           'training.share': 'Teilen',
+          'training.correct_ratio': '%@value Richtig',
+          'training.wrong_ratio': '%@value Falsch',
+          'training.complaint_select_one':
+              'Bitte wähle mindestens eine Meldeoption aus.',
+          'training.complaint_thanks':
+              'Danke für deinen Hinweis.',
+          'training.complaint_submit_failed':
+              'Beim Senden deiner Meldung ist ein Fehler aufgetreten.',
           'training.no_questions_in_category':
               'In dieser Kategorie wurden keine Fragen gefunden.',
           'training.saved_load_failed':
@@ -6636,6 +8667,15 @@ class AppTranslations extends Translations {
               'Beim Hinzufügen von Gefällt mir ist ein Fehler aufgetreten.',
           'training.share_failed':
               'Teilen konnte nicht gestartet werden',
+          'training.share_question_link_title':
+              '@exam - @lesson Frage @number',
+          'training.share_question_title':
+              'TurqApp - @exam @lesson Frage',
+          'training.share_question_desc': 'Frage aus der TurqApp Fragenbank',
+          'training.leaderboard_empty':
+              'Es wurde noch keine Rangliste erstellt.',
+          'training.leaderboard_empty_body':
+              'Löse Fragen in der Fragenbank, um in die Rangliste zu kommen.',
           'training.answer_locked':
               'Du kannst die Antwort auf diese Frage nicht ändern!',
           'training.answer_saved':
@@ -6722,9 +8762,73 @@ class AppTranslations extends Translations {
               'In dieser Region gibt es keine Nachhilfeanzeigen.',
           'tutoring.no_lessons_in_category':
               'In der Kategorie {category} gibt es keine Kurse.',
+          'tutoring.search_empty':
+              'Es wurde keine passende Anzeige für deine Suche gefunden.',
+          'tutoring.search_empty_info':
+              'Es wurde keine passende Nachhilfeanzeige gefunden!',
           'tutoring.similar_listings': 'Ähnliche Anzeigen',
           'tutoring.open_listing': 'Anzeige öffnen',
           'tutoring.report_listing': 'Anzeige melden',
+          'tutoring.saved_empty': 'Keine gespeicherten Anzeigen.',
+          'tutoring.detail_description': 'Beschreibung',
+          'tutoring.detail_no_description':
+              'Für diese Anzeige wurde keine Beschreibung hinzugefügt.',
+          'tutoring.detail_lesson_info': 'Unterrichtsinformationen',
+          'tutoring.detail_branch': 'Fachbereich',
+          'tutoring.detail_price': 'Preis',
+          'tutoring.detail_contact': 'Kontakt',
+          'tutoring.detail_phone_and_message': 'Telefon + Nachricht',
+          'tutoring.detail_message_only': 'Nur Nachricht',
+          'tutoring.detail_gender_preference': 'Geschlechtspräferenz',
+          'tutoring.detail_availability': 'Verfügbarkeit',
+          'tutoring.detail_listing_info': 'Anzeigeninformationen',
+          'tutoring.detail_instructor': 'Lehrkraft',
+          'tutoring.detail_not_specified': 'Nicht angegeben',
+          'tutoring.detail_city': 'Stadt',
+          'tutoring.detail_views': 'Aufrufe',
+          'tutoring.detail_status': 'Status',
+          'tutoring.detail_status_passive': 'Passiv',
+          'tutoring.detail_status_active': 'Aktiv',
+          'tutoring.detail_location': 'Standort',
+          'tutoring.create.city_select': 'Stadt auswählen',
+          'tutoring.create.district_select': 'Bezirk auswählen',
+          'tutoring.create.nsfw_check_failed':
+              'Die NSFW-Bildprüfung ist fehlgeschlagen.',
+          'tutoring.create.nsfw_detected':
+              'Es wurde ein unangemessenes Bild erkannt.',
+          'tutoring.create.fill_required':
+              'Bitte füllen Sie alle Pflichtfelder aus!',
+          'tutoring.create.published':
+              'Die Nachhilfeanzeige wurde veröffentlicht!',
+          'tutoring.create.publish_failed':
+              'Beim Veröffentlichen der Anzeige ist ein Fehler aufgetreten.',
+          'tutoring.create.updated': 'Anzeige aktualisiert!',
+          'tutoring.create.no_changes':
+              'Es wurden keine Änderungen vorgenommen!',
+          'tutoring.create.update_failed':
+              'Beim Aktualisieren der Anzeige ist ein Fehler aufgetreten.',
+          'tutoring.call_disabled':
+              'Anrufe sind für diese Anzeige deaktiviert.',
+          'tutoring.message': 'Nachricht',
+          'tutoring.messages': 'Nachrichten',
+          'tutoring.phone_missing':
+              'Die Telefonnummer des Lehrers wurde nicht gefunden.',
+          'tutoring.phone_open_failed':
+              'Die Telefon-App konnte nicht geöffnet werden.',
+          'tutoring.unpublish_title': 'Anzeige entfernen',
+          'tutoring.unpublish_body':
+              'Möchtest du diese Nachhilfeanzeige wirklich aus der Veröffentlichung entfernen?',
+          'tutoring.unpublished':
+              'Die Anzeige wurde aus der Veröffentlichung entfernt.',
+          'tutoring.apply_login_required':
+              'Bitte melden Sie sich erneut an, um sich zu bewerben.',
+          'tutoring.application_sent':
+              'Deine Bewerbung wurde gesendet.',
+          'tutoring.application_failed':
+              'Während der Bewerbung ist ein Problem aufgetreten.',
+          'tutoring.delete_success': 'Anzeige gelöscht!',
+          'tutoring.delete_failed':
+              'Beim Löschen der Anzeige ist ein Fehler aufgetreten.',
           'tutoring.filter_title': 'Filter',
           'tutoring.gender_title': 'Geschlecht',
           'tutoring.sort_title': 'Sortierung',
@@ -6766,6 +8870,20 @@ class AppTranslations extends Translations {
           'scholarship.my_applications_title': 'Meine Stipendienbewerbungen',
           'scholarship.no_user_applications':
               'Du hast keine Stipendienbewerbungen!',
+          'scholarship.saved_empty':
+              'Keine gespeicherten Stipendien gefunden.',
+          'scholarship.liked_empty':
+              'Keine mit Gefällt mir markierten Stipendien gefunden.',
+          'scholarship.remove_saved': 'Aus Gespeichert entfernen',
+          'scholarship.remove_liked': 'Aus Gefällt mir entfernen',
+          'scholarship.remove_saved_confirm':
+              'Möchtest du dieses Stipendium wirklich aus den gespeicherten Einträgen entfernen?',
+          'scholarship.remove_liked_confirm':
+              'Möchtest du dieses Stipendium wirklich aus den Gefällt-mir-Einträgen entfernen?',
+          'scholarship.removed_saved':
+              'Stipendium aus den gespeicherten Einträgen entfernt.',
+          'scholarship.removed_liked':
+              'Stipendium aus den Gefällt-mir-Einträgen entfernt.',
           'scholarship.list_title': 'Stipendien (@count)',
           'scholarship.search_results_title': 'Suchergebnisse (@count)',
           'scholarship.empty_title': 'Noch keine Stipendien',
@@ -6793,6 +8911,8 @@ class AppTranslations extends Translations {
               'Es wurden keine Stipendiengeber gefunden.',
           'scholarship.providers_load_failed':
               'Stipendiengeber konnten nicht geladen werden.',
+          'scholarship.applications_load_failed':
+              'Bewerbungen konnten nicht geladen werden.',
           'scholarship.withdraw_application': 'Bewerbung zurückziehen',
           'scholarship.withdraw_confirm_title': 'Achtung!',
           'scholarship.withdraw_confirm_body':
@@ -6815,6 +8935,7 @@ class AppTranslations extends Translations {
           'scholarship.website_label': 'Webseite',
           'scholarship.description_help':
               'Bitte schreibe die Stipendienbeschreibung in einem klaren Abschnitt.',
+          'scholarship.no_description': 'Keine Beschreibung',
           'scholarship.conditions_label': 'Bewerbungsbedingungen',
           'scholarship.required_docs_label': 'Erforderliche Unterlagen',
           'scholarship.award_months_label': 'Fördermonate',
@@ -6823,6 +8944,227 @@ class AppTranslations extends Translations {
           'scholarship.application_place_website': 'Stipendien-Webseite',
           'scholarship.application_website_label': 'Stipendien-Webseite',
           'scholarship.application_dates_label': 'Bewerbungsdaten',
+          'scholarship.detail_missing':
+              'Fehler: Stipendiendaten wurden nicht gefunden.',
+          'scholarship.detail_title': 'Stipendiendetail',
+          'scholarship.delete_title': 'Stipendium löschen',
+          'scholarship.delete_confirm':
+              'Möchtest du dieses Stipendium wirklich löschen?',
+          'scholarship.applications_heading': '@title Stipendienbewerbungen',
+          'scholarship.applicant.personal_section': 'Persönliche Daten',
+          'scholarship.applicant.education_section': 'Bildungsinformationen',
+          'scholarship.applicant.family_section': 'Familieninformationen',
+          'scholarship.applicant.full_name': 'Vollständiger Name',
+          'scholarship.applicant.email': 'E-Mail-Adresse',
+          'scholarship.applicant.phone': 'Telefonnummer',
+          'scholarship.applicant.phone_open_failed':
+              'Telefonanruf konnte nicht gestartet werden',
+          'scholarship.applicant.email_open_failed':
+              'E-Mail-Programm konnte nicht geöffnet werden',
+          'chat.sign_in_required':
+              'Du musst dich anmelden, um eine Nachricht zu senden.',
+          'chat.cannot_message_self_listing':
+              'Du kannst deiner eigenen Anzeige keine Nachricht senden.',
+          'scholarship.applicant.country': 'Land',
+          'scholarship.applicant.registry_city': 'Meldestadt',
+          'scholarship.applicant.registry_district': 'Meldebezirk',
+          'scholarship.applicant.birth_date': 'Geburtsdatum',
+          'scholarship.applicant.marital_status': 'Familienstand',
+          'scholarship.applicant.gender': 'Geschlecht',
+          'scholarship.applicant.disability_report': 'Behindertenbericht',
+          'scholarship.applicant.employment_status': 'Beschäftigungsstatus',
+          'scholarship.applicant.education_level': 'Bildungsniveau',
+          'scholarship.applicant.university': 'Universität',
+          'scholarship.applicant.faculty': 'Fakultät',
+          'scholarship.applicant.department': 'Abteilung',
+          'scholarship.applicant.father_alive': 'Lebt der Vater?',
+          'scholarship.applicant.father_name': 'Name des Vaters',
+          'scholarship.applicant.father_surname': 'Nachname des Vaters',
+          'scholarship.applicant.father_phone': 'Telefon des Vaters',
+          'scholarship.applicant.father_job': 'Beruf des Vaters',
+          'scholarship.applicant.father_income': 'Einkommen des Vaters',
+          'scholarship.applicant.mother_alive': 'Lebt die Mutter?',
+          'scholarship.applicant.mother_name': 'Name der Mutter',
+          'scholarship.applicant.mother_surname': 'Nachname der Mutter',
+          'scholarship.applicant.mother_phone': 'Telefon der Mutter',
+          'scholarship.applicant.mother_job': 'Beruf der Mutter',
+          'scholarship.applicant.mother_income': 'Einkommen der Mutter',
+          'scholarship.applicant.home_ownership': 'Wohneigentum',
+          'scholarship.applicant.residence_city': 'Wohnstadt',
+          'scholarship.applicant.residence_district': 'Wohnbezirk',
+          'family_info.title': 'Familieninformationen',
+          'family_info.reset_menu': 'Familieninformationen zurücksetzen',
+          'family_info.reset_title': 'Familieninformationen zurücksetzen',
+          'family_info.reset_body':
+              'Alle Familieninformationen werden gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden. Bist du sicher?',
+          'family_info.select_father_alive':
+              'Bitte wähle aus, ob dein Vater lebt',
+          'family_info.select_mother_alive':
+              'Bitte wähle aus, ob deine Mutter lebt',
+          'family_info.father_name_surname': 'Name - Nachname des Vaters',
+          'family_info.mother_name_surname': 'Name - Nachname der Mutter',
+          'family_info.select_job': 'Beruf wählen',
+          'family_info.father_salary': 'Nettogehalt des Vaters',
+          'family_info.mother_salary': 'Nettogehalt der Mutter',
+          'family_info.father_phone': 'Telefonnummer des Vaters',
+          'family_info.mother_phone': 'Telefonnummer der Mutter',
+          'family_info.salary_hint': 'Nettogehalt',
+          'family_info.family_size': 'Familiengröße',
+          'family_info.family_size_hint': 'Anzahl der Haushaltsmitglieder (einschließlich dir)',
+          'family_info.residence_info': 'Wohnsitzinformationen',
+          'family_info.father_salary_missing': 'Gehaltsangabe des Vaters',
+          'family_info.father_phone_missing': 'Telefonnummer des Vaters',
+          'family_info.father_phone_invalid':
+              'Die Telefonnummer des Vaters muss 10-stellig sein',
+          'family_info.mother_salary_missing': 'Gehaltsangabe der Mutter',
+          'family_info.mother_phone_missing': 'Telefonnummer der Mutter',
+          'family_info.mother_phone_invalid':
+              'Die Telefonnummer der Mutter muss 10-stellig sein',
+          'family_info.saved': 'Deine Familieninformationen wurden gespeichert.',
+          'family_info.save_failed':
+              'Die Informationen konnten nicht gespeichert werden.',
+          'family_info.reset_success':
+              'Die Familieninformationen wurden zurückgesetzt.',
+          'family_info.reset_failed':
+              'Die Informationen konnten nicht zurückgesetzt werden.',
+          'family_info.home_owned': 'Eigenes Haus',
+          'family_info.home_relative': 'Haus eines Verwandten',
+          'family_info.home_lodging': 'Dienstwohnung',
+          'family_info.home_rent': 'Miete',
+          'personal_info.title': 'Persönliche Informationen',
+          'personal_info.reset_menu': 'Meine Informationen zurücksetzen',
+          'personal_info.reset_title': 'Bist du sicher?',
+          'personal_info.reset_body':
+              'Deine persönlichen Informationen werden zurückgesetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
+          'personal_info.reset_success':
+              'Deine persönlichen Informationen wurden zurückgesetzt.',
+          'personal_info.registry_info': 'Meldeort - Bezirk',
+          'personal_info.birth_date_title': 'Dein Geburtsdatum',
+          'personal_info.select_birth_date': 'Geburtsdatum wählen',
+          'personal_info.select_marital_status': 'Familienstand wählen',
+          'personal_info.select_gender': 'Geschlecht wählen',
+          'personal_info.select_disability': 'Behinderungsstatus wählen',
+          'personal_info.select_employment': 'Beschäftigungsstatus wählen',
+          'personal_info.select_field': '@field wählen',
+          'personal_info.city_load_failed':
+              'Stadt- und Bezirksdaten konnten nicht geladen werden.',
+          'personal_info.user_data_missing':
+              'Benutzerdaten wurden nicht gefunden. Du kannst einen neuen Eintrag erstellen.',
+          'personal_info.load_failed': 'Daten konnten nicht geladen werden.',
+          'personal_info.select_country_error': 'Bitte wähle ein Land.',
+          'personal_info.fill_city_district':
+              'Bitte fülle Stadt und Bezirk aus.',
+          'personal_info.saved':
+              'Deine persönlichen Informationen wurden gespeichert.',
+          'personal_info.save_failed':
+              'Die Informationen konnten nicht gespeichert werden.',
+          'personal_info.marital_single': 'Ledig',
+          'personal_info.marital_married': 'Verheiratet',
+          'personal_info.marital_divorced': 'Geschieden',
+          'personal_info.gender_male': 'Männlich',
+          'personal_info.gender_female': 'Weiblich',
+          'personal_info.disability_yes': 'Vorhanden',
+          'personal_info.disability_no': 'Keine',
+          'personal_info.working_yes': 'Beschäftigt',
+          'personal_info.working_no': 'Nicht beschäftigt',
+          'education_info.title': 'Bildungsinformationen',
+          'education_info.reset_menu':
+              'Meine Bildungsinformationen zurücksetzen',
+          'education_info.reset_title': 'Bist du sicher?',
+          'education_info.reset_body':
+              'Deine Bildungsinformationen werden zurückgesetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
+          'education_info.reset_success':
+              'Deine Bildungsinformationen wurden zurückgesetzt.',
+          'education_info.select_level':
+              'Bitte wähle zuerst ein Bildungsniveau aus!',
+          'education_info.middle_school': 'Schule',
+          'education_info.high_school': 'Gymnasium',
+          'education_info.class_level': 'Klasse',
+          'education_info.level_middle_school': 'Mittelschule',
+          'education_info.level_high_school': 'Gymnasium',
+          'education_info.level_associate': 'Associate',
+          'education_info.level_bachelor': 'Bachelor',
+          'education_info.level_masters': 'Master',
+          'education_info.level_doctorate': 'Doktorat',
+          'education_info.class_grade': '@grade. Klasse',
+          'education_info.select_field': '@field wählen',
+          'education_info.initial_load_failed':
+              'Die Anfangsdaten konnten nicht geladen werden.',
+          'education_info.countries_load_failed':
+              'Länder konnten nicht geladen werden.',
+          'education_info.city_data_failed':
+              'Stadt- und Bezirksdaten konnten nicht geladen werden.',
+          'education_info.middle_schools_failed':
+              'Schuldaten konnten nicht geladen werden.',
+          'education_info.high_schools_failed':
+              'Gymnasialdaten konnten nicht geladen werden.',
+          'education_info.higher_education_failed':
+              'Hochschuldaten konnten nicht geladen werden.',
+          'education_info.saved_data_failed':
+              'Gespeicherte Daten konnten nicht geladen werden.',
+          'education_info.level_load_failed':
+              'Stufendaten konnten nicht geladen werden.',
+          'education_info.select_city_error':
+              'Bitte wähle eine Stadt aus.',
+          'education_info.select_district_error':
+              'Bitte wähle einen Bezirk aus.',
+          'education_info.select_middle_school_error':
+              'Bitte wähle eine Mittelschule aus.',
+          'education_info.select_high_school_error':
+              'Bitte wähle ein Gymnasium aus.',
+          'education_info.select_class_level_error':
+              'Bitte wähle eine Klassenstufe aus.',
+          'education_info.select_university_error':
+              'Bitte wähle eine Universität aus.',
+          'education_info.select_faculty_error':
+              'Bitte wähle eine Fakultät aus.',
+          'education_info.select_department_error':
+              'Bitte wähle eine Abteilung aus.',
+          'education_info.saved':
+              'Deine Bildungsinformationen wurden gespeichert.',
+          'education_info.save_failed': 'Speichern fehlgeschlagen.',
+          'bank_info.title': 'Bankinformationen',
+          'bank_info.reset_menu': 'Meine Bankinformationen zurücksetzen',
+          'bank_info.reset_title': 'Bist du sicher?',
+          'bank_info.reset_body':
+              'Deine Bankinformationen werden zurückgesetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
+          'bank_info.reset_success':
+              'Deine Bankinformationen wurden zurückgesetzt.',
+          'bank_info.fast_title': 'Einfache Adresse (FAST)',
+          'bank_info.fast_email': 'E-Mail',
+          'bank_info.fast_phone': 'Telefon',
+          'bank_info.fast_iban': 'IBAN',
+          'bank_info.bank_label': 'Bank',
+          'bank_info.select_bank': 'Bank wählen',
+          'bank_info.select_fast_type': 'Typ der einfachen Adresse wählen',
+          'bank_info.load_failed': 'Daten konnten nicht geladen werden.',
+          'bank_info.missing_value':
+              'Ohne vollständige IBAN-Angabe können wir nicht fortfahren.',
+          'bank_info.missing_bank':
+              'Du hast keine Bank für den Zahlungseingang ausgewählt. Diese Information wird geteilt, falls dein Stipendium genehmigt wird.',
+          'bank_info.invalid_email':
+              'Bitte gib eine gültige E-Mail-Adresse ein.',
+          'bank_info.saved': 'Bankinformationen wurden gespeichert.',
+          'bank_info.save_failed':
+              'Die Informationen konnten nicht gespeichert werden.',
+          'dormitory.title': 'Wohnheiminformationen',
+          'dormitory.reset_menu': 'Meine Wohnheiminformationen zurücksetzen',
+          'dormitory.reset_title': 'Bist du sicher?',
+          'dormitory.reset_body':
+              'Deine Wohnheiminformationen werden zurückgesetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
+          'dormitory.reset_success':
+              'Deine Wohnheiminformationen wurden zurückgesetzt.',
+          'dormitory.current_info': 'Aktuelle Wohnheiminformation',
+          'dormitory.select_admin_type': 'Verwaltungsart wählen',
+          'dormitory.admin_public': 'Staatlich',
+          'dormitory.admin_private': 'Privat',
+          'dormitory.select_dormitory': 'Wohnheim wählen',
+          'dormitory.not_found_for_filters':
+              'Für diese Stadt und Verwaltungsart wurde kein Wohnheim gefunden',
+          'dormitory.saved': 'Deine Wohnheiminformationen wurden gespeichert.',
+          'dormitory.save_failed': 'Die Daten konnten nicht gespeichert werden.',
+          'dormitory.select_or_enter':
+              'Bitte wähle ein Wohnheim oder gib einen Namen ein',
           'scholarship.application_start_date': 'Bewerbungsbeginn',
           'scholarship.application_end_date': 'Bewerbungsende',
           'scholarship.select_from_list': 'Aus Liste wählen',
@@ -6851,6 +9193,33 @@ class AppTranslations extends Translations {
           'scholarship.website_open_failed':
               'Die Webseite konnte nicht geöffnet werden. Bitte gib eine gültige URL ein.',
           'scholarship.checking_info': 'Informationen werden geprüft',
+          'scholarship.user_data_missing':
+              'Benutzerdaten konnten nicht gefunden werden. Bitte vervollständigen Sie Ihre Angaben.',
+          'scholarship.check_info_failed':
+              'Beim Prüfen der Informationen ist ein Fehler aufgetreten.',
+          'scholarship.application_check_failed':
+              'Beim Prüfen des Bewerbungsstatus ist ein Fehler aufgetreten.',
+          'scholarship.login_required': 'Bitte melden Sie sich an.',
+          'scholarship.profile_missing':
+              'Für dieses Stipendium sind keine Profilinformationen verfügbar.',
+          'scholarship.applied_success':
+              'Ihre Stipendienbewerbung ist eingegangen.',
+          'scholarship.apply_failed':
+              'Die Bewerbung konnte nicht gespeichert werden.',
+          'scholarship.follow_limit_title': 'Follow-Limit',
+          'scholarship.follow_limit_body':
+              'Sie können heute keinen weiteren Personen folgen.',
+          'scholarship.follow_failed':
+              'Die Folgeaktion ist fehlgeschlagen.',
+          'scholarship.invalid': 'Ungültiges Stipendium.',
+          'scholarship.delete_success':
+              'Stipendium erfolgreich gelöscht.',
+          'scholarship.delete_failed':
+              'Beim Löschen des Stipendiums ist ein Fehler aufgetreten.',
+          'scholarship.cancel_success':
+              'Ihre Stipendienbewerbung wurde storniert.',
+          'scholarship.cancel_failed':
+              'Die Bewerbung konnte nicht storniert werden.',
           'scholarship.info_missing_title': 'Informationen fehlen',
           'scholarship.info_missing_body':
               'Du kannst dich nicht für Stipendien bewerben, ohne deine persönlichen, schulischen und familiären Informationen auszufüllen.',
@@ -7103,6 +9472,7 @@ class AppTranslations extends Translations {
               'Beim Herunterladen ist ein Fehler aufgetreten.',
           'post_creator.title_new': 'Beitrag vorbereiten',
           'post_creator.title_edit': 'Beitrag bearbeiten',
+          'post_creator.text_hint': 'Beitragstext',
           'post_creator.publish': 'Veröffentlichen',
           'post_creator.uploading': 'Wird hochgeladen...',
           'post_creator.saving': 'Wird gespeichert...',
@@ -7367,6 +9737,27 @@ class AppTranslations extends Translations {
         'settings.notifications': 'Notifications',
         'settings.permissions': 'Autorisations',
         'settings.pasaj': 'Pasaj',
+        'education.previous_questions': 'Tests pratiques',
+        'tests.results_title': 'Resultats',
+        'tests.results_empty':
+            'Aucun resultat trouve.\nAucune donnee de reponse ou de question n est disponible pour ce test.',
+        'tests.correct': 'Correct',
+        'tests.wrong': 'Incorrect',
+        'tests.blank': 'Vide',
+        'tests.net': 'Net',
+        'tests.score': 'Score',
+        'tests.question_number': 'Question @index',
+        'tests.solve_no_questions':
+            'Question introuvable.\nLes questions de ce test n ont pas pu etre chargees.',
+        'tests.finish_test': 'Terminer le test',
+        'tests.my_results_empty':
+            'Aucun resultat trouve.\nVous n avez encore jamais resolu de test.',
+        'tests.saved_empty': 'Aucun test enregistre.',
+        'tests.result_answer_missing':
+            'Aucun resultat trouve.\nAucune donnee de reponse n est disponible pour ce test.',
+        'tests.type_test': 'Test @type',
+        'tests.description_test': 'Test @description',
+        'tests.solve_count': 'Vous l avez resolu @count fois',
         'settings.about': 'A propos',
         'settings.policies': 'Politiques',
         'settings.contact_us': 'Nous ecrire',
@@ -7560,12 +9951,49 @@ class AppTranslations extends Translations {
         'common.photos': 'Photos',
         'common.no_results': 'Aucun resultat',
         'common.success': 'Succes',
+        'common.warning': 'Avertissement',
         'common.delete': 'Supprimer',
         'common.search': 'Rechercher',
+        'common.call': 'Appeler',
+        'common.view': 'Voir',
         'common.create': 'Creer',
+        'common.applications': 'Candidatures',
+        'common.liked': 'Aimes',
         'common.saved': 'Enregistre',
+        'common.unknown_category': 'Categorie inconnue',
         'common.clear': 'Effacer',
+        'answer_key.published': 'Publies',
+        'answer_key.my_results': 'Mes resultats',
+        'answer_key.saved_empty': 'Aucun livre enregistre.',
+        'answer_key.new_create': 'Creer nouveau',
+        'answer_key.create_optical_form': 'Creer\nfeuille optique',
+        'answer_key.create_booklet_answer_key':
+            'Creer\ncorrige de livre',
+        'answer_key.create_optical_form_single':
+            'Creer feuille optique',
+        'answer_key.give_exam_name': 'Donnez un nom a votre examen',
+        'answer_key.join_exam_title': 'Rejoindre l examen',
+        'answer_key.exam_id_hint': 'ID examen',
+        'answer_key.book': 'Livre',
+        'answer_key.create_book': 'Creer un livre',
+        'answer_key.optical_form': 'Feuille optique',
+        'answer_key.delete_book': 'Supprimer le livre',
+        'answer_key.share_owner_only':
+            'Seuls les admins et le proprietaire de l annonce peuvent partager.',
+        'answer_key.book_answer_key_desc': 'corrige',
+        'answer_key.delete_operation': 'Suppression',
+        'answer_key.delete_optical_confirm':
+            'Voulez-vous vraiment supprimer la feuille optique nommee @name ?',
+        'answer_key.total_questions': '@count questions au total',
+        'answer_key.participant_count': '@count personnes',
+        'answer_key.id_copied': 'ID copie',
+        'answer_key.answered_suffix': 'Repondu il y a @time',
         'common.share': 'Partager',
+        'common.show_more': 'Afficher plus',
+        'common.show_less': 'Afficher moins',
+        'common.hide': 'Masquer',
+        'common.push': 'Push',
+        'common.quote': 'Citer',
         'common.user': 'Utilisateur',
         'common.info': 'Info',
         'common.cancel': 'Annuler',
@@ -7685,6 +10113,7 @@ class AppTranslations extends Translations {
         'common.verified': 'Verifie',
         'common.verify': 'Verifier',
         'common.change': 'Modifier',
+        'comments.input_hint': 'Qu en penses-tu ?',
         'explore.tab.trending': 'Tendances',
         'explore.tab.for_you': 'Pour vous',
         'explore.tab.series': 'Serie',
@@ -7704,6 +10133,19 @@ class AppTranslations extends Translations {
             'Vous avez archive cette publication.\nElle ne sera plus visible pour personne.',
         'post_state.deleted_title': 'Publication supprimee',
         'post_state.deleted_body': 'Cette publication n est plus en ligne.',
+        'post.share_title': 'Publication TurqApp',
+        'post.archive': 'Archiver',
+        'post.unarchive': 'Retirer des archives',
+        'post.like_failed': 'Le like n a pas pu etre termine.',
+        'post.save_failed': 'L enregistrement n a pas pu etre termine.',
+        'post.reshare_failed': 'Le repartage n a pas pu etre termine.',
+        'post.report_success': 'Publication signalee.',
+        'post.report_failed': 'Le signalement n a pas pu etre termine.',
+        'post.hide_failed': 'Le masquage n a pas pu etre termine.',
+        'post.reshare_action': 'Repartager',
+        'post.reshare_undo': 'Annuler le repartage',
+        'post.reshared_you': 'vous l avez repartagee',
+        'post.reshared_by': '@name l a repartagee',
         'short.next_post': 'Passer a la publication suivante',
         'short.publish_as_post': 'Publier comme post',
         'short.add_to_story': 'Ajouter a votre story',
@@ -7711,6 +10153,10 @@ class AppTranslations extends Translations {
         'story.seens_title': 'Vues (@count)',
         'story.no_seens': 'Personne n a vu votre story',
         'story.comments_title': 'Commentaires (@count)',
+        'story.share_title': 'Story de @name',
+        'story.share_desc': 'Voir la story sur TurqApp',
+        'story.drawing_title': 'Ajouter un dessin',
+        'story.brush_color': 'Couleur du pinceau',
         'story.no_comments': 'Personne n a commente',
         'story.add_comment_for': 'Ajouter un commentaire pour @nickname..',
         'story.delete_message': 'Supprimer cette story ?',
@@ -7728,6 +10174,11 @@ class AppTranslations extends Translations {
         'story.deleted_stories.deleted_forever':
             'Story supprimee definitivement',
         'story.deleted_stories.deleted_at': 'Supprimee : @time',
+        'admin_push.queue_title': 'Push',
+        'admin_push.queue_body_count':
+            'Push mis en file d attente pour @count utilisateurs',
+        'admin_push.queue_body': 'Push mis en file d attente',
+        'admin_push.failed_body': 'Le push n a pas pu etre envoye.',
         'story_music.title': 'Musique',
         'story_music.no_active_stories':
             'Aucune story active avec cette musique',
@@ -7867,9 +10318,20 @@ class AppTranslations extends Translations {
             'Une erreur est survenue lors du televersement de la photo !',
         'training.question_bank_title': 'Banque de questions',
         'training.questions_loading': 'Chargement des questions...',
+        'training.solve_later_empty':
+            'Aucune question a resoudre plus tard n a ete trouvee !',
+        'training.remove_solve_later': 'Retirer de Resoudre plus tard',
         'training.no_questions': 'Aucune question trouvee !',
         'training.answer_first': 'Repondez d abord a la question !',
         'training.share': 'Partager',
+        'training.correct_ratio': '%@value Correct',
+        'training.wrong_ratio': '%@value Incorrect',
+        'training.complaint_select_one':
+            'Veuillez choisir au moins une option de signalement.',
+        'training.complaint_thanks':
+            'Merci pour votre signalement.',
+        'training.complaint_submit_failed':
+            'Une erreur est survenue lors de l envoi de votre signalement.',
         'training.no_questions_in_category':
             'Aucune question n a ete trouvee dans cette categorie.',
         'training.saved_load_failed':
@@ -7891,6 +10353,16 @@ class AppTranslations extends Translations {
         'training.like_add_failed':
             'Une erreur est survenue lors de l ajout du J aime.',
         'training.share_failed': 'Le partage n a pas pu etre lance',
+        'training.share_question_link_title':
+            '@exam - @lesson Question @number',
+        'training.share_question_title':
+            'TurqApp - @exam @lesson Question',
+        'training.share_question_desc':
+            'Question de la banque de questions TurqApp',
+        'training.leaderboard_empty':
+            'Aucun classement n a encore ete cree.',
+        'training.leaderboard_empty_body':
+            'Resolvez des questions dans la banque pour rejoindre le classement.',
         'training.answer_locked':
             'Vous ne pouvez pas modifier la reponse a cette question !',
         'training.answer_saved':
@@ -7977,9 +10449,72 @@ class AppTranslations extends Translations {
             'Aucune annonce de cours dans cette zone.',
         'tutoring.no_lessons_in_category':
             'Aucun cours dans la categorie {category}.',
+        'tutoring.search_empty':
+            'Aucune annonce ne correspond a votre recherche.',
+        'tutoring.search_empty_info':
+            'Aucune annonce de cours particuliers correspondante !',
         'tutoring.similar_listings': 'Annonces similaires',
         'tutoring.open_listing': 'Ouvrir l annonce',
         'tutoring.report_listing': 'Signaler l annonce',
+        'tutoring.saved_empty': 'Aucune annonce enregistree.',
+        'tutoring.detail_description': 'Description',
+        'tutoring.detail_no_description':
+            'Aucune description n a ete ajoutee a cette annonce.',
+        'tutoring.detail_lesson_info': 'Informations sur le cours',
+        'tutoring.detail_branch': 'Branche',
+        'tutoring.detail_price': 'Prix',
+        'tutoring.detail_contact': 'Contact',
+        'tutoring.detail_phone_and_message': 'Telephone + Message',
+        'tutoring.detail_message_only': 'Message uniquement',
+        'tutoring.detail_gender_preference': 'Preference de genre',
+        'tutoring.detail_availability': 'Disponibilite',
+        'tutoring.detail_listing_info': 'Informations sur l annonce',
+        'tutoring.detail_instructor': 'Enseignant',
+        'tutoring.detail_not_specified': 'Non precise',
+        'tutoring.detail_city': 'Ville',
+        'tutoring.detail_views': 'Vues',
+        'tutoring.detail_status': 'Statut',
+        'tutoring.detail_status_passive': 'Passif',
+        'tutoring.detail_status_active': 'Actif',
+        'tutoring.detail_location': 'Localisation',
+        'tutoring.create.city_select': 'Selectionner une ville',
+        'tutoring.create.district_select': 'Selectionner un district',
+        'tutoring.create.nsfw_check_failed':
+            'La verification NSFW de l image a echoue.',
+        'tutoring.create.nsfw_detected':
+            'Une image inappropriee a ete detectee.',
+        'tutoring.create.fill_required':
+            'Veuillez remplir tous les champs obligatoires !',
+        'tutoring.create.published':
+            'L annonce de cours particuliers a ete publiee !',
+        'tutoring.create.publish_failed':
+            'Une erreur est survenue lors de la publication de l annonce.',
+        'tutoring.create.updated': 'Annonce mise a jour !',
+        'tutoring.create.no_changes':
+            'Aucune modification n a ete effectuee !',
+        'tutoring.create.update_failed':
+            'Une erreur est survenue lors de la mise a jour de l annonce.',
+        'tutoring.call_disabled':
+            'Les appels sont desactives pour cette annonce.',
+        'tutoring.message': 'Message',
+        'tutoring.messages': 'Messages',
+        'tutoring.phone_missing':
+            'Le numero de telephone de l enseignant est introuvable.',
+        'tutoring.phone_open_failed':
+            'Impossible d ouvrir l application telephone.',
+        'tutoring.unpublish_title': 'Retirer l annonce',
+        'tutoring.unpublish_body':
+            'Voulez-vous vraiment retirer cette annonce de cours particuliers de la publication ?',
+        'tutoring.unpublished': 'Annonce retiree de la publication.',
+        'tutoring.apply_login_required':
+            'Reconnectez-vous pour postuler.',
+        'tutoring.application_sent':
+            'Votre candidature a ete envoyee.',
+        'tutoring.application_failed':
+            'Un probleme est survenu pendant la candidature.',
+        'tutoring.delete_success': 'Annonce supprimee !',
+        'tutoring.delete_failed':
+            'Une erreur est survenue lors de la suppression de l annonce.',
         'tutoring.filter_title': 'Filtres',
         'tutoring.gender_title': 'Genre',
         'tutoring.sort_title': 'Tri',
@@ -8022,6 +10557,18 @@ class AppTranslations extends Translations {
         'scholarship.my_applications_title': 'Mes candidatures de bourse',
         'scholarship.no_user_applications':
             'Vous n avez aucune candidature de bourse !',
+        'scholarship.saved_empty': 'Aucune bourse enregistree.',
+        'scholarship.liked_empty': 'Aucune bourse aimee.',
+        'scholarship.remove_saved': 'Retirer des enregistrements',
+        'scholarship.remove_liked': 'Retirer des favoris',
+        'scholarship.remove_saved_confirm':
+            'Voulez-vous vraiment retirer cette bourse des enregistrements ?',
+        'scholarship.remove_liked_confirm':
+            'Voulez-vous vraiment retirer cette bourse des favoris ?',
+        'scholarship.removed_saved':
+            'Bourse retiree des enregistrements.',
+        'scholarship.removed_liked':
+            'Bourse retiree des favoris.',
         'scholarship.list_title': 'Bourses (@count)',
         'scholarship.search_results_title': 'Resultats de recherche (@count)',
         'scholarship.empty_title': 'Aucune bourse pour le moment',
@@ -8048,6 +10595,8 @@ class AppTranslations extends Translations {
             'Aucun organisme de bourse trouve.',
         'scholarship.providers_load_failed':
             'Impossible de charger les organismes de bourse.',
+        'scholarship.applications_load_failed':
+            'Impossible de charger les candidatures.',
         'scholarship.withdraw_application': 'Retirer la candidature',
         'scholarship.withdraw_confirm_title': 'Attention !',
         'scholarship.withdraw_confirm_body':
@@ -8070,6 +10619,7 @@ class AppTranslations extends Translations {
         'scholarship.website_label': 'Site web',
         'scholarship.description_help':
             'Veuillez rediger la description de la bourse en un seul bloc clair.',
+        'scholarship.no_description': 'Aucune description',
         'scholarship.conditions_label': 'Conditions de candidature',
         'scholarship.required_docs_label': 'Documents requis',
         'scholarship.award_months_label': 'Mois de versement',
@@ -8078,6 +10628,231 @@ class AppTranslations extends Translations {
         'scholarship.application_place_website': 'Site web de la bourse',
         'scholarship.application_website_label': 'Site web de la bourse',
         'scholarship.application_dates_label': 'Dates de candidature',
+        'scholarship.detail_missing':
+            'Erreur : donnees de bourse introuvables.',
+        'scholarship.detail_title': 'Detail de la bourse',
+        'scholarship.delete_title': 'Supprimer la bourse',
+        'scholarship.delete_confirm':
+            'Voulez-vous vraiment supprimer cette bourse ?',
+        'scholarship.applications_heading': 'Candidatures a la bourse @title',
+        'scholarship.applicant.personal_section': 'Informations personnelles',
+        'scholarship.applicant.education_section':
+            'Informations sur l education',
+        'scholarship.applicant.family_section': 'Informations familiales',
+        'scholarship.applicant.full_name': 'Nom complet',
+        'scholarship.applicant.email': 'Adresse e-mail',
+        'scholarship.applicant.phone': 'Numero de telephone',
+        'scholarship.applicant.phone_open_failed':
+            'Impossible de lancer l appel telephonique',
+        'scholarship.applicant.email_open_failed':
+            'Impossible d ouvrir le client e-mail',
+        'chat.sign_in_required':
+            'Vous devez vous connecter pour envoyer un message.',
+        'chat.cannot_message_self_listing':
+            'Vous ne pouvez pas envoyer un message a votre propre annonce.',
+        'scholarship.applicant.country': 'Pays',
+        'scholarship.applicant.registry_city': 'Ville du registre',
+        'scholarship.applicant.registry_district': 'District du registre',
+        'scholarship.applicant.birth_date': 'Date de naissance',
+        'scholarship.applicant.marital_status': 'Etat civil',
+        'scholarship.applicant.gender': 'Genre',
+        'scholarship.applicant.disability_report': 'Rapport de handicap',
+        'scholarship.applicant.employment_status': "Situation d'emploi",
+        'scholarship.applicant.education_level': "Niveau d'education",
+        'scholarship.applicant.university': 'Universite',
+        'scholarship.applicant.faculty': 'Faculte',
+        'scholarship.applicant.department': 'Departement',
+        'scholarship.applicant.father_alive': 'Le pere est-il en vie ?',
+        'scholarship.applicant.father_name': 'Nom du pere',
+        'scholarship.applicant.father_surname': 'Prenom du pere',
+        'scholarship.applicant.father_phone': 'Telephone du pere',
+        'scholarship.applicant.father_job': 'Profession du pere',
+        'scholarship.applicant.father_income': 'Revenu du pere',
+        'scholarship.applicant.mother_alive': 'La mere est-elle en vie ?',
+        'scholarship.applicant.mother_name': 'Nom de la mere',
+        'scholarship.applicant.mother_surname': 'Prenom de la mere',
+        'scholarship.applicant.mother_phone': 'Telephone de la mere',
+        'scholarship.applicant.mother_job': 'Profession de la mere',
+        'scholarship.applicant.mother_income': 'Revenu de la mere',
+        'scholarship.applicant.home_ownership': 'Statut du logement',
+        'scholarship.applicant.residence_city': 'Ville de residence',
+        'scholarship.applicant.residence_district': 'District de residence',
+        'family_info.title': 'Informations familiales',
+        'family_info.reset_menu': 'Reinitialiser les informations familiales',
+        'family_info.reset_title': 'Reinitialiser les informations familiales',
+        'family_info.reset_body':
+            'Toutes vos informations familiales seront supprimees. Cette action est irreversible. Etes-vous sur ?',
+        'family_info.select_father_alive':
+            'Veuillez indiquer si votre pere est en vie',
+        'family_info.select_mother_alive':
+            'Veuillez indiquer si votre mere est en vie',
+        'family_info.father_name_surname': 'Nom et prenom du pere',
+        'family_info.mother_name_surname': 'Nom et prenom de la mere',
+        'family_info.select_job': 'Choisir une profession',
+        'family_info.father_salary': 'Salaire net du pere',
+        'family_info.mother_salary': 'Salaire net de la mere',
+        'family_info.father_phone': 'Numero du pere',
+        'family_info.mother_phone': 'Numero de la mere',
+        'family_info.salary_hint': 'Salaire net',
+        'family_info.family_size': 'Taille de la famille',
+        'family_info.family_size_hint':
+            'Nombre de personnes vivant dans le foyer (y compris vous)',
+        'family_info.residence_info': 'Informations de residence',
+        'family_info.father_salary_missing': 'Information de salaire du pere',
+        'family_info.father_phone_missing': 'Numero de telephone du pere',
+        'family_info.father_phone_invalid':
+            'Le numero du pere doit comporter 10 chiffres',
+        'family_info.mother_salary_missing': 'Information de salaire de la mere',
+        'family_info.mother_phone_missing': 'Numero de telephone de la mere',
+        'family_info.mother_phone_invalid':
+            'Le numero de la mere doit comporter 10 chiffres',
+        'family_info.saved': 'Vos informations familiales ont ete enregistrees.',
+        'family_info.save_failed':
+            'Impossible d enregistrer les informations.',
+        'family_info.reset_success':
+            'Les informations familiales ont ete reinitialisees.',
+        'family_info.reset_failed':
+            'Impossible de reinitialiser les informations.',
+        'family_info.home_owned': 'Maison personnelle',
+        'family_info.home_relative': 'Maison d un proche',
+        'family_info.home_lodging': 'Logement de fonction',
+        'family_info.home_rent': 'Location',
+        'personal_info.title': 'Informations personnelles',
+        'personal_info.reset_menu': 'Reinitialiser mes informations',
+        'personal_info.reset_title': 'Etes-vous sur ?',
+        'personal_info.reset_body':
+            'Vos informations personnelles seront reinitialisees. Cette action est irreversible.',
+        'personal_info.reset_success':
+            'Vos informations personnelles ont ete reinitialisees.',
+        'personal_info.registry_info': 'Ville - district d enregistrement',
+        'personal_info.birth_date_title': 'Votre date de naissance',
+        'personal_info.select_birth_date': 'Choisir la date de naissance',
+        'personal_info.select_marital_status': 'Choisir l etat civil',
+        'personal_info.select_gender': 'Choisir le genre',
+        'personal_info.select_disability': 'Choisir le statut de handicap',
+        'personal_info.select_employment': "Choisir la situation d'emploi",
+        'personal_info.select_field': 'Choisir @field',
+        'personal_info.city_load_failed':
+            'Les donnees de ville et de district n ont pas pu etre chargees.',
+        'personal_info.user_data_missing':
+            'Les donnees utilisateur sont introuvables. Vous pouvez creer un nouvel enregistrement.',
+        'personal_info.load_failed': 'Les donnees n ont pas pu etre chargees.',
+        'personal_info.select_country_error': 'Veuillez choisir un pays.',
+        'personal_info.fill_city_district':
+            'Veuillez renseigner la ville et le district.',
+        'personal_info.saved':
+            'Vos informations personnelles ont ete enregistrees.',
+        'personal_info.save_failed':
+            'Impossible d enregistrer les informations.',
+        'personal_info.marital_single': 'Celibataire',
+        'personal_info.marital_married': 'Marie',
+        'personal_info.marital_divorced': 'Divorce',
+        'personal_info.gender_male': 'Homme',
+        'personal_info.gender_female': 'Femme',
+        'personal_info.disability_yes': 'Oui',
+        'personal_info.disability_no': 'Non',
+        'personal_info.working_yes': 'Travaille',
+        'personal_info.working_no': 'Ne travaille pas',
+        'education_info.title': 'Informations sur l education',
+        'education_info.reset_menu':
+            'Reinitialiser mes informations d education',
+        'education_info.reset_title': 'Etes-vous sur ?',
+        'education_info.reset_body':
+            'Vos informations d education seront reinitialisees. Cette action est irreversible.',
+        'education_info.reset_success':
+            'Vos informations d education ont ete reinitialisees.',
+        'education_info.select_level':
+            'Veuillez d abord choisir un niveau d education !',
+        'education_info.middle_school': 'Ecole',
+        'education_info.high_school': 'Lycee',
+        'education_info.class_level': 'Classe',
+        'education_info.level_middle_school': 'College',
+        'education_info.level_high_school': 'Lycee',
+        'education_info.level_associate': 'Cycle court',
+        'education_info.level_bachelor': 'Licence',
+        'education_info.level_masters': 'Master',
+        'education_info.level_doctorate': 'Doctorat',
+        'education_info.class_grade': '@gradee classe',
+        'education_info.select_field': 'Choisir @field',
+        'education_info.initial_load_failed':
+            'Les donnees initiales n ont pas pu etre chargees.',
+        'education_info.countries_load_failed':
+            'Les pays n ont pas pu etre charges.',
+        'education_info.city_data_failed':
+            'Les donnees de ville et de district n ont pas pu etre chargees.',
+        'education_info.middle_schools_failed':
+            'Les donnees d ecole n ont pas pu etre chargees.',
+        'education_info.high_schools_failed':
+            'Les donnees de lycee n ont pas pu etre chargees.',
+        'education_info.higher_education_failed':
+            'Les donnees de l enseignement superieur n ont pas pu etre chargees.',
+        'education_info.saved_data_failed':
+            'Les donnees enregistrees n ont pas pu etre chargees.',
+        'education_info.level_load_failed':
+            'Les donnees du niveau n ont pas pu etre chargees.',
+        'education_info.select_city_error': 'Veuillez choisir une ville.',
+        'education_info.select_district_error':
+            'Veuillez choisir un district.',
+        'education_info.select_middle_school_error':
+            'Veuillez choisir un college.',
+        'education_info.select_high_school_error':
+            'Veuillez choisir un lycee.',
+        'education_info.select_class_level_error':
+            'Veuillez choisir un niveau de classe.',
+        'education_info.select_university_error':
+            'Veuillez choisir une universite.',
+        'education_info.select_faculty_error':
+            'Veuillez choisir une faculte.',
+        'education_info.select_department_error':
+            'Veuillez choisir un departement.',
+        'education_info.saved':
+            'Vos informations d education ont ete enregistrees.',
+        'education_info.save_failed': 'Echec de l enregistrement.',
+        'bank_info.title': 'Informations bancaires',
+        'bank_info.reset_menu': 'Reinitialiser mes informations bancaires',
+        'bank_info.reset_title': 'Etes-vous sur ?',
+        'bank_info.reset_body':
+            'Vos informations bancaires seront reinitialisees. Cette action est irreversible.',
+        'bank_info.reset_success':
+            'Vos informations bancaires ont ete reinitialisees.',
+        'bank_info.fast_title': 'Adresse rapide (FAST)',
+        'bank_info.fast_email': 'E-mail',
+        'bank_info.fast_phone': 'Telephone',
+        'bank_info.fast_iban': 'IBAN',
+        'bank_info.bank_label': 'Banque',
+        'bank_info.select_bank': 'Choisir une banque',
+        'bank_info.select_fast_type': 'Choisir le type d adresse rapide',
+        'bank_info.load_failed': 'Les donnees n ont pas pu etre chargees.',
+        'bank_info.missing_value':
+            'Nous ne pouvons pas continuer sans completer les informations IBAN.',
+        'bank_info.missing_bank':
+            'Vous n avez pas choisi la banque qui recevra le paiement. Cette information sera partagee si votre bourse est approuvee.',
+        'bank_info.invalid_email':
+            'Veuillez saisir une adresse e-mail valide.',
+        'bank_info.saved': 'Les informations bancaires ont ete enregistrees.',
+        'bank_info.save_failed':
+            'Impossible d enregistrer les informations.',
+        'dormitory.title': 'Informations sur le dortoir',
+        'dormitory.reset_menu':
+            'Reinitialiser mes informations de dortoir',
+        'dormitory.reset_title': 'Etes-vous sur ?',
+        'dormitory.reset_body':
+            'Vos informations de dortoir seront reinitialisees. Cette action est irreversible.',
+        'dormitory.reset_success':
+            'Vos informations de dortoir ont ete reinitialisees.',
+        'dormitory.current_info': 'Information actuelle sur le dortoir',
+        'dormitory.select_admin_type':
+            'Choisir le type d administration',
+        'dormitory.admin_public': 'Public',
+        'dormitory.admin_private': 'Prive',
+        'dormitory.select_dormitory': 'Choisir un dortoir',
+        'dormitory.not_found_for_filters':
+            'Aucun dortoir trouve pour cette ville et ce type d administration',
+        'dormitory.saved': 'Vos informations de dortoir ont ete enregistrees.',
+        'dormitory.save_failed':
+            'Impossible d enregistrer les donnees.',
+        'dormitory.select_or_enter':
+            'Veuillez choisir un dortoir ou saisir un nom',
         'scholarship.application_start_date': 'Date de debut des candidatures',
         'scholarship.application_end_date': 'Date de fin des candidatures',
         'scholarship.select_from_list': 'Choisir dans la liste',
@@ -8105,6 +10880,32 @@ class AppTranslations extends Translations {
         'scholarship.website_open_failed':
             'Le site web n a pas pu etre ouvert. Veuillez saisir une URL valide.',
         'scholarship.checking_info': 'Verification des informations',
+        'scholarship.user_data_missing':
+            'Les donnees utilisateur sont introuvables. Veuillez completer vos informations.',
+        'scholarship.check_info_failed':
+            'Une erreur est survenue lors de la verification des informations.',
+        'scholarship.application_check_failed':
+            'Une erreur est survenue lors de la verification du statut de candidature.',
+        'scholarship.login_required': 'Veuillez vous connecter.',
+        'scholarship.profile_missing':
+            'Aucune information de profil n est disponible pour cette bourse.',
+        'scholarship.applied_success':
+            'Votre candidature a la bourse a ete recue.',
+        'scholarship.apply_failed':
+            'La candidature n a pas pu etre enregistree.',
+        'scholarship.follow_limit_title': 'Limite de suivi',
+        'scholarship.follow_limit_body':
+            'Vous ne pouvez pas suivre davantage de personnes aujourd hui.',
+        'scholarship.follow_failed':
+            'L action de suivi a echoue.',
+        'scholarship.invalid': 'Bourse invalide.',
+        'scholarship.delete_success': 'Bourse supprimee avec succes.',
+        'scholarship.delete_failed':
+            'Une erreur est survenue lors de la suppression de la bourse.',
+        'scholarship.cancel_success':
+            'Votre candidature a la bourse a ete annulee.',
+        'scholarship.cancel_failed':
+            'La candidature n a pas pu etre annulee.',
         'scholarship.info_missing_title': 'Informations manquantes',
         'scholarship.info_missing_body':
             'Vous ne pouvez pas postuler a des bourses sans remplir vos informations personnelles, scolaires et familiales.',
@@ -8373,6 +11174,19 @@ class AppTranslations extends Translations {
         'notifications.messages': 'Messages',
         'notifications.posts_comments': 'Publications et commentaires',
         'notifications.comments': 'Commentaires',
+        'comments.delete_message':
+            'Voulez-vous vraiment supprimer ce commentaire ?',
+        'comments.delete_failed': 'Le commentaire n a pas pu etre supprime.',
+        'comments.title': 'Commentaires',
+        'comments.empty': 'Soyez le premier a commenter...',
+        'comments.reply': 'Repondre',
+        'comments.replying_to': 'Reponse a @nickname',
+        'comments.sending': 'Envoi en cours',
+        'comments.community_violation_title':
+            'Contraire aux regles de la communaute',
+        'comments.community_violation_body':
+            'Le langage utilise ne respecte pas nos regles de la communaute. Merci d utiliser un langage respectueux.',
+        'post_sharers.empty': 'Personne n a encore partage cette publication',
         'notifications.follows': 'Abonnements',
         'notifications.direct_messages': 'Messages directs',
         'notifications.opportunities': 'Annonces et candidatures',
@@ -8531,6 +11345,294 @@ class AppTranslations extends Translations {
             'Le repartage est desactive.',
         'post_creator.warning_title': 'Avertissement',
         'post_creator.success_title': 'Succes !',
+        'tests.create_title': 'Creer un test',
+        'tests.edit_title': 'Modifier le test',
+        'tests.create_data_missing':
+            'Donnees introuvables.\nLes liens de l application ou les questions du test n ont pas pu etre charges.',
+        'tests.create_upload_failed':
+            'Ce contenu ne peut pas etre traite pour le moment. Veuillez essayer un autre contenu.',
+        'tests.select_branch': 'Choisir une branche',
+        'tests.select_language': 'Choisir une langue',
+        'tests.cover_select': 'Choisir une image de couverture',
+        'tests.name_hint': 'Nom de l examen',
+        'tests.post_exam_status': 'Apres l examen @status',
+        'tests.types': 'Types d examen',
+        'tests.date_duration': 'Date et duree de l examen',
+        'tests.duration_select': 'Choisir la duree de l examen',
+        'tests.create_description_hint':
+            '9e annee Expressions exponentielles et radicaux',
+        'tests.share_status': 'Pour tout le monde : @status',
+        'tests.status.open': 'Ouvert',
+        'tests.status.closed': 'Ferme',
+        'tests.share_public_info':
+            'Conformement a l ethique numerique, les tests proteges par des droits d auteur ne doivent pas etre partages.\nVeuillez utiliser et publier des tests que tout le monde peut resoudre et qui ne contiennent pas de contenu protege.',
+        'tests.share_private_info':
+            'Ce test ne peut etre partage qu avec vos propres etudiants. Seuls les etudiants qui saisissent l identifiant fourni pourront acceder au test publie et le resoudre.',
+        'tests.test_id': 'ID du test : @id',
+        'tests.test_type': 'Type de test',
+        'tests.subjects': 'Matieres',
+        'tests.exam_prep': 'Preparation aux examens',
+        'tests.foreign_language': 'Langue etrangere',
+        'tests.delete_test': 'Supprimer le test',
+        'tests.prepare_test': 'Preparer le test',
+        'tests.join_title': 'Rejoindre le test',
+        'tests.search_title': 'Rechercher un test',
+        'tests.search_id_hint': 'Rechercher ID du test',
+        'tests.join_help':
+            'Vous pouvez commencer le test en saisissant l ID du test partage par votre enseignant.',
+        'tests.join_not_found':
+            'Test introuvable.\nAucun test ne correspond a l ID saisi.',
+        'tests.join_button': 'Rejoindre le test',
+        'tests.no_shared': 'Aucun test partage.',
+        'tests.my_tests_title': 'Mes tests',
+        'tests.my_tests_empty':
+            'Aucun resultat trouve.\nVous n avez encore cree aucun test.',
+        'tests.completed_title': 'Vous avez termine le test !',
+        'tests.completed_body':
+            'Vous pouvez consulter votre score et vos bonnes ou mauvaises reponses dans Mes resultats.',
+        'tests.completed_short': 'Vous avez termine le test !',
+        'tests.action_select': 'Choisir une action',
+        'tests.action_select_body':
+            'Si vous souhaitez effectuer une action sur ce test, choisissez une option ci-dessous.',
+        'tests.copy_test_id': 'Copier l ID du test',
+        'tests.solve_title': 'Resoudre le test',
+        'tests.delete_confirm':
+            'Voulez-vous vraiment supprimer ce test ?',
+        'tests.id_copied': 'L ID du test a ete copie',
+        'tests.share_test_id_text':
+            'Test @type\n\nTelechargez TurqApp pour rejoindre le test. Votre ID de test requis est @id\n\nObtenez l application maintenant :\n\nAppStore : @appStore\nPlay Store : @playStore\n\nPour rejoindre le test, saisissez l ID du test depuis l ecran Tests dans l espace etudiant et commencez immediatement a repondre.',
+        'tests.type.middle_school': 'College',
+        'tests.type.high_school': 'Lycee',
+        'tests.type.prep': 'Preparation',
+        'tests.type.language': 'Langue',
+        'tests.type.branch': 'Branche',
+        'tests.lesson.turkish': 'Turc',
+        'tests.lesson.literature': 'Litterature',
+        'tests.lesson.math': 'Mathematiques',
+        'tests.lesson.geometry': 'Geometrie',
+        'tests.lesson.physics': 'Physique',
+        'tests.lesson.chemistry': 'Chimie',
+        'tests.lesson.biology': 'Biologie',
+        'tests.lesson.history': 'Histoire',
+        'tests.lesson.geography': 'Geographie',
+        'tests.lesson.philosophy': 'Philosophie',
+        'tests.lesson.psychology': 'Psychologie',
+        'tests.lesson.sociology': 'Sociologie',
+        'tests.lesson.logic': 'Logique',
+        'tests.lesson.religion': 'Culture religieuse',
+        'tests.lesson.science': 'Sciences',
+        'tests.lesson.revolution_history': 'Histoire de la revolution',
+        'tests.lesson.foreign_language': 'Langue etrangere',
+        'tests.lesson.basic_math': 'Mathematiques de base',
+        'tests.lesson.social_sciences': 'Sciences sociales',
+        'tests.lesson.literature_social_1':
+            'Litterature - Sciences sociales 1',
+        'tests.lesson.social_sciences_2': 'Sciences sociales 2',
+        'tests.lesson.general_ability': 'Aptitude generale',
+        'tests.lesson.general_culture': 'Culture generale',
+        'tests.language.english': 'Anglais',
+        'tests.language.german': 'Allemand',
+        'tests.language.arabic': 'Arabe',
+        'tests.language.french': 'Francais',
+        'tests.language.russian': 'Russe',
+        'tests.lesson_based_title': 'Tests @type',
+        'tests.none_in_category': 'Aucun test disponible',
+        'tests.add_question': 'Ajouter une question',
+        'tests.no_questions_added':
+            'Aucune question trouvee.\nAucune question n a encore ete ajoutee pour ce test.',
+        'tests.level_easy': 'Facile',
+        'tests.title': 'Tests',
+        'tests.report_title': 'A propos du test',
+        'tests.report_wrong_answers':
+            'Le test contient de mauvaises reponses',
+        'tests.report_wrong_section':
+            'Le test est dans la mauvaise section',
+        'tests.question_content_failed':
+            'Le contenu de la question n a pas pu etre charge.\nVeuillez reessayer.',
+        'tests.capture_and_upload': 'Prendre et telecharger',
+        'tests.capture_and_upload_body':
+            'Prends une photo de la question, choisis la bonne reponse et prepare-la facilement !',
+        'tests.select_from_gallery': 'Choisir depuis la galerie',
+        'tests.upload_from_camera': 'Telecharger depuis la camera',
+        'tests.nsfw_check_failed':
+            'La verification de securite de l image n a pas pu etre terminee.',
+        'tests.nsfw_detected': 'Image inappropriee detectee.',
+        'practice.title': 'Examen en ligne',
+        'practice.search_title': 'Rechercher un examen blanc',
+        'practice.empty_title': 'Aucun examen blanc pour le moment',
+        'practice.empty_body':
+            'Aucun examen blanc n est actuellement disponible dans le systeme. Les nouveaux examens apparaitront ici lorsqu ils seront ajoutes.',
+        'practice.search_empty_title':
+            'Aucun examen ne correspond a votre recherche',
+        'practice.search_empty_body_empty':
+            'Aucun examen blanc n est actuellement disponible dans le systeme. Les nouveaux examens apparaitront ici lorsqu ils seront ajoutes.',
+        'practice.search_empty_body_query':
+            'Essayez un autre mot-cle.',
+        'practice.results_title': 'Mes resultats d examen',
+        'practice.saved_empty': 'Aucun examen pratique enregistre.',
+        'practice.preview_no_questions':
+            'Aucune question n a ete trouvee pour cet examen. Veuillez verifier le contenu de l examen ou ajouter de nouvelles questions.',
+        'practice.preview_no_results':
+            'Aucun resultat n a ete trouve pour cet examen. Veuillez verifier vos reponses ou repasser l examen.',
+        'practice.lesson_header': 'Matieres',
+        'practice.answers_load_failed':
+            'Impossible de charger les reponses.',
+        'practice.lesson_results_load_failed':
+            'Impossible de charger les resultats des matieres.',
+        'practice.results_empty_title':
+            'Vous n avez pas encore passe d examen',
+        'practice.results_empty_body':
+            'Vous n avez participe a aucun examen blanc. Vos resultats apparaitront ici apres votre participation.',
+        'practice.published_empty':
+            'Vous n avez pas encore publie d examen en ligne.',
+        'practice.user_session_missing':
+            'Session utilisateur introuvable.',
+        'practice.school_info_failed':
+            'Les informations sur l ecole n ont pas pu etre chargees.',
+        'practice.load_failed': 'Les donnees n ont pas pu etre chargees.',
+        'practice.slider_management': 'Gestion du slider',
+        'practice.create_disabled_title':
+            'Reserve au badge jaune et superieur',
+        'practice.create_disabled_body':
+            'Pour creer un examen en ligne, vous devez avoir un compte verifie avec un badge jaune ou superieur.',
+        'practice.preview_title': 'Detail de l examen',
+        'practice.report_exam': 'Signaler l examen',
+        'practice.user_load_failed':
+            'Les informations utilisateur n ont pas pu etre chargees.',
+        'practice.user_load_failed_body':
+            'Les informations utilisateur n ont pas pu etre chargees. Veuillez reessayer ou verifier le proprietaire de l examen.',
+        'practice.invalidity_load_failed':
+            'Le statut d invalidite n a pas pu etre charge.',
+        'practice.cover_load_failed':
+            'L image de couverture n a pas pu etre chargee.',
+        'practice.no_description':
+            'Aucune description n a ete ajoutee pour cet examen.',
+        'practice.exam_info': 'Informations sur l examen',
+        'practice.exam_type': 'Type d examen',
+        'practice.exam_suffix': 'Examen @type',
+        'practice.exam_datetime': 'Date et heure de l examen',
+        'practice.exam_duration': 'Duree de l examen',
+        'practice.duration_minutes': '@minutes min',
+        'practice.application_count': 'Candidatures',
+        'practice.people_count': '@count personnes',
+        'practice.owner': 'Proprietaire de l examen',
+        'practice.apply_now': 'Postuler maintenant',
+        'practice.applied_short': 'Postule',
+        'practice.closed_starts_in':
+            'Candidatures fermees.\nDebut dans @minutes min.',
+        'practice.started': 'Examen commence',
+        'practice.start_now': 'Commencer maintenant',
+        'practice.finished_short': 'Examen termine',
+        'practice.not_started': 'Examen non commence',
+        'practice.application_closed_title':
+            'Les candidatures sont fermees !',
+        'practice.application_closed_body':
+            'Les candidatures ferment 15 minutes avant le debut de l examen.',
+        'practice.not_applied_title':
+            'Vous n avez pas postule !',
+        'practice.not_applied_body':
+            'Vous ne pouvez pas rejoindre un examen sans candidature. Seuls les candidats peuvent participer.',
+        'practice.not_allowed_title':
+            'Vous ne pouvez pas entrer dans l examen !',
+        'practice.not_allowed_body':
+            'Vous n avez pas acces a cet examen. Vous avez deja ete invalide pour cet examen et vous ne pouvez pas y revenir avant sa fin.',
+        'practice.finished_title': 'Examen termine !',
+        'practice.finished_body':
+            'Vous pouvez postuler aux prochains examens. Cet examen est termine.',
+        'practice.result_unavailable':
+            'Le resultat n a pas pu etre calcule.',
+        'practice.result_summary':
+            'Correct : @correct   •   Faux : @wrong   •   Vide : @blank   •   Net : @net',
+        'practice.congrats_title': 'Felicitations !',
+        'practice.removed_title':
+            'Vous avez ete exclu de l examen !',
+        'practice.removed_body':
+            'Nous vous avons averti plusieurs fois. Malheureusement, comme vous n avez pas respecte les regles, votre examen a ete invalide.',
+        'practice.applied_title':
+            'Votre candidature a ete recue !',
+        'practice.applied_body':
+            'Votre candidature a ete recue avec succes. Vous n avez rien d autre a faire pour le moment.',
+        'practice.apply_completed_title':
+            'Votre candidature est terminee !',
+        'practice.apply_completed_body':
+            'Nous vous enverrons des rappels avant l examen. Bonne chance !',
+        'practice.apply_failed': 'Echec de la candidature.',
+        'practice.application_check_failed':
+            'Echec de la verification de candidature.',
+        'practice.question_image_failed':
+            'L image de la question n a pas pu etre chargee.',
+        'practice.exam_started_title': 'L examen a commence !',
+        'practice.exam_started_body':
+            'Nous pensons que votre attention et vos efforts ouvriront la voie au succes. Bonne chance !',
+        'practice.rules_title': 'Regles de l examen',
+        'practice.rule_1':
+            'Veuillez couper la connexion internet de votre telephone. Une fois l examen termine, vous pourrez la reactiver pour envoyer vos reponses.',
+        'practice.rule_2':
+            'Si vous quittez l examen, toutes vos reponses seront considerees comme invalides et votre score ne sera pas enregistre. Reflechissez bien avant de confirmer.',
+        'practice.rule_3':
+            'Si vous mettez l application en arriere-plan, votre examen sera considere comme invalide. Veuillez eviter de mettre l application en arriere-plan.',
+        'practice.start_exam': 'Commencer l examen',
+        'practice.finish_exam': 'Terminer l examen',
+        'practice.background_warning':
+            'Dans les situations critiques comme la mise en arriere-plan de l application, votre examen sera considere comme invalide. Veuillez etre prudent et respecter les regles.',
+        'practice.questions_load_failed':
+            'Les questions n ont pas pu etre chargees.',
+        'practice.answers_save_failed':
+            'Les reponses n ont pas pu etre enregistrees.',
+        'past_questions.no_results': 'Aucun resultat.',
+        'past_questions.title': 'Examens blancs',
+        'past_questions.mock_fallback': 'Essai',
+        'past_questions.search_empty':
+            'Aucun examen blanc ne correspond a votre recherche.',
+        'past_questions.results_suffix': 'Resultats @title',
+        'past_questions.local_result_summary':
+            '@count questions ont ete resolues. Le resultat est stocke localement ; seul le resume net est affiche sur cet ecran.',
+        'past_questions.mock_label': 'Essai @index',
+        'past_questions.question_count': '@count Questions',
+        'past_questions.net_label': 'Net',
+        'past_questions.tests_by_year': 'Tests @type @year',
+        'past_questions.languages_title': 'Langues @type',
+        'past_questions.tests_by_type': 'Tests @type',
+        'past_questions.select_exam': "Choisir l'examen",
+        'past_questions.questions_title': 'Questions',
+        'past_questions.continue_solving': 'Continuer à résoudre les questions',
+        'past_questions.oabt_short': 'ÖABT',
+        'past_questions.exam_type.associate': 'Diplôme associé',
+        'past_questions.exam_type.undergraduate': 'Licence',
+        'past_questions.exam_type.middle_school': 'Enseignement secondaire',
+        'past_questions.branch.general_ability_culture':
+            'Aptitude générale et culture générale',
+        'past_questions.branch.group_a': 'Groupe A',
+        'past_questions.branch.education_sciences': "Sciences de l'éducation",
+        'past_questions.branch.field_knowledge': 'Connaissances spécialisées',
+        'past_questions.sessions_by_year': 'Sessions @year',
+        'past_questions.teaching.title': 'Branches d enseignement',
+        'past_questions.teaching.suffix': 'enseignement',
+        'past_questions.teaching.primary_math_short': 'M. primaire',
+        'past_questions.teaching.high_school_math_short': 'M. lycee',
+        'past_questions.teaching.german': 'Enseignement de l allemand',
+        'past_questions.teaching.physical_education':
+            'Enseignement de l education physique',
+        'past_questions.teaching.biology': 'Enseignement de la biologie',
+        'past_questions.teaching.geography': 'Enseignement de la geographie',
+        'past_questions.teaching.religious_culture':
+            'Enseignement de la culture religieuse',
+        'past_questions.teaching.literature':
+            'Enseignement de la litterature',
+        'past_questions.teaching.science': 'Enseignement des sciences',
+        'past_questions.teaching.physics': 'Enseignement de la physique',
+        'past_questions.teaching.chemistry': 'Enseignement de la chimie',
+        'past_questions.teaching.high_school_math': 'Mathematiques lycee',
+        'past_questions.teaching.preschool': 'Prescolaire',
+        'past_questions.teaching.guidance': 'Orientation',
+        'past_questions.teaching.social_studies':
+            'Enseignement des sciences sociales',
+        'past_questions.teaching.classroom': 'Enseignement primaire',
+        'past_questions.teaching.history': 'Enseignement de l histoire',
+        'past_questions.teaching.turkish': 'Enseignement du turc',
+        'past_questions.teaching.primary_math': 'Mathematiques primaire',
+        'past_questions.teaching.imam_hatip': 'Imam Hatip',
+        'past_questions.teaching.english': 'Enseignement de l anglais',
         'pasaj.closed': 'Pasaj est actuellement ferme',
         'pasaj.common.my_applications': 'Mes candidatures',
         'pasaj.common.post_listing': 'Publier une annonce',
@@ -8769,6 +11871,27 @@ class AppTranslations extends Translations {
         'settings.notifications': 'Notifiche',
         'settings.permissions': 'Autorizzazioni',
         'settings.pasaj': 'Pasaj',
+        'education.previous_questions': 'Test pratici',
+        'tests.results_title': 'Risultati',
+        'tests.results_empty':
+            'Nessun risultato trovato.\nNon sono disponibili dati di risposta o domande per questo test.',
+        'tests.correct': 'Corrette',
+        'tests.wrong': 'Errate',
+        'tests.blank': 'Vuote',
+        'tests.net': 'Netto',
+        'tests.score': 'Punteggio',
+        'tests.question_number': 'Domanda @index',
+        'tests.solve_no_questions':
+            'Domanda non trovata.\nNon e stato possibile caricare le domande di questo test.',
+        'tests.finish_test': 'Termina il test',
+        'tests.my_results_empty':
+            'Nessun risultato trovato.\nNon hai mai risolto un test prima d ora.',
+        'tests.saved_empty': 'Non ci sono test salvati.',
+        'tests.result_answer_missing':
+            'Nessun risultato trovato.\nNon sono disponibili dati di risposta per questo test.',
+        'tests.type_test': 'Test @type',
+        'tests.description_test': 'Test @description',
+        'tests.solve_count': 'Lo hai risolto @count volte',
         'settings.about': 'Informazioni',
         'settings.policies': 'Politiche',
         'settings.contact_us': 'Contattaci',
@@ -8965,12 +12088,48 @@ class AppTranslations extends Translations {
         'common.photos': 'Foto',
         'common.no_results': 'Nessun risultato',
         'common.success': 'Operazione riuscita',
+        'common.warning': 'Avviso',
         'common.delete': 'Elimina',
         'common.search': 'Cerca',
+        'common.call': 'Chiama',
+        'common.view': 'Visualizza',
         'common.create': 'Crea',
+        'common.applications': 'Candidature',
+        'common.liked': 'Mi piace',
         'common.saved': 'Salvato',
+        'common.unknown_category': 'Categoria sconosciuta',
         'common.clear': 'Pulisci',
+        'answer_key.published': 'Pubblicati',
+        'answer_key.my_results': 'I miei risultati',
+        'answer_key.saved_empty': 'Non ci sono libri salvati.',
+        'answer_key.new_create': 'Crea nuovo',
+        'answer_key.create_optical_form': 'Crea\nmodulo ottico',
+        'answer_key.create_booklet_answer_key':
+            'Crea\nsoluzioni libro',
+        'answer_key.create_optical_form_single': 'Crea modulo ottico',
+        'answer_key.give_exam_name': 'Dai un nome al tuo esame',
+        'answer_key.join_exam_title': 'Partecipa all esame',
+        'answer_key.exam_id_hint': 'ID esame',
+        'answer_key.book': 'Libro',
+        'answer_key.create_book': 'Crea libro',
+        'answer_key.optical_form': 'Modulo ottico',
+        'answer_key.delete_book': 'Elimina libro',
+        'answer_key.share_owner_only':
+            'Solo gli admin e il proprietario dell annuncio possono condividere.',
+        'answer_key.book_answer_key_desc': 'soluzioni',
+        'answer_key.delete_operation': 'Eliminazione',
+        'answer_key.delete_optical_confirm':
+            'Vuoi davvero eliminare il modulo ottico chiamato @name?',
+        'answer_key.total_questions': '@count domande totali',
+        'answer_key.participant_count': '@count persone',
+        'answer_key.id_copied': 'ID copiato',
+        'answer_key.answered_suffix': 'Risposto @time fa',
         'common.share': 'Condividi',
+        'common.show_more': 'Mostra di più',
+        'common.show_less': 'Mostra meno',
+        'common.hide': 'Nascondi',
+        'common.push': 'Push',
+        'common.quote': 'Cita',
         'common.user': 'Utente',
         'common.info': 'Info',
         'common.cancel': 'Annulla',
@@ -9091,6 +12250,7 @@ class AppTranslations extends Translations {
         'common.verified': 'Verificato',
         'common.verify': 'Verifica',
         'common.change': 'Modifica',
+        'comments.input_hint': 'Cosa ne pensi?',
         'explore.tab.trending': 'Tendenze',
         'explore.tab.for_you': 'Per te',
         'explore.tab.series': 'Serie',
@@ -9111,6 +12271,21 @@ class AppTranslations extends Translations {
             'Hai archiviato questo post.\nNon sara piu visibile a nessuno.',
         'post_state.deleted_title': 'Post eliminato',
         'post_state.deleted_body': 'Questo post non e piu pubblicato.',
+        'post.share_title': 'Post TurqApp',
+        'post.archive': 'Archivia',
+        'post.unarchive': 'Rimuovi dall archivio',
+        'post.like_failed': 'L operazione di like non puo essere completata.',
+        'post.save_failed':
+            'L operazione di salvataggio non puo essere completata.',
+        'post.reshare_failed':
+            'L operazione di ricondivisione non puo essere completata.',
+        'post.report_success': 'Post segnalato.',
+        'post.report_failed': 'La segnalazione non puo essere completata.',
+        'post.hide_failed': 'Non e stato possibile completare il nascondimento.',
+        'post.reshare_action': 'Ricondividi',
+        'post.reshare_undo': 'Annulla ricondivisione',
+        'post.reshared_you': 'lo hai ricondiviso',
+        'post.reshared_by': '@name lo ha ricondiviso',
         'short.next_post': 'Vai al post successivo',
         'short.publish_as_post': 'Pubblica come post',
         'short.add_to_story': 'Aggiungi alla tua storia',
@@ -9118,6 +12293,10 @@ class AppTranslations extends Translations {
         'story.seens_title': 'Visualizzazioni (@count)',
         'story.no_seens': 'Nessuno ha visto la tua storia',
         'story.comments_title': 'Commenti (@count)',
+        'story.share_title': 'Storia di @name',
+        'story.share_desc': 'Guarda la storia su TurqApp',
+        'story.drawing_title': 'Aggiungi disegno',
+        'story.brush_color': 'Colore del pennello',
         'story.no_comments': 'Nessun commento ancora',
         'story.add_comment_for': 'Aggiungi un commento per @nickname..',
         'story.delete_message': 'Eliminare questa storia?',
@@ -9135,6 +12314,11 @@ class AppTranslations extends Translations {
         'story.deleted_stories.deleted_forever':
             'Storia eliminata definitivamente',
         'story.deleted_stories.deleted_at': 'Eliminata: @time',
+        'admin_push.queue_title': 'Push',
+        'admin_push.queue_body_count':
+            'Push messo in coda per @count utenti',
+        'admin_push.queue_body': 'Push messo in coda',
+        'admin_push.failed_body': 'Il push non puo essere inviato.',
         'story_music.title': 'Musica',
         'story_music.no_active_stories':
             'Non ci sono storie attive con questa musica',
@@ -9272,9 +12456,20 @@ class AppTranslations extends Translations {
             'Si e verificato un errore durante il caricamento della foto!',
         'training.question_bank_title': 'Banca delle domande',
         'training.questions_loading': 'Caricamento domande...',
+        'training.solve_later_empty':
+            'Nessuna domanda da risolvere piu tardi trovata!',
+        'training.remove_solve_later': 'Rimuovi da Risolvi dopo',
         'training.no_questions': 'Nessuna domanda trovata!',
         'training.answer_first': 'Rispondi prima alla domanda!',
         'training.share': 'Condividi',
+        'training.correct_ratio': '%@value Corrette',
+        'training.wrong_ratio': '%@value Errate',
+        'training.complaint_select_one':
+            'Seleziona almeno un motivo di segnalazione.',
+        'training.complaint_thanks':
+            'Grazie per la segnalazione.',
+        'training.complaint_submit_failed':
+            'Si e verificato un errore durante l invio della segnalazione.',
         'training.no_questions_in_category':
             'Nessuna domanda trovata in questa categoria.',
         'training.saved_load_failed':
@@ -9296,6 +12491,16 @@ class AppTranslations extends Translations {
         'training.like_add_failed':
             'Si e verificato un errore durante l aggiunta del Mi piace.',
         'training.share_failed': 'Impossibile avviare la condivisione',
+        'training.share_question_link_title':
+            '@exam - @lesson Domanda @number',
+        'training.share_question_title':
+            'TurqApp - Domanda @exam @lesson',
+        'training.share_question_desc':
+            'Domanda della banca delle domande TurqApp',
+        'training.leaderboard_empty':
+            'Nessuna classifica e stata ancora creata.',
+        'training.leaderboard_empty_body':
+            'Risolvi domande nella banca per entrare in classifica.',
         'training.answer_locked':
             'Non puoi modificare la risposta a questa domanda!',
         'training.answer_saved':
@@ -9383,9 +12588,72 @@ class AppTranslations extends Translations {
             'Non ci sono annunci di lezioni in questa zona.',
         'tutoring.no_lessons_in_category':
             'Non ci sono lezioni nella categoria {category}.',
+        'tutoring.search_empty':
+            'Nessun annuncio corrisponde alla tua ricerca.',
+        'tutoring.search_empty_info':
+            'Nessun annuncio di lezioni private corrispondente!',
         'tutoring.similar_listings': 'Annunci simili',
         'tutoring.open_listing': 'Apri annuncio',
         'tutoring.report_listing': 'Segnala annuncio',
+        'tutoring.saved_empty': 'Nessun annuncio salvato.',
+        'tutoring.detail_description': 'Descrizione',
+        'tutoring.detail_no_description':
+            'Nessuna descrizione e stata aggiunta per questo annuncio.',
+        'tutoring.detail_lesson_info': 'Informazioni sulla lezione',
+        'tutoring.detail_branch': 'Categoria',
+        'tutoring.detail_price': 'Prezzo',
+        'tutoring.detail_contact': 'Contatto',
+        'tutoring.detail_phone_and_message': 'Telefono + Messaggio',
+        'tutoring.detail_message_only': 'Solo messaggio',
+        'tutoring.detail_gender_preference': 'Preferenza di genere',
+        'tutoring.detail_availability': 'Disponibilita',
+        'tutoring.detail_listing_info': 'Informazioni sull annuncio',
+        'tutoring.detail_instructor': 'Insegnante',
+        'tutoring.detail_not_specified': 'Non specificato',
+        'tutoring.detail_city': 'Citta',
+        'tutoring.detail_views': 'Visualizzazioni',
+        'tutoring.detail_status': 'Stato',
+        'tutoring.detail_status_passive': 'Passivo',
+        'tutoring.detail_status_active': 'Attivo',
+        'tutoring.detail_location': 'Posizione',
+        'tutoring.create.city_select': 'Seleziona citta',
+        'tutoring.create.district_select': 'Seleziona distretto',
+        'tutoring.create.nsfw_check_failed':
+            'Il controllo NSFW dell immagine non e riuscito.',
+        'tutoring.create.nsfw_detected':
+            'E stata rilevata un immagine non appropriata.',
+        'tutoring.create.fill_required':
+            'Compila tutti i campi obbligatori!',
+        'tutoring.create.published':
+            'L annuncio di lezione privata e stato pubblicato!',
+        'tutoring.create.publish_failed':
+            'Si e verificato un errore durante la pubblicazione dell annuncio.',
+        'tutoring.create.updated': 'Annuncio aggiornato!',
+        'tutoring.create.no_changes': 'Nessuna modifica effettuata!',
+        'tutoring.create.update_failed':
+            'Si e verificato un errore durante l aggiornamento dell annuncio.',
+        'tutoring.call_disabled':
+            'Le chiamate sono disabilitate per questo annuncio.',
+        'tutoring.message': 'Messaggio',
+        'tutoring.messages': 'Messaggi',
+        'tutoring.phone_missing':
+            'Il numero di telefono dell insegnante non e stato trovato.',
+        'tutoring.phone_open_failed':
+            'Impossibile aprire l app telefono.',
+        'tutoring.unpublish_title': 'Rimuovi annuncio',
+        'tutoring.unpublish_body':
+            'Vuoi davvero rimuovere dalla pubblicazione questo annuncio di lezioni private?',
+        'tutoring.unpublished':
+            'Annuncio rimosso dalla pubblicazione.',
+        'tutoring.apply_login_required':
+            'Accedi di nuovo per candidarti.',
+        'tutoring.application_sent':
+            'La tua candidatura e stata inviata.',
+        'tutoring.application_failed':
+            'Si e verificato un problema durante la candidatura.',
+        'tutoring.delete_success': 'Annuncio eliminato!',
+        'tutoring.delete_failed':
+            'Si e verificato un errore durante l eliminazione dell annuncio.',
         'tutoring.filter_title': 'Filtri',
         'tutoring.gender_title': 'Genere',
         'tutoring.sort_title': 'Ordinamento',
@@ -9429,6 +12697,18 @@ class AppTranslations extends Translations {
             'Le mie candidature alla borsa',
         'scholarship.no_user_applications':
             'Non hai candidature alla borsa!',
+        'scholarship.saved_empty': 'Nessuna borsa salvata trovata.',
+        'scholarship.liked_empty': 'Nessuna borsa con Mi piace trovata.',
+        'scholarship.remove_saved': 'Rimuovi dai salvati',
+        'scholarship.remove_liked': 'Rimuovi dai Mi piace',
+        'scholarship.remove_saved_confirm':
+            'Sei sicuro di voler rimuovere questa borsa dai salvati?',
+        'scholarship.remove_liked_confirm':
+            'Sei sicuro di voler rimuovere questa borsa dai Mi piace?',
+        'scholarship.removed_saved':
+            'Borsa rimossa dai salvati.',
+        'scholarship.removed_liked':
+            'Borsa rimossa dai Mi piace.',
         'scholarship.list_title': 'Borse di studio (@count)',
         'scholarship.search_results_title': 'Risultati di ricerca (@count)',
         'scholarship.empty_title': 'Nessuna borsa di studio per ora',
@@ -9459,6 +12739,8 @@ class AppTranslations extends Translations {
             'Nessun ente erogatore trovato.',
         'scholarship.providers_load_failed':
             'Impossibile caricare gli enti erogatori.',
+        'scholarship.applications_load_failed':
+            'Impossibile caricare le candidature.',
         'scholarship.withdraw_application': 'Ritira candidatura',
         'scholarship.withdraw_confirm_title': 'Attenzione!',
         'scholarship.withdraw_confirm_body':
@@ -9481,6 +12763,7 @@ class AppTranslations extends Translations {
         'scholarship.website_label': 'Sito web',
         'scholarship.description_help':
             'Scrivi la descrizione della borsa in un unico blocco chiaro.',
+        'scholarship.no_description': 'Nessuna descrizione',
         'scholarship.conditions_label': 'Requisiti di candidatura',
         'scholarship.required_docs_label': 'Documenti richiesti',
         'scholarship.award_months_label': 'Mesi di erogazione',
@@ -9489,6 +12772,228 @@ class AppTranslations extends Translations {
         'scholarship.application_place_website': 'Sito web della borsa',
         'scholarship.application_website_label': 'Sito web della borsa',
         'scholarship.application_dates_label': 'Date di candidatura',
+        'scholarship.detail_missing':
+            'Errore: dati della borsa non trovati.',
+        'scholarship.detail_title': 'Dettaglio borsa',
+        'scholarship.delete_title': 'Elimina borsa',
+        'scholarship.delete_confirm':
+            'Sei sicuro di voler eliminare questa borsa?',
+        'scholarship.applications_heading': 'Candidature alla borsa @title',
+        'scholarship.applicant.personal_section': 'Informazioni personali',
+        'scholarship.applicant.education_section':
+            "Informazioni sull'istruzione",
+        'scholarship.applicant.family_section': 'Informazioni familiari',
+        'scholarship.applicant.full_name': 'Nome completo',
+        'scholarship.applicant.email': 'Indirizzo e-mail',
+        'scholarship.applicant.phone': 'Numero di telefono',
+        'scholarship.applicant.phone_open_failed':
+            'Impossibile avviare la chiamata telefonica',
+        'scholarship.applicant.email_open_failed':
+            'Impossibile aprire il client e-mail',
+        'chat.sign_in_required':
+            'Devi accedere per inviare un messaggio.',
+        'chat.cannot_message_self_listing':
+            'Non puoi inviare un messaggio al tuo annuncio.',
+        'scholarship.applicant.country': 'Paese',
+        'scholarship.applicant.registry_city': 'Citta di registrazione',
+        'scholarship.applicant.registry_district': 'Distretto di registrazione',
+        'scholarship.applicant.birth_date': 'Data di nascita',
+        'scholarship.applicant.marital_status': 'Stato civile',
+        'scholarship.applicant.gender': 'Genere',
+        'scholarship.applicant.disability_report': 'Rapporto di disabilita',
+        'scholarship.applicant.employment_status': 'Stato lavorativo',
+        'scholarship.applicant.education_level': 'Livello di istruzione',
+        'scholarship.applicant.university': 'Universita',
+        'scholarship.applicant.faculty': 'Facolta',
+        'scholarship.applicant.department': 'Dipartimento',
+        'scholarship.applicant.father_alive': 'Il padre e in vita?',
+        'scholarship.applicant.father_name': 'Nome del padre',
+        'scholarship.applicant.father_surname': 'Cognome del padre',
+        'scholarship.applicant.father_phone': 'Telefono del padre',
+        'scholarship.applicant.father_job': 'Lavoro del padre',
+        'scholarship.applicant.father_income': 'Reddito del padre',
+        'scholarship.applicant.mother_alive': 'La madre e in vita?',
+        'scholarship.applicant.mother_name': 'Nome della madre',
+        'scholarship.applicant.mother_surname': 'Cognome della madre',
+        'scholarship.applicant.mother_phone': 'Telefono della madre',
+        'scholarship.applicant.mother_job': 'Lavoro della madre',
+        'scholarship.applicant.mother_income': 'Reddito della madre',
+        'scholarship.applicant.home_ownership': 'Possesso della casa',
+        'scholarship.applicant.residence_city': 'Citta di residenza',
+        'scholarship.applicant.residence_district': 'Distretto di residenza',
+        'family_info.title': 'Informazioni familiari',
+        'family_info.reset_menu': 'Reimposta informazioni familiari',
+        'family_info.reset_title': 'Reimposta informazioni familiari',
+        'family_info.reset_body':
+            'Tutte le informazioni familiari verranno eliminate. Questa azione non puo essere annullata. Sei sicuro?',
+        'family_info.select_father_alive':
+            'Seleziona se tuo padre e in vita',
+        'family_info.select_mother_alive':
+            'Seleziona se tua madre e in vita',
+        'family_info.father_name_surname': 'Nome e cognome del padre',
+        'family_info.mother_name_surname': 'Nome e cognome della madre',
+        'family_info.select_job': 'Seleziona professione',
+        'family_info.father_salary': 'Stipendio netto del padre',
+        'family_info.mother_salary': 'Stipendio netto della madre',
+        'family_info.father_phone': 'Numero del padre',
+        'family_info.mother_phone': 'Numero della madre',
+        'family_info.salary_hint': 'Stipendio netto',
+        'family_info.family_size': 'Dimensione della famiglia',
+        'family_info.family_size_hint':
+            'Numero di persone che vivono in casa (compreso te)',
+        'family_info.residence_info': 'Informazioni di residenza',
+        'family_info.father_salary_missing': 'Informazione sul reddito del padre',
+        'family_info.father_phone_missing': 'Numero di telefono del padre',
+        'family_info.father_phone_invalid':
+            'Il numero del padre deve contenere 10 cifre',
+        'family_info.mother_salary_missing': 'Informazione sul reddito della madre',
+        'family_info.mother_phone_missing': 'Numero di telefono della madre',
+        'family_info.mother_phone_invalid':
+            'Il numero della madre deve contenere 10 cifre',
+        'family_info.saved': 'Le informazioni familiari sono state salvate.',
+        'family_info.save_failed':
+            'Impossibile salvare le informazioni.',
+        'family_info.reset_success':
+            'Le informazioni familiari sono state reimpostate.',
+        'family_info.reset_failed':
+            'Impossibile reimpostare le informazioni.',
+        'family_info.home_owned': 'Casa di proprieta',
+        'family_info.home_relative': 'Casa di un familiare',
+        'family_info.home_lodging': 'Alloggio di servizio',
+        'family_info.home_rent': 'Affitto',
+        'personal_info.title': 'Informazioni personali',
+        'personal_info.reset_menu': 'Reimposta le mie informazioni',
+        'personal_info.reset_title': 'Sei sicuro?',
+        'personal_info.reset_body':
+            'Le tue informazioni personali verranno reimpostate. Questa azione non puo essere annullata.',
+        'personal_info.reset_success':
+            'Le tue informazioni personali sono state reimpostate.',
+        'personal_info.registry_info': 'Citta - distretto di registrazione',
+        'personal_info.birth_date_title': 'La tua data di nascita',
+        'personal_info.select_birth_date': 'Seleziona data di nascita',
+        'personal_info.select_marital_status': 'Seleziona stato civile',
+        'personal_info.select_gender': 'Seleziona genere',
+        'personal_info.select_disability': 'Seleziona stato di disabilita',
+        'personal_info.select_employment': 'Seleziona stato lavorativo',
+        'personal_info.select_field': 'Seleziona @field',
+        'personal_info.city_load_failed':
+            'Impossibile caricare i dati di citta e distretto.',
+        'personal_info.user_data_missing':
+            'Dati utente non trovati. Puoi creare un nuovo record.',
+        'personal_info.load_failed': 'Impossibile caricare i dati.',
+        'personal_info.select_country_error': 'Seleziona un paese.',
+        'personal_info.fill_city_district':
+            'Compila citta e distretto.',
+        'personal_info.saved': 'Le tue informazioni personali sono state salvate.',
+        'personal_info.save_failed':
+            'Impossibile salvare le informazioni.',
+        'personal_info.marital_single': 'Celibe/Nubile',
+        'personal_info.marital_married': 'Sposato',
+        'personal_info.marital_divorced': 'Divorziato',
+        'personal_info.gender_male': 'Uomo',
+        'personal_info.gender_female': 'Donna',
+        'personal_info.disability_yes': 'Si',
+        'personal_info.disability_no': 'No',
+        'personal_info.working_yes': 'Lavora',
+        'personal_info.working_no': 'Non lavora',
+        'education_info.title': 'Informazioni sull istruzione',
+        'education_info.reset_menu':
+            'Reimposta le mie informazioni di istruzione',
+        'education_info.reset_title': 'Sei sicuro?',
+        'education_info.reset_body':
+            'Le tue informazioni di istruzione verranno reimpostate. Questa azione non puo essere annullata.',
+        'education_info.reset_success':
+            'Le tue informazioni di istruzione sono state reimpostate.',
+        'education_info.select_level':
+            'Seleziona prima un livello di istruzione!',
+        'education_info.middle_school': 'Scuola',
+        'education_info.high_school': 'Liceo',
+        'education_info.class_level': 'Classe',
+        'education_info.level_middle_school': 'Scuola media',
+        'education_info.level_high_school': 'Liceo',
+        'education_info.level_associate': 'Diploma breve',
+        'education_info.level_bachelor': 'Laurea',
+        'education_info.level_masters': 'Master',
+        'education_info.level_doctorate': 'Dottorato',
+        'education_info.class_grade': '@gradeª classe',
+        'education_info.select_field': 'Seleziona @field',
+        'education_info.initial_load_failed':
+            'Impossibile caricare i dati iniziali.',
+        'education_info.countries_load_failed':
+            'Impossibile caricare i paesi.',
+        'education_info.city_data_failed':
+            'Impossibile caricare i dati di citta e distretto.',
+        'education_info.middle_schools_failed':
+            'Impossibile caricare i dati della scuola.',
+        'education_info.high_schools_failed':
+            'Impossibile caricare i dati del liceo.',
+        'education_info.higher_education_failed':
+            'Impossibile caricare i dati universitari.',
+        'education_info.saved_data_failed':
+            'Impossibile caricare i dati salvati.',
+        'education_info.level_load_failed':
+            'Impossibile caricare i dati del livello.',
+        'education_info.select_city_error': 'Seleziona una citta.',
+        'education_info.select_district_error': 'Seleziona un distretto.',
+        'education_info.select_middle_school_error':
+            'Seleziona una scuola media.',
+        'education_info.select_high_school_error':
+            'Seleziona un liceo.',
+        'education_info.select_class_level_error':
+            'Seleziona un livello di classe.',
+        'education_info.select_university_error':
+            'Seleziona un universita.',
+        'education_info.select_faculty_error':
+            'Seleziona una facolta.',
+        'education_info.select_department_error':
+            'Seleziona un dipartimento.',
+        'education_info.saved':
+            'Le tue informazioni di istruzione sono state salvate.',
+        'education_info.save_failed': 'Salvataggio non riuscito.',
+        'bank_info.title': 'Informazioni bancarie',
+        'bank_info.reset_menu': 'Reimposta le mie informazioni bancarie',
+        'bank_info.reset_title': 'Sei sicuro?',
+        'bank_info.reset_body':
+            'Le tue informazioni bancarie verranno reimpostate. Questa azione non puo essere annullata.',
+        'bank_info.reset_success':
+            'Le tue informazioni bancarie sono state reimpostate.',
+        'bank_info.fast_title': 'Indirizzo rapido (FAST)',
+        'bank_info.fast_email': 'E-mail',
+        'bank_info.fast_phone': 'Telefono',
+        'bank_info.fast_iban': 'IBAN',
+        'bank_info.bank_label': 'Banca',
+        'bank_info.select_bank': 'Seleziona banca',
+        'bank_info.select_fast_type': 'Seleziona tipo di indirizzo rapido',
+        'bank_info.load_failed': 'Impossibile caricare i dati.',
+        'bank_info.missing_value':
+            'Non possiamo continuare senza completare le informazioni IBAN.',
+        'bank_info.missing_bank':
+            'Non hai selezionato la banca su cui riceverai il pagamento. Questa informazione verra condivisa se la tua borsa verra approvata.',
+        'bank_info.invalid_email':
+            'Inserisci un indirizzo e-mail valido.',
+        'bank_info.saved': 'Le informazioni bancarie sono state salvate.',
+        'bank_info.save_failed':
+            'Impossibile salvare le informazioni.',
+        'dormitory.title': 'Informazioni sul dormitorio',
+        'dormitory.reset_menu':
+            'Reimposta le mie informazioni sul dormitorio',
+        'dormitory.reset_title': 'Sei sicuro?',
+        'dormitory.reset_body':
+            'Le informazioni sul dormitorio verranno reimpostate. Questa azione non puo essere annullata.',
+        'dormitory.reset_success':
+            'Le informazioni sul dormitorio sono state reimpostate.',
+        'dormitory.current_info': 'Informazioni attuali sul dormitorio',
+        'dormitory.select_admin_type':
+            'Seleziona il tipo di amministrazione',
+        'dormitory.admin_public': 'Pubblico',
+        'dormitory.admin_private': 'Privato',
+        'dormitory.select_dormitory': 'Seleziona dormitorio',
+        'dormitory.not_found_for_filters':
+            'Nessun dormitorio trovato per questa citta e tipo di amministrazione',
+        'dormitory.saved': 'Le informazioni sul dormitorio sono state salvate.',
+        'dormitory.save_failed': 'Impossibile salvare i dati.',
+        'dormitory.select_or_enter':
+            'Seleziona un dormitorio o inserisci un nome',
         'scholarship.application_start_date': 'Data di inizio candidatura',
         'scholarship.application_end_date': 'Data di fine candidatura',
         'scholarship.select_from_list': 'Seleziona dall elenco',
@@ -9516,6 +13021,33 @@ class AppTranslations extends Translations {
         'scholarship.website_open_failed':
             'Impossibile aprire il sito web. Inserisci un URL valido.',
         'scholarship.checking_info': 'Controllo informazioni',
+        'scholarship.user_data_missing':
+            'I dati utente non sono stati trovati. Completa le tue informazioni.',
+        'scholarship.check_info_failed':
+            'Si e verificato un errore durante il controllo delle informazioni.',
+        'scholarship.application_check_failed':
+            'Si e verificato un errore durante il controllo dello stato della candidatura.',
+        'scholarship.login_required': 'Accedi per favore.',
+        'scholarship.profile_missing':
+            'Non ci sono informazioni di profilo per questa borsa.',
+        'scholarship.applied_success':
+            'La tua candidatura alla borsa e stata ricevuta.',
+        'scholarship.apply_failed':
+            'Impossibile salvare la candidatura.',
+        'scholarship.follow_limit_title': 'Limite di follow',
+        'scholarship.follow_limit_body':
+            'Oggi non puoi seguire altre persone.',
+        'scholarship.follow_failed':
+            'L operazione di follow non e riuscita.',
+        'scholarship.invalid': 'Borsa non valida.',
+        'scholarship.delete_success':
+            'Borsa eliminata con successo.',
+        'scholarship.delete_failed':
+            'Si e verificato un errore durante l eliminazione della borsa.',
+        'scholarship.cancel_success':
+            'La tua candidatura alla borsa e stata annullata.',
+        'scholarship.cancel_failed':
+            'Impossibile annullare la candidatura.',
         'scholarship.info_missing_title': 'Informazioni mancanti',
         'scholarship.info_missing_body':
             'Non puoi candidarti alle borse di studio senza completare le tue informazioni personali, scolastiche e familiari.',
@@ -9785,6 +13317,19 @@ class AppTranslations extends Translations {
         'notifications.messages': 'Messaggi',
         'notifications.posts_comments': 'Post e commenti',
         'notifications.comments': 'Commenti',
+        'comments.delete_message':
+            'Vuoi davvero eliminare questo commento?',
+        'comments.delete_failed': 'Impossibile eliminare il commento.',
+        'comments.title': 'Commenti',
+        'comments.empty': 'Sii il primo a commentare...',
+        'comments.reply': 'Rispondi',
+        'comments.replying_to': 'Risposta a @nickname',
+        'comments.sending': 'Invio in corso',
+        'comments.community_violation_title':
+            'Contrario alle regole della community',
+        'comments.community_violation_body':
+            'Il linguaggio usato non rispetta le nostre regole della community. Usa un linguaggio rispettoso.',
+        'post_sharers.empty': 'Nessuno ha ancora condiviso questo post',
         'notifications.follows': 'Seguiti',
         'notifications.direct_messages': 'Messaggi diretti',
         'notifications.opportunities': 'Annunci e candidature',
@@ -9941,6 +13486,293 @@ class AppTranslations extends Translations {
             'La ricondivisione e disabilitata.',
         'post_creator.warning_title': 'Avviso',
         'post_creator.success_title': 'Successo!',
+        'tests.create_title': 'Crea test',
+        'tests.edit_title': 'Modifica test',
+        'tests.create_data_missing':
+            'Dati non trovati.\nI collegamenti dell app o le domande del test non sono stati caricati.',
+        'tests.create_upload_failed':
+            'Questo contenuto non puo essere elaborato al momento. Prova con un altro contenuto.',
+        'tests.select_branch': 'Seleziona branca',
+        'tests.select_language': 'Seleziona lingua',
+        'tests.cover_select': 'Seleziona immagine di copertina',
+        'tests.name_hint': 'Nome esame',
+        'tests.post_exam_status': 'Dopo l esame @status',
+        'tests.types': 'Tipi di esame',
+        'tests.date_duration': 'Data e durata dell esame',
+        'tests.duration_select': 'Seleziona durata esame',
+        'tests.create_description_hint':
+            '9a classe Espressioni esponenziali e radicali',
+        'tests.share_status': 'Per tutti: @status',
+        'tests.status.open': 'Aperto',
+        'tests.status.closed': 'Chiuso',
+        'tests.share_public_info':
+            'In conformita con l etica digitale, i test protetti da copyright non devono essere condivisi.\nUsa e pubblica test che tutti possono risolvere e che non contengono contenuti protetti da copyright.',
+        'tests.share_private_info':
+            'Questo test puo essere condiviso solo con i tuoi studenti. Solo gli studenti che inseriscono l ID fornito da te possono accedere e risolvere il test pubblicato.',
+        'tests.test_id': 'ID test: @id',
+        'tests.test_type': 'Tipo di test',
+        'tests.subjects': 'Materie',
+        'tests.exam_prep': 'Preparazione esami',
+        'tests.foreign_language': 'Lingua straniera',
+        'tests.delete_test': 'Elimina test',
+        'tests.prepare_test': 'Prepara test',
+        'tests.join_title': 'Partecipa al test',
+        'tests.search_title': 'Cerca test',
+        'tests.search_id_hint': 'Cerca ID test',
+        'tests.join_help':
+            'Puoi iniziare il test inserendo l ID del test condiviso dal tuo insegnante.',
+        'tests.join_not_found':
+            'Test non trovato.\nNessun test corrisponde all ID inserito.',
+        'tests.join_button': 'Partecipa al test',
+        'tests.no_shared': 'Non ci sono test condivisi.',
+        'tests.my_tests_title': 'I miei test',
+        'tests.my_tests_empty':
+            'Nessun risultato trovato.\nNon hai ancora creato test.',
+        'tests.completed_title': 'Hai completato il test!',
+        'tests.completed_body':
+            'Puoi controllare il tuo punteggio e il rapporto corrette o errate in I miei risultati.',
+        'tests.completed_short': 'Hai completato il test!',
+        'tests.action_select': 'Seleziona azione',
+        'tests.action_select_body':
+            'Se vuoi eseguire un azione su questo test, scegli una delle opzioni seguenti.',
+        'tests.copy_test_id': 'Copia ID test',
+        'tests.solve_title': 'Risolvi test',
+        'tests.delete_confirm':
+            'Sei sicuro di voler eliminare questo test?',
+        'tests.id_copied': 'ID test copiato negli appunti',
+        'tests.share_test_id_text':
+            'Test @type\n\nScarica subito TurqApp per partecipare al test. L ID del test richiesto e @id\n\nScarica ora l app:\n\nAppStore: @appStore\nPlay Store: @playStore\n\nPer partecipare al test, inserisci l ID test dalla schermata Test nell area studente e inizia subito a risolverlo.',
+        'tests.type.middle_school': 'Scuola media',
+        'tests.type.high_school': 'Scuola superiore',
+        'tests.type.prep': 'Preparazione',
+        'tests.type.language': 'Lingua',
+        'tests.type.branch': 'Branca',
+        'tests.lesson.turkish': 'Turco',
+        'tests.lesson.literature': 'Letteratura',
+        'tests.lesson.math': 'Matematica',
+        'tests.lesson.geometry': 'Geometria',
+        'tests.lesson.physics': 'Fisica',
+        'tests.lesson.chemistry': 'Chimica',
+        'tests.lesson.biology': 'Biologia',
+        'tests.lesson.history': 'Storia',
+        'tests.lesson.geography': 'Geografia',
+        'tests.lesson.philosophy': 'Filosofia',
+        'tests.lesson.psychology': 'Psicologia',
+        'tests.lesson.sociology': 'Sociologia',
+        'tests.lesson.logic': 'Logica',
+        'tests.lesson.religion': 'Cultura religiosa',
+        'tests.lesson.science': 'Scienze',
+        'tests.lesson.revolution_history': 'Storia della rivoluzione',
+        'tests.lesson.foreign_language': 'Lingua straniera',
+        'tests.lesson.basic_math': 'Matematica di base',
+        'tests.lesson.social_sciences': 'Scienze sociali',
+        'tests.lesson.literature_social_1':
+            'Letteratura - Scienze sociali 1',
+        'tests.lesson.social_sciences_2': 'Scienze sociali 2',
+        'tests.lesson.general_ability': 'Abilita generale',
+        'tests.lesson.general_culture': 'Cultura generale',
+        'tests.language.english': 'Inglese',
+        'tests.language.german': 'Tedesco',
+        'tests.language.arabic': 'Arabo',
+        'tests.language.french': 'Francese',
+        'tests.language.russian': 'Russo',
+        'tests.lesson_based_title': 'Test @type',
+        'tests.none_in_category': 'Nessun test disponibile',
+        'tests.add_question': 'Aggiungi domanda',
+        'tests.no_questions_added':
+            'Nessuna domanda trovata.\nNon sono ancora state aggiunte domande per questo test.',
+        'tests.level_easy': 'Facile',
+        'tests.title': 'Test',
+        'tests.report_title': 'Informazioni sul test',
+        'tests.report_wrong_answers':
+            'Il test contiene risposte errate',
+        'tests.report_wrong_section':
+            'Il test e nella sezione sbagliata',
+        'tests.question_content_failed':
+            'Il contenuto della domanda non puo essere caricato.\nRiprova.',
+        'tests.capture_and_upload': 'Scatta e carica',
+        'tests.capture_and_upload_body':
+            'Scatta una foto della domanda, scegli la risposta corretta e preparala facilmente!',
+        'tests.select_from_gallery': 'Seleziona dalla galleria',
+        'tests.upload_from_camera': 'Carica dalla fotocamera',
+        'tests.nsfw_check_failed':
+            'Il controllo di sicurezza dell immagine non puo essere completato.',
+        'tests.nsfw_detected': 'Immagine non appropriata rilevata.',
+        'practice.title': 'Esame online',
+        'practice.search_title': 'Cerca esame di prova',
+        'practice.empty_title': 'Nessun esame di prova per ora',
+        'practice.empty_body':
+            'Al momento non ci sono esami di prova nel sistema. I nuovi esami appariranno qui quando verranno aggiunti.',
+        'practice.search_empty_title':
+            'Nessun esame corrisponde alla tua ricerca',
+        'practice.search_empty_body_empty':
+            'Al momento non ci sono esami di prova nel sistema. I nuovi esami appariranno qui quando verranno aggiunti.',
+        'practice.search_empty_body_query':
+            'Prova una parola chiave diversa.',
+        'practice.results_title': 'I miei risultati',
+        'practice.saved_empty': 'Non ci sono esami pratici salvati.',
+        'practice.preview_no_questions':
+            'Nessuna domanda trovata per questo esame. Controlla il contenuto dell esame o aggiungi nuove domande.',
+        'practice.preview_no_results':
+            'Nessun risultato trovato per questo esame. Controlla le tue risposte o rifai l esame.',
+        'practice.lesson_header': 'Materie',
+        'practice.answers_load_failed':
+            'Impossibile caricare le risposte.',
+        'practice.lesson_results_load_failed':
+            'Impossibile caricare i risultati delle materie.',
+        'practice.results_empty_title':
+            'Non hai ancora sostenuto un esame',
+        'practice.results_empty_body':
+            'Non hai ancora partecipato a nessun esame di prova. I tuoi risultati appariranno qui dopo la partecipazione.',
+        'practice.published_empty':
+            'Non hai ancora pubblicato un esame online.',
+        'practice.user_session_missing':
+            'Sessione utente non trovata.',
+        'practice.school_info_failed':
+            'Impossibile caricare le informazioni sulla scuola.',
+        'practice.load_failed': 'Impossibile caricare i dati.',
+        'practice.slider_management': 'Gestione slider',
+        'practice.create_disabled_title':
+            'Solo per badge giallo e superiori',
+        'practice.create_disabled_body':
+            'Per creare un esame online hai bisogno di un account verificato con badge giallo o superiore.',
+        'practice.preview_title': 'Dettagli esame',
+        'practice.report_exam': 'Segnala esame',
+        'practice.user_load_failed':
+            'Impossibile caricare le informazioni utente.',
+        'practice.user_load_failed_body':
+            'Impossibile caricare le informazioni utente. Riprova o controlla il proprietario dell esame.',
+        'practice.invalidity_load_failed':
+            'Impossibile caricare lo stato di invalidita.',
+        'practice.cover_load_failed':
+            'Impossibile caricare l immagine di copertina.',
+        'practice.no_description':
+            'Nessuna descrizione e stata aggiunta per questo esame.',
+        'practice.exam_info': 'Informazioni esame',
+        'practice.exam_type': 'Tipo di esame',
+        'practice.exam_suffix': 'Esame @type',
+        'practice.exam_datetime': 'Data e ora dell esame',
+        'practice.exam_duration': 'Durata dell esame',
+        'practice.duration_minutes': '@minutes min',
+        'practice.application_count': 'Candidature',
+        'practice.people_count': '@count persone',
+        'practice.owner': 'Proprietario dell esame',
+        'practice.apply_now': 'Candidati ora',
+        'practice.applied_short': 'Candidato',
+        'practice.closed_starts_in':
+            'Candidature chiuse.\nInizia tra @minutes min.',
+        'practice.started': 'Esame iniziato',
+        'practice.start_now': 'Inizia ora',
+        'practice.finished_short': 'Esame terminato',
+        'practice.not_started': 'Esame non iniziato',
+        'practice.application_closed_title':
+            'Candidature chiuse!',
+        'practice.application_closed_body':
+            'Le candidature chiudono 15 minuti prima dell inizio dell esame.',
+        'practice.not_applied_title': 'Non hai fatto domanda!',
+        'practice.not_applied_body':
+            'Non puoi partecipare a un esame senza candidatura. Possono partecipare solo i candidati.',
+        'practice.not_allowed_title':
+            'Non puoi entrare nell esame!',
+        'practice.not_allowed_body':
+            'Non hai accesso a questo esame. Sei gia stato invalidato in questo esame e non puoi rientrare prima della fine.',
+        'practice.finished_title': 'Esame terminato!',
+        'practice.finished_body':
+            'Puoi candidarti ai prossimi esami. Questo esame e terminato.',
+        'practice.result_unavailable':
+            'Impossibile calcolare il risultato.',
+        'practice.result_summary':
+            'Corrette: @correct   •   Errate: @wrong   •   Vuote: @blank   •   Netto: @net',
+        'practice.congrats_title': 'Congratulazioni!',
+        'practice.removed_title':
+            'Sei stato rimosso dall esame!',
+        'practice.removed_body':
+            'Ti abbiamo avvisato piu volte. Purtroppo, poiche non hai rispettato le regole, il tuo esame e stato invalidato.',
+        'practice.applied_title':
+            'La tua candidatura e stata ricevuta!',
+        'practice.applied_body':
+            'La tua candidatura e stata ricevuta con successo. Al momento non devi fare altro.',
+        'practice.apply_completed_title':
+            'La tua candidatura e completa!',
+        'practice.apply_completed_body':
+            'Ti invieremo dei promemoria prima dell esame. Buona fortuna!',
+        'practice.apply_failed': 'Invio candidatura non riuscito.',
+        'practice.application_check_failed':
+            'Controllo candidatura non riuscito.',
+        'practice.question_image_failed':
+            'Impossibile caricare l immagine della domanda.',
+        'practice.exam_started_title': 'L esame e iniziato!',
+        'practice.exam_started_body':
+            'Crediamo che la tua cura e il tuo impegno apriranno la strada al successo. Buona fortuna!',
+        'practice.rules_title': 'Regole dell esame',
+        'practice.rule_1':
+            'Disattiva la connessione internet del telefono. Quando l esame sara terminato, potrai riattivarla per inviare le risposte.',
+        'practice.rule_2':
+            'Se esci dall esame, tutte le risposte saranno considerate non valide e il punteggio non verra salvato. Pensa bene prima di confermare.',
+        'practice.rule_3':
+            'Se metti l app in background, l esame verra considerato non valido. Cerca di non mandare l app in background.',
+        'practice.start_exam': 'Inizia esame',
+        'practice.finish_exam': 'Termina esame',
+        'practice.background_warning':
+            'In situazioni critiche come il passaggio dell app in background, il tuo esame verra considerato non valido. Fai attenzione e segui le regole.',
+        'practice.questions_load_failed':
+            'Impossibile caricare le domande.',
+        'practice.answers_save_failed':
+            'Impossibile salvare le risposte.',
+        'past_questions.no_results': 'Nessun risultato.',
+        'past_questions.title': 'Esami di prova',
+        'past_questions.mock_fallback': 'Prova',
+        'past_questions.search_empty':
+            'Nessun esame di prova corrisponde alla tua ricerca.',
+        'past_questions.results_suffix': 'Risultati @title',
+        'past_questions.local_result_summary':
+            'Sono state risolte @count domande. Il risultato e salvato localmente; in questa schermata viene mostrato solo il riepilogo netto.',
+        'past_questions.mock_label': 'Prova @index',
+        'past_questions.question_count': '@count Domande',
+        'past_questions.net_label': 'Netto',
+        'past_questions.tests_by_year': 'Test @type @year',
+        'past_questions.languages_title': 'Lingue @type',
+        'past_questions.tests_by_type': 'Test @type',
+        'past_questions.select_exam': 'Seleziona esame',
+        'past_questions.questions_title': 'Domande',
+        'past_questions.continue_solving': 'Continua a risolvere le domande',
+        'past_questions.oabt_short': 'ÖABT',
+        'past_questions.exam_type.associate': 'Laurea breve',
+        'past_questions.exam_type.undergraduate': 'Laurea',
+        'past_questions.exam_type.middle_school': 'Scuola secondaria',
+        'past_questions.branch.general_ability_culture':
+            'Abilità generale e cultura generale',
+        'past_questions.branch.group_a': 'Gruppo A',
+        'past_questions.branch.education_sciences': "Scienze dell'educazione",
+        'past_questions.branch.field_knowledge': 'Conoscenza di settore',
+        'past_questions.sessions_by_year': 'Sessioni @year',
+        'past_questions.teaching.title': 'Rami di insegnamento',
+        'past_questions.teaching.suffix': 'insegnamento',
+        'past_questions.teaching.primary_math_short': 'M. primaria',
+        'past_questions.teaching.high_school_math_short': 'M. liceo',
+        'past_questions.teaching.german': 'Insegnamento del tedesco',
+        'past_questions.teaching.physical_education':
+            'Insegnamento dell educazione fisica',
+        'past_questions.teaching.biology': 'Insegnamento della biologia',
+        'past_questions.teaching.geography': 'Insegnamento della geografia',
+        'past_questions.teaching.religious_culture':
+            'Insegnamento della cultura religiosa',
+        'past_questions.teaching.literature':
+            'Insegnamento della letteratura',
+        'past_questions.teaching.science': 'Insegnamento delle scienze',
+        'past_questions.teaching.physics': 'Insegnamento della fisica',
+        'past_questions.teaching.chemistry': 'Insegnamento della chimica',
+        'past_questions.teaching.high_school_math': 'Matematica liceale',
+        'past_questions.teaching.preschool': 'Prescolare',
+        'past_questions.teaching.guidance': 'Orientamento',
+        'past_questions.teaching.social_studies':
+            'Insegnamento degli studi sociali',
+        'past_questions.teaching.classroom': 'Insegnamento di classe',
+        'past_questions.teaching.history': 'Insegnamento della storia',
+        'past_questions.teaching.turkish': 'Insegnamento del turco',
+        'past_questions.teaching.primary_math': 'Matematica primaria',
+        'past_questions.teaching.imam_hatip': 'Imam Hatip',
+        'past_questions.teaching.english': 'Insegnamento dell inglese',
         'pasaj.closed': 'Pasaj e attualmente chiuso',
         'pasaj.common.my_applications': 'Le mie candidature',
         'pasaj.common.post_listing': 'Pubblica annuncio',
@@ -10180,6 +14012,27 @@ class AppTranslations extends Translations {
         'settings.notifications': 'Уведомления',
         'settings.permissions': 'Разрешения',
         'settings.pasaj': 'Pasaj',
+        'education.previous_questions': 'Пробные тесты',
+        'tests.results_title': 'Результаты',
+        'tests.results_empty':
+            'Результаты не найдены.\nДля этого теста нет данных об ответах или вопросах.',
+        'tests.correct': 'Верно',
+        'tests.wrong': 'Неверно',
+        'tests.blank': 'Пусто',
+        'tests.net': 'Нетто',
+        'tests.score': 'Баллы',
+        'tests.question_number': 'Вопрос @index',
+        'tests.solve_no_questions':
+            'Вопрос не найден.\nНе удалось загрузить вопросы для этого теста.',
+        'tests.finish_test': 'Завершить тест',
+        'tests.my_results_empty':
+            'Результаты не найдены.\nВы еще ни разу не проходили тест.',
+        'tests.saved_empty': 'Сохраненных тестов нет.',
+        'tests.result_answer_missing':
+            'Результаты не найдены.\nДля этого теста нет данных об ответах.',
+        'tests.type_test': 'Тест @type',
+        'tests.description_test': 'Тест @description',
+        'tests.solve_count': 'Вы прошли его @count раз',
         'settings.about': 'О приложении',
         'settings.policies': 'Политики',
         'settings.contact_us': 'Написать нам',
@@ -10411,12 +14264,49 @@ class AppTranslations extends Translations {
         'common.photos': 'Фото',
         'common.no_results': 'Ничего не найдено',
         'common.success': 'Успешно',
+        'common.warning': 'Предупреждение',
         'common.delete': 'Удалить',
         'common.search': 'Поиск',
+        'common.call': 'Позвонить',
+        'common.view': 'Открыть',
         'common.create': 'Создать',
+        'common.applications': 'Заявки',
+        'common.liked': 'Понравившиеся',
         'common.saved': 'Сохранено',
+        'common.unknown_category': 'Неизвестная категория',
         'common.clear': 'Очистить',
+        'answer_key.published': 'Опубликованные',
+        'answer_key.my_results': 'Мои результаты',
+        'answer_key.saved_empty': 'Нет сохраненных книг.',
+        'answer_key.new_create': 'Создать новый',
+        'answer_key.create_optical_form': 'Создать\nоптическую форму',
+        'answer_key.create_booklet_answer_key':
+            'Создать\nключ ответов книги',
+        'answer_key.create_optical_form_single':
+            'Создать оптическую форму',
+        'answer_key.give_exam_name': 'Дайте экзамену название',
+        'answer_key.join_exam_title': 'Присоединиться к экзамену',
+        'answer_key.exam_id_hint': 'ID экзамена',
+        'answer_key.book': 'Книга',
+        'answer_key.create_book': 'Создать книгу',
+        'answer_key.optical_form': 'Оптическая форма',
+        'answer_key.delete_book': 'Удалить книгу',
+        'answer_key.share_owner_only':
+            'Только админы и владелец объявления могут делиться.',
+        'answer_key.book_answer_key_desc': 'ключ ответов',
+        'answer_key.delete_operation': 'Удаление',
+        'answer_key.delete_optical_confirm':
+            'Вы уверены, что хотите удалить оптическую форму @name?',
+        'answer_key.total_questions': 'Всего @count вопросов',
+        'answer_key.participant_count': '@count человек',
+        'answer_key.id_copied': 'ID скопирован',
+        'answer_key.answered_suffix': 'Отвечено @time назад',
         'common.share': 'Поделиться',
+        'common.show_more': 'Показать больше',
+        'common.show_less': 'Показать меньше',
+        'common.hide': 'Скрыть',
+        'common.push': 'Push',
+        'common.quote': 'Цитировать',
         'common.user': 'Пользователь',
         'common.info': 'Инфо',
         'common.cancel': 'Отмена',
@@ -10535,6 +14425,7 @@ class AppTranslations extends Translations {
         'common.verified': 'Подтверждено',
         'common.verify': 'Подтвердить',
         'common.change': 'Изменить',
+        'comments.input_hint': 'Что ты об этом думаешь?',
         'explore.tab.trending': 'Тренды',
         'explore.tab.for_you': 'Для вас',
         'explore.tab.series': 'Серия',
@@ -10554,6 +14445,19 @@ class AppTranslations extends Translations {
             'Вы архивировали этот пост.\nТеперь его никто не увидит.',
         'post_state.deleted_title': 'Пост удален',
         'post_state.deleted_body': 'Этот пост больше не опубликован.',
+        'post.share_title': 'Пост TurqApp',
+        'post.archive': 'Архивировать',
+        'post.unarchive': 'Убрать из архива',
+        'post.like_failed': 'Не удалось выполнить действие лайка.',
+        'post.save_failed': 'Не удалось выполнить сохранение.',
+        'post.reshare_failed': 'Не удалось выполнить репост.',
+        'post.report_success': 'Пост отправлен на проверку.',
+        'post.report_failed': 'Не удалось выполнить жалобу.',
+        'post.hide_failed': 'Не удалось завершить скрытие.',
+        'post.reshare_action': 'Репост',
+        'post.reshare_undo': 'Отменить репост',
+        'post.reshared_you': 'вы сделали репост',
+        'post.reshared_by': '@name сделал репост',
         'short.next_post': 'Перейти к следующему посту',
         'short.publish_as_post': 'Опубликовать как пост',
         'short.add_to_story': 'Добавить в историю',
@@ -10561,6 +14465,10 @@ class AppTranslations extends Translations {
         'story.seens_title': 'Просмотры (@count)',
         'story.no_seens': 'Никто не посмотрел вашу историю',
         'story.comments_title': 'Комментарии (@count)',
+        'story.share_title': 'История @name',
+        'story.share_desc': 'Открыть историю в TurqApp',
+        'story.drawing_title': 'Добавить рисунок',
+        'story.brush_color': 'Цвет кисти',
         'story.no_comments': 'Комментариев пока нет',
         'story.add_comment_for': 'Добавить комментарий для @nickname..',
         'story.delete_message': 'Удалить эту историю?',
@@ -10578,6 +14486,11 @@ class AppTranslations extends Translations {
         'story.deleted_stories.deleted_forever':
             'История удалена навсегда',
         'story.deleted_stories.deleted_at': 'Удалена: @time',
+        'admin_push.queue_title': 'Push',
+        'admin_push.queue_body_count':
+            'Push поставлен в очередь для @count пользователей',
+        'admin_push.queue_body': 'Push поставлен в очередь',
+        'admin_push.failed_body': 'Не удалось отправить push.',
         'story_music.title': 'Музыка',
         'story_music.no_active_stories':
             'С этой музыкой нет активных историй',
@@ -10714,9 +14627,20 @@ class AppTranslations extends Translations {
             'Произошла ошибка при загрузке фотографии!',
         'training.question_bank_title': 'Банк вопросов',
         'training.questions_loading': 'Загрузка вопросов...',
+        'training.solve_later_empty':
+            'Вопросы для Решить позже не найдены!',
+        'training.remove_solve_later': 'Убрать из Решить позже',
         'training.no_questions': 'Вопросы не найдены!',
         'training.answer_first': 'Сначала ответьте на вопрос!',
         'training.share': 'Поделиться',
+        'training.correct_ratio': '%@value Верно',
+        'training.wrong_ratio': '%@value Неверно',
+        'training.complaint_select_one':
+            'Выберите хотя бы один вариант жалобы.',
+        'training.complaint_thanks':
+            'Спасибо за сообщение.',
+        'training.complaint_submit_failed':
+            'Произошла ошибка при отправке жалобы.',
         'training.no_questions_in_category':
             'В этой категории вопросы не найдены.',
         'training.saved_load_failed':
@@ -10738,6 +14662,16 @@ class AppTranslations extends Translations {
         'training.like_add_failed':
             'Произошла ошибка при добавлении лайка.',
         'training.share_failed': 'Не удалось начать публикацию',
+        'training.share_question_link_title':
+            '@exam - @lesson Вопрос @number',
+        'training.share_question_title':
+            'TurqApp - @exam @lesson вопрос',
+        'training.share_question_desc':
+            'Вопрос из банка вопросов TurqApp',
+        'training.leaderboard_empty':
+            'Таблица лидеров ещё не сформирована.',
+        'training.leaderboard_empty_body':
+            'Решайте вопросы в банке, чтобы попасть в рейтинг.',
         'training.answer_locked':
             'Вы не можете изменить ответ на этот вопрос!',
         'training.answer_saved':
@@ -10825,9 +14759,72 @@ class AppTranslations extends Translations {
             'В этом районе нет объявлений о частных уроках.',
         'tutoring.no_lessons_in_category':
             'В категории {category} нет уроков.',
+        'tutoring.search_empty':
+            'По вашему запросу не найдено ни одного объявления.',
+        'tutoring.search_empty_info':
+            'Подходящих объявлений о частных уроках не найдено!',
         'tutoring.similar_listings': 'Похожие объявления',
         'tutoring.open_listing': 'Открыть объявление',
         'tutoring.report_listing': 'Пожаловаться на объявление',
+        'tutoring.saved_empty': 'Нет сохраненных объявлений.',
+        'tutoring.detail_description': 'Описание',
+        'tutoring.detail_no_description':
+            'Для этого объявления описание не добавлено.',
+        'tutoring.detail_lesson_info': 'Информация об уроке',
+        'tutoring.detail_branch': 'Направление',
+        'tutoring.detail_price': 'Цена',
+        'tutoring.detail_contact': 'Контакт',
+        'tutoring.detail_phone_and_message': 'Телефон + сообщение',
+        'tutoring.detail_message_only': 'Только сообщение',
+        'tutoring.detail_gender_preference': 'Предпочтительный пол',
+        'tutoring.detail_availability': 'Доступность',
+        'tutoring.detail_listing_info': 'Информация об объявлении',
+        'tutoring.detail_instructor': 'Преподаватель',
+        'tutoring.detail_not_specified': 'Не указано',
+        'tutoring.detail_city': 'Город',
+        'tutoring.detail_views': 'Просмотры',
+        'tutoring.detail_status': 'Статус',
+        'tutoring.detail_status_passive': 'Пассивно',
+        'tutoring.detail_status_active': 'Активно',
+        'tutoring.detail_location': 'Местоположение',
+        'tutoring.create.city_select': 'Выберите город',
+        'tutoring.create.district_select': 'Выберите район',
+        'tutoring.create.nsfw_check_failed':
+            'Проверка NSFW изображения не удалась.',
+        'tutoring.create.nsfw_detected':
+            'Обнаружено неприемлемое изображение.',
+        'tutoring.create.fill_required':
+            'Пожалуйста, заполните все обязательные поля!',
+        'tutoring.create.published':
+            'Объявление о частном уроке опубликовано!',
+        'tutoring.create.publish_failed':
+            'Произошла ошибка при публикации объявления.',
+        'tutoring.create.updated': 'Объявление обновлено!',
+        'tutoring.create.no_changes': 'Изменений не было!',
+        'tutoring.create.update_failed':
+            'Произошла ошибка при обновлении объявления.',
+        'tutoring.call_disabled':
+            'Звонки для этого объявления отключены.',
+        'tutoring.message': 'Сообщение',
+        'tutoring.messages': 'Сообщения',
+        'tutoring.phone_missing':
+            'Номер телефона преподавателя не найден.',
+        'tutoring.phone_open_failed':
+            'Не удалось открыть приложение телефона.',
+        'tutoring.unpublish_title': 'Снять объявление',
+        'tutoring.unpublish_body':
+            'Вы уверены, что хотите снять это объявление о частных уроках с публикации?',
+        'tutoring.unpublished':
+            'Объявление снято с публикации.',
+        'tutoring.apply_login_required':
+            'Войдите снова, чтобы подать заявку.',
+        'tutoring.application_sent':
+            'Ваша заявка отправлена.',
+        'tutoring.application_failed':
+            'Во время подачи заявки возникла проблема.',
+        'tutoring.delete_success': 'Объявление удалено!',
+        'tutoring.delete_failed':
+            'Произошла ошибка при удалении объявления.',
         'tutoring.filter_title': 'Фильтры',
         'tutoring.gender_title': 'Пол',
         'tutoring.sort_title': 'Сортировка',
@@ -10871,6 +14868,20 @@ class AppTranslations extends Translations {
             'Мои заявки на стипендию',
         'scholarship.no_user_applications':
             'У вас нет заявок на стипендию!',
+        'scholarship.saved_empty':
+            'Сохраненные стипендии не найдены.',
+        'scholarship.liked_empty':
+            'Не найдено понравившихся стипендий.',
+        'scholarship.remove_saved': 'Убрать из сохраненных',
+        'scholarship.remove_liked': 'Убрать из понравившихся',
+        'scholarship.remove_saved_confirm':
+            'Вы уверены, что хотите убрать эту стипендию из сохраненных?',
+        'scholarship.remove_liked_confirm':
+            'Вы уверены, что хотите убрать эту стипендию из понравившихся?',
+        'scholarship.removed_saved':
+            'Стипендия удалена из сохраненных.',
+        'scholarship.removed_liked':
+            'Стипендия удалена из понравившихся.',
         'scholarship.list_title': 'Стипендии (@count)',
         'scholarship.search_results_title': 'Результаты поиска (@count)',
         'scholarship.empty_title': 'Пока нет стипендий',
@@ -10898,6 +14909,8 @@ class AppTranslations extends Translations {
             'Организации, выдающие стипендии, не найдены.',
         'scholarship.providers_load_failed':
             'Не удалось загрузить организации, выдающие стипендии.',
+        'scholarship.applications_load_failed':
+            'Не удалось загрузить заявки.',
         'scholarship.withdraw_application': 'Отозвать заявку',
         'scholarship.withdraw_confirm_title': 'Внимание!',
         'scholarship.withdraw_confirm_body':
@@ -10919,6 +14932,7 @@ class AppTranslations extends Translations {
         'scholarship.website_label': 'Веб-сайт',
         'scholarship.description_help':
             'Пожалуйста, напишите описание стипендии одним понятным блоком.',
+        'scholarship.no_description': 'Нет описания',
         'scholarship.conditions_label': 'Условия подачи заявки',
         'scholarship.required_docs_label': 'Необходимые документы',
         'scholarship.award_months_label': 'Месяцы выплаты',
@@ -10927,6 +14941,224 @@ class AppTranslations extends Translations {
         'scholarship.application_place_website': 'Сайт стипендии',
         'scholarship.application_website_label': 'Сайт стипендии',
         'scholarship.application_dates_label': 'Сроки подачи заявки',
+        'scholarship.detail_missing':
+            'Ошибка: данные стипендии не найдены.',
+        'scholarship.detail_title': 'Детали стипендии',
+        'scholarship.delete_title': 'Удалить стипендию',
+        'scholarship.delete_confirm':
+            'Вы уверены, что хотите удалить эту стипендию?',
+        'scholarship.applications_heading': 'Заявки на стипендию @title',
+        'scholarship.applicant.personal_section': 'Личные данные',
+        'scholarship.applicant.education_section': 'Сведения об образовании',
+        'scholarship.applicant.family_section': 'Семейные сведения',
+        'scholarship.applicant.full_name': 'Полное имя',
+        'scholarship.applicant.email': 'Адрес электронной почты',
+        'scholarship.applicant.phone': 'Номер телефона',
+        'scholarship.applicant.phone_open_failed':
+            'Не удалось начать телефонный звонок',
+        'scholarship.applicant.email_open_failed':
+            'Не удалось открыть почтовый клиент',
+        'chat.sign_in_required':
+            'Войдите, чтобы отправить сообщение.',
+        'chat.cannot_message_self_listing':
+            'Нельзя отправить сообщение своему объявлению.',
+        'scholarship.applicant.country': 'Страна',
+        'scholarship.applicant.registry_city': 'Город регистрации',
+        'scholarship.applicant.registry_district': 'Район регистрации',
+        'scholarship.applicant.birth_date': 'Дата рождения',
+        'scholarship.applicant.marital_status': 'Семейное положение',
+        'scholarship.applicant.gender': 'Пол',
+        'scholarship.applicant.disability_report':
+            'Справка об инвалидности',
+        'scholarship.applicant.employment_status': 'Статус занятости',
+        'scholarship.applicant.education_level': 'Уровень образования',
+        'scholarship.applicant.university': 'Университет',
+        'scholarship.applicant.faculty': 'Факультет',
+        'scholarship.applicant.department': 'Отделение',
+        'scholarship.applicant.father_alive': 'Отец жив?',
+        'scholarship.applicant.father_name': 'Имя отца',
+        'scholarship.applicant.father_surname': 'Фамилия отца',
+        'scholarship.applicant.father_phone': 'Телефон отца',
+        'scholarship.applicant.father_job': 'Работа отца',
+        'scholarship.applicant.father_income': 'Доход отца',
+        'scholarship.applicant.mother_alive': 'Мать жива?',
+        'scholarship.applicant.mother_name': 'Имя матери',
+        'scholarship.applicant.mother_surname': 'Фамилия матери',
+        'scholarship.applicant.mother_phone': 'Телефон матери',
+        'scholarship.applicant.mother_job': 'Работа матери',
+        'scholarship.applicant.mother_income': 'Доход матери',
+        'scholarship.applicant.home_ownership': 'Статус жилья',
+        'scholarship.applicant.residence_city': 'Город проживания',
+        'scholarship.applicant.residence_district': 'Район проживания',
+        'family_info.title': 'Семейные сведения',
+        'family_info.reset_menu': 'Сбросить семейные сведения',
+        'family_info.reset_title': 'Сбросить семейные сведения',
+        'family_info.reset_body':
+            'Все семейные сведения будут удалены. Это действие нельзя отменить. Вы уверены?',
+        'family_info.select_father_alive':
+            'Пожалуйста, укажите, жив ли отец',
+        'family_info.select_mother_alive':
+            'Пожалуйста, укажите, жива ли мать',
+        'family_info.father_name_surname': 'Имя и фамилия отца',
+        'family_info.mother_name_surname': 'Имя и фамилия матери',
+        'family_info.select_job': 'Выберите профессию',
+        'family_info.father_salary': 'Чистый доход отца',
+        'family_info.mother_salary': 'Чистый доход матери',
+        'family_info.father_phone': 'Контакт отца',
+        'family_info.mother_phone': 'Контакт матери',
+        'family_info.salary_hint': 'Чистый доход',
+        'family_info.family_size': 'Размер семьи',
+        'family_info.family_size_hint':
+            'Количество проживающих в семье (включая вас)',
+        'family_info.residence_info': 'Сведения о проживании',
+        'family_info.father_salary_missing': 'Сведения о доходе отца',
+        'family_info.father_phone_missing': 'Номер телефона отца',
+        'family_info.father_phone_invalid':
+            'Номер телефона отца должен содержать 10 цифр',
+        'family_info.mother_salary_missing': 'Сведения о доходе матери',
+        'family_info.mother_phone_missing': 'Номер телефона матери',
+        'family_info.mother_phone_invalid':
+            'Номер телефона матери должен содержать 10 цифр',
+        'family_info.saved': 'Семейные сведения сохранены.',
+        'family_info.save_failed':
+            'Не удалось сохранить сведения.',
+        'family_info.reset_success': 'Семейные сведения сброшены.',
+        'family_info.reset_failed': 'Не удалось сбросить сведения.',
+        'family_info.home_owned': 'Собственное жилье',
+        'family_info.home_relative': 'Жилье родственника',
+        'family_info.home_lodging': 'Служебное жилье',
+        'family_info.home_rent': 'Аренда',
+        'personal_info.title': 'Личные данные',
+        'personal_info.reset_menu': 'Сбросить мои данные',
+        'personal_info.reset_title': 'Вы уверены?',
+        'personal_info.reset_body':
+            'Ваши личные данные будут сброшены. Это действие нельзя отменить.',
+        'personal_info.reset_success': 'Личные данные сброшены.',
+        'personal_info.registry_info': 'Город и район регистрации',
+        'personal_info.birth_date_title': 'Дата вашего рождения',
+        'personal_info.select_birth_date': 'Выберите дату рождения',
+        'personal_info.select_marital_status':
+            'Выберите семейное положение',
+        'personal_info.select_gender': 'Выберите пол',
+        'personal_info.select_disability':
+            'Выберите статус инвалидности',
+        'personal_info.select_employment':
+            'Выберите статус занятости',
+        'personal_info.select_field': 'Выберите @field',
+        'personal_info.city_load_failed':
+            'Не удалось загрузить данные о городе и районе.',
+        'personal_info.user_data_missing':
+            'Данные пользователя не найдены. Вы можете создать новую запись.',
+        'personal_info.load_failed': 'Не удалось загрузить данные.',
+        'personal_info.select_country_error': 'Выберите страну.',
+        'personal_info.fill_city_district':
+            'Пожалуйста, заполните город и район.',
+        'personal_info.saved': 'Личные данные сохранены.',
+        'personal_info.save_failed': 'Не удалось сохранить данные.',
+        'personal_info.marital_single': 'Холост/Не замужем',
+        'personal_info.marital_married': 'Женат/Замужем',
+        'personal_info.marital_divorced': 'Разведен/Разведена',
+        'personal_info.gender_male': 'Мужской',
+        'personal_info.gender_female': 'Женский',
+        'personal_info.disability_yes': 'Есть',
+        'personal_info.disability_no': 'Нет',
+        'personal_info.working_yes': 'Работает',
+        'personal_info.working_no': 'Не работает',
+        'education_info.title': 'Сведения об образовании',
+        'education_info.reset_menu':
+            'Сбросить мои сведения об образовании',
+        'education_info.reset_title': 'Вы уверены?',
+        'education_info.reset_body':
+            'Ваши сведения об образовании будут сброшены. Это действие нельзя отменить.',
+        'education_info.reset_success':
+            'Сведения об образовании были сброшены.',
+        'education_info.select_level':
+            'Сначала выберите уровень образования!',
+        'education_info.middle_school': 'Школа',
+        'education_info.high_school': 'Старшая школа',
+        'education_info.class_level': 'Класс',
+        'education_info.level_middle_school': 'Средняя школа',
+        'education_info.level_high_school': 'Старшая школа',
+        'education_info.level_associate': 'Колледж',
+        'education_info.level_bachelor': 'Бакалавриат',
+        'education_info.level_masters': 'Магистратура',
+        'education_info.level_doctorate': 'Докторантура',
+        'education_info.class_grade': '@grade класс',
+        'education_info.select_field': 'Выберите @field',
+        'education_info.initial_load_failed':
+            'Не удалось загрузить начальные данные.',
+        'education_info.countries_load_failed':
+            'Не удалось загрузить список стран.',
+        'education_info.city_data_failed':
+            'Не удалось загрузить данные о городе и районе.',
+        'education_info.middle_schools_failed':
+            'Не удалось загрузить данные школы.',
+        'education_info.high_schools_failed':
+            'Не удалось загрузить данные старшей школы.',
+        'education_info.higher_education_failed':
+            'Не удалось загрузить данные высшего образования.',
+        'education_info.saved_data_failed':
+            'Не удалось загрузить сохраненные данные.',
+        'education_info.level_load_failed':
+            'Не удалось загрузить данные уровня.',
+        'education_info.select_city_error': 'Выберите город.',
+        'education_info.select_district_error': 'Выберите район.',
+        'education_info.select_middle_school_error':
+            'Выберите среднюю школу.',
+        'education_info.select_high_school_error':
+            'Выберите старшую школу.',
+        'education_info.select_class_level_error':
+            'Выберите уровень класса.',
+        'education_info.select_university_error':
+            'Выберите университет.',
+        'education_info.select_faculty_error':
+            'Выберите факультет.',
+        'education_info.select_department_error':
+            'Выберите отделение.',
+        'education_info.saved': 'Сведения об образовании сохранены.',
+        'education_info.save_failed': 'Не удалось сохранить данные.',
+        'bank_info.title': 'Банковские данные',
+        'bank_info.reset_menu': 'Сбросить мои банковские данные',
+        'bank_info.reset_title': 'Вы уверены?',
+        'bank_info.reset_body':
+            'Ваши банковские данные будут сброшены. Это действие нельзя отменить.',
+        'bank_info.reset_success': 'Банковские данные сброшены.',
+        'bank_info.fast_title': 'Быстрый адрес (FAST)',
+        'bank_info.fast_email': 'E-mail',
+        'bank_info.fast_phone': 'Телефон',
+        'bank_info.fast_iban': 'IBAN',
+        'bank_info.bank_label': 'Банк',
+        'bank_info.select_bank': 'Выберите банк',
+        'bank_info.select_fast_type': 'Выберите тип быстрого адреса',
+        'bank_info.load_failed': 'Не удалось загрузить данные.',
+        'bank_info.missing_value':
+            'Мы не можем продолжить без заполнения данных IBAN.',
+        'bank_info.missing_bank':
+            'Вы не выбрали банк для получения выплаты. Эта информация будет передана, если стипендия будет одобрена.',
+        'bank_info.invalid_email':
+            'Пожалуйста, введите корректный адрес электронной почты.',
+        'bank_info.saved': 'Банковские данные сохранены.',
+        'bank_info.save_failed': 'Не удалось сохранить данные.',
+        'dormitory.title': 'Сведения об общежитии',
+        'dormitory.reset_menu':
+            'Сбросить мои сведения об общежитии',
+        'dormitory.reset_title': 'Вы уверены?',
+        'dormitory.reset_body':
+            'Сведения об общежитии будут сброшены. Это действие нельзя отменить.',
+        'dormitory.reset_success':
+            'Сведения об общежитии сброшены.',
+        'dormitory.current_info': 'Текущие сведения об общежитии',
+        'dormitory.select_admin_type':
+            'Выберите тип администрации',
+        'dormitory.admin_public': 'Государственное',
+        'dormitory.admin_private': 'Частное',
+        'dormitory.select_dormitory': 'Выберите общежитие',
+        'dormitory.not_found_for_filters':
+            'Для этого города и типа администрации общежитие не найдено',
+        'dormitory.saved': 'Сведения об общежитии сохранены.',
+        'dormitory.save_failed': 'Не удалось сохранить данные.',
+        'dormitory.select_or_enter':
+            'Выберите общежитие или введите его название',
         'scholarship.application_start_date': 'Дата начала подачи заявок',
         'scholarship.application_end_date': 'Дата окончания подачи заявок',
         'scholarship.select_from_list': 'Выбрать из списка',
@@ -10954,6 +15186,31 @@ class AppTranslations extends Translations {
         'scholarship.website_open_failed':
             'Не удалось открыть сайт. Пожалуйста, введите корректный URL.',
         'scholarship.checking_info': 'Проверка информации',
+        'scholarship.user_data_missing':
+            'Данные пользователя не найдены. Пожалуйста, заполните информацию о себе.',
+        'scholarship.check_info_failed':
+            'Произошла ошибка при проверке информации.',
+        'scholarship.application_check_failed':
+            'Произошла ошибка при проверке статуса заявки.',
+        'scholarship.login_required': 'Пожалуйста, войдите в систему.',
+        'scholarship.profile_missing':
+            'Для этой стипендии нет информации профиля.',
+        'scholarship.applied_success':
+            'Ваша заявка на стипендию получена.',
+        'scholarship.apply_failed': 'Не удалось сохранить заявку.',
+        'scholarship.follow_limit_title': 'Лимит подписок',
+        'scholarship.follow_limit_body':
+            'Сегодня вы больше не можете подписываться на других пользователей.',
+        'scholarship.follow_failed':
+            'Не удалось выполнить действие подписки.',
+        'scholarship.invalid': 'Недействительная стипендия.',
+        'scholarship.delete_success':
+            'Стипендия успешно удалена.',
+        'scholarship.delete_failed':
+            'Произошла ошибка при удалении стипендии.',
+        'scholarship.cancel_success':
+            'Ваша заявка на стипендию отменена.',
+        'scholarship.cancel_failed': 'Не удалось отменить заявку.',
         'scholarship.info_missing_title': 'Недостаточно информации',
         'scholarship.info_missing_body':
             'Вы не можете подать заявку на стипендию, не заполнив личные, учебные и семейные данные.',
@@ -11223,6 +15480,19 @@ class AppTranslations extends Translations {
         'notifications.messages': 'Сообщения',
         'notifications.posts_comments': 'Посты и комментарии',
         'notifications.comments': 'Комментарии',
+        'comments.delete_message':
+            'Вы уверены, что хотите удалить этот комментарий?',
+        'comments.delete_failed': 'Не удалось удалить комментарий.',
+        'comments.title': 'Комментарии',
+        'comments.empty': 'Оставьте первый комментарий...',
+        'comments.reply': 'Ответить',
+        'comments.replying_to': 'Ответ для @nickname',
+        'comments.sending': 'Отправляется',
+        'comments.community_violation_title':
+            'Нарушение правил сообщества',
+        'comments.community_violation_body':
+            'Использованный язык не соответствует нашим правилам сообщества. Пожалуйста, используйте уважительный тон.',
+        'post_sharers.empty': 'Этот пост еще никто не поделился',
         'notifications.follows': 'Подписки',
         'notifications.direct_messages': 'Личные сообщения',
         'notifications.opportunities': 'Объявления и заявки',
@@ -11345,6 +15615,292 @@ class AppTranslations extends Translations {
         'social_links.title': 'Ссылки ({count})',
         'social_links.add': 'Добавить',
         'social_links.add_title': 'Добавить ссылку',
+        'tests.create_title': 'Создать тест',
+        'tests.edit_title': 'Редактировать тест',
+        'tests.create_data_missing':
+            'Данные не найдены.\nСсылки приложения или вопросы теста не удалось загрузить.',
+        'tests.create_upload_failed':
+            'Этот контент сейчас не может быть обработан. Попробуйте другой контент.',
+        'tests.select_branch': 'Выбрать направление',
+        'tests.select_language': 'Выбрать язык',
+        'tests.cover_select': 'Выбрать обложку',
+        'tests.name_hint': 'Название экзамена',
+        'tests.post_exam_status': 'После экзамена @status',
+        'tests.types': 'Типы экзаменов',
+        'tests.date_duration': 'Дата и длительность экзамена',
+        'tests.duration_select': 'Выбрать длительность экзамена',
+        'tests.create_description_hint':
+            '9 класс Показательные и корневые выражения',
+        'tests.share_status': 'Для всех: @status',
+        'tests.status.open': 'Открыто',
+        'tests.status.closed': 'Закрыто',
+        'tests.share_public_info':
+            'В соответствии с цифровой этикой тесты, защищенные авторским правом, не должны распространяться.\nПожалуйста, используйте и публикуйте тесты, которые могут решать все и которые не содержат материалов, защищенных авторским правом.',
+        'tests.share_private_info':
+            'Этот тест можно делиться только с вашими учениками. Только ученики, которые введут предоставленный вами ID, смогут получить доступ к опубликованному тесту и решить его.',
+        'tests.test_id': 'ID теста: @id',
+        'tests.test_type': 'Тип теста',
+        'tests.subjects': 'Предметы',
+        'tests.exam_prep': 'Подготовка к экзаменам',
+        'tests.foreign_language': 'Иностранный язык',
+        'tests.delete_test': 'Удалить тест',
+        'tests.prepare_test': 'Подготовить тест',
+        'tests.join_title': 'Присоединиться к тесту',
+        'tests.search_title': 'Поиск теста',
+        'tests.search_id_hint': 'Найти ID теста',
+        'tests.join_help':
+            'Вы можете начать тест, введя ID теста, которым поделился ваш учитель.',
+        'tests.join_not_found':
+            'Тест не найден.\nНе найден тест с введенным ID.',
+        'tests.join_button': 'Присоединиться к тесту',
+        'tests.no_shared': 'Нет общих тестов.',
+        'tests.my_tests_title': 'Мои тесты',
+        'tests.my_tests_empty':
+            'Результаты не найдены.\nВы еще не создавали тесты.',
+        'tests.completed_title': 'Вы завершили тест!',
+        'tests.completed_body':
+            'Вы можете посмотреть свой балл и соотношение правильных и неправильных ответов в разделе Мои результаты.',
+        'tests.completed_short': 'Вы завершили тест!',
+        'tests.action_select': 'Выбрать действие',
+        'tests.action_select_body':
+            'Если вы хотите выполнить действие для этого теста, выберите один из вариантов ниже.',
+        'tests.copy_test_id': 'Скопировать ID теста',
+        'tests.solve_title': 'Решить тест',
+        'tests.delete_confirm':
+            'Вы уверены, что хотите удалить этот тест?',
+        'tests.id_copied': 'ID теста скопирован',
+        'tests.share_test_id_text':
+            'Тест @type\n\nСкачайте TurqApp, чтобы присоединиться к тесту. Ваш необходимый ID теста: @id\n\nПолучите приложение сейчас:\n\nAppStore: @appStore\nPlay Store: @playStore\n\nЧтобы присоединиться к тесту, введите ID теста с экрана Тесты в ученическом разделе и начните решать сразу.',
+        'tests.type.middle_school': 'Средняя школа',
+        'tests.type.high_school': 'Старшая школа',
+        'tests.type.prep': 'Подготовка',
+        'tests.type.language': 'Язык',
+        'tests.type.branch': 'Направление',
+        'tests.lesson.turkish': 'Турецкий',
+        'tests.lesson.literature': 'Литература',
+        'tests.lesson.math': 'Математика',
+        'tests.lesson.geometry': 'Геометрия',
+        'tests.lesson.physics': 'Физика',
+        'tests.lesson.chemistry': 'Химия',
+        'tests.lesson.biology': 'Биология',
+        'tests.lesson.history': 'История',
+        'tests.lesson.geography': 'География',
+        'tests.lesson.philosophy': 'Философия',
+        'tests.lesson.psychology': 'Психология',
+        'tests.lesson.sociology': 'Социология',
+        'tests.lesson.logic': 'Логика',
+        'tests.lesson.religion': 'Религиозная культура',
+        'tests.lesson.science': 'Естественные науки',
+        'tests.lesson.revolution_history': 'История революции',
+        'tests.lesson.foreign_language': 'Иностранный язык',
+        'tests.lesson.basic_math': 'Базовая математика',
+        'tests.lesson.social_sciences': 'Социальные науки',
+        'tests.lesson.literature_social_1':
+            'Литература - Социальные науки 1',
+        'tests.lesson.social_sciences_2': 'Социальные науки 2',
+        'tests.lesson.general_ability': 'Общие способности',
+        'tests.lesson.general_culture': 'Общая культура',
+        'tests.language.english': 'Английский',
+        'tests.language.german': 'Немецкий',
+        'tests.language.arabic': 'Арабский',
+        'tests.language.french': 'Французский',
+        'tests.language.russian': 'Русский',
+        'tests.lesson_based_title': 'Тесты @type',
+        'tests.none_in_category': 'Тестов нет',
+        'tests.add_question': 'Добавить вопрос',
+        'tests.no_questions_added':
+            'Вопросы не найдены.\nДля этого теста пока не добавлено ни одного вопроса.',
+        'tests.level_easy': 'Легко',
+        'tests.title': 'Тесты',
+        'tests.report_title': 'О тесте',
+        'tests.report_wrong_answers':
+            'В тесте есть неверные ответы',
+        'tests.report_wrong_section':
+            'Тест находится не в том разделе',
+        'tests.question_content_failed':
+            'Не удалось загрузить содержимое вопроса.\nПожалуйста, попробуйте снова.',
+        'tests.capture_and_upload': 'Снять и загрузить',
+        'tests.capture_and_upload_body':
+            'Сфотографируйте вопрос, выберите правильный ответ и легко подготовьте его!',
+        'tests.select_from_gallery': 'Выбрать из галереи',
+        'tests.upload_from_camera': 'Загрузить с камеры',
+        'tests.nsfw_check_failed':
+            'Проверка безопасности изображения не может быть завершена.',
+        'tests.nsfw_detected': 'Обнаружено неподходящее изображение.',
+        'practice.title': 'Онлайн-экзамен',
+        'practice.search_title': 'Поиск пробного экзамена',
+        'practice.empty_title': 'Пробных экзаменов пока нет',
+        'practice.empty_body':
+            'Сейчас в системе нет пробных экзаменов. Новые экзамены появятся здесь после добавления.',
+        'practice.search_empty_title':
+            'По вашему запросу экзамен не найден',
+        'practice.search_empty_body_empty':
+            'Сейчас в системе нет пробных экзаменов. Новые экзамены появятся здесь после добавления.',
+        'practice.search_empty_body_query':
+            'Попробуйте другое ключевое слово.',
+        'practice.results_title': 'Мои результаты экзаменов',
+        'practice.saved_empty': 'Нет сохраненных пробных экзаменов.',
+        'practice.preview_no_questions':
+            'Для этого экзамена не найдено вопросов. Проверьте содержимое экзамена или добавьте новые вопросы.',
+        'practice.preview_no_results':
+            'Для этого экзамена не найдено результатов. Проверьте ответы или решите экзамен снова.',
+        'practice.lesson_header': 'Предметы',
+        'practice.answers_load_failed':
+            'Не удалось загрузить ответы.',
+        'practice.lesson_results_load_failed':
+            'Не удалось загрузить результаты по предметам.',
+        'practice.results_empty_title':
+            'Вы еще не сдавали экзамен',
+        'practice.results_empty_body':
+            'Вы еще не участвовали ни в одном пробном экзамене. Результаты появятся здесь после участия.',
+        'practice.published_empty':
+            'Вы еще не публиковали онлайн-экзамен.',
+        'practice.user_session_missing':
+            'Сессия пользователя не найдена.',
+        'practice.school_info_failed':
+            'Не удалось загрузить данные школы.',
+        'practice.load_failed': 'Не удалось загрузить данные.',
+        'practice.slider_management': 'Управление слайдером',
+        'practice.create_disabled_title':
+            'Только для желтого значка и выше',
+        'practice.create_disabled_body':
+            'Чтобы создать онлайн-экзамен, нужен подтвержденный аккаунт с желтым значком или выше.',
+        'practice.preview_title': 'Детали экзамена',
+        'practice.report_exam': 'Пожаловаться на экзамен',
+        'practice.user_load_failed':
+            'Не удалось загрузить данные пользователя.',
+        'practice.user_load_failed_body':
+            'Не удалось загрузить данные пользователя. Повторите попытку или проверьте владельца экзамена.',
+        'practice.invalidity_load_failed':
+            'Не удалось загрузить статус недействительности.',
+        'practice.cover_load_failed':
+            'Не удалось загрузить обложку.',
+        'practice.no_description':
+            'Для этого экзамена не добавлено описание.',
+        'practice.exam_info': 'Информация об экзамене',
+        'practice.exam_type': 'Тип экзамена',
+        'practice.exam_suffix': 'Экзамен @type',
+        'practice.exam_datetime': 'Дата и время экзамена',
+        'practice.exam_duration': 'Длительность экзамена',
+        'practice.duration_minutes': '@minutes мин',
+        'practice.application_count': 'Заявки',
+        'practice.people_count': '@count человек',
+        'practice.owner': 'Владелец экзамена',
+        'practice.apply_now': 'Подать заявку',
+        'practice.applied_short': 'Заявка подана',
+        'practice.closed_starts_in':
+            'Прием заявок закрыт.\nНачнется через @minutes мин.',
+        'practice.started': 'Экзамен начался',
+        'practice.start_now': 'Начать сейчас',
+        'practice.finished_short': 'Экзамен завершен',
+        'practice.not_started': 'Экзамен не начался',
+        'practice.application_closed_title':
+            'Прием заявок закрыт!',
+        'practice.application_closed_body':
+            'Прием заявок закрывается за 15 минут до начала экзамена.',
+        'practice.not_applied_title': 'Вы не подали заявку!',
+        'practice.not_applied_body':
+            'Вы не можете участвовать без заявки. Участвовать могут только подавшие заявку.',
+        'practice.not_allowed_title':
+            'Вы не можете войти в экзамен!',
+        'practice.not_allowed_body':
+            'У вас нет доступа к этому экзамену. Ранее вы были признаны недействительным участником этого экзамена и не можете войти снова до его завершения.',
+        'practice.finished_title': 'Экзамен завершен!',
+        'practice.finished_body':
+            'Вы можете подать заявку на следующие экзамены. Этот экзамен завершен.',
+        'practice.result_unavailable':
+            'Не удалось рассчитать результат.',
+        'practice.result_summary':
+            'Верно: @correct   •   Неверно: @wrong   •   Пусто: @blank   •   Нетто: @net',
+        'practice.congrats_title': 'Поздравляем!',
+        'practice.removed_title':
+            'Вы были удалены с экзамена!',
+        'practice.removed_body':
+            'Мы предупреждали вас несколько раз. К сожалению, из-за нарушения правил ваш экзамен был признан недействительным.',
+        'practice.applied_title': 'Ваша заявка получена!',
+        'practice.applied_body':
+            'Ваша заявка успешно получена. Сейчас от вас больше ничего не требуется.',
+        'practice.apply_completed_title':
+            'Ваша заявка завершена!',
+        'practice.apply_completed_body':
+            'Мы отправим вам напоминания перед экзаменом. Удачи!',
+        'practice.apply_failed': 'Не удалось подать заявку.',
+        'practice.application_check_failed':
+            'Не удалось проверить заявку.',
+        'practice.question_image_failed':
+            'Не удалось загрузить изображение вопроса.',
+        'practice.exam_started_title': 'Экзамен начался!',
+        'practice.exam_started_body':
+            'Мы верим, что ваша внимательность и усилия помогут вам добиться успеха. Удачи!',
+        'practice.rules_title': 'Правила экзамена',
+        'practice.rule_1':
+            'Пожалуйста, отключите интернет на телефоне. После завершения экзамена вы сможете снова включить его и отправить ответы.',
+        'practice.rule_2':
+            'Если вы выйдете из экзамена, все ответы будут считаться недействительными, а результат не будет сохранен. Пожалуйста, хорошо подумайте перед подтверждением.',
+        'practice.rule_3':
+            'Если вы отправите приложение в фон, экзамен будет признан недействительным. Пожалуйста, не переводите приложение в фон.',
+        'practice.start_exam': 'Начать экзамен',
+        'practice.finish_exam': 'Завершить экзамен',
+        'practice.background_warning':
+            'В критических ситуациях, например при переводе приложения в фон, экзамен будет признан недействительным. Пожалуйста, будьте внимательны и соблюдайте правила.',
+        'practice.questions_load_failed':
+            'Не удалось загрузить вопросы.',
+        'practice.answers_save_failed':
+            'Не удалось сохранить ответы.',
+        'past_questions.no_results': 'Результатов нет.',
+        'past_questions.title': 'Пробные экзамены',
+        'past_questions.mock_fallback': 'Пробный',
+        'past_questions.search_empty':
+            'Подходящих пробных экзаменов не найдено.',
+        'past_questions.results_suffix': 'Результаты @title',
+        'past_questions.local_result_summary':
+            'Решено @count вопросов. Результат хранится локально; на этом экране показывается только итоговое нетто.',
+        'past_questions.mock_label': 'Пробный @index',
+        'past_questions.question_count': '@count Вопросов',
+        'past_questions.net_label': 'Нетто',
+        'past_questions.tests_by_year': 'Тесты @type @year',
+        'past_questions.languages_title': 'Языки @type',
+        'past_questions.tests_by_type': 'Тесты @type',
+        'past_questions.select_exam': 'Выбрать экзамен',
+        'past_questions.questions_title': 'Вопросы',
+        'past_questions.continue_solving': 'Продолжить решать вопросы',
+        'past_questions.oabt_short': 'ÖABT',
+        'past_questions.exam_type.associate': 'Среднее специальное',
+        'past_questions.exam_type.undergraduate': 'Бакалавриат',
+        'past_questions.exam_type.middle_school': 'Среднее образование',
+        'past_questions.branch.general_ability_culture':
+            'Общие способности и общая культура',
+        'past_questions.branch.group_a': 'Группа A',
+        'past_questions.branch.education_sciences':
+            'Педагогические науки',
+        'past_questions.branch.field_knowledge': 'Профильные знания',
+        'past_questions.sessions_by_year': 'Сессии @year',
+        'past_questions.teaching.title': 'Преподавательские направления',
+        'past_questions.teaching.suffix': 'преподавание',
+        'past_questions.teaching.primary_math_short': 'Н. матем.',
+        'past_questions.teaching.high_school_math_short': 'С. матем.',
+        'past_questions.teaching.german': 'Преподавание немецкого',
+        'past_questions.teaching.physical_education':
+            'Преподавание физкультуры',
+        'past_questions.teaching.biology': 'Преподавание биологии',
+        'past_questions.teaching.geography': 'Преподавание географии',
+        'past_questions.teaching.religious_culture':
+            'Преподавание религиозной культуры',
+        'past_questions.teaching.literature': 'Преподавание литературы',
+        'past_questions.teaching.science': 'Преподавание естественных наук',
+        'past_questions.teaching.physics': 'Преподавание физики',
+        'past_questions.teaching.chemistry': 'Преподавание химии',
+        'past_questions.teaching.high_school_math': 'Математика старшей школы',
+        'past_questions.teaching.preschool': 'Дошкольное образование',
+        'past_questions.teaching.guidance': 'Консультирование',
+        'past_questions.teaching.social_studies':
+            'Преподавание обществознания',
+        'past_questions.teaching.classroom': 'Классное преподавание',
+        'past_questions.teaching.history': 'Преподавание истории',
+        'past_questions.teaching.turkish': 'Преподавание турецкого',
+        'past_questions.teaching.primary_math': 'Математика начальной школы',
+        'past_questions.teaching.imam_hatip': 'Имам хатип',
+        'past_questions.teaching.english': 'Преподавание английского',
         'social_links.label_title': 'Заголовок',
         'social_links.username_hint': 'Имя пользователя',
         'social_links.remove_title': 'Удалить ссылку',

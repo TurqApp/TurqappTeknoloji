@@ -44,7 +44,7 @@ class SinavSorusuHazirlaController extends GetxController {
         await setList();
       }
     } catch (error) {
-      AppSnackbar("Hata", "Sorular yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -74,7 +74,7 @@ class SinavSorusuHazirlaController extends GetxController {
       }
       await getSorular();
     } catch (error) {
-      AppSnackbar("Hata", "Sorular oluşturulamadı.");
+      AppSnackbar('common.error'.tr, 'tests.questions_create_failed'.tr);
     }
   }
 
@@ -89,7 +89,7 @@ class SinavSorusuHazirlaController extends GetxController {
       complated();
       Get.back();
     } catch (error) {
-      AppSnackbar("Hata", "Sınav tamamlanamadı.");
+      AppSnackbar('common.error'.tr, 'tests.complete_failed'.tr);
     }
   }
 }

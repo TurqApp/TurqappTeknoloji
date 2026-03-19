@@ -5,15 +5,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:flutter/material.dart';
 
 class MyTutoringsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
   final RxMap<String, Map<String, dynamic>> users =
@@ -32,7 +32,7 @@ class MyTutoringsController extends GetxController {
     if (uid != null) {
       unawaited(_bootstrapData(uid));
     } else {
-      errorMessage.value = "Kullanıcı kimliği bulunamadı.";
+      errorMessage.value = 'tutoring.user_id_missing'.tr;
       isLoading.value = false;
     }
   }
@@ -101,7 +101,9 @@ class MyTutoringsController extends GetxController {
       }
       SilentRefreshGate.markRefreshed('tutoring:owner:$currentUserId');
     } catch (e) {
-      errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
+      errorMessage.value = 'tutoring.load_failed'.trParams({
+        'error': e.toString(),
+      });
     } finally {
       isLoading.value = false;
     }
@@ -160,7 +162,10 @@ class MyTutoringsController extends GetxController {
     });
 
     await fetchMyTutorings(uid);
-    AppSnackbar("İlan Yenilendi", "İlan tekrar yayına alındı.");
+    AppSnackbar(
+      'tutoring.reactivated_title'.tr,
+      'tutoring.reactivated_body'.tr,
+    );
   }
 
   Future<void> fetchUsers(
@@ -171,16 +176,18 @@ class MyTutoringsController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      final rawUsers = await _userRepository.getUsersRaw(
+      final rawUsers = await _userSummaryResolver.resolveMany(
         toFetch,
         preferCache: true,
         cacheOnly: cacheOnly,
       );
       for (final entry in rawUsers.entries) {
-        users[entry.key] = entry.value;
+        users[entry.key] = entry.value.toMap();
       }
     } catch (e) {
-      errorMessage.value = "Kullanıcı bilgileri yüklenirken hata oluştu: $e";
+      errorMessage.value = 'tutoring.user_load_failed'.trParams({
+        'error': e.toString(),
+      });
     }
   }
 

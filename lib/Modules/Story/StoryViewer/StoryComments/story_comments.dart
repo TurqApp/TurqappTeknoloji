@@ -33,7 +33,9 @@ class StoryComments extends StatelessWidget {
             () => Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
               child: AppSheetHeader(
-                title: "Yorumlar (${controller.totalComment.value})",
+                title: 'story.comments_title'.trParams({
+                  'count': '${controller.totalComment.value}',
+                }),
               ),
             ),
           ),
@@ -54,7 +56,7 @@ class StoryComments extends StatelessWidget {
                   )
                 : Expanded(
                     child: Center(
-                    child: EmptyRow(text: "Kimse yorum yapmadı"),
+                    child: EmptyRow(text: 'story.no_comments'.tr),
                   ));
           }),
           Row(
@@ -139,7 +141,9 @@ class StoryComments extends StatelessWidget {
                           LengthLimitingTextInputFormatter(280)
                         ],
                         decoration: InputDecoration(
-                          hintText: "${controller.nickname} için yorum ekle..",
+                          hintText: 'story.add_comment_for'.trParams({
+                            'nickname': controller.nickname,
+                          }),
                           hintStyle: const TextStyle(
                             color: Colors.grey,
                             fontFamily: "MontserratMedium",

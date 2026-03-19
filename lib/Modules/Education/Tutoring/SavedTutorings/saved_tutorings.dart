@@ -30,8 +30,8 @@ class SavedTutorings extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Kaydedilenler',
+        title: Text(
+          'tutoring.saved'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -59,7 +59,7 @@ class SavedTutorings extends StatelessWidget {
                   users: tutoringController.users,
                   isGridView: viewModeController.isGridView.value,
                   infoMessage: Infomessage(
-                    infoMessage: "Kaydedilen ilan yok.",
+                    infoMessage: 'tutoring.saved_empty'.tr,
                   ),
                 );
                 if (viewModeController.isGridView.value) {

@@ -131,7 +131,7 @@ class _PostCommentsState extends State<PostComments> {
                                 padding: const EdgeInsets.all(20),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
+                                  children: [
                                     Icon(
                                       Icons.lightbulb_outline,
                                       color: Colors.black54,
@@ -139,7 +139,7 @@ class _PostCommentsState extends State<PostComments> {
                                     ),
                                     SizedBox(height: 8),
                                     Text(
-                                      "İlk yorumu sen yap...",
+                                      'comments.empty'.tr,
                                       style: TextStyle(
                                         color: Colors.black54,
                                         fontSize: 16,
@@ -208,7 +208,7 @@ class _PostCommentsState extends State<PostComments> {
 
         // Title
         Text(
-          "Yorumlar",
+          'comments.title'.tr,
           style: TextStyle(
             color: AppColors.textBlack,
             fontSize: 16,
@@ -263,7 +263,9 @@ class _PostCommentsState extends State<PostComments> {
                         children: [
                           Expanded(
                             child: Text(
-                              '@${controller.replyingToNickname.value} kullanıcısına yanıt',
+                              'comments.replying_to'.trParams({
+                                'nickname': controller.replyingToNickname.value,
+                              }),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -369,9 +371,9 @@ class _PostCommentsState extends State<PostComments> {
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(280)
                         ],
-                        decoration: const InputDecoration(
-                          hintText: "Bunun hakkında ne düşünüyorsun?",
-                          hintStyle: TextStyle(
+                        decoration: InputDecoration(
+                          hintText: 'comments.input_hint'.tr,
+                          hintStyle: const TextStyle(
                             color: Colors.black45,
                             fontFamily: "MontserratMedium",
                             fontSize: 13,
@@ -407,8 +409,8 @@ class _PostCommentsState extends State<PostComments> {
                   border: Border.all(color: Colors.black26),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  "GIF",
+                child: Text(
+                  "chat.gif".tr,
                   style: TextStyle(
                     color: Colors.black54,
                     fontSize: 10,

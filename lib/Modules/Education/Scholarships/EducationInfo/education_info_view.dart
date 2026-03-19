@@ -32,20 +32,19 @@ class EducationInfoView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: BackButtons(text: "Eğitim Bilgileri"),
+                  child: BackButtons(text: 'education_info.title'.tr),
                 ),
                 PullDownButton(
                   itemBuilder: (context) => [
                     PullDownMenuItem(
-                      title: 'Eğitim Bilgilerimi Sıfırla',
+                      title: 'education_info.reset_menu'.tr,
                       icon: CupertinoIcons.restart,
                       onTap: () {
                         noYesAlert(
-                          title: "Emin misiniz?",
-                          message:
-                              "Eğitim bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.",
-                          cancelText: "İptal",
-                          yesText: "Sıfırla",
+                          title: 'education_info.reset_title'.tr,
+                          message: 'education_info.reset_body'.tr,
+                          cancelText: 'common.cancel'.tr,
+                          yesText: 'common.reset'.tr,
                           onYesPressed: () async {
                             controller.clearFields();
                             await _userRepository.updateUserFields(
@@ -79,8 +78,8 @@ class EducationInfoView extends StatelessWidget {
                             controller.hasHigherEducationData.value = false;
                             controller.selectedEducationLevel.value = '';
                             AppSnackbar(
-                              "Başarılı",
-                              "Eğitim Bilgileriniz sıfırlandı.",
+                              'common.success'.tr,
+                              'education_info.reset_success'.tr,
                             );
                           },
                         );
@@ -171,8 +170,7 @@ class EducationInfoView extends StatelessWidget {
           isUndergraduate: true,
         );
       default:
-        return Center(
-            child: EmptyRow(text: "Lütfen bir eğitim seviyesi seçin!"));
+        return Center(child: EmptyRow(text: 'education_info.select_level'.tr));
     }
   }
 
@@ -525,6 +523,7 @@ class EducationInfoView extends StatelessWidget {
   Widget _buildSaveButton() {
     final String currentLevel = controller.selectedEducationLevel.value;
     String buttonText = 'Kaydet';
+    buttonText = 'common.save'.tr;
 
     if (currentLevel == 'Ortaokul' &&
         controller.selectedCountry.value.isNotEmpty &&
@@ -680,7 +679,7 @@ class DropdownField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          config.label,
+          controller.localizedFieldLabel(config.label),
           style: TextStyle(
             color: Colors.black,
             fontSize: 15,
@@ -702,8 +701,8 @@ class DropdownField extends StatelessWidget {
                 Obx(
                   () => Text(
                     config.value.value.isEmpty
-                        ? "${config.label} Seç"
-                        : config.value.value,
+                        ? controller.localizedPlaceholder(config.label)
+                        : controller.localizedOption(config.value.value),
                     style: TextStyle(
                       fontSize: 16,
                       color: config.value.value.isEmpty

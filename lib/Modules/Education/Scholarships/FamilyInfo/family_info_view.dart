@@ -21,18 +21,17 @@ class FamilyInfoView extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(child: BackButtons(text: "Aile Bilgileri")),
+        Expanded(child: BackButtons(text: 'family_info.title'.tr)),
         PullDownButton(
           itemBuilder: (context) => [
             PullDownMenuItem(
-              title: 'Aile Bilgilerini Sıfırla',
+              title: 'family_info.reset_menu'.tr,
               onTap: () {
                 noYesAlert(
-                  title: "Aile Bilgilerini Sıfırla",
-                  message:
-                      "Tüm aile bilgileriniz silinecektir. Bu işlem geri alınamaz. Emin misiniz?",
-                  cancelText: "İptal",
-                  yesText: "Sıfırla",
+                  title: 'family_info.reset_title'.tr,
+                  message: 'family_info.reset_body'.tr,
+                  cancelText: 'common.cancel'.tr,
+                  yesText: 'common.reset'.tr,
                   onYesPressed: () {
                     controller.resetFamilyInfo();
                   },
@@ -78,17 +77,20 @@ class FamilyInfoView extends StatelessWidget {
                             children: [
                               // BABA SECTION
                               Text(
-                                "Baba Hayatta Mı?",
+                                'scholarship.applicant.father_alive'.tr,
                                 style: TextStyles.textFieldTitle,
                               ),
                               _buildDropdownField(
-                                title: "Baba Hayatta Mı?",
-                                value: controller.fatherLiving.value.isEmpty
-                                    ? "Seçiniz"
-                                    : controller.fatherLiving.value,
-                                hintText: "Seçiniz",
+                                title: 'scholarship.applicant.father_alive'.tr,
+                                value: controller.fatherLiving.value.isEmpty ||
+                                        controller.isFatherUnselected
+                                    ? 'common.select'.tr
+                                    : controller.localizedSelection(
+                                        controller.fatherLiving.value,
+                                      ),
+                                hintText: 'common.select'.tr,
                                 onTap: () => controller.showBottomSheet2(
-                                  "Baba Hayatta Mı?",
+                                  'scholarship.applicant.father_alive'.tr,
                                   controller.fatherLiving,
                                   controller.living,
                                 ),
@@ -97,13 +99,13 @@ class FamilyInfoView extends StatelessWidget {
 
                               // BABA BILGILERI - DINAMIK OLARAK GÖSTER
                               Obx(() {
-                                if (controller.fatherLiving.value == "Evet") {
+                                if (controller.isFatherAlive) {
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Baba Ad - Soyad",
+                                        'family_info.father_name_surname'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       Row(
@@ -112,7 +114,9 @@ class FamilyInfoView extends StatelessWidget {
                                             child: _buildTextField(
                                               controller:
                                                   controller.fatherName.value,
-                                              hintText: "Baba Adı",
+                                              hintText:
+                                                  'scholarship.applicant.father_name'
+                                                      .tr,
                                               formatters: [
                                                 LengthLimitingTextInputFormatter(
                                                     26),
@@ -125,7 +129,9 @@ class FamilyInfoView extends StatelessWidget {
                                             child: _buildTextField(
                                               controller: controller
                                                   .fatherSurname.value,
-                                              hintText: "Baba Soyadı",
+                                              hintText:
+                                                  'scholarship.applicant.father_surname'
+                                                      .tr,
                                               formatters: [
                                                 LengthLimitingTextInputFormatter(
                                                     26),
@@ -137,31 +143,33 @@ class FamilyInfoView extends StatelessWidget {
                                       ),
                                       12.ph,
                                       Text(
-                                        "Baba Mesleği",
+                                        'scholarship.applicant.father_job'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       _buildDropdownField(
-                                        title: "Baba Mesleği",
+                                        title:
+                                            'scholarship.applicant.father_job'
+                                                .tr,
                                         value:
                                             controller.fatherJob.value.isEmpty
-                                                ? "Meslek Seç"
+                                                ? 'family_info.select_job'.tr
                                                 : controller.fatherJob.value,
-                                        hintText: "Meslek Seç",
+                                        hintText: 'family_info.select_job'.tr,
                                         onTap: () => controller.showBottomSheet(
-                                          "Baba Mesleği",
+                                          'scholarship.applicant.father_job'.tr,
                                           controller.fatherJob,
                                           allJobs,
                                         ),
                                       ),
                                       12.ph,
                                       Text(
-                                        "Baba Net Maaş",
+                                        'family_info.father_salary'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       _buildTextField(
                                         controller:
                                             controller.fatherSalary.value,
-                                        hintText: "Net Maaş",
+                                        hintText: 'family_info.salary_hint'.tr,
                                         keyboardType: TextInputType.number,
                                         formatters: [
                                           LengthLimitingTextInputFormatter(10),
@@ -174,13 +182,13 @@ class FamilyInfoView extends StatelessWidget {
                                       ),
                                       12.ph,
                                       Text(
-                                        "Baba İletişim Numarası",
+                                        'family_info.father_phone'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       _buildTextField(
                                         controller:
                                             controller.fatherPhoneNumber.value,
-                                        hintText: "Telefon Numarası",
+                                        hintText: 'common.phone'.tr,
                                         prefixText: "(+90) ",
                                         keyboardType: TextInputType.phone,
                                         formatters: [
@@ -202,17 +210,20 @@ class FamilyInfoView extends StatelessWidget {
 
                               // ANNE SECTION
                               Text(
-                                "Anne Hayatta Mı?",
+                                'scholarship.applicant.mother_alive'.tr,
                                 style: TextStyles.textFieldTitle,
                               ),
                               _buildDropdownField(
-                                title: "Anne Hayatta",
-                                value: controller.motherLiving.value.isEmpty
-                                    ? "Seçiniz"
-                                    : controller.motherLiving.value,
-                                hintText: "Seçiniz",
+                                title: 'scholarship.applicant.mother_alive'.tr,
+                                value: controller.motherLiving.value.isEmpty ||
+                                        controller.isMotherUnselected
+                                    ? 'common.select'.tr
+                                    : controller.localizedSelection(
+                                        controller.motherLiving.value,
+                                      ),
+                                hintText: 'common.select'.tr,
                                 onTap: () => controller.showBottomSheet2(
-                                  "Anne Hayatta",
+                                  'scholarship.applicant.mother_alive'.tr,
                                   controller.motherLiving,
                                   controller.living,
                                 ),
@@ -221,13 +232,13 @@ class FamilyInfoView extends StatelessWidget {
 
                               // ANNE BILGILERI - DINAMIK OLARAK GÖSTER
                               Obx(() {
-                                if (controller.motherLiving.value == "Evet") {
+                                if (controller.isMotherAlive) {
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Anne Ad - Soyad",
+                                        'family_info.mother_name_surname'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       Row(
@@ -236,7 +247,9 @@ class FamilyInfoView extends StatelessWidget {
                                             child: _buildTextField(
                                               controller:
                                                   controller.motherName.value,
-                                              hintText: "Anne Adı",
+                                              hintText:
+                                                  'scholarship.applicant.mother_name'
+                                                      .tr,
                                               formatters: [
                                                 LengthLimitingTextInputFormatter(
                                                     26),
@@ -249,7 +262,9 @@ class FamilyInfoView extends StatelessWidget {
                                             child: _buildTextField(
                                               controller: controller
                                                   .motherSurname.value,
-                                              hintText: "Anne Soyadı",
+                                              hintText:
+                                                  'scholarship.applicant.mother_surname'
+                                                      .tr,
                                               formatters: [
                                                 LengthLimitingTextInputFormatter(
                                                     26),
@@ -261,31 +276,33 @@ class FamilyInfoView extends StatelessWidget {
                                       ),
                                       12.ph,
                                       Text(
-                                        "Anne Mesleği",
+                                        'scholarship.applicant.mother_job'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       _buildDropdownField(
-                                        title: "Anne Mesleği",
+                                        title:
+                                            'scholarship.applicant.mother_job'
+                                                .tr,
                                         value:
                                             controller.motherJob.value.isEmpty
-                                                ? "Meslek Seç"
+                                                ? 'family_info.select_job'.tr
                                                 : controller.motherJob.value,
-                                        hintText: "Meslek Seç",
+                                        hintText: 'family_info.select_job'.tr,
                                         onTap: () => controller.showBottomSheet(
-                                          "Anne Mesleği",
+                                          'scholarship.applicant.mother_job'.tr,
                                           controller.motherJob,
                                           allJobs,
                                         ),
                                       ),
                                       12.ph,
                                       Text(
-                                        "Anne Net Maaş",
+                                        'family_info.mother_salary'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       _buildTextField(
                                         controller:
                                             controller.motherSalary.value,
-                                        hintText: "Net Maaş",
+                                        hintText: 'family_info.salary_hint'.tr,
                                         keyboardType: TextInputType.number,
                                         formatters: [
                                           LengthLimitingTextInputFormatter(10),
@@ -298,13 +315,13 @@ class FamilyInfoView extends StatelessWidget {
                                       ),
                                       12.ph,
                                       Text(
-                                        "Anne İletişim Numarası",
+                                        'family_info.mother_phone'.tr,
                                         style: TextStyles.textFieldTitle,
                                       ),
                                       _buildTextField(
                                         controller:
                                             controller.motherPhoneNumber.value,
-                                        hintText: "Telefon Numarası",
+                                        hintText: 'common.phone'.tr,
                                         prefixText: "(+90) ",
                                         keyboardType: TextInputType.phone,
                                         formatters: [
@@ -326,12 +343,12 @@ class FamilyInfoView extends StatelessWidget {
 
                               // GENEL AILE BILGILERI
                               Text(
-                                "Aile Sayısı",
+                                'family_info.family_size'.tr,
                                 style: TextStyles.textFieldTitle,
                               ),
                               _buildTextField(
                                 controller: controller.totalLiving.value,
-                                hintText: "Ailede (Siz Dahil) Yaşayan Sayısı",
+                                hintText: 'family_info.family_size_hint'.tr,
                                 keyboardType: TextInputType.numberWithOptions(
                                     decimal: false),
                                 formatters: [
@@ -344,22 +361,26 @@ class FamilyInfoView extends StatelessWidget {
                               ),
                               24.ph,
                               Text(
-                                "Ev Mülkiyeti",
+                                'scholarship.applicant.home_ownership'.tr,
                                 style: TextStyles.textFieldTitle,
                               ),
                               _buildDropdownField(
-                                title: "Ev Mülkiyeti",
-                                value: controller.evMulkiyeti.value,
-                                hintText: "Seçiniz",
+                                title: 'scholarship.applicant.home_ownership'.tr,
+                                value: controller.isHomeOwnershipUnselected
+                                    ? 'common.select'.tr
+                                    : controller.localizedSelection(
+                                        controller.evMulkiyeti.value,
+                                      ),
+                                hintText: 'common.select'.tr,
                                 onTap: () => controller.showBottomSheet2(
-                                  "Ev Mülkiyeti",
+                                  'scholarship.applicant.home_ownership'.tr,
                                   controller.evMulkiyeti,
                                   controller.evevMulkiyeti,
                                 ),
                               ),
                               24.ph,
                               Text(
-                                "İkametgâh Bilgisi",
+                                'family_info.residence_info'.tr,
                                 style: TextStyles.textFieldTitle,
                               ),
                               Row(
@@ -383,9 +404,9 @@ class FamilyInfoView extends StatelessWidget {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(
-                                                controller.city.value.isEmpty
-                                                    ? "Şehir Seç"
+                                                Text(
+                                                  controller.city.value.isEmpty
+                                                    ? 'common.select_city'.tr
                                                     : controller.city.value,
                                                 style: TextStyle(
                                                   color: Colors.black,
@@ -431,7 +452,8 @@ class FamilyInfoView extends StatelessWidget {
                                                   controller
                                                           .town.value.isNotEmpty
                                                       ? controller.town.value
-                                                      : "İlçe Seç",
+                                                      : 'common.select_district'
+                                                          .tr,
                                                   style: TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 15,
@@ -464,7 +486,7 @@ class FamilyInfoView extends StatelessWidget {
                                     ),
                                   ),
                                   child: Text(
-                                    "Kaydet",
+                                    'common.save'.tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,

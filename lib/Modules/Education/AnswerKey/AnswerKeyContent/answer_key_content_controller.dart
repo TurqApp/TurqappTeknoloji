@@ -208,8 +208,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Kitabı Sil",
+              child: Text(
+                'answer_key.delete_book'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.red,
@@ -232,8 +232,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Düzenle",
+              child: Text(
+                'common.edit'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.indigo,
@@ -253,8 +253,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Vazgeç",
+              child: Text(
+                'common.cancel'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.black,
@@ -273,7 +273,7 @@ class AnswerKeyContentController extends GetxController {
     final canShareFeed =
         AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
     if (!canShareFeed) {
-      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      AppSnackbar('common.warning'.tr, 'answer_key.share_owner_only'.tr);
       return;
     }
     final shareId = 'answer-key:${model.docID}';
@@ -291,7 +291,7 @@ class AnswerKeyContentController extends GetxController {
             title: model.baslik,
             desc: model.yayinEvi.isNotEmpty
                 ? model.yayinEvi
-                : '${model.sinavTuru} cevap anahtari',
+                : '${model.sinavTuru} ${'answer_key.book_answer_key_desc'.tr}',
             imageUrl: model.cover.isNotEmpty ? model.cover : null,
           );
         } catch (_) {
@@ -310,7 +310,7 @@ class AnswerKeyContentController extends GetxController {
         );
       });
     } catch (_) {
-      AppSnackbar("Hata", "Paylaşım başlatılamadı");
+      AppSnackbar('common.error'.tr, 'training.share_failed'.tr);
     }
   }
 
@@ -413,10 +413,10 @@ class AnswerKeyContentController extends GetxController {
 
   void _showDeleteBottomSheet(BuildContext context) {
     noYesAlert(
-      title: "Kitabı Sil",
-      message: "Bu kitabı silmek istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Sil",
+      title: "answer_key.delete_book".tr,
+      message: "answer_key.delete_book_confirm".tr,
+      cancelText: "common.cancel".tr,
+      yesText: "common.delete".tr,
       onYesPressed: () async {
         try {
           await FirebaseFirestore.instance

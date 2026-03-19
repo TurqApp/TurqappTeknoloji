@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_alt_dal_sectirme.dart';
@@ -16,6 +17,29 @@ class CikmisSorularRoad extends StatefulWidget {
 class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> sinavTurleri = [];
+
+  String _localizedExamType(String raw) {
+    switch (raw) {
+      case 'İngilizce':
+        return 'tests.language.english'.tr;
+      case 'Almanca':
+        return 'tests.language.german'.tr;
+      case 'Arapça':
+        return 'tests.language.arabic'.tr;
+      case 'Fransızca':
+        return 'tests.language.french'.tr;
+      case 'Rusça':
+        return 'tests.language.russian'.tr;
+      case 'Ön Lisans':
+        return 'past_questions.exam_type.associate'.tr;
+      case 'Lisans':
+        return 'past_questions.exam_type.undergraduate'.tr;
+      case 'Orta Öğretim':
+        return 'past_questions.exam_type.middle_school'.tr;
+      default:
+        return raw;
+    }
+  }
 
   @override
   void initState() {
@@ -222,7 +246,9 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                sinavTurleri[index],
+                                                _localizedExamType(
+                                                  sinavTurleri[index],
+                                                ),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color: Colors.white,

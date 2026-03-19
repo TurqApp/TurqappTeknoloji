@@ -123,7 +123,9 @@ class TestsGrid extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${model.testTuru} Testi",
+                        "tests.type_test".trParams({
+                          "type": model.testTuru,
+                        }),
                         maxLines: 1,
                         style: TextStyle(
                           color: Colors.black,
@@ -164,7 +166,7 @@ class TestsGrid extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Kolay",
+                          "tests.level_easy".tr,
                           style: TextStyle(
                             color: Colors.green,
                             fontSize: 14,

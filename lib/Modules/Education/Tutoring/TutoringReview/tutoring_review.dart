@@ -19,11 +19,11 @@ void showTutoringReviewBottomSheet({
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const AppSheetHeader(title: "Değerlendirme Yap"),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          AppSheetHeader(title: 'tutoring.review_title'.tr),
           const SizedBox(height: 16),
           // Star rating
           Center(
@@ -56,7 +56,7 @@ void showTutoringReviewBottomSheet({
             controller: commentController,
             maxLines: 3,
             decoration: InputDecoration(
-              hintText: "Yorumunuzu yazın (opsiyonel)",
+              hintText: 'tutoring.review_hint'.tr,
               hintStyle: const TextStyle(
                 fontFamily: "MontserratMedium",
                 fontSize: 14,
@@ -85,7 +85,10 @@ void showTutoringReviewBottomSheet({
                       ? null
                       : () async {
                           if (selectedRating.value == 0) {
-                            AppSnackbar("Hata", "Lütfen bir puan seçin.");
+                            AppSnackbar(
+                              'common.error'.tr,
+                              'tutoring.review_select_rating'.tr,
+                            );
                             return;
                           }
                           isSubmitting.value = true;
@@ -96,8 +99,8 @@ void showTutoringReviewBottomSheet({
                           );
                           isSubmitting.value = false;
                           Get.back();
-                          AppSnackbar(
-                              "Başarılı", "Değerlendirmeniz kaydedildi.");
+                          AppSnackbar('common.done'.tr,
+                              'tutoring.review_saved'.tr);
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
@@ -114,9 +117,9 @@ void showTutoringReviewBottomSheet({
                             valueColor: AlwaysStoppedAnimation(Colors.white),
                           ),
                         )
-                      : const Text(
-                          "Gönder",
-                          style: TextStyle(
+                      : Text(
+                          'common.send'.tr,
+                          style: const TextStyle(
                             fontFamily: "MontserratBold",
                             fontSize: 16,
                             color: Colors.white,

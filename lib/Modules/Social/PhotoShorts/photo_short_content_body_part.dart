@@ -249,9 +249,6 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
         CurrentUserService.instance.userId == widget.model.userID;
     final bool isVerified = currentUser?.hesapOnayi ?? false;
     final bool isFollowing = controller.takipEdiyorum.value;
-    final String rozet =
-        (currentUser?.rozet ?? '').trim().toLowerCase().replaceAll('ı', 'i');
-    final bool isBlackBadge = rozet == 'siyah' || rozet == 'black';
     final bool canComment = isOwner ||
         commentVisibility == 0 ||
         (commentVisibility == 1 && isVerified) ||
@@ -437,79 +434,41 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
         ),
 
         Expanded(
-          child: isBlackBadge
-              ? PullDownButton(
-                  itemBuilder: (context) {
-                    final alreadyFlagged = _PhotoShortContentState
-                        ._flaggedPostIds
-                        .contains(widget.model.docID);
-                    if (alreadyFlagged) return [];
-                    return _PhotoShortContentState._flagReasons
-                        .map(
-                          (reason) => PullDownMenuItem(
-                            onTap: () async {
-                              try {
-                                final result =
-                                    await Get.put(PostInteractionService())
-                                        .flagPostWithReason(
-                                  widget.model.docID,
-                                  reason: reason,
-                                );
-                                if (result.isOk) {
-                                  _PhotoShortContentState._flaggedPostIds
-                                      .add(widget.model.docID);
-                                  if (mounted) setState(() {});
-                                }
-                                if (result.accepted) {
-                                  AppSnackbar(
-                                      'İşaretle', 'İşaretleme kaydedildi.');
-                                } else if (result.alreadyFlagged) {
-                                  AppSnackbar('Bilgi',
-                                      'Bu gönderiyi zaten işaretlediniz.');
-                                } else {
-                                  AppSnackbar(
-                                      'Hata', 'İşaretleme başarısız oldu.');
-                                }
-                              } catch (_) {
-                                AppSnackbar(
-                                    'Hata', 'İşaretleme başarısız oldu.');
-                              }
-                            },
-                            title: reason,
-                          ),
-                        )
-                        .toList();
-                  },
-                  buttonBuilder: (context, showMenu) => TextButton(
-                    onPressed: _PhotoShortContentState._flaggedPostIds
-                            .contains(widget.model.docID)
-                        ? null
-                        : showMenu,
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Icon(
-                      CupertinoIcons.exclamationmark_triangle_fill,
-                      color: _PhotoShortContentState._flaggedPostIds
-                              .contains(widget.model.docID)
-                          ? Colors.grey
-                          : Colors.amber,
-                      size: 23,
-                    ),
-                  ),
-                )
-              : TextButton(
-                  onPressed: controller.sendPost,
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        CupertinoIcons.paperplane,
-                        color: Colors.white,
-                        size: 23,
-                      ),
-                    ],
+          child: TextButton(
+            onPressed: () async {
+              await ShareActionGuard.run(() async {
+                final previewImage = widget.model.thumbnail.trim().isNotEmpty
+                    ? widget.model.thumbnail.trim()
+                    : (widget.model.img.isNotEmpty
+                        ? widget.model.img.first.trim()
+                        : null);
+                final url = await ShortLinkService().getPostPublicUrl(
+                  postId: widget.model.docID,
+                  desc: widget.model.metin,
+                  imageUrl: previewImage,
+                );
+                await ShareLinkService.shareUrl(
+                  url: url,
+                  title: 'post.share_title'.tr,
+                  subject: 'post.share_title'.tr,
+                );
+              });
+            },
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Transform.translate(
+                  offset: const Offset(0, -2),
+                  child: Icon(
+                    CupertinoIcons.share_up,
+                    color: Colors.white,
+                    size: 23,
                   ),
                 ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -531,14 +490,14 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   sharedAsPost: true,
                 ))?.then((_) {});
           },
-          title: 'Gönderi olarak yayınla',
+          title: 'short.publish_as_post'.tr,
           icon: CupertinoIcons.add_circled,
         ),
         PullDownMenuItem(
           onTap: () async {
             await PostStoryShareService.openStoryMakerForPost(widget.model);
           },
-          title: 'Hikayene ekle',
+          title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
@@ -551,21 +510,21 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                     ),
                   ));
             },
-            title: 'Gönderi olarak paylaşanlar',
+            title: 'short.shared_as_post_by'.tr,
             icon: CupertinoIcons.person_2,
           ),
         PullDownMenuItem(
           onTap: () {
             controller.sendPost();
           },
-          title: 'Gönder',
+          title: 'common.send'.tr,
           icon: CupertinoIcons.paperplane,
         ),
         PullDownMenuItem(
           onTap: () {
             controller.gizle();
           },
-          title: 'Gizle',
+          title: 'common.hide'.tr,
           icon: CupertinoIcons.eye_slash,
         ),
         if (controller.canSendAdminPush)
@@ -573,7 +532,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
             onTap: () {
               controller.sendAdminPushForPost();
             },
-            title: 'Push',
+            title: 'common.push'.tr,
             icon: CupertinoIcons.bell,
           ),
         PullDownMenuItem(
@@ -590,9 +549,9 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
             );
             await Clipboard.setData(ClipboardData(text: url));
 
-            AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
+            AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
           },
-          title: 'Linki Kopyala',
+          title: 'common.copy_link'.tr,
           icon: CupertinoIcons.doc_on_doc,
         ),
         PullDownMenuItem(
@@ -610,28 +569,28 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
               );
               await ShareLinkService.shareUrl(
                 url: url,
-                title: 'TurqApp Gönderisi',
-                subject: 'TurqApp Gönderisi',
+                title: 'post.share_title'.tr,
+                subject: 'post.share_title'.tr,
               );
             });
           },
-          title: 'Paylaş',
+          title: 'common.share'.tr,
           icon: CupertinoIcons.share_up,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               noYesAlert(
-                title: "Gönderiyi Sil",
-                message: "Bu gönderiyi silmek istediğinizden emin misiniz?",
-                yesText: "Gönderiyi Sil",
-                cancelText: "Vazgeç",
+                title: 'common.delete_post_title'.tr,
+                message: 'common.delete_post_message'.tr,
+                yesText: 'common.delete_post_confirm'.tr,
+                cancelText: 'common.cancel'.tr,
                 onYesPressed: () {
                   controller.sil();
                 },
               ).then((_) {});
             },
-            title: 'Sil',
+            title: 'common.delete'.tr,
             icon: CupertinoIcons.trash,
             isDestructive: true,
           ),
@@ -642,7 +601,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
             onTap: () {
               controller.arsivle();
             },
-            title: "Arşivle",
+            title: 'post.archive'.tr,
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
@@ -653,7 +612,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
             onTap: () {
               controller.arsivdenCikart();
             },
-            title: "Arşivden Çıkart",
+            title: 'post.unarchive'.tr,
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
@@ -665,7 +624,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   postID: widget.model.docID,
                   commentID: ""))?.then((_) {});
             },
-            title: 'Şikayet Et',
+            title: 'common.report'.tr,
             icon: CupertinoIcons.info,
             isDestructive: true,
           ),
@@ -704,8 +663,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 const SizedBox(
                   height: 12,
                 ),
-                const Text(
-                  "Gönderi Gizlendi",
+                Text(
+                  'post_state.hidden_title'.tr,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -720,8 +679,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 SizedBox(
                   height: 7,
                 ),
-                const Text(
-                  "Bu gönderi gizlendi. Bunun gibi gönderileri akışında daha altlarda göreceksin.",
+                Text(
+                  'post_state.hidden_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white,
@@ -735,8 +694,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   onTap: () {
                     controller.gizlemeyiGeriAl();
                   },
-                  child: const Text(
-                    "Geri Al",
+                  child: Text(
+                    'common.undo'.tr,
                     style: TextStyle(
                         color: Colors.blueAccent,
                         fontSize: 15,
@@ -753,7 +712,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Sonraki Gönderiye Geç",
+                        'short.next_post'.tr,
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -800,8 +759,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 const SizedBox(
                   height: 12,
                 ),
-                const Text(
-                  "Gönderi Arşivlendi",
+                Text(
+                  'post_state.archived_title'.tr,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -814,8 +773,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 SizedBox(
                   height: 7,
                 ),
-                const Text(
-                  "Bu gönderiyi arşivlediniz.\nArtık kimseye bu gönderi gözükmeyecektir.",
+                Text(
+                  'post_state.archived_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white,
@@ -829,8 +788,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   onTap: () {
                     controller.arsivdenCikart();
                   },
-                  child: const Text(
-                    "Geri Al",
+                  child: Text(
+                    'common.undo'.tr,
                     style: TextStyle(
                         color: Colors.blueAccent,
                         fontSize: 15,
@@ -847,7 +806,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Sonraki Gönderiye Geç",
+                        'short.next_post'.tr,
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -894,8 +853,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 const SizedBox(
                   height: 12,
                 ),
-                const Text(
-                  "Gönderi Sildiniz",
+                Text(
+                  'post_state.deleted_title'.tr,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -908,8 +867,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 SizedBox(
                   height: 7,
                 ),
-                const Text(
-                  "Bu gönderi artık yayında değil.",
+                Text(
+                  'post_state.deleted_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white,
@@ -929,7 +888,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Sonraki Gönderiye Geç",
+                        'short.next_post'.tr,
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,

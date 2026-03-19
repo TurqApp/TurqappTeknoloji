@@ -8,7 +8,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
-import 'package:turqappv2/Core/Services/typesense_user_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
@@ -96,7 +96,7 @@ class SocialProfileController extends GetxController {
   DocumentSnapshot? lastPostDoc;
   final int pageSize = 12;
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
-  final TypesenseUserService _typesenseUserService = TypesenseUserService.instance;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
   bool _hasMorePrimary = true;
   bool _isLoadingPrimary = false;
@@ -185,22 +185,12 @@ class SocialProfileController extends GetxController {
         return;
       }
 
-      final data = await _userRepository.getUserRaw(
+      final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
       );
-      final followerCounter =
-          (data?['counterOfFollowers'] as num?)?.toInt() ??
-              (data?['followersCount'] as num?)?.toInt() ??
-              (data?['takipci'] as num?)?.toInt() ??
-              (data?['followerCount'] as num?)?.toInt() ??
-              0;
-      final followingCounter =
-          (data?['counterOfFollowings'] as num?)?.toInt() ??
-              (data?['followingCount'] as num?)?.toInt() ??
-              (data?['takip'] as num?)?.toInt() ??
-              (data?['followCount'] as num?)?.toInt() ??
-              0;
+      final followerCounter = summary?.followerCount ?? 0;
+      final followingCounter = summary?.followingCount ?? 0;
 
       totalFollower.value = followerCounter;
       totalFollowing.value = followingCounter;
@@ -433,12 +423,20 @@ class SocialProfileController extends GetxController {
   Future<void> getUserData() async {
     _userDocSub?.cancel();
     try {
-      final cards = await _typesenseUserService.getUserCardsByIds(<String>[userID]);
-      final card = cards[userID];
-      if (card != null && card.isNotEmpty) {
-        await _userRepository.putUserRaw(userID, card);
-        _applyUserData(card);
-        if (_needsHeaderSupplementalData(card)) {
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      if (summary != null) {
+        final cachedRaw = await _userRepository.getUserRaw(
+          userID,
+          preferCache: true,
+          cacheOnly: true,
+        );
+        final bootstrapData =
+            (cachedRaw != null && cachedRaw.isNotEmpty) ? cachedRaw : summary.toMap();
+        _applyUserData(bootstrapData);
+        if (_needsHeaderSupplementalData(bootstrapData)) {
           final raw = await _userRepository.getUserRaw(
             userID,
             preferCache: false,
@@ -448,16 +446,13 @@ class SocialProfileController extends GetxController {
             await _userRepository.putUserRaw(userID, raw);
             _applyUserData(raw);
           }
-        } else {
-          final raw = await _userRepository.getUserRaw(userID, preferCache: true);
-          if (raw != null && raw.isNotEmpty) {
-            _applySupplementalUserData(raw);
-          }
+        } else if (cachedRaw != null && cachedRaw.isNotEmpty) {
+          _applySupplementalUserData(cachedRaw);
         }
         return;
       }
     } catch (e) {
-      print('SocialProfile.getUserData typesense error: $e');
+      print('SocialProfile.getUserData resolver error: $e');
     }
 
     try {
@@ -674,15 +669,26 @@ class SocialProfileController extends GetxController {
     }
 
     // Kullanıcı bilgisini çek
-    final data = await _userRepository.getUserRaw(userId);
-    if (data == null) {
+    final summary = await _userSummaryResolver.resolve(
+      userId,
+      preferCache: true,
+    );
+    if (summary == null) {
       print("Kullanıcı bulunamadı.");
       return;
     }
+    final raw = await _userRepository.getUserRaw(
+      userId,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    final fullNameSource = raw ?? const <String, dynamic>{};
     final userModel = StoryUserModel(
-      nickname: _resolveNickname(data, const <String, dynamic>{}),
-      avatarUrl: resolveAvatarUrl(data),
-      fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
+      nickname: summary.nickname,
+      avatarUrl: summary.avatarUrl,
+      fullName:
+          "${fullNameSource['firstName'] ?? ""} ${fullNameSource['lastName'] ?? ""}"
+              .trim(),
       userID: userId,
       stories: stories,
     );

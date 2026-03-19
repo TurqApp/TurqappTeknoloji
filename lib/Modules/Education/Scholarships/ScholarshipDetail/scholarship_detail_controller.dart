@@ -83,7 +83,7 @@ class ScholarshipDetailController extends GetxController {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       applyReady.value = false;
-      AppSnackbar("Hata", "Lütfen oturum açın.");
+      AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
     }
 
@@ -177,12 +177,14 @@ class ScholarshipDetailController extends GetxController {
             isFamilyInfoComplete;
       } else {
         applyReady.value = false;
-        AppSnackbar("Hata",
-            "Kullanıcı verisi bulunamadı. Lütfen bilgilerinizi doldurun.");
+        AppSnackbar(
+          "common.error".tr,
+          "scholarship.user_data_missing".tr,
+        );
       }
     } catch (e) {
       print('Kullanıcı hazırlık kontrolü hatası: $e');
-      AppSnackbar("Hata", "Bilgiler kontrol edilirken hata oluştu.");
+      AppSnackbar("common.error".tr, "scholarship.check_info_failed".tr);
       applyReady.value = false;
     } finally {
       isLoading.value = false;
@@ -210,7 +212,10 @@ class ScholarshipDetailController extends GetxController {
         allreadyApplied.value = false;
       }
     } catch (e) {
-      AppSnackbar("Hata", "Başvuru durumu kontrol edilirken hata oluştu.");
+      AppSnackbar(
+        "common.error".tr,
+        "scholarship.application_check_failed".tr,
+      );
       allreadyApplied.value = false;
     }
   }
@@ -218,7 +223,7 @@ class ScholarshipDetailController extends GetxController {
   Future<void> applyForScholarship(String scholarshipId, String type) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      AppSnackbar("Hata", "Lütfen oturum açın.");
+      AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
     }
 
@@ -247,9 +252,9 @@ class ScholarshipDetailController extends GetxController {
       );
 
       allreadyApplied.value = true;
-      AppSnackbar("Başarılı", "Burs başvurunuz alınmıştır.");
+      AppSnackbar("common.success".tr, "scholarship.applied_success".tr);
     } catch (e) {
-      AppSnackbar("Hata", "Başvuru kaydedilemedi.");
+      AppSnackbar("common.error".tr, "scholarship.apply_failed".tr);
     } finally {
       isLoading.value = false;
     }
@@ -280,7 +285,7 @@ class ScholarshipDetailController extends GetxController {
   }
 
   String formatTimestamp(int? timestamp) {
-    if (timestamp == null) return 'Belirtilmemiş';
+    if (timestamp == null) return 'common.unspecified'.tr;
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     return DateFormat('dd.MM.yyyy').format(date);
   }
@@ -296,11 +301,14 @@ class ScholarshipDetailController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       isFollowing.value = outcome.nowFollowing; // reconcile
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar(
+          'scholarship.follow_limit_title'.tr,
+          'scholarship.follow_limit_body'.tr,
+        );
       }
     } catch (e) {
       isFollowing.value = wasFollowing; // revert
-      AppSnackbar("Hata", "Takip işlemi başarısız.");
+      AppSnackbar("common.error".tr, "scholarship.follow_failed".tr);
     } finally {
       isFollowLoading.value = false;
     }
@@ -308,7 +316,7 @@ class ScholarshipDetailController extends GetxController {
 
   Future<void> deleteScholarship(String scholarshipId, String type) async {
     if (scholarshipId.isEmpty) {
-      AppSnackbar("Hata", "Geçersiz burs!.");
+      AppSnackbar("common.error".tr, "scholarship.invalid".tr);
       return;
     }
 
@@ -318,9 +326,9 @@ class ScholarshipDetailController extends GetxController {
       Get.back();
       final scholarshipsController = Get.find<ScholarshipsController>();
       await scholarshipsController.fetchScholarships();
-      AppSnackbar("Başarılı", "Burs başarıyla silindi.");
+      AppSnackbar("common.success".tr, "scholarship.delete_success".tr);
     } catch (e) {
-      AppSnackbar("Hata", "Burs silinirken bir hata oluştu: $e");
+      AppSnackbar("common.error".tr, "scholarship.delete_failed".tr);
     } finally {
       isLoading.value = false;
     }
@@ -329,7 +337,7 @@ class ScholarshipDetailController extends GetxController {
   Future<void> cancelApplication(String scholarshipId, String type) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      AppSnackbar("Hata", "Lütfen oturum açın.");
+      AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
     }
 
@@ -346,9 +354,9 @@ class ScholarshipDetailController extends GetxController {
 
       allreadyApplied.value = false;
       await checkUserApplicationReadiness();
-      AppSnackbar("Başarılı", "Burs başvurunuz iptal edildi.");
+      AppSnackbar("common.success".tr, "scholarship.cancel_success".tr);
     } catch (e) {
-      AppSnackbar("Hata", "Başvuru iptal edilemedi.");
+      AppSnackbar("common.error".tr, "scholarship.cancel_failed".tr);
     } finally {
       isLoading.value = false;
     }

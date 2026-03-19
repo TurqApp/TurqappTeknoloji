@@ -235,10 +235,12 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                           .containsKey(currentStory.id) ==
                       true;
                   noYesAlert(
-                      title: isDeletedStory ? "Kalıcı Sil" : "Sil",
+                      title: isDeletedStory
+                          ? 'story.permanent_delete'.tr
+                          : 'common.delete'.tr,
                       message: isDeletedStory
-                          ? "Bu hikaye kalıcı olarak silinsin mi?"
-                          : "Bu hikaye silinsin mi?",
+                          ? 'story.permanent_delete_message'.tr
+                          : 'story.delete_message'.tr,
                       onYesPressed: () async {
                         final currentStory = widget.user.stories[storyIndex];
                         if (isDeletedStory) {
@@ -379,7 +381,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 15),
                       child: Text(
-                        "Hikayeye yorum yaz..",
+                        "story.comment_placeholder".tr,
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -460,14 +462,17 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                       final shortUrl =
                           await ShortLinkService().getStoryPublicUrl(
                         storyId: currentStory.id,
-                        title: '${widget.user.nickname} hikayesi',
-                        desc: 'TurqApp üzerinde hikayeyi görüntüle',
+                        title: 'story.share_title'
+                            .trParams({'name': widget.user.nickname}),
+                        desc: 'story.share_desc'.tr,
                         imageUrl: previewImage.isEmpty ? null : previewImage,
                       );
                       await ShareLinkService.shareUrl(
                         url: shortUrl,
-                        title: '${widget.user.nickname} hikayesi',
-                        subject: '${widget.user.nickname} hikayesi',
+                        title: 'story.share_title'
+                            .trParams({'name': widget.user.nickname}),
+                        subject: 'story.share_title'
+                            .trParams({'name': widget.user.nickname}),
                       );
                     } catch (_) {}
                   });

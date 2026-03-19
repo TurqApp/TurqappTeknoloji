@@ -28,12 +28,12 @@ class BookletResultPreview extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () => Get.back(),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(Icons.arrow_back, color: Colors.black),
                           SizedBox(width: 12),
                           Text(
-                            "Sonuçlar",
+                            "tests.results_title".tr,
                             maxLines: 1,
                             style: TextStyle(
                               color: Colors.black,
@@ -162,8 +162,8 @@ class BookletResultPreview extends StatelessWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Text(
-                                          "Doğru",
+                                        Text(
+                                          "tests.correct".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -191,8 +191,8 @@ class BookletResultPreview extends StatelessWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Text(
-                                          "Yanlış",
+                                        Text(
+                                          "tests.wrong".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -220,8 +220,8 @@ class BookletResultPreview extends StatelessWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Text(
-                                          "Boş",
+                                        Text(
+                                          "tests.blank".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,

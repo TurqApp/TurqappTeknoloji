@@ -9,10 +9,10 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
 
 class Comment {
@@ -95,7 +95,7 @@ class Reply {
 
 class AntremanCommentsController extends GetxController {
   final QuestionBankModel question;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
   final FocusNode focusNode = FocusNode();
@@ -158,7 +158,7 @@ class AntremanCommentsController extends GetxController {
       }
     } catch (e) {
       log("Fotoğraf seçilirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf seçilirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_pick_failed'.tr);
     }
   }
 
@@ -172,7 +172,7 @@ class AntremanCommentsController extends GetxController {
       );
     } catch (e) {
       log("Fotoğraf yüklenirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf yüklenirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_upload_failed'.tr);
       return null;
     }
   }
@@ -197,10 +197,7 @@ class AntremanCommentsController extends GetxController {
       replies.assignAll(fetchedReplies);
     } catch (e) {
       log("Yorumlar çekilirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorumlar yüklenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comments_load_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -222,32 +219,26 @@ class AntremanCommentsController extends GetxController {
       return userInfoCache[userID]!;
     }
     try {
-      final data = await _userRepository.getUserRaw(
+      final data = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
       );
       if (data == null) {
         userInfoCache[userID] = {
           'avatarUrl': '',
-          'nickname': 'Bilinmeyen Kullanıcı',
-          'displayName': 'Bilinmeyen Kullanıcı',
+          'nickname': 'training.unknown_user'.tr,
+          'displayName': 'training.unknown_user'.tr,
         };
         return userInfoCache[userID]!;
       }
-      final profileImage = (data['avatarUrl'] ??
-              data['avatarUrl'] ??
-              data['avatarUrl'] ??
-              '')
-          .toString();
-      final profileName = (data['displayName'] ??
-              data['username'] ??
-              data['nickname'] ??
-              'Bilinmeyen Kullanıcı')
-          .toString();
+      final profileImage = data.avatarUrl;
+      final profileName = data.preferredName.isNotEmpty
+          ? data.preferredName
+          : 'training.unknown_user'.tr;
       userInfoCache[userID] = {
         'avatarUrl': profileImage,
         'nickname': profileName,
-        'username': (data['username'] ?? '').toString(),
+        'username': data.username,
         'displayName': profileName,
       };
       return userInfoCache[userID]!;
@@ -255,8 +246,8 @@ class AntremanCommentsController extends GetxController {
       log("Kullanıcı bilgisi alınırken hata: $e");
       userInfoCache[userID] = {
         'avatarUrl': '',
-        'nickname': 'Bilinmeyen Kullanıcı',
-        'displayName': 'Bilinmeyen Kullanıcı',
+        'nickname': 'training.unknown_user'.tr,
+        'displayName': 'training.unknown_user'.tr,
       };
       return userInfoCache[userID]!;
     }
@@ -264,7 +255,7 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> addComment() async {
     if (commentController.text.isEmpty && selectedImage.value == null) {
-      AppSnackbar("Hata", "Yorum veya fotoğraf eklemelisiniz!");
+      AppSnackbar('common.error'.tr, 'training.comment_or_photo_required'.tr);
       return;
     }
 
@@ -293,19 +284,16 @@ class AntremanCommentsController extends GetxController {
       replyingToCommentDocID.value = '';
       editingCommentDocID.value = '';
       fetchComments();
-      AppSnackbar("Başarılı", "Yorumunuz eklendi!");
+      AppSnackbar('common.success'.tr, 'training.comment_added'.tr);
     } catch (e) {
       log("Yorum eklenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorum eklenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comment_add_failed'.tr);
     }
   }
 
   Future<void> addReply(String commentDocID) async {
     if (commentController.text.isEmpty && selectedImage.value == null) {
-      AppSnackbar("Hata", "Yanıt veya fotoğraf eklemelisiniz!");
+      AppSnackbar('common.error'.tr, 'training.reply_or_photo_required'.tr);
       return;
     }
 
@@ -335,13 +323,10 @@ class AntremanCommentsController extends GetxController {
       replyingToCommentDocID.value = '';
       editingReplyDocID.value = '';
       fetchReplies(commentDocID);
-      AppSnackbar("Başarılı", "Yanıtınız eklendi!");
+      AppSnackbar('common.success'.tr, 'training.reply_added'.tr);
     } catch (e) {
       log("Yanıt eklenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yanıt eklenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.reply_add_failed'.tr);
     }
   }
 
@@ -352,13 +337,10 @@ class AntremanCommentsController extends GetxController {
         commentDocId: commentDocID,
       );
       fetchComments();
-      AppSnackbar("Başarılı", "Yorumunuz silindi!");
+      AppSnackbar('common.success'.tr, 'training.comment_deleted'.tr);
     } catch (e) {
       log("Yorum silinirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorum silinirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comment_delete_failed'.tr);
     }
   }
 
@@ -370,13 +352,10 @@ class AntremanCommentsController extends GetxController {
         replyDocId: replyDocID,
       );
       fetchReplies(commentDocID);
-      AppSnackbar("Başarılı", "Yanıtınız silindi!");
+      AppSnackbar('common.success'.tr, 'training.reply_deleted'.tr);
     } catch (e) {
       log("Yanıt silinirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yanıt silinirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.reply_delete_failed'.tr);
     }
   }
 
@@ -390,13 +369,10 @@ class AntremanCommentsController extends GetxController {
       commentController.clear();
       editingCommentDocID.value = '';
       fetchComments();
-      AppSnackbar("Başarılı", "Yorumunuz güncellendi!");
+      AppSnackbar('common.success'.tr, 'training.comment_updated'.tr);
     } catch (e) {
       log("Yorum düzenlenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorum düzenlenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comment_update_failed'.tr);
     }
   }
 
@@ -415,13 +391,10 @@ class AntremanCommentsController extends GetxController {
       commentController.clear();
       editingReplyDocID.value = '';
       fetchReplies(commentDocID);
-      AppSnackbar("Başarılı", "Yanıtınız güncellendi!");
+      AppSnackbar('common.success'.tr, 'training.reply_updated'.tr);
     } catch (e) {
       log("Yanıt düzenlenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yanıt düzenlenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.reply_update_failed'.tr);
     }
   }
 
@@ -457,10 +430,7 @@ class AntremanCommentsController extends GetxController {
       }
     } catch (e) {
       log("Yorum beğenilirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.like_failed'.tr);
     }
   }
 
@@ -495,10 +465,7 @@ class AntremanCommentsController extends GetxController {
       replies[commentDocID] = updatedReplies;
     } catch (e) {
       log("Yanıt beğenilirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.like_failed'.tr);
     }
   }
 
@@ -530,15 +497,15 @@ class AntremanCommentsController extends GetxController {
     final weeks = (days / 7).floor();
 
     if (minutes < 1) {
-      return 'az önce';
+      return 'training.time_now'.tr;
     } else if (minutes < 60) {
-      return '$minutes dk önce';
+      return 'training.time_min'.trParams({'count': minutes.toString()});
     } else if (hours < 24) {
-      return '$hours saat önce';
+      return 'training.time_hour'.trParams({'count': hours.toString()});
     } else if (days < 7) {
-      return '$days gün önce';
+      return 'training.time_day'.trParams({'count': days.toString()});
     } else {
-      return '$weeks hafta önce';
+      return 'training.time_week'.trParams({'count': weeks.toString()});
     }
   }
 
@@ -554,8 +521,8 @@ class AntremanCommentsController extends GetxController {
         final r = await OptimizedNSFWService.checkImage(f);
         if (r.isNSFW) {
           AppSnackbar(
-            "Yükleme Başarısız!",
-            "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+            'training.upload_failed_title'.tr,
+            'training.upload_failed_body'.tr,
             backgroundColor: Colors.red.withValues(alpha: 0.7),
           );
           return;
@@ -566,7 +533,7 @@ class AntremanCommentsController extends GetxController {
       selectedImage.value = files.first; // İlk resmi al
     } catch (e) {
       log("Galeriden fotoğraf seçilirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf seçilirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_pick_failed'.tr);
     }
   }
 
@@ -581,8 +548,8 @@ class AntremanCommentsController extends GetxController {
       // NSFW tespiti (OptimizedNSFWService)
       final r = await OptimizedNSFWService.checkImage(file);
       if (r.isNSFW) {
-        AppSnackbar("Yükleme Başarısız!",
-            "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        AppSnackbar('training.upload_failed_title'.tr,
+            'training.upload_failed_body'.tr,
             backgroundColor: Colors.red.withValues(alpha: 0.7));
         return;
       }
@@ -591,7 +558,7 @@ class AntremanCommentsController extends GetxController {
       selectedImage.value = file;
     } catch (e) {
       log("Fotoğraf çekilirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf çekilirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_pick_failed'.tr);
     }
   }
 }

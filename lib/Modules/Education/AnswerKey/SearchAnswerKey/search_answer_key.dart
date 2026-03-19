@@ -21,7 +21,7 @@ class SearchAnswerKey extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Ara"),
+            BackButtons(text: 'common.search'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -63,9 +63,9 @@ class SearchAnswerKey extends StatelessWidget {
                   onChanged: controller.onSearchChanged,
                   inputFormatters: [LengthLimitingTextInputFormatter(100)],
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: "Ara",
-                    hintStyle: TextStyle(
+                  decoration: InputDecoration(
+                    hintText: 'common.search'.tr,
+                    hintStyle: const TextStyle(
                       color: Colors.grey,
                       fontFamily: "Montserrat",
                     ),
@@ -92,9 +92,9 @@ class SearchAnswerKey extends StatelessWidget {
             return const Center(child: CupertinoActivityIndicator());
           }
           if (controller.searchController.text.trim().length < 2) {
-            return const Center(
+            return Center(
               child: Text(
-                'Aramak için en az 2 karakter yaz.',
+                'answer_key.search_min_chars'.tr,
                 style: TextStyle(
                   color: Colors.black54,
                   fontFamily: 'MontserratMedium',
@@ -103,9 +103,9 @@ class SearchAnswerKey extends StatelessWidget {
             );
           }
           if (controller.filteredList.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'Sonuç bulunamadı.',
+                'common.no_results'.tr,
                 style: TextStyle(
                   color: Colors.black54,
                   fontFamily: 'MontserratMedium',

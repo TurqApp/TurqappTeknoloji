@@ -50,7 +50,7 @@ class CreateBook extends StatelessWidget {
           children: [
             Column(
               children: [
-                BackButtons(text: "Kitap Oluştur"),
+                BackButtons(text: 'answer_key.create_book'.tr),
                 Obx(
                   () => controller.selection.value == 0
                       ? _build1(context, controller)
@@ -79,10 +79,10 @@ class CreateBook extends StatelessWidget {
                               alignment: Alignment.center,
                               child: Text(
                                 controller.selection.value == 0
-                                    ? "Devam Et"
+                                    ? 'common.continue'.tr
                                     : controller.isEditMode
-                                        ? "Güncelle"
-                                        : "Yayınla!",
+                                        ? 'common.update'.tr
+                                        : 'common.publish'.tr,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -101,13 +101,13 @@ class CreateBook extends StatelessWidget {
                   ? Container(
                       color: Colors.black.withValues(alpha: 0.5),
                       alignment: Alignment.center,
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           CircularProgressIndicator(color: Colors.white),
                           SizedBox(height: 20),
                           Text(
-                            "Yükleniyor Lütfen Bekle..",
+                            'common.loading'.tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 25,
@@ -148,8 +148,8 @@ class CreateBook extends StatelessWidget {
                                   await OptimizedNSFWService.checkImage(file);
                               if (r.isNSFW) {
                                 controller.imageFile.value = null;
-                                AppSnackbar("Yükleme Başarısız!",
-                                    "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                                AppSnackbar("tests.create_upload_failed".tr,
+                                    "tests.create_upload_failed".tr,
                                     backgroundColor:
                                         Colors.red.withValues(alpha: 0.7));
                               } else {
@@ -183,8 +183,8 @@ class CreateBook extends StatelessWidget {
                                   await OptimizedNSFWService.checkImage(file);
                               if (r.isNSFW) {
                                 controller.imageFile.value = null;
-                                AppSnackbar("Yükleme Başarısız!",
-                                    "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                                AppSnackbar("tests.create_upload_failed".tr,
+                                    "tests.create_upload_failed".tr,
                                     backgroundColor:
                                         Colors.red.withValues(alpha: 0.7));
                               } else {
@@ -202,7 +202,7 @@ class CreateBook extends StatelessWidget {
                                 Radius.circular(18),
                               ),
                             ),
-                            child: const Column(
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
@@ -211,7 +211,7 @@ class CreateBook extends StatelessWidget {
                                 ),
                                 SizedBox(height: 20),
                                 Text(
-                                  "Kapak Fotoğrafı\nSeç",
+                                  'answer_key.cover_select_short'.tr,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: Colors.black,
@@ -294,8 +294,8 @@ class CreateBook extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: TextField(
                       controller: controller.baslikController,
-                      decoration: const InputDecoration(
-                        hintText: "Başlık (Ör: Türkçe Soru Bankası)",
+                      decoration: InputDecoration(
+                        hintText: "answer_key.book_title_hint".tr,
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
@@ -317,8 +317,8 @@ class CreateBook extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: TextField(
                       controller: controller.yayinEviController,
-                      decoration: const InputDecoration(
-                        hintText: "Yayın Evi",
+                      decoration: InputDecoration(
+                        hintText: "answer_key.publisher_hint".tr,
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
@@ -340,8 +340,8 @@ class CreateBook extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: TextField(
                       controller: controller.basimTarihiController,
-                      decoration: const InputDecoration(
-                        hintText: "Basım Yılı",
+                      decoration: InputDecoration(
+                        hintText: "answer_key.publish_year_hint".tr,
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
@@ -389,8 +389,8 @@ class CreateBook extends StatelessWidget {
                           color: Colors.red.withValues(alpha: 0.1),
                           alignment: Alignment.center,
                           height: 50,
-                          child: const Text(
-                            "Sil",
+                          child: Text(
+                            "common.delete".tr,
                             style: TextStyle(
                               color: Colors.red,
                               fontSize: 16,
@@ -405,8 +405,8 @@ class CreateBook extends StatelessWidget {
                         color: Colors.green.withValues(alpha: 0.1),
                         alignment: Alignment.center,
                         height: 50,
-                        child: const Text(
-                          "Ekle",
+                        child: Text(
+                          "common.add".tr,
                           style: TextStyle(
                             color: Colors.green,
                             fontSize: 16,
@@ -445,7 +445,9 @@ class CreateBook extends StatelessWidget {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                "${item.dogruCevaplar.length} Soru Hazırlandı",
+                                "answer_key.questions_prepared".trParams({
+                                  "count": item.dogruCevaplar.length.toString(),
+                                }),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -502,12 +504,12 @@ class CreateBookAnswerKey extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () => Get.back(),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(Icons.arrow_back, color: Colors.black),
                           SizedBox(width: 12),
                           Text(
-                            "Cevap Anahtarı Ekle",
+                            "answer_key.add_answer_key".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 25,
@@ -535,8 +537,8 @@ class CreateBookAnswerKey extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 15),
                             child: TextField(
                               controller: controller.baslikController,
-                              decoration: const InputDecoration(
-                                hintText: "Başlık (Ör: Türkçe Soru Bankası)",
+                              decoration: InputDecoration(
+                                hintText: "answer_key.book_title_hint".tr,
                                 hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontFamily: "MontserratMedium",
@@ -560,8 +562,8 @@ class CreateBookAnswerKey extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 15),
                         child: TextField(
                           controller: controller.inputController,
-                          decoration: const InputDecoration(
-                            hintText: "Cevap Anahtar Listesi",
+                          decoration: InputDecoration(
+                            hintText: "answer_key.answer_list_hint".tr,
                             hintStyle: TextStyle(
                               color: Colors.grey,
                               fontFamily: "MontserratMedium",

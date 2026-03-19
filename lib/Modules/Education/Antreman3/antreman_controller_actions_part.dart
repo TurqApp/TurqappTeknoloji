@@ -152,7 +152,7 @@ extension AntremanControllerActionsPart on AntremanController {
 
       if (_categoryPool.isEmpty) {
         loadingProgress.value = 1.0;
-        AppSnackbar("Bilgi", "Bu kategoride soru bulunamadı");
+        AppSnackbar("common.info".tr, "training.no_questions_in_category".tr);
         return;
       }
 
@@ -200,7 +200,7 @@ extension AntremanControllerActionsPart on AntremanController {
       loadingProgress.value = 1.0;
     } catch (e) {
       log("Kaydedilen sorular çekilirken hata oluştu");
-      AppSnackbar("Hata", "Kaydedilen sorular yüklenirken hata oluştu");
+      AppSnackbar("common.error".tr, "training.saved_load_failed".tr);
       loadingProgress.value = 1.0;
     }
   }
@@ -217,7 +217,7 @@ extension AntremanControllerActionsPart on AntremanController {
         questionId: question.docID,
       );
     } catch (e) {
-      AppSnackbar("Hata", "Görüntüleme güncellenirken hata");
+      AppSnackbar("common.error".tr, "training.view_update_failed".tr);
     }
   }
 
@@ -233,17 +233,17 @@ extension AntremanControllerActionsPart on AntremanController {
       );
       savedQuestions[key] = !isSaved;
       AppSnackbar(
-        "Başarılı",
+        "common.success".tr,
         isSaved
-            ? "Soru 'Sonra Çöz' listesinden kaldırıldı!"
-            : "Soru 'Sonra Çöz' listesine eklendi!",
+            ? "training.saved_removed".tr
+            : "training.saved_added".tr,
       );
     } catch (e) {
       AppSnackbar(
-        "Hata",
+        "common.error".tr,
         isSaved
-            ? "Sonra Çöz kaldırma sırasında hata oluştu."
-            : "Sonra Çöz güncellenirken hata oluştu.",
+            ? "training.saved_remove_failed".tr
+            : "training.saved_update_failed".tr,
       );
     }
   }
@@ -266,15 +266,15 @@ extension AntremanControllerActionsPart on AntremanController {
       }
       likedQuestions[key] = !isLiked;
       AppSnackbar(
-        "Başarılı",
-        isLiked ? "Beğeni kaldırıldı!" : "Soru beğenildi!",
+        "common.success".tr,
+        isLiked ? "training.like_removed".tr : "training.liked".tr,
       );
     } catch (e) {
       AppSnackbar(
-        "Hata",
+        "common.error".tr,
         isLiked
-            ? "Beğeni kaldırma sırasında hata oluştu."
-            : "Beğeni eklenirken hata oluştu.",
+            ? "training.like_remove_failed".tr
+            : "training.like_add_failed".tr,
       );
     }
   }
@@ -293,11 +293,14 @@ extension AntremanControllerActionsPart on AntremanController {
         try {
           shortUrl = await ShortLinkService().getEducationPublicUrl(
             shareId: shareId,
-            title:
-                '${question.sinavTuru} - ${question.ders} Soru ${question.soruNo}',
+            title: 'training.share_question_link_title'.trParams({
+              'exam': question.sinavTuru,
+              'lesson': question.ders,
+              'number': question.soruNo.toString(),
+            }),
             desc: question.anaBaslik.isNotEmpty
                 ? question.anaBaslik
-                : 'TurqApp Soru Bankası sorusu',
+                : 'training.share_question_desc'.tr,
             imageUrl: question.soru.isNotEmpty ? question.soru : null,
           );
         } catch (_) {
@@ -312,8 +315,14 @@ extension AntremanControllerActionsPart on AntremanController {
 
         await ShareLinkService.shareUrl(
           url: shortUrl,
-          title: 'TurqApp - ${question.sinavTuru} ${question.ders} Sorusu',
-          subject: 'TurqApp - ${question.sinavTuru} ${question.ders} Sorusu',
+          title: 'training.share_question_title'.trParams({
+            'exam': question.sinavTuru,
+            'lesson': question.ders,
+          }),
+          subject: 'training.share_question_title'.trParams({
+            'exam': question.sinavTuru,
+            'lesson': question.ders,
+          }),
         );
 
         // İstatistik için en iyi gayretle yaz; başarısız olursa paylaşımı bozma.
@@ -327,7 +336,7 @@ extension AntremanControllerActionsPart on AntremanController {
         );
       });
     } catch (_) {
-      AppSnackbar("Hata", "Paylaşım başlatılamadı");
+      AppSnackbar("common.error".tr, "training.share_failed".tr);
     }
   }
 
@@ -339,7 +348,7 @@ extension AntremanControllerActionsPart on AntremanController {
     final key = question.docID;
 
     if ((selectedAnswers[key] ?? '').isNotEmpty) {
-      AppSnackbar("Bilgi", "Bu sorunun cevabını değiştiremezsiniz!");
+      AppSnackbar("common.info".tr, "training.answer_locked".tr);
       return;
     }
 
@@ -369,9 +378,9 @@ extension AntremanControllerActionsPart on AntremanController {
     } catch (e) {
       log('submitAnswer error for ${question.docID}: $e');
       if (e.toString().contains('already_answered')) {
-        AppSnackbar("Bilgi", "Bu sorunun cevabı daha önce kaydedilmiş.");
+        AppSnackbar("common.info".tr, "training.answer_saved".tr);
       } else {
-        AppSnackbar("Hata", "Cevap kaydedilirken hata");
+        AppSnackbar("common.error".tr, "training.answer_save_failed".tr);
       }
     }
   }
@@ -404,12 +413,12 @@ extension AntremanControllerActionsPart on AntremanController {
         });
       }
     } else {
-      AppSnackbar("Bilgi", "Bu kategoride başka soru kalmadı!");
+      AppSnackbar("common.info".tr, "training.no_more_questions".tr);
     }
   }
 
   void settings(BuildContext context) {
-    AppSnackbar("Bilgi", "Ayarlar ekranı açılıyor!");
+    AppSnackbar("common.info".tr, "training.settings_opening".tr);
   }
 
   void onScreenReEnter() {
@@ -436,7 +445,7 @@ extension AntremanControllerActionsPart on AntremanController {
       loadingProgress.value = 1.0;
     } catch (e) {
       log("Daha fazla soru çekilirken hata oluştu: $e");
-      AppSnackbar("Hata", "Daha fazla soru çekilirken hata oluştu");
+      AppSnackbar("common.error".tr, "training.fetch_more_failed".tr);
       loadingProgress.value = 1.0;
     }
   }

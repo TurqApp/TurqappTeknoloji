@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik3_secimi.dart';
@@ -26,6 +27,28 @@ class _CikmisSorularBaslik2SecimiState
     extends State<CikmisSorularBaslik2Secimi> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> basliklar = [];
+
+  String _localizedExamType(String raw) {
+    switch (raw) {
+      case 'İngilizce':
+        return 'tests.language.english'.tr;
+      case 'Almanca':
+        return 'tests.language.german'.tr;
+      case 'Arapça':
+        return 'tests.language.arabic'.tr;
+      case 'Fransızca':
+        return 'tests.language.french'.tr;
+      case 'Rusça':
+        return 'tests.language.russian'.tr;
+      case 'Ön Lisans':
+        return 'past_questions.exam_type.associate'.tr;
+      case 'Lisans':
+        return 'past_questions.exam_type.undergraduate'.tr;
+      default:
+        return raw;
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -55,7 +78,10 @@ class _CikmisSorularBaslik2SecimiState
         child: Column(
           children: [
             BackButtons(
-              text: "${widget.sinavTuru} ${widget.yil} Testleri",
+              text: 'past_questions.tests_by_year'.trParams({
+                'type': _localizedExamType(widget.sinavTuru),
+                'year': widget.yil,
+              }),
             ),
             Expanded(
               child: Container(
@@ -171,7 +197,7 @@ class _CikmisSorularBaslik2SecimiState
                                         Spacer(),
                                         SizedBox(height: 4),
                                         Text(
-                                          widget.sinavTuru,
+                                          _localizedExamType(widget.sinavTuru),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.grey,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Models/Education/cikmis_soru_sonuc_model.dart';
 
@@ -20,7 +21,10 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "${widget.title} Sonuçlarım"),
+            BackButtons(
+              text: 'past_questions.results_suffix'
+                  .trParams({'title': widget.title}),
+            ),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -40,10 +44,22 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _summaryItem("Doğru", widget.model.dogruSayisi.toString()),
-                            _summaryItem("Yanlış", widget.model.yanlisSayisi.toString()),
-                            _summaryItem("Boş", widget.model.bosSayisi.toString()),
-                            _summaryItem("Net", widget.model.net.toStringAsFixed(2)),
+                            _summaryItem(
+                              'tests.correct'.tr,
+                              widget.model.dogruSayisi.toString(),
+                            ),
+                            _summaryItem(
+                              'tests.wrong'.tr,
+                              widget.model.yanlisSayisi.toString(),
+                            ),
+                            _summaryItem(
+                              'tests.blank'.tr,
+                              widget.model.bosSayisi.toString(),
+                            ),
+                            _summaryItem(
+                              'tests.score'.tr,
+                              widget.model.net.toStringAsFixed(2),
+                            ),
                           ],
                         ),
                       ),
@@ -59,7 +75,9 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
                         ),
                       const SizedBox(height: 8),
                       Text(
-                        "${widget.model.soruSayisi} soru cozuldu. Sonuc local olarak tutuluyor; bu ekranda sadece net ozeti gosteriliyor.",
+                        'past_questions.local_result_summary'.trParams({
+                          'count': widget.model.soruSayisi.toString(),
+                        }),
                         style: TextStyle(
                           color: Colors.black87,
                           fontSize: 15,

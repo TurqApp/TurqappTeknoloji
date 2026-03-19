@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer.dart';
 
 class BookletPreviewController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
@@ -88,20 +88,14 @@ class BookletPreviewController extends GetxController {
 
   Future<void> fetchUserData() async {
     try {
-      final data = await _userRepository.getUserRaw(model.userID) ??
-          const <String, dynamic>{};
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
-      avatarUrl.value = (data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              "")
-          .toString();
-      fullName.value =
-          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-              .trim();
+      final data = await _userSummaryResolver.resolve(
+            model.userID,
+            preferCache: true,
+          ) ??
+          _userSummaryResolver.resolveFromMaps(model.userID);
+      nickname.value = data.nickname;
+      avatarUrl.value = data.avatarUrl;
+      fullName.value = data.displayName;
       if (fullName.value.isEmpty) {
         fullName.value = nickname.value;
       }

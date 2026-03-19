@@ -222,6 +222,91 @@ class CreateTestController extends GetxController {
     return tumDersler;
   }
 
+  String localizedTestType(String raw) {
+    switch (raw) {
+      case "Ortaokul":
+        return "tests.type.middle_school".tr;
+      case "Lise":
+        return "tests.type.high_school".tr;
+      case "Hazırlık":
+        return "tests.type.prep".tr;
+      case "Dil":
+        return "tests.type.language".tr;
+      case "Branş":
+        return "tests.type.branch".tr;
+      default:
+        return raw;
+    }
+  }
+
+  String localizedLesson(String raw) {
+    switch (raw) {
+      case "Türkçe":
+        return "tests.lesson.turkish".tr;
+      case "Edebiyat":
+        return "tests.lesson.literature".tr;
+      case "Matematik":
+        return "tests.lesson.math".tr;
+      case "Geometri":
+        return "tests.lesson.geometry".tr;
+      case "Fizik":
+        return "tests.lesson.physics".tr;
+      case "Kimya":
+        return "tests.lesson.chemistry".tr;
+      case "Biyoloji":
+        return "tests.lesson.biology".tr;
+      case "Tarih":
+        return "tests.lesson.history".tr;
+      case "Coğrafya":
+        return "tests.lesson.geography".tr;
+      case "Felsefe":
+        return "tests.lesson.philosophy".tr;
+      case "Psikoloji":
+        return "tests.lesson.psychology".tr;
+      case "Sosyoloji":
+        return "tests.lesson.sociology".tr;
+      case "Mantık":
+        return "tests.lesson.logic".tr;
+      case "Din Kültürü":
+        return "tests.lesson.religion".tr;
+      case "Fen Bilimleri":
+        return "tests.lesson.science".tr;
+      case "İnkılap Tarihi":
+      case "İnkilap Tarihi":
+        return "tests.lesson.revolution_history".tr;
+      case "Yabancı Dil":
+        return "tests.lesson.foreign_language".tr;
+      case "Temel Matematik":
+        return "tests.lesson.basic_math".tr;
+      case "Sosyal Bilimler":
+        return "tests.lesson.social_sciences".tr;
+      case "Edebiyat - Sosyal Bilimler 1":
+        return "tests.lesson.literature_social_1".tr;
+      case "Sosyal Bilimler 2":
+        return "tests.lesson.social_sciences_2".tr;
+      case "Genel Yetenek":
+        return "tests.lesson.general_ability".tr;
+      case "Genel Kültür":
+        return "tests.lesson.general_culture".tr;
+      case "İngilizce":
+        return "tests.language.english".tr;
+      case "Almanca":
+        return "tests.language.german".tr;
+      case "Arapça":
+        return "tests.language.arabic".tr;
+      case "Fransızca":
+        return "tests.language.french".tr;
+      case "Rusça":
+        return "tests.language.russian".tr;
+      default:
+        return raw;
+    }
+  }
+
+  String localizedLessons(List<String> lessons) {
+    return lessons.map(localizedLesson).join(", ");
+  }
+
   IconData getIconForDers(String ders) {
     switch (ders) {
       case "Türkçe":

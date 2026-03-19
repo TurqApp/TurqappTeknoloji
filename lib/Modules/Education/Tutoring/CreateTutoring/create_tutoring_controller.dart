@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -149,7 +150,7 @@ class CreateTutoringController extends GetxController {
     ListBottomSheet.show(
       context: Get.context!,
       items: sehirler,
-      title: "Şehir Seç",
+      title: 'tutoring.create.city_select'.tr,
       selectedItem: city.value,
       onSelect: (v) {
         city.value = v.toString();
@@ -171,7 +172,7 @@ class CreateTutoringController extends GetxController {
     ListBottomSheet.show(
       context: Get.context!,
       items: ilceListesi,
-      title: "İlçe Seç",
+      title: 'tutoring.create.district_select'.tr,
       selectedItem: town,
       onSelect: (v) {
         town = v.toString();
@@ -343,11 +344,17 @@ class CreateTutoringController extends GetxController {
         final localFile = File(imagePath);
         final nsfw = await OptimizedNSFWService.checkImage(localFile);
         if (nsfw.errorMessage != null) {
-          AppSnackbar("Hata", "NSFW görsel kontrolü başarısız.");
+          AppSnackbar(
+            'common.error'.tr,
+            'tutoring.create.nsfw_check_failed'.tr,
+          );
           continue;
         }
         if (nsfw.isNSFW) {
-          AppSnackbar("Hata", "Uygunsuz görsel tespit edildi.");
+          AppSnackbar(
+            'common.error'.tr,
+            'tutoring.create.nsfw_detected'.tr,
+          );
           continue;
         }
         final downloadUrl = await WebpUploadService.uploadFileAsWebp(
@@ -378,6 +385,9 @@ class CreateTutoringController extends GetxController {
   }
 
   Future<void> saveTutoring() async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishTutoring)) {
+      return;
+    }
     if (isLoading.value) return;
     isLoading.value = true;
     try {
@@ -388,7 +398,7 @@ class CreateTutoringController extends GetxController {
           selectedLessonPlace.value.isEmpty ||
           cityController.text.isEmpty ||
           selectedGender.value.isEmpty) {
-        AppSnackbar("Hata", "Boş Alanları Doldurunuz!");
+        AppSnackbar('common.error'.tr, 'tutoring.create.fill_required'.tr);
         return;
       }
 
@@ -426,10 +436,10 @@ class CreateTutoringController extends GetxController {
       final docRef = FirebaseFirestore.instance.collection('educators').doc();
       await docRef.set(tutoring.toJson());
       Get.back();
-      AppSnackbar("Başarılı", "Özel ders ilanı paylaşıldı!");
+      AppSnackbar('common.success'.tr, 'tutoring.create.published'.tr);
       clearForm();
     } catch (e) {
-      AppSnackbar("Hata", "İlan paylaşılırken bir hata oluştu.");
+      AppSnackbar('common.error'.tr, 'tutoring.create.publish_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -446,7 +456,7 @@ class CreateTutoringController extends GetxController {
           selectedLessonPlace.value.isEmpty ||
           cityController.text.isEmpty ||
           selectedGender.value.isEmpty) {
-        AppSnackbar("Hata", "Boş Alanları Doldurunuz!");
+        AppSnackbar('common.error'.tr, 'tutoring.create.fill_required'.tr);
         return;
       }
 
@@ -524,14 +534,14 @@ class CreateTutoringController extends GetxController {
             .doc(docId)
             .update(updateData);
         Get.back();
-        AppSnackbar("Başarılı", "İlan güncellendi!");
+        AppSnackbar('common.success'.tr, 'tutoring.create.updated'.tr);
         clearForm();
       } else {
         Get.back();
-        AppSnackbar("Bilgi", "Değişiklik yapılmadı!");
+        AppSnackbar('common.info'.tr, 'tutoring.create.no_changes'.tr);
       }
     } catch (_) {
-      AppSnackbar("Hata", "İlan güncellenirken bir hata oluştu.");
+      AppSnackbar('common.error'.tr, 'tutoring.create.update_failed'.tr);
     } finally {
       isLoading.value = false;
     }

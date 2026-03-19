@@ -184,7 +184,7 @@ extension AgendaControllerResharePart on AgendaController {
         .toSet()
         .toList();
     if (unresolved.isEmpty) return;
-    final profiles = await _userRepository.getUsersRaw(
+    final profiles = await _profileCache.getProfiles(
       unresolved,
       preferCache: true,
       cacheOnly: !ContentPolicy.isConnected,

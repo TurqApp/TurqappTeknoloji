@@ -1,8 +1,7 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
@@ -17,7 +16,7 @@ class HighlightStoryViewerService {
     try {
       final uniqueIds = highlight.storyIds.toSet().toList();
       if (uniqueIds.isEmpty) {
-        AppSnackbar('Bilgi', 'Öne çıkarılanda hikaye yok.');
+        AppSnackbar('common.info'.tr, 'story.highlight_no_stories'.tr);
         return;
       }
 
@@ -49,27 +48,20 @@ class HighlightStoryViewerService {
       }
 
       if (stories.isEmpty) {
-        AppSnackbar(
-            'Bilgi', 'Bu öne çıkarılandaki hikayeler artık mevcut değil.');
+        AppSnackbar('common.info'.tr, 'story.highlight_missing_stories'.tr);
         return;
       }
 
-      final userData = await UserRepository.ensure().getUserRaw(userId) ??
-          const <String, dynamic>{};
-      final nickname = ((userData['nickname'] ?? userData['username'] ?? '')
-              .toString()
-              .trim())
-          .toString();
-      final firstName = (userData['firstName'] ?? '').toString().trim();
-      final lastName = (userData['lastName'] ?? '').toString().trim();
-      final displayName = (userData['displayName'] ?? '').toString().trim();
-      final fullName = '$firstName $lastName'.trim().isNotEmpty
-          ? '$firstName $lastName'.trim()
-          : displayName;
+      final userData = await UserSummaryResolver.ensure().resolve(
+        userId,
+        preferCache: true,
+      );
+      final nickname = userData?.nickname.trim() ?? '';
+      final fullName = userData?.displayName.trim() ?? '';
 
       final storyUser = StoryUserModel(
         nickname: nickname,
-        avatarUrl: resolveAvatarUrl(userData),
+        avatarUrl: userData?.avatarUrl ?? '',
         fullName: fullName,
         userID: userId,
         stories: stories,
@@ -82,7 +74,7 @@ class HighlightStoryViewerService {
         ),
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Öne çıkarılan açılamadı. Lütfen tekrar deneyin.');
+      AppSnackbar('common.error'.tr, 'story.highlight_open_failed'.tr);
     }
   }
 }

@@ -46,7 +46,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                             MaxValueTextInputFormatter(180),
                           ],
                           decoration: InputDecoration(
-                            hintText: "Soru Sayısı",
+                            hintText: 'tests.question_count'.tr,
                             hintStyle: TextStyle(
                               color: Colors.grey,
                               fontFamily: "MontserratMedium",
@@ -78,7 +78,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
           children: [
             Column(
               children: [
-                BackButtons(text: "Sınav Bilgileri"),
+                BackButtons(text: 'tests.create_title'.tr),
                 Expanded(
                   child: RefreshIndicator(
                     color: Colors.white,
@@ -105,8 +105,8 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                     if (r.isNSFW) {
                                       controller.cover.value = null;
                                       AppSnackbar(
-                                        "Yükleme Başarısız!",
-                                        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                                        "tests.create_upload_failed".tr,
+                                        "tests.create_upload_failed".tr,
                                         backgroundColor:
                                             Colors.red.withValues(alpha: 0.7),
                                       );
@@ -166,7 +166,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                                   ).size.width -
                                                   60,
                                               child: Text(
-                                                "Kapak fotoğrafı yüklenemedi. Lütfen tekrar deneyin.",
+                                                'tests.cover_load_failed'.tr,
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color: Colors.red,
@@ -211,7 +211,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                                     ),
                                                   ),
                                                   child: Text(
-                                                    "Kapak Fotoğrafı Seç",
+                                                    'tests.cover_select'.tr,
                                                     style: TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 15,
@@ -236,7 +236,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 15),
                               child: Text(
-                                "Sınav Detayları",
+                                'tests.details'.tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 20,
@@ -266,7 +266,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                         LengthLimitingTextInputFormatter(17),
                                       ],
                                       decoration: InputDecoration(
-                                        hintText: "Sınav İsmi",
+                                        hintText: 'tests.name_hint'.tr,
                                         hintStyle: TextStyle(
                                           color: Colors.grey,
                                           fontFamily: "MontserratMedium",
@@ -305,7 +305,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                         LengthLimitingTextInputFormatter(300),
                                       ],
                                       decoration: InputDecoration(
-                                        hintText: "Açıklama Metni",
+                                        hintText: 'common.description'.tr,
                                         hintStyle: TextStyle(
                                           color: Colors.grey,
                                           fontFamily: "MontserratMedium",
@@ -348,7 +348,11 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "Sınav Sonrası ${controller.public.value ? "Açık" : "Kapalı"}",
+                                            'tests.post_exam_status'.trParams({
+                                              'status': controller.public.value
+                                                  ? 'tests.status.open'.tr
+                                                  : 'tests.status.closed'.tr,
+                                            }),
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontFamily: "MontserratBold",
@@ -395,7 +399,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 15),
                               child: Text(
-                                "Sınav Türleri",
+                                'tests.types'.tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 20,
@@ -556,7 +560,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 15),
                               child: Text(
-                                "Soru Sayıları",
+                                'tests.question_counts'.tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 20,
@@ -573,7 +577,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                         vertical: 10,
                                       ),
                                       child: Text(
-                                        "Ders bilgileri yüklenemedi. Lütfen sınav türünü kontrol edin veya tekrar deneyin.",
+                                        'tests.questions_data_failed'.tr,
                                         style: TextStyle(
                                           color: Colors.red,
                                           fontSize: 15,
@@ -593,7 +597,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 15),
                               child: Text(
-                                "Sınav Tarihi ve Süresi",
+                                'tests.date_duration'.tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 20,
@@ -625,7 +629,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "Sınav Tarihi",
+                                            'tests.date'.tr,
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 15,
@@ -672,7 +676,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "Sınav Saati",
+                                            'tests.time'.tr,
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 15,
@@ -719,7 +723,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "Sınav Süresi",
+                                            'tests.duration'.tr,
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 15,
@@ -780,7 +784,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Devam Et",
+                                                      'common.continue'.tr,
                                                       style: TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 15,
@@ -827,7 +831,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                           ),
                           SizedBox(height: 10),
                           Text(
-                            "Sınav Oluşturuluyor...",
+                            'tests.creating'.tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -913,7 +917,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "Sınav Süresi Seç",
+                                      'tests.duration_select'.tr,
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 20,

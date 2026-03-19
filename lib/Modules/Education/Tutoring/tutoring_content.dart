@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/tutoring_category.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
@@ -17,13 +18,14 @@ class TutoringContent extends StatelessWidget {
     final TutoringController controller = Get.find<TutoringController>();
     final ViewModeController viewModeController =
         Get.find<ViewModeController>();
+    final localizedCategoryName = tutoringBranchLabel(categoryName);
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: categoryName),
+            BackButtons(text: localizedCategoryName),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
@@ -37,7 +39,9 @@ class TutoringContent extends StatelessWidget {
                 if (filteredTutoringList.isEmpty) {
                   return Center(
                     child: Infomessage(
-                      infoMessage: "$categoryName alanında ders bulunamadı.",
+                      infoMessage: 'tutoring.no_lessons_in_category'.trParams({
+                        'category': localizedCategoryName,
+                      }),
                     ),
                   );
                 }

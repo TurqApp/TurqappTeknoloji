@@ -183,7 +183,7 @@ class _SocialProfileState extends State<SocialProfile> {
                                         Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.center,
-                                          children: const [
+                                          children: [
                                             Icon(
                                               CupertinoIcons.lock_fill,
                                               color: Colors.pinkAccent,
@@ -191,7 +191,8 @@ class _SocialProfileState extends State<SocialProfile> {
                                             ),
                                             SizedBox(height: 12),
                                             Text(
-                                              "Bu hesap gizli",
+                                              'profile.private_account_title'
+                                                  .tr,
                                               style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -200,7 +201,8 @@ class _SocialProfileState extends State<SocialProfile> {
                                             ),
                                             SizedBox(height: 6),
                                             Text(
-                                              "Gönderileri görmek için takip et.",
+                                              'social_profile.private_follow_to_see_posts'
+                                                  .tr,
                                               style: TextStyle(
                                                 color: Colors.black54,
                                                 fontSize: 13,
@@ -270,7 +272,8 @@ class _SocialProfileState extends State<SocialProfile> {
                                                     if (combinedPosts.isEmpty)
                                                       EmptyRow(
                                                           text:
-                                                              "Sonuç Bulunamadı"),
+                                                              'common.no_results'
+                                                                  .tr),
                                                   ],
                                                 ),
                                               );
@@ -382,7 +385,7 @@ class _SocialProfileState extends State<SocialProfile> {
                                     ),
                                     SizedBox(height: 12),
                                     Text(
-                                      "Bu kullanıcıyı engellediniz",
+                                      'social_profile.blocked_user'.tr,
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
@@ -582,7 +585,8 @@ class _SocialProfileState extends State<SocialProfile> {
           )
         else
           SliverToBoxAdapter(
-              child: Center(child: EmptyRow(text: "Yeniden paylaşım yok"))),
+              child:
+                  Center(child: EmptyRow(text: 'profile.no_reshares'.tr))),
       ],
     );
   }
@@ -597,7 +601,7 @@ class _SocialProfileState extends State<SocialProfile> {
         children: [
           header(),
           Center(
-            child: EmptyRow(text: "Hiç fotoğraf bulunamadı."),
+            child: EmptyRow(text: 'profile.no_photos'.tr),
           ),
         ],
       );
@@ -697,7 +701,7 @@ class _SocialProfileState extends State<SocialProfile> {
         children: [
           header(),
           Center(
-            child: EmptyRow(text: "Hiç video bulunamadı."),
+            child: EmptyRow(text: 'profile.no_videos'.tr),
           ),
         ],
       );
@@ -881,8 +885,8 @@ class _SocialProfileState extends State<SocialProfile> {
                               await IzBirakSubscriptionService.ensure()
                                   .subscribe(model.docID);
                               AppSnackbar(
-                                'İz Bırak',
-                                'Yayın tarihinde bildirim alacaksınız.',
+                                'profile.scheduled_subscribe_title'.tr,
+                                'profile.scheduled_subscribe_body'.tr,
                               );
                             },
                             child: SizedBox(
@@ -915,7 +919,8 @@ class _SocialProfileState extends State<SocialProfile> {
           )
         else
           SliverToBoxAdapter(
-              child: Center(child: EmptyRow(text: "İz bırak gönderisi yok"))),
+              child: Center(
+                  child: EmptyRow(text: 'profile.scheduled_none'.tr))),
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],
     );

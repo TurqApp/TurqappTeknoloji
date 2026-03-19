@@ -36,19 +36,18 @@ class PersonelInfoView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  BackButtons(text: "Kişisel Bilgiler"),
+                  BackButtons(text: 'personal_info.title'.tr),
                   PullDownButton(
                     itemBuilder: (context) => [
                       PullDownMenuItem(
-                        title: 'Bilgilerimi Sıfırla',
+                        title: 'personal_info.reset_menu'.tr,
                         icon: CupertinoIcons.restart,
                         onTap: () {
                           noYesAlert(
-                            title: "Emin misiniz?",
-                            message:
-                                "Kişisel bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.",
-                            cancelText: "İptal",
-                            yesText: "Sıfırla",
+                            title: 'personal_info.reset_title'.tr,
+                            message: 'personal_info.reset_body'.tr,
+                            cancelText: 'common.cancel'.tr,
+                            yesText: 'common.reset'.tr,
                             onYesPressed: () async {
                               // 1) Controller reset
                               controller.resetToOriginal();
@@ -68,7 +67,8 @@ class PersonelInfoView extends StatelessWidget {
                                       "ulke": "Türkiye",
                                       "nufusSehir": "",
                                       "nufusIlce": "",
-                                      "cinsiyet": "Seçim Yap",
+                                      "cinsiyet":
+                                          controller.defaultSelectValue,
                                       "calismaDurumu": "Çalışmıyor",
                                       "dogumTarihi": "",
                                     },
@@ -79,8 +79,8 @@ class PersonelInfoView extends StatelessWidget {
                               await controller.fetchData();
                               // 4) Başarılı snackbar
                               AppSnackbar(
-                                "Başarılı",
-                                "Kişisel Bilgileriniz sıfırlandı.",
+                                'common.success'.tr,
+                                'personal_info.reset_success'.tr,
                               );
                             },
                           );
@@ -110,7 +110,7 @@ class PersonelInfoView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Nüfusa Kayıtlı İl - İlçe",
+                                  'personal_info.registry_info'.tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 15,
@@ -122,7 +122,7 @@ class PersonelInfoView extends StatelessWidget {
                                   config: controller.fieldConfigs[0], // ulke
                                   controller: controller,
                                 ),
-                                if (controller.county.value == "Türkiye" &&
+                                if (controller.isTurkeySelected &&
                                     controller.county.value.isNotEmpty) ...[
                                   const SizedBox(height: 12),
                                   Row(
@@ -131,7 +131,7 @@ class PersonelInfoView extends StatelessWidget {
                                         child: DropdownField(
                                           config: FieldConfig(
                                             label: "İl",
-                                            title: "İl Seç",
+                                            title: "common.select_city".tr,
                                             value: controller.city,
                                             items: controller.sehirler,
                                             onSelect: (val) =>
@@ -146,7 +146,7 @@ class PersonelInfoView extends StatelessWidget {
                                         child: DropdownField(
                                           config: FieldConfig(
                                             label: "İlçe",
-                                            title: "İlçe Seç",
+                                            title: "common.select_district".tr,
                                             value: controller.town,
                                             items: (() {
                                               final towns = controller
@@ -173,7 +173,7 @@ class PersonelInfoView extends StatelessWidget {
                                 ],
                                 const SizedBox(height: 16),
                                 Text(
-                                  "Doğum Tarihi",
+                                  'scholarship.applicant.birth_date'.tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 15,
@@ -193,7 +193,9 @@ class PersonelInfoView extends StatelessWidget {
                                             controller.selectedDate.value =
                                                 date;
                                           },
-                                          title: 'Doğum Tarihiniz',
+                                          title:
+                                              'personal_info.birth_date_title'
+                                                  .tr,
                                         );
                                       },
                                     );
@@ -215,10 +217,10 @@ class PersonelInfoView extends StatelessWidget {
                                           () => Text(
                                             controller.selectedDate.value ==
                                                     null
-                                                ? "Doğum Tarihi Seç"
+                                                ? 'personal_info.select_birth_date'
+                                                    .tr
                                                 : DateFormat(
                                                     "dd.MM.yyyy",
-                                                    "tr_TR",
                                                   ).format(
                                                     controller
                                                         .selectedDate.value!,
@@ -278,8 +280,8 @@ class PersonelInfoView extends StatelessWidget {
                           ? const CupertinoActivityIndicator(
                               color: Colors.white,
                             )
-                          : const Text(
-                              "Kaydet",
+                          : Text(
+                              'common.save'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.white,
@@ -314,7 +316,7 @@ class DropdownField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          config.label,
+          controller.localizedFieldLabel(config.label),
           style: const TextStyle(
             color: Colors.black,
             fontSize: 15,
@@ -335,9 +337,11 @@ class DropdownField extends StatelessWidget {
               children: [
                 Obx(
                   () => Text(
-                    config.value.value.isEmpty
-                        ? "${config.label} Seç"
-                        : config.value.value,
+                    config.value.value.isEmpty ||
+                            config.value.value ==
+                                controller.defaultSelectValue
+                        ? controller.localizedPlaceholder(config.label)
+                        : controller.localizedStaticValue(config.value.value),
                     style: TextStyle(
                       fontSize: 16,
                       color: config.value.value.isEmpty

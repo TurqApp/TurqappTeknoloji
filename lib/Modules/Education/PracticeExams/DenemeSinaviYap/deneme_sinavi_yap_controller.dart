@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/ders_ve_sonuclar_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
@@ -27,7 +27,7 @@ class DenemeSinaviYapController extends GetxController
   final Function sinaviBitir;
   final Function showGecersizAlert;
   final bool uyariAtla;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
 
@@ -65,8 +65,8 @@ class DenemeSinaviYapController extends GetxController
         sinaviGecersizSay();
       } else {
         AppSnackbar(
-          "Uyarı !",
-          "Uygulamayı arka plana almanız gibi kritik durumlarda, sınavınız geçersiz sayılacaktır. Lütfen dikkatli olun ve kurallara uygun hareket edin.",
+          'common.warning'.tr,
+          'practice.background_warning'.tr,
         );
       }
       hataCount.value += 1;
@@ -78,16 +78,13 @@ class DenemeSinaviYapController extends GetxController
 
   Future<void> fetchUserData() async {
     try {
-      final data = await _userRepository.getUserRaw(
-            FirebaseAuth.instance.currentUser!.uid,
-            preferCache: true,
-          ) ??
-          const <String, dynamic>{};
-      final firstName = (data["firstName"] ?? "").toString();
-      final lastName = (data["lastName"] ?? "").toString();
-      fullName.value = "$firstName $lastName";
+      final data = await _userSummaryResolver.resolve(
+        FirebaseAuth.instance.currentUser!.uid,
+        preferCache: true,
+      );
+      fullName.value = data?.displayName.trim() ?? '';
     } catch (error) {
-      AppSnackbar("Hata", "Kullanıcı bilgileri yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -103,7 +100,7 @@ class DenemeSinaviYapController extends GetxController
       list.value = questions;
       selectedAnswers.value = List<String>.filled(questions.length, "");
     } catch (error) {
-      AppSnackbar("Hata", "Sorular yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -196,7 +193,7 @@ class DenemeSinaviYapController extends GetxController
       Get.back();
       sinaviBitir();
     } catch (error) {
-      AppSnackbar("Hata", "Yanıtlar kaydedilemedi.");
+      AppSnackbar('common.error'.tr, 'practice.answers_save_failed'.tr);
     }
   }
 

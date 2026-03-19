@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
@@ -158,7 +159,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    BackButtons(text: "Sorular"),
+                    BackButtons(text: 'past_questions.questions_title'.tr),
                     Padding(
                       padding: EdgeInsets.only(right: 15),
                       child: Text(
@@ -280,7 +281,12 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                                           Row(
                                                             children: [
                                                               Text(
-                                                                "${questionEntry.value.soruNo}. Soru", // Sorunun index değeri
+                                                                'tests.question_number'.trParams({
+                                                                  'index':
+                                                                      questionEntry
+                                                                          .value
+                                                                          .soruNo,
+                                                                }),
                                                                 style:
                                                                     TextStyle(
                                                                   color: Colors
@@ -463,7 +469,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  "Sınavı Bitir",
+                  'tests.finish_test'.tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -516,7 +522,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    "Testi Tamamladın!",
+                                    'tests.completed_title'.tr,
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 20,
@@ -539,12 +545,21 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     _resultItem(
-                                        "Doğru", _correctCount.toString()),
+                                      'tests.correct'.tr,
+                                      _correctCount.toString(),
+                                    ),
                                     _resultItem(
-                                        "Yanlış", _wrongCount.toString()),
-                                    _resultItem("Boş", _emptyCount.toString()),
+                                      'tests.wrong'.tr,
+                                      _wrongCount.toString(),
+                                    ),
                                     _resultItem(
-                                        "Net", _netScore.toStringAsFixed(2)),
+                                      'tests.blank'.tr,
+                                      _emptyCount.toString(),
+                                    ),
+                                    _resultItem(
+                                      'past_questions.net_label'.tr,
+                                      _netScore.toStringAsFixed(2),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -563,7 +578,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                     ),
                                   ),
                                   child: Text(
-                                    "Soru Çözmeye Devam Et",
+                                    'past_questions.continue_solving'.tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,

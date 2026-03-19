@@ -7,7 +7,7 @@ extension TutoringDetailSectionsPart on TutoringDetail {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Benzer İlanlar", style: TextStyles.bold16Black),
+          Text('tutoring.similar_listings'.tr, style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
             height: (Get.height * 0.30).clamp(206.0, 236.0),
@@ -107,7 +107,7 @@ extension TutoringDetailSectionsPart on TutoringDetail {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    "İlana Git",
+                                    'tutoring.open_listing'.tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -144,7 +144,7 @@ extension TutoringDetailSectionsPart on TutoringDetail {
               ),
             );
           },
-          title: 'İlanı Bildir',
+          title: 'tutoring.report_listing'.tr,
           icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],

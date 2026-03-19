@@ -51,7 +51,7 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                       LengthLimitingTextInputFormatter(100),
                                     ],
                                     decoration: InputDecoration(
-                                      hintText: "Ara",
+                                      hintText: 'common.search'.tr,
                                       hintStyle: TextStyle(
                                         color: Colors.grey,
                                         fontFamily: "Montserrat",
@@ -84,7 +84,7 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                 ? Padding(
                                     padding: EdgeInsets.all(15),
                                     child: Text(
-                                      "Sonuç bulunamadı.",
+                                      'common.no_results'.tr,
                                       style: TextStyle(
                                         fontFamily: "Montserrat",
                                         fontSize: 15,

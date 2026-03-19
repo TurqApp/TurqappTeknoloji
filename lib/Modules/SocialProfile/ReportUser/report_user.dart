@@ -29,7 +29,7 @@ class ReportUser extends StatelessWidget {
           children: [
             Row(children: [
               if (controller.step.value == 0.50)
-                BackButtons(text: "Şikayet Et")
+                BackButtons(text: 'common.report'.tr)
               else
                 GestureDetector(
                   onTap: () {
@@ -45,7 +45,7 @@ class ReportUser extends StatelessWidget {
                         width: 12,
                       ),
                       Text(
-                        "Şikayet Et",
+                        'common.report'.tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 25,
@@ -86,7 +86,7 @@ class ReportUser extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                "Şikayet Edilecek Kullanıcı",
+                'report.reported_user'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -155,7 +155,7 @@ class ReportUser extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Text(
-            "Ne tür bir sorun bildiriyorsun?",
+            'report.what_issue'.tr,
             style: TextStyle(
               color: Colors.black,
               fontSize: 18,
@@ -261,7 +261,7 @@ class ReportUser extends StatelessWidget {
               }
               controller.step.value = 1.0;
             },
-            text: "Devam Et",
+            text: 'common.continue'.tr,
           ),
         )
       ],
@@ -277,8 +277,8 @@ class ReportUser extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "TurqApp'i herkes için daha iyi bir hâle getirmemize katkıda bulunduğunuz için teşekkür ederiz!",
+              Text(
+                'report.thanks_title'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 25,
@@ -287,8 +287,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 4,
               ),
-              const Text(
-                "Vakitinizin değerli olduğunu biliyoruz. Bize vakit ayırdığınız için teşekkür ederiz.",
+              Text(
+                'report.thanks_body'.tr,
                 style: TextStyle(
                     color: Colors.grey,
                     fontSize: 15,
@@ -297,8 +297,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 15,
               ),
-              const Text(
-                "Nasıl ilerliyoruz?",
+              Text(
+                'report.how_it_works_title'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 18,
@@ -307,8 +307,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 4,
               ),
-              const Text(
-                "Bildirimin bize ulaştı. Bildirilen profili akıştan gizleyeceğiz.",
+              Text(
+                'report.how_it_works_body'.tr,
                 style: TextStyle(
                     color: Colors.grey,
                     fontSize: 15,
@@ -317,8 +317,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 15,
               ),
-              const Text(
-                "Şimdi sırada ne var?",
+              Text(
+                'report.whats_next_title'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 18,
@@ -327,8 +327,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 4,
               ),
-              const Text(
-                "Ekibimiz bu profili bir kaç gün içersinde inceleyecek. Bir kural ihlali tespit ettiği taktirde bu hesap kısıtlanacaktır. Eğer bir ihlal tespit edilemez ise bir çok kez geçersiz şikayetler ilettiyseniz, hesabınız kısıtlanacaktır.",
+              Text(
+                'report.whats_next_body'.tr,
                 style: TextStyle(
                     color: Colors.grey,
                     fontSize: 15,
@@ -337,8 +337,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 15,
               ),
-              const Text(
-                "Eğer isterseniz?",
+              Text(
+                'report.optional_block_title'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 18,
@@ -347,8 +347,8 @@ class ReportUser extends StatelessWidget {
               const SizedBox(
                 height: 4,
               ),
-              const Text(
-                "Bu profili engelleyebilirsiniz. Engellemeniz durumunda, bu kullanıcı bir daha akışınızda hiçbir şekilde görünmeyecektir.",
+              Text(
+                'report.optional_block_body'.tr,
                 style: TextStyle(
                     color: Colors.grey,
                     fontSize: 15,
@@ -372,7 +372,9 @@ class ReportUser extends StatelessWidget {
                         border: Border.all(
                             color: Colors.grey.withValues(alpha: 0.5))),
                     child: Text(
-                      "@${controller.nickname.value} kullanıcısını engelle",
+                      'report.block_user_button'.trParams({
+                        'nickname': controller.nickname.value,
+                      }),
                       style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -382,7 +384,9 @@ class ReportUser extends StatelessWidget {
                 )
               else
                 Text(
-                  "@${controller.nickname.value} engellendi!",
+                  'report.blocked_user_label'.trParams({
+                    'nickname': controller.nickname.value,
+                  }),
                   style: const TextStyle(
                     color: Colors.red,
                     fontSize: 15,
@@ -395,7 +399,9 @@ class ReportUser extends StatelessWidget {
                 height: 15,
               ),
               Text(
-                "${controller.nickname.value} adlı kullanıcını seni takip etmesini, mesaj göndermesini engelle. Herkese açık gönderilerini görebilir ancak seninle etkileşim kuramaz. Bununla birlikte ${controller.nickname.value} kişisinin gönderilerini göremezsin.",
+                'report.block_user_info'.trParams({
+                  'nickname': controller.nickname.value,
+                }),
                 style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 15,
@@ -410,8 +416,8 @@ class ReportUser extends StatelessWidget {
                     controller.report();
                   },
                   text: controller.isSubmitting.value
-                      ? "Gönderiliyor..."
-                      : "Bitti",
+                      ? 'report.submitting'.tr
+                      : 'report.done'.tr,
                 );
               }),
               SizedBox(
