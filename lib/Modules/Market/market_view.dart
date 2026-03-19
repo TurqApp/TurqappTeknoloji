@@ -510,13 +510,6 @@ class MarketView extends StatelessWidget {
                   ),
                 ];
 
-                if (compact) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: children,
-                  );
-                }
-
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: children,
@@ -596,7 +589,7 @@ class MarketView extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  actionButtons(),
+                                  if (!compact) actionButtons(),
                                 ],
                               ),
                               const SizedBox(height: 6),
@@ -671,6 +664,13 @@ class MarketView extends StatelessWidget {
                               ),
                             ],
                           ),
+                          if (compact) ...[
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: actionButtons(),
+                            ),
+                          ],
                         ],
                       ),
                     ),
