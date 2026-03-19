@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
@@ -14,7 +15,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
@@ -35,6 +36,8 @@ class JobDetailsController extends GetxController {
   final reviewUsers = <String, Map<String, dynamic>>{}.obs;
   final UserRepository _userRepository = UserRepository.ensure();
   final CvRepository _cvRepository = CvRepository.ensure();
+  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
+      JobHomeSnapshotRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();
 
   JobDetailsController({required JobModel model}) : model = model.obs;
@@ -122,9 +125,12 @@ class JobDetailsController extends GetxController {
   }
 
   Future<void> toggleSave(String docId) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveJob)) {
+      return;
+    }
     final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
     if (uid.isEmpty) {
-      AppSnackbar('Hata', 'Lütfen tekrar giriş yapın.');
+      AppSnackbar('common.error'.tr, 'pasaj.job_finder.relogin_required'.tr);
       return;
     }
 
@@ -138,7 +144,10 @@ class JobDetailsController extends GetxController {
         saved.value = true;
       }
     } catch (_) {
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.save_failed'.tr,
+      );
     }
   }
 
@@ -148,7 +157,10 @@ class JobDetailsController extends GetxController {
     final canShare =
         AdminAccessService.isKnownAdminSync() || uid == current.userID;
     if (!canShare) {
-      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      AppSnackbar(
+        'common.info'.tr,
+        'pasaj.job_finder.share_auth_required'.tr,
+      );
       return;
     }
     await ShareActionGuard.run(() async {
@@ -191,14 +203,14 @@ class JobDetailsController extends GetxController {
         return;
       }
 
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
+      final result = await _jobHomeSnapshotRepository.search(
         query: query,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 20,
+        forceSync: true,
       );
 
-      final jobs = result.hits
-          .map(JobModel.fromTypesenseHit)
+      final jobs = (result.data ?? const <JobModel>[])
           .where((job) => _isSimilarJob(current, job))
           .take(8)
           .toList(growable: false);
@@ -220,15 +232,14 @@ class JobDetailsController extends GetxController {
         orElse: () => current.meslek.trim(),
       );
       if (query.isEmpty) return;
-      final cached = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
+      final cached = await _jobHomeSnapshotRepository.search(
         query: query,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 20,
-        cacheOnly: true,
       );
-      if (cached.hits.isNotEmpty) {
-        final jobs = cached.hits
-            .map(JobModel.fromTypesenseHit)
+      final cachedJobs = cached.data ?? const <JobModel>[];
+      if (cachedJobs.isNotEmpty) {
+        final jobs = cachedJobs
             .where((job) => _isSimilarJob(current, job))
             .take(8)
             .toList(growable: false);
@@ -306,13 +317,22 @@ class JobDetailsController extends GetxController {
     required int rating,
     required String comment,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.reviewJob)) {
+      return false;
+    }
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
-      AppSnackbar('Hata', 'Değerlendirme için tekrar giriş yapın.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.review_relogin_required'.tr,
+      );
       return false;
     }
     if (uid == model.value.userID) {
-      AppSnackbar('Bilgi', 'Kendi ilanınızı değerlendiremezsiniz.');
+      AppSnackbar(
+        'common.info'.tr,
+        'pasaj.job_finder.review_own_forbidden'.tr,
+      );
       return false;
     }
 
@@ -325,10 +345,16 @@ class JobDetailsController extends GetxController {
       );
       await _jobRepository.refreshAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
-      AppSnackbar('Başarılı', 'Değerlendirmeniz kaydedildi.');
+      AppSnackbar(
+        'common.success'.tr,
+        'pasaj.job_finder.review_saved'.tr,
+      );
       return true;
     } catch (_) {
-      AppSnackbar('Hata', 'Değerlendirme kaydedilemedi.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.review_save_failed'.tr,
+      );
       return false;
     }
   }
@@ -341,9 +367,15 @@ class JobDetailsController extends GetxController {
       );
       await _jobRepository.refreshAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
-      AppSnackbar('Bilgi', 'Değerlendirmeniz kaldırıldı.');
+      AppSnackbar(
+        'common.info'.tr,
+        'pasaj.job_finder.review_deleted'.tr,
+      );
     } catch (_) {
-      AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.review_delete_failed'.tr,
+      );
     }
   }
 
@@ -363,14 +395,14 @@ class JobDetailsController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const AppSheetHeader(title: 'Haritalarda Aç'),
+              AppSheetHeader(title: 'pasaj.job_finder.open_in_maps'.tr),
               AppSheetActionTile(
                 leading: Image.asset(
                   'assets/icons/googlemaps.webp',
                   width: 30,
                   height: 30,
                 ),
-                title: 'Google Haritalar\'da Aç',
+                title: 'pasaj.job_finder.open_google_maps'.tr,
                 onTap: () async {
                   final url = Uri.parse(
                       'https://www.google.com/maps/search/?api=1&query=$lat,$long');
@@ -387,7 +419,7 @@ class JobDetailsController extends GetxController {
                     width: 30,
                     height: 30,
                   ),
-                  title: 'Apple Haritalar\'da Aç',
+                  title: 'pasaj.job_finder.open_apple_maps'.tr,
                   onTap: () async {
                     final url =
                         Uri.parse('http://maps.apple.com/?q=$lat,$long');
@@ -404,7 +436,7 @@ class JobDetailsController extends GetxController {
                   width: 30,
                   height: 30,
                 ),
-                title: 'Yandex Haritalar\'da Aç',
+                title: 'pasaj.job_finder.open_yandex_maps'.tr,
                 onTap: () async {
                   final appUrl = Uri.parse(
                       'yandexmaps://maps.yandex.ru/?ll=$long,$lat&z=10');
@@ -448,7 +480,7 @@ class JobDetailsController extends GetxController {
   Future<void> toggleBasvuru(String docId) async {
     final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
     if (uid.isEmpty) {
-      AppSnackbar('Hata', 'Başvuru için tekrar giriş yapın.');
+      AppSnackbar('common.error'.tr, 'pasaj.job_finder.relogin_required'.tr);
       return;
     }
     try {
@@ -477,10 +509,16 @@ class JobDetailsController extends GetxController {
       );
       basvuruldu.value = !wasApplied;
       if (!wasApplied) {
-        AppSnackbar('Başarılı', 'Başvurun gönderildi.');
+        AppSnackbar(
+          'common.success'.tr,
+          'pasaj.job_finder.application_sent'.tr,
+        );
       }
     } catch (_) {
-      AppSnackbar('Hata', 'Başvuru sırasında bir sorun oluştu.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.application_failed'.tr,
+      );
     }
   }
 
@@ -514,7 +552,9 @@ class JobDetailsController extends GetxController {
     final existing = await _jobRepository.fetchById(docId,
         preferCache: false, forceRefresh: true);
 
-    if (existing == null) throw Exception('İlan bulunamadı');
+    if (existing == null) {
+      throw Exception('pasaj.job_finder.listing_not_found'.tr);
+    }
 
     await _jobRepository.unpublishJob(docId);
 

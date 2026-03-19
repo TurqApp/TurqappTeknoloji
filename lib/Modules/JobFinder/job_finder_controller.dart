@@ -6,10 +6,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
@@ -17,10 +18,13 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 class JobFinderController extends GetxController {
-  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static const int _fullBootstrapLimit = 150;
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_job_listing_selection';
+  static const String _allTurkeyRaw = 'Tüm Türkiye';
 
+  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
+      JobHomeSnapshotRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
@@ -33,12 +37,12 @@ class JobFinderController extends GetxController {
   // Tab management
   final innerTabIndex = 0.obs;
   final innerPageController = PageController();
-  final innerTabTitles = [
-    "Keşfet",
-    "İlan Ver",
-    "Başvurularım",
-    "Kariyer Profili"
-  ];
+  List<String> get innerTabTitles => [
+        'pasaj.job_finder.tab.explore'.tr,
+        'pasaj.job_finder.tab.create'.tr,
+        'pasaj.job_finder.tab.applications'.tr,
+        'pasaj.job_finder.tab.career_profile'.tr,
+      ];
 
   RxList<JobModel> allJobs = <JobModel>[].obs;
   RxList<JobModel> list = <JobModel>[].obs;
@@ -58,6 +62,16 @@ class JobFinderController extends GetxController {
   double? _userLat;
   double? _userLong;
   Position? _lastResolvedPosition;
+  StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
+  Timer? _deferredLocationTimer;
+
+  String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
+  bool _isAllTurkey(String value) =>
+      value.trim().isEmpty ||
+      value == _allTurkeyRaw ||
+      value == _allTurkeyLabel;
+  String _displayCity(String value) =>
+      _isAllTurkey(value) ? _allTurkeyLabel : value;
 
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
@@ -103,6 +117,8 @@ class JobFinderController extends GetxController {
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
+    _deferredLocationTimer?.cancel();
     innerPageController.dispose();
     search.dispose();
     super.onClose();
@@ -150,16 +166,17 @@ class JobFinderController extends GetxController {
     final requestId = ++_searchRequestId;
     isLoading.value = true;
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
+      final resource = await _jobHomeSnapshotRepository.search(
         query: query,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (requestId != _searchRequestId || search.text.trim() != query) return;
 
-      final results = _jobsFromTypesenseHits(result.hits);
+      final results = resource.data ?? const <JobModel>[];
       if (requestId != _searchRequestId || search.text.trim() != query) return;
-      aramaSonucu.assignAll(results);
+      aramaSonucu.assignAll(_applyDistanceToJobs(results));
     } catch (_) {
       if (requestId == _searchRequestId) {
         aramaSonucu.clear();
@@ -172,51 +189,33 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> _bootstrapStartData() async {
-    try {
-      final cached = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
-        query: '*',
-        limit: 150,
-        cacheOnly: true,
-      );
-      final cachedJobs = _jobsFromTypesenseHits(cached.hits);
-      if (cachedJobs.isNotEmpty) {
-        list.assignAll(cachedJobs);
-        allJobs.assignAll(cachedJobs);
-        isLoading.value = false;
-        unawaited(_hydrateLocationAndResort(
-          cachedJobs,
-          allowPermissionPrompt: false,
-        ));
-        if (SilentRefreshGate.shouldRefresh(
-          'jobs:home',
-          minInterval: _silentRefreshInterval,
-        )) {
-          unawaited(getStartData(silent: true, forceRefresh: true));
-        }
-        return;
-      }
-    } catch (_) {}
-
-    await getStartData();
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _jobHomeSnapshotRepository
+        .openHome(
+          userId: currentUid,
+          limit: _fullBootstrapLimit,
+        )
+        .listen(_applyHomeSnapshotResource);
   }
 
   Future<void> getStartData({
     bool silent = false,
     bool forceRefresh = false,
+    int limit = _fullBootstrapLimit,
+    bool deferLocationHydration = false,
   }) async {
     final shouldShowLoader = !silent && list.isEmpty;
     if (shouldShowLoader) {
       isLoading.value = true;
     }
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
-        query: '*',
-        limit: 150,
-        forceRefresh: forceRefresh,
+      final resource = await _jobHomeSnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        limit: limit,
+        forceSync: forceRefresh,
       );
-      final fetchedJobs = _jobsFromTypesenseHits(result.hits);
+      final fetchedJobs = resource.data ?? const <JobModel>[];
       list.assignAll(fetchedJobs);
       allJobs.assignAll(fetchedJobs);
       SilentRefreshGate.markRefreshed('jobs:home');
@@ -224,16 +223,31 @@ class JobFinderController extends GetxController {
         isLoading.value = false;
       }
 
-      unawaited(_hydrateLocationAndResort(
-        fetchedJobs,
-        allowPermissionPrompt: false,
-      ));
+      if (deferLocationHydration) {
+        _scheduleLocationHydration(fetchedJobs);
+      } else {
+        unawaited(_hydrateLocationAndResort(
+          fetchedJobs,
+          allowPermissionPrompt: false,
+        ));
+      }
     } catch (_) {
     } finally {
       if (shouldShowLoader || list.isEmpty) {
         isLoading.value = false;
       }
     }
+  }
+
+  void _scheduleLocationHydration(List<JobModel> sourceJobs) {
+    _deferredLocationTimer?.cancel();
+    _deferredLocationTimer = Timer(const Duration(milliseconds: 450), () {
+      if (isClosed) return;
+      unawaited(_hydrateLocationAndResort(
+        sourceJobs,
+        allowPermissionPrompt: false,
+      ));
+    });
   }
 
   Future<void> _hydrateLocationAndResort(
@@ -364,18 +378,18 @@ class JobFinderController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AppSheetHeader(title: "Sıralama"),
-                buildRow(0, "En Yeni", () {
+                AppSheetHeader(title: "pasaj.job_finder.sort_title".tr),
+                buildRow(0, "pasaj.job_finder.sort_newest".tr, () {
                   short.value = 0;
                   applySorting(list);
                   Navigator.of(sheetContext).pop();
                 }),
-                buildRow(1, "Bana En Yakın", () {
+                buildRow(1, "pasaj.job_finder.sort_nearest_me".tr, () {
                   short.value = 1;
                   applySorting(list);
                   Navigator.of(sheetContext).pop();
                 }),
-                buildRow(2, "En Çok Görüntülenen", () {
+                buildRow(2, "pasaj.job_finder.sort_most_viewed".tr, () {
                   short.value = 2;
                   applySorting(list);
                   Navigator.of(sheetContext).pop();
@@ -423,14 +437,14 @@ class JobFinderController extends GetxController {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppSheetHeader(title: "Filtreler"),
-                  const Text(
-                    "Çalışma Türü",
-                    style: TextStyle(fontFamily: "MontserratMedium"),
+                  AppSheetHeader(title: "pasaj.market.filter.title".tr),
+                  Text(
+                    "pasaj.job_finder.create.work_type".tr,
+                    style: const TextStyle(fontFamily: "MontserratMedium"),
                   ),
                   const SizedBox(height: 8),
                   ...types.map((type) => buildFilterRow(
-                        type,
+                        _workTypeLabel(type),
                         selectedType.value == type,
                         () {
                           selectedType.value =
@@ -443,8 +457,7 @@ class JobFinderController extends GetxController {
                       filtre.value = true;
 
                       final filtered = allJobs.where((job) {
-                        final matchCity = sehir.value.isEmpty ||
-                            sehir.value == "Tüm Türkiye" ||
+                        final matchCity = _isAllTurkey(sehir.value) ||
                             job.city == sehir.value;
                         final matchType = selectedType.value.isEmpty ||
                             job.calismaTuru
@@ -466,9 +479,9 @@ class JobFinderController extends GetxController {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       alignment: Alignment.center,
-                      child: const Text(
-                        "Filtreyi Uygula",
-                        style: TextStyle(
+                      child: Text(
+                        "pasaj.market.filter.apply".tr,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontFamily: "MontserratBold",
                         ),
@@ -484,10 +497,10 @@ class JobFinderController extends GetxController {
                       applySorting(list);
                       Navigator.of(sheetContext).pop();
                     },
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        "Filtreleri Temizle",
-                        style: TextStyle(
+                        "pasaj.job_finder.clear_filters".tr,
+                        style: const TextStyle(
                           color: Colors.red,
                           fontFamily: "MontserratMedium",
                         ),
@@ -517,18 +530,26 @@ class JobFinderController extends GetxController {
     }
   }
 
-  List<JobModel> _jobsFromTypesenseHits(List<Map<String, dynamic>> hits) {
-    final jobs = <JobModel>[];
-    final seen = <String>{};
-    for (final hit in hits) {
-      final job = _attachDistance(JobModel.fromTypesenseHit(hit));
-      if (job.docID.isEmpty || seen.contains(job.docID) || job.ended) {
-        continue;
-      }
-      seen.add(job.docID);
-      jobs.add(job);
+  List<JobModel> _applyDistanceToJobs(List<JobModel> jobs) {
+    return jobs.map(_attachDistance).toList(growable: false);
+  }
+
+  void _applyHomeSnapshotResource(CachedResource<List<JobModel>> resource) {
+    final jobs = resource.data ?? const <JobModel>[];
+    if (jobs.isNotEmpty) {
+      final withDistance = _applyDistanceToJobs(jobs);
+      list.assignAll(withDistance);
+      allJobs.assignAll(withDistance);
+      _scheduleLocationHydration(withDistance);
     }
-    return jobs;
+
+    if (!resource.isRefreshing || jobs.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (list.isEmpty) {
+      isLoading.value = true;
+    }
   }
 
   Widget buildFilterRow(String text, bool isSelected, VoidCallback onSelected) {
@@ -568,6 +589,22 @@ class JobFinderController extends GetxController {
         ),
       ),
     );
+  }
+
+  String _workTypeLabel(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'tam zamanlı':
+        return 'pasaj.job_finder.work_type.full_time'.tr;
+      case 'yarı zamanlı':
+      case 'part-time':
+        return 'pasaj.job_finder.work_type.part_time'.tr;
+      case 'uzaktan':
+        return 'pasaj.job_finder.work_type.remote'.tr;
+      case 'hibrit':
+        return 'pasaj.job_finder.work_type.hybrid'.tr;
+      default:
+        return value;
+    }
   }
 
   Widget buildRow(int selection, String text, VoidCallback onSelected) {
@@ -641,12 +678,14 @@ class JobFinderController extends GetxController {
       }
     }
     final others = uniqueCities
-        .where((city) => !pinned.contains(city) && city != "Tüm Türkiye")
+        .where((city) => !pinned.contains(city) && !_isAllTurkey(city))
         .toList();
     sortTurkishStrings(others);
     final visibleCities = <String>[
-      if (uniqueCities.contains("Tüm Türkiye")) "Tüm Türkiye",
-      ...pinned.where((city) => city.isNotEmpty && city != "Tüm Türkiye"),
+      if (uniqueCities.any(_isAllTurkey)) _allTurkeyLabel,
+      ...pinned
+          .where((city) => city.isNotEmpty && !_isAllTurkey(city))
+          .map(_displayCity),
       ...others,
     ];
     Get.bottomSheet(
@@ -654,7 +693,7 @@ class JobFinderController extends GetxController {
         height: Get.height / 2,
         child: ListBottomSheet(
           list: visibleCities,
-          title: "Şehir Seç",
+          title: "pasaj.job_finder.select_city".tr,
           startSelection: sehir.value,
           onBackData: (v) {
             sehir.value = v;
@@ -662,7 +701,7 @@ class JobFinderController extends GetxController {
             filtre.value = false;
             short.value = 0;
 
-            if (v == "Tüm Türkiye" || v.isEmpty) {
+            if (_isAllTurkey(v)) {
               list.value = allJobs.where((job) => !job.ended).toList();
             } else {
               list.value =

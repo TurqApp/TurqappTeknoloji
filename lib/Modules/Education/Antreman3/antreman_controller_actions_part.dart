@@ -55,17 +55,17 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.workout,
+      final result = await _questionBankSnapshotRepository.search(
         query: normalized,
+        userId: _activeUid,
         limit: 40,
+        forceSync: true,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
 
-      final results = result.hits
-          .map(QuestionBankModel.fromTypesenseHit)
+      final results = (result.data ?? const <QuestionBankModel>[])
           .where((item) => item.active)
           .toList(growable: false);
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
@@ -454,12 +454,6 @@ extension AntremanControllerActionsPart on AntremanController {
     return '$anaBaslik|$sinavTuru|$ders';
   }
 
-  String _typesenseFilterValue(String raw) {
-    final value = raw.trim();
-    if (value.isEmpty) return '';
-    return '`${value.replaceAll('`', '\\`')}`';
-  }
-
   int _gcd(int a, int b) {
     while (b != 0) {
       final t = b;
@@ -495,36 +489,12 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<List<QuestionBankModel>> _fetchCategoryPoolDocs(
       String anaBaslik, String sinavTuru, String ders,
       {int? limit}) async {
-    final filterBy = [
-      'active:=true',
-      'anaBaslik:=${_typesenseFilterValue(anaBaslik)}',
-      'sinavTuru:=${_typesenseFilterValue(sinavTuru)}',
-      'ders:=${_typesenseFilterValue(ders)}',
-    ].join(' && ');
-    final docs = <QuestionBankModel>[];
-    final perPage = limit == null ? 250 : limit.clamp(1, 250);
-    var page = 1;
-
-    while (true) {
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.workout,
-        query: '*',
-        limit: perPage,
-        page: page,
-        filterBy: filterBy,
-        sortBy: 'seq:asc',
-      );
-      docs.addAll(result.hits.map(QuestionBankModel.fromTypesenseHit));
-      if (limit != null && docs.length >= limit) {
-        break;
-      }
-      if (result.hits.length < perPage) {
-        break;
-      }
-      page += 1;
-    }
-
-    return limit == null ? docs : docs.take(limit).toList(growable: false);
+    return _questionBankSnapshotRepository.fetchCategoryPoolDocs(
+      anaBaslik,
+      sinavTuru,
+      ders,
+      limit: limit,
+    );
   }
 
   Future<void> _fillCategoryPoolInBackground(

@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/question_bank_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -30,6 +30,8 @@ class AntremanController extends GetxController {
       'antreman_category_cache_time_';
   static const Duration _categoryCacheTtl = Duration(hours: 12);
   static const int _mainCategoryWarmupLimit = 10;
+  final QuestionBankSnapshotRepository _questionBankSnapshotRepository =
+      QuestionBankSnapshotRepository.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   String get _activeUid {
