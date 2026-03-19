@@ -162,14 +162,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         _pauseFeedBeforeFullscreen();
                                         setPauseBlocked(true);
                                         _setFullscreenState(true);
-                                        final res = await Get.to(() =>
-                                            SingleShortView(
-                                              startModel: widget.model,
-                                              startList: listForFullscreen,
-                                              initialPosition: currentPos,
-                                              injectedController:
-                                                  videoController,
-                                            ));
+                                        final res =
+                                            await Get.to(() => SingleShortView(
+                                                  startModel: widget.model,
+                                                  startList: listForFullscreen,
+                                                  initialPosition: currentPos,
+                                                  injectedController:
+                                                      videoController,
+                                                ));
                                         setPauseBlocked(false);
                                         _setFullscreenState(false);
 
@@ -228,7 +228,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               ? const SizedBox.shrink()
                                               : videoController!.buildPlayer(
                                                   key: ValueKey(
-                                                      'agenda-${widget.model.docID}-${videoController.hashCode}'),
+                                                      'agenda-$controllerTag'),
                                                   aspectRatio: displayAspect,
                                                   useAspectRatio: false,
                                                 ),
@@ -782,8 +782,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
               ],
             ),
             12.ph,
-            const Text(
-              "Gönderi Gizlendi",
+            Text(
+              'post_state.hidden_title'.tr,
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -798,8 +798,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
             SizedBox(
               height: 7,
             ),
-            const Text(
-              "Bu gönderi gizlendi. Bunun gibi gönderileri akışında daha altlarda göreceksin.",
+            Text(
+              'post_state.hidden_body'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.black, fontSize: 12, fontFamily: "Montserrat"),
@@ -812,8 +812,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                 controller.gizlemeyiGeriAl();
                 videoController?.play();
               },
-              child: const Text(
-                "Geri Al",
+              child: Text(
+                'common.undo'.tr,
                 style: TextStyle(
                     color: Colors.blueAccent,
                     fontSize: 15,
@@ -847,8 +847,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
             const SizedBox(
               height: 12,
             ),
-            const Text(
-              "Gönderi Arşivlendi",
+            Text(
+              'post_state.archived_title'.tr,
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -861,8 +861,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
             SizedBox(
               height: 7,
             ),
-            const Text(
-              "Bu gönderiyi arşivlediniz.\nArtık kimseye bu gönderi gözükmeyecektir.",
+            Text(
+              'post_state.archived_body'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.black, fontSize: 12, fontFamily: "Montserrat"),
@@ -875,8 +875,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                 controller.arsivdenCikart();
                 videoController?.play();
               },
-              child: const Text(
-                "Geri Al",
+              child: Text(
+                'common.undo'.tr,
                 style: TextStyle(
                     color: Colors.blueAccent,
                     fontSize: 15,
@@ -910,8 +910,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
             const SizedBox(
               height: 12,
             ),
-            const Text(
-              "Gönderi Sildiniz",
+            Text(
+              'post_state.deleted_title'.tr,
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -924,8 +924,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
             SizedBox(
               height: 7,
             ),
-            const Text(
-              "Bu gönderi artık yayında değil.",
+            Text(
+              'post_state.deleted_body'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.black, fontSize: 12, fontFamily: "Montserrat"),

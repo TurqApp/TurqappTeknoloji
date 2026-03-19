@@ -132,7 +132,6 @@ class _ShortViewState extends State<ShortView> {
   bool _showOverlayControls = true;
   bool _didInitialAttach = false;
   bool _isTransitioning = false;
-  bool _isRefreshing = false;
   bool _manualSnapInProgress = false;
   List<PostsModel> _cachedShorts = [];
   double _manualGestureDragDy = 0.0;
@@ -506,7 +505,6 @@ class _ShortViewState extends State<ShortView> {
     if (!mounted ||
         _manualSnapInProgress ||
         _isTransitioning ||
-        _isRefreshing ||
         _cachedShorts.isEmpty) {
       return;
     }
@@ -641,37 +639,6 @@ class _ShortViewState extends State<ShortView> {
     super.dispose();
   }
 
-  Future<void> _handleRefresh() async {
-    if (_isRefreshing) return;
-
-    _isRefreshing = true;
-    HapticFeedback.mediumImpact();
-
-    try {
-      await controller.refreshShorts();
-      HapticFeedback.lightImpact();
-
-      currentPage = 0;
-      isManuallyPaused = false;
-      _isTransitioning = false;
-      _cachedShorts = List<PostsModel>.from(controller.shorts);
-
-      if (pageController.hasClients) {
-        pageController.jumpToPage(0);
-      }
-
-      setState(() {});
-
-      if (controller.shorts.isNotEmpty) {
-        _startAutoPlayCurrentVideo();
-      }
-    } catch (e) {
-      // Refresh hatası — sessizce devam et
-    } finally {
-      _isRefreshing = false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Obx sadece isRefreshing ve isLoading için — liste reaktivitesi ever() ile
@@ -782,7 +749,7 @@ class _ShortViewState extends State<ShortView> {
                 final videoWidget = isActivePage
                     ? _buildFullscreenVideoSurface(
                         vp,
-                        'vp-${list[idx].docID}-${vp.hashCode}',
+                        'vp-${list[idx].docID}',
                         modelAspectRatio: modelAr,
                       )
                     : const SizedBox.shrink();
@@ -905,16 +872,7 @@ class _ShortViewState extends State<ShortView> {
               },
             ),
           );
-          final content = currentPage == 0
-              ? RefreshIndicator(
-                  onRefresh: _handleRefresh,
-                  backgroundColor: Colors.transparent,
-                  color: Colors.white,
-                  strokeWidth: 3.0,
-                  displacement: 50.0,
-                  child: pager,
-                )
-              : pager;
+          final content = pager;
 
           return Stack(
             children: [

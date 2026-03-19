@@ -31,14 +31,14 @@ class RecommendedUserListController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Lazy-load: RecommendedUserList görünürlüğe yaklaştığında tetiklenecek
-    // İlk yükleme için arka planda cache'e al
+    // İlk feed turunda slotun en sona düşmüş gibi görünmemesi için
+    // ön yüklemeyi geciktirmeden başlat.
     _preloadInBackground();
   }
 
   /// Arka planda sessizce cache'e al
   void _preloadInBackground() {
-    Future.delayed(const Duration(seconds: 1), () async {
+    Future.microtask(() async {
       try {
         await ensureLoaded(limit: usersLimitInitial);
       } catch (_) {

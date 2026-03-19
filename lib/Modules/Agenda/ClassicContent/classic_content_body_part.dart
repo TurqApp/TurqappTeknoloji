@@ -537,8 +537,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     child: _isFullscreen
                         ? const SizedBox.shrink()
                         : videoController!.buildPlayer(
-                            key: ValueKey(
-                                'classic-${widget.model.docID}-${videoController.hashCode}'),
+                            key: ValueKey('classic-$controllerTag'),
                             aspectRatio: frameAspectRatio,
                             useAspectRatio: false,
                           ),

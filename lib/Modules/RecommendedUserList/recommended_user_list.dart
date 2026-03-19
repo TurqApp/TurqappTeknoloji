@@ -15,7 +15,7 @@ class RecommendedUserList extends StatefulWidget {
 }
 
 class _RecommendedUserListState extends State<RecommendedUserList> {
-  late final PageController _pageController;
+  late final ScrollController _scrollController;
   bool _prefetchRequested = false;
   RecommendedUserListController get controller {
     if (Get.isRegistered<RecommendedUserListController>()) {
@@ -27,14 +27,14 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.45, keepPage: true);
+    _scrollController = ScrollController(keepScrollOffset: false);
     // İlk frame’den sonra görünürlüğe yakınsa prefetch et
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -44,12 +44,12 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
 
     return Obx(() {
-      // Loading durumu: placeholder göster
-      if (controller.isLoading.value && controller.list.isEmpty) {
+      // Slot akışta sabit kalsın; veri gelene kadar placeholder göster.
+      if (controller.list.isEmpty && !controller.hasError.value) {
         return _buildLoadingPlaceholder();
       }
 
-      // Liste boşsa hiçbir şey gösterme
+      // Hata varsa sessizce gizle
       if (controller.list.isEmpty) {
         return const SizedBox.shrink();
       }
@@ -87,18 +87,18 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
           SizedBox(
             height: (MediaQuery.of(context).size.height * 0.245)
                 .clamp(170.0, 205.0),
-            child: PageView.builder(
-              padEnds: false,
-              controller: _pageController,
+            child: ListView.separated(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               itemCount: showItems.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final model = showItems[index];
-                return Padding(
-                  padding: EdgeInsets.only(left: index == 0 ? 15 : 0),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: RecommendedUserContent(model: model),
-                  ),
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width * 0.44)
+                      .clamp(150.0, 186.0),
+                  child: RecommendedUserContent(model: model),
                 );
               },
             ),

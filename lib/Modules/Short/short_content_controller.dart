@@ -68,6 +68,8 @@ class ShortContentController extends GetxController {
   PostRepositoryState? _postState;
   Worker? _interactionWorker;
   Worker? _postDataWorker;
+  Timer? _deleteFadeTimer;
+  Timer? _deleteRemoveTimer;
 
   @override
   void onInit() {
@@ -89,18 +91,22 @@ class ShortContentController extends GetxController {
 
     // Record view and load user interaction status
     Future.microtask(() {
+      if (isClosed) return;
       _interactionService.recordView(model.docID);
       _loadUserInteractionStatus();
     });
 
     // Bind listeners
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
       _bindPostStatsListener();
     });
   }
 
   @override
   void onClose() {
+    _deleteFadeTimer?.cancel();
+    _deleteRemoveTimer?.cancel();
     _interactionWorker?.dispose();
     _postDataWorker?.dispose();
     _postRepository.releasePost(model.docID);
@@ -123,8 +129,7 @@ class ShortContentController extends GetxController {
     try {
       _postState ??= _postRepository.attachPost(model);
       _syncSharedInteractionState();
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // Bind to real-time stats updates
@@ -133,7 +138,7 @@ class ShortContentController extends GetxController {
     _postDataWorker?.dispose();
     _postDataWorker =
         ever<Map<String, dynamic>?>(_postState!.latestPostData, (data) {
-      if (data == null) return;
+      if (isClosed || data == null) return;
       final stats = data['stats'] as Map<String, dynamic>? ?? const {};
       likeCount.value = ((stats['likeCount'] ?? 0) as num)
           .toInt()
@@ -172,7 +177,7 @@ class ShortContentController extends GetxController {
   }
 
   void _syncSharedInteractionState() {
-    if (_postState == null) return;
+    if (isClosed || _postState == null) return;
     isLiked.value = _postState!.liked.value;
     isSaved.value = _postState!.saved.value;
     isReshared.value = _postState!.reshared.value;
@@ -368,15 +373,20 @@ class ShortContentController extends GetxController {
 
   Future<void> sil() async {
     await PostDeleteService.instance.softDelete(model);
+    if (isClosed) return;
     silindi.value = true; // UI overlay
 
     // Yumuşak fade-out
-    Future.delayed(const Duration(milliseconds: 2600), () {
+    _deleteFadeTimer?.cancel();
+    _deleteFadeTimer = Timer(const Duration(milliseconds: 2600), () {
+      if (isClosed) return;
       silindiOpacity.value = 0.0;
     });
 
     // 3 sn sonra overlay'i kaldır ve listeden çıkar
-    Future.delayed(const Duration(seconds: 3), () {
+    _deleteRemoveTimer?.cancel();
+    _deleteRemoveTimer = Timer(const Duration(seconds: 3), () {
+      if (isClosed) return;
       // Short listeden kaldır
       if (Get.isRegistered<ShortController>()) {
         final shortController = Get.find<ShortController>();
@@ -416,6 +426,7 @@ class ShortContentController extends GetxController {
         postLevelDisplayName.isNotEmpty;
 
     if (hasPostLevelIdentity) {
+      if (isClosed) return;
       avatarUrl.value = postLevelAvatar;
       nickname.value = postLevelNickname;
       fullName.value = postLevelDisplayName;
@@ -430,8 +441,10 @@ class ShortContentController extends GetxController {
 
     final data =
         await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
+    if (isClosed) return;
     final resolvedAvatar = (data["avatarUrl"] ?? "").toString().trim();
-    avatarUrl.value = postLevelAvatar.isNotEmpty ? postLevelAvatar : resolvedAvatar;
+    avatarUrl.value =
+        postLevelAvatar.isNotEmpty ? postLevelAvatar : resolvedAvatar;
     nickname.value = postLevelNickname.isNotEmpty
         ? postLevelNickname
         : (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")

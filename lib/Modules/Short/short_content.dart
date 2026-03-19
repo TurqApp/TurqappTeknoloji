@@ -20,7 +20,6 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Core/formatters.dart';
@@ -39,16 +38,6 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 part 'short_content_body_part.dart';
 
 class ShortsContent extends StatefulWidget {
-  static const List<String> _flagReasons = <String>[
-    'Uyuşturucu',
-    'Kumar',
-    'Çıplaklık',
-    'Dolandırıcılık',
-    'Şiddet',
-    'Spam',
-    'Diğer',
-  ];
-  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   final PostsModel model;
   final HLSVideoAdapter videoPlayerController;
   final Function(bool) volumeOff;
@@ -100,18 +89,13 @@ class _ShortsContentState extends State<ShortsContent> {
 
   @override
   void dispose() {
-    if (Get.isRegistered<ShortContentController>(tag: model.docID)) {
-      Get.delete<ShortContentController>(tag: model.docID, force: true);
-    }
+    final tag = model.docID;
+    Future.microtask(() {
+      if (Get.isRegistered<ShortContentController>(tag: tag)) {
+        Get.delete<ShortContentController>(tag: tag);
+      }
+    });
     super.dispose();
-  }
-
-  bool get _isBlackBadgeUser {
-    final rozet = (CurrentUserService.instance.currentUser?.rozet ?? '')
-        .trim()
-        .toLowerCase()
-        .replaceAll('ı', 'i');
-    return rozet == 'siyah' || rozet == 'black';
   }
 
   @override
@@ -129,8 +113,9 @@ class _ShortsContentState extends State<ShortsContent> {
     }
 
     return Obx(() {
-      final showOverlay =
-          widget.onToggleOverlay == null ? controller.fullscreen.value : widget.showOverlayControls;
+      final showOverlay = widget.onToggleOverlay == null
+          ? controller.fullscreen.value
+          : widget.showOverlayControls;
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
