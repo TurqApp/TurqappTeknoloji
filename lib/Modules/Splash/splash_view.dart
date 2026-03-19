@@ -1036,31 +1036,45 @@ class _SplashViewState extends State<SplashView> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              _splashWord.substring(
-                  0, _typedLength.clamp(0, _splashWord.length)),
-              style: const TextStyle(
-                fontFamily: 'Noe',
-                fontSize: 100,
-                letterSpacing: 1.2,
-                color: Colors.white,
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.noScaling,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _splashWord.substring(
+                      0,
+                      _typedLength.clamp(0, _splashWord.length),
+                    ),
+                    textScaler: TextScaler.noScaling,
+                    style: const TextStyle(
+                      fontFamily: 'Noe',
+                      fontSize: 100,
+                      letterSpacing: 1.2,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  AnimatedOpacity(
+                    opacity: _showCursor ? 1 : 0,
+                    duration: const Duration(milliseconds: 120),
+                    child: Container(
+                      width: 3,
+                      height: 84,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 6),
-            AnimatedOpacity(
-              opacity: _showCursor ? 1 : 0,
-              duration: const Duration(milliseconds: 120),
-              child: Container(
-                width: 3,
-                height: 84,
-                color: Colors.white,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

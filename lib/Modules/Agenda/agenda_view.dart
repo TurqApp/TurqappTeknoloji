@@ -469,223 +469,245 @@ class AgendaView extends StatelessWidget {
   }
 
   Widget header({bool lightweight = false}) {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.only(
-            left: 15,
-            right: 10,
-            top: Get.mediaQuery.padding.top + 3,
-            bottom: 8,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Obx(() {
-                final title = controller.feedTitle;
-                final isDefaultTitle = !controller.isFollowingMode;
-                final fontSize = isDefaultTitle
-                    ? (GetPlatform.isAndroid ? 31.0 : 27.0)
-                    : (GetPlatform.isAndroid ? 24.0 : 21.0);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 380;
+        final horizontalPadding = compact ? 12.0 : 15.0;
+        final trailingGap = compact ? 1.0 : AppIconSurface.kGap;
+        final actionSize = compact ? 34.0 : AppIconSurface.kSize;
 
-                return PopupMenuButton<FeedViewMode>(
-                  tooltip: '',
-                  padding: EdgeInsets.zero,
-                  position: PopupMenuPosition.under,
-                  color: Colors.white,
-                  elevation: 10,
-                  offset: const Offset(0, 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  onSelected: controller.setFeedViewMode,
-                  itemBuilder: (context) => [
-                    const PopupMenuItem<FeedViewMode>(
-                      value: FeedViewMode.forYou,
-                      child: Row(
-                        children: [
-                          Icon(CupertinoIcons.sparkles, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Sana Özel',
-                            style: TextStyle(
-                              fontFamily: AppFontFamilies.mmedium,
-                              fontSize: 15,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<FeedViewMode>(
-                      value: FeedViewMode.following,
-                      child: Row(
-                        children: [
-                          Icon(CupertinoIcons.person_2, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Takip Ettiklerin',
-                            style: TextStyle(
-                              fontFamily: AppFontFamilies.mmedium,
-                              fontSize: 15,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<FeedViewMode>(
-                      value: FeedViewMode.city,
-                      child: Row(
-                        children: [
-                          Icon(CupertinoIcons.location_solid, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Şehrim',
-                            style: TextStyle(
-                              fontFamily: AppFontFamilies.mmedium,
-                              fontSize: 15,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) => LinearGradient(
-                          colors: [
-                            AppColors.primaryColor,
-                            AppColors.secondColor,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ).createShader(
-                          Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                        ),
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: fontSize,
-                            fontFamily: AppFontFamilies.mbold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: [
-                              AppColors.primaryColor,
-                              AppColors.secondColor,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ).createShader(
-                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-                          ),
-                          child: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              const Spacer(),
-              Obx(() {
-                final userService = CurrentUserService.instance;
-                final currentSelection = userService.viewSelectionRx.value;
+        return Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                left: horizontalPadding,
+                right: compact ? 8 : 10,
+                top: Get.mediaQuery.padding.top + 3,
+                bottom: 8,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Obx(() {
+                      final title = controller.feedTitle;
+                      final isDefaultTitle = !controller.isFollowingMode;
+                      final fontSize = isDefaultTitle
+                          ? (compact
+                              ? 28.0
+                              : (GetPlatform.isAndroid ? 31.0 : 27.0))
+                          : (compact
+                              ? 21.0
+                              : (GetPlatform.isAndroid ? 24.0 : 21.0));
 
-                return AppHeaderActionButton(
-                  onTap: () async {
-                    final nextSelection = currentSelection == 1 ? 0 : 1;
-                    await userService.updateFields({
-                      "viewSelection": nextSelection,
-                    });
-                  },
-                  child: const Icon(
-                    CupertinoIcons.rectangle_grid_1x2,
-                    color: Colors.black,
-                    size: AppIconSurface.kIconSize,
+                      return PopupMenuButton<FeedViewMode>(
+                        tooltip: '',
+                        padding: EdgeInsets.zero,
+                        position: PopupMenuPosition.under,
+                        color: Colors.white,
+                        elevation: 10,
+                        offset: const Offset(0, 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        onSelected: controller.setFeedViewMode,
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<FeedViewMode>(
+                            value: FeedViewMode.forYou,
+                            child: Row(
+                              children: [
+                                Icon(CupertinoIcons.sparkles, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Sana Özel',
+                                  style: TextStyle(
+                                    fontFamily: AppFontFamilies.mmedium,
+                                    fontSize: 15,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<FeedViewMode>(
+                            value: FeedViewMode.following,
+                            child: Row(
+                              children: [
+                                Icon(CupertinoIcons.person_2, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Takip Ettiklerin',
+                                  style: TextStyle(
+                                    fontFamily: AppFontFamilies.mmedium,
+                                    fontSize: 15,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<FeedViewMode>(
+                            value: FeedViewMode.city,
+                            child: Row(
+                              children: [
+                                Icon(CupertinoIcons.location_solid, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Şehrim',
+                                  style: TextStyle(
+                                    fontFamily: AppFontFamilies.mmedium,
+                                    fontSize: 15,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (bounds) => LinearGradient(
+                                    colors: [
+                                      AppColors.primaryColor,
+                                      AppColors.secondColor,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ).createShader(
+                                    Rect.fromLTWH(
+                                        0, 0, bounds.width, bounds.height),
+                                  ),
+                                  child: Text(
+                                    title,
+                                    textScaler: TextScaler.noScaling,
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontFamily: AppFontFamilies.mbold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: ShaderMask(
+                                    shaderCallback: (bounds) => LinearGradient(
+                                      colors: [
+                                        AppColors.primaryColor,
+                                        AppColors.secondColor,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ).createShader(
+                                      Rect.fromLTWH(
+                                          0, 0, bounds.width, bounds.height),
+                                    ),
+                                    child: const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                   ),
-                );
-              }),
-              const SizedBox(width: AppIconSurface.kGap),
-              Obx(() {
-                final conversationUnreadCount =
-                    unreadController.totalUnreadCount.value;
-                final hasUnread = conversationUnreadCount > 0;
-                return AppHeaderActionButton(
-                  showBadge: hasUnread,
-                  onTap: () async {
-                    final unreadChatIds = notificationsController.list
-                        .where((n) => n.postType == "Chat" && !n.isRead)
-                        .map((n) => n.docID)
-                        .toList(growable: false);
-                    if (unreadChatIds.isNotEmpty) {
-                      await notificationsController.markManyAsRead(unreadChatIds);
-                    }
-                    final prevIndex = controller.lastCenteredIndex;
-                    controller.centeredIndex.value = -1;
-                    Get.to(() => ChatListing())?.then((_) {
-                      controller.centeredIndex.value = prevIndex ?? 0;
-                      try {
-                        recommendedController.getUsers();
-                      } catch (_) {}
-                    });
-                  },
-                  child: const Icon(
-                    CupertinoIcons.mail,
-                    color: Colors.black,
-                    size: AppIconSurface.kIconSize,
-                  ),
-                );
-              }),
-              const SizedBox(width: AppIconSurface.kGap),
-              Obx(() {
-                final hasUnread = notificationsController.unreadCount > 0;
-                return AppHeaderActionButton(
-                  showBadge: hasUnread,
-                  onTap: () {
-                    final prevIndex = controller.lastCenteredIndex;
-                    controller.centeredIndex.value = -1;
-                    Get.to(() => InAppNotifications())?.then((_) {
-                      controller.centeredIndex.value = prevIndex ?? 0;
-                      try {
-                        recommendedController.getUsers();
-                      } catch (_) {}
-                    });
-                  },
-                  child: const Icon(
-                    CupertinoIcons.bell,
-                    color: Colors.black,
-                    size: AppIconSurface.kIconSize,
-                  ),
-                );
-              }),
-              // 12.pw,
-              // GestureDetector(
-              //   onTap: () {
-              //     Get.to(() => TestFirebase());
-              //   },
-              //   child: Icon(CupertinoIcons.settings),
-              // )
-            ],
-          ),
-        ),
-        StoryRow(),
-        5.ph,
-      ],
+                  SizedBox(width: compact ? 4 : 8),
+                  Obx(() {
+                    final userService = CurrentUserService.instance;
+                    final currentSelection = userService.viewSelectionRx.value;
+
+                    return AppHeaderActionButton(
+                      size: actionSize,
+                      onTap: () async {
+                        final nextSelection = currentSelection == 1 ? 0 : 1;
+                        await userService.updateFields({
+                          "viewSelection": nextSelection,
+                        });
+                      },
+                      child: const Icon(
+                        CupertinoIcons.rectangle_grid_1x2,
+                        color: Colors.black,
+                        size: AppIconSurface.kIconSize,
+                      ),
+                    );
+                  }),
+                  SizedBox(width: trailingGap),
+                  Obx(() {
+                    final conversationUnreadCount =
+                        unreadController.totalUnreadCount.value;
+                    final hasUnread = conversationUnreadCount > 0;
+                    return AppHeaderActionButton(
+                      size: actionSize,
+                      showBadge: hasUnread,
+                      onTap: () async {
+                        final unreadChatIds = notificationsController.list
+                            .where((n) => n.postType == "Chat" && !n.isRead)
+                            .map((n) => n.docID)
+                            .toList(growable: false);
+                        if (unreadChatIds.isNotEmpty) {
+                          await notificationsController
+                              .markManyAsRead(unreadChatIds);
+                        }
+                        final prevIndex = controller.lastCenteredIndex;
+                        controller.centeredIndex.value = -1;
+                        Get.to(() => ChatListing())?.then((_) {
+                          controller.centeredIndex.value = prevIndex ?? 0;
+                          try {
+                            recommendedController.getUsers();
+                          } catch (_) {}
+                        });
+                      },
+                      child: const Icon(
+                        CupertinoIcons.mail,
+                        color: Colors.black,
+                        size: AppIconSurface.kIconSize,
+                      ),
+                    );
+                  }),
+                  SizedBox(width: trailingGap),
+                  Obx(() {
+                    final hasUnread = notificationsController.unreadCount > 0;
+                    return AppHeaderActionButton(
+                      size: actionSize,
+                      showBadge: hasUnread,
+                      onTap: () {
+                        final prevIndex = controller.lastCenteredIndex;
+                        controller.centeredIndex.value = -1;
+                        Get.to(() => InAppNotifications())?.then((_) {
+                          controller.centeredIndex.value = prevIndex ?? 0;
+                          try {
+                            recommendedController.getUsers();
+                          } catch (_) {}
+                        });
+                      },
+                      child: const Icon(
+                        CupertinoIcons.bell,
+                        color: Colors.black,
+                        size: AppIconSurface.kIconSize,
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            StoryRow(),
+            5.ph,
+          ],
+        );
+      },
     );
   }
 
