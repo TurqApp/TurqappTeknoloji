@@ -84,4 +84,17 @@ class SignIn extends StatelessWidget {
         ..onTap = () => _openPolicyCenter(initialPolicyId: policyId),
     );
   }
+
+  TextSpan _policyCenterTextSpan(String label) {
+    return TextSpan(
+      text: label,
+      style: const TextStyle(
+        color: Colors.black,
+        decoration: TextDecoration.underline,
+        fontSize: 12,
+        fontFamily: 'MontserratBold',
+      ),
+      recognizer: TapGestureRecognizer()..onTap = () => _openPolicyCenter(),
+    );
+  }
 }

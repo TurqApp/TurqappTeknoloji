@@ -199,24 +199,21 @@ extension SignInAuthPart on SignIn {
             ),
           ),
           SizedBox(height: 20),
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 12,
-                height: 1.55,
-                fontFamily: 'Montserrat',
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 12,
+                  height: 1.2,
+                  fontFamily: 'Montserrat',
+                ),
+                children: [
+                  _policyCenterTextSpan('Sözleşme ve politikaları incele')
+                ],
               ),
-              children: [
-                const TextSpan(text: 'Devam ederek '),
-                _policyTextSpan('Uyelik ve Sozlesme', 'agreement'),
-                const TextSpan(text: ', '),
-                _policyTextSpan('Gizlilik', 'privacy'),
-                const TextSpan(text: ' ve '),
-                _policyTextSpan('Topluluk', 'community'),
-                const TextSpan(text: ' metinlerini inceleyebilirsin.'),
-              ],
             ),
           ),
           SizedBox(height: 12),
@@ -471,24 +468,21 @@ extension SignInAuthPart on SignIn {
             ),
           ),
           SizedBox(height: 20),
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 12,
-                height: 1.55,
-                fontFamily: 'Montserrat',
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 12,
+                  height: 1.2,
+                  fontFamily: 'Montserrat',
+                ),
+                children: [
+                  _policyCenterTextSpan('Sözleşme ve politikaları incele')
+                ],
               ),
-              children: [
-                const TextSpan(text: 'Giris yaparak uygulama ici '),
-                _policyTextSpan('Uyelik ve Sozlesme', 'agreement'),
-                const TextSpan(text: ', '),
-                _policyTextSpan('Gizlilik', 'privacy'),
-                const TextSpan(text: ' ve '),
-                _policyTextSpan('Aydinlatma', 'notice'),
-                const TextSpan(text: ' metinlerine bagli kalirsin.'),
-              ],
             ),
           ),
           SizedBox(height: 18),
