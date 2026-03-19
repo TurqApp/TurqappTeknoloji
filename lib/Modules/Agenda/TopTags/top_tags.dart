@@ -24,9 +24,9 @@ class TopTags extends StatelessWidget {
                     icon: const Icon(CupertinoIcons.back,
                         size: 24, color: Colors.black),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      "Gündem",
+                      'explore.tab.trending'.tr,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 25,
@@ -143,7 +143,8 @@ class TopTags extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "${i + 1} - Türkiye tarihinde gündemde",
+                                    'explore.trending_rank'
+                                        .trParams({'index': '${i + 1}'}),
                                     style: const TextStyle(
                                       color: Colors.black54,
                                       fontSize: 14,

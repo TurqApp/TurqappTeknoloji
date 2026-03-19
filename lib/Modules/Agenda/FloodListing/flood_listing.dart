@@ -53,16 +53,14 @@ class _FloodListingState extends State<FloodListing> {
 
           return ListView.builder(
             controller: controller.scrollController,
-            itemCount: controller.floods.length + 1, // +1 ekledik
+            itemCount: controller.floods.length + 1,
             itemBuilder: (context, index) {
               final tailSpace = _tailSpaceHeight();
               if (index == controller.floods.length) {
-                // listenin sonu
                 if (controller.floods.length < 4) {
-                  // 4'ten az öğe varsa, en sonda reklam göster
                   return Column(
                     children: [
-                      Padding(
+                      const Padding(
                         padding: EdgeInsets.symmetric(vertical: 8.0),
                         child: AdmobKare(),
                       ),
@@ -70,7 +68,6 @@ class _FloodListingState extends State<FloodListing> {
                     ],
                   );
                 }
-                // aksi halde sadece boşluk
                 return SizedBox(height: tailSpace);
               }
 
@@ -125,7 +122,6 @@ class _FloodListingState extends State<FloodListing> {
                 ),
               );
 
-              // Her 4 gönderiden sonra kare reklam ekle
               if ((index + 1) % 4 == 0) {
                 final slot = ((index + 1) ~/ 4);
                 children.add(

@@ -286,8 +286,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 const SizedBox(
                   height: 12,
                 ),
-                const Text(
-                  "Gönderi Gizlendi",
+                Text(
+                  'post_state.hidden_title'.tr,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -300,8 +300,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                   ),
                 ),
                 7.ph,
-                const Text(
-                  "Bu gönderi gizlendi. Bunun gibi gönderileri akışında daha altlarda göreceksin.",
+                Text(
+                  'post_state.hidden_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white,
@@ -316,8 +316,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     controller.gizlemeyiGeriAl();
                     resumeIfActive();
                   },
-                  child: const Text(
-                    "Geri Al",
+                  child: Text(
+                    'common.undo'.tr,
                     style: TextStyle(
                         color: Colors.blueAccent,
                         fontSize: 15,
@@ -334,7 +334,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Sonraki Gönderiye Geç",
+                        'short.next_post'.tr,
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -381,8 +381,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 const SizedBox(
                   height: 12,
                 ),
-                const Text(
-                  "Gönderi Arşivlendi",
+                Text(
+                  'post_state.archived_title'.tr,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -395,8 +395,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 SizedBox(
                   height: 7,
                 ),
-                const Text(
-                  "Bu gönderiyi arşivlediniz.\nArtık kimseye bu gönderi gözükmeyecektir.",
+                Text(
+                  'post_state.archived_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white,
@@ -411,8 +411,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     controller.arsivdenCikart();
                     resumeIfActive();
                   },
-                  child: const Text(
-                    "Geri Al",
+                  child: Text(
+                    'common.undo'.tr,
                     style: TextStyle(
                         color: Colors.blueAccent,
                         fontSize: 15,
@@ -429,7 +429,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Sonraki Gönderiye Geç",
+                        'short.next_post'.tr,
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -476,8 +476,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 const SizedBox(
                   height: 12,
                 ),
-                const Text(
-                  "Gönderi Sildiniz",
+                Text(
+                  'post_state.deleted_title'.tr,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -490,8 +490,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 SizedBox(
                   height: 7,
                 ),
-                const Text(
-                  "Bu gönderi artık yayında değil.",
+                Text(
+                  'post_state.deleted_body'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white,
@@ -511,7 +511,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Sonraki Gönderiye Geç",
+                        'short.next_post'.tr,
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -555,7 +555,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
               resumeIfActive();
             });
           },
-          title: 'Gönderi olarak yayınla',
+          title: 'short.publish_as_post'.tr,
           icon: CupertinoIcons.add_circled,
         ),
         PullDownMenuItem(
@@ -564,7 +564,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
             await PostStoryShareService.openStoryMakerForPost(model);
             resumeIfActive();
           },
-          title: 'Hikayene ekle',
+          title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
         if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
@@ -578,14 +578,14 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 resumeIfActive();
               });
             },
-            title: 'Gönderi olarak paylaşanlar',
+            title: 'short.shared_as_post_by'.tr,
             icon: CupertinoIcons.person_2,
           ),
         PullDownMenuItem(
           onTap: () {
             controller.sendPost();
           },
-          title: 'Gönder',
+          title: 'common.send'.tr,
           icon: CupertinoIcons.paperplane,
         ),
         PullDownMenuItem(
@@ -608,9 +608,9 @@ extension ShortsContentBodyPart on _ShortsContentState {
             );
             await Clipboard.setData(ClipboardData(text: url));
 
-            AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
+            AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
           },
-          title: 'Linki Kopyala',
+          title: 'common.copy_link'.tr,
           icon: CupertinoIcons.doc_on_doc,
         ),
         PullDownMenuItem(
@@ -626,12 +626,12 @@ extension ShortsContentBodyPart on _ShortsContentState {
               );
               await ShareLinkService.shareUrl(
                 url: url,
-                title: 'TurqApp Gönderisi',
-                subject: 'TurqApp Gönderisi',
+                title: 'common.post_share_title'.tr,
+                subject: 'common.post_share_title'.tr,
               );
             });
           },
-          title: 'Paylaş',
+          title: 'common.share'.tr,
           icon: CupertinoIcons.share_up,
         ),
         if (model.userID == FirebaseAuth.instance.currentUser!.uid)
@@ -641,10 +641,10 @@ extension ShortsContentBodyPart on _ShortsContentState {
               videoPlayerController.pause();
 
               noYesAlert(
-                title: "Gönderiyi Sil",
-                message: "Bu gönderiyi silmek istediğinizden emin misiniz?",
-                cancelText: "Vazgeç",
-                yesText: "Gönderiyi Sil",
+                title: 'common.delete_post_title'.tr,
+                message: 'common.delete_post_message'.tr,
+                cancelText: 'common.cancel'.tr,
+                yesText: 'common.delete_post_confirm'.tr,
                 yesButtonColor: CupertinoColors.destructiveRed,
                 onYesPressed: () {
                   controller.sil();
@@ -655,7 +655,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 }
               });
             },
-            title: 'Sil',
+            title: 'common.delete'.tr,
             icon: CupertinoIcons.trash,
             isDestructive: true,
           ),
@@ -667,7 +667,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
               controller.arsivle();
               videoPlayerController.pause();
             },
-            title: "Arşivle",
+            title: 'common.archive'.tr,
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
@@ -679,7 +679,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
               controller.arsivdenCikart();
               resumeIfActive();
             },
-            title: "Arşivden Çıkart",
+            title: 'common.unarchive'.tr,
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
@@ -694,7 +694,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 volumeOff(true);
               });
             },
-            title: 'Şikayet Et',
+            title: 'common.report'.tr,
             icon: CupertinoIcons.info,
             isDestructive: true,
           ),
@@ -928,70 +928,33 @@ extension ShortsContentBodyPart on _ShortsContentState {
           /// gönder / işaretle Butonu
           Flexible(
             flex: 1,
-            child: _isBlackBadgeUser
-                ? Obx(() {
-                    final alreadyFlagged =
-                        ShortsContent._flaggedPostIds.contains(model.docID);
-                    return PullDownButton(
-                      itemBuilder: (context) {
-                        if (alreadyFlagged) {
-                          return const <PullDownMenuEntry>[];
-                        }
-                        return ShortsContent._flagReasons
-                            .map(
-                              (reason) => PullDownMenuItem(
-                                onTap: () async {
-                                  try {
-                                    final result =
-                                        await Get.put(PostInteractionService())
-                                            .flagPostWithReason(
-                                      model.docID,
-                                      reason: reason,
-                                    );
-                                    if (result.isOk) {
-                                      ShortsContent._flaggedPostIds
-                                          .add(model.docID);
-                                    }
-                                    if (result.accepted) {
-                                      AppSnackbar(
-                                          'İşaretle', 'İşaretleme kaydedildi.');
-                                    } else if (result.alreadyFlagged) {
-                                      AppSnackbar('Bilgi',
-                                          'Bu gönderiyi zaten işaretlediniz.');
-                                    } else {
-                                      AppSnackbar(
-                                          'Hata', 'İşaretleme başarısız oldu.');
-                                    }
-                                  } catch (_) {
-                                    AppSnackbar(
-                                        'Hata', 'İşaretleme başarısız oldu.');
-                                  }
-                                },
-                                title: reason,
-                              ),
-                            )
-                            .toList();
-                      },
-                      buttonBuilder: (context, showMenu) {
-                        return IconButton(
-                          onPressed: alreadyFlagged ? null : showMenu,
-                          icon: Icon(
-                            CupertinoIcons.exclamationmark_triangle_fill,
-                            color: alreadyFlagged ? Colors.grey : Colors.amber,
-                            size: 20,
-                          ),
-                        );
-                      },
-                    );
-                  })
-                : IconButton(
-                    onPressed: controller.sendPost,
-                    icon: const Icon(
-                      CupertinoIcons.paperplane,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
+            child: IconButton(
+              onPressed: () async {
+                await ShareActionGuard.run(() async {
+                  final previewImage = model.thumbnail.trim().isNotEmpty
+                      ? model.thumbnail.trim()
+                      : (model.img.isNotEmpty ? model.img.first.trim() : null);
+                  final url = await ShortLinkService().getPostPublicUrl(
+                    postId: model.docID,
+                    desc: model.metin,
+                    imageUrl: previewImage,
+                  );
+                  await ShareLinkService.shareUrl(
+                    url: url,
+                    title: 'TurqApp Gönderisi',
+                    subject: 'TurqApp Gönderisi',
+                  );
+                });
+              },
+              icon: Transform.translate(
+                offset: const Offset(0, -2),
+                child: const Icon(
+                  CupertinoIcons.share_up,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
           ),
         ],
       ),

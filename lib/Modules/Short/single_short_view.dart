@@ -395,6 +395,27 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     } catch (_) {}
   }
 
+  @override
+  void didPushNext() {
+    unawaited(_endActiveTelemetrySession());
+    unawaited(_pauseAllControllers());
+  }
+
+  @override
+  void didPopNext() {
+    final isStillCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    if (!isStillCurrent) return;
+    if (currentPage < 0 || currentPage >= shorts.length) return;
+
+    final vp = _videoControllers[currentPage];
+    if (vp == null || vp.isDisposed) return;
+
+    try {
+      VideoStateManager.instance.enterExclusiveMode(shorts[currentPage].docID);
+    } catch (_) {}
+    _primePlaybackForIndex(currentPage);
+  }
+
   void didStartUserGesture(Route route, Route? previousRoute) {
     // iOS interaktif geri kaydirma basladiginda: hemen tum sesleri durdur
     _pauseAllControllers();

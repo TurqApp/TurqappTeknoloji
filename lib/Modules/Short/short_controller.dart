@@ -147,64 +147,77 @@ class ShortController extends GetxController {
   Future<_ShortPageResult> _fetchPage(
       {QueryDocumentSnapshot<Map<String, dynamic>>? startAfter}) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final page = await _shortRepository.fetchReadyPage(
-      startAfter: startAfter,
-      pageSize: pageSize,
-      nowMs: nowMs,
-    );
+    QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
+    QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
+    bool hasMoreDocs = true;
+    const int maxEmptyPageSkips = 3;
 
-    if (page.posts.isEmpty) {
-      return _ShortPageResult(
-          posts: const [], lastDoc: startAfter, hasMore: false);
-    }
+    for (int attempt = 0; attempt < maxEmptyPageSkips; attempt++) {
+      final page = await _shortRepository.fetchReadyPage(
+        startAfter: cursor,
+        pageSize: pageSize,
+        nowMs: nowMs,
+      );
 
-    final lastDoc = page.lastDoc;
-    final allPosts = page.posts;
+      lastDoc = page.lastDoc;
+      hasMoreDocs = page.hasMore;
 
-    final rawWithVideo =
-        allPosts.where((p) => p.hasPlayableVideo).toList(growable: false);
-    if (rawWithVideo.isEmpty) {
-      return _ShortPageResult(
-          posts: const [], lastDoc: lastDoc, hasMore: false);
-    }
-
-    final timeFiltered = rawWithVideo
-        .where((p) => (p.timeStamp) <= nowMs)
-        .toList(growable: false);
-    final arsivFiltered =
-        timeFiltered.where((p) => (p.arsiv == false)).toList(growable: false);
-    final finalFiltered = arsivFiltered
-        .where((p) => (p.deletedPost != true))
-        .toList(growable: false);
-
-    if (finalFiltered.isEmpty) {
-      return _ShortPageResult(
-          posts: const [], lastDoc: lastDoc, hasMore: false);
-    }
-
-    final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
-    final Map<String, bool> userPrivacy = await _fetchUsersPrivacy(authorIds);
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-
-    final filtered = <PostsModel>[];
-    for (final p in finalFiltered) {
-      final isPrivate = userPrivacy[p.userID] == true;
-      final include = !isPrivate ||
-          (myUid != null && p.userID == myUid) ||
-          _followingIDs.contains(p.userID);
-      if (include) {
-        filtered.add(p);
+      if (page.posts.isEmpty) {
+        return _ShortPageResult(
+          posts: const [],
+          lastDoc: cursor,
+          hasMore: false,
+        );
       }
+
+      final rawWithVideo =
+          page.posts.where((p) => p.hasPlayableVideo).toList(growable: false);
+      final timeFiltered = rawWithVideo
+          .where((p) => p.timeStamp <= nowMs)
+          .toList(growable: false);
+      final arsivFiltered =
+          timeFiltered.where((p) => p.arsiv == false).toList(growable: false);
+      final finalFiltered = arsivFiltered
+          .where((p) => p.deletedPost != true)
+          .toList(growable: false);
+
+      if (finalFiltered.isNotEmpty) {
+        final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
+        final Map<String, bool> userPrivacy =
+            await _fetchUsersPrivacy(authorIds);
+        final myUid = FirebaseAuth.instance.currentUser?.uid;
+
+        final filtered = <PostsModel>[];
+        for (final p in finalFiltered) {
+          final isPrivate = userPrivacy[p.userID] == true;
+          final include = !isPrivate ||
+              (myUid != null && p.userID == myUid) ||
+              _followingIDs.contains(p.userID);
+          if (include) {
+            filtered.add(p);
+          }
+        }
+
+        if (filtered.isNotEmpty) {
+          return _ShortPageResult(
+            posts: filtered,
+            lastDoc: lastDoc,
+            hasMore: hasMoreDocs,
+          );
+        }
+      }
+
+      if (!page.hasMore || page.lastDoc == null) {
+        break;
+      }
+      cursor = page.lastDoc;
     }
 
-    if (filtered.isEmpty) {
-      return _ShortPageResult(
-          posts: const [], lastDoc: lastDoc, hasMore: false);
-    }
-
-    final hasMoreDocs = page.hasMore;
     return _ShortPageResult(
-        posts: filtered, lastDoc: lastDoc, hasMore: hasMoreDocs);
+      posts: const [],
+      lastDoc: lastDoc,
+      hasMore: hasMoreDocs,
+    );
   }
 
   /// Arka plan preload - sadece ilk segment odaklı hafif hazırlık

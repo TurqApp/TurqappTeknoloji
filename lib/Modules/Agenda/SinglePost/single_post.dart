@@ -41,7 +41,7 @@ class _SinglePostState extends State<SinglePost> {
               Padding(
                 padding: const EdgeInsets.all(15),
                 child: Row(
-                  children: [BackButtons(text: "Gönderiler")],
+                  children: [BackButtons(text: 'single_post.title'.tr)],
                 ),
               ),
               AgendaContent(

@@ -25,7 +25,6 @@ import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
-import 'package:turqappv2/Core/Widgets/slim_send_icon.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
@@ -44,7 +43,6 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
-import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -102,16 +100,6 @@ class _AgendaContentState extends State<AgendaContent>
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
   static const Color _videoFallbackColor = Colors.transparent;
-  static const List<String> _flagReasons = <String>[
-    'Uyuşturucu',
-    'Kumar',
-    'Çıplaklık',
-    'Dolandırıcılık',
-    'Şiddet',
-    'Spam',
-    'Diğer',
-  ];
-  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
   final arsivController = Get.put(ArchiveController());
@@ -267,14 +255,6 @@ class _AgendaContentState extends State<AgendaContent>
     );
   }
 
-  bool get _isBlackBadgeUser {
-    final raw = (controller.userService.currentUser?.rozet ?? '')
-        .trim()
-        .toLowerCase()
-        .replaceAll('ı', 'i');
-    return raw == 'siyah' || raw == 'black';
-  }
-
   @override
   Widget build(BuildContext context) {
     // Build sırasında doğrudan pause() çağırmak Obx'i yeniden kirletebilir.
@@ -324,11 +304,6 @@ class _AgendaContentState extends State<AgendaContent>
   void _setFullscreenState(bool value) {
     if (!mounted) return;
     setState(() => _isFullscreen = value);
-  }
-
-  void _refreshFlaggedPostState() {
-    if (!mounted) return;
-    setState(() {});
   }
 
   StoryUserModel? _resolveStoryUser() {

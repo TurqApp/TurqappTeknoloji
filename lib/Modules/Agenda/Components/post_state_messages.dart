@@ -4,6 +4,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
@@ -37,16 +38,16 @@ class PostHiddenMessage extends StatelessWidget {
                 size: 30,
               ),
               AgendaSpacing.headerToContentGap.verticalSpace,
-              const Text(
-                "Gönderi Gizlendi",
+              Text(
+                'post_state.hidden_title'.tr,
                 style: TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 15,
                 ),
               ),
               (AgendaSpacing.headerToContentGap / 2).verticalSpace,
-              const Text(
-                "Bu gönderi gizlendi. Bunun gibi gönderileri akışında daha altlarda göreceksin.",
+              Text(
+                'post_state.hidden_body'.tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Montserrat',
@@ -60,8 +61,8 @@ class PostHiddenMessage extends StatelessWidget {
                   onUndo();
                   videoController?.play();
                 },
-                child: const Text(
-                  "Geri Al",
+                child: Text(
+                  'common.undo'.tr,
                   style: TextStyle(
                     fontFamily: 'MontserratMedium',
                     fontSize: 14,
@@ -108,16 +109,16 @@ class PostArchivedMessage extends StatelessWidget {
                 size: 30,
               ),
               AgendaSpacing.headerToContentGap.verticalSpace,
-              const Text(
-                "Gönderi Arşivlendi",
+              Text(
+                'post_state.archived_title'.tr,
                 style: TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 15,
                 ),
               ),
               (AgendaSpacing.headerToContentGap / 2).verticalSpace,
-              const Text(
-                "Bu gönderiyi arşivlediniz.\nArtık kimseye bu gönderi gözükmeyecektir.",
+              Text(
+                'post_state.archived_body'.tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Montserrat',
@@ -131,8 +132,8 @@ class PostArchivedMessage extends StatelessWidget {
                   onUndo();
                   videoController?.play();
                 },
-                child: const Text(
-                  "Geri Al",
+                child: Text(
+                  'common.undo'.tr,
                   style: TextStyle(
                     fontFamily: 'MontserratMedium',
                     fontSize: 14,
@@ -172,16 +173,16 @@ class PostDeletedMessage extends StatelessWidget {
                 size: 30,
               ),
               AgendaSpacing.headerToContentGap.verticalSpace,
-              const Text(
-                "Gönderi Sildiniz",
+              Text(
+                'post_state.deleted_title'.tr,
                 style: TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 15,
                 ),
               ),
               (AgendaSpacing.headerToContentGap / 2).verticalSpace,
-              const Text(
-                "Bu gönderi artık yayında değil.",
+              Text(
+                'post_state.deleted_body'.tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Montserrat',

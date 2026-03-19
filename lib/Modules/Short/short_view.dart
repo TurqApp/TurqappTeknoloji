@@ -161,6 +161,12 @@ class _ShortViewState extends State<ShortView> {
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;
 
+  int _initialDisplayIndex(List<PostsModel> list, int rawIndex) {
+    if (list.isEmpty) return 0;
+    if (rawIndex <= 0 && list.length > 1) return 1;
+    return rawIndex.clamp(0, list.length - 1);
+  }
+
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await adapter.forceSilence();
@@ -177,7 +183,10 @@ class _ShortViewState extends State<ShortView> {
 
     final initialIndex = controller.shorts.isEmpty
         ? 0
-        : controller.lastIndex.value.clamp(0, controller.shorts.length - 1);
+        : _initialDisplayIndex(
+            controller.shorts,
+            controller.lastIndex.value,
+          );
     currentPage = initialIndex;
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     pageController = PageController(initialPage: initialIndex);
@@ -187,6 +196,10 @@ class _ShortViewState extends State<ShortView> {
       controller.loadInitialShorts().then((_) {
         if (mounted) {
           _cachedShorts = List<PostsModel>.from(controller.shorts);
+          currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+          if (pageController.hasClients) {
+            pageController.jumpToPage(currentPage);
+          }
           setState(() {});
           if (_cachedShorts.isNotEmpty) {
             unawaited(controller.updateCacheTiers(currentPage));
@@ -197,6 +210,10 @@ class _ShortViewState extends State<ShortView> {
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+          if (pageController.hasClients) {
+            pageController.jumpToPage(currentPage);
+          }
           unawaited(controller.updateCacheTiers(currentPage));
           _startAutoPlayCurrentVideo();
         }
@@ -687,8 +704,7 @@ class _ShortViewState extends State<ShortView> {
           }
 
           if (currentPage >= list.length) {
-            currentPage = list.length - 1;
-            if (currentPage < 0) currentPage = 0;
+            currentPage = (list.length - 1).clamp(0, list.length - 1);
             if (pageController.hasClients) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (pageController.hasClients) {
@@ -703,8 +719,10 @@ class _ShortViewState extends State<ShortView> {
               if (!mounted) return;
               final desiredIndex = controller.shorts.isEmpty
                   ? 0
-                  : controller.lastIndex.value
-                      .clamp(0, controller.shorts.length - 1);
+                  : _initialDisplayIndex(
+                      controller.shorts,
+                      controller.lastIndex.value,
+                    );
               currentPage = desiredIndex;
               try {
                 if (pageController.hasClients) {
