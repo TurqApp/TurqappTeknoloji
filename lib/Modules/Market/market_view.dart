@@ -538,7 +538,6 @@ class MarketView extends StatelessWidget {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minHeight: visualSize),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Column(
@@ -603,12 +602,6 @@ class MarketView extends StatelessWidget {
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  Icon(
-                                    CupertinoIcons.location_solid,
-                                    size: 14,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                  const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
                                       item.locationText,
@@ -625,60 +618,58 @@ class MarketView extends StatelessWidget {
                               ),
                             ],
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
+                          const SizedBox(height: 8),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Color(0xFF8B0000),
+                                    fontSize: compact ? 16 : 17,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: compact ? 8 : 10),
+                              GestureDetector(
+                                onTap: () {
+                                  if (canCall) {
+                                    _contactService.callPhone(item);
+                                  } else {
+                                    controller.openItem(item);
+                                  }
+                                },
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    minWidth: compact ? 104 : 118,
+                                  ),
+                                  height: compact ? 30 : 28,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: compact ? 14 : 16,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        canCall ? Colors.green : Colors.black,
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(10),
+                                    ),
+                                  ),
                                   child: Text(
-                                    '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    buttonText,
                                     style: TextStyle(
-                                      color: Color(0xFF8B0000),
-                                      fontSize: compact ? 16 : 17,
-                                      fontFamily: 'MontserratBold',
+                                      color: Colors.white,
+                                      fontSize: compact ? 11 : 12,
+                                      fontFamily: 'MontserratMedium',
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: compact ? 8 : 10),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (canCall) {
-                                      _contactService.callPhone(item);
-                                    } else {
-                                      controller.openItem(item);
-                                    }
-                                  },
-                                  child: Container(
-                                    constraints: BoxConstraints(
-                                      minWidth: compact ? 104 : 118,
-                                    ),
-                                    height: compact ? 30 : 28,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: compact ? 14 : 16,
-                                    ),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          canCall ? Colors.green : Colors.black,
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(10),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      buttonText,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: compact ? 11 : 12,
-                                        fontFamily: 'MontserratMedium',
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

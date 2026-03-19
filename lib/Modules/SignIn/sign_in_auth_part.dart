@@ -19,8 +19,8 @@ extension SignInAuthPart on SignIn {
               children: [
                 _brandTypewriter(),
                 const SizedBox(height: 10),
-                const Text(
-                  "Hikayeleriniz, burada birleşiyor.",
+                Text(
+                  'login.tagline'.tr,
                   style: TextStyle(
                     color: Colors.black54,
                     fontSize: 14,
@@ -40,9 +40,9 @@ extension SignInAuthPart on SignIn {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Row(
-                      children: const [
+                      children: [
                         Text(
-                          'Cihazdaki hesaplar',
+                          'login.device_accounts'.tr,
                           style: TextStyle(
                             color: Colors.black54,
                             fontSize: 13,
@@ -120,8 +120,8 @@ extension SignInAuthPart on SignIn {
                                   Text(
                                     accountCenter.lastUsedUid.value ==
                                             account.uid
-                                        ? 'Son kullanilan'
-                                        : 'Kayitli hesap',
+                                        ? 'login.last_used'.tr
+                                        : 'login.saved_account'.tr,
                                     style: const TextStyle(
                                       color: Colors.black45,
                                       fontSize: 11,
@@ -159,7 +159,7 @@ extension SignInAuthPart on SignIn {
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
               child: Text(
-                "Giriş Yap",
+                'login.sign_in'.tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 15,
@@ -188,7 +188,7 @@ extension SignInAuthPart on SignIn {
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
               child: Text(
-                "Hesap Oluştur",
+                'login.create_account'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -209,7 +209,7 @@ extension SignInAuthPart on SignIn {
                   height: 1.2,
                   fontFamily: 'Montserrat',
                 ),
-                children: [_policyCenterTextSpan('Sözleşmeler ve Politikalar')],
+                children: [_policyCenterTextSpan('login.policies'.tr)],
               ),
             ),
           ),
@@ -229,330 +229,365 @@ extension SignInAuthPart on SignIn {
 
   Widget signin() {
     return Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 0),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: bottomInset > 0
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.center,
                 children: [
-                  _brandTypewriter(),
-                  const SizedBox(height: 7),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Column(
+                        children: [
+                          _brandTypewriter(),
+                          const SizedBox(height: 7),
+                        ],
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Obx(() {
+                    final account = controller.selectedStoredAccount.value;
+                    if (account == null) return const SizedBox.shrink();
+                    String message;
+                    switch (account.primaryProvider) {
+                      case 'phone':
+                        message = 'login.selected_account_phone'
+                            .tr
+                            .replaceAll('{username}', '@${account.username}');
+                        break;
+                      case 'password':
+                        message = 'login.selected_account_password'
+                            .tr
+                            .replaceAll('{username}', '@${account.username}');
+                        break;
+                      default:
+                        message = 'login.selected_account_manual'
+                            .tr
+                            .replaceAll('{username}', '@${account.username}');
+                        break;
+                    }
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey.withAlpha(14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 13,
+                          height: 1.35,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    );
+                  }),
+                  AutofillGroup(
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 50,
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withAlpha(20),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(12),
+                            ),
+                            border: Border.all(
+                              color: controller.emailFocus.value.hasFocus
+                                  ? Colors.blueAccent
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  child: Icon(
+                                    CupertinoIcons.person,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Transform.translate(
+                                    offset: Offset(0, 1),
+                                    child: TextField(
+                                      controller: controller.emailcontroller,
+                                      focusNode: controller.emailFocus.value,
+                                      keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.next,
+                                      autofillHints: const [
+                                        AutofillHints.username,
+                                        AutofillHints.email,
+                                      ],
+                                      onTap: () {
+                                        controller.emailFocus.value
+                                            .requestFocus();
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: 'login.identifier_hint'.tr,
+                                        hintStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                      onChanged: (v) {
+                                        String trimmedValue = v.trim();
+                                        if (trimmedValue != v) {
+                                          controller.emailcontroller.text =
+                                              trimmedValue;
+                                          controller.emailcontroller.selection =
+                                              TextSelection.fromPosition(
+                                            TextPosition(
+                                              offset: trimmedValue.length,
+                                            ),
+                                          );
+                                        }
+                                        controller
+                                            .maybeClearStoredAccountContextForIdentifier(
+                                          trimmedValue,
+                                        );
+                                        if (trimmedValue.isEmpty) {
+                                          controller.signInEmail.value = "";
+                                        } else if (trimmedValue.length >= 5) {
+                                          controller.nicknameFinder();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 7),
+                        Container(
+                          height: 50,
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withAlpha(20),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(12),
+                            ),
+                            border: Border.all(
+                              color: controller.passwordFocus.value.hasFocus
+                                  ? Colors.blueAccent
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  child: Icon(
+                                    CupertinoIcons.lock,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Transform.translate(
+                                    offset: Offset(0, 1),
+                                    child: TextField(
+                                      controller: controller.passwordcontroller,
+                                      focusNode: controller.passwordFocus.value,
+                                      textInputAction: TextInputAction.done,
+                                      autofillHints: const [
+                                        AutofillHints.password,
+                                      ],
+                                      onTap: () {
+                                        controller.passwordFocus.value
+                                            .requestFocus();
+                                      },
+                                      onChanged: (v) {
+                                        if (v.length >= 6) {
+                                          controller.verifyPassword();
+                                        } else {
+                                          controller.passwordAvilable.value =
+                                              false;
+                                        }
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: 'login.password_hint'.tr,
+                                        hintStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                      obscureText:
+                                          !controller.showPassword.value,
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                if (controller.password.value.trim().isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      controller.showPassword.value =
+                                          !controller.showPassword.value;
+                                    },
+                                    child: Icon(
+                                      controller.showPassword.value
+                                          ? CupertinoIcons.eye
+                                          : CupertinoIcons.eye_slash,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  )
+                                else
+                                  GestureDetector(
+                                    onTap: () {
+                                      controller.resetMailController.clear();
+                                      controller.resetOtpController.clear();
+                                      controller.clearStoredAccountContext();
+                                      controller.selection.value = 5;
+                                    },
+                                    child: Text(
+                                      'login.reset'.tr,
+                                      style: TextStyle(
+                                        color: Colors.blueAccent,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                          height: 1.2,
+                          fontFamily: 'Montserrat',
+                        ),
+                        children: [_policyCenterTextSpan('login.policies'.tr)],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          controller.emailcontroller.text = "";
+                          controller.passwordcontroller.text = "";
+                          controller.emailFocus.value.unfocus();
+                          controller.passwordFocus.value.unfocus();
+                          controller.clearStoredAccountContext();
+                          controller.selection.value--;
+                        },
+                        child: Container(
+                          width: 80,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withAlpha(20),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'common.back'.tr,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratMedium",
+                            ),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: controller.wait.value
+                            ? null
+                            : () async {
+                                final mailOrNick =
+                                    controller.emailcontroller.text.trim();
+                                final pass = controller.passwordcontroller.text;
+                                if (mailOrNick.isEmpty || pass.isEmpty) {
+                                  AppSnackbar(
+                                    'Eksik Bilgi',
+                                    'Kullanıcı adı/e-posta ve şifre girin.',
+                                  );
+                                  return;
+                                }
+                                if (pass.length < 6) {
+                                  AppSnackbar(
+                                    'Hatalı Şifre',
+                                    'Şifre en az 6 karakter olmalı.',
+                                  );
+                                  return;
+                                }
+                                controller.wait.value = true;
+                                await controller.signIn();
+                              },
+                        child: Container(
+                          width: 80,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: controller.wait.value
+                              ? const CupertinoActivityIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(
+                                  'common.continue'.tr,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Obx(() {
-            final account = controller.selectedStoredAccount.value;
-            if (account == null) return const SizedBox.shrink();
-            String message;
-            switch (account.primaryProvider) {
-              case 'phone':
-                message =
-                    '@${account.username} telefon ile kayitli gorunuyor. Bu hesap icin manuel yeniden giris yapman gerekiyor.';
-                break;
-              case 'password':
-                message =
-                    '@${account.username} secildi. Giris bilgilerini tamamlayip devam edebilirsin.';
-                break;
-              default:
-                message =
-                    '@${account.username} icin manuel yeniden giris yapman gerekiyor.';
-                break;
-            }
-            return Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.withAlpha(14),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 13,
-                  height: 1.35,
-                  fontFamily: 'MontserratMedium',
-                ),
-              ),
-            );
-          }),
-          AutofillGroup(
-            child: Column(
-              children: [
-                Container(
-                  height: 50,
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(20),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    border: Border.all(
-                      color: controller.emailFocus.value.hasFocus
-                          ? Colors.blueAccent
-                          : Colors.transparent,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          child:
-                              Icon(CupertinoIcons.person, color: Colors.black),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Transform.translate(
-                            offset: Offset(0, 1),
-                            child: TextField(
-                              controller: controller.emailcontroller,
-                              focusNode: controller.emailFocus.value,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [
-                                AutofillHints.username,
-                                AutofillHints.email,
-                              ],
-                              onTap: () {
-                                controller.emailFocus.value.requestFocus();
-                              },
-                              decoration: InputDecoration(
-                                hintText:
-                                    "Kullanıcı adı veya e-posta adresiniz",
-                                hintStyle: TextStyle(
-                                  color: Colors.grey,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                                border: InputBorder.none,
-                              ),
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
-                              onChanged: (v) {
-                                String trimmedValue = v.trim();
-                                if (trimmedValue != v) {
-                                  controller.emailcontroller.text =
-                                      trimmedValue;
-                                  controller.emailcontroller.selection =
-                                      TextSelection.fromPosition(
-                                    TextPosition(offset: trimmedValue.length),
-                                  );
-                                }
-                                controller
-                                    .maybeClearStoredAccountContextForIdentifier(
-                                  trimmedValue,
-                                );
-                                if (trimmedValue.isEmpty) {
-                                  controller.signInEmail.value = "";
-                                } else if (trimmedValue.length >= 5) {
-                                  controller.nicknameFinder();
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 7),
-                Container(
-                  height: 50,
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(20),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    border: Border.all(
-                      color: controller.passwordFocus.value.hasFocus
-                          ? Colors.blueAccent
-                          : Colors.transparent,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          child: Icon(CupertinoIcons.lock, color: Colors.black),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Transform.translate(
-                            offset: Offset(0, 1),
-                            child: TextField(
-                              controller: controller.passwordcontroller,
-                              focusNode: controller.passwordFocus.value,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.password],
-                              onTap: () {
-                                controller.passwordFocus.value.requestFocus();
-                              },
-                              onChanged: (v) {
-                                if (v.length >= 6) {
-                                  controller.verifyPassword();
-                                } else {
-                                  controller.passwordAvilable.value = false;
-                                }
-                              },
-                              decoration: InputDecoration(
-                                hintText: "Şifreniz",
-                                hintStyle: TextStyle(
-                                  color: Colors.grey,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                                border: InputBorder.none,
-                              ),
-                              obscureText: !controller.showPassword.value,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        if (controller.password.value.trim().isNotEmpty)
-                          GestureDetector(
-                            onTap: () {
-                              controller.showPassword.value =
-                                  !controller.showPassword.value;
-                            },
-                            child: Icon(
-                              controller.showPassword.value
-                                  ? CupertinoIcons.eye
-                                  : CupertinoIcons.eye_slash,
-                              color: Colors.blueAccent,
-                            ),
-                          )
-                        else
-                          GestureDetector(
-                            onTap: () {
-                              controller.resetMailController.clear();
-                              controller.resetOtpController.clear();
-                              controller.clearStoredAccountContext();
-                              controller.selection.value = 5;
-                            },
-                            child: Text(
-                              "Sıfırla",
-                              style: TextStyle(
-                                color: Colors.blueAccent,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
             ),
-          ),
-          SizedBox(height: 20),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12,
-                  height: 1.2,
-                  fontFamily: 'Montserrat',
-                ),
-                children: [_policyCenterTextSpan('Sözleşmeler ve Politikalar')],
-              ),
-            ),
-          ),
-          SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  controller.emailcontroller.text = "";
-                  controller.passwordcontroller.text = "";
-                  controller.emailFocus.value.unfocus();
-                  controller.passwordFocus.value.unfocus();
-                  controller.clearStoredAccountContext();
-                  controller.selection.value--;
-                },
-                child: Container(
-                  width: 80,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(20),
-                    borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  ),
-                  child: const Text(
-                    "Geri",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
-                    ),
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: controller.wait.value
-                    ? null
-                    : () async {
-                        final mailOrNick =
-                            controller.emailcontroller.text.trim();
-                        final pass = controller.passwordcontroller.text;
-                        if (mailOrNick.isEmpty || pass.isEmpty) {
-                          AppSnackbar(
-                            'Eksik Bilgi',
-                            'Kullanıcı adı/e-posta ve şifre girin.',
-                          );
-                          return;
-                        }
-                        if (pass.length < 6) {
-                          AppSnackbar(
-                            'Hatalı Şifre',
-                            'Şifre en az 6 karakter olmalı.',
-                          );
-                          return;
-                        }
-                        controller.wait.value = true;
-                        await controller.signIn();
-                      },
-                child: Container(
-                  width: 80,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: controller.wait.value
-                      ? const CupertinoActivityIndicator(
-                          color: Colors.white,
-                        )
-                      : const Text(
-                          "Devam",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -566,7 +601,7 @@ extension SignInAuthPart on SignIn {
             children: [
               Expanded(
                 child: Text(
-                  "Şifreni Sıfırla",
+                  'login.reset_password_title'.tr,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 25,
@@ -578,7 +613,7 @@ extension SignInAuthPart on SignIn {
           ),
           SizedBox(height: 12),
           Text(
-            "Mail adresinizi girerek hesabınızı bulmamızda yardımcı olun. Hesabınızda kayıt olan telefon numaranıza bir doğrulama kodu göndereceğiz",
+            'login.reset_password_help'.tr,
             style: TextStyle(
               color: Colors.black,
               fontSize: 15,
@@ -589,7 +624,7 @@ extension SignInAuthPart on SignIn {
           Row(
             children: [
               Text(
-                "E-posta Adresi",
+                'login.email_label'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 13,
@@ -640,7 +675,7 @@ extension SignInAuthPart on SignIn {
                           }
                         },
                         decoration: InputDecoration(
-                          hintText: "E-posta adresinizi girin",
+                          hintText: 'login.email_hint'.tr,
                           hintStyle: TextStyle(
                             color: Colors.grey,
                             fontFamily: "MontserratMedium",
@@ -664,10 +699,10 @@ extension SignInAuthPart on SignIn {
                                   : null,
                           child: Text(
                             !controller.resetCodeRequested.value
-                                ? "Kodu Al"
+                                ? 'login.get_code'.tr
                                 : controller.otpTimerReset.value == 0
-                                    ? "Tekrar Gönder"
-                                    : "Tekrar Gönder (${controller.otpTimerReset.value} sn)",
+                                    ? 'login.resend_code'.tr
+                                    : "${'login.resend_code'.tr} (${controller.otpTimerReset.value} sn)",
                             style: TextStyle(
                               color: controller.resetOtpRequestInFlight.value
                                   ? Colors.grey
@@ -687,7 +722,7 @@ extension SignInAuthPart on SignIn {
           Row(
             children: [
               Text(
-                "Doğrulama Kodu",
+                'login.verification_code'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 13,
@@ -723,7 +758,7 @@ extension SignInAuthPart on SignIn {
                           controller.resetOtpFocus.value.requestFocus();
                         },
                         decoration: InputDecoration(
-                          hintText: "6 haneli doğrulama kodu",
+                          hintText: 'login.verification_code_hint'.tr,
                           hintStyle: TextStyle(
                             color: Colors.grey,
                             fontFamily: "MontserratMedium",
@@ -761,8 +796,8 @@ extension SignInAuthPart on SignIn {
                     color: Colors.grey.withAlpha(20),
                     borderRadius: const BorderRadius.all(Radius.circular(8)),
                   ),
-                  child: const Text(
-                    "Geri",
+                  child: Text(
+                    'common.back'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -787,8 +822,8 @@ extension SignInAuthPart on SignIn {
                               Radius.circular(8),
                             ),
                           ),
-                          child: const Text(
-                            "Devam",
+                          child: Text(
+                            'common.continue'.tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,
@@ -1092,8 +1127,10 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
   static const String _word = 'TurqApp';
   Timer? _typingTimer;
   Timer? _cursorTimer;
+  Timer? _betaTimer;
   int _typedLength = 0;
   bool _showCursor = true;
+  bool _showBeta = false;
 
   @override
   void initState() {
@@ -1105,6 +1142,7 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
   void dispose() {
     _typingTimer?.cancel();
     _cursorTimer?.cancel();
+    _betaTimer?.cancel();
     super.dispose();
   }
 
@@ -1113,6 +1151,7 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
     _cursorTimer?.cancel();
     _typedLength = 1;
     _showCursor = true;
+    _showBeta = false;
 
     _typingTimer = Timer.periodic(const Duration(milliseconds: 110), (timer) {
       if (!mounted) {
@@ -1120,8 +1159,15 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
         return;
       }
       if (_typedLength >= _word.length) {
-        _showCursor = false;
         timer.cancel();
+        _showCursor = false;
+        _betaTimer?.cancel();
+        _betaTimer = Timer(const Duration(milliseconds: 140), () {
+          if (!mounted) return;
+          setState(() {
+            _showBeta = true;
+          });
+        });
         setState(() {});
         return;
       }
@@ -1136,7 +1182,6 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
         return;
       }
       if (_typedLength >= _word.length) {
-        _showCursor = false;
         timer.cancel();
         setState(() {});
         return;
@@ -1171,6 +1216,23 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
             width: 3,
             height: 50,
             color: Colors.black,
+          ),
+        ),
+        AnimatedOpacity(
+          opacity: _showBeta ? 1 : 0,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          child: const Padding(
+            padding: EdgeInsets.only(left: 10, bottom: 4),
+            child: Text(
+              'BETA',
+              style: TextStyle(
+                color: Colors.black38,
+                fontSize: 11,
+                letterSpacing: 1.8,
+                fontFamily: 'MontserratSemiBold',
+              ),
+            ),
           ),
         ),
       ],
