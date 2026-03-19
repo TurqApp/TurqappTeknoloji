@@ -24,7 +24,12 @@ typedef TextUpdate = String;
 
 class NavBarController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
+  static const String _appVersionDocId = 'appVersion';
   static const String _selectedIndexPrefKeyPrefix = 'nav_selected_index';
+  static const String _ratingFirstSeenAtKey = 'rating_prompt_first_seen_at';
+  static const String _ratingLastShownAtKey = 'rating_prompt_last_shown_at';
+  static const String _ratingLastStoreTapAtKey =
+      'rating_prompt_last_store_tap_at';
   var selectedIndex = 0.obs;
   var showBar = true.obs;
   ShortController?
@@ -57,10 +62,25 @@ class NavBarController extends GetxController
   // ⚠️ CRITICAL FIX: Track disposal state to prevent animation errors
   bool _isDisposed = false;
   bool _proactiveShortPreloadStarted = false;
+  bool _isForceUpdateVisible = false;
+  bool _ratingSheetShownThisSession = false;
+  String _androidMinVersion = '';
+  String _iosMinVersion = '';
+  String _updateTitle = 'Yeni Güncelleme Mevcut';
+  String _updateBody =
+      "TurqApp'in yeni versiyonu mevcut. Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyin.";
+  String? _androidStoreUrlOverride;
+  String? _iosStoreUrlOverride;
+  bool _ratingPromptEnabled = true;
+  Duration _ratingPromptEnabledAfter = const Duration(days: 7);
+  Duration _ratingPromptRepeatAfter = const Duration(days: 7);
+  Duration _ratingPromptStoreCooldown = const Duration(days: 90);
   Timer? _backgroundCacheTimer;
   Timer? _uploadIndicatorTimer;
+  Timer? _ratingPromptTimer;
 
-  String _selectedIndexKeyFor(String uid) => '${_selectedIndexPrefKeyPrefix}_$uid';
+  String _selectedIndexKeyFor(String uid) =>
+      '${_selectedIndexPrefKeyPrefix}_$uid';
 
   int _normalizeSelectedIndex(int value) {
     if (value == 2) return 0;
@@ -124,12 +144,12 @@ class NavBarController extends GetxController
     });
 
     _runAcilisAnimation();
-    // Açılış akışını bloklamasın; version kontrolünü gecikmeli başlat.
-    Future.delayed(const Duration(seconds: 12), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (!_isDisposed) {
-        checkAppVersion();
+        unawaited(checkAppVersion());
       }
     });
+    _scheduleRatingPrompt(const Duration(seconds: 25));
 
     if (!GetPlatform.isIOS) {
       _startBackgroundCacheLoop();
@@ -222,6 +242,8 @@ class NavBarController extends GetxController
     _backgroundCacheTimer = null;
     _uploadIndicatorTimer?.cancel();
     _uploadIndicatorTimer = null;
+    _ratingPromptTimer?.cancel();
+    _ratingPromptTimer = null;
     WidgetsBinding.instance.removeObserver(this);
 
     // Dispose animation controllers safely
@@ -256,6 +278,8 @@ class NavBarController extends GetxController
     }
 
     if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
+      unawaited(checkAppVersion());
+      _scheduleRatingPrompt(const Duration(seconds: 12));
       try {
         if (Get.isRegistered<AgendaController>()) {
           Get.find<AgendaController>().resumeFeedPlayback();
@@ -305,6 +329,49 @@ class NavBarController extends GetxController
     } catch (_) {}
   }
 
+  Future<void> _loadAppVersionConfig({bool forceRefresh = false}) async {
+    final repo = ConfigRepository.ensure();
+    final doc = await repo.getAdminConfigDoc(
+          _appVersionDocId,
+          preferCache: !forceRefresh,
+          forceRefresh: forceRefresh,
+        ) ??
+        await repo.getLegacyConfigDoc(
+          collection: 'Yönetim',
+          docId: 'Genel',
+          preferCache: true,
+        );
+
+    if (doc == null) return;
+
+    _androidMinVersion = (doc['androidMinVersion'] ?? '').toString().trim();
+    _iosMinVersion = (doc['iosMinVersion'] ?? '').toString().trim();
+
+    final updateTitle = (doc['updateTitle'] ?? '').toString().trim();
+    final updateBody = (doc['updateBody'] ?? '').toString().trim();
+    _updateTitle = updateTitle.isEmpty ? 'Yeni Güncelleme Mevcut' : updateTitle;
+    _updateBody = updateBody.isEmpty
+        ? "TurqApp'in yeni versiyonu mevcut. Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyin."
+        : updateBody;
+
+    final androidStoreUrl = (doc['androidStoreUrl'] ?? '').toString().trim();
+    final iosStoreUrl = (doc['iosStoreUrl'] ?? '').toString().trim();
+    _androidStoreUrlOverride = androidStoreUrl.isEmpty ? null : androidStoreUrl;
+    _iosStoreUrlOverride = iosStoreUrl.isEmpty ? null : iosStoreUrl;
+
+    _ratingPromptEnabled = doc['ratingPromptEnabled'] != false;
+    final initialDays =
+        (doc['ratingPromptInitialDelayDays'] as num?)?.toInt() ?? 7;
+    final repeatDays = (doc['ratingPromptRepeatDays'] as num?)?.toInt() ?? 7;
+    final cooldownDays =
+        (doc['ratingPromptStoreCooldownDays'] as num?)?.toInt() ?? 90;
+    _ratingPromptEnabledAfter =
+        Duration(days: initialDays < 1 ? 7 : initialDays);
+    _ratingPromptRepeatAfter = Duration(days: repeatDays < 1 ? 7 : repeatDays);
+    _ratingPromptStoreCooldown =
+        Duration(days: cooldownDays < 1 ? 90 : cooldownDays);
+  }
+
   Future<void> checkAppVersion() async {
     try {
       // Debug modda version kontrolünü bypass et
@@ -315,19 +382,13 @@ class NavBarController extends GetxController
       // Mevcut uygulama bilgilerini al
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
       String currentVersion = packageInfo.version;
-
-      // Merkezi config cache üzerinden minimum version bilgilerini al
-      final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
-        collection: 'Yönetim',
-        docId: 'Genel',
-        preferCache: true,
-      );
+      await _loadAppVersionConfig(forceRefresh: true);
 
       String requiredVersion = "";
       if (Platform.isAndroid) {
-        requiredVersion = (doc?["androidMinVersion"] ?? "").toString();
+        requiredVersion = _androidMinVersion;
       } else if (Platform.isIOS) {
-        requiredVersion = (doc?["iosMinVersion"] ?? "").toString();
+        requiredVersion = _iosMinVersion;
       }
 
       // Version karşılaştırması yap
@@ -357,9 +418,12 @@ class NavBarController extends GetxController
   }
 
   void _showUpdateDialog() {
+    if (_isForceUpdateVisible) return;
+    _isForceUpdateVisible = true;
     Get.bottomSheet(
       isDismissible: false,
       enableDrag: false,
+      barrierColor: Colors.black54,
       Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -413,8 +477,8 @@ class NavBarController extends GetxController
               const SizedBox(height: 20),
 
               // Başlık
-              const Text(
-                "Yeni Güncelleme Mevcut",
+              Text(
+                _updateTitle,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -425,8 +489,8 @@ class NavBarController extends GetxController
               const SizedBox(height: 12),
 
               // Açıklama
-              const Text(
-                "TurqApp'in yeni versiyonu mevcut. Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyin.",
+              Text(
+                _updateBody,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
@@ -443,7 +507,7 @@ class NavBarController extends GetxController
                 child: ElevatedButton(
                   onPressed: _launchStore,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -484,14 +548,186 @@ class NavBarController extends GetxController
     );
   }
 
+  void _scheduleRatingPrompt(Duration delay) {
+    _ratingPromptTimer?.cancel();
+    _ratingPromptTimer = Timer(delay, () {
+      if (_isDisposed) return;
+      unawaited(_maybeShowRatingPrompt());
+    });
+  }
+
+  Future<void> _maybeShowRatingPrompt() async {
+    if (_isDisposed ||
+        _isForceUpdateVisible ||
+        _ratingSheetShownThisSession ||
+        selectedIndex.value != 0) {
+      return;
+    }
+    await _loadAppVersionConfig(forceRefresh: false);
+    if (!_ratingPromptEnabled) {
+      return;
+    }
+    if (Get.isBottomSheetOpen == true || Get.isDialogOpen == true) {
+      _scheduleRatingPrompt(const Duration(seconds: 45));
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final firstSeenMs = prefs.getInt(_ratingFirstSeenAtKey) ?? 0;
+    final lastShownMs = prefs.getInt(_ratingLastShownAtKey) ?? 0;
+    final lastStoreTapMs = prefs.getInt(_ratingLastStoreTapAtKey) ?? 0;
+
+    if (firstSeenMs <= 0) {
+      await prefs.setInt(_ratingFirstSeenAtKey, nowMs);
+      return;
+    }
+
+    final firstSeenAt = DateTime.fromMillisecondsSinceEpoch(firstSeenMs);
+    if (DateTime.now().difference(firstSeenAt) < _ratingPromptEnabledAfter) {
+      return;
+    }
+
+    if (lastShownMs > 0) {
+      final lastShownAt = DateTime.fromMillisecondsSinceEpoch(lastShownMs);
+      if (DateTime.now().difference(lastShownAt) < _ratingPromptRepeatAfter) {
+        return;
+      }
+    }
+
+    if (lastStoreTapMs > 0) {
+      final lastStoreTapAt =
+          DateTime.fromMillisecondsSinceEpoch(lastStoreTapMs);
+      if (DateTime.now().difference(lastStoreTapAt) <
+          _ratingPromptStoreCooldown) {
+        return;
+      }
+    }
+
+    _ratingSheetShownThisSession = true;
+    await prefs.setInt(_ratingLastShownAtKey, nowMs);
+
+    await Get.bottomSheet(
+      isDismissible: true,
+      enableDrag: true,
+      barrierColor: Colors.black38,
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(26),
+            topRight: Radius.circular(26),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F1EA),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Icon(
+                  Icons.star_rounded,
+                  color: Colors.black,
+                  size: 38,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'TurqApp’i Değerlendir',
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Colors.black,
+                  fontFamily: 'MontserratBold',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Deneyimin iyiyse mağazada puan ve kısa bir değerlendirme bırakman TurqApp’in büyümesine ciddi katkı sağlar.',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black54,
+                  fontFamily: 'MontserratMedium',
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await prefs.setInt(_ratingLastStoreTapAtKey, nowMs);
+                    if (Get.isBottomSheetOpen == true) {
+                      Get.back();
+                    }
+                    await _launchStore();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Mağazada Değerlendir',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: TextButton(
+                  onPressed: () => Get.back(),
+                  child: const Text(
+                    'Daha Sonra',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black54,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _launchStore() async {
     String storeUrl = "";
 
     if (Platform.isAndroid) {
-      storeUrl =
+      storeUrl = _androidStoreUrlOverride ??
           "https://play.google.com/store/apps/details?id=com.turqapp.app";
     } else if (Platform.isIOS) {
-      storeUrl = "https://apps.apple.com/tr/app/turqapp/id6740809479?l=tr";
+      storeUrl = _iosStoreUrlOverride ??
+          "https://apps.apple.com/tr/app/turqapp/id6740809479?l=tr";
     }
 
     if (storeUrl.isNotEmpty) {
