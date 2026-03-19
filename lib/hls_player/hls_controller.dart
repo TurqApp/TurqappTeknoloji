@@ -105,10 +105,6 @@ class HLSController {
     _viewId = viewId;
     _eventChannel = EventChannel('turqapp.hls_player/events_$viewId');
     _listenToEvents();
-
-    if (_pendingReattachSeekSeconds != null || _pendingReattachShouldPlay) {
-      unawaited(pause());
-    }
   }
 
   Future<void> _silencePreviousView(int previousViewId) async {

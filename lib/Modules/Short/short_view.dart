@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -171,6 +172,9 @@ class _ShortViewState extends State<ShortView> {
     super.initState();
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
 
     final initialIndex = controller.shorts.isEmpty
         ? 0
@@ -233,6 +237,12 @@ class _ShortViewState extends State<ShortView> {
       currentPage = page;
       _showOverlayControls = true;
     });
+    if (currentPage >= 0 && currentPage < _cachedShorts.length) {
+      try {
+        VideoStateManager.instance
+            .updateExclusiveModeDoc(_cachedShorts[currentPage].docID);
+      } catch (_) {}
+    }
     isManuallyPaused = false;
     _isTransitioning = false;
     _telemetryFirstFrame = false;
@@ -320,6 +330,9 @@ class _ShortViewState extends State<ShortView> {
       // A10: Telemetry session başlat
       if (page < _cachedShorts.length) {
         final post = _cachedShorts[page];
+        try {
+          VideoStateManager.instance.enterExclusiveMode(post.docID);
+        } catch (_) {}
         VideoTelemetryService.instance
             .startSession(post.docID, post.playbackUrl);
         VideoTelemetryService.instance.updateRuntimeHints(
@@ -621,6 +634,9 @@ class _ShortViewState extends State<ShortView> {
       VideoTelemetryService.instance
           .endSession(_cachedShorts[currentPage].docID);
     }
+    try {
+      VideoStateManager.instance.exitExclusiveMode();
+    } catch (_) {}
 
     super.dispose();
   }
