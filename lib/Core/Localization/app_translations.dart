@@ -39,9 +39,101 @@ class AppTranslations extends Translations {
           'settings.admin_badges': 'Yönetim / Rozet Yönetimi',
           'settings.admin_tasks': 'Yönetim / Admin Görevleri',
           'settings.admin_approvals': 'Yönetim / Admin Onayları',
+          'settings.admin_push': 'Yönetim / Push Gönder',
           'settings.admin_story_music': 'Yönetim / Hikaye Müzikleri',
           'settings.admin_support': 'Yönetim / Kullanıcı Destek',
           'settings.system_diag_menu': 'Sistem ve Tanı Menüsü',
+          'settings.diagnostics.data_usage': 'Veri Tüketimi',
+          'settings.diagnostics.network': 'Ağ',
+          'settings.diagnostics.connected': 'Bağlı',
+          'settings.diagnostics.monthly_total': 'Aylık Toplam',
+          'settings.diagnostics.monthly_limit': 'Aylık Limit',
+          'settings.diagnostics.remaining': 'Kalan',
+          'settings.diagnostics.limit_usage': 'Limit Kullanımı',
+          'settings.diagnostics.wifi_usage': 'Wi-Fi Tüketimi',
+          'settings.diagnostics.cellular_usage': 'Mobil Tüketim',
+          'settings.diagnostics.time_ranges': 'Zaman Aralıkları',
+          'settings.diagnostics.this_month_actual': 'Bu Ay (Gerçek)',
+          'settings.diagnostics.hourly_average': 'Ortalama Saatlik',
+          'settings.diagnostics.since_login_estimated':
+              'Son Girişten Beri (Yaklaşık)',
+          'settings.diagnostics.details': 'Detay',
+          'settings.diagnostics.cache': 'Cache',
+          'settings.diagnostics.saved_media_count': 'Kayıtlı Medya Sayısı',
+          'settings.diagnostics.occupied_space': 'Kaplanan Alan',
+          'settings.diagnostics.offline_queue': 'Offline Kuyruk',
+          'settings.diagnostics.pending': 'Bekleyen',
+          'settings.diagnostics.dead_letter': 'Dead-letter',
+          'settings.diagnostics.status': 'Durum',
+          'settings.diagnostics.syncing': 'Senkronize ediliyor',
+          'settings.diagnostics.idle': 'Boşta',
+          'settings.diagnostics.processed_total': 'İşlenen (toplam)',
+          'settings.diagnostics.failed_total': 'Hata (toplam)',
+          'settings.diagnostics.last_sync': 'Son Senkron',
+          'settings.diagnostics.login_date': 'Giriş Tarihi',
+          'settings.diagnostics.login_time': 'Giriş Saati',
+          'settings.diagnostics.app_health_panel': 'Uygulama Sağlık Paneli',
+          'settings.diagnostics.video_cache_detail': 'Video Cache Detayı',
+          'settings.diagnostics.quick_actions': 'Hızlı Aksiyonlar',
+          'settings.diagnostics.offline_queue_detail':
+              'Offline Kuyruk Detayı',
+          'settings.diagnostics.last_error_summary': 'Son Hata Özeti',
+          'settings.diagnostics.error_report': 'Hata Raporu',
+          'settings.diagnostics.saved_videos': 'Kayıtlı Video',
+          'settings.diagnostics.saved_segments': 'Kayıtlı Segment',
+          'settings.diagnostics.disk_usage': 'Disk Kullanımı',
+          'settings.diagnostics.unknown': 'Bilinmiyor',
+          'settings.diagnostics.cache_traffic': 'Cache Trafiği',
+          'settings.diagnostics.hit_rate': 'Hit Oranı',
+          'settings.diagnostics.hit': 'Hit',
+          'settings.diagnostics.miss': 'Miss',
+          'settings.diagnostics.cache_served': 'Cache Servis',
+          'settings.diagnostics.downloaded_from_network':
+              'Ağdan İndirilen',
+          'settings.diagnostics.prefetch': 'Prefetch',
+          'settings.diagnostics.queue': 'Kuyruk',
+          'settings.diagnostics.active_downloads': 'Aktif İndirme',
+          'settings.diagnostics.paused': 'Duraklatılmış',
+          'settings.diagnostics.active': 'Aktif',
+          'settings.diagnostics.reset_data_counters':
+              'Veri Sayaçlarını Sıfırla',
+          'settings.diagnostics.data_counters_reset':
+              'Veri sayaçları sıfırlandı',
+          'settings.diagnostics.sync_offline_queue_now':
+              'Offline Kuyruğu Şimdi Senkronla',
+          'settings.diagnostics.offline_queue_sync_triggered':
+              'Offline kuyruk senkron tetiklendi',
+          'settings.diagnostics.retry_dead_letter': 'Dead-letter Yeniden Dene',
+          'settings.diagnostics.dead_letter_queued':
+              'Dead-letter işlemleri kuyruğa alındı',
+          'settings.diagnostics.clear_dead_letter': 'Dead-letter Temizle',
+          'settings.diagnostics.dead_letter_cleared':
+              'Dead-letter kuyruğu temizlendi',
+          'settings.diagnostics.pause_prefetch': 'Prefetch Duraklat',
+          'settings.diagnostics.prefetch_paused': 'Prefetch duraklatıldı',
+          'settings.diagnostics.service_not_ready':
+              'Prefetch servisi hazır değil',
+          'settings.diagnostics.resume_prefetch': 'Prefetch Devam Et',
+          'settings.diagnostics.prefetch_resumed':
+              'Prefetch devam ediyor',
+          'settings.diagnostics.online': 'Online',
+          'settings.diagnostics.sync': 'Sync',
+          'settings.diagnostics.processed': 'Processed',
+          'settings.diagnostics.failed': 'Failed',
+          'settings.diagnostics.pending_first8': 'Pending (ilk 8)',
+          'settings.diagnostics.dead_letter_first8':
+              'Dead-letter (ilk 8)',
+          'settings.diagnostics.sync_now': 'Şimdi Senkronla',
+          'settings.diagnostics.dead_letter_retry': 'Dead-letter Retry',
+          'settings.diagnostics.dead_letter_clear': 'Dead-letter Clear',
+          'settings.diagnostics.no_recorded_error':
+              'Kayıtlı hata bulunmuyor.',
+          'settings.diagnostics.error_code': 'Kod',
+          'settings.diagnostics.error_category': 'Kategori',
+          'settings.diagnostics.error_severity': 'Seviye',
+          'settings.diagnostics.error_retryable': 'Tekrar Denenebilir',
+          'settings.diagnostics.error_message': 'Mesaj',
+          'settings.diagnostics.error_time': 'Zaman',
           'settings.sign_out': 'Oturumu Kapat',
           'settings.sign_out_title': 'Çıkış Yap',
           'settings.sign_out_message':
@@ -79,6 +171,8 @@ class AppTranslations extends Translations {
           'common.saved': 'Kaydedilenler',
           'common.clear': 'Temizle',
           'common.share': 'Paylaş',
+          'common.user': 'Kullanıcı',
+          'common.close': 'Kapat',
           'login.selected_account_password':
               '{username} seçildi. Giriş bilgilerini tamamlayıp devam edebilirsin.',
           'login.selected_account_phone':
@@ -99,6 +193,8 @@ class AppTranslations extends Translations {
           'signup.policy_intro': 'Hesap oluşturarak ve devam ederek ',
           'signup.policy_outro':
               ' metinlerini kabul ediyorum.',
+          'signup.policy_short':
+              'Sözleşmeler ve Politikaları kabul ediyorum.',
           'signup.policy_notice':
               'Bu onay, hesap oluşturma akışının bir parçası olarak kayda alınabilir.',
           'signup.email': 'E-Posta',
@@ -353,6 +449,30 @@ class AppTranslations extends Translations {
               'Maksimum maaş alanını doldurmalısınız',
           'pasaj.job_finder.create.invalid_salary_range':
               'Maksimum maaş, minimum maaştan düşük olamaz',
+          'pasaj.job_finder.create.crop_use': 'Kırp ve Kullan',
+          'pasaj.job_finder.create.select_district': 'İlçe Seç',
+          'pasaj.job_finder.image_security_failed':
+              'Görsel güvenlik kontrolü tamamlanamadı',
+          'pasaj.job_finder.image_nsfw_detected':
+              'Uygunsuz görsel tespit edildi',
+          'pasaj.job_finder.day.monday': 'Pazartesi',
+          'pasaj.job_finder.day.tuesday': 'Salı',
+          'pasaj.job_finder.day.wednesday': 'Çarşamba',
+          'pasaj.job_finder.day.thursday': 'Perşembe',
+          'pasaj.job_finder.day.friday': 'Cuma',
+          'pasaj.job_finder.day.saturday': 'Cumartesi',
+          'pasaj.job_finder.day.sunday': 'Pazar',
+          'pasaj.job_finder.benefit.meal': 'Yemek',
+          'pasaj.job_finder.benefit.road_fee': 'Yol Ücreti',
+          'pasaj.job_finder.benefit.shuttle': 'Servis',
+          'pasaj.job_finder.benefit.bonus': 'Prim',
+          'pasaj.job_finder.benefit.private_health':
+              'Özel Sağlık Sigortası',
+          'pasaj.job_finder.benefit.retirement':
+              'Bireysel Emeklilik',
+          'pasaj.job_finder.benefit.flexible_hours':
+              'Esnek Çalışma Saatleri',
+          'pasaj.job_finder.benefit.remote_work': 'Uzaktan Çalışma',
           'pasaj.job_finder.my_applications': 'Başvurularım',
           'pasaj.job_finder.no_applications':
               'Henüz başvuru yapmadınız',
@@ -402,6 +522,47 @@ class AppTranslations extends Translations {
               'Başvuru durumu güncellenemedi.',
           'pasaj.job_finder.relogin_required':
               'İşlem için tekrar giriş yapın.',
+          'pasaj.job_finder.save_failed': 'Kaydetme işlemi başarısız.',
+          'pasaj.job_finder.share_auth_required':
+              'Sadece admin ve ilan sahibi paylaşabilir.',
+          'pasaj.job_finder.review_relogin_required':
+              'Değerlendirme için tekrar giriş yapın.',
+          'pasaj.job_finder.review_own_forbidden':
+              'Kendi ilanınızı değerlendiremezsiniz.',
+          'pasaj.job_finder.review_saved':
+              'Değerlendirmeniz kaydedildi.',
+          'pasaj.job_finder.review_save_failed':
+              'Değerlendirme kaydedilemedi.',
+          'pasaj.job_finder.review_deleted':
+              'Değerlendirmeniz kaldırıldı.',
+          'pasaj.job_finder.review_delete_failed':
+              'Değerlendirme kaldırılamadı.',
+          'pasaj.job_finder.open_in_maps': 'Haritalarda Aç',
+          'pasaj.job_finder.open_google_maps':
+              'Google Haritalar\'da Aç',
+          'pasaj.job_finder.open_apple_maps':
+              'Apple Haritalar\'da Aç',
+          'pasaj.job_finder.open_yandex_maps':
+              'Yandex Haritalar\'da Aç',
+          'pasaj.job_finder.map_load_failed': 'Harita yüklenemedi',
+          'pasaj.job_finder.open_maps_help':
+              'Konumu haritalarda açmak için dokun.',
+          'pasaj.job_finder.application_sent': 'Başvurun gönderildi.',
+          'pasaj.job_finder.application_failed':
+              'Başvuru sırasında bir sorun oluştu.',
+          'pasaj.job_finder.listing_not_found': 'İlan bulunamadı',
+          'pasaj.job_finder.reactivated':
+              'İlan tekrar yayına alındı.',
+          'pasaj.job_finder.sort_title': 'Sıralama',
+          'pasaj.job_finder.sort_newest': 'En Yeni',
+          'pasaj.job_finder.sort_nearest_me': 'Bana En Yakın',
+          'pasaj.job_finder.sort_most_viewed': 'En Çok Görüntülenen',
+          'pasaj.job_finder.clear_filters': 'Filtreleri Temizle',
+          'pasaj.job_finder.select_city': 'Şehir Seç',
+          'pasaj.job_finder.work_type.full_time': 'Tam Zamanlı',
+          'pasaj.job_finder.work_type.part_time': 'Yarı Zamanlı',
+          'pasaj.job_finder.work_type.remote': 'Uzaktan',
+          'pasaj.job_finder.work_type.hybrid': 'Hibrit',
           'pasaj.market.title': 'Market',
           'pasaj.market.contact_phone': 'Telefon',
           'pasaj.market.contact_message': 'Mesaj',
@@ -420,6 +581,20 @@ class AppTranslations extends Translations {
           'pasaj.market.my_listings': 'İlanlarım',
           'pasaj.market.saved_items': 'Beğendiklerim',
           'pasaj.market.my_offers': 'Tekliflerim',
+          'pasaj.market.menu.create': 'İlan Ekle',
+          'pasaj.market.menu.my_items': 'İlanlarım',
+          'pasaj.market.menu.saved': 'Beğendiklerim',
+          'pasaj.market.menu.offers': 'Tekliflerim',
+          'pasaj.market.menu.categories': 'Kategoriler',
+          'pasaj.market.menu.nearby': 'Yakınımdakiler',
+          'pasaj.market.category.electronics': 'Elektronik',
+          'pasaj.market.category.phone': 'Telefon',
+          'pasaj.market.category.computer': 'Bilgisayar',
+          'pasaj.market.category.gaming_electronics': 'Oyun Elektroniği',
+          'pasaj.market.category.clothing': 'Giyim',
+          'pasaj.market.category.home_living': 'Ev & Yaşam',
+          'pasaj.market.category.sports': 'Spor',
+          'pasaj.market.category.real_estate': 'Emlak',
           'pasaj.market.detail_title': 'İlan Detayı',
           'pasaj.market.report_listing': 'İlanı Bildir',
           'pasaj.market.report_reason': 'Lütfen bir neden seç.',
@@ -476,6 +651,8 @@ class AppTranslations extends Translations {
           'pasaj.market.status.active': 'Aktif',
           'pasaj.market.create.images': 'Görseller',
           'pasaj.market.create.basic_info': 'Temel Bilgiler',
+          'pasaj.market.create.pick_category': 'Bir kategori seçmelisin.',
+          'pasaj.market.create.title_required': 'Başlık gerekli.',
           'pasaj.market.create.title_hint': 'Başlık',
           'pasaj.market.create.description_hint': 'Açıklama',
           'pasaj.market.create.price_hint': 'Fiyat (TL)',
@@ -521,6 +698,65 @@ class AppTranslations extends Translations {
           'pasaj.market.offer_update_failed': 'Teklif güncellenemedi.',
           'pasaj.market.listing_unavailable':
               'Bu ilana şu anda erişilemiyor.',
+          'pasaj.market.filter.title': 'Filtreler',
+          'pasaj.market.filter.all_cities': 'Tüm Şehirler',
+          'pasaj.market.filter.search_city': 'Şehir ara',
+          'pasaj.market.filter.price_range': 'Fiyat Aralığı',
+          'pasaj.market.filter.min': 'Min',
+          'pasaj.market.filter.max': 'Max',
+          'pasaj.market.filter.sort': 'Sıralama',
+          'pasaj.market.filter.newest': 'Yeni',
+          'pasaj.market.filter.ascending': 'Artan',
+          'pasaj.market.filter.descending': 'Azalan',
+          'pasaj.market.filter.apply': 'Uygula',
+          'pasaj.market.search_hint': 'İlan ara',
+          'pasaj.market.search.no_results_body':
+              'Aramana uygun ilan bulunmuyor.',
+          'pasaj.market.search.result_count': '{count} sonuç',
+          'pasaj.market.search.start_title': 'İlan aramaya başla',
+          'pasaj.market.search.start_body':
+              'Son aramaların burada görünecek.',
+          'pasaj.market.search.recent': 'Son Aramalar',
+          'pasaj.market.sign_in_required_title': 'Giriş Gerekli',
+          'pasaj.market.sign_in_to_save': 'Kaydetmek için giriş yapmalısın.',
+          'pasaj.market.saved_success': 'İlan kaydedildi.',
+          'pasaj.market.unsaved': 'Kayıt kaldırıldı.',
+          'pasaj.market.save_failed': 'Kaydetme işlemi tamamlanamadı.',
+          'pasaj.market.coming_soon_title': 'Yakında',
+          'pasaj.market.coming_soon_body': '{title} yakında eklenecek.',
+          'pasaj.market.permission_required_title': 'İzin Gerekli',
+          'pasaj.market.nearby_permission_required':
+              'Yakınındaki ilanlar için konum izni gerekli.',
+          'pasaj.market.location_not_found_title': 'Konum Bulunamadı',
+          'pasaj.market.city_not_found': 'Şehir bilgisi alınamadı.',
+          'pasaj.market.limited_results_title': 'Sınırlı Sonuç',
+          'pasaj.market.no_city_results': '{city} için ilan bulunamadı.',
+          'pasaj.market.nearby_ready':
+              '{city} için yakınındaki ilanlar gösteriliyor.',
+          'pasaj.market.nearby_failed':
+              'Yakınındaki ilanlar yüklenemedi.',
+          'pasaj.market.limit_title': 'Sınır',
+          'pasaj.market.image_limit':
+              'En fazla {max} görsel ekleyebilirsin.',
+          'pasaj.market.create.need_image':
+              'Yayınlamak için en az bir görsel ekle.',
+          'pasaj.market.create.invalid_price':
+              'Geçerli bir fiyat gir.',
+          'pasaj.market.create.city_district_required_short':
+              'Şehir ve ilçe seçimi gerekli.',
+          'pasaj.market.create.field_required':
+              '{field} alanı gerekli.',
+          'pasaj.market.user_session_not_found':
+              'Kullanıcı oturumu bulunamadı.',
+          'pasaj.market.create.save_failed':
+              'İlan kaydedilemedi: {error}',
+          'pasaj.market.image_security_failed':
+              'Görsel güvenlik kontrolü tamamlanamadı',
+          'pasaj.market.image_nsfw_detected':
+              'Uygunsuz görsel tespit edildi',
+          'pasaj.market.create.add_title': 'İlan Ekle',
+          'pasaj.market.create.edit_title': 'İlan Düzenle',
+          'pasaj.market.create.update_draft': 'Taslak Güncelle',
           'pasaj.market.status.pending': 'Bekliyor',
           'pasaj.market.status.accepted': 'Kabul Edildi',
           'pasaj.market.status.rejected': 'Reddedildi',
@@ -1091,9 +1327,99 @@ class AppTranslations extends Translations {
           'settings.admin_badges': 'Admin / Badge Management',
           'settings.admin_tasks': 'Admin / Task Assignments',
           'settings.admin_approvals': 'Admin / Approvals',
+          'settings.admin_push': 'Admin / Send Push',
           'settings.admin_story_music': 'Admin / Story Music',
           'settings.admin_support': 'Admin / User Support',
           'settings.system_diag_menu': 'System and Diagnostics Menu',
+          'settings.diagnostics.data_usage': 'Data Usage',
+          'settings.diagnostics.network': 'Network',
+          'settings.diagnostics.connected': 'Connected',
+          'settings.diagnostics.monthly_total': 'Monthly Total',
+          'settings.diagnostics.monthly_limit': 'Monthly Limit',
+          'settings.diagnostics.remaining': 'Remaining',
+          'settings.diagnostics.limit_usage': 'Limit Usage',
+          'settings.diagnostics.wifi_usage': 'Wi-Fi Usage',
+          'settings.diagnostics.cellular_usage': 'Cellular Usage',
+          'settings.diagnostics.time_ranges': 'Time Ranges',
+          'settings.diagnostics.this_month_actual': 'This Month (Actual)',
+          'settings.diagnostics.hourly_average': 'Hourly Average',
+          'settings.diagnostics.since_login_estimated':
+              'Since Last Sign-In (Estimated)',
+          'settings.diagnostics.details': 'Details',
+          'settings.diagnostics.cache': 'Cache',
+          'settings.diagnostics.saved_media_count': 'Saved Media Count',
+          'settings.diagnostics.occupied_space': 'Occupied Space',
+          'settings.diagnostics.offline_queue': 'Offline Queue',
+          'settings.diagnostics.pending': 'Pending',
+          'settings.diagnostics.dead_letter': 'Dead-letter',
+          'settings.diagnostics.status': 'Status',
+          'settings.diagnostics.syncing': 'Syncing',
+          'settings.diagnostics.idle': 'Idle',
+          'settings.diagnostics.processed_total': 'Processed (total)',
+          'settings.diagnostics.failed_total': 'Failed (total)',
+          'settings.diagnostics.last_sync': 'Last Sync',
+          'settings.diagnostics.login_date': 'Login Date',
+          'settings.diagnostics.login_time': 'Login Time',
+          'settings.diagnostics.app_health_panel': 'App Health Dashboard',
+          'settings.diagnostics.video_cache_detail': 'Video Cache Details',
+          'settings.diagnostics.quick_actions': 'Quick Actions',
+          'settings.diagnostics.offline_queue_detail':
+              'Offline Queue Details',
+          'settings.diagnostics.last_error_summary': 'Last Error Summary',
+          'settings.diagnostics.error_report': 'Error Report',
+          'settings.diagnostics.saved_videos': 'Saved Videos',
+          'settings.diagnostics.saved_segments': 'Saved Segments',
+          'settings.diagnostics.disk_usage': 'Disk Usage',
+          'settings.diagnostics.unknown': 'Unknown',
+          'settings.diagnostics.cache_traffic': 'Cache Traffic',
+          'settings.diagnostics.hit_rate': 'Hit Rate',
+          'settings.diagnostics.hit': 'Hit',
+          'settings.diagnostics.miss': 'Miss',
+          'settings.diagnostics.cache_served': 'Served from Cache',
+          'settings.diagnostics.downloaded_from_network':
+              'Downloaded from Network',
+          'settings.diagnostics.prefetch': 'Prefetch',
+          'settings.diagnostics.queue': 'Queue',
+          'settings.diagnostics.active_downloads': 'Active Downloads',
+          'settings.diagnostics.paused': 'Paused',
+          'settings.diagnostics.active': 'Active',
+          'settings.diagnostics.reset_data_counters': 'Reset Data Counters',
+          'settings.diagnostics.data_counters_reset':
+              'Data counters were reset',
+          'settings.diagnostics.sync_offline_queue_now':
+              'Sync Offline Queue Now',
+          'settings.diagnostics.offline_queue_sync_triggered':
+              'Offline queue sync triggered',
+          'settings.diagnostics.retry_dead_letter': 'Retry Dead-letter',
+          'settings.diagnostics.dead_letter_queued':
+              'Dead-letter items were queued',
+          'settings.diagnostics.clear_dead_letter': 'Clear Dead-letter',
+          'settings.diagnostics.dead_letter_cleared':
+              'Dead-letter queue cleared',
+          'settings.diagnostics.pause_prefetch': 'Pause Prefetch',
+          'settings.diagnostics.prefetch_paused': 'Prefetch paused',
+          'settings.diagnostics.service_not_ready':
+              'Prefetch service is not ready',
+          'settings.diagnostics.resume_prefetch': 'Resume Prefetch',
+          'settings.diagnostics.prefetch_resumed':
+              'Prefetch resumed',
+          'settings.diagnostics.online': 'Online',
+          'settings.diagnostics.sync': 'Sync',
+          'settings.diagnostics.processed': 'Processed',
+          'settings.diagnostics.failed': 'Failed',
+          'settings.diagnostics.pending_first8': 'Pending (first 8)',
+          'settings.diagnostics.dead_letter_first8':
+              'Dead-letter (first 8)',
+          'settings.diagnostics.sync_now': 'Sync Now',
+          'settings.diagnostics.dead_letter_retry': 'Dead-letter Retry',
+          'settings.diagnostics.dead_letter_clear': 'Dead-letter Clear',
+          'settings.diagnostics.no_recorded_error': 'No recorded errors.',
+          'settings.diagnostics.error_code': 'Code',
+          'settings.diagnostics.error_category': 'Category',
+          'settings.diagnostics.error_severity': 'Severity',
+          'settings.diagnostics.error_retryable': 'Retryable',
+          'settings.diagnostics.error_message': 'Message',
+          'settings.diagnostics.error_time': 'Time',
           'settings.sign_out': 'Sign Out',
           'settings.sign_out_title': 'Sign Out',
           'settings.sign_out_message':
@@ -1131,6 +1457,8 @@ class AppTranslations extends Translations {
           'common.saved': 'Saved',
           'common.clear': 'Clear',
           'common.share': 'Share',
+          'common.user': 'User',
+          'common.close': 'Close',
           'login.selected_account_password':
               '{username} selected. Complete your sign-in details to continue.',
           'login.selected_account_phone':
@@ -1150,6 +1478,8 @@ class AppTranslations extends Translations {
           'signup.create_account_title': 'Create Your Account',
           'signup.policy_intro': 'By creating an account and continuing, I accept the ',
           'signup.policy_outro': ' texts.',
+          'signup.policy_short':
+              'I accept the Agreements and Policies.',
           'signup.policy_notice':
               'This consent may be recorded as part of the account creation flow.',
           'signup.email': 'Email',
@@ -1404,6 +1734,30 @@ class AppTranslations extends Translations {
               'You must fill in the maximum salary field',
           'pasaj.job_finder.create.invalid_salary_range':
               'Maximum salary cannot be lower than minimum salary',
+          'pasaj.job_finder.create.crop_use': 'Crop and Use',
+          'pasaj.job_finder.create.select_district': 'Select District',
+          'pasaj.job_finder.image_security_failed':
+              'Image security check could not be completed',
+          'pasaj.job_finder.image_nsfw_detected':
+              'Inappropriate image detected',
+          'pasaj.job_finder.day.monday': 'Monday',
+          'pasaj.job_finder.day.tuesday': 'Tuesday',
+          'pasaj.job_finder.day.wednesday': 'Wednesday',
+          'pasaj.job_finder.day.thursday': 'Thursday',
+          'pasaj.job_finder.day.friday': 'Friday',
+          'pasaj.job_finder.day.saturday': 'Saturday',
+          'pasaj.job_finder.day.sunday': 'Sunday',
+          'pasaj.job_finder.benefit.meal': 'Meal',
+          'pasaj.job_finder.benefit.road_fee': 'Road allowance',
+          'pasaj.job_finder.benefit.shuttle': 'Shuttle',
+          'pasaj.job_finder.benefit.bonus': 'Bonus',
+          'pasaj.job_finder.benefit.private_health':
+              'Private health insurance',
+          'pasaj.job_finder.benefit.retirement':
+              'Private pension',
+          'pasaj.job_finder.benefit.flexible_hours':
+              'Flexible working hours',
+          'pasaj.job_finder.benefit.remote_work': 'Remote work',
           'pasaj.job_finder.my_applications': 'My Applications',
           'pasaj.job_finder.no_applications':
               'You have not applied yet',
@@ -1453,6 +1807,44 @@ class AppTranslations extends Translations {
               'Application status could not be updated.',
           'pasaj.job_finder.relogin_required':
               'Please sign in again to continue.',
+          'pasaj.job_finder.save_failed': 'Saving could not be completed.',
+          'pasaj.job_finder.share_auth_required':
+              'Only admins and listing owners can share.',
+          'pasaj.job_finder.review_relogin_required':
+              'Please sign in again to leave a review.',
+          'pasaj.job_finder.review_own_forbidden':
+              'You cannot review your own listing.',
+          'pasaj.job_finder.review_saved': 'Your review has been saved.',
+          'pasaj.job_finder.review_save_failed':
+              'Your review could not be saved.',
+          'pasaj.job_finder.review_deleted':
+              'Your review has been removed.',
+          'pasaj.job_finder.review_delete_failed':
+              'Your review could not be removed.',
+          'pasaj.job_finder.open_in_maps': 'Open in maps',
+          'pasaj.job_finder.open_google_maps': 'Open in Google Maps',
+          'pasaj.job_finder.open_apple_maps': 'Open in Apple Maps',
+          'pasaj.job_finder.open_yandex_maps': 'Open in Yandex Maps',
+          'pasaj.job_finder.map_load_failed': 'Map could not be loaded',
+          'pasaj.job_finder.open_maps_help':
+              'Tap to open the location in maps.',
+          'pasaj.job_finder.application_sent':
+              'Your application has been sent.',
+          'pasaj.job_finder.application_failed':
+              'There was a problem while sending your application.',
+          'pasaj.job_finder.listing_not_found': 'Listing not found',
+          'pasaj.job_finder.reactivated':
+              'The listing has been republished.',
+          'pasaj.job_finder.sort_title': 'Sort',
+          'pasaj.job_finder.sort_newest': 'Newest',
+          'pasaj.job_finder.sort_nearest_me': 'Nearest to Me',
+          'pasaj.job_finder.sort_most_viewed': 'Most Viewed',
+          'pasaj.job_finder.clear_filters': 'Clear Filters',
+          'pasaj.job_finder.select_city': 'Select City',
+          'pasaj.job_finder.work_type.full_time': 'Full Time',
+          'pasaj.job_finder.work_type.part_time': 'Part Time',
+          'pasaj.job_finder.work_type.remote': 'Remote',
+          'pasaj.job_finder.work_type.hybrid': 'Hybrid',
           'pasaj.market.title': 'Market',
           'pasaj.market.contact_phone': 'Phone',
           'pasaj.market.contact_message': 'Message',
@@ -1472,6 +1864,20 @@ class AppTranslations extends Translations {
           'pasaj.market.my_listings': 'My Listings',
           'pasaj.market.saved_items': 'Saved Items',
           'pasaj.market.my_offers': 'My Offers',
+          'pasaj.market.menu.create': 'Add Listing',
+          'pasaj.market.menu.my_items': 'My Listings',
+          'pasaj.market.menu.saved': 'Liked Items',
+          'pasaj.market.menu.offers': 'My Offers',
+          'pasaj.market.menu.categories': 'Categories',
+          'pasaj.market.menu.nearby': 'Nearby',
+          'pasaj.market.category.electronics': 'Electronics',
+          'pasaj.market.category.phone': 'Phone',
+          'pasaj.market.category.computer': 'Computer',
+          'pasaj.market.category.gaming_electronics': 'Gaming Electronics',
+          'pasaj.market.category.clothing': 'Clothing',
+          'pasaj.market.category.home_living': 'Home & Living',
+          'pasaj.market.category.sports': 'Sports',
+          'pasaj.market.category.real_estate': 'Real Estate',
           'pasaj.market.detail_title': 'Listing Details',
           'pasaj.market.report_listing': 'Report Listing',
           'pasaj.market.report_reason': 'Please choose a reason.',
@@ -1528,6 +1934,8 @@ class AppTranslations extends Translations {
           'pasaj.market.status.active': 'Active',
           'pasaj.market.create.images': 'Images',
           'pasaj.market.create.basic_info': 'Basic Information',
+          'pasaj.market.create.pick_category': 'You must choose a category.',
+          'pasaj.market.create.title_required': 'Title is required.',
           'pasaj.market.create.title_hint': 'Title',
           'pasaj.market.create.description_hint': 'Description',
           'pasaj.market.create.price_hint': 'Price (TRY)',
@@ -1579,6 +1987,72 @@ class AppTranslations extends Translations {
               'The offer could not be updated.',
           'pasaj.market.listing_unavailable':
               'This listing is not accessible right now.',
+          'pasaj.market.filter.title': 'Filters',
+          'pasaj.market.filter.all_cities': 'All Cities',
+          'pasaj.market.filter.search_city': 'Search city',
+          'pasaj.market.filter.price_range': 'Price Range',
+          'pasaj.market.filter.min': 'Min',
+          'pasaj.market.filter.max': 'Max',
+          'pasaj.market.filter.sort': 'Sort',
+          'pasaj.market.filter.newest': 'Newest',
+          'pasaj.market.filter.ascending': 'Ascending',
+          'pasaj.market.filter.descending': 'Descending',
+          'pasaj.market.filter.apply': 'Apply',
+          'pasaj.market.search_hint': 'Search listing',
+          'pasaj.market.search.no_results_body':
+              'No listings match your search.',
+          'pasaj.market.search.result_count': '{count} results',
+          'pasaj.market.search.start_title': 'Start searching listings',
+          'pasaj.market.search.start_body':
+              'Your recent searches will appear here.',
+          'pasaj.market.search.recent': 'Recent Searches',
+          'pasaj.market.sign_in_required_title': 'Sign-in Required',
+          'pasaj.market.sign_in_to_save':
+              'You need to sign in to save listings.',
+          'pasaj.market.saved_success': 'Listing saved.',
+          'pasaj.market.unsaved': 'Saved item removed.',
+          'pasaj.market.save_failed':
+              'The save action could not be completed.',
+          'pasaj.market.coming_soon_title': 'Coming Soon',
+          'pasaj.market.coming_soon_body':
+              '{title} will be added soon.',
+          'pasaj.market.permission_required_title':
+              'Permission Required',
+          'pasaj.market.nearby_permission_required':
+              'Location permission is required for nearby listings.',
+          'pasaj.market.location_not_found_title':
+              'Location Not Found',
+          'pasaj.market.city_not_found':
+              'City information could not be retrieved.',
+          'pasaj.market.limited_results_title': 'Limited Results',
+          'pasaj.market.no_city_results':
+              'No listings were found for {city}.',
+          'pasaj.market.nearby_ready':
+              'Nearby listings for {city} are now shown.',
+          'pasaj.market.nearby_failed':
+              'Nearby listings could not be loaded.',
+          'pasaj.market.limit_title': 'Limit',
+          'pasaj.market.image_limit':
+              'You can add up to {max} images.',
+          'pasaj.market.create.need_image':
+              'Add at least one image to publish.',
+          'pasaj.market.create.invalid_price':
+              'Enter a valid price.',
+          'pasaj.market.create.city_district_required_short':
+              'City and district selection is required.',
+          'pasaj.market.create.field_required':
+              '{field} field is required.',
+          'pasaj.market.user_session_not_found':
+              'User session could not be found.',
+          'pasaj.market.create.save_failed':
+              'Listing could not be saved: {error}',
+          'pasaj.market.image_security_failed':
+              'Image safety check could not be completed',
+          'pasaj.market.image_nsfw_detected':
+              'Inappropriate image detected',
+          'pasaj.market.create.add_title': 'Add Listing',
+          'pasaj.market.create.edit_title': 'Edit Listing',
+          'pasaj.market.create.update_draft': 'Update Draft',
           'pasaj.market.status.pending': 'Pending',
           'pasaj.market.status.accepted': 'Accepted',
           'pasaj.market.status.rejected': 'Rejected',
@@ -2158,9 +2632,108 @@ class AppTranslations extends Translations {
           'settings.admin_badges': 'Verwaltung / Badge-Verwaltung',
           'settings.admin_tasks': 'Verwaltung / Admin-Aufgaben',
           'settings.admin_approvals': 'Verwaltung / Admin-Freigaben',
+          'settings.admin_push': 'Verwaltung / Push senden',
           'settings.admin_story_music': 'Verwaltung / Story-Musik',
           'settings.admin_support': 'Verwaltung / Nutzersupport',
           'settings.system_diag_menu': 'System- und Diagnosemenü',
+          'settings.diagnostics.data_usage': 'Datenverbrauch',
+          'settings.diagnostics.network': 'Netzwerk',
+          'settings.diagnostics.connected': 'Verbunden',
+          'settings.diagnostics.monthly_total': 'Monatlich gesamt',
+          'settings.diagnostics.monthly_limit': 'Monatliches Limit',
+          'settings.diagnostics.remaining': 'Verbleibend',
+          'settings.diagnostics.limit_usage': 'Limitnutzung',
+          'settings.diagnostics.wifi_usage': 'WLAN-Verbrauch',
+          'settings.diagnostics.cellular_usage': 'Mobilfunkverbrauch',
+          'settings.diagnostics.time_ranges': 'Zeiträume',
+          'settings.diagnostics.this_month_actual': 'Diesen Monat (echt)',
+          'settings.diagnostics.hourly_average': 'Durchschnitt pro Stunde',
+          'settings.diagnostics.since_login_estimated':
+              'Seit letzter Anmeldung (geschätzt)',
+          'settings.diagnostics.details': 'Details',
+          'settings.diagnostics.cache': 'Cache',
+          'settings.diagnostics.saved_media_count':
+              'Gespeicherte Medienanzahl',
+          'settings.diagnostics.occupied_space': 'Belegter Speicher',
+          'settings.diagnostics.offline_queue': 'Offline-Warteschlange',
+          'settings.diagnostics.pending': 'Ausstehend',
+          'settings.diagnostics.dead_letter': 'Dead-letter',
+          'settings.diagnostics.status': 'Status',
+          'settings.diagnostics.syncing': 'Synchronisiert',
+          'settings.diagnostics.idle': 'Leerlauf',
+          'settings.diagnostics.processed_total': 'Verarbeitet (gesamt)',
+          'settings.diagnostics.failed_total': 'Fehler (gesamt)',
+          'settings.diagnostics.last_sync': 'Letzte Synchronisierung',
+          'settings.diagnostics.login_date': 'Anmeldedatum',
+          'settings.diagnostics.login_time': 'Anmeldezeit',
+          'settings.diagnostics.app_health_panel':
+              'App-Gesundheitsübersicht',
+          'settings.diagnostics.video_cache_detail':
+              'Video-Cache-Details',
+          'settings.diagnostics.quick_actions': 'Schnellaktionen',
+          'settings.diagnostics.offline_queue_detail':
+              'Offline-Warteschlangendetails',
+          'settings.diagnostics.last_error_summary':
+              'Letzte Fehlerzusammenfassung',
+          'settings.diagnostics.error_report': 'Fehlerbericht',
+          'settings.diagnostics.saved_videos': 'Gespeicherte Videos',
+          'settings.diagnostics.saved_segments': 'Gespeicherte Segmente',
+          'settings.diagnostics.disk_usage': 'Speichernutzung',
+          'settings.diagnostics.unknown': 'Unbekannt',
+          'settings.diagnostics.cache_traffic': 'Cache-Verkehr',
+          'settings.diagnostics.hit_rate': 'Trefferquote',
+          'settings.diagnostics.hit': 'Hit',
+          'settings.diagnostics.miss': 'Miss',
+          'settings.diagnostics.cache_served': 'Aus Cache geliefert',
+          'settings.diagnostics.downloaded_from_network':
+              'Aus dem Netzwerk geladen',
+          'settings.diagnostics.prefetch': 'Prefetch',
+          'settings.diagnostics.queue': 'Warteschlange',
+          'settings.diagnostics.active_downloads': 'Aktive Downloads',
+          'settings.diagnostics.paused': 'Pausiert',
+          'settings.diagnostics.active': 'Aktiv',
+          'settings.diagnostics.reset_data_counters':
+              'Datenzähler zurücksetzen',
+          'settings.diagnostics.data_counters_reset':
+              'Datenzähler wurden zurückgesetzt',
+          'settings.diagnostics.sync_offline_queue_now':
+              'Offline-Warteschlange jetzt synchronisieren',
+          'settings.diagnostics.offline_queue_sync_triggered':
+              'Offline-Synchronisierung wurde ausgelöst',
+          'settings.diagnostics.retry_dead_letter':
+              'Dead-letter erneut versuchen',
+          'settings.diagnostics.dead_letter_queued':
+              'Dead-letter-Einträge wurden eingeplant',
+          'settings.diagnostics.clear_dead_letter': 'Dead-letter löschen',
+          'settings.diagnostics.dead_letter_cleared':
+              'Dead-letter-Warteschlange geleert',
+          'settings.diagnostics.pause_prefetch': 'Prefetch pausieren',
+          'settings.diagnostics.prefetch_paused': 'Prefetch pausiert',
+          'settings.diagnostics.service_not_ready':
+              'Prefetch-Dienst ist nicht bereit',
+          'settings.diagnostics.resume_prefetch': 'Prefetch fortsetzen',
+          'settings.diagnostics.prefetch_resumed':
+              'Prefetch fortgesetzt',
+          'settings.diagnostics.online': 'Online',
+          'settings.diagnostics.sync': 'Sync',
+          'settings.diagnostics.processed': 'Verarbeitet',
+          'settings.diagnostics.failed': 'Fehlgeschlagen',
+          'settings.diagnostics.pending_first8':
+              'Ausstehend (erste 8)',
+          'settings.diagnostics.dead_letter_first8':
+              'Dead-letter (erste 8)',
+          'settings.diagnostics.sync_now': 'Jetzt synchronisieren',
+          'settings.diagnostics.dead_letter_retry':
+              'Dead-letter erneut versuchen',
+          'settings.diagnostics.dead_letter_clear': 'Dead-letter löschen',
+          'settings.diagnostics.no_recorded_error':
+              'Keine gespeicherten Fehler gefunden.',
+          'settings.diagnostics.error_code': 'Code',
+          'settings.diagnostics.error_category': 'Kategorie',
+          'settings.diagnostics.error_severity': 'Schweregrad',
+          'settings.diagnostics.error_retryable': 'Erneut versuchbar',
+          'settings.diagnostics.error_message': 'Nachricht',
+          'settings.diagnostics.error_time': 'Zeit',
           'settings.sign_out': 'Abmelden',
           'settings.sign_out_title': 'Abmelden',
           'settings.sign_out_message':
@@ -2198,6 +2771,8 @@ class AppTranslations extends Translations {
           'common.saved': 'Gespeichert',
           'common.clear': 'Zurücksetzen',
           'common.share': 'Teilen',
+          'common.user': 'Nutzer',
+          'common.close': 'Schließen',
           'login.selected_account_password':
               '{username} ausgewählt. Vervollständige deine Anmeldedaten, um fortzufahren.',
           'login.selected_account_phone':
@@ -2218,6 +2793,8 @@ class AppTranslations extends Translations {
           'signup.policy_intro':
               'Mit der Kontoerstellung und dem Fortfahren akzeptiere ich die ',
           'signup.policy_outro': ' Texte.',
+          'signup.policy_short':
+              'Ich akzeptiere die Verträge und Richtlinien.',
           'signup.policy_notice':
               'Diese Zustimmung kann als Teil des Kontoerstellungsprozesses gespeichert werden.',
           'signup.email': 'E-Mail',
@@ -2485,6 +3062,30 @@ class AppTranslations extends Translations {
               'Du musst das Höchstgehalt ausfüllen',
           'pasaj.job_finder.create.invalid_salary_range':
               'Das Höchstgehalt darf nicht unter dem Mindestgehalt liegen',
+          'pasaj.job_finder.create.crop_use': 'Zuschneiden und verwenden',
+          'pasaj.job_finder.create.select_district': 'Bezirk auswählen',
+          'pasaj.job_finder.image_security_failed':
+              'Die Bild-Sicherheitsprüfung konnte nicht abgeschlossen werden',
+          'pasaj.job_finder.image_nsfw_detected':
+              'Unangemessenes Bild erkannt',
+          'pasaj.job_finder.day.monday': 'Montag',
+          'pasaj.job_finder.day.tuesday': 'Dienstag',
+          'pasaj.job_finder.day.wednesday': 'Mittwoch',
+          'pasaj.job_finder.day.thursday': 'Donnerstag',
+          'pasaj.job_finder.day.friday': 'Freitag',
+          'pasaj.job_finder.day.saturday': 'Samstag',
+          'pasaj.job_finder.day.sunday': 'Sonntag',
+          'pasaj.job_finder.benefit.meal': 'Verpflegung',
+          'pasaj.job_finder.benefit.road_fee': 'Fahrtkostenzuschuss',
+          'pasaj.job_finder.benefit.shuttle': 'Shuttle',
+          'pasaj.job_finder.benefit.bonus': 'Bonus',
+          'pasaj.job_finder.benefit.private_health':
+              'Private Krankenversicherung',
+          'pasaj.job_finder.benefit.retirement':
+              'Private Altersvorsorge',
+          'pasaj.job_finder.benefit.flexible_hours':
+              'Flexible Arbeitszeiten',
+          'pasaj.job_finder.benefit.remote_work': 'Remote-Arbeit',
           'pasaj.job_finder.my_applications': 'Meine Bewerbungen',
           'pasaj.job_finder.no_applications':
               'Du hast dich noch nicht beworben',
@@ -2538,6 +3139,51 @@ class AppTranslations extends Translations {
               'Der Bewerbungsstatus konnte nicht aktualisiert werden.',
           'pasaj.job_finder.relogin_required':
               'Bitte melde dich erneut an, um fortzufahren.',
+          'pasaj.job_finder.save_failed':
+              'Speichern konnte nicht abgeschlossen werden.',
+          'pasaj.job_finder.share_auth_required':
+              'Nur Admins und Anzeigeninhaber können teilen.',
+          'pasaj.job_finder.review_relogin_required':
+              'Bitte melde dich zum Bewerten erneut an.',
+          'pasaj.job_finder.review_own_forbidden':
+              'Du kannst deine eigene Anzeige nicht bewerten.',
+          'pasaj.job_finder.review_saved':
+              'Deine Bewertung wurde gespeichert.',
+          'pasaj.job_finder.review_save_failed':
+              'Die Bewertung konnte nicht gespeichert werden.',
+          'pasaj.job_finder.review_deleted':
+              'Deine Bewertung wurde entfernt.',
+          'pasaj.job_finder.review_delete_failed':
+              'Die Bewertung konnte nicht entfernt werden.',
+          'pasaj.job_finder.open_in_maps': 'In Karten öffnen',
+          'pasaj.job_finder.open_google_maps':
+              'In Google Maps öffnen',
+          'pasaj.job_finder.open_apple_maps':
+              'In Apple Karten öffnen',
+          'pasaj.job_finder.open_yandex_maps':
+              'In Yandex Maps öffnen',
+          'pasaj.job_finder.map_load_failed':
+              'Karte konnte nicht geladen werden',
+          'pasaj.job_finder.open_maps_help':
+              'Tippe, um den Standort in Karten zu öffnen.',
+          'pasaj.job_finder.application_sent':
+              'Deine Bewerbung wurde gesendet.',
+          'pasaj.job_finder.application_failed':
+              'Beim Senden der Bewerbung ist ein Problem aufgetreten.',
+          'pasaj.job_finder.listing_not_found':
+              'Anzeige wurde nicht gefunden',
+          'pasaj.job_finder.reactivated':
+              'Die Anzeige wurde erneut veröffentlicht.',
+          'pasaj.job_finder.sort_title': 'Sortierung',
+          'pasaj.job_finder.sort_newest': 'Neueste',
+          'pasaj.job_finder.sort_nearest_me': 'In meiner Nähe',
+          'pasaj.job_finder.sort_most_viewed': 'Am meisten angesehen',
+          'pasaj.job_finder.clear_filters': 'Filter löschen',
+          'pasaj.job_finder.select_city': 'Stadt auswählen',
+          'pasaj.job_finder.work_type.full_time': 'Vollzeit',
+          'pasaj.job_finder.work_type.part_time': 'Teilzeit',
+          'pasaj.job_finder.work_type.remote': 'Remote',
+          'pasaj.job_finder.work_type.hybrid': 'Hybrid',
           'pasaj.market.title': 'Markt',
           'pasaj.market.contact_phone': 'Telefon',
           'pasaj.market.contact_message': 'Nachricht',
@@ -2557,6 +3203,20 @@ class AppTranslations extends Translations {
           'pasaj.market.my_listings': 'Meine Anzeigen',
           'pasaj.market.saved_items': 'Gespeicherte',
           'pasaj.market.my_offers': 'Meine Angebote',
+          'pasaj.market.menu.create': 'Anzeige hinzufügen',
+          'pasaj.market.menu.my_items': 'Meine Anzeigen',
+          'pasaj.market.menu.saved': 'Gefällt mir',
+          'pasaj.market.menu.offers': 'Meine Angebote',
+          'pasaj.market.menu.categories': 'Kategorien',
+          'pasaj.market.menu.nearby': 'In der Nähe',
+          'pasaj.market.category.electronics': 'Elektronik',
+          'pasaj.market.category.phone': 'Telefon',
+          'pasaj.market.category.computer': 'Computer',
+          'pasaj.market.category.gaming_electronics': 'Spielelektronik',
+          'pasaj.market.category.clothing': 'Kleidung',
+          'pasaj.market.category.home_living': 'Haus & Wohnen',
+          'pasaj.market.category.sports': 'Sport',
+          'pasaj.market.category.real_estate': 'Immobilien',
           'pasaj.market.detail_title': 'Anzeigendetails',
           'pasaj.market.report_listing': 'Anzeige melden',
           'pasaj.market.report_reason': 'Bitte wähle einen Grund.',
@@ -2622,6 +3282,9 @@ class AppTranslations extends Translations {
           'pasaj.market.status.active': 'Aktiv',
           'pasaj.market.create.images': 'Bilder',
           'pasaj.market.create.basic_info': 'Grundinformationen',
+          'pasaj.market.create.pick_category':
+              'Du musst eine Kategorie auswählen.',
+          'pasaj.market.create.title_required': 'Titel ist erforderlich.',
           'pasaj.market.create.title_hint': 'Titel',
           'pasaj.market.create.description_hint': 'Beschreibung',
           'pasaj.market.create.price_hint': 'Preis (TRY)',
@@ -2675,6 +3338,72 @@ class AppTranslations extends Translations {
               'Das Angebot konnte nicht aktualisiert werden.',
           'pasaj.market.listing_unavailable':
               'Diese Anzeige ist derzeit nicht erreichbar.',
+          'pasaj.market.filter.title': 'Filter',
+          'pasaj.market.filter.all_cities': 'Alle Städte',
+          'pasaj.market.filter.search_city': 'Stadt suchen',
+          'pasaj.market.filter.price_range': 'Preisspanne',
+          'pasaj.market.filter.min': 'Min',
+          'pasaj.market.filter.max': 'Max',
+          'pasaj.market.filter.sort': 'Sortierung',
+          'pasaj.market.filter.newest': 'Neu',
+          'pasaj.market.filter.ascending': 'Aufsteigend',
+          'pasaj.market.filter.descending': 'Absteigend',
+          'pasaj.market.filter.apply': 'Anwenden',
+          'pasaj.market.search_hint': 'Anzeige suchen',
+          'pasaj.market.search.no_results_body':
+              'Keine Anzeigen passend zu deiner Suche gefunden.',
+          'pasaj.market.search.result_count': '{count} Ergebnisse',
+          'pasaj.market.search.start_title': 'Starte deine Anzeigensuche',
+          'pasaj.market.search.start_body':
+              'Deine letzten Suchen werden hier angezeigt.',
+          'pasaj.market.search.recent': 'Letzte Suchen',
+          'pasaj.market.sign_in_required_title': 'Anmeldung erforderlich',
+          'pasaj.market.sign_in_to_save':
+              'Du musst dich anmelden, um Anzeigen zu speichern.',
+          'pasaj.market.saved_success': 'Anzeige gespeichert.',
+          'pasaj.market.unsaved': 'Gespeicherter Eintrag entfernt.',
+          'pasaj.market.save_failed':
+              'Der Speichervorgang konnte nicht abgeschlossen werden.',
+          'pasaj.market.coming_soon_title': 'Demnächst',
+          'pasaj.market.coming_soon_body':
+              '{title} wird bald hinzugefügt.',
+          'pasaj.market.permission_required_title':
+              'Berechtigung erforderlich',
+          'pasaj.market.nearby_permission_required':
+              'Für Anzeigen in deiner Nähe ist eine Standortberechtigung erforderlich.',
+          'pasaj.market.location_not_found_title':
+              'Standort nicht gefunden',
+          'pasaj.market.city_not_found':
+              'Stadtinformationen konnten nicht geladen werden.',
+          'pasaj.market.limited_results_title': 'Begrenzte Ergebnisse',
+          'pasaj.market.no_city_results':
+              'Für {city} wurden keine Anzeigen gefunden.',
+          'pasaj.market.nearby_ready':
+              'Anzeigen in deiner Nähe für {city} werden angezeigt.',
+          'pasaj.market.nearby_failed':
+              'Anzeigen in deiner Nähe konnten nicht geladen werden.',
+          'pasaj.market.limit_title': 'Limit',
+          'pasaj.market.image_limit':
+              'Du kannst bis zu {max} Bilder hinzufügen.',
+          'pasaj.market.create.need_image':
+              'Füge mindestens ein Bild hinzu, um zu veröffentlichen.',
+          'pasaj.market.create.invalid_price':
+              'Gib einen gültigen Preis ein.',
+          'pasaj.market.create.city_district_required_short':
+              'Stadt und Bezirk sind erforderlich.',
+          'pasaj.market.create.field_required':
+              'Feld {field} ist erforderlich.',
+          'pasaj.market.user_session_not_found':
+              'Benutzersitzung konnte nicht gefunden werden.',
+          'pasaj.market.create.save_failed':
+              'Anzeige konnte nicht gespeichert werden: {error}',
+          'pasaj.market.image_security_failed':
+              'Die Bildsicherheitsprüfung konnte nicht abgeschlossen werden',
+          'pasaj.market.image_nsfw_detected':
+              'Unangemessenes Bild erkannt',
+          'pasaj.market.create.add_title': 'Anzeige hinzufügen',
+          'pasaj.market.create.edit_title': 'Anzeige bearbeiten',
+          'pasaj.market.create.update_draft': 'Entwurf aktualisieren',
           'pasaj.market.status.pending': 'Ausstehend',
           'pasaj.market.status.accepted': 'Angenommen',
           'pasaj.market.status.rejected': 'Abgelehnt',
@@ -3279,32 +4008,1098 @@ class AppTranslations extends Translations {
 
     base['fr_FR'] = Map<String, String>.from(base['en_US']!)
       ..addAll({
+        'settings.title': 'Parametres',
+        'settings.account': 'Compte',
+        'settings.content': 'Contenu',
+        'settings.app': 'Application',
+        'settings.security_support': 'Securite et assistance',
+        'settings.my_tasks': 'Mes taches',
+        'settings.system_diagnostics': 'Systeme et diagnostic',
+        'settings.session': 'Session',
+        'settings.language': 'Langue',
+        'settings.edit_profile': 'Modifier le profil',
+        'settings.saved_posts': 'Enregistrements',
+        'settings.archive': 'Archive',
+        'settings.liked_posts': 'J aime',
+        'settings.notifications': 'Notifications',
+        'settings.permissions': 'Autorisations',
+        'settings.pasaj': 'Pasaj',
+        'settings.about': 'A propos',
+        'settings.policies': 'Politiques',
+        'settings.contact_us': 'Nous ecrire',
+        'settings.sign_out': 'Se deconnecter',
+        'settings.sign_out_title': 'Se deconnecter',
+        'settings.sign_out_message':
+            'Etes-vous sur de vouloir vous deconnecter ?',
+        'language.title': 'Langue',
+        'language.subtitle': 'Choisis la langue de l application.',
+        'language.note':
+            'Certaines pages seront traduites progressivement. Ton choix s applique immediatement.',
         'language.option.tr': 'Turc',
         'language.option.en': 'Anglais',
         'language.option.de': 'Allemand',
         'language.option.fr': 'Français',
         'language.option.it': 'Italien',
         'language.option.ru': 'Russe',
+        'login.tagline': '"Vos histoires se rejoignent ici."',
+        'login.device_accounts': 'Comptes sur cet appareil',
+        'login.last_used': 'Dernier utilise',
+        'login.saved_account': 'Compte enregistre',
+        'login.sign_in': 'Se connecter',
+        'login.create_account': 'Creer un compte',
+        'login.policies': 'Contrats et politiques',
+        'login.identifier_hint': 'Nom d utilisateur ou e-mail',
+        'login.password_hint': 'Votre mot de passe',
+        'login.reset': 'Reinitialiser',
+        'login.reset_password_title': 'Reinitialiser votre mot de passe',
+        'login.email_label': 'Adresse e-mail',
+        'login.email_hint': 'Entrez votre adresse e-mail',
+        'login.get_code': 'Obtenir le code',
+        'login.resend_code': 'Renvoyer',
+        'login.verification_code': 'Code de verification',
+        'login.verification_code_hint': 'Code de verification a 6 chiffres',
+        'common.back': 'Retour',
+        'common.continue': 'Continuer',
+        'common.all': 'Tous',
+        'common.videos': 'Videos',
+        'common.photos': 'Photos',
+        'common.no_results': 'Aucun resultat',
+        'common.success': 'Succes',
+        'common.delete': 'Supprimer',
+        'common.search': 'Rechercher',
+        'common.create': 'Creer',
+        'common.saved': 'Enregistre',
+        'common.clear': 'Effacer',
+        'common.share': 'Partager',
+        'common.user': 'Utilisateur',
+        'common.info': 'Info',
+        'common.cancel': 'Annuler',
+        'common.close': 'Fermer',
+        'signup.create_account_title': 'Creez votre compte',
+        'signup.policy_short':
+            'J accepte les contrats et les politiques.',
+        'signup.email': 'E-mail',
+        'signup.username': 'Nom d utilisateur',
+        'signup.password': 'Mot de passe',
+        'signup.personal_info': 'Informations personnelles',
+        'signup.first_name': 'Prenom',
+        'signup.last_name_optional': 'Nom (optionnel)',
+        'signup.next': 'Suivant',
+        'signup.verification_title': 'Verification',
+        'notifications.title': 'Notifications',
+        'notifications.categories': 'Categories',
+        'notifications.device_notice':
+            'Pour voir les notifications sur l ecran verrouille, garde l autorisation active dans les reglages de l appareil.',
+        'notifications.pause_all': 'Tout suspendre',
+        'notifications.sleep_mode': 'Mode sommeil',
+        'notifications.messages': 'Messages',
+        'notifications.posts_comments': 'Publications et commentaires',
+        'notifications.comments': 'Commentaires',
+        'notifications.follows': 'Abonnements',
+        'notifications.direct_messages': 'Messages directs',
+        'notifications.opportunities': 'Annonces et candidatures',
+        'support.title': 'Nous ecrire',
+        'support.card_title': 'Message d assistance',
+        'support.direct_admin': 'Votre message est transmis directement a l admin.',
+        'support.topic': 'Sujet',
+        'support.topic.account': 'Compte',
+        'support.topic.payment': 'Paiement',
+        'support.topic.technical': 'Probleme technique',
+        'support.topic.content': 'Plainte concernant un contenu',
+        'support.topic.suggestion': 'Suggestion',
+        'support.message_hint': 'Ecrivez votre probleme ou votre demande...',
+        'support.send': 'Envoyer le message',
+        'support.empty_title': 'Information incomplete',
+        'support.empty_body': 'Veuillez ecrire un message.',
+        'support.sent_title': 'Envoye',
+        'support.sent_body': 'Votre message a ete transmis a l admin.',
+        'support.error_title': 'Erreur',
+        'liked_posts.no_posts': 'Aucune publication',
+        'saved_posts.posts_tab': 'Publications',
+        'saved_posts.series_tab': 'Serie',
+        'saved_posts.no_saved_posts':
+            'Aucune publication enregistree',
+        'saved_posts.no_saved_series': 'Aucune serie enregistree',
+        'post_creator.title_new': 'Preparer une publication',
+        'post_creator.title_edit': 'Modifier la publication',
+        'post_creator.publish': 'Publier',
+        'post_creator.uploading': 'Telechargement...',
+        'post_creator.saving': 'Enregistrement...',
+        'post_creator.placeholder': 'Quoi de neuf ?',
+        'post_creator.processing_wait':
+            'Veuillez patienter. La video est en cours de traitement...',
+        'post_creator.video_processing': 'Traitement de la video',
+        'post_creator.look.original': 'Original',
+        'post_creator.look.clear': 'Net',
+        'post_creator.look.cinema': 'Cinematique',
+        'post_creator.look.vibe': 'Vif',
+        'post_creator.comments.everyone': 'Tout le monde',
+        'post_creator.comments.verified': 'Comptes verifies',
+        'post_creator.comments.following': 'Comptes que vous suivez',
+        'post_creator.comments.closed': 'Commentaires fermes',
+        'post_creator.comments.title': 'Qui peut repondre ?',
+        'post_creator.comments.subtitle':
+            'Choisissez qui peut repondre a cette publication.',
+        'post_creator.reshare.everyone': 'Tout le monde',
+        'post_creator.reshare.verified': 'Comptes verifies',
+        'post_creator.reshare.following': 'Comptes que vous suivez',
+        'post_creator.reshare.closed': 'Republication fermee',
+        'post_creator.reshare_privacy_title':
+            'Confidentialite du repartage',
+        'post_creator.reshare_everyone_desc':
+            'Tout le monde peut repartager.',
+        'post_creator.reshare_followers_desc':
+            'Seuls mes abonnes peuvent repartager.',
+        'post_creator.reshare_closed_desc':
+            'Le repartage est desactive.',
+        'post_creator.warning_title': 'Avertissement',
+        'post_creator.success_title': 'Succes !',
+        'pasaj.closed': 'Pasaj est actuellement ferme',
+        'pasaj.common.my_applications': 'Mes candidatures',
+        'pasaj.common.post_listing': 'Publier une annonce',
+        'pasaj.common.all_turkiye': 'Toute la Turquie',
+        'pasaj.tabs.market': 'Marche mobile',
+        'pasaj.tabs.practice_exams': 'Examens',
+        'pasaj.tabs.tutoring': 'Cours particuliers',
+        'pasaj.tabs.job_finder': 'Emploi',
+        'pasaj.job_finder.title': 'Emploi',
+        'pasaj.job_finder.search_hint': 'Quel type de travail cherches-tu ?',
+        'pasaj.job_finder.nearby_listings':
+            'Les annonces les plus proches de toi',
+        'pasaj.job_finder.no_search_result':
+            'Aucune annonce ne correspond a votre recherche',
+        'pasaj.job_finder.no_city_listing':
+            'Aucune annonce n est disponible dans votre ville',
+        'pasaj.job_finder.sort_high_salary': 'Salaire eleve',
+        'pasaj.job_finder.sort_low_salary': 'Salaire faible',
+        'pasaj.job_finder.sort_nearest': 'Le plus proche',
+        'pasaj.job_finder.career_profile': 'Profil de carriere',
+        'pasaj.job_finder.detail_title': 'Detail de l annonce',
+        'pasaj.job_finder.no_description':
+            'Aucune description n a ete ajoutee pour cette annonce.',
+        'pasaj.job_finder.job_info': 'Description du poste',
+        'pasaj.job_finder.listing_info': 'Informations de l annonce',
+        'pasaj.job_finder.application_count': 'Nombre de candidatures',
+        'pasaj.job_finder.work_type': 'Type de travail',
+        'pasaj.job_finder.work_days': 'Jours de travail',
+        'pasaj.job_finder.work_hours': 'Heures de travail',
+        'pasaj.job_finder.personnel_count':
+            'Nombre de personnes a recruter',
+        'pasaj.job_finder.benefits': 'Avantages',
+        'pasaj.job_finder.passive': 'Passif',
+        'pasaj.job_finder.salary_not_specified': 'Non precise',
+        'pasaj.job_finder.edit_listing': 'Modifier',
+        'pasaj.job_finder.applications': 'Candidatures',
+        'pasaj.job_finder.apply': 'Postuler',
+        'pasaj.job_finder.applied': 'Candidature envoyee',
+        'pasaj.job_finder.cv_required': 'CV requis',
+        'pasaj.job_finder.cv_required_body':
+            'Vous devez completer votre CV avant de postuler.',
+        'pasaj.job_finder.create_cv': 'Creer un CV',
+        'pasaj.job_finder.application_sent':
+            'Votre candidature a ete envoyee.',
+        'pasaj.job_finder.application_failed':
+            'Un probleme est survenu lors de l envoi de votre candidature.',
+        'pasaj.job_finder.finding_platform':
+            'Plateforme de recherche d emploi',
+        'pasaj.job_finder.looking_for_job': 'Je cherche un emploi',
+        'pasaj.job_finder.professional_profile':
+            'Profil professionnel',
+        'pasaj.job_finder.experience': 'Experience professionnelle',
+        'pasaj.job_finder.education': 'Formation',
+        'pasaj.job_finder.languages': 'Langues',
+        'pasaj.job_finder.skills': 'Competences',
+        'pasaj.market.title': 'Marche',
+        'pasaj.market.contact_phone': 'Telephone',
+        'pasaj.market.contact_message': 'Message',
+        'pasaj.market.all_listings': 'Toutes les annonces',
+        'pasaj.market.main_categories': 'Categories principales',
+        'pasaj.market.category_search_hint':
+            'Rechercher categorie principale, sous-categorie, marque',
+        'pasaj.market.call_now': 'Appeler maintenant',
+        'pasaj.market.inspect': 'Voir',
+        'pasaj.market.empty_filtered':
+            'Aucune annonce n a ete trouvee avec ce filtre.',
+        'pasaj.market.add_listing': 'Ajouter une annonce',
+        'pasaj.market.my_listings': 'Mes annonces',
+        'pasaj.market.saved_items': 'Mes favoris',
+        'pasaj.market.my_offers': 'Mes offres',
+        'pasaj.market.detail_title': 'Detail de l annonce',
+        'pasaj.market.report_listing': 'Signaler l annonce',
+        'pasaj.market.no_description':
+            'Aucune description n a ete ajoutee pour cette annonce.',
+        'pasaj.market.listing_info': 'Informations de l annonce',
+        'pasaj.market.saved_count': 'Enregistrements',
+        'pasaj.market.offer_count': 'Offres',
+        'pasaj.market.messages': 'Messages',
+        'pasaj.market.offers': 'Offres',
+        'pasaj.market.related_listings': 'Annonces similaires',
+        'pasaj.market.no_related':
+            'Aucune autre annonce n a ete trouvee dans cette categorie.',
+        'pasaj.market.custom_offer':
+            'Definis ton offre toi-meme',
+        'pasaj.market.reviews': 'Evaluations',
+        'pasaj.market.rate': 'Evaluer',
+        'pasaj.job_finder.no_applications':
+            'Vous n avez encore postule a aucune annonce',
+        'pasaj.job_finder.default_job_title': 'Annonce d emploi',
+        'pasaj.job_finder.default_company': 'Entreprise',
+        'pasaj.job_finder.cancel_apply_title':
+            'Annuler la candidature',
+        'pasaj.job_finder.cancel_apply_body':
+            'Voulez-vous vraiment annuler cette candidature ?',
+        'pasaj.job_finder.saved_jobs': 'Enregistrees',
+        'pasaj.job_finder.no_saved_jobs':
+            'Aucune annonce enregistree.',
+        'pasaj.job_finder.my_ads': 'Mes annonces',
+        'pasaj.job_finder.published_tab': 'Publiees',
+        'pasaj.job_finder.expired_tab': 'Expirees',
+        'pasaj.job_finder.no_my_ads': 'Aucune annonce trouvee',
+        'pasaj.job_finder.finding_how':
+            'Comment fonctionne la plateforme de recherche d emploi ?',
+        'pasaj.job_finder.finding_body':
+            'Votre CV est partage avec les employeurs avec votre accord. Avant de publier une annonce, les employeurs peuvent consulter via notre systeme des candidats adaptes a leurs postes ouverts. Ainsi, les employeurs atteignent plus vite les bons candidats et les chercheurs d emploi accedent plus rapidement aux opportunites. Notre objectif est de rendre le processus de recrutement plus rapide et plus efficace pour les deux parties.',
+        'pasaj.job_finder.edit_cv': 'Modifier le CV',
+        'pasaj.job_finder.no_cv_title':
+            'Vous n avez pas encore cree de CV',
+        'pasaj.job_finder.no_cv_body':
+            'Creez un CV pour accelerer vos candidatures',
+        'pasaj.job_finder.applicants': 'Candidats',
+        'pasaj.job_finder.no_applicants':
+            'Aucune candidature pour le moment',
+        'pasaj.job_finder.unknown_user': 'Utilisateur inconnu',
+        'pasaj.job_finder.view_cv': 'Voir le CV',
+        'pasaj.job_finder.review': 'Examiner',
+        'pasaj.job_finder.accept': 'Accepter',
+        'pasaj.job_finder.reject': 'Refuser',
+        'pasaj.job_finder.cv_not_found_title': 'CV introuvable',
+        'pasaj.job_finder.cv_not_found_body':
+            'Aucun CV enregistre n a ete trouve pour cet utilisateur.',
+        'pasaj.job_finder.status.pending': 'En attente',
+        'pasaj.job_finder.status.reviewing': 'En cours d examen',
+        'pasaj.job_finder.status.accepted': 'Acceptee',
+        'pasaj.job_finder.status.rejected': 'Refusee',
+        'pasaj.job_finder.status_updated':
+            'Le statut de la candidature a ete mis a jour.',
+        'pasaj.job_finder.status_update_failed':
+            'Le statut de la candidature n a pas pu etre mis a jour.',
+        'pasaj.job_finder.relogin_required':
+            'Veuillez vous reconnecter pour continuer.',
+        'pasaj.job_finder.save_failed':
+            'L enregistrement n a pas pu etre termine.',
+        'pasaj.job_finder.share_auth_required':
+            'Seuls les admins et les proprietaires d annonces peuvent partager.',
+        'pasaj.job_finder.review_relogin_required':
+            'Veuillez vous reconnecter pour laisser un avis.',
+        'pasaj.job_finder.review_own_forbidden':
+            'Vous ne pouvez pas evaluer votre propre annonce.',
+        'pasaj.job_finder.review_saved':
+            'Votre evaluation a ete enregistree.',
+        'pasaj.job_finder.review_save_failed':
+            'L evaluation n a pas pu etre enregistree.',
+        'pasaj.job_finder.review_deleted':
+            'Votre evaluation a ete supprimee.',
+        'pasaj.job_finder.review_delete_failed':
+            'L evaluation n a pas pu etre supprimee.',
+        'pasaj.job_finder.open_in_maps': 'Ouvrir dans Plans',
+        'pasaj.job_finder.open_google_maps':
+            'Ouvrir dans Google Maps',
+        'pasaj.job_finder.open_apple_maps':
+            'Ouvrir dans Apple Plans',
+        'pasaj.job_finder.open_yandex_maps':
+            'Ouvrir dans Yandex Maps',
+        'pasaj.job_finder.map_load_failed':
+            'La carte n a pas pu etre chargee',
+        'pasaj.job_finder.open_maps_help':
+            'Touchez pour ouvrir l emplacement dans Plans.',
+        'pasaj.job_finder.listing_not_found':
+            'Annonce introuvable',
+        'pasaj.job_finder.reactivated':
+            'L annonce a ete republee.',
+        'pasaj.job_finder.sort_title': 'Tri',
+        'pasaj.job_finder.sort_newest': 'Les plus recentes',
+        'pasaj.job_finder.sort_nearest_me': 'Pres de moi',
+        'pasaj.job_finder.sort_most_viewed': 'Les plus vues',
+        'pasaj.job_finder.clear_filters': 'Effacer les filtres',
+        'pasaj.job_finder.select_city': 'Choisir une ville',
+        'pasaj.market.saved_success': 'Annonce enregistree.',
+        'pasaj.market.unsaved': 'Annonce retiree des enregistrements.',
+        'pasaj.market.save_failed':
+            'L enregistrement n a pas pu etre termine.',
+        'pasaj.market.report_received_title':
+            'Votre signalement a ete recu !',
+        'pasaj.market.report_received_body':
+            'L annonce a ete mise en file de verification. Merci.',
+        'pasaj.market.report_failed':
+            'Le signalement de l annonce n a pas pu etre envoye.',
+        'pasaj.market.invalid_offer':
+            'Veuillez choisir une offre valide.',
+        'pasaj.market.offer_sent': 'Offre envoyee.',
+        'pasaj.market.offer_own_forbidden':
+            'Vous ne pouvez pas faire une offre sur votre propre annonce.',
+        'pasaj.market.offer_daily_limit':
+            'Vous pouvez envoyer au maximum 20 offres par jour.',
+        'pasaj.market.offer_failed':
+            'L offre n a pas pu etre envoyee.',
+        'pasaj.market.review_edit': 'Modifier',
+        'pasaj.market.no_reviews':
+            'Il n y a pas encore d evaluation.',
+        'pasaj.market.sign_in_to_review':
+            'Vous devez vous connecter pour laisser une evaluation.',
+        'pasaj.market.review_comment_hint':
+            'Ecrivez votre commentaire',
+        'pasaj.market.select_rating':
+            'Veuillez choisir une note.',
+        'pasaj.market.review_saved':
+            'Votre evaluation a ete enregistree.',
+        'pasaj.market.review_updated':
+            'Votre evaluation a ete mise a jour.',
+        'pasaj.market.review_own_forbidden':
+            'Vous ne pouvez pas evaluer votre propre annonce.',
+        'pasaj.market.review_failed':
+            'L evaluation n a pas pu etre envoyee.',
+        'pasaj.market.review_deleted':
+            'Votre evaluation a ete supprimee.',
+        'pasaj.market.review_delete_failed':
+            'L evaluation n a pas pu etre supprimee.',
+        'pasaj.market.location_missing': 'Lieu non precise',
+        'pasaj.market.status.sold': 'Vendu',
+        'pasaj.market.status.draft': 'Brouillon',
+        'pasaj.market.status.archived': 'Archive',
+        'pasaj.market.status.reserved': 'Reserve',
+        'pasaj.market.status.active': 'Actif',
       });
 
     base['it_IT'] = Map<String, String>.from(base['en_US']!)
       ..addAll({
+        'settings.title': 'Impostazioni',
+        'settings.account': 'Account',
+        'settings.content': 'Contenuto',
+        'settings.app': 'Applicazione',
+        'settings.security_support': 'Sicurezza e supporto',
+        'settings.my_tasks': 'I miei compiti',
+        'settings.system_diagnostics': 'Sistema e diagnostica',
+        'settings.session': 'Sessione',
+        'settings.language': 'Lingua',
+        'settings.edit_profile': 'Modifica profilo',
+        'settings.saved_posts': 'Salvati',
+        'settings.archive': 'Archivio',
+        'settings.liked_posts': 'Mi piace',
+        'settings.notifications': 'Notifiche',
+        'settings.permissions': 'Autorizzazioni',
+        'settings.pasaj': 'Pasaj',
+        'settings.about': 'Informazioni',
+        'settings.policies': 'Politiche',
+        'settings.contact_us': 'Contattaci',
+        'settings.sign_out': 'Esci',
+        'settings.sign_out_title': 'Esci',
+        'settings.sign_out_message':
+            'Sei sicuro di voler uscire?',
+        'language.title': 'Lingua',
+        'language.subtitle': 'Scegli la lingua dell app.',
+        'language.note':
+            'Alcune schermate saranno tradotte gradualmente. La scelta viene applicata subito.',
         'language.option.tr': 'Turco',
         'language.option.en': 'Inglese',
         'language.option.de': 'Tedesco',
         'language.option.fr': 'Francese',
         'language.option.it': 'Italiano',
         'language.option.ru': 'Russo',
+        'login.tagline': '"Le tue storie si incontrano qui."',
+        'login.device_accounts': 'Account su questo dispositivo',
+        'login.last_used': 'Ultimo usato',
+        'login.saved_account': 'Account salvato',
+        'login.sign_in': 'Accedi',
+        'login.create_account': 'Crea account',
+        'login.policies': 'Contratti e politiche',
+        'login.identifier_hint': 'Nome utente o e-mail',
+        'login.password_hint': 'La tua password',
+        'login.reset': 'Reimposta',
+        'login.reset_password_title': 'Reimposta la password',
+        'login.email_label': 'Indirizzo e-mail',
+        'login.email_hint': 'Inserisci il tuo indirizzo e-mail',
+        'login.get_code': 'Ottieni codice',
+        'login.resend_code': 'Invia di nuovo',
+        'login.verification_code': 'Codice di verifica',
+        'login.verification_code_hint': 'Codice di verifica a 6 cifre',
+        'common.back': 'Indietro',
+        'common.continue': 'Continua',
+        'common.all': 'Tutti',
+        'common.videos': 'Video',
+        'common.photos': 'Foto',
+        'common.no_results': 'Nessun risultato',
+        'common.success': 'Operazione riuscita',
+        'common.delete': 'Elimina',
+        'common.search': 'Cerca',
+        'common.create': 'Crea',
+        'common.saved': 'Salvato',
+        'common.clear': 'Pulisci',
+        'common.share': 'Condividi',
+        'common.user': 'Utente',
+        'common.info': 'Info',
+        'common.cancel': 'Annulla',
+        'common.close': 'Chiudi',
+        'signup.create_account_title': 'Crea il tuo account',
+        'signup.policy_short':
+            'Accetto i contratti e le politiche.',
+        'signup.email': 'E-mail',
+        'signup.username': 'Nome utente',
+        'signup.password': 'Password',
+        'signup.personal_info': 'Informazioni personali',
+        'signup.first_name': 'Nome',
+        'signup.last_name_optional': 'Cognome (opzionale)',
+        'signup.next': 'Avanti',
+        'signup.verification_title': 'Verifica',
+        'notifications.title': 'Notifiche',
+        'notifications.categories': 'Categorie',
+        'notifications.device_notice':
+            'Per vedere le notifiche nella schermata di blocco, tieni attivo il permesso nelle impostazioni del dispositivo.',
+        'notifications.pause_all': 'Sospendi tutto',
+        'notifications.sleep_mode': 'Modalita sonno',
+        'notifications.messages': 'Messaggi',
+        'notifications.posts_comments': 'Post e commenti',
+        'notifications.comments': 'Commenti',
+        'notifications.follows': 'Seguiti',
+        'notifications.direct_messages': 'Messaggi diretti',
+        'notifications.opportunities': 'Annunci e candidature',
+        'support.title': 'Contattaci',
+        'support.card_title': 'Messaggio di supporto',
+        'support.direct_admin': 'Il tuo messaggio viene inviato direttamente all admin.',
+        'support.topic': 'Argomento',
+        'support.topic.account': 'Account',
+        'support.topic.payment': 'Pagamento',
+        'support.topic.technical': 'Problema tecnico',
+        'support.topic.content': 'Segnalazione contenuto',
+        'support.topic.suggestion': 'Suggerimento',
+        'support.message_hint': 'Scrivi il tuo problema o la tua richiesta...',
+        'support.send': 'Invia messaggio',
+        'support.empty_title': 'Informazione mancante',
+        'support.empty_body': 'Scrivi un messaggio.',
+        'support.sent_title': 'Inviato',
+        'support.sent_body': 'Il tuo messaggio e stato inviato all admin.',
+        'support.error_title': 'Errore',
+        'liked_posts.no_posts': 'Nessun post',
+        'saved_posts.posts_tab': 'Post',
+        'saved_posts.series_tab': 'Serie',
+        'saved_posts.no_saved_posts': 'Nessun post salvato',
+        'saved_posts.no_saved_series': 'Nessuna serie salvata',
+        'post_creator.title_new': 'Prepara post',
+        'post_creator.title_edit': 'Modifica post',
+        'post_creator.publish': 'Pubblica',
+        'post_creator.uploading': 'Caricamento...',
+        'post_creator.saving': 'Salvataggio...',
+        'post_creator.placeholder': 'Che cosa succede?',
+        'post_creator.processing_wait':
+            'Attendi. Il video e in elaborazione...',
+        'post_creator.video_processing': 'Elaborazione video',
+        'post_creator.look.original': 'Originale',
+        'post_creator.look.clear': 'Pulito',
+        'post_creator.look.cinema': 'Cinematico',
+        'post_creator.look.vibe': 'Vivace',
+        'post_creator.comments.everyone': 'Tutti',
+        'post_creator.comments.verified': 'Account verificati',
+        'post_creator.comments.following': 'Account che segui',
+        'post_creator.comments.closed': 'Commenti disattivati',
+        'post_creator.comments.title': 'Chi puo rispondere?',
+        'post_creator.comments.subtitle':
+            'Scegli chi puo rispondere a questo post.',
+        'post_creator.reshare.everyone': 'Tutti',
+        'post_creator.reshare.verified': 'Account verificati',
+        'post_creator.reshare.following': 'Account che segui',
+        'post_creator.reshare.closed': 'Ricondivisione disattivata',
+        'post_creator.reshare_privacy_title':
+            'Privacy della ricondivisione',
+        'post_creator.reshare_everyone_desc':
+            'Tutti possono ricondividere.',
+        'post_creator.reshare_followers_desc':
+            'Solo i miei follower possono ricondividere.',
+        'post_creator.reshare_closed_desc':
+            'La ricondivisione e disabilitata.',
+        'post_creator.warning_title': 'Avviso',
+        'post_creator.success_title': 'Successo!',
+        'pasaj.closed': 'Pasaj e attualmente chiuso',
+        'pasaj.common.my_applications': 'Le mie candidature',
+        'pasaj.common.post_listing': 'Pubblica annuncio',
+        'pasaj.common.all_turkiye': 'Tutta la Turchia',
+        'pasaj.tabs.market': 'Mercato mobile',
+        'pasaj.tabs.practice_exams': 'Esami',
+        'pasaj.tabs.tutoring': 'Lezioni private',
+        'pasaj.tabs.job_finder': 'Lavoro',
+        'pasaj.job_finder.title': 'Lavoro',
+        'pasaj.job_finder.search_hint': 'Che tipo di lavoro stai cercando?',
+        'pasaj.job_finder.nearby_listings':
+            'Gli annunci piu vicini a te',
+        'pasaj.job_finder.no_search_result':
+            'Nessun annuncio corrisponde alla tua ricerca',
+        'pasaj.job_finder.no_city_listing':
+            'Non ci sono annunci nella tua citta',
+        'pasaj.job_finder.sort_high_salary': 'Stipendio alto',
+        'pasaj.job_finder.sort_low_salary': 'Stipendio basso',
+        'pasaj.job_finder.sort_nearest': 'Piu vicino',
+        'pasaj.job_finder.career_profile': 'Profilo professionale',
+        'pasaj.job_finder.detail_title': 'Dettaglio annuncio',
+        'pasaj.job_finder.no_description':
+            'Per questo annuncio non e stata aggiunta alcuna descrizione.',
+        'pasaj.job_finder.job_info': 'Descrizione del lavoro',
+        'pasaj.job_finder.listing_info': 'Informazioni sull annuncio',
+        'pasaj.job_finder.application_count': 'Numero di candidature',
+        'pasaj.job_finder.work_type': 'Tipo di lavoro',
+        'pasaj.job_finder.work_days': 'Giorni lavorativi',
+        'pasaj.job_finder.work_hours': 'Orario di lavoro',
+        'pasaj.job_finder.personnel_count': 'Numero di persone da assumere',
+        'pasaj.job_finder.benefits': 'Vantaggi',
+        'pasaj.job_finder.passive': 'Passivo',
+        'pasaj.job_finder.salary_not_specified': 'Non specificato',
+        'pasaj.job_finder.edit_listing': 'Modifica',
+        'pasaj.job_finder.applications': 'Candidature',
+        'pasaj.job_finder.apply': 'Candidati',
+        'pasaj.job_finder.applied': 'Candidatura inviata',
+        'pasaj.job_finder.cv_required': 'CV richiesto',
+        'pasaj.job_finder.cv_required_body':
+            'Devi completare il tuo CV prima di candidarti.',
+        'pasaj.job_finder.create_cv': 'Crea CV',
+        'pasaj.job_finder.application_sent':
+            'La tua candidatura e stata inviata.',
+        'pasaj.job_finder.application_failed':
+            'Si e verificato un problema durante l invio della candidatura.',
+        'pasaj.job_finder.finding_platform':
+            'Piattaforma di ricerca lavoro',
+        'pasaj.job_finder.looking_for_job': 'Cerco lavoro',
+        'pasaj.job_finder.professional_profile':
+            'Profilo professionale',
+        'pasaj.job_finder.experience': 'Esperienza lavorativa',
+        'pasaj.job_finder.education': 'Formazione',
+        'pasaj.job_finder.languages': 'Lingue',
+        'pasaj.job_finder.skills': 'Competenze',
+        'pasaj.market.title': 'Mercato',
+        'pasaj.market.contact_phone': 'Telefono',
+        'pasaj.market.contact_message': 'Messaggio',
+        'pasaj.market.all_listings': 'Tutti gli annunci',
+        'pasaj.market.main_categories': 'Categorie principali',
+        'pasaj.market.category_search_hint':
+            'Cerca categoria principale, sottocategoria, marca',
+        'pasaj.market.call_now': 'Chiama ora',
+        'pasaj.market.inspect': 'Esamina',
+        'pasaj.market.empty_filtered':
+            'Nessun annuncio trovato con questo filtro.',
+        'pasaj.market.add_listing': 'Aggiungi annuncio',
+        'pasaj.market.my_listings': 'I miei annunci',
+        'pasaj.market.saved_items': 'I miei preferiti',
+        'pasaj.market.my_offers': 'Le mie offerte',
+        'pasaj.market.detail_title': 'Dettaglio annuncio',
+        'pasaj.market.report_listing': 'Segnala annuncio',
+        'pasaj.market.no_description':
+            'Per questo annuncio non e stata aggiunta alcuna descrizione.',
+        'pasaj.market.listing_info': 'Informazioni annuncio',
+        'pasaj.market.saved_count': 'Salvataggi',
+        'pasaj.market.offer_count': 'Offerte',
+        'pasaj.market.messages': 'Messaggi',
+        'pasaj.market.offers': 'Offerte',
+        'pasaj.market.related_listings': 'Annunci simili',
+        'pasaj.market.no_related':
+            'Nessun altro annuncio trovato in questa categoria.',
+        'pasaj.market.custom_offer':
+            'Definisci tu la tua offerta',
+        'pasaj.market.reviews': 'Recensioni',
+        'pasaj.market.rate': 'Valuta',
+        'pasaj.job_finder.no_applications':
+            'Non ti sei ancora candidato a nessun annuncio',
+        'pasaj.job_finder.default_job_title': 'Annuncio di lavoro',
+        'pasaj.job_finder.default_company': 'Azienda',
+        'pasaj.job_finder.cancel_apply_title':
+            'Annulla candidatura',
+        'pasaj.job_finder.cancel_apply_body':
+            'Vuoi davvero annullare questa candidatura?',
+        'pasaj.job_finder.saved_jobs': 'Salvati',
+        'pasaj.job_finder.no_saved_jobs':
+            'Nessun annuncio salvato.',
+        'pasaj.job_finder.my_ads': 'I miei annunci',
+        'pasaj.job_finder.published_tab': 'Pubblicati',
+        'pasaj.job_finder.expired_tab': 'Scaduti',
+        'pasaj.job_finder.no_my_ads':
+            'Nessun annuncio trovato',
+        'pasaj.job_finder.finding_how':
+            'Come funziona la piattaforma per trovare lavoro?',
+        'pasaj.job_finder.finding_body':
+            'Il tuo CV viene condiviso con i datori di lavoro con il tuo consenso. Prima di pubblicare un annuncio, i datori di lavoro possono esaminare tramite il nostro sistema i candidati adatti alle loro posizioni aperte. In questo modo i datori di lavoro raggiungono piu rapidamente i candidati giusti e chi cerca lavoro accede piu velocemente alle opportunita. Il nostro obiettivo e rendere il processo di assunzione piu rapido ed efficace per entrambe le parti.',
+        'pasaj.job_finder.edit_cv': 'Modifica CV',
+        'pasaj.job_finder.no_cv_title':
+            'Non hai ancora creato un CV',
+        'pasaj.job_finder.no_cv_body':
+            'Crea un CV per velocizzare le tue candidature',
+        'pasaj.job_finder.applicants': 'Candidati',
+        'pasaj.job_finder.no_applicants':
+            'Nessuna candidatura per ora',
+        'pasaj.job_finder.unknown_user': 'Utente sconosciuto',
+        'pasaj.job_finder.view_cv': 'Visualizza CV',
+        'pasaj.job_finder.review': 'Esamina',
+        'pasaj.job_finder.accept': 'Accetta',
+        'pasaj.job_finder.reject': 'Rifiuta',
+        'pasaj.job_finder.cv_not_found_title': 'CV non trovato',
+        'pasaj.job_finder.cv_not_found_body':
+            'Per questo utente non e stato trovato alcun CV salvato.',
+        'pasaj.job_finder.status.pending': 'In attesa',
+        'pasaj.job_finder.status.reviewing': 'In revisione',
+        'pasaj.job_finder.status.accepted': 'Accettata',
+        'pasaj.job_finder.status.rejected': 'Rifiutata',
+        'pasaj.job_finder.status_updated':
+            'Lo stato della candidatura e stato aggiornato.',
+        'pasaj.job_finder.status_update_failed':
+            'Lo stato della candidatura non e stato aggiornato.',
+        'pasaj.job_finder.relogin_required':
+            'Accedi di nuovo per continuare.',
+        'pasaj.job_finder.save_failed':
+            'Salvataggio non completato.',
+        'pasaj.job_finder.share_auth_required':
+            'Solo gli admin e i proprietari dell annuncio possono condividere.',
+        'pasaj.job_finder.review_relogin_required':
+            'Accedi di nuovo per lasciare una recensione.',
+        'pasaj.job_finder.review_own_forbidden':
+            'Non puoi recensire il tuo annuncio.',
+        'pasaj.job_finder.review_saved':
+            'La tua recensione e stata salvata.',
+        'pasaj.job_finder.review_save_failed':
+            'La recensione non e stata salvata.',
+        'pasaj.job_finder.review_deleted':
+            'La tua recensione e stata rimossa.',
+        'pasaj.job_finder.review_delete_failed':
+            'La recensione non e stata rimossa.',
+        'pasaj.job_finder.open_in_maps': 'Apri in Mappe',
+        'pasaj.job_finder.open_google_maps':
+            'Apri in Google Maps',
+        'pasaj.job_finder.open_apple_maps':
+            'Apri in Apple Mappe',
+        'pasaj.job_finder.open_yandex_maps':
+            'Apri in Yandex Maps',
+        'pasaj.job_finder.map_load_failed':
+            'Impossibile caricare la mappa',
+        'pasaj.job_finder.open_maps_help':
+            'Tocca per aprire la posizione in Mappe.',
+        'pasaj.job_finder.listing_not_found':
+            'Annuncio non trovato',
+        'pasaj.job_finder.reactivated':
+            'L annuncio e stato ripubblicato.',
+        'pasaj.job_finder.sort_title': 'Ordina',
+        'pasaj.job_finder.sort_newest': 'Piu recenti',
+        'pasaj.job_finder.sort_nearest_me': 'Vicino a me',
+        'pasaj.job_finder.sort_most_viewed': 'Piu visualizzati',
+        'pasaj.job_finder.clear_filters': 'Cancella filtri',
+        'pasaj.job_finder.select_city': 'Seleziona citta',
+        'pasaj.market.saved_success': 'Annuncio salvato.',
+        'pasaj.market.unsaved':
+            'Annuncio rimosso dai salvati.',
+        'pasaj.market.save_failed':
+            'Salvataggio non completato.',
+        'pasaj.market.report_received_title':
+            'La tua segnalazione e stata ricevuta!',
+        'pasaj.market.report_received_body':
+            'L annuncio e stato inviato in revisione. Grazie.',
+        'pasaj.market.report_failed':
+            'Impossibile inviare la segnalazione dell annuncio.',
+        'pasaj.market.invalid_offer':
+            'Seleziona un offerta valida.',
+        'pasaj.market.offer_sent': 'Offerta inviata.',
+        'pasaj.market.offer_own_forbidden':
+            'Non puoi fare un offerta sul tuo annuncio.',
+        'pasaj.market.offer_daily_limit':
+            'Puoi inviare al massimo 20 offerte al giorno.',
+        'pasaj.market.offer_failed':
+            'Impossibile inviare l offerta.',
+        'pasaj.market.review_edit': 'Modifica',
+        'pasaj.market.no_reviews':
+            'Non ci sono ancora recensioni.',
+        'pasaj.market.sign_in_to_review':
+            'Devi accedere per lasciare una recensione.',
+        'pasaj.market.review_comment_hint':
+            'Scrivi il tuo commento',
+        'pasaj.market.select_rating':
+            'Seleziona una valutazione.',
+        'pasaj.market.review_saved':
+            'La tua recensione e stata salvata.',
+        'pasaj.market.review_updated':
+            'La tua recensione e stata aggiornata.',
+        'pasaj.market.review_own_forbidden':
+            'Non puoi recensire il tuo annuncio.',
+        'pasaj.market.review_failed':
+            'La recensione non e stata inviata.',
+        'pasaj.market.review_deleted':
+            'La tua recensione e stata rimossa.',
+        'pasaj.market.review_delete_failed':
+            'La recensione non e stata rimossa.',
+        'pasaj.market.location_missing': 'Posizione non specificata',
+        'pasaj.market.status.sold': 'Venduto',
+        'pasaj.market.status.draft': 'Bozza',
+        'pasaj.market.status.archived': 'Archiviato',
+        'pasaj.market.status.reserved': 'Riservato',
+        'pasaj.market.status.active': 'Attivo',
       });
 
     base['ru_RU'] = Map<String, String>.from(base['en_US']!)
       ..addAll({
+        'settings.title': 'Настройки',
+        'settings.account': 'Аккаунт',
+        'settings.content': 'Контент',
+        'settings.app': 'Приложение',
+        'settings.security_support': 'Безопасность и поддержка',
+        'settings.my_tasks': 'Мои задачи',
+        'settings.system_diagnostics': 'Система и диагностика',
+        'settings.session': 'Сессия',
+        'settings.language': 'Язык',
+        'settings.edit_profile': 'Редактировать профиль',
+        'settings.saved_posts': 'Сохраненное',
+        'settings.archive': 'Архив',
+        'settings.liked_posts': 'Понравившееся',
+        'settings.notifications': 'Уведомления',
+        'settings.permissions': 'Разрешения',
+        'settings.pasaj': 'Pasaj',
+        'settings.about': 'О приложении',
+        'settings.policies': 'Политики',
+        'settings.contact_us': 'Написать нам',
+        'settings.sign_out': 'Выйти',
+        'settings.sign_out_title': 'Выйти',
+        'settings.sign_out_message':
+            'Вы уверены, что хотите выйти?',
+        'language.title': 'Язык',
+        'language.subtitle': 'Выберите язык приложения.',
+        'language.note':
+            'Некоторые экраны будут переводиться постепенно. Выбор применяется сразу.',
         'language.option.tr': 'Турецкий',
         'language.option.en': 'Английский',
         'language.option.de': 'Немецкий',
         'language.option.fr': 'Французский',
         'language.option.it': 'Итальянский',
         'language.option.ru': 'Русский',
+        'login.tagline': '"Ваши истории соединяются здесь."',
+        'login.device_accounts': 'Аккаунты на этом устройстве',
+        'login.last_used': 'Последний использованный',
+        'login.saved_account': 'Сохраненный аккаунт',
+        'login.sign_in': 'Войти',
+        'login.create_account': 'Создать аккаунт',
+        'login.policies': 'Договоры и политики',
+        'login.identifier_hint': 'Имя пользователя или e-mail',
+        'login.password_hint': 'Ваш пароль',
+        'login.reset': 'Сбросить',
+        'login.reset_password_title': 'Сброс пароля',
+        'login.email_label': 'Адрес e-mail',
+        'login.email_hint': 'Введите адрес e-mail',
+        'login.get_code': 'Получить код',
+        'login.resend_code': 'Отправить снова',
+        'login.verification_code': 'Код подтверждения',
+        'login.verification_code_hint': '6-значный код подтверждения',
+        'common.back': 'Назад',
+        'common.continue': 'Продолжить',
+        'common.all': 'Все',
+        'common.videos': 'Видео',
+        'common.photos': 'Фото',
+        'common.no_results': 'Ничего не найдено',
+        'common.success': 'Успешно',
+        'common.delete': 'Удалить',
+        'common.search': 'Поиск',
+        'common.create': 'Создать',
+        'common.saved': 'Сохранено',
+        'common.clear': 'Очистить',
+        'common.share': 'Поделиться',
+        'common.user': 'Пользователь',
+        'common.info': 'Инфо',
+        'common.cancel': 'Отмена',
+        'common.close': 'Закрыть',
+        'signup.create_account_title': 'Создайте аккаунт',
+        'signup.policy_short':
+            'Я принимаю договоры и политики.',
+        'signup.email': 'E-mail',
+        'signup.username': 'Имя пользователя',
+        'signup.password': 'Пароль',
+        'signup.personal_info': 'Личная информация',
+        'signup.first_name': 'Имя',
+        'signup.last_name_optional': 'Фамилия (необязательно)',
+        'signup.next': 'Далее',
+        'signup.verification_title': 'Подтверждение',
+        'notifications.title': 'Уведомления',
+        'notifications.categories': 'Категории',
+        'notifications.device_notice':
+            'Чтобы видеть уведомления на экране блокировки, оставьте разрешение включенным в настройках устройства.',
+        'notifications.pause_all': 'Приостановить все',
+        'notifications.sleep_mode': 'Режим сна',
+        'notifications.messages': 'Сообщения',
+        'notifications.posts_comments': 'Посты и комментарии',
+        'notifications.comments': 'Комментарии',
+        'notifications.follows': 'Подписки',
+        'notifications.direct_messages': 'Личные сообщения',
+        'notifications.opportunities': 'Объявления и заявки',
+        'support.title': 'Написать нам',
+        'support.card_title': 'Сообщение в поддержку',
+        'support.direct_admin': 'Ваше сообщение отправляется напрямую админу.',
+        'support.topic': 'Тема',
+        'support.topic.account': 'Аккаунт',
+        'support.topic.payment': 'Оплата',
+        'support.topic.technical': 'Техническая проблема',
+        'support.topic.content': 'Жалоба на контент',
+        'support.topic.suggestion': 'Предложение',
+        'support.message_hint': 'Опишите вашу проблему или запрос...',
+        'support.send': 'Отправить сообщение',
+        'support.empty_title': 'Недостаточно информации',
+        'support.empty_body': 'Пожалуйста, напишите сообщение.',
+        'support.sent_title': 'Отправлено',
+        'support.sent_body': 'Ваше сообщение отправлено админу.',
+        'support.error_title': 'Ошибка',
+        'liked_posts.no_posts': 'Нет публикаций',
+        'saved_posts.posts_tab': 'Публикации',
+        'saved_posts.series_tab': 'Серия',
+        'saved_posts.no_saved_posts':
+            'Нет сохраненных публикаций',
+        'saved_posts.no_saved_series': 'Нет сохраненных серий',
+        'post_creator.title_new': 'Подготовить публикацию',
+        'post_creator.title_edit': 'Редактировать публикацию',
+        'post_creator.publish': 'Опубликовать',
+        'post_creator.uploading': 'Загрузка...',
+        'post_creator.saving': 'Сохранение...',
+        'post_creator.placeholder': 'Что нового?',
+        'post_creator.processing_wait':
+            'Пожалуйста, подождите. Видео обрабатывается...',
+        'post_creator.video_processing': 'Обработка видео',
+        'post_creator.look.original': 'Оригинал',
+        'post_creator.look.clear': 'Чистый',
+        'post_creator.look.cinema': 'Кино',
+        'post_creator.look.vibe': 'Яркий',
+        'post_creator.comments.everyone': 'Все',
+        'post_creator.comments.verified': 'Подтвержденные аккаунты',
+        'post_creator.comments.following': 'Аккаунты, на которые вы подписаны',
+        'post_creator.comments.closed': 'Комментарии отключены',
+        'post_creator.comments.title': 'Кто может ответить?',
+        'post_creator.comments.subtitle':
+            'Выберите, кто может отвечать на эту публикацию.',
+        'post_creator.reshare.everyone': 'Все',
+        'post_creator.reshare.verified': 'Подтвержденные аккаунты',
+        'post_creator.reshare.following': 'Аккаунты, на которые вы подписаны',
+        'post_creator.reshare.closed': 'Репост отключен',
+        'post_creator.reshare_privacy_title':
+            'Конфиденциальность репоста',
+        'post_creator.reshare_everyone_desc':
+            'Все могут делать репост.',
+        'post_creator.reshare_followers_desc':
+            'Только мои подписчики могут делать репост.',
+        'post_creator.reshare_closed_desc':
+            'Репост отключен.',
+        'post_creator.warning_title': 'Предупреждение',
+        'post_creator.success_title': 'Успешно!',
+        'pasaj.closed': 'Pasaj сейчас закрыт',
+        'pasaj.common.my_applications': 'Мои заявки',
+        'pasaj.common.post_listing': 'Разместить объявление',
+        'pasaj.common.all_turkiye': 'Вся Турция',
+        'pasaj.tabs.market': 'Мобильный рынок',
+        'pasaj.tabs.practice_exams': 'Экзамены',
+        'pasaj.tabs.tutoring': 'Частные уроки',
+        'pasaj.tabs.job_finder': 'Работа',
+        'pasaj.job_finder.title': 'Работа',
+        'pasaj.job_finder.search_hint': 'Какую работу вы ищете?',
+        'pasaj.job_finder.nearby_listings':
+            'Ближайшие к вам объявления',
+        'pasaj.job_finder.no_search_result':
+            'По вашему запросу ничего не найдено',
+        'pasaj.job_finder.no_city_listing':
+            'В вашем городе пока нет объявлений',
+        'pasaj.job_finder.sort_high_salary': 'Высокая зарплата',
+        'pasaj.job_finder.sort_low_salary': 'Низкая зарплата',
+        'pasaj.job_finder.sort_nearest': 'Ближе всего',
+        'pasaj.job_finder.career_profile': 'Карьерный профиль',
+        'pasaj.job_finder.detail_title': 'Детали объявления',
+        'pasaj.job_finder.no_description':
+            'Для этого объявления описание не добавлено.',
+        'pasaj.job_finder.job_info': 'Описание работы',
+        'pasaj.job_finder.listing_info': 'Информация об объявлении',
+        'pasaj.job_finder.application_count': 'Количество заявок',
+        'pasaj.job_finder.work_type': 'Тип работы',
+        'pasaj.job_finder.work_days': 'Рабочие дни',
+        'pasaj.job_finder.work_hours': 'Рабочие часы',
+        'pasaj.job_finder.personnel_count':
+            'Количество сотрудников для найма',
+        'pasaj.job_finder.benefits': 'Преимущества',
+        'pasaj.job_finder.passive': 'Пассивно',
+        'pasaj.job_finder.salary_not_specified': 'Не указано',
+        'pasaj.job_finder.edit_listing': 'Редактировать',
+        'pasaj.job_finder.applications': 'Заявки',
+        'pasaj.job_finder.apply': 'Откликнуться',
+        'pasaj.job_finder.applied': 'Заявка отправлена',
+        'pasaj.job_finder.cv_required': 'Требуется резюме',
+        'pasaj.job_finder.cv_required_body':
+            'Вам нужно заполнить резюме перед откликом.',
+        'pasaj.job_finder.create_cv': 'Создать резюме',
+        'pasaj.job_finder.application_sent':
+            'Ваша заявка отправлена.',
+        'pasaj.job_finder.application_failed':
+            'Возникла проблема при отправке заявки.',
+        'pasaj.job_finder.finding_platform':
+            'Платформа поиска работы',
+        'pasaj.job_finder.looking_for_job': 'Ищу работу',
+        'pasaj.job_finder.professional_profile':
+            'Профессиональный профиль',
+        'pasaj.job_finder.experience': 'Опыт работы',
+        'pasaj.job_finder.education': 'Образование',
+        'pasaj.job_finder.languages': 'Языки',
+        'pasaj.job_finder.skills': 'Навыки',
+        'pasaj.market.title': 'Маркет',
+        'pasaj.market.contact_phone': 'Телефон',
+        'pasaj.market.contact_message': 'Сообщение',
+        'pasaj.market.all_listings': 'Все объявления',
+        'pasaj.market.main_categories': 'Основные категории',
+        'pasaj.market.category_search_hint':
+            'Искать основную категорию, подкатегорию, бренд',
+        'pasaj.market.call_now': 'Позвонить сейчас',
+        'pasaj.market.inspect': 'Посмотреть',
+        'pasaj.market.empty_filtered':
+            'По этому фильтру объявления не найдены.',
+        'pasaj.market.add_listing': 'Добавить объявление',
+        'pasaj.market.my_listings': 'Мои объявления',
+        'pasaj.market.saved_items': 'Избранное',
+        'pasaj.market.my_offers': 'Мои предложения',
+        'pasaj.market.detail_title': 'Детали объявления',
+        'pasaj.market.report_listing': 'Пожаловаться на объявление',
+        'pasaj.market.no_description':
+            'Для этого объявления описание не добавлено.',
+        'pasaj.market.listing_info': 'Информация об объявлении',
+        'pasaj.market.saved_count': 'Сохранений',
+        'pasaj.market.offer_count': 'Предложения',
+        'pasaj.market.messages': 'Сообщения',
+        'pasaj.market.offers': 'Предложения',
+        'pasaj.market.related_listings': 'Похожие объявления',
+        'pasaj.market.no_related':
+            'В этой категории другие объявления не найдены.',
+        'pasaj.market.custom_offer':
+            'Укажите свою цену сами',
+        'pasaj.market.reviews': 'Отзывы',
+        'pasaj.market.rate': 'Оценить',
+        'pasaj.job_finder.no_applications':
+            'Вы еще не откликались ни на одно объявление',
+        'pasaj.job_finder.default_job_title': 'Вакансия',
+        'pasaj.job_finder.default_company': 'Компания',
+        'pasaj.job_finder.cancel_apply_title':
+            'Отменить отклик',
+        'pasaj.job_finder.cancel_apply_body':
+            'Вы уверены, что хотите отменить этот отклик?',
+        'pasaj.job_finder.saved_jobs': 'Сохраненные',
+        'pasaj.job_finder.no_saved_jobs':
+            'Нет сохраненных объявлений.',
+        'pasaj.job_finder.my_ads': 'Мои объявления',
+        'pasaj.job_finder.published_tab': 'Опубликованные',
+        'pasaj.job_finder.expired_tab': 'Истекшие',
+        'pasaj.job_finder.no_my_ads':
+            'Объявления не найдены',
+        'pasaj.job_finder.finding_how':
+            'Как работает платформа поиска работы?',
+        'pasaj.job_finder.finding_body':
+            'Ваше резюме передается работодателям с вашего согласия. До публикации объявления работодатели могут через нашу систему просматривать подходящих кандидатов для своих открытых позиций. Так работодатели быстрее находят нужных сотрудников, а соискатели быстрее получают доступ к возможностям. Наша цель - сделать процесс найма быстрее и эффективнее для обеих сторон.',
+        'pasaj.job_finder.edit_cv': 'Редактировать резюме',
+        'pasaj.job_finder.no_cv_title':
+            'Вы еще не создали резюме',
+        'pasaj.job_finder.no_cv_body':
+            'Создайте резюме, чтобы ускорить отклики',
+        'pasaj.job_finder.applicants': 'Кандидаты',
+        'pasaj.job_finder.no_applicants':
+            'Пока нет заявок',
+        'pasaj.job_finder.unknown_user': 'Неизвестный пользователь',
+        'pasaj.job_finder.view_cv': 'Открыть резюме',
+        'pasaj.job_finder.review': 'Рассмотреть',
+        'pasaj.job_finder.accept': 'Принять',
+        'pasaj.job_finder.reject': 'Отклонить',
+        'pasaj.job_finder.cv_not_found_title':
+            'Резюме не найдено',
+        'pasaj.job_finder.cv_not_found_body':
+            'Для этого пользователя не найдено сохраненное резюме.',
+        'pasaj.job_finder.status.pending': 'Ожидает',
+        'pasaj.job_finder.status.reviewing': 'На рассмотрении',
+        'pasaj.job_finder.status.accepted': 'Принята',
+        'pasaj.job_finder.status.rejected': 'Отклонена',
+        'pasaj.job_finder.status_updated':
+            'Статус заявки обновлен.',
+        'pasaj.job_finder.status_update_failed':
+            'Не удалось обновить статус заявки.',
+        'pasaj.job_finder.relogin_required':
+            'Пожалуйста, войдите снова, чтобы продолжить.',
+        'pasaj.job_finder.save_failed':
+            'Не удалось завершить сохранение.',
+        'pasaj.job_finder.share_auth_required':
+            'Делиться могут только админы и владельцы объявления.',
+        'pasaj.job_finder.review_relogin_required':
+            'Пожалуйста, войдите снова, чтобы оставить отзыв.',
+        'pasaj.job_finder.review_own_forbidden':
+            'Вы не можете оценивать свое объявление.',
+        'pasaj.job_finder.review_saved':
+            'Ваш отзыв сохранен.',
+        'pasaj.job_finder.review_save_failed':
+            'Не удалось сохранить отзыв.',
+        'pasaj.job_finder.review_deleted':
+            'Ваш отзыв удален.',
+        'pasaj.job_finder.review_delete_failed':
+            'Не удалось удалить отзыв.',
+        'pasaj.job_finder.open_in_maps': 'Открыть в Картах',
+        'pasaj.job_finder.open_google_maps':
+            'Открыть в Google Maps',
+        'pasaj.job_finder.open_apple_maps':
+            'Открыть в Apple Maps',
+        'pasaj.job_finder.open_yandex_maps':
+            'Открыть в Yandex Maps',
+        'pasaj.job_finder.map_load_failed':
+            'Не удалось загрузить карту',
+        'pasaj.job_finder.open_maps_help':
+            'Нажмите, чтобы открыть местоположение в Картах.',
+        'pasaj.job_finder.listing_not_found':
+            'Объявление не найдено',
+        'pasaj.job_finder.reactivated':
+            'Объявление снова опубликовано.',
+        'pasaj.job_finder.sort_title': 'Сортировка',
+        'pasaj.job_finder.sort_newest': 'Сначала новые',
+        'pasaj.job_finder.sort_nearest_me': 'Рядом со мной',
+        'pasaj.job_finder.sort_most_viewed': 'Самые просматриваемые',
+        'pasaj.job_finder.clear_filters': 'Очистить фильтры',
+        'pasaj.job_finder.select_city': 'Выбрать город',
+        'pasaj.market.saved_success': 'Объявление сохранено.',
+        'pasaj.market.unsaved':
+            'Объявление удалено из сохраненных.',
+        'pasaj.market.save_failed':
+            'Не удалось завершить сохранение.',
+        'pasaj.market.report_received_title':
+            'Ваше сообщение получено!',
+        'pasaj.market.report_received_body':
+            'Объявление отправлено на проверку. Спасибо.',
+        'pasaj.market.report_failed':
+            'Не удалось отправить жалобу на объявление.',
+        'pasaj.market.invalid_offer':
+            'Выберите корректное предложение.',
+        'pasaj.market.offer_sent': 'Предложение отправлено.',
+        'pasaj.market.offer_own_forbidden':
+            'Нельзя делать предложение на собственное объявление.',
+        'pasaj.market.offer_daily_limit':
+            'Вы можете отправлять не более 20 предложений в день.',
+        'pasaj.market.offer_failed':
+            'Не удалось отправить предложение.',
+        'pasaj.market.review_edit': 'Редактировать',
+        'pasaj.market.no_reviews':
+            'Пока нет отзывов.',
+        'pasaj.market.sign_in_to_review':
+            'Войдите, чтобы оставить отзыв.',
+        'pasaj.market.review_comment_hint':
+            'Напишите комментарий',
+        'pasaj.market.select_rating':
+            'Пожалуйста, выберите оценку.',
+        'pasaj.market.review_saved':
+            'Ваш отзыв сохранен.',
+        'pasaj.market.review_updated':
+            'Ваш отзыв обновлен.',
+        'pasaj.market.review_own_forbidden':
+            'Вы не можете оценивать свое объявление.',
+        'pasaj.market.review_failed':
+            'Не удалось отправить отзыв.',
+        'pasaj.market.review_deleted':
+            'Ваш отзыв удален.',
+        'pasaj.market.review_delete_failed':
+            'Не удалось удалить отзыв.',
+        'pasaj.market.location_missing':
+            'Местоположение не указано',
+        'pasaj.market.status.sold': 'Продано',
+        'pasaj.market.status.draft': 'Черновик',
+        'pasaj.market.status.archived': 'Архивировано',
+        'pasaj.market.status.reserved': 'Зарезервировано',
+        'pasaj.market.status.active': 'Активно',
       });
 
     return base;
