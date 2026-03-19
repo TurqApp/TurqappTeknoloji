@@ -427,17 +427,6 @@ class DenemeGrid extends StatelessWidget {
                                         fontFamily: 'MontserratBold',
                                       ),
                                     ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      model.sinavTuru,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.indigo,
-                                        fontSize: 12,
-                                        fontFamily: 'MontserratBold',
-                                      ),
-                                    ),
                                     if (model.sinavAciklama
                                         .trim()
                                         .isNotEmpty) ...[
