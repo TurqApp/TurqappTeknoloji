@@ -36,11 +36,11 @@ class ChatListingContent extends StatelessWidget {
 
   String _buildSubtitle() {
     if (model.lastMessage.trim().isNotEmpty) return model.lastMessage.trim();
-    if (controller.lastMessage.isEmpty) return "Sohbet etmek için dokun.";
+    if (controller.lastMessage.isEmpty) return 'chat.tap_to_chat'.tr;
     final last = controller.lastMessage.last;
     if (last.metin.trim().isNotEmpty) return last.metin.trim();
-    if (last.imgs.isNotEmpty) return "Fotoğraf";
-    return "Mesaj";
+    if (last.imgs.isNotEmpty) return 'chat.photo'.tr;
+    return 'chat.message_label'.tr;
   }
 
   String _buildTimeText() {
@@ -73,7 +73,7 @@ class ChatListingContent extends StatelessWidget {
       unreadCount: 1,
     );
     await _refreshList();
-    AppSnackbar("Tamamlandı", "Sohbet okunmadı olarak işaretlendi");
+    AppSnackbar('common.done'.tr, 'chat.marked_unread'.tr);
   }
 
   Future<void> _togglePinned() async {
@@ -84,7 +84,7 @@ class ChatListingContent extends StatelessWidget {
           .where((e) => e.isPinned && !e.deleted.contains("__archived__"))
           .length;
       if (pinnedCount >= 5) {
-        AppSnackbar("Limit", "En fazla 5 sohbet sabitlenebilir");
+        AppSnackbar('chat.limit_title'.tr, 'chat.pin_limit'.tr);
         return;
       }
     }
@@ -94,7 +94,7 @@ class ChatListingContent extends StatelessWidget {
       pinned: newValue,
     );
     await _refreshList();
-    AppSnackbar("Tamamlandı", "İşlem tamamlandı");
+    AppSnackbar('common.done'.tr, 'chat.action_completed'.tr);
   }
 
   Future<void> _toggleMuted() async {
@@ -105,8 +105,8 @@ class ChatListingContent extends StatelessWidget {
       muted: newValue,
     );
     await _refreshList();
-    AppSnackbar("Tamamlandı",
-        newValue ? "Sohbet sessize alındı" : "Sohbet sesi açıldı");
+    AppSnackbar('common.done'.tr,
+        newValue ? 'chat.muted'.tr : 'chat.unmuted'.tr);
   }
 
   Future<void> _archiveChat() async {
@@ -118,7 +118,7 @@ class ChatListingContent extends StatelessWidget {
     );
 
     await _refreshList();
-    AppSnackbar("Tamamlandı", "Sohbet arşive taşındı");
+    AppSnackbar('common.done'.tr, 'chat.archived'.tr);
   }
 
   Future<void> _unarchiveChat() async {
@@ -130,16 +130,16 @@ class ChatListingContent extends StatelessWidget {
     );
 
     await _refreshList();
-    AppSnackbar("Tamamlandı", "Sohbet arşivden çıkarıldı");
+    AppSnackbar('common.done'.tr, 'chat.unarchived'.tr);
   }
 
   Future<void> _deleteChat() async {
     var confirmed = false;
     await noYesAlert(
-      title: "Sohbeti Sil",
-      message: "Bu sohbeti silmek istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Sohbeti Sil",
+      title: 'chat.delete_title'.tr,
+      message: 'chat.delete_message'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'chat.delete_confirm'.tr,
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () {
         confirmed = true;
@@ -147,7 +147,7 @@ class ChatListingContent extends StatelessWidget {
     );
     if (!confirmed) return;
     await Get.find<ChatListingController>().deleteChat(model);
-    AppSnackbar("Sohbet Silindi", "Seçilen sohbet başarıyla silindi");
+    AppSnackbar('chat.deleted_title'.tr, 'chat.deleted_body'.tr);
   }
 
   Future<void> _showAnchoredMenu(BuildContext context) async {
@@ -171,21 +171,21 @@ class ChatListingContent extends StatelessWidget {
       items: isArchiveTab
           ? [
               PullDownMenuItem(
-                title: model.isMuted ? "Sesi aç" : "Sessize al",
+                title: model.isMuted ? 'chat.unmute'.tr : 'chat.mute'.tr,
                 icon: CupertinoIcons.bell_slash,
                 onTap: () {
                   _toggleMuted();
                 },
               ),
               PullDownMenuItem(
-                title: "Arşivden çıkart",
+                title: 'common.unarchive'.tr,
                 icon: CupertinoIcons.archivebox_fill,
                 onTap: () {
                   _unarchiveChat();
                 },
               ),
               PullDownMenuItem(
-                title: "Sil",
+                title: 'common.delete'.tr,
                 icon: CupertinoIcons.delete,
                 isDestructive: true,
                 onTap: () {
@@ -195,35 +195,35 @@ class ChatListingContent extends StatelessWidget {
             ]
           : [
               PullDownMenuItem(
-                title: "Okunmadı olarak işaretle",
+                title: 'chat.mark_unread'.tr,
                 icon: CupertinoIcons.mail,
                 onTap: () {
                   _markUnread();
                 },
               ),
               PullDownMenuItem(
-                title: model.isPinned ? "Sabitten kaldır" : "Sabitle",
+                title: model.isPinned ? 'chat.unpin'.tr : 'chat.pin'.tr,
                 icon: CupertinoIcons.pin,
                 onTap: () {
                   _togglePinned();
                 },
               ),
               PullDownMenuItem(
-                title: model.isMuted ? "Sesi aç" : "Sessize al",
+                title: model.isMuted ? 'chat.unmute'.tr : 'chat.mute'.tr,
                 icon: CupertinoIcons.bell_slash,
                 onTap: () {
                   _toggleMuted();
                 },
               ),
               PullDownMenuItem(
-                title: "Arşivle",
+                title: 'common.archive'.tr,
                 icon: CupertinoIcons.archivebox,
                 onTap: () {
                   _archiveChat();
                 },
               ),
               PullDownMenuItem(
-                title: "Sil",
+                title: 'common.delete'.tr,
                 icon: CupertinoIcons.delete,
                 isDestructive: true,
                 onTap: () {
@@ -365,11 +365,11 @@ class ChatListingContent extends StatelessWidget {
                               ),
                             ),
                             if (model.isMuted && !isSearchResult)
-                              const Padding(
-                                padding: EdgeInsets.only(left: 6),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
                                 child: Text(
-                                  "Sessiz",
-                                  style: TextStyle(
+                                  'chat.muted_label'.tr,
+                                  style: const TextStyle(
                                     color: Color(0xFF8A9199),
                                     fontSize: 11,
                                     fontFamily: "MontserratMedium",

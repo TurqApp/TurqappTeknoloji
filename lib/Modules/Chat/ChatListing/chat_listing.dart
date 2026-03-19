@@ -55,11 +55,11 @@ class ChatListing extends StatelessWidget {
                     icon: const Icon(CupertinoIcons.back,
                         size: 24, color: Colors.black),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      "Sohbetler",
+                      'chat.list_title'.tr,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 25,
                         fontFamily: "MontserratBold",
                         color: Colors.black,
@@ -104,9 +104,9 @@ class ChatListing extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: TextField(
                     controller: controller.search,
-                    decoration: const InputDecoration(
-                      hintText: "Ara",
-                      hintStyle: TextStyle(
+                    decoration: InputDecoration(
+                      hintText: 'common.search'.tr,
+                      hintStyle: const TextStyle(
                         color: Colors.grey,
                         fontFamily: "MontserratMedium",
                       ),
@@ -134,17 +134,17 @@ class ChatListing extends StatelessWidget {
                 child: Row(
                   children: [
                     _TopTab(
-                      label: "Tümü",
+                      label: 'chat.tab_all'.tr,
                       active: controller.selectedTab.value == "all",
                       onTap: () => controller.setTab("all"),
                     ),
                     _TopTab(
-                      label: "Okunmamış",
+                      label: 'chat.tab_unread'.tr,
                       active: controller.selectedTab.value == "unread",
                       onTap: () => controller.setTab("unread"),
                     ),
                     _TopTab(
-                      label: "Arşiv",
+                      label: 'chat.tab_archive'.tr,
                       active: controller.selectedTab.value == "archive",
                       onTap: () => controller.setTab("archive"),
                     ),
@@ -169,7 +169,7 @@ class ChatListing extends StatelessWidget {
                       ? const Center(child: CupertinoActivityIndicator())
                       : !hasResults
                           ? (isSearching
-                              ? EmptyRow(text: "Arama sonucu bulunamadı")
+                              ? EmptyRow(text: 'common.no_results'.tr)
                               : _EmptyChatsState())
                           : ListView.builder(
                               itemCount: controller.filteredList.length,
@@ -188,22 +188,22 @@ class ChatListing extends StatelessWidget {
                                           "archive") {
                                         await _unarchiveChat(item);
                                         AppSnackbar(
-                                          "Tamamlandı",
-                                          "Sohbet arşivden çıkarıldı",
+                                          'common.done'.tr,
+                                          'chat.unarchived'.tr,
                                           snackPosition: SnackPosition.BOTTOM,
                                         );
                                       } else {
                                         await _archiveChat(item);
                                         AppSnackbar(
-                                          "Arşive Taşındı",
-                                          "Sohbet arşive taşındı",
+                                          'common.done'.tr,
+                                          'chat.archived'.tr,
                                           snackPosition: SnackPosition.BOTTOM,
                                         );
                                       }
                                     } catch (_) {
                                       AppSnackbar(
-                                        "Hata",
-                                        "İşlem tamamlanamadı, yetki veya kayıt sorunu var",
+                                        'common.error'.tr,
+                                        'chat.action_failed'.tr,
                                         snackPosition: SnackPosition.BOTTOM,
                                       );
                                       return;
@@ -215,11 +215,10 @@ class ChatListing extends StatelessWidget {
                                   onDelete: () async {
                                     bool confirmed = false;
                                     await noYesAlert(
-                                      title: "Sohbeti Sil",
-                                      message:
-                                          "Bu sohbeti silmek istediğinizden emin misiniz?",
-                                      cancelText: "Vazgeç",
-                                      yesText: "Sohbeti Sil",
+                                      title: 'chat.delete_title'.tr,
+                                      message: 'chat.delete_message'.tr,
+                                      cancelText: 'common.cancel'.tr,
+                                      yesText: 'chat.delete_confirm'.tr,
                                       yesButtonColor:
                                           CupertinoColors.destructiveRed,
                                       onYesPressed: () {
@@ -229,8 +228,8 @@ class ChatListing extends StatelessWidget {
                                     if (!confirmed) return;
                                     await controller.deleteChat(item);
                                     AppSnackbar(
-                                      "Sohbet Silindi",
-                                      "Seçilen sohbet başarıyla silindi",
+                                      'chat.deleted_title'.tr,
+                                      'chat.deleted_body'.tr,
                                       snackPosition: SnackPosition.BOTTOM,
                                     );
                                   },
@@ -519,27 +518,27 @@ class _EmptyChatsState extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(
               CupertinoIcons.chat_bubble_2,
               size: 56,
               color: Color(0xFFB8BEC5),
             ),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             Text(
-              "Henüz sohbetin yok",
+              'chat.empty_title'.tr,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 17,
                 fontFamily: "MontserratSemiBold",
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              "Mesajlaştığında konuşmaların burada listelenecek.",
+              'chat.empty_body'.tr,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF7A8087),
                 fontSize: 14,
                 fontFamily: "MontserratMedium",

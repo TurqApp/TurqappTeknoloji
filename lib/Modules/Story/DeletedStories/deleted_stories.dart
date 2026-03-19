@@ -41,9 +41,12 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Hikayeler'),
+            BackButtons(text: 'story.deleted_stories.title'.tr),
             PageLineBar(
-              barList: ['Silinmiş', 'Süresi Bitmiş'],
+              barList: [
+                'story.deleted_stories.tab_deleted'.tr,
+                'story.deleted_stories.tab_expired'.tr,
+              ],
               pageName: 'DeletedStories',
               pageController: controller.pageController,
             ),
@@ -79,7 +82,7 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(CupertinoIcons.clock, size: 40, color: Colors.grey),
           SizedBox(height: 12),
-          Text('Silinmiş hikaye bulunmuyor',
+          Text('story.deleted_stories.empty'.tr,
               style: TextStyle(color: Colors.grey)),
         ],
       ),
@@ -213,7 +216,7 @@ class _StoryCard extends StatelessWidget {
                               size: 18, color: Colors.white),
                           SizedBox(width: 6),
                           Text(
-                            'Paylaş',
+                            'common.share'.tr,
                             style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.white,
@@ -338,31 +341,31 @@ class _GridContentState extends State<_GridContent> {
             deletedAt: when,
             onRestore: () async {
               await c.repost(m);
-              AppSnackbar('Hikaye', 'Hikaye Tekrar Paylaşıldı');
+              AppSnackbar('story.deleted_stories.snackbar_title'.tr,
+                  'story.deleted_stories.reposted'.tr);
             },
             onDelete: () async {
               final confirmed = await Get.dialog<bool>(
                 CupertinoAlertDialog(
-                  title: const Text('Kalıcı Sil'),
-                  content: const Text(
-                    'Bu hikaye kalıcı olarak silinsin mi?',
-                  ),
+                  title: Text('story.permanent_delete'.tr),
+                  content: Text('story.permanent_delete_message'.tr),
                   actions: [
                     CupertinoDialogAction(
                       onPressed: () => Get.back(result: false),
-                      child: const Text('Vazgeç'),
+                      child: Text('common.cancel'.tr),
                     ),
                     CupertinoDialogAction(
                       isDestructiveAction: true,
                       onPressed: () => Get.back(result: true),
-                      child: const Text('Sil'),
+                      child: Text('common.delete'.tr),
                     ),
                   ],
                 ),
               );
               if (confirmed != true) return;
               await c.deleteForever(m);
-              AppSnackbar('Hikaye', 'Hikaye kalıcı olarak silindi');
+              AppSnackbar('story.deleted_stories.snackbar_title'.tr,
+                  'story.deleted_stories.deleted_forever'.tr);
             },
           ),
         );
@@ -495,7 +498,8 @@ class _VerticalStripState extends State<_VerticalStrip> {
                                 size: 14, color: Colors.redAccent),
                             SizedBox(width: 6),
                             Text(
-                              'Silindi: ${_relativeTime(when)}',
+                              'story.deleted_stories.deleted_at'
+                                  .trParams({'time': _relativeTime(when)}),
                               style: TextStyle(
                                   fontSize: 13, color: Colors.black87),
                             ),
@@ -515,14 +519,15 @@ class _VerticalStripState extends State<_VerticalStrip> {
                 OutlinedButton(
                   onPressed: () async {
                     await widget.controller.repost(m);
-                    AppSnackbar('Hikaye', 'Hikaye Tekrar Paylaşıldı');
+                    AppSnackbar('story.deleted_stories.snackbar_title'.tr,
+                        'story.deleted_stories.reposted'.tr);
                   },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.blueAccent.shade400),
                     padding: EdgeInsets.symmetric(horizontal: 5),
                   ),
                   child: Text(
-                    'Paylaş',
+                    'common.share'.tr,
                     style: TextStyle(
                         fontSize: 14,
                         color: Colors.blueAccent,
@@ -534,26 +539,25 @@ class _VerticalStripState extends State<_VerticalStrip> {
                   onPressed: () async {
                     final confirmed = await Get.dialog<bool>(
                       CupertinoAlertDialog(
-                        title: const Text('Kalıcı Sil'),
-                        content: const Text(
-                          'Bu hikaye kalıcı olarak silinsin mi?',
-                        ),
+                        title: Text('story.permanent_delete'.tr),
+                        content: Text('story.permanent_delete_message'.tr),
                         actions: [
                           CupertinoDialogAction(
                             onPressed: () => Get.back(result: false),
-                            child: const Text('Vazgeç'),
+                            child: Text('common.cancel'.tr),
                           ),
                           CupertinoDialogAction(
                             isDestructiveAction: true,
                             onPressed: () => Get.back(result: true),
-                            child: const Text('Sil'),
+                            child: Text('common.delete'.tr),
                           ),
                         ],
                       ),
                     );
                     if (confirmed != true) return;
                     await widget.controller.deleteForever(m);
-                    AppSnackbar('Hikaye', 'Hikaye kalıcı olarak silindi');
+                    AppSnackbar('story.deleted_stories.snackbar_title'.tr,
+                        'story.deleted_stories.deleted_forever'.tr);
                   },
                   icon: const Icon(
                     CupertinoIcons.delete,

@@ -183,7 +183,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Müzik'),
+            BackButtons(text: 'story_music.title'.tr),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _load,
@@ -194,12 +194,12 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                         slivers: [
                           SliverToBoxAdapter(child: _buildHeader()),
                           if (_entries.isEmpty)
-                            const SliverFillRemaining(
+                            SliverFillRemaining(
                               hasScrollBody: false,
                               child: Center(
                                 child: Text(
-                                  'Bu müzikle aktif hikaye yok',
-                                  style: TextStyle(
+                                  'story_music.no_active_stories'.tr,
+                                  style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 14,
                                     fontFamily: 'MontserratMedium',
@@ -459,7 +459,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                   Text(
                     track?.title.trim().isNotEmpty == true
                         ? track!.title
-                        : 'İsimsiz Parça',
+                        : 'story_music.untitled'.tr,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -483,7 +483,8 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                   ],
                   const SizedBox(height: 10),
                   Text(
-                    '${_entries.length} aktif hikaye',
+                    'story_music.active_story_count'
+                        .trParams({'count': '${_entries.length}'}),
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 12,
@@ -501,10 +502,20 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
 
   String _timeAgo(DateTime dateTime) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return 'şimdi';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} dk';
-    if (diff.inHours < 24) return '${diff.inHours} sa';
-    return '${diff.inDays} g';
+    if (diff.inMinutes < 1) return 'common.now'.tr;
+    if (diff.inMinutes < 60) {
+      return 'story_music.minutes_ago'.trParams(
+        {'count': '${diff.inMinutes}'},
+      );
+    }
+    if (diff.inHours < 24) {
+      return 'story_music.hours_ago'.trParams(
+        {'count': '${diff.inHours}'},
+      );
+    }
+    return 'story_music.days_ago'.trParams(
+      {'count': '${diff.inDays}'},
+    );
   }
 }
 
