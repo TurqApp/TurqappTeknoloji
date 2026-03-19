@@ -33,6 +33,7 @@ class ShortController extends GetxController {
   final Map<int, _CacheTier> _tiers = {};
   final lastIndex = 0.obs;
   Future<void>? _backgroundPreloadFuture;
+  Future<void>? _initialLoadFuture;
   static const int _initialPreloadCount = 3;
 
   // +5/-5 kuralı: önündeki 5 video HOT, gerideki 5 video WARM (cache korumalı)
@@ -233,6 +234,52 @@ class ShortController extends GetxController {
     }
   }
 
+  Future<void> _runInitialLoadOnce() {
+    final inFlight = _initialLoadFuture;
+    if (inFlight != null) return inFlight;
+
+    final future = _performInitialLoad();
+    _initialLoadFuture = future;
+    return future.whenComplete(() {
+      if (identical(_initialLoadFuture, future)) {
+        _initialLoadFuture = null;
+      }
+    });
+  }
+
+  Future<void> _performInitialLoad() async {
+    _log(
+        '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: $_globalShuffleCompleted)');
+    _log(
+        '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}');
+
+    if (shorts.isEmpty) {
+      await _tryQuickFillFromPool();
+      if (shorts.isNotEmpty) {
+        await preloadRange(0, range: 0);
+        if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
+          unawaited(_loadNextPage());
+        }
+        return;
+      }
+      _log('[Shorts] Liste boş - sıfırlama yapılıyor');
+      isLoading.value = false;
+      hasMore.value = true;
+      _lastDoc = null;
+      clearCache();
+      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
+      await _loadNextPage();
+    } else {
+      _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
+      await preloadRange(0, range: 0);
+    }
+
+    _log(
+        '[Shorts] loadInitialShorts - TAMAMLANDI, shorts.length: ${shorts.length}');
+    _log(
+        '[Shorts] Current shorts list IDs AFTER: ${shorts.map((s) => s.docID).take(5).toList()}');
+  }
+
   Future<void> _runBackgroundPreload() async {
     if (shorts.isNotEmpty) {
       _log(
@@ -257,7 +304,7 @@ class ShortController extends GetxController {
     // İlk yükleme
     try {
       _log('[Shorts] 📱 İlk defa yükleme yapılıyor...');
-      await loadInitialShorts();
+      await _runInitialLoadOnce();
 
       if (shorts.isNotEmpty) {
         final initialCount = math.min(_initialPreloadCount, shorts.length);
@@ -378,38 +425,7 @@ class ShortController extends GetxController {
 
   /// Başlangıç yüklemesi (state reset + ilk sayfa)
   Future<void> loadInitialShorts() async {
-    _log(
-        '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: $_globalShuffleCompleted)');
-    _log(
-        '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}');
-
-    // Sadece gerçekten boşsa sıfırla
-    if (shorts.isEmpty) {
-      await _tryQuickFillFromPool();
-      if (shorts.isNotEmpty) {
-        await preloadRange(0, range: 0);
-        if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
-          unawaited(_loadNextPage());
-        }
-        return;
-      }
-      _log('[Shorts] Liste boş - sıfırlama yapılıyor');
-      isLoading.value = false;
-      hasMore.value = true;
-      _lastDoc = null;
-      clearCache();
-      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
-      await _loadNextPage();
-    } else {
-      _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
-      // Mevcut listeyi koruyoruz, sadece eksik cache'leri preload et
-      await preloadRange(0, range: 0);
-    }
-
-    _log(
-        '[Shorts] loadInitialShorts - TAMAMLANDI, shorts.length: ${shorts.length}');
-    _log(
-        '[Shorts] Current shorts list IDs AFTER: ${shorts.map((s) => s.docID).take(5).toList()}');
+    await _runInitialLoadOnce();
   }
 
   /// Sonsuz kaydırma için sonraki sayfa
@@ -435,9 +451,12 @@ class ShortController extends GetxController {
   /// Hedef: kullanıcı Short ekranına girdiğinde bekleme olmasın
   Future<void> warmStart({int targetCount = 20, int maxPages = 2}) async {
     try {
-      // Eğer hiç yükleme yapılmadıysa ilk sayfayı başlat
-      if (shorts.isEmpty && !isLoading.value) {
-        await _loadNextPage();
+      if (shorts.isEmpty) {
+        if (_backgroundPreloadFuture != null) {
+          await _backgroundPreloadFuture;
+        } else {
+          await _runInitialLoadOnce();
+        }
       }
       // İlk videoların adapter'larını hemen oluştur (ağ bağlantısı başlasın)
       if (shorts.isNotEmpty) {
@@ -657,6 +676,32 @@ class ShortController extends GetxController {
   /// Backward compat: eski callsite'lar için thin wrapper
   Future<void> preloadRange(int index, {int range = 1}) async {
     await updateCacheTiers(index);
+  }
+
+  /// Short ekranı ilk açıldığında warm-start cache çakışmasını azaltmak için
+  /// yalnızca aktif index'i cache'te tut.
+  Future<void> keepOnlyIndex(int index) async {
+    final keys = cache.keys.toList(growable: false);
+    for (final key in keys) {
+      if (key == index) continue;
+      final adapter = cache.remove(key);
+      _tiers.remove(key);
+      if (adapter != null) {
+        try {
+          await _videoPool.release(adapter);
+        } catch (_) {}
+      }
+    }
+
+    final current = cache[index];
+    if (current != null && current.isStopped) {
+      try {
+        await current.reloadVideo();
+      } catch (_) {}
+    }
+    if (cache.containsKey(index)) {
+      _tiers[index] = _CacheTier.hot;
+    }
   }
 
   /// Backward compat: eski callsite'lar için thin wrapper

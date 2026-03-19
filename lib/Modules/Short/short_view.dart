@@ -163,7 +163,7 @@ class _ShortViewState extends State<ShortView> {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
-    await adapter.pause();
+    await adapter.forceSilence();
   }
 
   @override
@@ -287,6 +287,11 @@ class _ShortViewState extends State<ShortView> {
     if (controller.shorts.isEmpty) return;
 
     isManuallyPaused = false;
+
+    // İlk açılışta warm-start/preload cache'inden gelen diğer adapter'ları
+    // bırakıp sadece aktif videoyu tut. Aksi halde aktif video birkaç saniye
+    // sonra offscreen adapter akışı tarafından susturulabiliyor.
+    await controller.keepOnlyIndex(currentPage);
 
     // Cache tier'larını güncelle (ilk 5 preload dahil)
     await controller.updateCacheTiers(currentPage);
@@ -751,139 +756,136 @@ class _ShortViewState extends State<ShortView> {
                     children: [
                       _buildThumbOverlay(thumb, modelAr),
                       const Center(
-                        child:
-                            CupertinoActivityIndicator(color: Colors.white),
+                        child: CupertinoActivityIndicator(color: Colors.white),
                       ),
                     ],
                   );
                 }
 
-                  final shouldRenderPlayer = idx == currentPage;
-                  final videoWidget = shouldRenderPlayer
-                      ? _buildFullscreenVideoSurface(
-                          vp,
-                          'vp-${list[idx].docID}-${vp.hashCode}',
-                          modelAspectRatio: modelAr,
-                        )
-                      : const SizedBox.shrink();
+                final isActivePage = idx == currentPage;
+                final videoWidget = isActivePage
+                    ? _buildFullscreenVideoSurface(
+                        vp,
+                        'vp-${list[idx].docID}-${vp.hashCode}',
+                        modelAspectRatio: modelAr,
+                      )
+                    : const SizedBox.shrink();
 
                 return RepaintBoundary(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _buildThumbOverlay(thumb, modelAr),
-                        // Video layer
-                        if (shouldRenderPlayer)
-                          videoWidget,
-                        if (shouldRenderPlayer)
-                          AnimatedBuilder(
-                            animation: vp,
-                            builder: (_, __) {
-                              if (vp.value.hasRenderedFirstFrame) {
-                                return const SizedBox.shrink();
-                              }
-                              return _buildThumbOverlay(thumb, modelAr);
-                            },
-                          ),
-                        if (shouldRenderPlayer)
-                          AnimatedBuilder(
-                            animation: vp,
-                            builder: (_, __) {
-                              if (vp.value.isInitialized) {
-                                return const SizedBox.shrink();
-                              }
-                              return const Center(
-                                child: CupertinoActivityIndicator(
-                                  color: Colors.white,
-                                ),
-                              );
-                            },
-                          ),
-                        if (shouldRenderPlayer)
-                          ShortsContent(
-                            model: list[idx],
-                            isActive: shouldRenderPlayer,
-                            showOverlayControls: _showOverlayControls,
-                            onToggleOverlay: () {
-                              if (!mounted) return;
-                              setState(() {
-                                _showOverlayControls = !_showOverlayControls;
-                              });
-                            },
-                            onDoubleTapLike: () async {
-                              await PostRepository.ensure().toggleLike(list[idx]);
-                            },
-                            volumeOff: (v) {
-                              if (v) {
-                                vp.play();
-                                isManuallyPaused = false;
-                              } else {
-                                vp.pause();
-                                isManuallyPaused = true;
-                              }
-                              if (idx == currentPage) {
-                                VideoTelemetryService.instance
-                                    .updateRuntimeHints(
-                                  list[idx].docID,
-                                  isAudible: volume,
-                                  hasStableFocus: v,
-                                );
-                              }
-                            },
-                            videoPlayerController: vp,
-                            onEdited: (updatedDocId) async {
-                              await controller.updateShort(updatedDocId);
-                              await controller.refreshVideoController(idx);
-                              setState(() {});
-                            },
-                          ),
-                        // İnce progress bar — altta
-                        if (_showOverlayControls && idx == currentPage)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: _ShortProgressBar(adapter: vp),
-                          ),
-                        if (_showOverlayControls)
-                          SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildCircleButton(
-                                        icon: CupertinoIcons.arrow_left,
-                                        onTap: () => Get.back(),
-                                      ),
-                                      _buildCircleButton(
-                                        icon: volume
-                                            ? CupertinoIcons.volume_up
-                                            : CupertinoIcons.volume_off,
-                                        onTap: () {
-                                          setState(() => volume = !volume);
-                                          vp.setVolume(volume ? 1 : 0);
-                                          if (idx == currentPage) {
-                                            VideoTelemetryService.instance
-                                                .updateRuntimeHints(
-                                              list[idx].docID,
-                                              isAudible: volume,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _buildThumbOverlay(thumb, modelAr),
+                      // Video layer
+                      if (isActivePage) videoWidget,
+                      if (isActivePage)
+                        AnimatedBuilder(
+                          animation: vp,
+                          builder: (_, __) {
+                            if (vp.value.hasRenderedFirstFrame) {
+                              return const SizedBox.shrink();
+                            }
+                            return _buildThumbOverlay(thumb, modelAr);
+                          },
+                        ),
+                      if (isActivePage)
+                        AnimatedBuilder(
+                          animation: vp,
+                          builder: (_, __) {
+                            if (vp.value.isInitialized) {
+                              return const SizedBox.shrink();
+                            }
+                            return const Center(
+                              child: CupertinoActivityIndicator(
+                                color: Colors.white,
                               ),
+                            );
+                          },
+                        ),
+                      if (isActivePage)
+                        ShortsContent(
+                          model: list[idx],
+                          isActive: isActivePage,
+                          showOverlayControls: _showOverlayControls,
+                          onToggleOverlay: () {
+                            if (!mounted) return;
+                            setState(() {
+                              _showOverlayControls = !_showOverlayControls;
+                            });
+                          },
+                          onDoubleTapLike: () async {
+                            await PostRepository.ensure().toggleLike(list[idx]);
+                          },
+                          volumeOff: (v) {
+                            if (v) {
+                              vp.play();
+                              isManuallyPaused = false;
+                            } else {
+                              vp.pause();
+                              isManuallyPaused = true;
+                            }
+                            if (idx == currentPage) {
+                              VideoTelemetryService.instance.updateRuntimeHints(
+                                list[idx].docID,
+                                isAudible: volume,
+                                hasStableFocus: v,
+                              );
+                            }
+                          },
+                          videoPlayerController: vp,
+                          onEdited: (updatedDocId) async {
+                            await controller.updateShort(updatedDocId);
+                            await controller.refreshVideoController(idx);
+                            setState(() {});
+                          },
+                        ),
+                      // İnce progress bar — altta
+                      if (_showOverlayControls && isActivePage)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _ShortProgressBar(adapter: vp),
+                        ),
+                      if (_showOverlayControls)
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildCircleButton(
+                                      icon: CupertinoIcons.arrow_left,
+                                      onTap: () => Get.back(),
+                                    ),
+                                    _buildCircleButton(
+                                      icon: volume
+                                          ? CupertinoIcons.volume_up
+                                          : CupertinoIcons.volume_off,
+                                      onTap: () {
+                                        setState(() => volume = !volume);
+                                        vp.setVolume(volume ? 1 : 0);
+                                        if (idx == currentPage) {
+                                          VideoTelemetryService.instance
+                                              .updateRuntimeHints(
+                                            list[idx].docID,
+                                            isAudible: volume,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-                  );
+                        ),
+                    ],
+                  ),
+                );
               },
             ),
           );
