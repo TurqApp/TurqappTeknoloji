@@ -214,7 +214,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                               ),
                               appDivider(),
                               if (model.basvuruKosullari.isNotEmpty) ...[
-                                _buildDetail('Başvuru Koşulları',
+                                _buildDetail('scholarship.conditions_label'.tr,
                                     model.basvuruKosullari),
                                 appDivider(),
                               ],
@@ -223,7 +223,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "İlan Yayınlanma Tarihi",
+                                    "scholarship.published_at".tr,
                                     style: TextStyles.bold18Black,
                                   ),
                                   Text(
@@ -234,20 +234,20 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                               ),
                               appDivider(),
                               _buildDetail(
-                                'Başvuru Tarihleri',
+                                'scholarship.application_dates_label'.tr,
                                 '${model.baslangicTarihi} - ${model.bitisTarihi}',
                               ),
                               if (model.belgeler.isNotEmpty) ...[
                                 appDivider(),
                                 _buildDetail(
-                                  'Gerekli Belgeler',
+                                  'scholarship.required_docs_label'.tr,
                                   model.belgeler.map((e) => '• $e').join('\n'),
                                 ),
                               ],
                               if (model.aylar.isNotEmpty) ...[
                                 appDivider(),
                                 _buildDetail(
-                                  'Burs Verilecek Aylar',
+                                  'scholarship.award_months_label'.tr,
                                   model.aylar.map((ay) => '• $ay').join('\n'),
                                 ),
                               ],
@@ -275,7 +275,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          'Üniversiteler',
+                                          'scholarship.universities_label'.tr,
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -294,8 +294,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                               child: Text(
                                                 controller.showAllUniversities
                                                         .value
-                                                    ? 'Daha az göster'
-                                                    : 'Tümünü Göster',
+                                                    ? 'scholarship.show_less'.tr
+                                                    : 'scholarship.show_all'.tr,
                                                 style: const TextStyle(
                                                   fontSize: 15,
                                                   color: Colors.black,
@@ -338,8 +338,14 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                             child: Text(
                                               controller
                                                       .showAllUniversities.value
-                                                  ? 'Daha az göster'
-                                                  : '+${controller.hiddenUniversityCount.value} üniversite daha',
+                                                  ? 'scholarship.show_less'.tr
+                                                  : 'scholarship.more_universities'
+                                                      .trParams({
+                                                      'count': controller
+                                                          .hiddenUniversityCount
+                                                          .value
+                                                          .toString(),
+                                                    }),
                                               style: const TextStyle(
                                                 fontSize: 15,
                                                 color: Colors.black,
@@ -355,29 +361,32 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                               ...[
                                 appDivider(),
                                 _buildDetail(
-                                  'Diğer Bilgiler',
-                                  '• Mükerrer Durumu: ${model.mukerrerDurumu.isNotEmpty ? model.mukerrerDurumu : 'Belirtilmemiş'}\n'
-                                      '• Geri Ödeme Durumu: ${model.geriOdemeli.isNotEmpty ? model.geriOdemeli : 'Belirtilmemiş'}',
+                                  'scholarship.other_info'.tr,
+                                  '• ${'scholarship.duplicate_status_label'.tr}: ${model.mukerrerDurumu.isNotEmpty ? model.mukerrerDurumu : 'common.unspecified'.tr}\n'
+                                      '• ${'scholarship.repayable_label'.tr}: ${model.geriOdemeli.isNotEmpty ? model.geriOdemeli : 'common.unspecified'.tr}',
                                 ),
                               ],
                               ...[
                                 appDivider(),
                                 _buildDetail(
-                                    "Başvuru Nasıl Yapılacak?",
+                                    "scholarship.application_how".tr,
                                     model.basvuruYapilacakYer == 'TurqApp'
                                         ? Text.rich(
                                             TextSpan(
                                               children: [
-                                                const TextSpan(
+                                                TextSpan(
                                                   text:
-                                                      "Başvurular TurqApp üzerinden ",
+                                                      "scholarship.application_via_turqapp_prefix"
+                                                          .tr,
                                                   style: TextStyle(
                                                     fontFamily: "Montserrat",
                                                     fontSize: 16,
                                                   ),
                                                 ),
                                                 TextSpan(
-                                                  text: "ALINMAKTADIR.",
+                                                  text:
+                                                      "scholarship.application_received_status"
+                                                          .tr,
                                                   style: const TextStyle(
                                                     color: Colors.black,
                                                     fontFamily:
@@ -390,16 +399,19 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                         : Text.rich(
                                             TextSpan(
                                               children: [
-                                                const TextSpan(
+                                                TextSpan(
                                                   text:
-                                                      "Başvurular TurqApp üzerinden ",
+                                                      "scholarship.application_via_turqapp_prefix"
+                                                          .tr,
                                                   style: TextStyle(
                                                     fontFamily: "Montserrat",
                                                     fontSize: 16,
                                                   ),
                                                 ),
                                                 TextSpan(
-                                                  text: "ALINMAMAKTADIR.",
+                                                  text:
+                                                      "scholarship.application_not_received_status"
+                                                          .tr,
                                                   style: TextStyle(
                                                     color: Colors.red.shade700,
                                                     fontFamily:

@@ -21,7 +21,7 @@ class ApplicationsView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Burs Başvurularım"),
+            BackButtons(text: "scholarship.my_applications_title".tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
@@ -38,7 +38,8 @@ class ApplicationsView extends StatelessWidget {
                                     ? Center(
                                         child: EmptyRow(
                                             text:
-                                                'Burs Başvurunuz Bulunmamaktadır!'))
+                                                'scholarship.no_user_applications'
+                                                    .tr))
                                     : ListView.builder(
                                         shrinkWrap: true,
                                         physics: NeverScrollableScrollPhysics(),
@@ -236,7 +237,12 @@ class ApplicationsView extends StatelessWidget {
                                                           children: [
                                                             Expanded(
                                                               child: Text(
-                                                                "${application['title']} BURS BAŞVURULARI",
+                                                                'scholarship.applications_suffix'
+                                                                    .trParams({
+                                                                  'title':
+                                                                      application[
+                                                                          'title'],
+                                                                }),
                                                                 style:
                                                                     TextStyle(
                                                                   color: Colors
@@ -258,7 +264,8 @@ class ApplicationsView extends StatelessWidget {
                                                                   [
                                                                 PullDownMenuItem(
                                                                   title:
-                                                                      'Başvurunu Geri Al',
+                                                                      'scholarship.withdraw_application'
+                                                                          .tr,
                                                                   icon: CupertinoIcons
                                                                       .restart,
                                                                   onTap: () {
@@ -294,7 +301,7 @@ class ApplicationsView extends StatelessWidget {
                                                                                 MainAxisSize.min,
                                                                             children: [
                                                                               Text(
-                                                                                'Dikkat!',
+                                                                                'scholarship.withdraw_confirm_title'.tr,
                                                                                 style: TextStyle(
                                                                                   fontSize: 20,
                                                                                   color: Colors.black,
@@ -302,7 +309,7 @@ class ApplicationsView extends StatelessWidget {
                                                                                 ),
                                                                               ),
                                                                               Text(
-                                                                                'Başvurunu geri almak istediğinden emin misin?',
+                                                                                'scholarship.withdraw_confirm_body'.tr,
                                                                                 style: TextStyle(
                                                                                   fontSize: 16,
                                                                                   color: Colors.black,
@@ -334,7 +341,7 @@ class ApplicationsView extends StatelessWidget {
                                                                                           ),
                                                                                         ),
                                                                                         child: Text(
-                                                                                          'Hayır',
+                                                                                          'common.no'.tr,
                                                                                           style: TextStyle(
                                                                                             fontSize: 15,
                                                                                             color: Colors.black,
@@ -360,7 +367,7 @@ class ApplicationsView extends StatelessWidget {
                                                                                           ),
                                                                                         ),
                                                                                         child: Text(
-                                                                                          'Evet',
+                                                                                          'common.yes'.tr,
                                                                                           style: TextStyle(
                                                                                             fontFamily: 'MontserratMedium',
                                                                                             color: Colors.white,

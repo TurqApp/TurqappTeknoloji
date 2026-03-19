@@ -1,6 +1,71 @@
 part of 'create_scholarship_view.dart';
 
 extension CreateScholarshipExtraPart on CreateScholarshipView {
+  String _duplicateStatusLabel(String value) {
+    switch (value) {
+      case 'Alabilir':
+        return 'scholarship.duplicate_status.can_receive'.tr;
+      case 'Alamaz (KYK Hariç)':
+        return 'scholarship.duplicate_status.cannot_receive_except_kyk'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String _repayableLabel(String value) {
+    switch (value) {
+      case 'Evet':
+        return 'common.yes'.tr;
+      case 'Hayır':
+        return 'common.no'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String _targetAudienceLabel(String value) {
+    switch (value) {
+      case 'Nüfusa Göre':
+        return 'scholarship.target.population'.tr;
+      case 'İkamete Göre':
+        return 'scholarship.target.residence'.tr;
+      case 'Tüm Türkiye':
+        return 'scholarship.target.all_turkiye'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String _educationAudienceLabel(String value) {
+    switch (value) {
+      case 'Hepsi':
+        return 'scholarship.education.all'.tr;
+      case 'Ortaokul':
+        return 'scholarship.education.middle_school'.tr;
+      case 'Lise':
+        return 'scholarship.education.high_school'.tr;
+      case 'Lisans':
+        return 'scholarship.education.undergraduate'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String _degreeTypeLabel(String value) {
+    switch (value) {
+      case 'Ön Lisans':
+        return 'scholarship.degree.associate'.tr;
+      case 'Lisans':
+        return 'scholarship.degree.bachelor'.tr;
+      case 'Yüksek Lisans':
+        return 'scholarship.degree.master'.tr;
+      case 'Doktora':
+        return 'scholarship.degree.phd'.tr;
+      default:
+        return value;
+    }
+  }
+
   Widget buildEkBilgiler(
     BuildContext context,
     CreateScholarshipController controller,
@@ -26,13 +91,16 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               children: [
                 const Icon(CupertinoIcons.arrow_left, color: Colors.black),
                 const SizedBox(width: 12),
-                Text('Başvuru Bilgileri', style: TextStyles.headerTextStyle),
+                Text(
+                  'scholarship.application_info'.tr,
+                  style: TextStyles.headerTextStyle,
+                ),
               ],
             ),
           ),
         ),
         Text(
-          "Ek Bilgiler",
+          "scholarship.extra_info".tr,
           style: TextStyles.textFieldTitle.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -45,13 +113,18 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Miktar (₺)", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.amount_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   Container(
                     decoration: containerDecoration,
                     child: TextFormField(
                       cursorColor: Colors.black,
                       keyboardType: TextInputType.number,
-                      decoration: inputDecoration.copyWith(hintText: "Miktar"),
+                      decoration: inputDecoration.copyWith(
+                        hintText: "scholarship.amount_hint".tr,
+                      ),
                       controller: controller.tutarController,
                       onChanged: (value) => controller.tutar.value = value,
                       onEditingComplete: () {
@@ -67,13 +140,18 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Öğrenci Sayısı", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.student_count_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   Container(
                     decoration: containerDecoration,
                     child: TextFormField(
                       cursorColor: Colors.black,
                       keyboardType: TextInputType.number,
-                      decoration: inputDecoration.copyWith(hintText: "ör: 4"),
+                      decoration: inputDecoration.copyWith(
+                        hintText: "scholarship.student_count_hint".tr,
+                      ),
                       controller: controller.ogrenciSayisiController,
                       onChanged: (value) =>
                           controller.ogrenciSayisi.value = value,
@@ -94,7 +172,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
             4.pw,
             Expanded(
               child: Text(
-                '\'Miktar\' ve \'Öğrenci Sayısı\' bilgileri başvuru sayfasında görüntülenmemektedir.',
+                'scholarship.amount_student_count_notice'.tr,
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 13,
@@ -111,14 +189,19 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Mükerrer Durumu", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.duplicate_status_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   GestureDetector(
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: ["Alabilir", "Alamaz (KYK Hariç)"],
-                        title: "Mükerrer Durumu",
+                        items: const ["Alabilir", "Alamaz (KYK Hariç)"],
+                        title: "scholarship.duplicate_status_label".tr,
                         selectedItem: controller.mukerrerDurumu.value,
+                        itemLabelBuilder: (item) =>
+                            _duplicateStatusLabel(item.toString()),
                         onSelect: (value) {
                           controller.mukerrerDurumu.value = value;
                         },
@@ -138,7 +221,9 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              controller.mukerrerDurumu.value,
+                              _duplicateStatusLabel(
+                                controller.mukerrerDurumu.value,
+                              ),
                               style: const TextStyle(color: Colors.black),
                             ),
                             const Icon(CupertinoIcons.chevron_down, size: 20),
@@ -155,14 +240,19 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Geri Ödemeli", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.repayable_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   GestureDetector(
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: ["Evet", "Hayır"],
-                        title: "Geri Ödemeli",
+                        items: const ["Evet", "Hayır"],
+                        title: "scholarship.repayable_label".tr,
                         selectedItem: controller.geriOdemeli.value,
+                        itemLabelBuilder: (item) =>
+                            _repayableLabel(item.toString()),
                         onSelect: (value) {
                           controller.geriOdemeli.value = value;
                         },
@@ -182,7 +272,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              controller.geriOdemeli.value,
+                              _repayableLabel(controller.geriOdemeli.value),
                               style: const TextStyle(color: Colors.black),
                             ),
                             const Icon(CupertinoIcons.chevron_down, size: 20),
@@ -203,14 +293,23 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Hedef Kitle", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.target_audience_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   GestureDetector(
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: ["Nüfusa Göre", "İkamete Göre", "Tüm Türkiye"],
-                        title: "Hedef Kitle",
+                        items: const [
+                          "Nüfusa Göre",
+                          "İkamete Göre",
+                          "Tüm Türkiye",
+                        ],
+                        title: "scholarship.target_audience_label".tr,
                         selectedItem: controller.hedefKitle.value,
+                        itemLabelBuilder: (item) =>
+                            _targetAudienceLabel(item.toString()),
                         onSelect: (value) {
                           controller.hedefKitle.value = value;
                           if (value == "Tüm Türkiye") {
@@ -238,8 +337,10 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                           children: [
                             Text(
                               controller.hedefKitle.value.isEmpty
-                                  ? "Hedef Kitle"
-                                  : controller.hedefKitle.value,
+                                  ? "scholarship.target_audience_label".tr
+                                  : _targetAudienceLabel(
+                                      controller.hedefKitle.value,
+                                    ),
                               style: const TextStyle(color: Colors.black),
                             ),
                             const Icon(CupertinoIcons.chevron_down, size: 20),
@@ -260,19 +361,24 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Eğitim Kitlesi", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.education_audience_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   GestureDetector(
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: [
+                        items: const [
                           "Hepsi",
                           "Ortaokul",
                           "Lise",
                           "Lisans",
                         ],
-                        title: "Eğitim Kitlesi",
+                        title: "scholarship.education_audience_label".tr,
                         selectedItem: controller.egitimKitlesi.value,
+                        itemLabelBuilder: (item) =>
+                            _educationAudienceLabel(item.toString()),
                         onSelect: (value) {
                           controller.egitimKitlesi.value = value;
                           if (value != "Lisans") {
@@ -297,8 +403,10 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                           children: [
                             Text(
                               controller.egitimKitlesi.value.isEmpty
-                                  ? "Eğitim Kitlesi"
-                                  : controller.egitimKitlesi.value,
+                                  ? "scholarship.education_audience_label".tr
+                                  : _educationAudienceLabel(
+                                      controller.egitimKitlesi.value,
+                                    ),
                               style: const TextStyle(color: Colors.black),
                             ),
                             const Icon(CupertinoIcons.chevron_down, size: 20),
@@ -323,7 +431,10 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Lisans Türü", style: TextStyles.textFieldTitle),
+                      Text(
+                        "scholarship.degree_type_label".tr,
+                        style: TextStyles.textFieldTitle,
+                      ),
                       GestureDetector(
                         onTap: () {
                           showModalBottomSheet(
@@ -336,14 +447,15 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                               ),
                             ),
                             builder: (context) => MultiSelectBottomSheet2(
-                              title: "Lisans Türü Seç",
-                              items: [
+                              title: "scholarship.degree_type_select".tr,
+                              items: const [
                                 "Ön Lisans",
                                 "Lisans",
                                 "Yüksek Lisans",
                                 "Doktora",
                               ],
                               selectedItems: controller.lisansTuru,
+                              itemLabelBuilder: _degreeTypeLabel,
                               onConfirm: (selected) {
                                 controller.lisansTuru.assignAll(selected);
                               },
@@ -365,10 +477,17 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                               children: [
                                 Text(
                                   controller.lisansTuru.isEmpty
-                                      ? "Lisans Türü Seçin"
+                                      ? "scholarship.degree_type_select".tr
                                       : controller.lisansTuru.length > 1
-                                          ? "${controller.lisansTuru.length} tane seçildi"
-                                          : controller.lisansTuru.join(", "),
+                                          ? 'common.selected_count'
+                                              .trParams({
+                                              'count': controller
+                                                  .lisansTuru.length
+                                                  .toString(),
+                                            })
+                                          : _degreeTypeLabel(
+                                              controller.lisansTuru.first,
+                                            ),
                                   style: const TextStyle(color: Colors.black),
                                 ),
                                 const Icon(
@@ -396,13 +515,16 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Country Selection
-                Text("Ülke", style: TextStyles.textFieldTitle),
+                Text(
+                  "scholarship.country_label".tr,
+                  style: TextStyles.textFieldTitle,
+                ),
                 GestureDetector(
                   onTap: () {
                     ListBottomSheet.show(
                       context: context,
                       items: ["Türkiye"], // Add more countries if needed
-                      title: "Ülke Seç",
+                      title: "scholarship.select_country".tr,
                       selectedItem: controller.ulke.value.isEmpty
                           ? null
                           : controller.ulke.value,
@@ -431,7 +553,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         children: [
                           Text(
                             controller.ulke.value.isEmpty
-                                ? "Ülke Seçin"
+                                ? "scholarship.select_country".tr
                                 : controller.ulke.value,
                             style: const TextStyle(color: Colors.black),
                           ),
@@ -449,18 +571,21 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("İl", style: TextStyles.textFieldTitle),
+                          Text("common.city".tr,
+                              style: TextStyles.textFieldTitle),
                           GestureDetector(
                             onTap: () {
                               if (controller.ulke.value.isEmpty) {
                                 AppSnackbar(
-                                    'Hata', 'Lütfen önce bir ülke seçin.');
+                                  'common.error'.tr,
+                                  'scholarship.select_country_first'.tr,
+                                );
                                 return;
                               }
                               ListBottomSheet.show(
                                 context: context,
                                 items: controller.iller,
-                                title: "İl Seç",
+                                title: "common.select_city".tr,
                                 selectedItem: controller.sehirler.isNotEmpty
                                     ? controller.sehirler.first
                                     : null,
@@ -505,7 +630,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                                   children: [
                                     Text(
                                       controller.sehirler.isEmpty
-                                          ? "İl Seçin"
+                                          ? "common.select_city".tr
                                           : controller.sehirler.first,
                                       style:
                                           const TextStyle(color: Colors.black),
@@ -526,19 +651,22 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("İlçe", style: TextStyles.textFieldTitle),
+                            Text("common.district".tr,
+                                style: TextStyles.textFieldTitle),
                             GestureDetector(
                               onTap: () {
                                 if (controller.sehirler.isEmpty) {
                                   AppSnackbar(
-                                      'Hata', 'Lütfen önce bir il seçin.');
+                                    'common.error'.tr,
+                                    'scholarship.select_city_first'.tr,
+                                  );
                                   return;
                                 }
                                 ListBottomSheet.show(
                                   context: context,
                                   items: controller
                                       .getDistrictsForSelectedCities(),
-                                  title: "İlçe Seç",
+                                  title: "common.select_district".tr,
                                   selectedItem: controller.ilceler.isNotEmpty
                                       ? controller.ilceler.first
                                       : null,
@@ -566,7 +694,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                                     children: [
                                       Text(
                                         controller.ilceler.isEmpty
-                                            ? "İlçe Seçin"
+                                            ? "common.select_district".tr
                                             : controller.ilceler.first,
                                         style: const TextStyle(
                                             color: Colors.black),
@@ -600,12 +728,18 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Üniversiteler", style: TextStyles.textFieldTitle),
+                Text(
+                  "scholarship.universities_label".tr,
+                  style: TextStyles.textFieldTitle,
+                ),
                 GestureDetector(
                   onTap: () {
                     if (controller.hedefKitle.value != "Tüm Türkiye" &&
                         controller.sehirler.isEmpty) {
-                      AppSnackbar('Hata', 'Lütfen önce bir il seçin.');
+                      AppSnackbar(
+                        'common.error'.tr,
+                        'scholarship.select_city_first'.tr,
+                      );
                       return;
                     }
                     showModalBottomSheet(
@@ -618,7 +752,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         ),
                       ),
                       builder: (context) => MultiSelectBottomSheet2(
-                        title: "Üniversite Seç",
+                        title: "scholarship.select_university".tr,
                         items: controller.getUniversitiesForSelectedCities(),
                         selectedItems: controller.universiteler,
                         onConfirm: (selected) {
@@ -642,12 +776,15 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         children: [
                           Text(
                             controller.universiteler.isEmpty
-                                ? "Üniversite Seçin"
+                                ? "scholarship.select_university".tr
                                 : controller.universiteler.contains(
                                     "Tüm Üniversiteler",
                                   )
                                     ? controller.universiteler.join(", ")
-                                    : "${controller.universiteler.length} üniversite seçildi",
+                                    : 'common.selected_count'.trParams({
+                                        'count': controller.universiteler.length
+                                            .toString(),
+                                      }),
                             style: const TextStyle(color: Colors.black),
                           ),
                           const Icon(CupertinoIcons.chevron_down, size: 20),
@@ -663,7 +800,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Seçilen Üniversiteler:",
+                          "scholarship.selected_universities".tr,
                           style: TextStyles.textFieldTitle.copyWith(
                             fontSize: 14,
                           ),
@@ -712,7 +849,8 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                   color: Colors.grey.withAlpha(100),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('Geri', style: TextStyles.medium15Black),
+                child: Text('common.back'.tr,
+                    style: TextStyles.medium15Black),
               ),
             ),
             GestureDetector(
@@ -737,8 +875,8 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         controller.sehirler.isEmpty &&
                         controller.universiteler.isEmpty)) {
                   AppSnackbar(
-                    'Hata',
-                    'Lütfen tüm alanları doldurunuz.',
+                    'common.error'.tr,
+                    'common.fill_all_fields'.tr,
                     backgroundColor: Colors.red.withValues(alpha: 0.7),
                   );
                   return;
@@ -753,7 +891,8 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('İleri', style: TextStyles.medium15white),
+                child: Text('common.continue'.tr,
+                    style: TextStyles.medium15white),
               ),
             ),
           ],

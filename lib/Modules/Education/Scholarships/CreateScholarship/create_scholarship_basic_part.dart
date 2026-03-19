@@ -1,6 +1,18 @@
 part of 'create_scholarship_view.dart';
 
 extension CreateScholarshipBasicPart on CreateScholarshipView {
+  String _applicationPlaceLabel(String value) {
+    switch (value) {
+      case 'TurqApp':
+        return 'scholarship.application_place_turqapp'.tr;
+      case 'Burs Web Site':
+      case 'Web Site':
+        return 'scholarship.application_place_website'.tr;
+      default:
+        return value;
+    }
+  }
+
   Widget buildTemelBilgiler(
     BuildContext context,
     CreateScholarshipController controller,
@@ -19,17 +31,19 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         BackButtons(
-          text: controller.isEditing.value ? "Burs Düzenle" : "Burs Oluştur",
+          text: controller.isEditing.value
+              ? "scholarship.edit_title".tr
+              : "scholarship.create_title".tr,
         ),
         Text(
-          "Temel Bilgiler",
+          "scholarship.basic_info".tr,
           style: TextStyles.textFieldTitle.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         16.ph,
-        Text("Burs Başlığı", style: TextStyles.textFieldTitle),
+        Text("scholarship.title_label".tr, style: TextStyles.textFieldTitle),
         4.ph,
         Container(
           alignment: Alignment.center,
@@ -37,13 +51,15 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           child: TextFormField(
             cursorColor: Colors.black,
             textCapitalization: TextCapitalization.characters,
-            decoration: inputDecoration.copyWith(hintText: "Burs Başlığı"),
+            decoration:
+                inputDecoration.copyWith(hintText: "scholarship.title_label".tr),
             controller: controller.baslikController,
             onChanged: (value) => controller.baslik.value = value,
           ),
         ),
         16.ph,
-        Text("Burs Veren", style: TextStyles.textFieldTitle),
+        Text("scholarship.provider_label".tr,
+            style: TextStyles.textFieldTitle),
         4.ph,
         Container(
           alignment: Alignment.center,
@@ -52,7 +68,9 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             maxLength: 44,
             cursorColor: Colors.black,
             textCapitalization: TextCapitalization.characters,
-            decoration: inputDecoration.copyWith(hintText: "Burs Veren"),
+            decoration: inputDecoration.copyWith(
+              hintText: "scholarship.provider_label".tr,
+            ),
             controller: controller.bursVerenController,
             inputFormatters: [
               // Allow Turkish letters (both cases) and spaces; we'll uppercase dynamically
@@ -122,14 +140,17 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           ),
         ),
         16.ph,
-        Text("Web Sitesi", style: TextStyles.textFieldTitle),
+        Text("scholarship.website_label".tr,
+            style: TextStyles.textFieldTitle),
         4.ph,
         Container(
           alignment: Alignment.center,
           decoration: containerDecoration,
           child: TextFormField(
             cursorColor: Colors.black,
-            decoration: inputDecoration.copyWith(hintText: "Web Sitesi"),
+            decoration: inputDecoration.copyWith(
+              hintText: "scholarship.website_label".tr,
+            ),
             controller: controller.websiteController,
             inputFormatters: [
               FilteringTextInputFormatter.allow(
@@ -163,7 +184,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           ),
         ),
         16.ph,
-        Text("Açıklama", style: TextStyles.textFieldTitle),
+        Text("common.description".tr, style: TextStyles.textFieldTitle),
         4.ph,
         Container(
           decoration: containerDecoration,
@@ -172,14 +193,15 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             minLines: 3,
             maxLines: null,
             keyboardType: TextInputType.multiline,
-            decoration: inputDecoration.copyWith(hintText: "Açıklama"),
+            decoration:
+                inputDecoration.copyWith(hintText: "common.description".tr),
             controller: controller.aciklamaController,
             onChanged: (value) => controller.aciklama.value = value,
           ),
         ),
         4.ph,
         Text(
-          "(Burs ilanına ilişkin temel bilgilere bu alanda yer verilebilir. Başvuru koşulları diğer ekranda değerlendirilecektir.)",
+          "scholarship.description_help".tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 13,
@@ -200,7 +222,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   color: Colors.grey.withAlpha(100),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('Geri', style: TextStyles.medium15Black),
+                child: Text('common.back'.tr, style: TextStyles.medium15Black),
               ),
             ),
             // currentSection.value = 2
@@ -211,8 +233,8 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                     controller.website.value.isEmpty ||
                     controller.aciklama.value.isEmpty) {
                   AppSnackbar(
-                    'Hata',
-                    'Lütfen tüm alanları doldurunuz.',
+                    'common.error'.tr,
+                    'common.fill_all_fields'.tr,
                     backgroundColor: Colors.red.withValues(alpha: 0.7),
                   );
                   return;
@@ -227,7 +249,8 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('İleri', style: TextStyles.medium15white),
+                child: Text('common.continue'.tr,
+                    style: TextStyles.medium15white),
               ),
             ),
           ],
@@ -262,7 +285,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
               children: [
                 const Icon(CupertinoIcons.arrow_left, color: Colors.black),
                 const SizedBox(width: 12),
-                Text('Temel Bilgiler', style: TextStyles.headerTextStyle),
+                Text(
+                  'scholarship.basic_info'.tr,
+                  style: TextStyles.headerTextStyle,
+                ),
               ],
             ),
           ),
@@ -270,7 +296,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Başvuru Koşulları", style: TextStyles.textFieldTitle),
+            Text(
+              "scholarship.conditions_label".tr,
+              style: TextStyles.textFieldTitle,
+            ),
             GestureDetector(
               onTap: () {
                 controller.selectedItems.clear();
@@ -285,13 +314,14 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   ),
                   builder: (context) => MultipleChoiceBottomSheet(
                     controller: controller,
-                    title: "Başvuru Koşulları",
+                    title: "scholarship.conditions_label".tr,
                     items: controller.bursKosullari,
+                    selectionType: 'conditions',
                   ),
                 );
               },
               child: Text(
-                "Listeden Seç",
+                "scholarship.select_from_list".tr,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.blue.shade900,
@@ -310,7 +340,9 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             maxLines: null,
             keyboardType: TextInputType.multiline,
             controller: controller.basvuruKosullariController,
-            decoration: inputDecoration.copyWith(hintText: "Başvuru Koşulları"),
+            decoration: inputDecoration.copyWith(
+              hintText: "scholarship.conditions_label".tr,
+            ),
             onChanged: (value) => controller.basvuruKosullari.value = value,
           ),
         ),
@@ -318,7 +350,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Gerekli Belgeler", style: TextStyles.textFieldTitle),
+            Text(
+              "scholarship.required_docs_label".tr,
+              style: TextStyles.textFieldTitle,
+            ),
             GestureDetector(
               onTap: () {
                 showModalBottomSheet(
@@ -332,13 +367,14 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   ),
                   builder: (context) => MultipleChoiceBottomSheet(
                     controller: controller,
-                    title: "Gerekli Belgeler",
+                    title: "scholarship.required_docs_label".tr,
                     items: controller.gerekliBelgeler,
+                    selectionType: 'documents',
                   ),
                 );
               },
               child: Text(
-                "Listeden Seç",
+                "scholarship.select_from_list".tr,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.blue.shade900,
@@ -357,7 +393,9 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             maxLines: null,
             keyboardType: TextInputType.multiline,
             controller: controller.belgelerController,
-            decoration: inputDecoration.copyWith(hintText: "Gerekli Belgeler"),
+            decoration: inputDecoration.copyWith(
+              hintText: "scholarship.required_docs_label".tr,
+            ),
             onChanged: (value) {
               controller.belgeler.value = value
                   .split('\n')
@@ -367,7 +405,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           ),
         ),
         16.ph,
-        Text("Burs Verilecek Aylar", style: TextStyles.textFieldTitle),
+        Text(
+          "scholarship.award_months_label".tr,
+          style: TextStyles.textFieldTitle,
+        ),
         4.ph,
         Container(
           decoration: containerDecoration,
@@ -376,12 +417,12 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
               readOnly: true,
               controller: controller.aylarController
                 ..text = controller.aylarText.value.isEmpty
-                    ? "Burs Verilecek Aylar"
+                    ? "scholarship.award_months_label".tr
                     : controller.aylarText.value,
               cursorColor: Colors.black,
               textAlignVertical: TextAlignVertical.center,
               decoration: inputDecoration.copyWith(
-                hintText: "Burs Verilecek Aylar",
+                hintText: "scholarship.award_months_label".tr,
                 suffixIcon: const Icon(CupertinoIcons.chevron_down, size: 20),
               ),
               onTap: () {
@@ -396,8 +437,9 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   ),
                   builder: (context) => MultipleChoiceBottomSheet(
                     controller: controller,
-                    title: "Burs Verilecek Aylar",
+                    title: "scholarship.award_months_label".tr,
                     items: controller.bursVerilecekAylar,
+                    selectionType: 'months',
                   ),
                 );
               },
@@ -405,7 +447,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           ),
         ),
         16.ph,
-        Text("Başvuru Yapılacak Yer", style: TextStyles.textFieldTitle),
+        Text(
+          "scholarship.application_place_label".tr,
+          style: TextStyles.textFieldTitle,
+        ),
         4.ph,
         Container(
           decoration: containerDecoration,
@@ -415,18 +460,22 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             cursorColor: Colors.black,
             textAlignVertical: TextAlignVertical.center,
             decoration: inputDecoration.copyWith(
-              hintText: "Başvuru Yapılacak Yer",
+              hintText: "scholarship.application_place_label".tr,
               suffixIcon: const Icon(CupertinoIcons.chevron_down, size: 20),
             ),
             onTap: () {
               AppBottomSheet.show(
                 context: Get.context!,
-                items: ["TurqApp", "Burs Web Site"],
-                title: "Başvuru Yapılacak Yer",
+                items: const ["TurqApp", "Burs Web Site"],
+                title: "scholarship.application_place_label".tr,
                 selectedItem: controller.basvuruYapilacakYer.value,
+                itemLabelBuilder: (item) => _applicationPlaceLabel(
+                  item.toString(),
+                ),
                 onSelect: (value) {
                   controller.basvuruYapilacakYer.value = value;
-                  controller.basvuruYapilacakYerController.text = value;
+                  controller.basvuruYapilacakYerController.text =
+                      _applicationPlaceLabel(value.toString());
                 },
               );
             },
@@ -438,7 +487,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Burs Web Site", style: TextStyles.textFieldTitle),
+                Text(
+                  "scholarship.application_website_label".tr,
+                  style: TextStyles.textFieldTitle,
+                ),
                 4.ph,
                 Container(
                   alignment: Alignment.center,
@@ -446,7 +498,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   child: TextFormField(
                     cursorColor: Colors.black,
                     decoration: inputDecoration.copyWith(
-                      hintText: "Burs Web Site",
+                      hintText: "scholarship.application_website_label".tr,
                     ),
                     controller: controller.basvuruURLController,
                     inputFormatters: [
@@ -481,7 +533,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Burs Başvuru Tarihleri",
+                    "scholarship.application_dates_label".tr,
                     style: TextStyles.textFieldTitle,
                   ),
                   4.ph,
@@ -499,7 +551,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                             controller.baslangicTarihi.value =
                                 dateFormat.format(date);
                           },
-                          title: 'Burs Başvuru Başlangıç Tarihi',
+                          title: 'scholarship.application_start_date'.tr,
                         ),
                       );
                     },
@@ -549,7 +601,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                               date,
                             );
                           },
-                          title: 'Burs Başvuru Bitiş Tarihi',
+                          title: 'scholarship.application_end_date'.tr,
                         ),
                       );
                     },
@@ -609,8 +661,8 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                     (controller.basvuruYapilacakYer.value == "Burs Web Site" &&
                         controller.basvuruURL.value.isEmpty)) {
                   AppSnackbar(
-                    'Hata',
-                    'Lütfen tüm alanları doldurunuz.',
+                    'common.error'.tr,
+                    'common.fill_all_fields'.tr,
                     backgroundColor: Colors.red.withValues(alpha: 0.7),
                   );
                   return;
@@ -625,7 +677,8 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('İleri', style: TextStyles.medium15white),
+                child: Text('common.continue'.tr,
+                    style: TextStyles.medium15white),
               ),
             ),
           ],

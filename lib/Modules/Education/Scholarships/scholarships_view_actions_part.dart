@@ -105,7 +105,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     final first = userData?['firstName']?.toString() ?? '';
     final last = userData?['lastName']?.toString() ?? '';
     final full = ('$first $last').trim();
-    return full.isNotEmpty ? full : 'Kullanıcı';
+    return full.isNotEmpty ? full : 'common.user'.tr;
   }
 
   String _truncateLabel(String value, {required int maxChars}) {
@@ -177,7 +177,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     final isFollowing =
         controller.followedUsers[userData?['userID']?.toString() ?? ''] ??
             false;
-    return isFollowing ? 'Takip Ediyorsun' : 'Takip Et';
+    return isFollowing ? 'following.following'.tr : 'following.follow'.tr;
   }
 
   Color _getFollowButtonTextColor(Map<String, dynamic>? userData) {

@@ -51,7 +51,7 @@ class ScholarshipProvidersController extends GetxController {
       providers.assignAll(providerList);
       SilentRefreshGate.markRefreshed('scholarships:providers');
     } catch (e) {
-      AppSnackbar('Hata', 'Burs verenler yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'scholarship.providers_load_failed'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -96,7 +96,7 @@ class ScholarshipProvidersController extends GetxController {
         final profileName = (user['displayName'] ??
                 user['username'] ??
                 user['nickname'] ??
-                'Bilinmeyen')
+                'common.unknown_user'.tr)
             .toString();
         providerList.add({
           'userID': userDocId,

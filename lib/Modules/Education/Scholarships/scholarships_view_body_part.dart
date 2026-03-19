@@ -17,8 +17,9 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
                     ? controller.visibleScholarships.length
                     : controller.totalCount.value;
                 final text = isSearching
-                    ? "Arama Sonuçları ($count)"
-                    : "Burslar ($count)";
+                    ? 'scholarship.search_results_title'
+                        .trParams({'count': '$count'})
+                    : 'scholarship.list_title'.trParams({'count': '$count'});
                 return TypewriterText(text: text);
               }),
             ],
@@ -39,7 +40,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
         controller: _searchController,
         onChanged: controller.setSearchQuery,
         decoration: InputDecoration(
-          hintText: 'Ara',
+          hintText: 'common.search'.tr,
           hintStyle: TextStyle(
             fontFamily: 'MontserratMedium',
             fontSize: 13,
@@ -204,7 +205,9 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
         const SizedBox(height: 12),
         Center(
           child: Text(
-            isSearching ? 'Sonuç bulunamadı' : 'Henüz burs yok',
+            isSearching
+                ? 'common.no_results'.tr
+                : 'scholarship.empty_title'.tr,
             style: const TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 18,
@@ -216,7 +219,8 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
         if (isSearching) ...[
           Center(
             child: Text(
-              '"${controller.searchQuery.value}" için sonuç bulunamadı',
+              'scholarship.no_results_for'
+                  .trParams({'query': controller.searchQuery.value}),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'MontserratMedium',
@@ -228,7 +232,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
           const SizedBox(height: 12),
           Center(
             child: Text(
-              'İpucu: Farklı anahtar kelimeler deneyin',
+              'scholarship.search_hint_body'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'MontserratMedium',
@@ -242,7 +246,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
         ] else ...[
           Center(
             child: Text(
-              'Yeni burslar yakında eklenecek',
+              'scholarship.empty_body'.tr,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'MontserratMedium',
@@ -258,11 +262,11 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
 
   Widget _buildSearchTipsChips() {
     final tips = [
-      'Başlık',
-      'Şehir',
-      'Üniversite',
-      'Burs veren',
-      'Kullanıcı adı',
+      'scholarship.title_label'.tr,
+      'scholarship.cities_label'.tr,
+      'scholarship.universities_label'.tr,
+      'scholarship.provider_label'.tr,
+      'signup.username'.tr,
     ];
 
     return Padding(
@@ -270,7 +274,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
       child: Column(
         children: [
           Text(
-            'Şunlara göre arayabilirsiniz:',
+            'scholarship.search_tip_header'.tr,
             style: TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 12,

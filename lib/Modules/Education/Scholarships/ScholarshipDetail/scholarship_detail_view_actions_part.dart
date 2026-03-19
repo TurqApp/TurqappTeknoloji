@@ -52,8 +52,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                             final scholarshipId = scholarshipDocId;
                             if (scholarshipId.isEmpty) {
                               AppSnackbar(
-                                'Hata',
-                                'Burs ID bulunamadı.',
+                                'common.error'.tr,
+                                'scholarship.share_missing_id'.tr,
                               );
                               return;
                             }
@@ -79,7 +79,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                           ? CupertinoActivityIndicator()
                           : scholarshipDocId.isEmpty
                               ? Text(
-                                  "Başvurular (0)",
+                                  'scholarship.applications_title'
+                                      .trParams({'count': '0'}),
                                   textAlign: TextAlign.center,
                                   style: TextStyles.bold16White,
                                 )
@@ -90,7 +91,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                   builder: (ctx, snap) {
                                     final count = snap.hasData ? snap.data! : 0;
                                     return Text(
-                                      "Başvurular ($count)",
+                                      'scholarship.applications_title'
+                                          .trParams({'count': '$count'}),
                                       textAlign: TextAlign.center,
                                       style: TextStyles.bold16White,
                                     );
@@ -126,7 +128,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                       child: isLoading
                           ? CupertinoActivityIndicator()
                           : Text(
-                              'Bursu Düzenle',
+                              'scholarship.edit_button'.tr,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,
@@ -172,8 +174,10 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);
                             } else {
-                              AppSnackbar("Hata!",
-                                  "Web sitesi açılamadı. Lütfen geçerli bir URL girin.");
+                              AppSnackbar(
+                                'common.error'.tr,
+                                'scholarship.website_open_failed'.tr,
+                              );
                             }
                           } else {
                             showDialog(
@@ -189,7 +193,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                             color: Colors.grey),
                                         SizedBox(height: 10),
                                         Text(
-                                          "Bilgiler kontrol ediliyor",
+                                          "scholarship.checking_info".tr,
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontFamily: "MontserratMedium",
@@ -231,7 +235,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                           CrossAxisAlignment.center,
                                       children: [
                                         Text(
-                                          "Bilgilerin Eksik",
+                                          "scholarship.info_missing_title".tr,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.black,
@@ -241,7 +245,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                         ),
                                         SizedBox(height: 10),
                                         Text(
-                                          "Kişisel, Okul ve Aile bilgilerini doldurmadan burslara başvuru yapamazsınız!",
+                                          "scholarship.info_missing_body".tr,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.black,
@@ -269,7 +273,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                                                 12)),
                                                   ),
                                                   child: Text(
-                                                    "Vazgeç",
+                                                    "common.cancel".tr,
                                                     style: TextStyle(
                                                       color: Colors.black,
                                                       fontSize: 15,
@@ -301,7 +305,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                                                 12)),
                                                   ),
                                                   child: Text(
-                                                    "Bilgilerimi Güncelle",
+                                                    "scholarship.update_my_info"
+                                                        .tr,
                                                     style: TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 15,
@@ -337,10 +342,10 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                         ? CupertinoActivityIndicator()
                         : Text(
                             isExpired
-                                ? 'Başvuru Kapandı'
+                                ? 'scholarship.closed'.tr
                                 : controller.allreadyApplied.value
-                                    ? 'Başvuru Yaptın'
-                                    : 'Başvur',
+                                    ? 'scholarship.applied'.tr
+                                    : 'common.apply'.tr,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white,
@@ -361,11 +366,10 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                         ? null
                         : () {
                             noYesAlert(
-                              title: "Başvuruyu İptal Et",
-                              message:
-                                  "Bu burs başvurusunu iptal etmek istediğinizden emin misiniz?",
-                              cancelText: "Vazgeç",
-                              yesText: "İptal Et",
+                              title: "scholarship.cancel_apply_title".tr,
+                              message: "scholarship.cancel_apply_body".tr,
+                              cancelText: "common.cancel".tr,
+                              yesText: "scholarship.cancel_apply_button".tr,
                               yesButtonColor: CupertinoColors.destructiveRed,
                               onYesPressed: () async {
                                 await controller.cancelApplication(
@@ -387,7 +391,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                       child: isLoading
                           ? CupertinoActivityIndicator()
                           : Text(
-                              'Başvuru İptal Et',
+                              'scholarship.cancel_apply_button'.tr,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,

@@ -29,7 +29,10 @@ class ScholarshipApplicationsList extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Başvurular (${basvuranlar.length})"),
+            BackButtons(
+                text: 'scholarship.applications_title'.trParams({
+              'count': '${basvuranlar.length}',
+            })),
             Expanded(
               child: basvuranlar.isEmpty
                   ? Center(
@@ -43,7 +46,7 @@ class ScholarshipApplicationsList extends StatelessWidget {
                           ),
                           SizedBox(height: 16),
                           Text(
-                            "Henüz başvuru bulunmamaktadır",
+                            'scholarship.no_applications'.tr,
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey,

@@ -21,13 +21,16 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
               children: [
                 Icon(CupertinoIcons.arrow_left, color: Colors.black),
                 SizedBox(width: 12),
-                Text('Ek Bilgiler', style: TextStyles.headerTextStyle),
+                Text(
+                  'scholarship.extra_info'.tr,
+                  style: TextStyles.headerTextStyle,
+                ),
               ],
             ),
           ),
         ),
-        const Text(
-          "Görsel Bilgiler",
+        Text(
+          "scholarship.visual_info".tr,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         16.ph,
@@ -37,7 +40,10 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Logo Seç", style: TextStyles.textFieldTitle),
+                  Text(
+                    "scholarship.logo_label".tr,
+                    style: TextStyles.textFieldTitle,
+                  ),
                   4.ph,
                   GestureDetector(
                     onTap: () async {
@@ -51,7 +57,10 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                         final newFile = await pickedFile.copy(newPath);
 
                         if (!await newFile.exists()) {
-                          AppSnackbar('Hata', 'Dosya kopyalanamadı.');
+                          AppSnackbar(
+                            'common.error'.tr,
+                            'scholarship.file_copy_failed'.tr,
+                          );
                           return;
                         }
 
@@ -60,8 +69,8 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                         if (r.isNSFW) {
                           controller.logoPath.value = '';
                           controller.logo.value = '';
-                          AppSnackbar("Yükleme Başarısız!",
-                              "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                          AppSnackbar("edit_profile.upload_failed_title".tr,
+                              "edit_profile.upload_failed_body".tr,
                               backgroundColor:
                                   Colors.red.withValues(alpha: 0.7));
                         } else {
@@ -76,10 +85,10 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                         decoration: containerDecoration,
                         child: Obx(
                           () => controller.logo.value.isEmpty
-                              ? const Column(
+                              ? Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text("Logo Seçin"),
+                                    Text("scholarship.logo_pick".tr),
                                     SizedBox(height: 8),
                                     Icon(
                                       CupertinoIcons.photo_on_rectangle,
@@ -154,7 +163,7 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Tasarımınız (Opsiyonel)",
+                    "scholarship.custom_design_optional".tr,
                     style: TextStyles.textFieldTitle,
                   ),
                   4.ph,
@@ -170,7 +179,10 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                         final newFile = await pickedFile.copy(newPath);
 
                         if (!await newFile.exists()) {
-                          AppSnackbar('Hata', 'Dosya kopyalanamadı.');
+                          AppSnackbar(
+                            'common.error'.tr,
+                            'scholarship.file_copy_failed'.tr,
+                          );
                           return;
                         }
 
@@ -178,8 +190,8 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                             await OptimizedNSFWService.checkImage(newFile);
                         if (r.isNSFW) {
                           controller.customImagePath.value = '';
-                          AppSnackbar("Yükleme Başarısız!",
-                              "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+                          AppSnackbar("edit_profile.upload_failed_title".tr,
+                              "edit_profile.upload_failed_body".tr,
                               backgroundColor:
                                   Colors.red.withValues(alpha: 0.7));
                         } else {
@@ -194,10 +206,10 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                         decoration: containerDecoration,
                         child: Obx(
                           () => controller.customImagePath.value.isEmpty
-                              ? const Column(
+                              ? Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text("Görsel Seçin"),
+                                    Text("scholarship.custom_image_pick".tr),
                                     SizedBox(height: 8),
                                     Icon(
                                       CupertinoIcons.photo,
@@ -270,7 +282,8 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
           ],
         ),
         16.ph,
-        Text("Şablon Seç", style: TextStyles.textFieldTitle),
+        Text("scholarship.template_select".tr,
+            style: TextStyles.textFieldTitle),
         4.ph,
         GridView.count(
           crossAxisCount: 3,
@@ -331,7 +344,7 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                 color: Colors.grey.withAlpha(100),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text('Geri', style: TextStyles.medium15Black),
+              child: Text('common.back'.tr, style: TextStyles.medium15Black),
             ),
           ),
           GestureDetector(
@@ -339,8 +352,8 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
               if (controller.logo.value.isEmpty ||
                   controller.selectedTemplateIndex.value == -1) {
                 AppSnackbar(
-                  'Hata',
-                  'Lütfen tüm alanları doldurunuz.',
+                  'common.error'.tr,
+                  'common.fill_all_fields'.tr,
                   backgroundColor: Colors.red.withValues(alpha: 0.7),
                 );
                 return;
@@ -355,7 +368,8 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text('Önizleme', style: TextStyles.medium15white),
+              child: Text('scholarship.preview_title'.tr,
+                  style: TextStyles.medium15white),
             ),
           ),
         ],

@@ -26,14 +26,14 @@ class MyScholarshipView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Burs İlanlarım"),
+            BackButtons(text: 'scholarship.my_listings'.tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value &&
                         controller.myScholarships.isEmpty
                     ? Center(child: CupertinoActivityIndicator())
                     : controller.myScholarships.isEmpty
-                        ? EmptyRow(text: "Burs İlanınız Bulunmamaktadır!")
+                        ? EmptyRow(text: 'scholarship.no_my_listings'.tr)
                         : ListView.builder(
                             itemCount: controller.myScholarships.length,
                             itemBuilder: (context, index) {
@@ -114,7 +114,10 @@ class MyScholarshipView extends StatelessWidget {
                                             10.ph,
                                             Text(
                                               type == 'bireysel'
-                                                  ? "${burs.baslik} BURS BAŞVURULARI"
+                                                  ? 'scholarship.applications_suffix'
+                                                      .trParams({
+                                                      'title': burs.baslik,
+                                                    })
                                                   : burs.baslik,
                                               style: TextStyle(
                                                 fontSize: 16,
@@ -133,12 +136,14 @@ class MyScholarshipView extends StatelessWidget {
                                                               false
                                                           ? userData![
                                                               'nickname']
-                                                          : 'Bilinmeyen Kullanıcı')
+                                                          : 'common.unknown_user'
+                                                              .tr)
                                                       : (firmaData?['adi']
                                                                   ?.isNotEmpty ??
                                                               false
                                                           ? firmaData!['adi']
-                                                          : 'Bilinmeyen Firma'),
+                                                          : 'common.unknown_company'
+                                                              .tr),
                                                   style: TextStyle(
                                                     fontSize: 14,
                                                     fontFamily:

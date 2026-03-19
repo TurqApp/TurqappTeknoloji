@@ -28,7 +28,7 @@ class ScholarshipPreviewView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Burs Önizleme"),
+            BackButtons(text: "scholarship.preview_title".tr),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 15),
@@ -52,7 +52,7 @@ class ScholarshipPreviewView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Expanded(child: Divider()),
-                                Text("  Görsel Bilgiler  ",
+                                Text("  ${'scholarship.visual_info'.tr}  ",
                                     style: TextStyles.bold20Black),
                                 Expanded(child: Divider()),
                               ],
@@ -205,9 +205,9 @@ class ScholarshipPreviewView extends StatelessWidget {
                               if (imageWidgets.isEmpty) {
                                 return AspectRatio(
                                   aspectRatio: 4 / 3,
-                                  child: Center(
-                                    child: Text(
-                                      "Görsel Bulunamadı",
+                                    child: Center(
+                                      child: Text(
+                                      "scholarship.image_missing".tr,
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.grey,
@@ -343,23 +343,25 @@ class ScholarshipPreviewView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Expanded(child: Divider()),
-                                Text("  Temel Bilgiler  ",
+                                Text("  ${'scholarship.basic_info'.tr}  ",
                                     style: TextStyles.bold20Black),
                                 Expanded(child: Divider()),
                               ],
                             ),
                             12.ph,
-                            _buildInfoRow("Başlık", controller.baslik.value),
                             _buildInfoRow(
-                              "Burs Veren",
+                                "scholarship.title_label".tr,
+                                controller.baslik.value),
+                            _buildInfoRow(
+                              "scholarship.provider_label".tr,
                               controller.bursVeren.value,
                             ),
                             _buildInfoRow(
-                              "Web Sitesi",
+                              "scholarship.website_label".tr,
                               controller.website.value,
                             ),
                             _buildInfoRow(
-                              "Açıklama",
+                              "common.description".tr,
                               controller.aciklama.value,
                             ),
                           ],
@@ -381,30 +383,32 @@ class ScholarshipPreviewView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Expanded(child: Divider()),
-                                Text("  Başvuru Bilgileri  ",
+                                Text("  ${'scholarship.application_info'.tr}  ",
                                     style: TextStyles.bold20Black),
                                 Expanded(child: Divider()),
                               ],
                             ),
                             12.ph,
                             _buildInfoRow(
-                              "Başvuru Koşulları",
+                              "scholarship.conditions_label".tr,
                               controller.basvuruKosullari.value,
                             ),
                             _buildInfoRow(
-                              "Başvuru URL",
+                              "scholarship.application_website_label".tr,
                               controller.basvuruURL.value,
                             ),
                             _buildInfoRow(
-                              "Başvuru Yapılacak Yer",
-                              controller.basvuruYapilacakYer.value,
+                              "scholarship.application_place_label".tr,
+                              controller.applicationPlaceDisplayLabel(
+                                controller.basvuruYapilacakYer.value,
+                              ),
                             ),
                             _buildInfoRow(
-                              "Başlangıç Tarihi",
+                              "scholarship.application_start_date".tr,
                               controller.baslangicTarihi.value,
                             ),
                             _buildInfoRow(
-                              "Bitiş Tarihi",
+                              "scholarship.application_end_date".tr,
                               controller.bitisTarihi.value,
                             ),
                           ],
@@ -434,50 +438,50 @@ class ScholarshipPreviewView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Expanded(child: Divider()),
-                                Text("  Ek Bilgiler  ",
+                                Text("  ${'scholarship.extra_info'.tr}  ",
                                     style: TextStyles.bold20Black),
                                 Expanded(child: Divider()),
                               ],
                             ),
                             12.ph,
                             _buildInfoRow(
-                              "Tutar",
+                              "scholarship.amount_label".tr,
                               "${controller.tutar.value} ₺",
                             ),
                             _buildInfoRow(
-                              "Öğrenci Sayısı",
+                              "scholarship.student_count_label".tr,
                               controller.ogrenciSayisi.value,
                             ),
                             _buildInfoRow(
-                              "Geri Ödemeli",
+                              "scholarship.repayable_label".tr,
                               controller.geriOdemeli.value,
                             ),
                             _buildInfoRow(
-                              "Mükerrer Durumu",
+                              "scholarship.duplicate_status_label".tr,
                               controller.mukerrerDurumu.value,
                             ),
                             _buildInfoRow(
-                              "Eğitim Kitlesi",
+                              "scholarship.education_audience_label".tr,
                               controller.egitimKitlesi.value,
                             ),
                             _buildInfoRow(
-                              "Hedef Kitle",
+                              "scholarship.target_audience_label".tr,
                               controller.hedefKitle.value,
                             ),
                             _buildInfoRow(
-                              "Ülke",
+                              "scholarship.country_label".tr,
                               controller.ulke.value,
                             ),
                             _buildInfoRow(
-                              "Şehirler",
+                              "scholarship.cities_label".tr,
                               controller.sehirler.join(", "),
                             ),
                             _buildInfoRow(
-                              "Üniversiteler",
+                              "scholarship.universities_label".tr,
                               controller.universiteler.join(", "),
                             ),
                             _buildInfoRow(
-                              "Belgeler",
+                              "scholarship.required_docs_label".tr,
                               controller.belgeler.join(", "),
                             ),
                           ],
@@ -506,7 +510,7 @@ class ScholarshipPreviewView extends StatelessWidget {
                                   ],
                                 ),
                                 child: Text(
-                                  'Geri',
+                                  'common.back'.tr,
                                   style: TextStyles.textFieldTitle.copyWith(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -558,8 +562,8 @@ class ScholarshipPreviewView extends StatelessWidget {
                                         )
                                       : Text(
                                           controller.isEditing.value
-                                              ? 'Güncelle'
-                                              : 'Paylaş',
+                                              ? 'common.update'.tr
+                                              : 'common.share'.tr,
                                           style: TextStyles.medium15white
                                               .copyWith(fontSize: 16),
                                         );
@@ -597,7 +601,7 @@ class ScholarshipPreviewView extends StatelessWidget {
           ),
           4.ph,
           Text(
-            value.isEmpty ? "Belirtilmemiş" : value,
+            value.isEmpty ? "common.unspecified".tr : value,
             style: TextStyles.textFieldTitle.copyWith(
               fontSize: 14,
               color: Colors.black54,

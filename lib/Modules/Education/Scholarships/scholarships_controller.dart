@@ -536,7 +536,7 @@ class ScholarshipsController extends GetxController {
       hasMoreData.value = combined.length >= batchSize &&
           allScholarships.length < totalCount.value;
     } catch (_) {
-      AppSnackbar('Hata', 'Daha fazla burs yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'scholarship.load_more_failed'.tr);
     } finally {
       isLoadingMore.value = false;
     }
@@ -549,7 +549,7 @@ class ScholarshipsController extends GetxController {
   Future<void> toggleLike(String docId, String type) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
     final userId = user.uid;
@@ -603,14 +603,14 @@ class ScholarshipsController extends GetxController {
             (current + (wasLiked ? 1 : -1)).clamp(0, 1 << 30);
         visibleScholarships.refresh();
       }
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.like_failed'.tr);
     }
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
     final userId = user.uid;
@@ -664,7 +664,7 @@ class ScholarshipsController extends GetxController {
             (current + (wasBookmarked ? 1 : -1)).clamp(0, 1 << 30);
         visibleScholarships.refresh();
       }
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.bookmark_failed'.tr);
     }
   }
 
@@ -679,7 +679,7 @@ class ScholarshipsController extends GetxController {
     final canShare = AdminAccessService.isKnownAdminSync() ||
         (ownerUid.isNotEmpty && ownerUid == currentUid);
     if (!canShare) {
-      AppSnackbar('Yetki', 'Sadece admin ve ilan sahibi paylaşabilir.');
+      AppSnackbar('common.error'.tr, 'scholarship.share_owner_only'.tr);
       return;
     }
     await _shareScholarshipPublicLink(scholarshipData, burs);
@@ -700,7 +700,7 @@ class ScholarshipsController extends GetxController {
         (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
             .toString();
     if (docId.isEmpty) {
-      AppSnackbar('Hata', 'Paylaşım için burs ID bulunamadı.');
+      AppSnackbar('common.error'.tr, 'scholarship.share_missing_id'.tr);
       return;
     }
     final String shareId = 'scholarship:$docId';
@@ -716,7 +716,7 @@ class ScholarshipsController extends GetxController {
         : (providerDesc.isNotEmpty &&
                 providerDesc.toLowerCase() != title.trim().toLowerCase()
             ? providerDesc
-            : 'TurqApp burs ilani');
+            : 'scholarship.share_fallback_desc'.tr);
     final String existingShortUrl = _readTextField(scholarshipData, 'shortUrl');
     final String? shareImageUrl =
         _pickScholarshipImageFromData(scholarshipData, burs);
@@ -751,7 +751,7 @@ class ScholarshipsController extends GetxController {
         );
       });
     } catch (_) {
-      AppSnackbar('Hata', 'Paylaşım başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.share_failed'.tr);
     }
   }
 
@@ -769,7 +769,7 @@ class ScholarshipsController extends GetxController {
       final model = item['model'] as IndividualScholarshipsModel?;
       final title = model != null
           ? _pickScholarshipTitle(item, model)
-          : 'TurqApp Eğitim - Burs Detayı';
+          : 'scholarship.share_detail_title'.tr;
       final imageUrl =
           model != null ? _pickScholarshipImageFromData(item, model) : null;
       unawaited(() async {
@@ -779,7 +779,7 @@ class ScholarshipsController extends GetxController {
             title: title,
             desc: model != null
                 ? _pickScholarshipShareDesc(model)
-                : 'TurqApp burs ilani',
+                : 'scholarship.share_fallback_desc'.tr,
             imageUrl: imageUrl,
           );
           if (shortUrl.trim().isNotEmpty &&
@@ -843,7 +843,7 @@ class ScholarshipsController extends GetxController {
     if (provider.isNotEmpty && provider.toLowerCase() != normalizedTitle) {
       return provider;
     }
-    return 'TurqApp burs ilani';
+    return 'scholarship.share_fallback_desc'.tr;
   }
 
   void toggleExpanded(int index) {
@@ -924,12 +924,28 @@ class ScholarshipsController extends GetxController {
     );
   }
 
-  final List<InformationModel> informations = [
-    InformationModel(title: "Kişisel", color: colors[0], icon: icons[0]),
-    InformationModel(title: "Okul", color: colors[1], icon: icons[1]),
-    InformationModel(title: "Aile", color: colors[2], icon: icons[2]),
-    InformationModel(title: "Yurt", color: colors[3], icon: icons[3]),
-  ];
+  List<InformationModel> get informations => [
+        InformationModel(
+          title: 'scholarship.info.personal'.tr,
+          color: colors[0],
+          icon: icons[0],
+        ),
+        InformationModel(
+          title: 'scholarship.info.school'.tr,
+          color: colors[1],
+          icon: icons[1],
+        ),
+        InformationModel(
+          title: 'scholarship.info.family'.tr,
+          color: colors[2],
+          icon: icons[2],
+        ),
+        InformationModel(
+          title: 'scholarship.info.dormitory'.tr,
+          color: colors[3],
+          icon: icons[3],
+        ),
+      ];
 }
 
 class InformationModel {

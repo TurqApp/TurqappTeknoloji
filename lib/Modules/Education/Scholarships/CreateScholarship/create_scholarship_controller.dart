@@ -196,6 +196,18 @@ class CreateScholarshipController extends GetxController {
     }
   }
 
+  String applicationPlaceDisplayLabel(String value) {
+    switch (value) {
+      case 'TurqApp':
+        return 'scholarship.application_place_turqapp'.tr;
+      case 'Burs Web Site':
+      case 'Web Site':
+        return 'scholarship.application_place_website'.tr;
+      default:
+        return value;
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -229,7 +241,8 @@ class CreateScholarshipController extends GetxController {
     currentSection.value = 1;
     basvuruYapilacakYer.value =
         isEditing.value ? basvuruYapilacakYer.value : "TurqApp";
-    basvuruYapilacakYerController.text = basvuruYapilacakYer.value;
+    basvuruYapilacakYerController.text =
+        applicationPlaceDisplayLabel(basvuruYapilacakYer.value);
     basvuruKosullariController.text = basvuruKosullari.value;
     belgelerController.text = belgeler.join('\n');
     updateAylarText();
@@ -248,7 +261,8 @@ class CreateScholarshipController extends GetxController {
     basvuruURL.value = model.basvuruURL;
     basvuruURLController.text = basvuruURL.value;
     basvuruYapilacakYer.value = model.basvuruYapilacakYer;
-    basvuruYapilacakYerController.text = basvuruYapilacakYer.value;
+    basvuruYapilacakYerController.text =
+        applicationPlaceDisplayLabel(basvuruYapilacakYer.value);
     baslangicTarihi.value = model.baslangicTarihi;
     bitisTarihi.value = model.bitisTarihi;
     tutar.value = model.tutar;
@@ -597,7 +611,8 @@ class CreateScholarshipController extends GetxController {
     ulke.value = ''; // Reset country
 
     basvuruURLController.text = 'https://';
-    basvuruYapilacakYerController.text = 'TurqApp';
+    basvuruYapilacakYerController.text =
+        applicationPlaceDisplayLabel('TurqApp');
     websiteController.text = 'https://';
     basvuruKosullariController.text = '';
     aylarController.text = '';

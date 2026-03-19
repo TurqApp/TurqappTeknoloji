@@ -23,7 +23,7 @@ class ScholarshipProvidersView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Burs Verenler"),
+            BackButtons(text: "scholarship.providers_title".tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
@@ -39,7 +39,7 @@ class ScholarshipProvidersView extends StatelessWidget {
                                 () => controller.providers.isEmpty
                                     ? Center(
                                         child: Text(
-                                          'Burs veren bulunamadı.',
+                                          'scholarship.providers_empty'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 16,

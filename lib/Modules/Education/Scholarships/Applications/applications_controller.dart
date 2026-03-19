@@ -145,7 +145,7 @@ class ApplicationsController extends GetxController {
     try {
       final userID = FirebaseAuth.instance.currentUser?.uid;
       if (userID == null) {
-        AppSnackbar('Hata', 'Kullanıcı oturumu açık değil.');
+        AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }
 
@@ -160,9 +160,12 @@ class ApplicationsController extends GetxController {
       applications.removeWhere((app) => app['bursID'] == bursID);
       Get.back();
 
-      AppSnackbar("Başarılı", "Burs Başvurunuz Geri Alındı.");
+      AppSnackbar(
+        "common.success".tr,
+        "scholarship.withdraw_success".tr,
+      );
     } catch (e) {
-      AppSnackbar('Hata', 'Başvuru geri alınamadı.');
+      AppSnackbar('common.error'.tr, 'scholarship.withdraw_failed'.tr);
     }
   }
 }
