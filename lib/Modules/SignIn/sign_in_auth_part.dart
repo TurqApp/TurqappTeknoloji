@@ -1,6 +1,39 @@
 part of 'sign_in.dart';
 
 extension SignInAuthPart on SignIn {
+  Widget _brandTypewriter() {
+    return Obx(() {
+      final text = controller.typedBrandText;
+      final showCursor = controller.showBrandCursor.value;
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 42,
+              fontFamily: 'Noe',
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(width: 4),
+          AnimatedOpacity(
+            opacity: showCursor ? 1 : 0,
+            duration: const Duration(milliseconds: 120),
+            child: Container(
+              width: 3,
+              height: 32,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
   Widget startScreen() {
     final accountCenter = AccountCenterService.ensure();
     return Expanded(
@@ -11,21 +44,14 @@ extension SignInAuthPart on SignIn {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                RotationTransition(
-                  turns: controller.animationController,
-                  child: Image.asset(
-                    "assets/images/logotrans.webp",
-                    color: Colors.black,
-                    height: 80,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  "TurqApp",
+                _brandTypewriter(),
+                const SizedBox(height: 10),
+                const Text(
+                  "Dünyayı yakından takip et.",
                   style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 35,
-                    fontFamily: "MontserratBold",
+                    color: Colors.black54,
+                    fontSize: 14,
+                    fontFamily: "MontserratMedium",
                   ),
                 ),
               ],
@@ -210,9 +236,7 @@ extension SignInAuthPart on SignIn {
                   height: 1.2,
                   fontFamily: 'Montserrat',
                 ),
-                children: [
-                  _policyCenterTextSpan('Sözleşme ve politikaları incele')
-                ],
+                children: [_policyCenterTextSpan('Sözleşmeler ve Politikalar')],
               ),
             ),
           ),
@@ -240,15 +264,8 @@ extension SignInAuthPart on SignIn {
             children: [
               Column(
                 children: [
-                  Text(
-                    "TurqApp",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 35,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                  SizedBox(height: 7),
+                  _brandTypewriter(),
+                  const SizedBox(height: 7),
                 ],
               ),
             ],
@@ -479,9 +496,7 @@ extension SignInAuthPart on SignIn {
                   height: 1.2,
                   fontFamily: 'Montserrat',
                 ),
-                children: [
-                  _policyCenterTextSpan('Sözleşme ve politikaları incele')
-                ],
+                children: [_policyCenterTextSpan('Sözleşmeler ve Politikalar')],
               ),
             ),
           ),
