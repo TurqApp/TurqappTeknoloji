@@ -56,7 +56,7 @@ class PostLikeListing extends StatelessWidget {
                   const SizedBox(height: 14),
                   TurqSearchBar(
                     controller: controller.searchController,
-                    hintText: 'Ara',
+                    hintText: 'common.search'.tr,
                     onChanged: controller.onSearchChanged,
                   ),
                   const SizedBox(height: 12),
@@ -64,9 +64,9 @@ class PostLikeListing extends StatelessWidget {
                     child: Obx(() {
                       final items = controller.filteredUsers;
                       if (controller.users.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
-                            'Henüz beğeni yok',
+                            'post_likes.empty'.tr,
                             style: TextStyle(
                               color: Colors.black54,
                               fontSize: 14,
@@ -76,9 +76,9 @@ class PostLikeListing extends StatelessWidget {
                         );
                       }
                       if (items.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
-                            'Sonuç bulunamadı',
+                            'common.no_results'.tr,
                             style: TextStyle(
                               color: Colors.black54,
                               fontSize: 14,
@@ -134,8 +134,8 @@ class PostLikeListing extends StatelessWidget {
           ),
         ),
         12.pw,
-        const Text(
-          "Beğenme",
+        Text(
+          'post_likes.title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 16,

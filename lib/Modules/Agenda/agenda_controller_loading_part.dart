@@ -1,6 +1,34 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
+  bool _isTransientAgendaUnavailable(Object error) {
+    if (error is FirebaseException && error.code == 'unavailable') {
+      return true;
+    }
+    final message = error.toString().toLowerCase();
+    return message.contains('cloud_firestore/unavailable') ||
+        message.contains('unable to resolve host firestore.googleapis.com') ||
+        message.contains('unknownhostexception') ||
+        message.contains('the service is currently unavailable');
+  }
+
+  void _clearAgendaRetry() {
+    _agendaRetryTimer?.cancel();
+    _agendaRetryTimer = null;
+    _agendaRetryCount = 0;
+  }
+
+  void _scheduleAgendaRetry({required bool initial}) {
+    if (_agendaRetryTimer?.isActive == true) return;
+    _agendaRetryCount = (_agendaRetryCount + 1).clamp(1, 5);
+    final delaySeconds = min(30, _agendaRetryCount * 3);
+    _agendaRetryTimer = Timer(Duration(seconds: delaySeconds), () {
+      _agendaRetryTimer = null;
+      if (isClosed) return;
+      unawaited(fetchAgendaBigData(initial: initial));
+    });
+  }
+
   // Yeni yüklenen gönderileri en üste almak için güvenli yenileme
   Future<void> prependUploadedAndRefresh() async {
     try {
@@ -14,6 +42,13 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> fetchAgendaBigData({bool initial = false}) async {
+    final previousAgenda = agendaList.toList(growable: false);
+    final previousReshares = publicReshareEvents.toList(growable: false);
+    final previousFeedReshares = feedReshareEntries.toList(growable: false);
+    final previousLastDoc = lastDoc;
+    final previousHasMore = hasMore.value;
+    final previousUsePrimaryFeedPaging = _usePrimaryFeedPaging;
+
     if (initial) {
       lastDoc = null;
       _usePrimaryFeedPaging = true;
@@ -166,8 +201,24 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (page.lastDoc == null || items.length < loadLimit) {
         hasMore.value = false;
       }
+      _clearAgendaRetry();
     } catch (e) {
       print("fetchAgendaBigData error: $e");
+      if (_isTransientAgendaUnavailable(e)) {
+        if (agendaList.isEmpty && previousAgenda.isNotEmpty) {
+          agendaList.assignAll(previousAgenda);
+          publicReshareEvents.assignAll(previousReshares);
+          feedReshareEntries.assignAll(previousFeedReshares);
+          lastDoc = previousLastDoc;
+          hasMore.value = previousHasMore;
+          _usePrimaryFeedPaging = previousUsePrimaryFeedPaging;
+          if (centeredIndex.value == -1) {
+            centeredIndex.value = 0;
+            lastCenteredIndex = 0;
+          }
+        }
+        _scheduleAgendaRetry(initial: initial && agendaList.isEmpty);
+      }
     } finally {
       isLoading.value = false; // HER DURUMDA EN SON ÇALIŞIR
 
@@ -711,16 +762,6 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
       }
-
-      // Pull-to-refresh => "ilk açılış" gibi tam sıfırdan başlat.
-      // Bu sayede shuffle yerine en güncel veriler yeniden çekilir.
-      lastDoc = null;
-      hasMore.value = true;
-      agendaList.clear();
-      _shuffleCache.clear();
-
-      publicReshareEvents.clear();
-      feedReshareEntries.clear();
 
       // Following/reshare verilerini yenile (SWR)
       final uid = FirebaseAuth.instance.currentUser?.uid;

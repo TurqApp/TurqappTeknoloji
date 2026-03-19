@@ -95,7 +95,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         ? controller.nickname.value.trim()
         : controller.username.value.trim();
     String buildDisplayTime() => controller.editTime.value != 0
-        ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
+        ? "${timeAgoMetin(controller.editTime.value)} ${'common.edited'.tr}"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
@@ -466,9 +466,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
             await Clipboard.setData(ClipboardData(text: url));
 
-            AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
+            AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
           },
-          title: 'Linki Kopyala',
+          title: 'common.copy_link'.tr,
           icon: CupertinoIcons.doc_on_doc,
         ),
         PullDownMenuItem(
@@ -486,12 +486,12 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
               );
               await ShareLinkService.shareUrl(
                 url: url,
-                title: 'TurqApp Gönderisi',
-                subject: 'TurqApp Gönderisi',
+                title: 'common.post_share_title'.tr,
+                subject: 'common.post_share_title'.tr,
               );
             });
           },
-          title: 'Paylaş',
+          title: 'common.share'.tr,
           icon: CupertinoIcons.share_up,
         ),
         if (canManagePost)
@@ -502,10 +502,10 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
               // 3) Alert’i göster ve kapandıktan sonra silinme durumuna göre videoyu devam ettir
               noYesAlert(
-                title: "Gönderiyi Sil",
-                message: "Bu gönderiyi silmek istediğinizden emin misiniz?",
-                yesText: "Gönderiyi Sil",
-                cancelText: "Vazgeç",
+                title: 'common.delete_post_title'.tr,
+                message: 'common.delete_post_message'.tr,
+                yesText: 'common.delete_post_confirm'.tr,
+                cancelText: 'common.cancel'.tr,
                 onYesPressed: () {
                   controller.sil();
                 },
@@ -516,7 +516,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                 }
               });
             },
-            title: 'Sil',
+            title: 'common.delete'.tr,
             icon: CupertinoIcons.trash,
             isDestructive: true,
           ),
@@ -528,7 +528,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
               controller.arsivle();
               videoController?.pause();
             },
-            title: "Arşivle",
+            title: 'common.archive'.tr,
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
@@ -540,7 +540,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
               controller.arsivdenCikart();
               videoController?.play();
             },
-            title: "Arşivden Çıkart",
+            title: 'common.unarchive'.tr,
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
@@ -555,7 +555,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                 videoController?.play();
               });
             },
-            title: 'Şikayet Et',
+            title: 'common.report'.tr,
             icon: CupertinoIcons.info,
             isDestructive: true,
           ),
@@ -811,99 +811,47 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   Widget sendButton() {
-    if (_isBlackBadgeUser) {
-      final alreadyFlagged =
-          _AgendaContentState._flaggedPostIds.contains(widget.model.docID);
-      if (alreadyFlagged) {
-        return AnimatedActionButton(
-          enabled: false,
-          semanticsLabel: 'İşaretlendi',
-          onTap: null,
-          padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
-          showTapArea: _AgendaContentState._showActionTapAreas,
-          child: SizedBox(
-            width: 20,
-            height: AnimatedActionButton.actionHeight,
-            child: Center(
-              child: Icon(
-                CupertinoIcons.exclamationmark_triangle_fill,
-                color: Colors.grey,
-                size: _AgendaContentState._actionStyle.sendIconSize,
-              ),
-            ),
-          ),
-        );
-      }
-
-      return PullDownButton(
-        itemBuilder: (context) => _AgendaContentState._flagReasons
-            .map(
-              (reason) => PullDownMenuItem(
-                onTap: () async {
-                  try {
-                    final result = await Get.put(PostInteractionService())
-                        .flagPostWithReason(
-                      widget.model.docID,
-                      reason: reason,
-                    );
-                    if (result.isOk) {
-                      _AgendaContentState._flaggedPostIds
-                          .add(widget.model.docID);
-                      _refreshFlaggedPostState();
-                    }
-                    if (result.accepted) {
-                      AppSnackbar('İşaretle', 'İşaretleme kaydedildi.');
-                    } else if (result.alreadyFlagged) {
-                      AppSnackbar('Bilgi', 'Bu gönderiyi zaten işaretlediniz.');
-                    } else {
-                      AppSnackbar('Hata', 'İşaretleme başarısız oldu.');
-                    }
-                  } catch (_) {
-                    AppSnackbar('Hata', 'İşaretleme başarısız oldu.');
-                  }
-                },
-                title: reason,
-              ),
-            )
-            .toList(),
-        buttonBuilder: (context, showMenu) => AnimatedActionButton(
-          enabled: true,
-          semanticsLabel: 'İşaretle',
-          onTap: showMenu,
-          padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
-          showTapArea: _AgendaContentState._showActionTapAreas,
-          child: SizedBox(
-            width: 20,
-            height: AnimatedActionButton.actionHeight,
-            child: Center(
-              child: Icon(
-                CupertinoIcons.exclamationmark_triangle_fill,
-                color: Colors.amber,
-                size: _AgendaContentState._actionStyle.sendIconSize,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return AnimatedActionButton(
       enabled: true,
-      semanticsLabel: 'Paylaş',
-      onTap: controller.sendPost,
+      semanticsLabel: 'Dış Kaynakta Paylaş',
+      onTap: _shareExternally,
       padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       showTapArea: _AgendaContentState._showActionTapAreas,
       child: SizedBox(
         width: 20,
         height: AnimatedActionButton.actionHeight,
         child: Center(
-          child: SlimSendIcon(
-            color: _AgendaContentState._actionColor,
-            size: _AgendaContentState._actionStyle.sendIconSize,
+          child: Transform.translate(
+            offset: const Offset(0, -2),
+            child: Icon(
+              CupertinoIcons.share_up,
+              color: _AgendaContentState._actionColor,
+              size: _AgendaContentState._actionStyle.sendIconSize,
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _shareExternally() async {
+    await ShareActionGuard.run(() async {
+      final previewImage = widget.model.thumbnail.trim().isNotEmpty
+          ? widget.model.thumbnail.trim()
+          : (widget.model.img.isNotEmpty
+              ? widget.model.img.first.trim()
+              : null);
+      final url = await ShortLinkService().getPostPublicUrl(
+        postId: widget.model.docID,
+        desc: widget.model.metin,
+        imageUrl: previewImage,
+      );
+      await ShareLinkService.shareUrl(
+        url: url,
+        title: 'TurqApp Gönderisi',
+        subject: 'TurqApp Gönderisi',
+      );
+    });
   }
 
   Widget _iconAction({

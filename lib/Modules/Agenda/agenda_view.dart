@@ -12,14 +12,13 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import '../../Themes/app_fonts.dart';
 import '../../Themes/app_colors.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import '../../Core/Widgets/app_icon_surface.dart';
-import '../../Core/Widgets/Ads/ad_placement_hooks.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import '../Chat/ChatListing/chat_listing.dart';
 import '../InAppNotifications/in_app_notifications.dart';
 import '../InAppNotifications/in_app_notifications_controller.dart';
@@ -31,6 +30,34 @@ import 'AgendaContent/agenda_content.dart';
 class AgendaView extends StatelessWidget {
   AgendaView({super.key});
   static bool _androidVisibilityTuned = false;
+
+  bool _shouldInsertPromoAfterPost(int postNumber) =>
+      postNumber > 0 && postNumber % 3 == 0;
+
+  bool _isAdPromo(int postNumber) {
+    final slotNumber = postNumber ~/ 3;
+    return slotNumber.isOdd;
+  }
+
+  Widget _buildPromoSlot(int postNumber) {
+    final slotNumber = postNumber ~/ 3;
+    if (_isAdPromo(postNumber)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: AdmobKare(
+          key: ValueKey('agenda-feed-ad-$slotNumber'),
+        ),
+      );
+    }
+    final recommendedBatch = slotNumber ~/ 2;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 10),
+      child: RecommendedUserList(
+        key: ValueKey('recommendedUserList-$recommendedBatch'),
+        batch: recommendedBatch,
+      ),
+    );
+  }
 
   AgendaController get controller {
     if (Get.isRegistered<AgendaController>()) {
@@ -129,11 +156,11 @@ class AgendaView extends StatelessWidget {
                       controller.feedViewMode.value;
                       final List<Map<String, dynamic>> display =
                           controller.mergedFeedEntries.toList(growable: false);
-                      List<Map<String, dynamic>> filteredDisplay =
-                          controller.filteredFeedEntries.toList(growable: false);
+                      List<Map<String, dynamic>> filteredDisplay = controller
+                          .filteredFeedEntries
+                          .toList(growable: false);
 
-                      final bool shouldFallbackToForYou =
-                          display.isNotEmpty &&
+                      final bool shouldFallbackToForYou = display.isNotEmpty &&
                           filteredDisplay.isEmpty &&
                           !controller.isLoading.value &&
                           (controller.isFollowingMode || controller.isCityMode);
@@ -144,7 +171,8 @@ class AgendaView extends StatelessWidget {
                           final agendaController = Get.find<AgendaController>();
                           if (agendaController.feedViewMode.value !=
                               FeedViewMode.forYou) {
-                            agendaController.setFeedViewMode(FeedViewMode.forYou);
+                            agendaController
+                                .setFeedViewMode(FeedViewMode.forYou);
                           }
                         });
                       }
@@ -168,8 +196,8 @@ class AgendaView extends StatelessWidget {
 
                       if (filteredDisplay.isEmpty) {
                         final emptyText = controller.isCityMode
-                            ? "Şehrinde henüz gönderi yok"
-                            : "Takip ettiklerinden henüz gönderi yok";
+                            ? 'feed.empty_city'.tr
+                            : 'feed.empty_following'.tr;
                         return SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           child: Column(
@@ -207,14 +235,11 @@ class AgendaView extends StatelessWidget {
                         padding: EdgeInsets.only(
                           bottom: kBottomNavigationBarHeight + 16,
                         ),
-                        itemCount: filteredDisplay.length + 2,
+                        itemCount: filteredDisplay.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) return header();
-                          if (index == 1) {
-                            return FeedAdPlacementHook(index: 1);
-                          }
 
-                          final actualIndex = index - 2;
+                          final actualIndex = index - 1;
 
                           if (actualIndex >= filteredDisplay.length) {
                             if (controller.hasMore.value) {
@@ -313,8 +338,8 @@ class AgendaView extends StatelessWidget {
 
                           final basePostWidget = postWidget;
                           postWidget = Obx(() {
-                            final isHighlighted =
-                                controller.highlightDocIDs.contains(model.docID);
+                            final isHighlighted = controller.highlightDocIDs
+                                .contains(model.docID);
                             if (!isHighlighted) {
                               return basePostWidget;
                             }
@@ -366,28 +391,9 @@ class AgendaView extends StatelessWidget {
                             ),
                           );
 
-                          // Her 5 gönderiden sonra: önerilen kişiler + altına reklam
-                          if ((actualIndex + 1) % 5 == 0) {
-                            final slot = ((actualIndex + 1) ~/ 5);
-                            columnChildren.add(
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(top: 2, bottom: 10),
-                                child: RecommendedUserList(
-                                  key: ValueKey('recommendedUserList-$slot'),
-                                  batch: slot,
-                                ),
-                              ),
-                            );
-                            columnChildren.add(
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8.0),
-                                child: AdmobKare(
-                                  key: ValueKey('agenda-ad-$slot'),
-                                ),
-                              ),
-                            );
+                          final postNumber = actualIndex + 1;
+                          if (_shouldInsertPromoAfterPost(postNumber)) {
+                            columnChildren.add(_buildPromoSlot(postNumber));
                           }
 
                           // RepaintBoundary ile her postu izole et - scroll sırasında
@@ -427,13 +433,13 @@ class AgendaView extends StatelessWidget {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                       child: Container(
-                        width: 60,
-                        height: 60,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.88),
+                          color: Colors.green,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.black.withValues(alpha: 0.06),
+                            color: Colors.green.withValues(alpha: 0.24),
                           ),
                           boxShadow: const [
                             BoxShadow(
@@ -446,7 +452,8 @@ class AgendaView extends StatelessWidget {
                         alignment: Alignment.center,
                         child: const Icon(
                           CupertinoIcons.add,
-                          color: Colors.black,
+                          color: Colors.white,
+                          size: 24,
                         ),
                       ),
                     ),

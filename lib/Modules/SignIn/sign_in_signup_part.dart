@@ -78,39 +78,14 @@ extension SignInSignupPart on SignIn {
                                   fontFamily: 'Montserrat',
                                 ),
                                 children: [
-                                  TextSpan(
-                                    text: 'signup.policy_intro'.tr,
+                                  _policyCenterTextSpan(
+                                    'signup.policy_short'.tr,
                                   ),
-                                  _policyTextSpan(
-                                    'Uyelik ve Sozlesme',
-                                    'agreement',
-                                  ),
-                                  const TextSpan(text: ', '),
-                                  _policyTextSpan('Gizlilik', 'privacy'),
-                                  const TextSpan(text: ', '),
-                                  _policyTextSpan('Aydinlatma', 'notice'),
-                                  const TextSpan(text: ', '),
-                                  _policyTextSpan('Topluluk', 'community'),
-                                  const TextSpan(text: ' ve '),
-                                  _policyTextSpan(
-                                    'Guvenlik ve Moderasyon',
-                                    'moderation',
-                                  ),
-                                  TextSpan(text: 'signup.policy_outro'.tr),
                                 ],
                               ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'signup.policy_notice'.tr,
-                      style: TextStyle(
-                        color: Colors.black45,
-                        fontSize: 11,
-                        fontFamily: 'MontserratMedium',
                       ),
                     ),
                   ],

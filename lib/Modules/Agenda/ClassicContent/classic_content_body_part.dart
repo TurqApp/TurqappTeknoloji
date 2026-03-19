@@ -85,23 +85,16 @@ extension ClassicContentBodyPart on _ClassicContentState {
         ),
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              runAlignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                commentButton(context),
-                likeButton(),
-                saveButton(),
-                reshareButton(),
-                statButton(),
-                sendButton(),
-              ],
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              SizedBox(width: 58, child: Center(child: commentButton(context))),
+              SizedBox(width: 58, child: Center(child: likeButton())),
+              SizedBox(width: 58, child: Center(child: saveButton())),
+              SizedBox(width: 58, child: Center(child: reshareButton())),
+              SizedBox(width: 58, child: Center(child: statButton())),
+              SizedBox(width: 58, child: Center(child: sendButton())),
+            ],
           ),
         ),
         3.ph,
@@ -223,8 +216,14 @@ extension ClassicContentBodyPart on _ClassicContentState {
                 child: Stack(
                   children: [
                     PageView.builder(
+                      key: ValueKey(
+                        'classic-feed-images-${widget.model.docID}',
+                      ),
                       controller: _pageController,
                       itemCount: widget.model.img.length,
+                      onPageChanged: (index) {
+                        _setCurrentPage(index);
+                      },
                       itemBuilder: (context, index) {
                         final img = widget.model.img[index];
                         return CachedNetworkImage(

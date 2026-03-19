@@ -197,22 +197,6 @@ extension SignInAuthPart on SignIn {
               ),
             ),
           ),
-          SizedBox(height: 20),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12,
-                  height: 1.2,
-                  fontFamily: 'Montserrat',
-                ),
-                children: [_policyCenterTextSpan('login.policies'.tr)],
-              ),
-            ),
-          ),
           SizedBox(height: 12),
           Text(
             "© TurqApp A.Ş.",
@@ -484,22 +468,6 @@ extension SignInAuthPart on SignIn {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 12,
-                          height: 1.2,
-                          fontFamily: 'Montserrat',
-                        ),
-                        children: [_policyCenterTextSpan('login.policies'.tr)],
-                      ),
                     ),
                   ),
                   SizedBox(height: 18),
@@ -1208,14 +1176,18 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
             letterSpacing: 1.0,
           ),
         ),
-        const SizedBox(width: 6),
-        AnimatedOpacity(
-          opacity: _showCursor ? 1 : 0,
+        AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          child: Container(
-            width: 3,
-            height: 50,
-            color: Colors.black,
+          width: _showCursor ? 5 : 0,
+          margin: EdgeInsets.only(right: _showBeta ? 3 : 0),
+          child: AnimatedOpacity(
+            opacity: _showCursor ? 1 : 0,
+            duration: const Duration(milliseconds: 120),
+            child: Container(
+              width: 3,
+              height: 50,
+              color: Colors.black,
+            ),
           ),
         ),
         AnimatedOpacity(
@@ -1223,7 +1195,7 @@ class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
           child: const Padding(
-            padding: EdgeInsets.only(left: 10, bottom: 4),
+            padding: EdgeInsets.only(left: 4, bottom: 4),
             child: Text(
               'BETA',
               style: TextStyle(

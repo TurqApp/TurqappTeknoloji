@@ -23,7 +23,6 @@ import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
-import 'package:turqappv2/Core/Widgets/slim_send_icon.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -43,7 +42,6 @@ import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
-import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -103,18 +101,8 @@ class _ClassicContentState extends State<ClassicContent>
     rowSpacing: 0,
   );
   static const Color _actionColor = Color(0xFF47515C);
-  static const List<String> _flagReasons = <String>[
-    'Uyuşturucu',
-    'Kumar',
-    'Çıplaklık',
-    'Dolandırıcılık',
-    'Şiddet',
-    'Spam',
-    'Diğer',
-  ];
-  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   final arsivController = Get.put(ArchiveController());
-  final PageController _pageController = PageController();
+  final PageController _pageController = PageController(keepPage: false);
   int _currentPage = 0;
   bool _isFullscreen = false;
   bool _isCaptionExpanded = false;
@@ -166,6 +154,11 @@ class _ClassicContentState extends State<ClassicContent>
     setState(() {
       _isFullscreen = value;
     });
+  }
+
+  void _setCurrentPage(int value) {
+    if (!mounted || _currentPage == value) return;
+    setState(() => _currentPage = value);
   }
 
   Future<void> _subscribeToIzBirak() async {
@@ -273,14 +266,6 @@ class _ClassicContentState extends State<ClassicContent>
   ShortController get shortsController => Get.isRegistered<ShortController>()
       ? Get.find<ShortController>()
       : Get.put(ShortController());
-
-  bool get _isBlackBadgeUser {
-    final raw = (controller.userService.currentUser?.rozet ?? '')
-        .trim()
-        .toLowerCase()
-        .replaceAll('ı', 'i');
-    return raw == 'siyah' || raw == 'black';
-  }
 
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
@@ -482,9 +467,7 @@ class _ClassicContentState extends State<ClassicContent>
   void onPostInitialized() {
     _pageController.addListener(() {
       final next = _pageController.page?.round() ?? 0;
-      if (next != _currentPage) {
-        setState(() => _currentPage = next);
-      }
+      _setCurrentPage(next);
     });
   }
 
@@ -497,6 +480,13 @@ class _ClassicContentState extends State<ClassicContent>
   @override
   void didUpdateWidget(covariant ClassicContent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.docID != widget.model.docID) {
+      _currentPage = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.jumpToPage(0);
+      });
+    }
     final oldSourceUserId = oldWidget.model.quotedSourceUserID.trim().isNotEmpty
         ? oldWidget.model.quotedSourceUserID.trim()
         : oldWidget.model.originalUserID.trim();
@@ -553,10 +543,5 @@ class _ClassicContentState extends State<ClassicContent>
         ],
       );
     });
-  }
-
-  void _refreshFlaggedPostState() {
-    if (!mounted) return;
-    setState(() {});
   }
 }

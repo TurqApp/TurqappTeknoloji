@@ -70,6 +70,8 @@ class AgendaController extends GetxController {
   final RxSet<String> highlightDocIDs = <String>{}.obs;
   Timer? _visibilityDebounce;
   Timer? _feedPrefetchDebounce;
+  Timer? _agendaRetryTimer;
+  int _agendaRetryCount = 0;
   Worker? _mergedFeedWorker;
   Worker? _filteredFeedWorker;
   final Map<int, double> _visibleFractions = <int, double>{};
@@ -267,6 +269,7 @@ class AgendaController extends GetxController {
     _filteredFeedWorker?.dispose();
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
+    _agendaRetryTimer?.cancel();
     unawaited(persistWarmLaunchCache());
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
