@@ -2,36 +2,9 @@ part of 'sign_in.dart';
 
 extension SignInAuthPart on SignIn {
   Widget _brandTypewriter() {
-    return Obx(() {
-      final text = controller.typedBrandText;
-      final showCursor = controller.showBrandCursor.value;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            text,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 42,
-              fontFamily: 'Noe',
-              letterSpacing: 0.6,
-            ),
-          ),
-          const SizedBox(width: 4),
-          AnimatedOpacity(
-            opacity: showCursor ? 1 : 0,
-            duration: const Duration(milliseconds: 120),
-            child: Container(
-              width: 3,
-              height: 32,
-              color: Colors.black,
-            ),
-          ),
-        ],
-      );
-    });
+    return _LoginBrandTypewriter(
+      key: ValueKey('login-brand-${controller.selection.value}'),
+    );
   }
 
   Widget startScreen() {
@@ -47,7 +20,7 @@ extension SignInAuthPart on SignIn {
                 _brandTypewriter(),
                 const SizedBox(height: 10),
                 const Text(
-                  "Dünyayı yakından takip et.",
+                  "Hikayeleriniz, burada birleşiyor.",
                   style: TextStyle(
                     color: Colors.black54,
                     fontSize: 14,
@@ -1104,6 +1077,103 @@ extension SignInAuthPart on SignIn {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LoginBrandTypewriter extends StatefulWidget {
+  const _LoginBrandTypewriter({super.key});
+
+  @override
+  State<_LoginBrandTypewriter> createState() => _LoginBrandTypewriterState();
+}
+
+class _LoginBrandTypewriterState extends State<_LoginBrandTypewriter> {
+  static const String _word = 'TurqApp';
+  Timer? _typingTimer;
+  Timer? _cursorTimer;
+  int _typedLength = 0;
+  bool _showCursor = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTypewriter();
+  }
+
+  @override
+  void dispose() {
+    _typingTimer?.cancel();
+    _cursorTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTypewriter() {
+    _typingTimer?.cancel();
+    _cursorTimer?.cancel();
+    _typedLength = 1;
+    _showCursor = true;
+
+    _typingTimer = Timer.periodic(const Duration(milliseconds: 110), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_typedLength >= _word.length) {
+        _showCursor = false;
+        timer.cancel();
+        setState(() {});
+        return;
+      }
+      setState(() {
+        _typedLength += 1;
+      });
+    });
+
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 220), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_typedLength >= _word.length) {
+        _showCursor = false;
+        timer.cancel();
+        setState(() {});
+        return;
+      }
+      setState(() {
+        _showCursor = !_showCursor;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          _word.substring(0, _typedLength.clamp(0, _word.length)),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 58,
+            fontFamily: 'Noe',
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(width: 6),
+        AnimatedOpacity(
+          opacity: _showCursor ? 1 : 0,
+          duration: const Duration(milliseconds: 120),
+          child: Container(
+            width: 3,
+            height: 50,
+            color: Colors.black,
+          ),
+        ),
+      ],
     );
   }
 }
