@@ -96,6 +96,11 @@ class _AdmobKareState extends State<AdmobKare> {
     return _readyPool.removeAt(0);
   }
 
+  bool _canRenderAd(BannerAd? ad) {
+    if (!_isAdLoaded || ad == null) return false;
+    return ad.responseInfo != null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +110,13 @@ class _AdmobKareState extends State<AdmobKare> {
   void _attachBannerOrLoad() {
     final pooled = _takePreloadedBanner();
     if (pooled != null) {
+      if (pooled.responseInfo == null) {
+        try {
+          pooled.dispose();
+        } catch (_) {}
+        _loadBanner();
+        return;
+      }
       _bannerAd = pooled;
       _isAdLoaded = true;
       _loadFailed = false;
@@ -230,7 +242,7 @@ class _AdmobKareState extends State<AdmobKare> {
     }
 
     final ad = _bannerAd;
-    if (!_isAdLoaded || ad == null) {
+    if (!_canRenderAd(ad)) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Container(
@@ -240,6 +252,7 @@ class _AdmobKareState extends State<AdmobKare> {
         ),
       );
     }
+    final bannerAd = ad!;
 
     try {
       return Center(
@@ -265,11 +278,11 @@ class _AdmobKareState extends State<AdmobKare> {
                   ),
                 ),
                 SizedBox(
-                  width: ad.size.width.toDouble(),
-                  height: ad.size.height.toDouble(),
+                  width: bannerAd.size.width.toDouble(),
+                  height: bannerAd.size.height.toDouble(),
                   child: AdWidget(
-                    ad: ad,
-                    key: ValueKey('admob_${ad.hashCode}'),
+                    ad: bannerAd,
+                    key: ValueKey('admob_${bannerAd.hashCode}'),
                   ),
                 ),
                 const SizedBox(height: 4),
