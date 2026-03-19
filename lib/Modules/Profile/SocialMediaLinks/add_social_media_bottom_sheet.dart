@@ -20,7 +20,7 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "Bağlantı Ekle",
+            'social_links.add_title'.tr,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 15),
@@ -200,7 +200,7 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               LengthLimitingTextInputFormatter(20),
                             ],
                             decoration: InputDecoration(
-                              hintText: "Başlık",
+                              hintText: 'social_links.label_title'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratBold",
@@ -227,7 +227,9 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                   ? TextInputType.text
                                   : TextInputType.url,
                               decoration: InputDecoration(
-                                hintText: isTurq ? "Kullanıcı adı" : "https://",
+                                hintText: isTurq
+                                    ? 'social_links.username_hint'.tr
+                                    : "https://",
                                 hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontFamily: "MontserratMedium",
@@ -297,9 +299,9 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                       .toString()
                                       .toLowerCase()
                                       .contains('permission-denied')
-                                  ? "İzin hatası: bağlantı kaydetmeye yetki yok."
-                                  : "Bir sorun oluştu.";
-                              AppSnackbar("Hata", msg);
+                                  ? 'social_links.save_permission_error'.tr
+                                  : 'social_links.save_failed'.tr;
+                              AppSnackbar('common.error'.tr, msg);
                             } finally {
                               controller.isUploading.value = false;
                             }

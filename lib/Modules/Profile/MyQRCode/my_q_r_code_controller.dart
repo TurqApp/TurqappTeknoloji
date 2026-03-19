@@ -86,7 +86,7 @@ class MyQRCodeController extends GetxController {
       await ShareLinkService.shareUrl(
         url: link,
         title: '@${userService.nickname} - TurqApp',
-        subject: 'TurqApp Profili',
+        subject: 'qr.profile_subject'.tr,
       );
     });
   }
@@ -95,7 +95,7 @@ class MyQRCodeController extends GetxController {
     final link = _buildProfileLink();
     profileLink.value = link;
     await Clipboard.setData(ClipboardData(text: link));
-    AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
+    AppSnackbar('qr.link_copied_title'.tr, 'qr.link_copied_body'.tr);
   }
 
   Future<void> downloadQRCode() async {
@@ -114,7 +114,9 @@ class MyQRCodeController extends GetxController {
 
     if (!status.isGranted) {
       AppSnackbar(
-          "İzin Gerekli", 'Kaydetmek için galeri erişim izni vermelisiniz.');
+        'qr.permission_required'.tr,
+        'qr.gallery_permission_body'.tr,
+      );
       return;
     }
 
@@ -136,7 +138,7 @@ class MyQRCodeController extends GetxController {
         format: ImageByteFormat.png,
       );
       if (picData == null) {
-        AppSnackbar('Hata', 'QR kod verisi oluşturulamadı.');
+        AppSnackbar('common.error'.tr, 'qr.data_failed'.tr);
         return;
       }
 
@@ -150,12 +152,12 @@ class MyQRCodeController extends GetxController {
       );
 
       if (result.isSuccess) {
-        AppSnackbar("Başarılı", 'QR kodu galeriye kaydedildi.');
+        AppSnackbar('common.success'.tr, 'qr.saved'.tr);
       } else {
-        AppSnackbar('Hata', 'QR kod kaydedilemedi.');
+        AppSnackbar('common.error'.tr, 'qr.save_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'İndirme sırasında hata oluştu.');
+      AppSnackbar('common.error'.tr, 'qr.download_failed'.tr);
     }
   }
 }

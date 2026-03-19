@@ -44,7 +44,7 @@ class MyQRCode extends StatelessWidget {
                         color: Colors.white, size: 25),
                   ),
                   Text(
-                    "Kişisel QR Kod",
+                    'qr.title'.tr,
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: FontSizes.size18,
@@ -153,7 +153,7 @@ class MyQRCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "Paylaş",
+                                      'common.share'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,
@@ -191,7 +191,7 @@ class MyQRCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "Linki Kopyala",
+                                      'common.copy_link'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,
@@ -229,7 +229,7 @@ class MyQRCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "İndir",
+                                      'common.download'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,

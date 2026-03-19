@@ -19,7 +19,7 @@ class EditorNickname extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kullanıcı Adı"),
+            BackButtons(text: 'editor_nickname.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -54,7 +54,8 @@ class EditorNickname extends StatelessWidget {
                                           CustomNicknameFormatter(),
                                         ],
                                         decoration: InputDecoration(
-                                          hintText: "Kullanıcı Adı Oluştur",
+                                          hintText:
+                                              'editor_nickname.hint'.tr,
                                           hintStyle: TextStyle(
                                               color: Colors.grey,
                                               fontFamily: "MontserratMedium"),
@@ -137,7 +138,7 @@ class EditorNickname extends StatelessWidget {
                               child: Row(
                                 children: [
                                   Text(
-                                    "Onaylı kullanıcılar, kullanıcı adını değiştiremez",
+                                    'editor_nickname.verified_locked'.tr,
                                     style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
@@ -153,7 +154,7 @@ class EditorNickname extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Gerçek kişileri taklit eden kullanıcı adları, topluluğumuzu korumak adına Turqapp tarafından değiştirilebilir.",
+                                    'editor_nickname.mimic_warning'.tr,
                                     style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 14,
@@ -161,7 +162,7 @@ class EditorNickname extends StatelessWidget {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    "Türkçe karakterler otomatik dönüştürülür. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)",
+                                    'editor_nickname.tr_char_info'.tr,
                                     style: TextStyle(
                                         color: Colors.grey.shade700,
                                         fontSize: 12,

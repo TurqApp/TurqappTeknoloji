@@ -56,7 +56,7 @@ class MyStatisticView extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    BackButtons(text: "İstatistikler"),
+                    BackButtons(text: 'statistics.title'.tr),
                     if (controller.isLoading.value)
                       Padding(
                         padding: const EdgeInsets.all(15),
@@ -129,9 +129,9 @@ class MyStatisticView extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
-                                    "Siz",
-                                    style: TextStyle(
+                                  Text(
+                                    'statistics.you'.tr,
+                                    style: const TextStyle(
                                       color: Colors.green,
                                       fontSize: 15,
                                       fontFamily: "MontserratMedium",
@@ -143,12 +143,12 @@ class MyStatisticView extends StatelessWidget {
                           ),
 
                           const SizedBox(height: 12),
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
-                              "İstatistiksel verileriniz, 30 günlük aktivitelerinize göre düzenli olarak güncellenmektedir.",
+                              'statistics.notice'.tr,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
                                 fontFamily: "MontserratMedium",
@@ -160,7 +160,7 @@ class MyStatisticView extends StatelessWidget {
                           // Dinamik istatistikler
                           Obx(() => _statItem(
                                 controller.profileVisitsApprox.value,
-                                "Profil Ziyareti (30 Gün)",
+                                'statistics.profile_visits_30d'.tr,
                                 0,
                               )),
                           Row(
@@ -168,7 +168,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.postViews30d.value,
-                                      "Gönderi Görüntüleme",
+                                      'statistics.post_views'.tr,
                                       1,
                                     )),
                               ),
@@ -176,7 +176,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.posts30d.value,
-                                      "Gönderi Sayısı",
+                                      'statistics.post_count'.tr,
                                       2,
                                     )),
                               ),
@@ -187,7 +187,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.stories30d.value,
-                                      "Hikaye Sayısı",
+                                      'statistics.story_count'.tr,
                                       6,
                                     )),
                               ),
@@ -195,7 +195,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.followerGrowth30d.value,
-                                      "Takipçi Artışı",
+                                      'statistics.follower_growth'.tr,
                                       8,
                                     )),
                               ),

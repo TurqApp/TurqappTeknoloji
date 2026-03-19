@@ -121,8 +121,8 @@ class EditProfileController extends GetxController {
     if (r.isNSFW) {
       selectedImage.value = null;
       AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        'edit_profile.upload_failed_title'.tr,
+        'edit_profile.upload_failed_body'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
     } else {
@@ -185,7 +185,7 @@ class EditProfileController extends GetxController {
                             : TurqAppButton(
                                 bgColor: Colors.black,
                                 textColor: Colors.white,
-                                text: "Kırp ve Kullan",
+                                text: 'edit_profile.crop_use'.tr,
                                 onTap: () {
                                   if (cropping) return;
                                   setState(() => cropping = true);
@@ -241,9 +241,12 @@ class EditProfileController extends GetxController {
       await AccountCenterService.ensure().refreshCurrentAccountMetadata();
 
       Get.back();
-      AppSnackbar('Başarılı', 'Profil bilgilerin güncellendi!');
+      AppSnackbar('common.success'.tr, 'edit_profile.update_success'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Güncelleme hatası: $e');
+      AppSnackbar(
+        'common.error'.tr,
+        'edit_profile.update_failed'.trParams({'error': '$e'}),
+      );
     } finally {
       isCropping.value = false; // olası açık state'leri toparla
     }
@@ -251,11 +254,10 @@ class EditProfileController extends GetxController {
 
   Future<void> removeProfilePhoto() async {
     await noYesAlert(
-      title: 'Profil Fotoğrafını Kaldır',
-      message:
-          'Profil fotoğrafın kaldırılacak ve varsayılan avatar kullanılacak. Emin misin?',
-      yesText: 'Kaldır',
-      cancelText: 'İptal',
+      title: 'edit_profile.remove_photo_title'.tr,
+      message: 'edit_profile.remove_photo_message'.tr,
+      yesText: 'common.remove'.tr,
+      cancelText: 'common.cancel'.tr,
       onYesPressed: () async {
         try {
           // 🎯 Using CurrentUserService.updateFields
@@ -267,10 +269,12 @@ class EditProfileController extends GetxController {
           croppedImage.value = null;
           selectedImage.value = null;
 
-          AppSnackbar('Güncellendi', 'Profil fotoğrafın kaldırıldı.');
+          AppSnackbar('common.update'.tr, 'edit_profile.photo_removed'.tr);
         } catch (e) {
           AppSnackbar(
-              'Hata', 'Profil fotoğrafı kaldırılırken bir hata oluştu.');
+            'common.error'.tr,
+            'edit_profile.photo_remove_failed'.tr,
+          );
         }
       },
     );

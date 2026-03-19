@@ -335,12 +335,92 @@ class AppTranslations extends Translations {
           'saved_posts.no_saved_series': 'Kaydedilen dizi yok',
           'blocked_users.empty': 'Hiç kimseyi engellemedin',
           'blocked_users.unblock': 'Engeli Kaldır',
+          'profile_contact.title': 'İletişim',
+          'profile_contact.call': 'Arama',
+          'profile_contact.email': 'E-Posta',
+          'editor_email.title': 'E-posta Onayı',
+          'editor_email.email_hint': 'Hesap e-posta adresiniz',
+          'editor_email.send_code': 'Onay Kodu Gönder',
+          'editor_email.resend_in': 'Yeniden gönderim için {seconds}s',
+          'editor_email.note':
+              'Bu onay güvenlik amaçlıdır. Onaylamasanız da uygulamayı kullanmaya devam edebilirsiniz.',
+          'editor_email.code_hint': '6 haneli onay kodu',
+          'editor_email.verify_confirm': 'Kodu Doğrula ve Onayla',
+          'editor_email.wait': 'Lütfen {seconds} saniye bekleyin.',
+          'editor_email.session_missing':
+              'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
+          'editor_email.email_missing': 'Hesabınızda e-posta bulunamadı.',
+          'editor_email.code_sent':
+              'Onay kodu e-posta adresinize gönderildi.',
+          'editor_email.code_send_failed': 'Onay kodu gönderilemedi.',
+          'editor_email.enter_code':
+              'Lütfen 6 haneli onay kodunu girin.',
+          'editor_email.verified': 'E-posta adresiniz onaylandı.',
+          'editor_email.verify_failed': 'E-posta onaylanamadı.',
+          'editor_phone.title': 'Telefon Numarası',
+          'editor_phone.phone_hint': 'Telefon Numarası',
+          'editor_phone.send_approval': 'Onay E-postası Gönder',
+          'editor_phone.resend_in': 'Yeniden gönderim için {seconds}s',
+          'editor_phone.code_hint': '6 haneli onay kodu',
+          'editor_phone.verify_update': 'Kodu Doğrula ve Güncelle',
+          'editor_phone.wait': 'Lütfen {seconds} saniye bekleyin.',
+          'editor_phone.invalid_phone':
+              'Lütfen 5 ile başlayan 10 haneli telefon numarası girin.',
+          'editor_phone.session_missing':
+              'Oturum bulunamadı. Lütfen tekrar giriş yapın.',
+          'editor_phone.email_missing':
+              'Hesabınızda doğrulanacak e-posta bulunamadı.',
+          'editor_phone.code_sent':
+              'Onay kodu e-posta adresinize gönderildi.',
+          'editor_phone.code_send_failed': 'Onay kodu gönderilemedi.',
+          'editor_phone.enter_code':
+              'Lütfen 6 haneli onay kodunu girin.',
+          'editor_phone.update_failed': 'Telefon numarası güncellenemedi.',
+          'editor_phone.updated': 'Telefon numaranız güncellendi.',
+          'address.title': 'Adres',
+          'address.hint': 'İşletme & Ofis Adresi',
+          'biography.title': 'Biyografi',
+          'biography.hint': 'Kendini anlat..',
+          'job_selector.title': 'Meslek & Kategori',
+          'job_selector.subtitle':
+              'Kategorin, profilinin keşfedilmesini kolaylaştırır.',
+          'job_selector.search_hint': 'Ara',
+          'legacy_language.title': 'Uygulama Dili',
+          'statistics.title': 'İstatistikler',
+          'statistics.you': 'Siz',
+          'statistics.notice':
+              'İstatistiksel verileriniz, 30 günlük aktivitelerinize göre düzenli olarak güncellenmektedir.',
+          'statistics.profile_visits_30d': 'Profil Ziyareti (30 Gün)',
+          'statistics.post_views': 'Gönderi Görüntüleme',
+          'statistics.post_count': 'Gönderi Sayısı',
+          'statistics.story_count': 'Hikaye Sayısı',
+          'statistics.follower_growth': 'Takipçi Artışı',
           'interests.personalize_feed': 'Akışını kişiselleştir',
           'interests.selection_range':
               'En az {min}, en fazla {max} ilgi alanı seç.',
           'interests.selected_count': '{selected}/{max} seçildi',
           'interests.ready': 'Hazır',
           'interests.search_hint': 'İlgi alanı ara',
+          'interests.limit_title': 'Seçim Sınırı',
+          'interests.limit_body':
+              'En fazla {max} ilgi alanı seçebilirsiniz.',
+          'interests.min_title': 'Eksik Seçim',
+          'interests.min_body':
+              'En az {min} ilgi alanı seçmelisiniz.',
+          'view_changer.title': 'Görünüm',
+          'view_changer.classic': 'Klasik Görünüm',
+          'view_changer.modern': 'Modern Görünüm',
+          'social_links.title': 'Bağlantılar ({count})',
+          'social_links.add': 'Ekle',
+          'social_links.add_title': 'Bağlantı Ekle',
+          'social_links.label_title': 'Başlık',
+          'social_links.username_hint': 'Kullanıcı adı',
+          'social_links.remove_title': 'Bağlantıyı Kaldır',
+          'social_links.remove_message':
+              'Bu bağlantıyı kaldırmak istediğinizden emin misiniz?',
+          'social_links.save_permission_error':
+              'İzin hatası: bağlantı kaydetmeye yetki yok.',
+          'social_links.save_failed': 'Bir sorun oluştu.',
           'pasaj.closed': 'Pasaj şu anda kapalı',
           'pasaj.common.slider_admin': 'Slider Yönetimi',
           'pasaj.common.my_results': 'Sonuçlarım',
@@ -1196,10 +1276,15 @@ class AppTranslations extends Translations {
           'common.remove': 'Kaldır',
           'common.edit': 'Düzenle',
           'common.update': 'Güncelle',
+          'common.change': 'Değiştir',
           'common.publish': 'Yayınla',
           'common.loading': 'Yükleniyor...',
           'common.info': 'Bilgi',
           'common.error': 'Hata',
+          'common.download': 'İndir',
+          'common.copy_link': 'Linki Kopyala',
+          'common.verified': 'Onaylı',
+          'common.verify': 'Onayla',
           'common.message': 'Mesaj',
           'common.phone': 'Telefon',
           'common.description': 'Açıklama',
@@ -1215,6 +1300,129 @@ class AppTranslations extends Translations {
           'common.company': 'Şirket',
           'common.salary': 'Ücret',
           'common.address': 'Adres',
+          'profile_photo.camera': 'Kameradan Çek',
+          'profile_photo.gallery': 'Galeriden Seç',
+          'edit_profile.title': 'Profil Bilgileri',
+          'edit_profile.personal_info': 'Kişisel Bilgiler',
+          'edit_profile.other_info': 'Diğer Bilgiler',
+          'edit_profile.first_name_hint': 'Adınız',
+          'edit_profile.last_name_hint': 'Soyadınız',
+          'edit_profile.privacy': 'Hesap Gizliliği',
+          'edit_profile.links': 'Bağlantılar',
+          'edit_profile.contact_info': 'İletişim Bilgileri',
+          'edit_profile.address_info': 'Adres Bilgileri',
+          'edit_profile.career_profile': 'Kariyer Profili',
+          'edit_profile.update_success': 'Profil bilgilerin güncellendi!',
+          'edit_profile.update_failed': 'Güncelleme hatası: {error}',
+          'edit_profile.remove_photo_title': 'Profil Fotoğrafını Kaldır',
+          'edit_profile.remove_photo_message':
+              'Profil fotoğrafın kaldırılacak ve varsayılan avatar kullanılacak. Emin misin?',
+          'edit_profile.photo_removed': 'Profil fotoğrafın kaldırıldı.',
+          'edit_profile.photo_remove_failed':
+              'Profil fotoğrafı kaldırılırken bir hata oluştu.',
+          'edit_profile.crop_use': 'Kırp ve Kullan',
+          'edit_profile.delete_account': 'Hesabını Sil',
+          'edit_profile.upload_failed_title': 'Yükleme Başarısız!',
+          'edit_profile.upload_failed_body':
+              'Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.',
+          'delete_account.title': 'Hesabını Sil',
+          'delete_account.confirm_title': 'Hesap Silme Onayı',
+          'delete_account.confirm_body':
+              'Hesabınızı silmeden önce güvenlik için kayıtlı e-posta adresinize onay kodu gönderiyoruz.',
+          'delete_account.code_hint': '6 haneli onay kodu',
+          'delete_account.resend': 'Tekrar Gönder',
+          'delete_account.send_code': 'Kod Gönder',
+          'delete_account.validity_notice':
+              'Kodun geçerlilik süresi 1 saattir. Silme talebiniz {days} gün sonra kalıcı olarak işlenir.',
+          'delete_account.processing': 'İşleniyor...',
+          'delete_account.delete_my_account': 'Hesabımı Sil',
+          'delete_account.no_email_title': 'Uyarı',
+          'delete_account.no_email_body':
+              'Bu hesapta e-posta yok. Silme talebini direkt başlatabilirsiniz.',
+          'delete_account.session_missing':
+              'Oturum bulunamadı. Tekrar giriş yapın.',
+          'delete_account.code_sent_title': 'Kod Gönderildi',
+          'delete_account.code_sent_body':
+              'Silme onay kodu e-posta adresinize gönderildi.',
+          'delete_account.send_failed': 'Kod gönderilemedi.',
+          'delete_account.invalid_code_title': 'Geçersiz Kod',
+          'delete_account.invalid_code_body': 'Lütfen 6 haneli kod girin.',
+          'delete_account.verify_failed': 'Kod doğrulanamadı.',
+          'editor_nickname.title': 'Kullanıcı Adı',
+          'editor_nickname.hint': 'Kullanıcı Adı Oluştur',
+          'editor_nickname.verified_locked':
+              'Onaylı kullanıcılar, kullanıcı adını değiştiremez',
+          'editor_nickname.mimic_warning':
+              'Gerçek kişileri taklit eden kullanıcı adları, topluluğumuzu korumak adına Turqapp tarafından değiştirilebilir.',
+          'editor_nickname.tr_char_info':
+              'Türkçe karakterler otomatik dönüştürülür. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)',
+          'editor_nickname.min_length': 'En az 8 karakter olmalı',
+          'editor_nickname.current_name': 'Mevcut kullanıcı adın',
+          'editor_nickname.edit_prompt': 'Değişiklik yapmak için düzenle',
+          'editor_nickname.checking': 'Kontrol ediliyor…',
+          'editor_nickname.taken': 'Bu kullanıcı adı alınmış',
+          'editor_nickname.available': 'Kullanılabilir',
+          'editor_nickname.unavailable': 'Kontrol edilemedi',
+          'editor_nickname.cooldown_limit':
+              'İlk 1 saatte en fazla 3 kez değiştirilebilir',
+          'editor_nickname.change_after_days':
+              'Kullanıcı adı tekrar değiştirilebilir: {days}g {hours}s sonra',
+          'editor_nickname.change_after_hours':
+              'Kullanıcı adı tekrar değiştirilebilir: {hours}s sonra',
+          'editor_nickname.error_min_length':
+              'Kullanıcı adı en az 8 karakter olmalıdır.',
+          'editor_nickname.error_taken':
+              'Bu kullanıcı adı zaten alınmış.',
+          'editor_nickname.error_grace_limit':
+              'İlk 1 saatte en fazla 3 kez değiştirebilirsin.',
+          'editor_nickname.error_cooldown':
+              'Kullanıcı adı 15 gün dolmadan tekrar değiştirilemez.',
+          'editor_nickname.error_update_failed':
+              'Kullanıcı adı güncellenemedi.',
+          'cv.title': 'Kariyer Profili',
+          'cv.personal_info': 'Kişisel Bilgiler',
+          'cv.education_info': 'Eğitim Bilgileri',
+          'cv.other_info': 'Diğer Bilgiler',
+          'cv.profile_title': 'Kariyer Profili',
+          'cv.profile_body':
+              'Profil fotoğrafı ve temel bilgilerle kariyer profilinizi daha güçlü gösterin.',
+          'cv.first_name_hint': 'Adınız',
+          'cv.last_name_hint': 'Soyadınız',
+          'cv.email_hint': 'Mail Adresi',
+          'cv.phone_hint': 'Telefon Numarası',
+          'cv.about_hint': 'Kendiniz hakkında kısa bilgi verin',
+          'cv.add_school': 'Yeni okul ekle',
+          'cv.skills': 'Beceriler',
+          'cv.add_language': 'Dil Ekle',
+          'cv.add_new_language': 'Yeni dil ekle',
+          'cv.add_experience': 'İş Deneyimi Ekle',
+          'cv.add_new_experience': 'Yeni iş deneyimi ekle',
+          'cv.add_reference': 'Referans Ekle',
+          'cv.add_new_reference': 'Yeni referans ekle',
+          'cv.save': 'Kaydet',
+          'cv.missing_field': 'Eksik Alan',
+          'cv.invalid_format': 'Hatalı Format',
+          'cv.missing_first_name': 'İsim girmeden kaydedemezsiniz',
+          'cv.missing_last_name': 'Soyisim girmeden kaydedemezsiniz',
+          'cv.missing_email': 'Mail adresi girmeden kaydedemezsiniz',
+          'cv.invalid_email': 'Geçerli bir e-posta adresi girin',
+          'cv.missing_phone': 'Telefon numarası girmeden kaydedemezsiniz',
+          'cv.invalid_phone': 'Geçerli bir telefon numarası girin',
+          'cv.missing_about':
+              'Kendiniz hakkında kısa bilgi vermek zorundasınız',
+          'cv.missing_school':
+              'En az bir okul bilgisi girmeden kaydedemezsiniz',
+          'qr.title': 'Kişisel QR Kod',
+          'qr.profile_subject': 'TurqApp Profili',
+          'qr.link_copied_title': 'Link Kopyalandı',
+          'qr.link_copied_body': 'Profil linki panoya kopyalandı',
+          'qr.permission_required': 'İzin Gerekli',
+          'qr.gallery_permission_body':
+              'Kaydetmek için galeri erişim izni vermelisiniz.',
+          'qr.data_failed': 'QR kod verisi oluşturulamadı.',
+          'qr.saved': 'QR kodu galeriye kaydedildi.',
+          'qr.save_failed': 'QR kod kaydedilemedi.',
+          'qr.download_failed': 'İndirme sırasında hata oluştu.',
           'post_creator.title_new': 'Gönderi Hazırla',
           'post_creator.title_edit': 'Gönderi Düzenle',
           'post_creator.publish': 'Yayınla',
@@ -1619,12 +1827,97 @@ class AppTranslations extends Translations {
           'saved_posts.no_saved_series': 'No saved series',
           'blocked_users.empty': 'You have not blocked anyone',
           'blocked_users.unblock': 'Remove Block',
+          'profile_contact.title': 'Contact',
+          'profile_contact.call': 'Call',
+          'profile_contact.email': 'Email',
+          'editor_email.title': 'Email Verification',
+          'editor_email.email_hint': 'Your account email address',
+          'editor_email.send_code': 'Send Verification Code',
+          'editor_email.resend_in': 'Resend available in {seconds}s',
+          'editor_email.note':
+              'This verification is for security purposes. You can continue using the app even if you do not verify it.',
+          'editor_email.code_hint': '6-digit verification code',
+          'editor_email.verify_confirm': 'Verify Code and Confirm',
+          'editor_email.wait': 'Please wait {seconds} seconds.',
+          'editor_email.session_missing':
+              'Session not found. Please sign in again.',
+          'editor_email.email_missing':
+              'No email address was found on your account.',
+          'editor_email.code_sent':
+              'The verification code was sent to your email address.',
+          'editor_email.code_send_failed':
+              'The verification code could not be sent.',
+          'editor_email.enter_code':
+              'Please enter the 6-digit verification code.',
+          'editor_email.verified': 'Your email address has been verified.',
+          'editor_email.verify_failed':
+              'Email address could not be verified.',
+          'editor_phone.title': 'Phone Number',
+          'editor_phone.phone_hint': 'Phone Number',
+          'editor_phone.send_approval': 'Send Approval Email',
+          'editor_phone.resend_in': 'Resend available in {seconds}s',
+          'editor_phone.code_hint': '6-digit verification code',
+          'editor_phone.verify_update': 'Verify Code and Update',
+          'editor_phone.wait': 'Please wait {seconds} seconds.',
+          'editor_phone.invalid_phone':
+              'Please enter a 10-digit phone number starting with 5.',
+          'editor_phone.session_missing':
+              'Session not found. Please sign in again.',
+          'editor_phone.email_missing':
+              'No email address available to verify this change.',
+          'editor_phone.code_sent':
+              'The verification code was sent to your email address.',
+          'editor_phone.code_send_failed':
+              'The verification code could not be sent.',
+          'editor_phone.enter_code':
+              'Please enter the 6-digit verification code.',
+          'editor_phone.update_failed':
+              'Phone number could not be updated.',
+          'editor_phone.updated': 'Your phone number has been updated.',
+          'address.title': 'Address',
+          'address.hint': 'Business & Office Address',
+          'biography.title': 'Biography',
+          'biography.hint': 'Tell us about yourself..',
+          'job_selector.title': 'Profession & Category',
+          'job_selector.subtitle':
+              'Your category makes your profile easier to discover.',
+          'job_selector.search_hint': 'Search',
+          'legacy_language.title': 'App Language',
+          'statistics.title': 'Statistics',
+          'statistics.you': 'You',
+          'statistics.notice':
+              'Your statistics are updated regularly based on your activity over the last 30 days.',
+          'statistics.profile_visits_30d': 'Profile Visits (30 Days)',
+          'statistics.post_views': 'Post Views',
+          'statistics.post_count': 'Post Count',
+          'statistics.story_count': 'Story Count',
+          'statistics.follower_growth': 'Follower Growth',
           'interests.personalize_feed': 'Personalize your feed',
           'interests.selection_range':
               'Select at least {min} and at most {max} interests.',
           'interests.selected_count': '{selected}/{max} selected',
           'interests.ready': 'Ready',
           'interests.search_hint': 'Search interests',
+          'interests.limit_title': 'Selection Limit',
+          'interests.limit_body':
+              'You can select up to {max} interests.',
+          'interests.min_title': 'Incomplete Selection',
+          'interests.min_body':
+              'You must select at least {min} interests.',
+          'view_changer.title': 'View',
+          'view_changer.classic': 'Classic View',
+          'view_changer.modern': 'Modern View',
+          'social_links.title': 'Links ({count})',
+          'social_links.add': 'Add',
+          'social_links.add_title': 'Add Link',
+          'social_links.label_title': 'Title',
+          'social_links.username_hint': 'Username',
+          'social_links.remove_title': 'Remove Link',
+          'social_links.remove_message':
+              'Are you sure you want to remove this link?',
+          'social_links.save_permission_error':
+              'Permission error: you are not allowed to save links.',
+          'social_links.save_failed': 'Something went wrong.',
           'pasaj.closed': 'Pasaj is currently closed',
           'pasaj.common.slider_admin': 'Slider Management',
           'pasaj.common.my_results': 'My Results',
@@ -2384,10 +2677,15 @@ class AppTranslations extends Translations {
           'common.remove': 'Remove',
           'common.edit': 'Edit',
           'common.update': 'Update',
+          'common.change': 'Change',
           'common.publish': 'Publish',
           'common.loading': 'Loading...',
           'common.info': 'Info',
           'common.error': 'Error',
+          'common.download': 'Download',
+          'common.copy_link': 'Copy Link',
+          'common.verified': 'Verified',
+          'common.verify': 'Verify',
           'common.message': 'Message',
           'common.phone': 'Phone',
           'common.description': 'Description',
@@ -2403,6 +2701,130 @@ class AppTranslations extends Translations {
           'common.company': 'Company',
           'common.salary': 'Salary',
           'common.address': 'Address',
+          'profile_photo.camera': 'Take Photo',
+          'profile_photo.gallery': 'Choose from Gallery',
+          'edit_profile.title': 'Profile Information',
+          'edit_profile.personal_info': 'Personal Information',
+          'edit_profile.other_info': 'Other Information',
+          'edit_profile.first_name_hint': 'First name',
+          'edit_profile.last_name_hint': 'Last name',
+          'edit_profile.privacy': 'Account Privacy',
+          'edit_profile.links': 'Links',
+          'edit_profile.contact_info': 'Contact Information',
+          'edit_profile.address_info': 'Address Information',
+          'edit_profile.career_profile': 'Career Profile',
+          'edit_profile.update_success': 'Your profile information has been updated!',
+          'edit_profile.update_failed': 'Update error: {error}',
+          'edit_profile.remove_photo_title': 'Remove Profile Photo',
+          'edit_profile.remove_photo_message':
+              'Your profile photo will be removed and the default avatar will be used. Are you sure?',
+          'edit_profile.photo_removed': 'Your profile photo has been removed.',
+          'edit_profile.photo_remove_failed':
+              'An error occurred while removing the profile photo.',
+          'edit_profile.crop_use': 'Crop and Use',
+          'edit_profile.delete_account': 'Delete Account',
+          'edit_profile.upload_failed_title': 'Upload Failed!',
+          'edit_profile.upload_failed_body':
+              'This content cannot be processed right now. Please try different content.',
+          'delete_account.title': 'Delete Account',
+          'delete_account.confirm_title': 'Account Deletion Confirmation',
+          'delete_account.confirm_body':
+              'Before deleting your account, we send a verification code to your registered email address for security.',
+          'delete_account.code_hint': '6-digit verification code',
+          'delete_account.resend': 'Resend',
+          'delete_account.send_code': 'Send Code',
+          'delete_account.validity_notice':
+              'The code is valid for 1 hour. Your deletion request will be processed permanently after {days} days.',
+          'delete_account.processing': 'Processing...',
+          'delete_account.delete_my_account': 'Delete My Account',
+          'delete_account.no_email_title': 'Warning',
+          'delete_account.no_email_body':
+              'There is no email on this account. You can start the deletion request directly.',
+          'delete_account.session_missing':
+              'Session not found. Please sign in again.',
+          'delete_account.code_sent_title': 'Code Sent',
+          'delete_account.code_sent_body':
+              'The deletion confirmation code was sent to your email address.',
+          'delete_account.send_failed': 'Code could not be sent.',
+          'delete_account.invalid_code_title': 'Invalid Code',
+          'delete_account.invalid_code_body':
+              'Please enter the 6-digit code.',
+          'delete_account.verify_failed': 'Code could not be verified.',
+          'editor_nickname.title': 'Username',
+          'editor_nickname.hint': 'Create Username',
+          'editor_nickname.verified_locked':
+              'Verified users cannot change their username',
+          'editor_nickname.mimic_warning':
+              'Usernames that impersonate real people may be changed by TurqApp to protect our community.',
+          'editor_nickname.tr_char_info':
+              'Turkish characters are converted automatically. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)',
+          'editor_nickname.min_length': 'Must be at least 8 characters',
+          'editor_nickname.current_name': 'Your current username',
+          'editor_nickname.edit_prompt': 'Edit to make a change',
+          'editor_nickname.checking': 'Checking…',
+          'editor_nickname.taken': 'This username is taken',
+          'editor_nickname.available': 'Available',
+          'editor_nickname.unavailable': 'Could not be checked',
+          'editor_nickname.cooldown_limit':
+              'It can only be changed 3 times in the first hour',
+          'editor_nickname.change_after_days':
+              'Username can be changed again after {days}d {hours}h',
+          'editor_nickname.change_after_hours':
+              'Username can be changed again after {hours}h',
+          'editor_nickname.error_min_length':
+              'Username must be at least 8 characters.',
+          'editor_nickname.error_taken':
+              'This username is already taken.',
+          'editor_nickname.error_grace_limit':
+              'You can only change it 3 times in the first hour.',
+          'editor_nickname.error_cooldown':
+              'Username cannot be changed again before 15 days.',
+          'editor_nickname.error_update_failed':
+              'Username could not be updated.',
+          'cv.title': 'Career Profile',
+          'cv.personal_info': 'Personal Information',
+          'cv.education_info': 'Education Information',
+          'cv.other_info': 'Other Information',
+          'cv.profile_title': 'Career Profile',
+          'cv.profile_body':
+              'Make your career profile stronger with a profile photo and basic information.',
+          'cv.first_name_hint': 'First name',
+          'cv.last_name_hint': 'Last name',
+          'cv.email_hint': 'Email Address',
+          'cv.phone_hint': 'Phone Number',
+          'cv.about_hint': 'Write a short note about yourself',
+          'cv.add_school': 'Add new school',
+          'cv.skills': 'Skills',
+          'cv.add_language': 'Add Language',
+          'cv.add_new_language': 'Add new language',
+          'cv.add_experience': 'Add Work Experience',
+          'cv.add_new_experience': 'Add new work experience',
+          'cv.add_reference': 'Add Reference',
+          'cv.add_new_reference': 'Add new reference',
+          'cv.save': 'Save',
+          'cv.missing_field': 'Missing Field',
+          'cv.invalid_format': 'Invalid Format',
+          'cv.missing_first_name': 'You cannot save without entering a first name',
+          'cv.missing_last_name': 'You cannot save without entering a last name',
+          'cv.missing_email': 'You cannot save without entering an email address',
+          'cv.invalid_email': 'Please enter a valid email address',
+          'cv.missing_phone': 'You cannot save without entering a phone number',
+          'cv.invalid_phone': 'Please enter a valid phone number',
+          'cv.missing_about':
+              'You must provide a short note about yourself',
+          'cv.missing_school':
+              'You cannot save without entering at least one school',
+          'qr.title': 'Personal QR Code',
+          'qr.profile_subject': 'TurqApp Profile',
+          'qr.link_copied_title': 'Link Copied',
+          'qr.link_copied_body': 'Profile link copied to clipboard',
+          'qr.permission_required': 'Permission Required',
+          'qr.gallery_permission_body':
+              'You need to allow gallery access to save.',
+          'qr.data_failed': 'QR code data could not be created.',
+          'qr.saved': 'QR code saved to gallery.',
+          'qr.save_failed': 'QR code could not be saved.',
+          'qr.download_failed': 'An error occurred during download.',
           'post_creator.title_new': 'Prepare Post',
           'post_creator.title_edit': 'Edit Post',
           'post_creator.publish': 'Publish',
@@ -2941,12 +3363,103 @@ class AppTranslations extends Translations {
           'saved_posts.no_saved_series': 'Keine gespeicherten Serien',
           'blocked_users.empty': 'Du hast niemanden blockiert',
           'blocked_users.unblock': 'Blockierung aufheben',
+          'profile_contact.title': 'Kontakt',
+          'profile_contact.call': 'Anruf',
+          'profile_contact.email': 'E-Mail',
+          'editor_email.title': 'E-Mail-Bestätigung',
+          'editor_email.email_hint': 'Deine Konto-E-Mail-Adresse',
+          'editor_email.send_code': 'Bestätigungscode senden',
+          'editor_email.resend_in':
+              'Erneut senden in {seconds}s',
+          'editor_email.note':
+              'Diese Bestätigung dient der Sicherheit. Auch ohne Bestätigung kannst du die App weiter nutzen.',
+          'editor_email.code_hint': '6-stelliger Bestätigungscode',
+          'editor_email.verify_confirm':
+              'Code bestätigen und freigeben',
+          'editor_email.wait': 'Bitte warte {seconds} Sekunden.',
+          'editor_email.session_missing':
+              'Sitzung nicht gefunden. Bitte melde dich erneut an.',
+          'editor_email.email_missing':
+              'Für dein Konto wurde keine E-Mail gefunden.',
+          'editor_email.code_sent':
+              'Der Bestätigungscode wurde an deine E-Mail gesendet.',
+          'editor_email.code_send_failed':
+              'Der Bestätigungscode konnte nicht gesendet werden.',
+          'editor_email.enter_code':
+              'Bitte gib den 6-stelligen Bestätigungscode ein.',
+          'editor_email.verified':
+              'Deine E-Mail-Adresse wurde bestätigt.',
+          'editor_email.verify_failed':
+              'Die E-Mail-Adresse konnte nicht bestätigt werden.',
+          'editor_phone.title': 'Telefonnummer',
+          'editor_phone.phone_hint': 'Telefonnummer',
+          'editor_phone.send_approval': 'Bestätigungs-E-Mail senden',
+          'editor_phone.resend_in':
+              'Erneut senden in {seconds}s',
+          'editor_phone.code_hint': '6-stelliger Bestätigungscode',
+          'editor_phone.verify_update':
+              'Code bestätigen und aktualisieren',
+          'editor_phone.wait': 'Bitte warte {seconds} Sekunden.',
+          'editor_phone.invalid_phone':
+              'Bitte gib eine 10-stellige Telefonnummer ein, die mit 5 beginnt.',
+          'editor_phone.session_missing':
+              'Sitzung nicht gefunden. Bitte melde dich erneut an.',
+          'editor_phone.email_missing':
+              'Es wurde keine E-Mail für diese Bestätigung gefunden.',
+          'editor_phone.code_sent':
+              'Der Bestätigungscode wurde an deine E-Mail gesendet.',
+          'editor_phone.code_send_failed':
+              'Der Bestätigungscode konnte nicht gesendet werden.',
+          'editor_phone.enter_code':
+              'Bitte gib den 6-stelligen Bestätigungscode ein.',
+          'editor_phone.update_failed':
+              'Die Telefonnummer konnte nicht aktualisiert werden.',
+          'editor_phone.updated':
+              'Deine Telefonnummer wurde aktualisiert.',
+          'address.title': 'Adresse',
+          'address.hint': 'Geschäfts- & Büroadresse',
+          'biography.title': 'Biografie',
+          'biography.hint': 'Erzähle etwas über dich..',
+          'job_selector.title': 'Beruf & Kategorie',
+          'job_selector.subtitle':
+              'Deine Kategorie macht dein Profil leichter auffindbar.',
+          'job_selector.search_hint': 'Suchen',
+          'legacy_language.title': 'App-Sprache',
+          'statistics.title': 'Statistiken',
+          'statistics.you': 'Du',
+          'statistics.notice':
+              'Deine Statistiken werden regelmäßig anhand deiner Aktivitäten der letzten 30 Tage aktualisiert.',
+          'statistics.profile_visits_30d': 'Profilbesuche (30 Tage)',
+          'statistics.post_views': 'Beitragsaufrufe',
+          'statistics.post_count': 'Beitragsanzahl',
+          'statistics.story_count': 'Story-Anzahl',
+          'statistics.follower_growth': 'Follower-Wachstum',
           'interests.personalize_feed': 'Personalisiere deinen Feed',
           'interests.selection_range':
               'Wähle mindestens {min} und höchstens {max} Interessen aus.',
           'interests.selected_count': '{selected}/{max} ausgewählt',
           'interests.ready': 'Bereit',
           'interests.search_hint': 'Interessen suchen',
+          'interests.limit_title': 'Auswahllimit',
+          'interests.limit_body':
+              'Du kannst höchstens {max} Interessen auswählen.',
+          'interests.min_title': 'Auswahl unvollständig',
+          'interests.min_body':
+              'Du musst mindestens {min} Interessen auswählen.',
+          'view_changer.title': 'Ansicht',
+          'view_changer.classic': 'Klassische Ansicht',
+          'view_changer.modern': 'Moderne Ansicht',
+          'social_links.title': 'Links ({count})',
+          'social_links.add': 'Hinzufügen',
+          'social_links.add_title': 'Link hinzufügen',
+          'social_links.label_title': 'Titel',
+          'social_links.username_hint': 'Benutzername',
+          'social_links.remove_title': 'Link entfernen',
+          'social_links.remove_message':
+              'Möchtest du diesen Link wirklich entfernen?',
+          'social_links.save_permission_error':
+              'Berechtigungsfehler: Links dürfen nicht gespeichert werden.',
+          'social_links.save_failed': 'Es ist ein Problem aufgetreten.',
           'pasaj.closed': 'Pasaj ist derzeit geschlossen',
           'pasaj.common.slider_admin': 'Slider-Verwaltung',
           'pasaj.common.my_results': 'Meine Ergebnisse',
@@ -3770,10 +4283,15 @@ class AppTranslations extends Translations {
           'common.remove': 'Entfernen',
           'common.edit': 'Bearbeiten',
           'common.update': 'Aktualisieren',
+          'common.change': 'Ändern',
           'common.publish': 'Veröffentlichen',
           'common.loading': 'Wird geladen...',
           'common.info': 'Info',
           'common.error': 'Fehler',
+          'common.download': 'Herunterladen',
+          'common.copy_link': 'Link kopieren',
+          'common.verified': 'Bestätigt',
+          'common.verify': 'Bestätigen',
           'common.message': 'Nachricht',
           'common.phone': 'Telefon',
           'common.description': 'Beschreibung',
@@ -3789,6 +4307,140 @@ class AppTranslations extends Translations {
           'common.company': 'Unternehmen',
           'common.salary': 'Gehalt',
           'common.address': 'Adresse',
+          'profile_photo.camera': 'Foto aufnehmen',
+          'profile_photo.gallery': 'Aus Galerie wählen',
+          'edit_profile.title': 'Profilinformationen',
+          'edit_profile.personal_info': 'Persönliche Informationen',
+          'edit_profile.other_info': 'Weitere Informationen',
+          'edit_profile.first_name_hint': 'Vorname',
+          'edit_profile.last_name_hint': 'Nachname',
+          'edit_profile.privacy': 'Kontoprivatsphäre',
+          'edit_profile.links': 'Links',
+          'edit_profile.contact_info': 'Kontaktinformationen',
+          'edit_profile.address_info': 'Adressinformationen',
+          'edit_profile.career_profile': 'Karriereprofil',
+          'edit_profile.update_success':
+              'Deine Profilinformationen wurden aktualisiert!',
+          'edit_profile.update_failed': 'Aktualisierungsfehler: {error}',
+          'edit_profile.remove_photo_title': 'Profilbild entfernen',
+          'edit_profile.remove_photo_message':
+              'Dein Profilbild wird entfernt und der Standard-Avatar verwendet. Bist du sicher?',
+          'edit_profile.photo_removed': 'Dein Profilbild wurde entfernt.',
+          'edit_profile.photo_remove_failed':
+              'Beim Entfernen des Profilbilds ist ein Fehler aufgetreten.',
+          'edit_profile.crop_use': 'Zuschneiden und verwenden',
+          'edit_profile.delete_account': 'Konto löschen',
+          'edit_profile.upload_failed_title': 'Upload fehlgeschlagen!',
+          'edit_profile.upload_failed_body':
+              'Dieser Inhalt kann derzeit nicht verarbeitet werden. Bitte versuche einen anderen Inhalt.',
+          'delete_account.title': 'Konto löschen',
+          'delete_account.confirm_title': 'Bestätigung zur Kontolöschung',
+          'delete_account.confirm_body':
+              'Bevor du dein Konto löschst, senden wir aus Sicherheitsgründen einen Bestätigungscode an deine registrierte E-Mail-Adresse.',
+          'delete_account.code_hint': '6-stelliger Bestätigungscode',
+          'delete_account.resend': 'Erneut senden',
+          'delete_account.send_code': 'Code senden',
+          'delete_account.validity_notice':
+              'Der Code ist 1 Stunde gültig. Deine Löschanfrage wird nach {days} Tagen endgültig verarbeitet.',
+          'delete_account.processing': 'Wird verarbeitet...',
+          'delete_account.delete_my_account': 'Mein Konto löschen',
+          'delete_account.no_email_title': 'Warnung',
+          'delete_account.no_email_body':
+              'Für dieses Konto ist keine E-Mail hinterlegt. Du kannst die Löschanfrage direkt starten.',
+          'delete_account.session_missing':
+              'Sitzung nicht gefunden. Bitte melde dich erneut an.',
+          'delete_account.code_sent_title': 'Code gesendet',
+          'delete_account.code_sent_body':
+              'Der Bestätigungscode zur Löschung wurde an deine E-Mail-Adresse gesendet.',
+          'delete_account.send_failed': 'Code konnte nicht gesendet werden.',
+          'delete_account.invalid_code_title': 'Ungültiger Code',
+          'delete_account.invalid_code_body':
+              'Bitte gib den 6-stelligen Code ein.',
+          'delete_account.verify_failed':
+              'Code konnte nicht bestätigt werden.',
+          'editor_nickname.title': 'Benutzername',
+          'editor_nickname.hint': 'Benutzernamen erstellen',
+          'editor_nickname.verified_locked':
+              'Verifizierte Nutzer können ihren Benutzernamen nicht ändern',
+          'editor_nickname.mimic_warning':
+              'Benutzernamen, die echte Personen imitieren, können von TurqApp geändert werden, um unsere Community zu schützen.',
+          'editor_nickname.tr_char_info':
+              'Türkische Zeichen werden automatisch umgewandelt. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)',
+          'editor_nickname.min_length': 'Muss mindestens 8 Zeichen lang sein',
+          'editor_nickname.current_name': 'Dein aktueller Benutzername',
+          'editor_nickname.edit_prompt': 'Zum Ändern bearbeiten',
+          'editor_nickname.checking': 'Wird geprüft…',
+          'editor_nickname.taken': 'Dieser Benutzername ist vergeben',
+          'editor_nickname.available': 'Verfügbar',
+          'editor_nickname.unavailable':
+              'Konnte nicht geprüft werden',
+          'editor_nickname.cooldown_limit':
+              'In der ersten Stunde kann er nur 3 Mal geändert werden',
+          'editor_nickname.change_after_days':
+              'Benutzername kann wieder geändert werden in {days}T {hours}Std',
+          'editor_nickname.change_after_hours':
+              'Benutzername kann wieder geändert werden in {hours}Std',
+          'editor_nickname.error_min_length':
+              'Der Benutzername muss mindestens 8 Zeichen lang sein.',
+          'editor_nickname.error_taken':
+              'Dieser Benutzername ist bereits vergeben.',
+          'editor_nickname.error_grace_limit':
+              'Du kannst ihn in der ersten Stunde nur 3 Mal ändern.',
+          'editor_nickname.error_cooldown':
+              'Der Benutzername kann vor Ablauf von 15 Tagen nicht erneut geändert werden.',
+          'editor_nickname.error_update_failed':
+              'Benutzername konnte nicht aktualisiert werden.',
+          'cv.title': 'Karriereprofil',
+          'cv.personal_info': 'Persönliche Informationen',
+          'cv.education_info': 'Bildungsinformationen',
+          'cv.other_info': 'Weitere Informationen',
+          'cv.profile_title': 'Karriereprofil',
+          'cv.profile_body':
+              'Stärke dein Karriereprofil mit einem Profilfoto und grundlegenden Informationen.',
+          'cv.first_name_hint': 'Vorname',
+          'cv.last_name_hint': 'Nachname',
+          'cv.email_hint': 'E-Mail-Adresse',
+          'cv.phone_hint': 'Telefonnummer',
+          'cv.about_hint': 'Schreibe eine kurze Info über dich',
+          'cv.add_school': 'Neue Schule hinzufügen',
+          'cv.skills': 'Fähigkeiten',
+          'cv.add_language': 'Sprache hinzufügen',
+          'cv.add_new_language': 'Neue Sprache hinzufügen',
+          'cv.add_experience': 'Berufserfahrung hinzufügen',
+          'cv.add_new_experience': 'Neue Berufserfahrung hinzufügen',
+          'cv.add_reference': 'Referenz hinzufügen',
+          'cv.add_new_reference': 'Neue Referenz hinzufügen',
+          'cv.save': 'Speichern',
+          'cv.missing_field': 'Fehlendes Feld',
+          'cv.invalid_format': 'Ungültiges Format',
+          'cv.missing_first_name':
+              'Ohne Vornamen kann nicht gespeichert werden',
+          'cv.missing_last_name':
+              'Ohne Nachnamen kann nicht gespeichert werden',
+          'cv.missing_email':
+              'Ohne E-Mail-Adresse kann nicht gespeichert werden',
+          'cv.invalid_email':
+              'Bitte gib eine gültige E-Mail-Adresse ein',
+          'cv.missing_phone':
+              'Ohne Telefonnummer kann nicht gespeichert werden',
+          'cv.invalid_phone':
+              'Bitte gib eine gültige Telefonnummer ein',
+          'cv.missing_about':
+              'Du musst eine kurze Info über dich eingeben',
+          'cv.missing_school':
+              'Du kannst nicht speichern, ohne mindestens eine Schule anzugeben',
+          'qr.title': 'Persönlicher QR-Code',
+          'qr.profile_subject': 'TurqApp Profil',
+          'qr.link_copied_title': 'Link kopiert',
+          'qr.link_copied_body': 'Profil-Link in die Zwischenablage kopiert',
+          'qr.permission_required': 'Berechtigung erforderlich',
+          'qr.gallery_permission_body':
+              'Zum Speichern musst du den Galeriezugriff erlauben.',
+          'qr.data_failed': 'QR-Code-Daten konnten nicht erstellt werden.',
+          'qr.saved': 'QR-Code wurde in der Galerie gespeichert.',
+          'qr.save_failed': 'QR-Code konnte nicht gespeichert werden.',
+          'qr.download_failed':
+              'Beim Herunterladen ist ein Fehler aufgetreten.',
           'post_creator.title_new': 'Beitrag vorbereiten',
           'post_creator.title_edit': 'Beitrag bearbeiten',
           'post_creator.publish': 'Veröffentlichen',
@@ -4031,6 +4683,158 @@ class AppTranslations extends Translations {
         'settings.sign_out_title': 'Se deconnecter',
         'settings.sign_out_message':
             'Etes-vous sur de vouloir vous deconnecter ?',
+        'settings.admin_push': 'Administration / Envoyer une notification',
+        'settings.diagnostics.data_usage': 'Utilisation des donnees',
+        'settings.diagnostics.network': 'Reseau',
+        'settings.diagnostics.connected': 'Connecte',
+        'settings.diagnostics.monthly_total': 'Total mensuel',
+        'settings.diagnostics.monthly_limit': 'Limite mensuelle',
+        'settings.diagnostics.remaining': 'Restant',
+        'settings.diagnostics.limit_usage': 'Utilisation de la limite',
+        'settings.diagnostics.wifi_usage': 'Consommation Wi-Fi',
+        'settings.diagnostics.cellular_usage': 'Consommation mobile',
+        'settings.diagnostics.time_ranges': 'Plages horaires',
+        'settings.diagnostics.this_month_actual': 'Ce mois-ci (reel)',
+        'settings.diagnostics.hourly_average': 'Moyenne horaire',
+        'settings.diagnostics.since_login_estimated':
+            'Depuis la connexion (estime)',
+        'settings.diagnostics.details': 'Details',
+        'settings.diagnostics.cache': 'Cache',
+        'settings.diagnostics.saved_media_count':
+            'Nombre de medias enregistres',
+        'settings.diagnostics.occupied_space': 'Espace occupe',
+        'settings.diagnostics.offline_queue': 'File hors ligne',
+        'settings.diagnostics.pending': 'En attente',
+        'settings.diagnostics.dead_letter': 'Dead-letter',
+        'settings.diagnostics.status': 'Etat',
+        'settings.diagnostics.syncing': 'Synchronisation',
+        'settings.diagnostics.idle': 'Inactif',
+        'settings.diagnostics.processed_total': 'Traites (total)',
+        'settings.diagnostics.failed_total': 'Echecs (total)',
+        'settings.diagnostics.last_sync': 'Derniere synchro',
+        'settings.diagnostics.login_date': 'Date de connexion',
+        'settings.diagnostics.login_time': 'Heure de connexion',
+        'settings.diagnostics.app_health_panel':
+            'Panneau de sante de l application',
+        'settings.diagnostics.video_cache_detail':
+            'Details du cache video',
+        'settings.diagnostics.quick_actions': 'Actions rapides',
+        'settings.diagnostics.offline_queue_detail':
+            'Details de la file hors ligne',
+        'settings.diagnostics.last_error_summary':
+            'Dernier resume d erreur',
+        'settings.diagnostics.error_report': 'Rapport d erreur',
+        'settings.diagnostics.saved_videos': 'Videos enregistrees',
+        'settings.diagnostics.saved_segments': 'Segments enregistres',
+        'settings.diagnostics.disk_usage': 'Utilisation du disque',
+        'settings.diagnostics.unknown': 'Inconnu',
+        'settings.diagnostics.cache_traffic': 'Trafic du cache',
+        'settings.diagnostics.hit_rate': 'Taux de hit',
+        'settings.diagnostics.hit': 'Hit',
+        'settings.diagnostics.miss': 'Miss',
+        'settings.diagnostics.cache_served': 'Servi depuis le cache',
+        'settings.diagnostics.downloaded_from_network':
+            'Telecharge depuis le reseau',
+        'settings.diagnostics.prefetch': 'Prefetch',
+        'settings.diagnostics.queue': 'File',
+        'settings.diagnostics.active_downloads': 'Telechargements actifs',
+        'settings.diagnostics.paused': 'En pause',
+        'settings.diagnostics.active': 'Actif',
+        'settings.diagnostics.reset_data_counters':
+            'Reinitialiser les compteurs de donnees',
+        'settings.diagnostics.data_counters_reset':
+            'Les compteurs de donnees ont ete reinitialises.',
+        'settings.diagnostics.sync_offline_queue_now':
+            'Synchroniser la file hors ligne',
+        'settings.diagnostics.offline_queue_sync_triggered':
+            'La synchronisation de la file hors ligne a ete lancee.',
+        'settings.diagnostics.retry_dead_letter':
+            'Reessayer le dead-letter',
+        'settings.diagnostics.dead_letter_queued':
+            'Les elements dead-letter ont ete remis en file.',
+        'settings.diagnostics.clear_dead_letter':
+            'Effacer le dead-letter',
+        'settings.diagnostics.dead_letter_cleared':
+            'Les elements dead-letter ont ete supprimes.',
+        'settings.diagnostics.pause_prefetch': 'Mettre le prefetch en pause',
+        'settings.diagnostics.prefetch_paused':
+            'Le prefetch a ete mis en pause',
+        'settings.diagnostics.service_not_ready':
+            'Le service n est pas encore pret.',
+        'settings.diagnostics.resume_prefetch':
+            'Reprendre le prefetch',
+        'settings.diagnostics.prefetch_resumed': 'Le prefetch a repris',
+        'settings.diagnostics.online': 'En ligne',
+        'settings.diagnostics.sync': 'Sync',
+        'settings.diagnostics.processed': 'Traites',
+        'settings.diagnostics.failed': 'Echoues',
+        'settings.diagnostics.pending_first8':
+            'En attente (8 premiers)',
+        'settings.diagnostics.dead_letter_first8':
+            'Dead-letter (8 premiers)',
+        'settings.diagnostics.sync_now': 'Synchroniser',
+        'settings.diagnostics.dead_letter_retry':
+            'Reessayer dead-letter',
+        'settings.diagnostics.dead_letter_clear':
+            'Effacer dead-letter',
+        'settings.diagnostics.no_recorded_error':
+            'Aucune erreur enregistree.',
+        'settings.diagnostics.error_code': 'Code',
+        'settings.diagnostics.error_category': 'Categorie',
+        'settings.diagnostics.error_severity': 'Severite',
+        'settings.diagnostics.error_retryable': 'Peut etre reessaye',
+        'settings.diagnostics.error_message': 'Message',
+        'settings.diagnostics.error_time': 'Heure',
+        'account_center.header_title':
+            'Profils et informations de connexion',
+        'account_center.accounts': 'Comptes',
+        'account_center.no_accounts':
+            'Aucun compte n a encore ete ajoute a cet appareil.',
+        'account_center.add_account': 'Ajouter un compte',
+        'account_center.personal_details': 'Informations personnelles',
+        'account_center.security': 'Securite',
+        'account_center.active_account_title': 'Compte actif',
+        'account_center.active_account_body':
+            '@{username} est deja actif.',
+        'account_center.reauth_title': 'Nouvelle connexion requise',
+        'account_center.reauth_body':
+            'Veuillez entrer de nouveau votre mot de passe pour changer de compte.',
+        'account_center.switch_failed_title': 'Changement impossible',
+        'account_center.switch_failed_body':
+            'Le compte n a pas pu etre active.',
+        'account_center.remove_active_forbidden':
+            'Vous devez d abord passer a un autre compte.',
+        'account_center.remove_account_title': 'Supprimer le compte',
+        'account_center.remove_account_body':
+            'Voulez-vous retirer @{username} de cet appareil ?',
+        'account_center.account_removed': '@{username} a ete retire.',
+        'account_center.single_device_title':
+            'Connexion sur un seul appareil',
+        'account_center.single_device_desc':
+            'Lorsqu une connexion est effectuee sur un autre appareil, la session en cours est fermee et un mot de passe sera requis.',
+        'account_center.single_device_enabled':
+            'La connexion sur un seul appareil est activee.',
+        'account_center.single_device_disabled':
+            'La connexion sur un seul appareil est desactivee.',
+        'account_center.no_personal_detail':
+            'Aucun detail personnel n a ete ajoute.',
+        'account_center.contact_details': 'Coordonnees',
+        'account_center.contact_info': 'Informations de contact',
+        'account_center.email': 'E-mail',
+        'account_center.phone': 'Telephone',
+        'account_center.email_missing': 'Aucun e-mail ajoute',
+        'account_center.phone_missing': 'Aucun telephone ajoute',
+        'account_center.verified': 'Verifie',
+        'account_center.verify': 'Verifier',
+        'account_center.unverified': 'Non verifie',
+        'about_profile.title': 'A propos de ce compte',
+        'about_profile.description':
+            'Cette page montre les informations publiques essentielles et l historique de ce compte.',
+        'about_profile.joined_on': 'A rejoint le {date}',
+        'policies.center_title': 'Centre des politiques',
+        'policies.center_desc':
+            'Consultez ici les regles, les conditions et les documents d information de TurqApp.',
+        'policies.last_updated': 'Derniere mise a jour : {date}',
         'language.title': 'Langue',
         'language.subtitle': 'Choisis la langue de l application.',
         'language.note':
@@ -4075,6 +4879,147 @@ class AppTranslations extends Translations {
         'common.info': 'Info',
         'common.cancel': 'Annuler',
         'common.close': 'Fermer',
+        'profile_photo.camera': 'Prendre une photo',
+        'profile_photo.gallery': 'Choisir dans la galerie',
+        'common.download': 'Telecharger',
+        'common.copy_link': 'Copier le lien',
+        'common.verified': 'Verifie',
+        'common.verify': 'Verifier',
+        'common.change': 'Modifier',
+        'edit_profile.title': 'Informations du profil',
+        'edit_profile.personal_info': 'Informations personnelles',
+        'edit_profile.other_info': 'Autres informations',
+        'edit_profile.first_name_hint': 'Prenom',
+        'edit_profile.last_name_hint': 'Nom',
+        'edit_profile.privacy': 'Confidentialite du compte',
+        'edit_profile.links': 'Liens',
+        'edit_profile.contact_info': 'Coordonnees',
+        'edit_profile.address_info': 'Informations d adresse',
+        'edit_profile.career_profile': 'Profil de carriere',
+        'edit_profile.update_success':
+            'Les informations de votre profil ont ete mises a jour !',
+        'edit_profile.update_failed': 'Erreur de mise a jour : {error}',
+        'edit_profile.remove_photo_title': 'Supprimer la photo de profil',
+        'edit_profile.remove_photo_message':
+            'Votre photo de profil sera supprimee et l avatar par defaut sera utilise. Confirmez-vous ?',
+        'edit_profile.photo_removed': 'Votre photo de profil a ete supprimee.',
+        'edit_profile.photo_remove_failed':
+            'Une erreur est survenue lors de la suppression de la photo de profil.',
+        'edit_profile.crop_use': 'Rogner et utiliser',
+        'edit_profile.delete_account': 'Supprimer le compte',
+        'edit_profile.upload_failed_title': 'Echec du televersement !',
+        'edit_profile.upload_failed_body':
+            'Ce contenu ne peut pas etre traite pour le moment. Veuillez essayer un autre contenu.',
+        'delete_account.title': 'Supprimer le compte',
+        'delete_account.confirm_title': 'Confirmation de suppression du compte',
+        'delete_account.confirm_body':
+            'Avant de supprimer votre compte, nous envoyons un code de verification a votre adresse e-mail enregistree pour des raisons de securite.',
+        'delete_account.code_hint': 'Code de verification a 6 chiffres',
+        'delete_account.resend': 'Renvoyer',
+        'delete_account.send_code': 'Envoyer le code',
+        'delete_account.validity_notice':
+            'Le code est valide pendant 1 heure. Votre demande de suppression sera traitee definitivement apres {days} jours.',
+        'delete_account.processing': 'Traitement...',
+        'delete_account.delete_my_account': 'Supprimer mon compte',
+        'delete_account.no_email_title': 'Alerte',
+        'delete_account.no_email_body':
+            'Aucune adresse e-mail n est associee a ce compte. Vous pouvez lancer directement la demande de suppression.',
+        'delete_account.session_missing':
+            'Session introuvable. Veuillez vous reconnecter.',
+        'delete_account.code_sent_title': 'Code envoye',
+        'delete_account.code_sent_body':
+            'Le code de confirmation de suppression a ete envoye a votre adresse e-mail.',
+        'delete_account.send_failed': 'Impossible d envoyer le code.',
+        'delete_account.invalid_code_title': 'Code invalide',
+        'delete_account.invalid_code_body':
+            'Veuillez saisir le code a 6 chiffres.',
+        'delete_account.verify_failed':
+            'Le code n a pas pu etre verifie.',
+        'editor_nickname.title': 'Nom d utilisateur',
+        'editor_nickname.hint': 'Creer un nom d utilisateur',
+        'editor_nickname.verified_locked':
+            'Les utilisateurs verifies ne peuvent pas modifier leur nom d utilisateur',
+        'editor_nickname.mimic_warning':
+            'Les noms d utilisateur qui imitent de vraies personnes peuvent etre modifies par TurqApp pour proteger notre communaute.',
+        'editor_nickname.tr_char_info':
+            'Les caracteres turcs sont convertis automatiquement. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)',
+        'editor_nickname.min_length': 'Doit contenir au moins 8 caracteres',
+        'editor_nickname.current_name':
+            'Votre nom d utilisateur actuel',
+        'editor_nickname.edit_prompt':
+            'Modifiez pour effectuer un changement',
+        'editor_nickname.checking': 'Verification…',
+        'editor_nickname.taken': 'Ce nom d utilisateur est deja pris',
+        'editor_nickname.available': 'Disponible',
+        'editor_nickname.unavailable':
+            'Verification impossible',
+        'editor_nickname.cooldown_limit':
+            'Il ne peut etre modifie que 3 fois pendant la premiere heure',
+        'editor_nickname.change_after_days':
+            'Le nom d utilisateur pourra etre modifie de nouveau dans {days}j {hours}h',
+        'editor_nickname.change_after_hours':
+            'Le nom d utilisateur pourra etre modifie de nouveau dans {hours}h',
+        'editor_nickname.error_min_length':
+            'Le nom d utilisateur doit contenir au moins 8 caracteres.',
+        'editor_nickname.error_taken':
+            'Ce nom d utilisateur est deja pris.',
+        'editor_nickname.error_grace_limit':
+            'Vous ne pouvez le modifier que 3 fois pendant la premiere heure.',
+        'editor_nickname.error_cooldown':
+            'Le nom d utilisateur ne peut pas etre modifie de nouveau avant 15 jours.',
+        'editor_nickname.error_update_failed':
+            'Le nom d utilisateur n a pas pu etre mis a jour.',
+        'cv.title': 'Profil de carriere',
+        'cv.personal_info': 'Informations personnelles',
+        'cv.education_info': 'Informations sur les etudes',
+        'cv.other_info': 'Autres informations',
+        'cv.profile_title': 'Profil de carriere',
+        'cv.profile_body':
+            'Renforcez votre profil de carriere avec une photo de profil et des informations essentielles.',
+        'cv.first_name_hint': 'Prenom',
+        'cv.last_name_hint': 'Nom',
+        'cv.email_hint': 'Adresse e-mail',
+        'cv.phone_hint': 'Numero de telephone',
+        'cv.about_hint': 'Parlez brievement de vous',
+        'cv.add_school': 'Ajouter une ecole',
+        'cv.skills': 'Competences',
+        'cv.add_language': 'Ajouter une langue',
+        'cv.add_new_language': 'Ajouter une nouvelle langue',
+        'cv.add_experience': 'Ajouter une experience',
+        'cv.add_new_experience': 'Ajouter une nouvelle experience',
+        'cv.add_reference': 'Ajouter une reference',
+        'cv.add_new_reference': 'Ajouter une nouvelle reference',
+        'cv.save': 'Enregistrer',
+        'cv.missing_field': 'Champ manquant',
+        'cv.invalid_format': 'Format invalide',
+        'cv.missing_first_name':
+            'Vous ne pouvez pas enregistrer sans saisir un prenom',
+        'cv.missing_last_name':
+            'Vous ne pouvez pas enregistrer sans saisir un nom',
+        'cv.missing_email':
+            'Vous ne pouvez pas enregistrer sans saisir une adresse e-mail',
+        'cv.invalid_email':
+            'Veuillez saisir une adresse e-mail valide',
+        'cv.missing_phone':
+            'Vous ne pouvez pas enregistrer sans saisir un numero de telephone',
+        'cv.invalid_phone':
+            'Veuillez saisir un numero de telephone valide',
+        'cv.missing_about':
+            'Vous devez fournir une courte presentation de vous',
+        'cv.missing_school':
+            'Vous ne pouvez pas enregistrer sans ajouter au moins une ecole',
+        'qr.title': 'QR code personnel',
+        'qr.profile_subject': 'Profil TurqApp',
+        'qr.link_copied_title': 'Lien copie',
+        'qr.link_copied_body': 'Le lien du profil a ete copie',
+        'qr.permission_required': 'Autorisation requise',
+        'qr.gallery_permission_body':
+            'Vous devez autoriser l acces a la galerie pour enregistrer.',
+        'qr.data_failed': 'Impossible de generer les donnees du QR code.',
+        'qr.saved': 'Le QR code a ete enregistre dans la galerie.',
+        'qr.save_failed': 'Le QR code n a pas pu etre enregistre.',
+        'qr.download_failed':
+            'Une erreur est survenue pendant le telechargement.',
         'signup.create_account_title': 'Creez votre compte',
         'signup.policy_short':
             'J accepte les contrats et les politiques.',
@@ -4120,6 +5065,102 @@ class AppTranslations extends Translations {
         'saved_posts.no_saved_posts':
             'Aucune publication enregistree',
         'saved_posts.no_saved_series': 'Aucune serie enregistree',
+        'editor_email.title': 'Verification de l e-mail',
+        'editor_email.email_hint': 'Votre adresse e-mail de compte',
+        'editor_email.send_code': 'Envoyer le code de verification',
+        'editor_email.resend_in': 'Nouveau renvoi dans {seconds}s',
+        'editor_email.note':
+            'Cette verification est effectuee pour des raisons de securite. Vous pouvez continuer a utiliser l application meme sans la confirmer.',
+        'editor_email.code_hint': 'Code de verification a 6 chiffres',
+        'editor_email.verify_confirm':
+            'Verifier le code et confirmer',
+        'editor_email.wait': 'Veuillez patienter {seconds} secondes.',
+        'editor_email.session_missing':
+            'Session introuvable. Veuillez vous reconnecter.',
+        'editor_email.email_missing':
+            'Aucune adresse e-mail n a ete trouvee sur votre compte.',
+        'editor_email.code_sent':
+            'Le code de verification a ete envoye a votre adresse e-mail.',
+        'editor_email.code_send_failed':
+            'Le code de verification n a pas pu etre envoye.',
+        'editor_email.enter_code':
+            'Veuillez saisir le code de verification a 6 chiffres.',
+        'editor_email.verified':
+            'Votre adresse e-mail a ete verifiee.',
+        'editor_email.verify_failed':
+            'L adresse e-mail n a pas pu etre verifiee.',
+        'editor_phone.title': 'Numero de telephone',
+        'editor_phone.phone_hint': 'Numero de telephone',
+        'editor_phone.send_approval':
+            'Envoyer l e-mail de verification',
+        'editor_phone.resend_in': 'Nouveau renvoi dans {seconds}s',
+        'editor_phone.code_hint': 'Code de verification a 6 chiffres',
+        'editor_phone.verify_update':
+            'Verifier le code et mettre a jour',
+        'editor_phone.wait': 'Veuillez patienter {seconds} secondes.',
+        'editor_phone.invalid_phone':
+            'Veuillez saisir un numero a 10 chiffres commencant par 5.',
+        'editor_phone.session_missing':
+            'Session introuvable. Veuillez vous reconnecter.',
+        'editor_phone.email_missing':
+            'Aucun e-mail n est disponible pour verifier cette modification.',
+        'editor_phone.code_sent':
+            'Le code de verification a ete envoye a votre adresse e-mail.',
+        'editor_phone.code_send_failed':
+            'Le code de verification n a pas pu etre envoye.',
+        'editor_phone.enter_code':
+            'Veuillez saisir le code de verification a 6 chiffres.',
+        'editor_phone.update_failed':
+            'Le numero de telephone n a pas pu etre mis a jour.',
+        'editor_phone.updated':
+            'Votre numero de telephone a ete mis a jour.',
+        'address.title': 'Adresse',
+        'address.hint': 'Adresse du bureau ou de l entreprise',
+        'biography.title': 'Biographie',
+        'biography.hint': 'Parlez un peu de vous..',
+        'profile_contact.title': 'Contact',
+        'profile_contact.call': 'Appel',
+        'profile_contact.email': 'E-mail',
+        'job_selector.title': 'Metier et categorie',
+        'job_selector.subtitle':
+            'Votre categorie rend votre profil plus facile a decouvrir.',
+        'job_selector.search_hint': 'Rechercher',
+        'legacy_language.title': 'Langue de l application',
+        'statistics.title': 'Statistiques',
+        'statistics.you': 'Vous',
+        'statistics.notice':
+            'Vos statistiques sont mises a jour regulierement selon votre activite des 30 derniers jours.',
+        'statistics.profile_visits_30d': 'Visites du profil (30 jours)',
+        'statistics.post_views': 'Vues des publications',
+        'statistics.post_count': 'Nombre de publications',
+        'statistics.story_count': 'Nombre de stories',
+        'statistics.follower_growth': 'Croissance des abonnes',
+        'interests.personalize_feed': 'Personnalise ton fil',
+        'interests.selection_range':
+            'Selectionne au moins {min} et au maximum {max} centres d interet.',
+        'interests.selected_count': '{selected}/{max} selectionnes',
+        'interests.ready': 'Pret',
+        'interests.search_hint': 'Rechercher des centres d interet',
+        'interests.limit_title': 'Limite de selection',
+        'interests.limit_body':
+            'Vous pouvez selectionner au maximum {max} centres d interet.',
+        'interests.min_title': 'Selection incomplete',
+        'interests.min_body':
+            'Vous devez selectionner au moins {min} centres d interet.',
+        'view_changer.title': 'Affichage',
+        'view_changer.classic': 'Affichage classique',
+        'view_changer.modern': 'Affichage moderne',
+        'social_links.title': 'Liens ({count})',
+        'social_links.add': 'Ajouter',
+        'social_links.add_title': 'Ajouter un lien',
+        'social_links.label_title': 'Titre',
+        'social_links.username_hint': 'Nom d utilisateur',
+        'social_links.remove_title': 'Supprimer le lien',
+        'social_links.remove_message':
+            'Voulez-vous vraiment supprimer ce lien ?',
+        'social_links.save_permission_error':
+            'Erreur d autorisation : vous ne pouvez pas enregistrer ce lien.',
+        'social_links.save_failed': 'Un probleme est survenu.',
         'post_creator.title_new': 'Preparer une publication',
         'post_creator.title_edit': 'Modifier la publication',
         'post_creator.publish': 'Publier',
@@ -4395,6 +5436,161 @@ class AppTranslations extends Translations {
         'settings.sign_out_title': 'Esci',
         'settings.sign_out_message':
             'Sei sicuro di voler uscire?',
+        'settings.admin_push': 'Admin / Invia push',
+        'settings.diagnostics.data_usage': 'Utilizzo dati',
+        'settings.diagnostics.network': 'Rete',
+        'settings.diagnostics.connected': 'Connesso',
+        'settings.diagnostics.monthly_total': 'Totale mensile',
+        'settings.diagnostics.monthly_limit': 'Limite mensile',
+        'settings.diagnostics.remaining': 'Rimanente',
+        'settings.diagnostics.limit_usage': 'Uso del limite',
+        'settings.diagnostics.wifi_usage': 'Consumo Wi-Fi',
+        'settings.diagnostics.cellular_usage':
+            'Consumo dati mobili',
+        'settings.diagnostics.time_ranges': 'Intervalli di tempo',
+        'settings.diagnostics.this_month_actual': 'Questo mese (reale)',
+        'settings.diagnostics.hourly_average': 'Media oraria',
+        'settings.diagnostics.since_login_estimated':
+            'Dall accesso (stimato)',
+        'settings.diagnostics.details': 'Dettagli',
+        'settings.diagnostics.cache': 'Cache',
+        'settings.diagnostics.saved_media_count':
+            'Numero di media salvati',
+        'settings.diagnostics.occupied_space': 'Spazio occupato',
+        'settings.diagnostics.offline_queue': 'Coda offline',
+        'settings.diagnostics.pending': 'In attesa',
+        'settings.diagnostics.dead_letter': 'Dead-letter',
+        'settings.diagnostics.status': 'Stato',
+        'settings.diagnostics.syncing': 'Sincronizzazione',
+        'settings.diagnostics.idle': 'Inattivo',
+        'settings.diagnostics.processed_total': 'Elaborati (totale)',
+        'settings.diagnostics.failed_total': 'Errori (totale)',
+        'settings.diagnostics.last_sync': 'Ultima sincronizzazione',
+        'settings.diagnostics.login_date': 'Data di accesso',
+        'settings.diagnostics.login_time': 'Ora di accesso',
+        'settings.diagnostics.app_health_panel':
+            'Pannello salute applicazione',
+        'settings.diagnostics.video_cache_detail':
+            'Dettagli cache video',
+        'settings.diagnostics.quick_actions': 'Azioni rapide',
+        'settings.diagnostics.offline_queue_detail':
+            'Dettagli coda offline',
+        'settings.diagnostics.last_error_summary':
+            'Ultimo riepilogo errori',
+        'settings.diagnostics.error_report': 'Rapporto errore',
+        'settings.diagnostics.saved_videos': 'Video salvati',
+        'settings.diagnostics.saved_segments': 'Segmenti salvati',
+        'settings.diagnostics.disk_usage': 'Utilizzo disco',
+        'settings.diagnostics.unknown': 'Sconosciuto',
+        'settings.diagnostics.cache_traffic': 'Traffico cache',
+        'settings.diagnostics.hit_rate': 'Tasso di hit',
+        'settings.diagnostics.hit': 'Hit',
+        'settings.diagnostics.miss': 'Miss',
+        'settings.diagnostics.cache_served': 'Servito dalla cache',
+        'settings.diagnostics.downloaded_from_network':
+            'Scaricato dalla rete',
+        'settings.diagnostics.prefetch': 'Prefetch',
+        'settings.diagnostics.queue': 'Coda',
+        'settings.diagnostics.active_downloads':
+            'Download attivi',
+        'settings.diagnostics.paused': 'In pausa',
+        'settings.diagnostics.active': 'Attivo',
+        'settings.diagnostics.reset_data_counters':
+            'Reimposta contatori dati',
+        'settings.diagnostics.data_counters_reset':
+            'I contatori dati sono stati reimpostati.',
+        'settings.diagnostics.sync_offline_queue_now':
+            'Sincronizza la coda offline',
+        'settings.diagnostics.offline_queue_sync_triggered':
+            'La sincronizzazione della coda offline e stata avviata.',
+        'settings.diagnostics.retry_dead_letter':
+            'Riprova dead-letter',
+        'settings.diagnostics.dead_letter_queued':
+            'Gli elementi dead-letter sono stati rimessi in coda.',
+        'settings.diagnostics.clear_dead_letter':
+            'Cancella dead-letter',
+        'settings.diagnostics.dead_letter_cleared':
+            'Gli elementi dead-letter sono stati eliminati.',
+        'settings.diagnostics.pause_prefetch': 'Metti in pausa prefetch',
+        'settings.diagnostics.prefetch_paused':
+            'Il prefetch e stato messo in pausa',
+        'settings.diagnostics.service_not_ready':
+            'Il servizio non e ancora pronto.',
+        'settings.diagnostics.resume_prefetch':
+            'Riprendi prefetch',
+        'settings.diagnostics.prefetch_resumed':
+            'Il prefetch e ripreso',
+        'settings.diagnostics.online': 'Online',
+        'settings.diagnostics.sync': 'Sync',
+        'settings.diagnostics.processed': 'Elaborati',
+        'settings.diagnostics.failed': 'Errori',
+        'settings.diagnostics.pending_first8':
+            'In attesa (primi 8)',
+        'settings.diagnostics.dead_letter_first8':
+            'Dead-letter (primi 8)',
+        'settings.diagnostics.sync_now': 'Sincronizza ora',
+        'settings.diagnostics.dead_letter_retry': 'Riprova dead-letter',
+        'settings.diagnostics.dead_letter_clear': 'Cancella dead-letter',
+        'settings.diagnostics.no_recorded_error':
+            'Nessun errore registrato.',
+        'settings.diagnostics.error_code': 'Codice',
+        'settings.diagnostics.error_category': 'Categoria',
+        'settings.diagnostics.error_severity': 'Gravita',
+        'settings.diagnostics.error_retryable': 'Riprovabile',
+        'settings.diagnostics.error_message': 'Messaggio',
+        'settings.diagnostics.error_time': 'Ora',
+        'account_center.header_title':
+            'Profili e dettagli di accesso',
+        'account_center.accounts': 'Account',
+        'account_center.no_accounts':
+            'Nessun account e stato ancora aggiunto a questo dispositivo.',
+        'account_center.add_account': 'Aggiungi account',
+        'account_center.personal_details': 'Dettagli personali',
+        'account_center.security': 'Sicurezza',
+        'account_center.active_account_title': 'Account attivo',
+        'account_center.active_account_body':
+            '@{username} e gia attivo.',
+        'account_center.reauth_title': 'Nuovo accesso richiesto',
+        'account_center.reauth_body':
+            'Inserisci di nuovo la password per cambiare account.',
+        'account_center.switch_failed_title':
+            'Cambio non riuscito',
+        'account_center.switch_failed_body':
+            'Impossibile attivare l account.',
+        'account_center.remove_active_forbidden':
+            'Devi prima passare a un altro account.',
+        'account_center.remove_account_title': 'Rimuovi account',
+        'account_center.remove_account_body':
+            'Vuoi rimuovere @{username} da questo dispositivo?',
+        'account_center.account_removed':
+            '@{username} e stato rimosso.',
+        'account_center.single_device_title':
+            'Accesso da un solo dispositivo',
+        'account_center.single_device_desc':
+            'Quando effettui l accesso da un altro dispositivo, la sessione corrente viene chiusa e sara richiesta la password.',
+        'account_center.single_device_enabled':
+            'L accesso da un solo dispositivo e attivo.',
+        'account_center.single_device_disabled':
+            'L accesso da un solo dispositivo e disattivo.',
+        'account_center.no_personal_detail':
+            'Nessun dettaglio personale aggiunto.',
+        'account_center.contact_details': 'Dettagli di contatto',
+        'account_center.contact_info': 'Informazioni di contatto',
+        'account_center.email': 'E-mail',
+        'account_center.phone': 'Telefono',
+        'account_center.email_missing': 'Nessuna e-mail aggiunta',
+        'account_center.phone_missing': 'Nessun telefono aggiunto',
+        'account_center.verified': 'Verificato',
+        'account_center.verify': 'Verifica',
+        'account_center.unverified': 'Non verificato',
+        'about_profile.title': 'Informazioni su questo account',
+        'about_profile.description':
+            'Questa pagina mostra le informazioni pubbliche essenziali e la cronologia di questo account.',
+        'about_profile.joined_on': 'Iscritto il {date}',
+        'policies.center_title': 'Centro politiche',
+        'policies.center_desc':
+            'Qui puoi consultare regole, termini e documenti informativi di TurqApp.',
+        'policies.last_updated': 'Ultimo aggiornamento: {date}',
         'language.title': 'Lingua',
         'language.subtitle': 'Scegli la lingua dell app.',
         'language.note':
@@ -4439,6 +5635,147 @@ class AppTranslations extends Translations {
         'common.info': 'Info',
         'common.cancel': 'Annulla',
         'common.close': 'Chiudi',
+        'profile_photo.camera': 'Scatta una foto',
+        'profile_photo.gallery': 'Scegli dalla galleria',
+        'common.download': 'Scarica',
+        'common.copy_link': 'Copia link',
+        'common.verified': 'Verificato',
+        'common.verify': 'Verifica',
+        'common.change': 'Modifica',
+        'edit_profile.title': 'Informazioni profilo',
+        'edit_profile.personal_info': 'Informazioni personali',
+        'edit_profile.other_info': 'Altre informazioni',
+        'edit_profile.first_name_hint': 'Nome',
+        'edit_profile.last_name_hint': 'Cognome',
+        'edit_profile.privacy': 'Privacy account',
+        'edit_profile.links': 'Collegamenti',
+        'edit_profile.contact_info': 'Informazioni di contatto',
+        'edit_profile.address_info': 'Informazioni indirizzo',
+        'edit_profile.career_profile': 'Profilo carriera',
+        'edit_profile.update_success':
+            'Le informazioni del tuo profilo sono state aggiornate!',
+        'edit_profile.update_failed': 'Errore di aggiornamento: {error}',
+        'edit_profile.remove_photo_title': 'Rimuovi foto profilo',
+        'edit_profile.remove_photo_message':
+            'La tua foto profilo verra rimossa e verra usato l avatar predefinito. Confermi?',
+        'edit_profile.photo_removed': 'La tua foto profilo e stata rimossa.',
+        'edit_profile.photo_remove_failed':
+            'Si e verificato un errore durante la rimozione della foto profilo.',
+        'edit_profile.crop_use': 'Ritaglia e usa',
+        'edit_profile.delete_account': 'Elimina account',
+        'edit_profile.upload_failed_title': 'Caricamento non riuscito!',
+        'edit_profile.upload_failed_body':
+            'Questo contenuto non puo essere elaborato in questo momento. Prova con un contenuto diverso.',
+        'delete_account.title': 'Elimina account',
+        'delete_account.confirm_title': 'Conferma eliminazione account',
+        'delete_account.confirm_body':
+            'Prima di eliminare il tuo account, inviamo un codice di verifica al tuo indirizzo e-mail registrato per motivi di sicurezza.',
+        'delete_account.code_hint': 'Codice di verifica a 6 cifre',
+        'delete_account.resend': 'Invia di nuovo',
+        'delete_account.send_code': 'Invia codice',
+        'delete_account.validity_notice':
+            'Il codice e valido per 1 ora. La tua richiesta di eliminazione verra elaborata in modo definitivo dopo {days} giorni.',
+        'delete_account.processing': 'Elaborazione...',
+        'delete_account.delete_my_account': 'Elimina il mio account',
+        'delete_account.no_email_title': 'Avviso',
+        'delete_account.no_email_body':
+            'Nessuna e-mail e associata a questo account. Puoi avviare direttamente la richiesta di eliminazione.',
+        'delete_account.session_missing':
+            'Sessione non trovata. Accedi di nuovo.',
+        'delete_account.code_sent_title': 'Codice inviato',
+        'delete_account.code_sent_body':
+            'Il codice di conferma per l eliminazione e stato inviato al tuo indirizzo e-mail.',
+        'delete_account.send_failed': 'Impossibile inviare il codice.',
+        'delete_account.invalid_code_title': 'Codice non valido',
+        'delete_account.invalid_code_body':
+            'Inserisci il codice a 6 cifre.',
+        'delete_account.verify_failed':
+            'Impossibile verificare il codice.',
+        'editor_nickname.title': 'Nome utente',
+        'editor_nickname.hint': 'Crea nome utente',
+        'editor_nickname.verified_locked':
+            'Gli utenti verificati non possono cambiare il nome utente',
+        'editor_nickname.mimic_warning':
+            'I nomi utente che imitano persone reali possono essere modificati da TurqApp per proteggere la community.',
+        'editor_nickname.tr_char_info':
+            'I caratteri turchi vengono convertiti automaticamente. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)',
+        'editor_nickname.min_length':
+            'Deve contenere almeno 8 caratteri',
+        'editor_nickname.current_name': 'Il tuo nome utente attuale',
+        'editor_nickname.edit_prompt':
+            'Modifica per effettuare un cambiamento',
+        'editor_nickname.checking': 'Verifica…',
+        'editor_nickname.taken': 'Questo nome utente e gia in uso',
+        'editor_nickname.available': 'Disponibile',
+        'editor_nickname.unavailable':
+            'Impossibile verificare',
+        'editor_nickname.cooldown_limit':
+            'Puo essere cambiato solo 3 volte nella prima ora',
+        'editor_nickname.change_after_days':
+            'Il nome utente potra essere cambiato di nuovo tra {days}g {hours}h',
+        'editor_nickname.change_after_hours':
+            'Il nome utente potra essere cambiato di nuovo tra {hours}h',
+        'editor_nickname.error_min_length':
+            'Il nome utente deve contenere almeno 8 caratteri.',
+        'editor_nickname.error_taken':
+            'Questo nome utente e gia in uso.',
+        'editor_nickname.error_grace_limit':
+            'Puoi cambiarlo solo 3 volte nella prima ora.',
+        'editor_nickname.error_cooldown':
+            'Il nome utente non puo essere cambiato di nuovo prima di 15 giorni.',
+        'editor_nickname.error_update_failed':
+            'Impossibile aggiornare il nome utente.',
+        'cv.title': 'Profilo carriera',
+        'cv.personal_info': 'Informazioni personali',
+        'cv.education_info': 'Informazioni sull istruzione',
+        'cv.other_info': 'Altre informazioni',
+        'cv.profile_title': 'Profilo carriera',
+        'cv.profile_body':
+            'Rendi piu forte il tuo profilo carriera con una foto profilo e informazioni di base.',
+        'cv.first_name_hint': 'Nome',
+        'cv.last_name_hint': 'Cognome',
+        'cv.email_hint': 'Indirizzo e-mail',
+        'cv.phone_hint': 'Numero di telefono',
+        'cv.about_hint': 'Scrivi una breve descrizione di te',
+        'cv.add_school': 'Aggiungi scuola',
+        'cv.skills': 'Competenze',
+        'cv.add_language': 'Aggiungi lingua',
+        'cv.add_new_language': 'Aggiungi nuova lingua',
+        'cv.add_experience': 'Aggiungi esperienza',
+        'cv.add_new_experience': 'Aggiungi nuova esperienza',
+        'cv.add_reference': 'Aggiungi referenza',
+        'cv.add_new_reference': 'Aggiungi nuova referenza',
+        'cv.save': 'Salva',
+        'cv.missing_field': 'Campo mancante',
+        'cv.invalid_format': 'Formato non valido',
+        'cv.missing_first_name':
+            'Non puoi salvare senza inserire il nome',
+        'cv.missing_last_name':
+            'Non puoi salvare senza inserire il cognome',
+        'cv.missing_email':
+            'Non puoi salvare senza inserire un indirizzo e-mail',
+        'cv.invalid_email':
+            'Inserisci un indirizzo e-mail valido',
+        'cv.missing_phone':
+            'Non puoi salvare senza inserire un numero di telefono',
+        'cv.invalid_phone':
+            'Inserisci un numero di telefono valido',
+        'cv.missing_about':
+            'Devi fornire una breve descrizione di te',
+        'cv.missing_school':
+            'Non puoi salvare senza aggiungere almeno una scuola',
+        'qr.title': 'QR personale',
+        'qr.profile_subject': 'Profilo TurqApp',
+        'qr.link_copied_title': 'Link copiato',
+        'qr.link_copied_body': 'Link del profilo copiato negli appunti',
+        'qr.permission_required': 'Permesso richiesto',
+        'qr.gallery_permission_body':
+            'Devi consentire l accesso alla galleria per salvare.',
+        'qr.data_failed': 'Impossibile creare i dati del QR.',
+        'qr.saved': 'QR salvato nella galleria.',
+        'qr.save_failed': 'Impossibile salvare il QR.',
+        'qr.download_failed':
+            'Si e verificato un errore durante il download.',
         'signup.create_account_title': 'Crea il tuo account',
         'signup.policy_short':
             'Accetto i contratti e le politiche.',
@@ -4483,6 +5820,101 @@ class AppTranslations extends Translations {
         'saved_posts.series_tab': 'Serie',
         'saved_posts.no_saved_posts': 'Nessun post salvato',
         'saved_posts.no_saved_series': 'Nessuna serie salvata',
+        'editor_email.title': 'Verifica e-mail',
+        'editor_email.email_hint': 'Il tuo indirizzo e-mail del profilo',
+        'editor_email.send_code': 'Invia codice di verifica',
+        'editor_email.resend_in': 'Nuovo invio tra {seconds}s',
+        'editor_email.note':
+            'Questa verifica serve per sicurezza. Puoi continuare a usare l app anche senza confermarla.',
+        'editor_email.code_hint': 'Codice di verifica a 6 cifre',
+        'editor_email.verify_confirm':
+            'Verifica il codice e conferma',
+        'editor_email.wait': 'Attendi {seconds} secondi.',
+        'editor_email.session_missing':
+            'Sessione non trovata. Accedi di nuovo.',
+        'editor_email.email_missing':
+            'Nessun indirizzo e-mail trovato nel tuo account.',
+        'editor_email.code_sent':
+            'Il codice di verifica e stato inviato al tuo indirizzo e-mail.',
+        'editor_email.code_send_failed':
+            'Impossibile inviare il codice di verifica.',
+        'editor_email.enter_code':
+            'Inserisci il codice di verifica a 6 cifre.',
+        'editor_email.verified':
+            'Il tuo indirizzo e-mail e stato verificato.',
+        'editor_email.verify_failed':
+            'Impossibile verificare l indirizzo e-mail.',
+        'editor_phone.title': 'Numero di telefono',
+        'editor_phone.phone_hint': 'Numero di telefono',
+        'editor_phone.send_approval': 'Invia e-mail di conferma',
+        'editor_phone.resend_in': 'Nuovo invio tra {seconds}s',
+        'editor_phone.code_hint': 'Codice di verifica a 6 cifre',
+        'editor_phone.verify_update':
+            'Verifica il codice e aggiorna',
+        'editor_phone.wait': 'Attendi {seconds} secondi.',
+        'editor_phone.invalid_phone':
+            'Inserisci un numero di 10 cifre che inizi con 5.',
+        'editor_phone.session_missing':
+            'Sessione non trovata. Accedi di nuovo.',
+        'editor_phone.email_missing':
+            'Nessuna e-mail disponibile per verificare questa modifica.',
+        'editor_phone.code_sent':
+            'Il codice di verifica e stato inviato al tuo indirizzo e-mail.',
+        'editor_phone.code_send_failed':
+            'Impossibile inviare il codice di verifica.',
+        'editor_phone.enter_code':
+            'Inserisci il codice di verifica a 6 cifre.',
+        'editor_phone.update_failed':
+            'Impossibile aggiornare il numero di telefono.',
+        'editor_phone.updated':
+            'Il tuo numero di telefono e stato aggiornato.',
+        'address.title': 'Indirizzo',
+        'address.hint': 'Indirizzo ufficio o attivita',
+        'biography.title': 'Biografia',
+        'biography.hint': 'Parla un po di te..',
+        'profile_contact.title': 'Contatto',
+        'profile_contact.call': 'Chiamata',
+        'profile_contact.email': 'E-mail',
+        'job_selector.title': 'Professione e categoria',
+        'job_selector.subtitle':
+            'La tua categoria rende il tuo profilo piu facile da trovare.',
+        'job_selector.search_hint': 'Cerca',
+        'legacy_language.title': 'Lingua dell app',
+        'statistics.title': 'Statistiche',
+        'statistics.you': 'Tu',
+        'statistics.notice':
+            'Le tue statistiche vengono aggiornate regolarmente in base alle tue attivita degli ultimi 30 giorni.',
+        'statistics.profile_visits_30d': 'Visite profilo (30 giorni)',
+        'statistics.post_views': 'Visualizzazioni post',
+        'statistics.post_count': 'Numero di post',
+        'statistics.story_count': 'Numero di storie',
+        'statistics.follower_growth': 'Crescita follower',
+        'interests.personalize_feed': 'Personalizza il tuo feed',
+        'interests.selection_range':
+            'Seleziona almeno {min} e al massimo {max} interessi.',
+        'interests.selected_count': '{selected}/{max} selezionati',
+        'interests.ready': 'Pronto',
+        'interests.search_hint': 'Cerca interessi',
+        'interests.limit_title': 'Limite di selezione',
+        'interests.limit_body':
+            'Puoi selezionare al massimo {max} interessi.',
+        'interests.min_title': 'Selezione incompleta',
+        'interests.min_body':
+            'Devi selezionare almeno {min} interessi.',
+        'view_changer.title': 'Vista',
+        'view_changer.classic': 'Vista classica',
+        'view_changer.modern': 'Vista moderna',
+        'social_links.title': 'Collegamenti ({count})',
+        'social_links.add': 'Aggiungi',
+        'social_links.add_title': 'Aggiungi collegamento',
+        'social_links.label_title': 'Titolo',
+        'social_links.username_hint': 'Nome utente',
+        'social_links.remove_title': 'Rimuovi collegamento',
+        'social_links.remove_message':
+            'Vuoi davvero rimuovere questo collegamento?',
+        'social_links.save_permission_error':
+            'Errore di autorizzazione: non puoi salvare questo collegamento.',
+        'social_links.save_failed': 'Si e verificato un problema.',
         'post_creator.title_new': 'Prepara post',
         'post_creator.title_edit': 'Modifica post',
         'post_creator.publish': 'Pubblica',
@@ -4759,6 +6191,196 @@ class AppTranslations extends Translations {
         'settings.sign_out_title': 'Выйти',
         'settings.sign_out_message':
             'Вы уверены, что хотите выйти?',
+        'settings.admin_push': 'Админ / Отправить push',
+        'settings.diagnostics.data_usage':
+            'Использование данных',
+        'settings.diagnostics.network': 'Сеть',
+        'settings.diagnostics.connected': 'Подключено',
+        'settings.diagnostics.monthly_total':
+            'Всего за месяц',
+        'settings.diagnostics.monthly_limit':
+            'Месячный лимит',
+        'settings.diagnostics.remaining': 'Осталось',
+        'settings.diagnostics.limit_usage':
+            'Использование лимита',
+        'settings.diagnostics.wifi_usage':
+            'Использование Wi-Fi',
+        'settings.diagnostics.cellular_usage':
+            'Использование мобильных данных',
+        'settings.diagnostics.time_ranges':
+            'Промежутки времени',
+        'settings.diagnostics.this_month_actual':
+            'Этот месяц (факт)',
+        'settings.diagnostics.hourly_average':
+            'Среднее за час',
+        'settings.diagnostics.since_login_estimated':
+            'С момента входа (оценка)',
+        'settings.diagnostics.details': 'Детали',
+        'settings.diagnostics.cache': 'Кэш',
+        'settings.diagnostics.saved_media_count':
+            'Количество сохраненных медиа',
+        'settings.diagnostics.occupied_space':
+            'Занятое пространство',
+        'settings.diagnostics.offline_queue':
+            'Оффлайн-очередь',
+        'settings.diagnostics.pending': 'В ожидании',
+        'settings.diagnostics.dead_letter': 'Dead-letter',
+        'settings.diagnostics.status': 'Статус',
+        'settings.diagnostics.syncing': 'Синхронизация',
+        'settings.diagnostics.idle': 'Ожидание',
+        'settings.diagnostics.processed_total':
+            'Обработано (всего)',
+        'settings.diagnostics.failed_total':
+            'Ошибок (всего)',
+        'settings.diagnostics.last_sync':
+            'Последняя синхронизация',
+        'settings.diagnostics.login_date': 'Дата входа',
+        'settings.diagnostics.login_time': 'Время входа',
+        'settings.diagnostics.app_health_panel':
+            'Панель состояния приложения',
+        'settings.diagnostics.video_cache_detail':
+            'Детали видеокэша',
+        'settings.diagnostics.quick_actions':
+            'Быстрые действия',
+        'settings.diagnostics.offline_queue_detail':
+            'Детали оффлайн-очереди',
+        'settings.diagnostics.last_error_summary':
+            'Последняя сводка ошибок',
+        'settings.diagnostics.error_report':
+            'Отчет об ошибке',
+        'settings.diagnostics.saved_videos':
+            'Сохраненные видео',
+        'settings.diagnostics.saved_segments':
+            'Сохраненные сегменты',
+        'settings.diagnostics.disk_usage':
+            'Использование диска',
+        'settings.diagnostics.unknown': 'Неизвестно',
+        'settings.diagnostics.cache_traffic':
+            'Трафик кэша',
+        'settings.diagnostics.hit_rate':
+            'Коэффициент попаданий',
+        'settings.diagnostics.hit': 'Hit',
+        'settings.diagnostics.miss': 'Miss',
+        'settings.diagnostics.cache_served':
+            'Отдано из кэша',
+        'settings.diagnostics.downloaded_from_network':
+            'Загружено из сети',
+        'settings.diagnostics.prefetch': 'Prefetch',
+        'settings.diagnostics.queue': 'Очередь',
+        'settings.diagnostics.active_downloads':
+            'Активные загрузки',
+        'settings.diagnostics.paused': 'На паузе',
+        'settings.diagnostics.active': 'Активно',
+        'settings.diagnostics.reset_data_counters':
+            'Сбросить счетчики данных',
+        'settings.diagnostics.data_counters_reset':
+            'Счетчики данных были сброшены.',
+        'settings.diagnostics.sync_offline_queue_now':
+            'Синхронизировать оффлайн-очередь',
+        'settings.diagnostics.offline_queue_sync_triggered':
+            'Синхронизация оффлайн-очереди запущена.',
+        'settings.diagnostics.retry_dead_letter':
+            'Повторить dead-letter',
+        'settings.diagnostics.dead_letter_queued':
+            'Элементы dead-letter снова поставлены в очередь.',
+        'settings.diagnostics.clear_dead_letter':
+            'Очистить dead-letter',
+        'settings.diagnostics.dead_letter_cleared':
+            'Элементы dead-letter удалены.',
+        'settings.diagnostics.pause_prefetch':
+            'Поставить prefetch на паузу',
+        'settings.diagnostics.prefetch_paused':
+            'Prefetch поставлен на паузу',
+        'settings.diagnostics.service_not_ready':
+            'Сервис пока не готов.',
+        'settings.diagnostics.resume_prefetch':
+            'Продолжить prefetch',
+        'settings.diagnostics.prefetch_resumed':
+            'Prefetch возобновлен',
+        'settings.diagnostics.online': 'Онлайн',
+        'settings.diagnostics.sync': 'Sync',
+        'settings.diagnostics.processed': 'Обработано',
+        'settings.diagnostics.failed': 'Ошибки',
+        'settings.diagnostics.pending_first8':
+            'В ожидании (первые 8)',
+        'settings.diagnostics.dead_letter_first8':
+            'Dead-letter (первые 8)',
+        'settings.diagnostics.sync_now':
+            'Синхронизировать сейчас',
+        'settings.diagnostics.dead_letter_retry':
+            'Повторить dead-letter',
+        'settings.diagnostics.dead_letter_clear':
+            'Очистить dead-letter',
+        'settings.diagnostics.no_recorded_error':
+            'Нет записанных ошибок.',
+        'settings.diagnostics.error_code': 'Код',
+        'settings.diagnostics.error_category': 'Категория',
+        'settings.diagnostics.error_severity': 'Уровень',
+        'settings.diagnostics.error_retryable':
+            'Можно повторить',
+        'settings.diagnostics.error_message': 'Сообщение',
+        'settings.diagnostics.error_time': 'Время',
+        'account_center.header_title':
+            'Профили и данные входа',
+        'account_center.accounts': 'Аккаунты',
+        'account_center.no_accounts':
+            'На это устройство пока не добавлен ни один аккаунт.',
+        'account_center.add_account': 'Добавить аккаунт',
+        'account_center.personal_details':
+            'Личные данные',
+        'account_center.security': 'Безопасность',
+        'account_center.active_account_title':
+            'Активный аккаунт',
+        'account_center.active_account_body':
+            '@{username} уже активен.',
+        'account_center.reauth_title':
+            'Требуется повторный вход',
+        'account_center.reauth_body':
+            'Пожалуйста, снова введите пароль, чтобы переключить аккаунт.',
+        'account_center.switch_failed_title':
+            'Не удалось переключить',
+        'account_center.switch_failed_body':
+            'Не удалось активировать аккаунт.',
+        'account_center.remove_active_forbidden':
+            'Сначала нужно переключиться на другой аккаунт.',
+        'account_center.remove_account_title':
+            'Удалить аккаунт',
+        'account_center.remove_account_body':
+            'Удалить @{username} с этого устройства?',
+        'account_center.account_removed':
+            '@{username} удален.',
+        'account_center.single_device_title':
+            'Вход с одного устройства',
+        'account_center.single_device_desc':
+            'При входе с другого устройства текущая сессия будет закрыта и потребуется пароль.',
+        'account_center.single_device_enabled':
+            'Вход с одного устройства включен.',
+        'account_center.single_device_disabled':
+            'Вход с одного устройства отключен.',
+        'account_center.no_personal_detail':
+            'Личные данные не добавлены.',
+        'account_center.contact_details':
+            'Контактные данные',
+        'account_center.contact_info':
+            'Контактная информация',
+        'account_center.email': 'E-mail',
+        'account_center.phone': 'Телефон',
+        'account_center.email_missing':
+            'E-mail не добавлен',
+        'account_center.phone_missing':
+            'Телефон не добавлен',
+        'account_center.verified': 'Подтверждено',
+        'account_center.verify': 'Подтвердить',
+        'account_center.unverified': 'Не подтверждено',
+        'about_profile.title': 'Об этом аккаунте',
+        'about_profile.description':
+            'На этой странице показаны основные публичные сведения и история этого аккаунта.',
+        'about_profile.joined_on': 'Присоединился {date}',
+        'policies.center_title': 'Центр политик',
+        'policies.center_desc':
+            'Здесь можно просмотреть правила, условия и информационные документы TurqApp.',
+        'policies.last_updated':
+            'Последнее обновление: {date}',
         'language.title': 'Язык',
         'language.subtitle': 'Выберите язык приложения.',
         'language.note':
@@ -4803,6 +6425,147 @@ class AppTranslations extends Translations {
         'common.info': 'Инфо',
         'common.cancel': 'Отмена',
         'common.close': 'Закрыть',
+        'profile_photo.camera': 'Сделать фото',
+        'profile_photo.gallery': 'Выбрать из галереи',
+        'common.download': 'Скачать',
+        'common.copy_link': 'Копировать ссылку',
+        'common.verified': 'Подтверждено',
+        'common.verify': 'Подтвердить',
+        'common.change': 'Изменить',
+        'edit_profile.title': 'Данные профиля',
+        'edit_profile.personal_info': 'Личная информация',
+        'edit_profile.other_info': 'Дополнительная информация',
+        'edit_profile.first_name_hint': 'Имя',
+        'edit_profile.last_name_hint': 'Фамилия',
+        'edit_profile.privacy': 'Приватность аккаунта',
+        'edit_profile.links': 'Ссылки',
+        'edit_profile.contact_info': 'Контактная информация',
+        'edit_profile.address_info': 'Информация об адресе',
+        'edit_profile.career_profile': 'Карьерный профиль',
+        'edit_profile.update_success':
+            'Данные вашего профиля обновлены!',
+        'edit_profile.update_failed': 'Ошибка обновления: {error}',
+        'edit_profile.remove_photo_title': 'Удалить фото профиля',
+        'edit_profile.remove_photo_message':
+            'Фото профиля будет удалено, и будет использован стандартный аватар. Продолжить?',
+        'edit_profile.photo_removed': 'Фото профиля удалено.',
+        'edit_profile.photo_remove_failed':
+            'Произошла ошибка при удалении фото профиля.',
+        'edit_profile.crop_use': 'Обрезать и использовать',
+        'edit_profile.delete_account': 'Удалить аккаунт',
+        'edit_profile.upload_failed_title': 'Ошибка загрузки!',
+        'edit_profile.upload_failed_body':
+            'Этот контент сейчас не может быть обработан. Попробуйте другой контент.',
+        'delete_account.title': 'Удалить аккаунт',
+        'delete_account.confirm_title': 'Подтверждение удаления аккаунта',
+        'delete_account.confirm_body':
+            'Перед удалением аккаунта мы отправим код подтверждения на ваш зарегистрированный e-mail в целях безопасности.',
+        'delete_account.code_hint': '6-значный код подтверждения',
+        'delete_account.resend': 'Отправить снова',
+        'delete_account.send_code': 'Отправить код',
+        'delete_account.validity_notice':
+            'Код действует 1 час. Ваш запрос на удаление будет окончательно обработан через {days} дней.',
+        'delete_account.processing': 'Обработка...',
+        'delete_account.delete_my_account': 'Удалить мой аккаунт',
+        'delete_account.no_email_title': 'Предупреждение',
+        'delete_account.no_email_body':
+            'У этого аккаунта нет e-mail. Вы можете сразу запустить запрос на удаление.',
+        'delete_account.session_missing':
+            'Сессия не найдена. Войдите снова.',
+        'delete_account.code_sent_title': 'Код отправлен',
+        'delete_account.code_sent_body':
+            'Код подтверждения удаления отправлен на ваш e-mail.',
+        'delete_account.send_failed': 'Не удалось отправить код.',
+        'delete_account.invalid_code_title': 'Неверный код',
+        'delete_account.invalid_code_body':
+            'Введите 6-значный код.',
+        'delete_account.verify_failed':
+            'Не удалось подтвердить код.',
+        'editor_nickname.title': 'Имя пользователя',
+        'editor_nickname.hint': 'Создать имя пользователя',
+        'editor_nickname.verified_locked':
+            'Подтвержденные пользователи не могут менять имя пользователя',
+        'editor_nickname.mimic_warning':
+            'Имена пользователей, имитирующие реальных людей, могут быть изменены TurqApp для защиты сообщества.',
+        'editor_nickname.tr_char_info':
+            'Турецкие символы преобразуются автоматически. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)',
+        'editor_nickname.min_length':
+            'Должно быть не менее 8 символов',
+        'editor_nickname.current_name':
+            'Ваше текущее имя пользователя',
+        'editor_nickname.edit_prompt':
+            'Измените, чтобы внести правку',
+        'editor_nickname.checking': 'Проверка…',
+        'editor_nickname.taken': 'Это имя пользователя уже занято',
+        'editor_nickname.available': 'Доступно',
+        'editor_nickname.unavailable':
+            'Не удалось проверить',
+        'editor_nickname.cooldown_limit':
+            'В первый час можно изменить только 3 раза',
+        'editor_nickname.change_after_days':
+            'Имя пользователя можно будет изменить снова через {days}д {hours}ч',
+        'editor_nickname.change_after_hours':
+            'Имя пользователя можно будет изменить снова через {hours}ч',
+        'editor_nickname.error_min_length':
+            'Имя пользователя должно содержать не менее 8 символов.',
+        'editor_nickname.error_taken':
+            'Это имя пользователя уже занято.',
+        'editor_nickname.error_grace_limit':
+            'В первый час его можно изменить только 3 раза.',
+        'editor_nickname.error_cooldown':
+            'Имя пользователя нельзя изменить повторно раньше чем через 15 дней.',
+        'editor_nickname.error_update_failed':
+            'Не удалось обновить имя пользователя.',
+        'cv.title': 'Карьерный профиль',
+        'cv.personal_info': 'Личная информация',
+        'cv.education_info': 'Информация об образовании',
+        'cv.other_info': 'Дополнительная информация',
+        'cv.profile_title': 'Карьерный профиль',
+        'cv.profile_body':
+            'Сделайте карьерный профиль сильнее с помощью фото профиля и базовой информации.',
+        'cv.first_name_hint': 'Имя',
+        'cv.last_name_hint': 'Фамилия',
+        'cv.email_hint': 'Адрес e-mail',
+        'cv.phone_hint': 'Номер телефона',
+        'cv.about_hint': 'Кратко расскажите о себе',
+        'cv.add_school': 'Добавить учебное заведение',
+        'cv.skills': 'Навыки',
+        'cv.add_language': 'Добавить язык',
+        'cv.add_new_language': 'Добавить новый язык',
+        'cv.add_experience': 'Добавить опыт работы',
+        'cv.add_new_experience': 'Добавить новый опыт работы',
+        'cv.add_reference': 'Добавить рекомендацию',
+        'cv.add_new_reference': 'Добавить новую рекомендацию',
+        'cv.save': 'Сохранить',
+        'cv.missing_field': 'Отсутствует поле',
+        'cv.invalid_format': 'Неверный формат',
+        'cv.missing_first_name':
+            'Нельзя сохранить без имени',
+        'cv.missing_last_name':
+            'Нельзя сохранить без фамилии',
+        'cv.missing_email':
+            'Нельзя сохранить без адреса e-mail',
+        'cv.invalid_email':
+            'Введите корректный адрес e-mail',
+        'cv.missing_phone':
+            'Нельзя сохранить без номера телефона',
+        'cv.invalid_phone':
+            'Введите корректный номер телефона',
+        'cv.missing_about':
+            'Нужно добавить краткую информацию о себе',
+        'cv.missing_school':
+            'Нельзя сохранить без добавления хотя бы одного учебного заведения',
+        'qr.title': 'Личный QR-код',
+        'qr.profile_subject': 'Профиль TurqApp',
+        'qr.link_copied_title': 'Ссылка скопирована',
+        'qr.link_copied_body': 'Ссылка на профиль скопирована',
+        'qr.permission_required': 'Требуется разрешение',
+        'qr.gallery_permission_body':
+            'Для сохранения нужно разрешить доступ к галерее.',
+        'qr.data_failed': 'Не удалось создать данные QR-кода.',
+        'qr.saved': 'QR-код сохранен в галерею.',
+        'qr.save_failed': 'Не удалось сохранить QR-код.',
+        'qr.download_failed': 'Во время загрузки произошла ошибка.',
         'signup.create_account_title': 'Создайте аккаунт',
         'signup.policy_short':
             'Я принимаю договоры и политики.',
@@ -4848,6 +6611,108 @@ class AppTranslations extends Translations {
         'saved_posts.no_saved_posts':
             'Нет сохраненных публикаций',
         'saved_posts.no_saved_series': 'Нет сохраненных серий',
+        'editor_email.title': 'Подтверждение e-mail',
+        'editor_email.email_hint':
+            'Ваш адрес электронной почты аккаунта',
+        'editor_email.send_code':
+            'Отправить код подтверждения',
+        'editor_email.resend_in':
+            'Повторная отправка через {seconds}s',
+        'editor_email.note':
+            'Это подтверждение нужно для безопасности. Вы можете продолжать пользоваться приложением даже без подтверждения.',
+        'editor_email.code_hint': '6-значный код подтверждения',
+        'editor_email.verify_confirm':
+            'Подтвердить код и подтвердить e-mail',
+        'editor_email.wait':
+            'Пожалуйста, подождите {seconds} секунд.',
+        'editor_email.session_missing':
+            'Сессия не найдена. Пожалуйста, войдите снова.',
+        'editor_email.email_missing':
+            'В вашем аккаунте не найден адрес e-mail.',
+        'editor_email.code_sent':
+            'Код подтверждения отправлен на ваш e-mail.',
+        'editor_email.code_send_failed':
+            'Не удалось отправить код подтверждения.',
+        'editor_email.enter_code':
+            'Введите 6-значный код подтверждения.',
+        'editor_email.verified':
+            'Ваш адрес e-mail подтвержден.',
+        'editor_email.verify_failed':
+            'Не удалось подтвердить адрес e-mail.',
+        'editor_phone.title': 'Номер телефона',
+        'editor_phone.phone_hint': 'Номер телефона',
+        'editor_phone.send_approval':
+            'Отправить письмо подтверждения',
+        'editor_phone.resend_in':
+            'Повторная отправка через {seconds}s',
+        'editor_phone.code_hint': '6-значный код подтверждения',
+        'editor_phone.verify_update':
+            'Подтвердить код и обновить',
+        'editor_phone.wait':
+            'Пожалуйста, подождите {seconds} секунд.',
+        'editor_phone.invalid_phone':
+            'Введите 10-значный номер телефона, начинающийся с 5.',
+        'editor_phone.session_missing':
+            'Сессия не найдена. Пожалуйста, войдите снова.',
+        'editor_phone.email_missing':
+            'Нет e-mail для подтверждения этого изменения.',
+        'editor_phone.code_sent':
+            'Код подтверждения отправлен на ваш e-mail.',
+        'editor_phone.code_send_failed':
+            'Не удалось отправить код подтверждения.',
+        'editor_phone.enter_code':
+            'Введите 6-значный код подтверждения.',
+        'editor_phone.update_failed':
+            'Не удалось обновить номер телефона.',
+        'editor_phone.updated':
+            'Ваш номер телефона обновлен.',
+        'address.title': 'Адрес',
+        'address.hint': 'Адрес офиса или компании',
+        'biography.title': 'Биография',
+        'biography.hint': 'Расскажите немного о себе..',
+        'profile_contact.title': 'Контакты',
+        'profile_contact.call': 'Звонок',
+        'profile_contact.email': 'E-mail',
+        'job_selector.title': 'Профессия и категория',
+        'job_selector.subtitle':
+            'Категория помогает вашему профилю легче находиться.',
+        'job_selector.search_hint': 'Поиск',
+        'legacy_language.title': 'Язык приложения',
+        'statistics.title': 'Статистика',
+        'statistics.you': 'Вы',
+        'statistics.notice':
+            'Ваша статистика регулярно обновляется на основе активности за последние 30 дней.',
+        'statistics.profile_visits_30d': 'Посещения профиля (30 дней)',
+        'statistics.post_views': 'Просмотры постов',
+        'statistics.post_count': 'Количество постов',
+        'statistics.story_count': 'Количество историй',
+        'statistics.follower_growth': 'Рост подписчиков',
+        'interests.personalize_feed': 'Настройте свою ленту',
+        'interests.selection_range':
+            'Выберите минимум {min} и максимум {max} интересов.',
+        'interests.selected_count': 'Выбрано {selected}/{max}',
+        'interests.ready': 'Готово',
+        'interests.search_hint': 'Поиск интересов',
+        'interests.limit_title': 'Лимит выбора',
+        'interests.limit_body':
+            'Можно выбрать не более {max} интересов.',
+        'interests.min_title': 'Недостаточно выбора',
+        'interests.min_body':
+            'Нужно выбрать минимум {min} интересов.',
+        'view_changer.title': 'Вид',
+        'view_changer.classic': 'Классический вид',
+        'view_changer.modern': 'Современный вид',
+        'social_links.title': 'Ссылки ({count})',
+        'social_links.add': 'Добавить',
+        'social_links.add_title': 'Добавить ссылку',
+        'social_links.label_title': 'Заголовок',
+        'social_links.username_hint': 'Имя пользователя',
+        'social_links.remove_title': 'Удалить ссылку',
+        'social_links.remove_message':
+            'Вы уверены, что хотите удалить эту ссылку?',
+        'social_links.save_permission_error':
+            'Ошибка доступа: у вас нет прав для сохранения ссылки.',
+        'social_links.save_failed': 'Произошла ошибка.',
         'post_creator.title_new': 'Подготовить публикацию',
         'post_creator.title_edit': 'Редактировать публикацию',
         'post_creator.publish': 'Опубликовать',

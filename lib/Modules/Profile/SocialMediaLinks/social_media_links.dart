@@ -21,7 +21,8 @@ class SocialMediaLinks extends StatelessWidget {
         child: Column(
           children: [
             Obx(() => BackButtons(
-                  text: "Bağlantılar (${controller.list.length})",
+                  text: 'social_links.title'
+                      .trParams({'count': '${controller.list.length}'}),
                 )),
             const SizedBox(height: 15),
             Expanded(
@@ -165,10 +166,10 @@ class SocialMediaLinks extends StatelessWidget {
   Future<void> showRemoveConfirmation(int index) async {
     final model = controller.list[index];
     await noYesAlert(
-      title: "Bağlantıyı Kaldır",
-      message: "Bu bağlantıyı kaldırmak istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Kaldır",
+      title: 'social_links.remove_title'.tr,
+      message: 'social_links.remove_message'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'common.remove'.tr,
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
         await controller.deleteLink(model.docID);
@@ -202,10 +203,10 @@ class SocialMediaLinks extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 7),
-            const Text(
-              "Ekle",
+            Text(
+              'social_links.add'.tr,
               maxLines: 1,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 12,
                 fontFamily: "MontserratBold",

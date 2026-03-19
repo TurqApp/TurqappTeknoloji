@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -61,7 +62,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
-                children: [BackButtons(text: "Hesabını Sil")],
+                children: [BackButtons(text: 'delete_account.title'.tr)],
               ),
             ),
             Expanded(
@@ -78,7 +79,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Hesap Silme Onayı",
+                          'delete_account.confirm_title'.tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -87,7 +88,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          "Hesabınızı silmeden önce güvenlik için kayıtlı e-posta adresinize onay kodu gönderiyoruz.",
+                          'delete_account.confirm_body'.tr,
                           style: TextStyle(
                             color: Colors.black.withValues(alpha: 0.75),
                             fontSize: 14,
@@ -126,7 +127,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             decoration: InputDecoration(
-                              hintText: "6 haneli onay kodu",
+                              hintText: 'delete_account.code_hint'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "Montserrat",
@@ -146,8 +147,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
                             _countdown > 0
                                 ? "${_countdown}s"
                                 : (_isCodeSent
-                                    ? "Tekrar Gönder"
-                                    : "Kod Gönder"),
+                                    ? 'delete_account.resend'.tr
+                                    : 'delete_account.send_code'.tr),
                             style: TextStyle(
                               color:
                                   _countdown > 0 ? Colors.grey : Color(_color),
@@ -161,7 +162,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "Kodun geçerlilik süresi 1 saattir. Silme talebiniz $_deletionGraceDays gün sonra kalıcı olarak işlenir.",
+                    'delete_account.validity_notice'
+                        .trParams({'days': '$_deletionGraceDays'}),
                     style: TextStyle(
                       color: Colors.black.withValues(alpha: 0.6),
                       fontSize: 12,
@@ -182,7 +184,9 @@ class _DeleteAccountState extends State<DeleteAccount> {
                             const BorderRadius.all(Radius.circular(12)),
                       ),
                       child: Text(
-                        _isBusy ? "İşleniyor..." : "Hesabımı Sil",
+                        _isBusy
+                            ? 'delete_account.processing'.tr
+                            : 'delete_account.delete_my_account'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -205,15 +209,18 @@ class _DeleteAccountState extends State<DeleteAccount> {
     if (_countdown > 0 || _isBusy) return;
     if (_email.isEmpty) {
       AppSnackbar(
-        "Uyarı",
-        "Bu hesapta e-posta yok. Silme talebini direkt başlatabilirsiniz.",
+        'delete_account.no_email_title'.tr,
+        'delete_account.no_email_body'.tr,
       );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Tekrar giriş yapın.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        'delete_account.session_missing'.tr,
+      );
       return;
     }
 
@@ -237,13 +244,18 @@ class _DeleteAccountState extends State<DeleteAccount> {
         _isCodeSent = true;
       });
       AppSnackbar(
-          "Kod Gönderildi", "Silme onay kodu e-posta adresinize gönderildi.");
+        'delete_account.code_sent_title'.tr,
+        'delete_account.code_sent_body'.tr,
+      );
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      AppSnackbar("Uyarı", e.message ?? "Kod gönderilemedi.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        e.message ?? 'delete_account.send_failed'.tr,
+      );
     } catch (_) {
       if (!mounted) return;
-      AppSnackbar("Hata", "Kod gönderilemedi.");
+      AppSnackbar('common.error'.tr, 'delete_account.send_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -281,13 +293,19 @@ class _DeleteAccountState extends State<DeleteAccount> {
 
     final code = _codeController.text.trim();
     if (code.length != 6) {
-      AppSnackbar("Geçersiz Kod", "Lütfen 6 haneli kod girin.");
+      AppSnackbar(
+        'delete_account.invalid_code_title'.tr,
+        'delete_account.invalid_code_body'.tr,
+      );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Tekrar giriş yapın.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        'delete_account.session_missing'.tr,
+      );
       return;
     }
 
@@ -310,10 +328,13 @@ class _DeleteAccountState extends State<DeleteAccount> {
       await _requestDelete(context);
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      AppSnackbar("Uyarı", e.message ?? "Kod doğrulanamadı.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        e.message ?? 'delete_account.verify_failed'.tr,
+      );
     } catch (_) {
       if (!mounted) return;
-      AppSnackbar("Hata", "Kod doğrulanamadı.");
+      AppSnackbar('common.error'.tr, 'delete_account.verify_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {

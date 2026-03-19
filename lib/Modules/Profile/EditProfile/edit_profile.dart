@@ -62,7 +62,7 @@ class _EditProfileState extends State<EditProfile> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Profil Bilgileri"),
+            BackButtons(text: 'edit_profile.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -114,21 +114,21 @@ class _EditProfileState extends State<EditProfile> {
                                           onTap: () => controller.pickImage(
                                             source: ImageSource.camera,
                                           ),
-                                          title: 'Kameradan Çek',
+                                          title: 'profile_photo.camera'.tr,
                                           icon: CupertinoIcons.camera,
                                         ),
                                         PullDownMenuItem(
                                           onTap: () => controller.pickImage(
                                             source: ImageSource.gallery,
                                           ),
-                                          title: 'Galeriden Seç',
+                                          title: 'profile_photo.gallery'.tr,
                                           icon: CupertinoIcons.photo,
                                         ),
                                         if (controller.hasCustomProfilePhoto)
                                           PullDownMenuItem(
                                             onTap:
                                                 controller.removeProfilePhoto,
-                                            title: 'Kaldır',
+                                            title: 'common.remove'.tr,
                                             icon: CupertinoIcons.trash,
                                           ),
                                       ],
@@ -164,7 +164,7 @@ class _EditProfileState extends State<EditProfile> {
                                 ),
                                 12.pw,
                                 Text(
-                                  "Kişisel Bilgiler",
+                                  'edit_profile.personal_info'.tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 15,
@@ -206,7 +206,8 @@ class _EditProfileState extends State<EditProfile> {
                                           ),
                                         ],
                                         decoration: InputDecoration(
-                                          hintText: "Adınız",
+                                          hintText:
+                                              'edit_profile.first_name_hint'.tr,
                                           hintStyle: TextStyle(
                                             color: Colors.grey,
                                             fontFamily: "MontserratMedium",
@@ -248,7 +249,8 @@ class _EditProfileState extends State<EditProfile> {
                                           ),
                                         ],
                                         decoration: InputDecoration(
-                                          hintText: "Soyadınız",
+                                          hintText:
+                                              'edit_profile.last_name_hint'.tr,
                                           hintStyle: TextStyle(
                                             color: Colors.grey,
                                             fontFamily: "MontserratMedium",
@@ -301,7 +303,7 @@ class _EditProfileState extends State<EditProfile> {
                                           ),
                                         ),
                                         Text(
-                                          "Değiştir",
+                                          'common.change'.tr,
                                           style: TextStyle(
                                             color: Colors.blueAccent,
                                             fontSize: 15,
@@ -352,18 +354,18 @@ class _EditProfileState extends State<EditProfile> {
                                           final verified = currentUserService
                                               .emailVerifiedRx.value;
                                           if (verified) {
-                                            return const Row(
+                                            return Row(
                                               children: [
-                                                Icon(
+                                                const Icon(
                                                   CupertinoIcons
                                                       .checkmark_seal_fill,
                                                   color: Colors.green,
                                                   size: 18,
                                                 ),
-                                                SizedBox(width: 6),
+                                                const SizedBox(width: 6),
                                                 Text(
-                                                  "Onaylı",
-                                                  style: TextStyle(
+                                                  'common.verified'.tr,
+                                                  style: const TextStyle(
                                                     color: Colors.green,
                                                     fontSize: 14,
                                                     fontFamily:
@@ -373,9 +375,9 @@ class _EditProfileState extends State<EditProfile> {
                                               ],
                                             );
                                           }
-                                          return const Text(
-                                            "Onayla",
-                                            style: TextStyle(
+                                          return Text(
+                                            'common.verify'.tr,
+                                            style: const TextStyle(
                                               color: Colors.blueAccent,
                                               fontSize: 15,
                                               fontFamily: "MontserratMedium",
@@ -417,18 +419,18 @@ class _EditProfileState extends State<EditProfile> {
                                             fontFamily: "MontserratMedium",
                                           ),
                                         ),
-                                        const Row(
+                                        Row(
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               CupertinoIcons
                                                   .checkmark_seal_fill,
                                               color: Colors.green,
                                               size: 18,
                                             ),
-                                            SizedBox(width: 6),
+                                            const SizedBox(width: 6),
                                             Text(
-                                              "Onaylı",
-                                              style: TextStyle(
+                                              'common.verified'.tr,
+                                              style: const TextStyle(
                                                 color: Colors.green,
                                                 fontSize: 14,
                                                 fontFamily: "MontserratMedium",
@@ -453,7 +455,7 @@ class _EditProfileState extends State<EditProfile> {
                           ),
                           12.pw,
                           Text(
-                            "Diğer Bilgiler",
+                            'edit_profile.other_info'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -501,9 +503,9 @@ class _EditProfileState extends State<EditProfile> {
                                           size: 20,
                                         ),
                                         const SizedBox(width: 12),
-                                        const Text(
-                                          "Hesap Gizliliği",
-                                          style: TextStyle(
+                                        Text(
+                                          'edit_profile.privacy'.tr,
+                                          style: const TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
                                             fontFamily: "MontserratMedium",
@@ -556,7 +558,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Bağlantılar",
+                                          'edit_profile.links'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -608,7 +610,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Biyografi",
+                                          'biography.title'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -662,7 +664,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Meslek & Kategori",
+                                          'job_selector.title'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -714,7 +716,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "İletişim Bilgileri",
+                                          'edit_profile.contact_info'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -766,7 +768,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Adres Bilgileri",
+                                          'edit_profile.address_info'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -818,7 +820,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Kariyer Profili",
+                                          'edit_profile.career_profile'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -859,7 +861,7 @@ class _EditProfileState extends State<EditProfile> {
                                 if (!mounted) return;
                                 setState(() => _updating = false);
                               },
-                              text: "Güncelle",
+                              text: 'common.update'.tr,
                             ),
                       12.ph,
                       GestureDetector(
@@ -867,7 +869,7 @@ class _EditProfileState extends State<EditProfile> {
                           Get.to(() => DeleteAccount());
                         },
                         child: Text(
-                          "Hesabını Sil",
+                          'edit_profile.delete_account'.tr,
                           style: TextStyle(
                               color: Colors.grey,
                               fontSize: 15,

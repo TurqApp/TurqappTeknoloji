@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -156,10 +157,6 @@ class EditorNicknameController extends GetxController {
     return 0;
   }
 
-  int? _extractGraceWindowStartAt(Map<String, dynamic> data) {
-    return _parseMillis(data['nicknameGraceWindowStartAt']);
-  }
-
   void _updateCooldownState(Map<String, dynamic> data) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final createdAtMs = _extractCreatedAt(data);
@@ -175,7 +172,7 @@ class EditorNicknameController extends GetxController {
         final graceCount = _extractGraceCount(data);
         if (graceCount >= 3) {
           isCooldownActive.value = true;
-          cooldownText.value = 'İlk 1 saatte en fazla 3 kez değiştirilebilir';
+          cooldownText.value = 'editor_nickname.cooldown_limit'.tr;
           return;
         }
         isCooldownActive.value = false;
@@ -189,11 +186,11 @@ class EditorNicknameController extends GetxController {
         final hours = left.inHours % 24;
         isCooldownActive.value = true;
         if (days > 0) {
-          cooldownText.value =
-              'Kullanıcı adı tekrar değiştirilebilir: ${days}g ${hours}s sonra';
+          cooldownText.value = 'editor_nickname.change_after_days'
+              .trParams({'days': '$days', 'hours': '$hours'});
         } else {
-          cooldownText.value =
-              'Kullanıcı adı tekrar değiştirilebilir: ${left.inHours}s sonra';
+          cooldownText.value = 'editor_nickname.change_after_hours'
+              .trParams({'hours': '${left.inHours}'});
         }
         return;
       }
@@ -229,7 +226,7 @@ class EditorNicknameController extends GetxController {
     }
     if (name.length < 8) {
       isAvailable.value = false;
-      statusText.value = 'En az 8 karakter olmalı';
+      statusText.value = 'editor_nickname.min_length'.tr;
       return;
     }
 
@@ -237,16 +234,16 @@ class EditorNicknameController extends GetxController {
     if (name == _originalNickname) {
       isAvailable.value = true;
       if (hasUserTyped.value) {
-        statusText.value = 'Mevcut kullanıcı adın';
+        statusText.value = 'editor_nickname.current_name'.tr;
       } else {
-        statusText.value = 'Değişiklik yapmak için düzenle';
+        statusText.value = 'editor_nickname.edit_prompt'.tr;
       }
       return;
     }
 
     try {
       isChecking.value = true;
-      statusText.value = 'Kontrol ediliyor…';
+      statusText.value = 'editor_nickname.checking'.tr;
 
       // Global benzersizlik kontrolü
       final existing = await _userRepository.findUserByNickname(
@@ -255,14 +252,14 @@ class EditorNicknameController extends GetxController {
       );
       if (existing != null && (existing['id'] ?? '').toString() != uid) {
         isAvailable.value = false;
-        statusText.value = 'Bu kullanıcı adı alınmış';
+        statusText.value = 'editor_nickname.taken'.tr;
       } else {
         isAvailable.value = true;
-        statusText.value = 'Kullanılabilir';
+        statusText.value = 'editor_nickname.available'.tr;
       }
     } catch (e) {
       isAvailable.value = null;
-      statusText.value = 'Kontrol edilemedi';
+      statusText.value = 'editor_nickname.unavailable'.tr;
     } finally {
       isChecking.value = false;
     }
@@ -278,79 +275,10 @@ class EditorNicknameController extends GetxController {
     );
 
     if (normalized.length < 8) {
-      AppSnackbar('Hata', 'Kullanıcı adı en az 8 karakter olmalıdır.');
+      AppSnackbar('common.error'.tr, 'editor_nickname.error_min_length'.tr);
       return;
     }
     try {
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-
-      Future<Map<String, dynamic>> buildPatch(
-        Map<String, dynamic> userData,
-      ) async {
-        final lastChangeMs = _extractLastChangeAt(userData);
-        final graceStartMs = _extractGraceWindowStartAt(userData);
-        final graceCount = _extractGraceCount(userData);
-        if (lastChangeMs != null) {
-          final elapsed = nowMs - lastChangeMs;
-          if (elapsed <= _graceWindow.inMilliseconds && graceCount >= 3) {
-            throw Exception('grace_limit');
-          }
-          if (elapsed > _graceWindow.inMilliseconds &&
-              elapsed < _changeCooldown.inMilliseconds) {
-            throw Exception('cooldown');
-          }
-        }
-
-        final Map<String, dynamic> userPatch = {
-          'nickname': normalized,
-          'username': normalized,
-          'usernameLower': normalized,
-          'nicknameChangedAt': nowMs,
-        };
-
-        if (_originalNickname.isNotEmpty && _originalNickname != normalized) {
-          final historyEntry = {
-            'nickname': _originalNickname,
-            'changedAt': nowMs,
-            'to': normalized,
-          };
-          final existingOld = userData['oldNicknames'];
-          final existingHistory = userData['nicknameHistory'];
-
-          if (existingOld is List) {
-            userPatch['oldNicknames'] =
-                FieldValue.arrayUnion([_originalNickname]);
-          } else {
-            userPatch['oldNicknames'] = [_originalNickname];
-          }
-
-          if (existingHistory is List) {
-            userPatch['nicknameHistory'] =
-                FieldValue.arrayUnion([historyEntry]);
-          } else {
-            userPatch['nicknameHistory'] = [historyEntry];
-          }
-        }
-
-        // İlk 1 saat içinde en fazla 3 değişiklik limiti
-        final inGrace = lastChangeMs != null &&
-            (nowMs - lastChangeMs) <= _graceWindow.inMilliseconds;
-        if (inGrace) {
-          final windowStart = graceStartMs ?? lastChangeMs;
-          final currentCount = graceCount <= 0 ? 1 : graceCount;
-          final nextCount = currentCount + 1;
-          userPatch['nicknameGraceWindowStartAt'] = windowStart;
-          userPatch['nicknameGraceChangeCount'] = nextCount;
-        } else {
-          userPatch['nicknameGraceWindowStartAt'] = nowMs;
-          userPatch['nicknameGraceChangeCount'] = 1;
-        }
-
-        return userPatch;
-      }
-
-      // 1) Uniqueness check (users koleksiyonu)
       final existing = await _userRepository.findUserByNickname(
         normalized,
         preferCache: true,
@@ -359,44 +287,46 @@ class EditorNicknameController extends GetxController {
         throw Exception('taken');
       }
 
-      // 2) Primary path: transaction
-      try {
-        await FirebaseFirestore.instance.runTransaction((tx) async {
-          final userSnap = await tx.get(userDoc);
-          final patch = await buildPatch(
-            userSnap.data() ?? const <String, dynamic>{},
-          );
-          tx.update(userDoc, patch);
-        });
-      } catch (txError) {
-        // 3) Fallback: direct update (bazı rule/registry uyumsuzlukları için)
-        debugPrint('Nickname tx fallback: $txError');
-        final freshData = await _userRepository.getUserRaw(
-          uid,
-          preferCache: false,
-          cacheOnly: false,
-          forceServer: true,
-        );
-        final patch = await buildPatch(freshData ?? const <String, dynamic>{});
-        await userDoc.update(patch);
-      }
+      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('changeOwnNickname')
+          .call(<String, dynamic>{'nickname': normalized});
 
       _originalNickname = normalized;
       await _refreshNicknameSurfaces();
       await AccountCenterService.ensure().refreshCurrentAccountMetadata();
       await fetchAndSetUserData();
       Get.back();
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('EditorNicknameController.setData callable error: ${e.code} ${e.message}');
+      if (e.code == 'already-exists' ||
+          (e.message ?? '').contains('nickname_already_taken')) {
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_taken'.tr);
+      } else if (e.code == 'failed-precondition' &&
+          (e.message ?? '').contains('grace_limit')) {
+        AppSnackbar(
+            'common.error'.tr, 'editor_nickname.error_grace_limit'.tr);
+      } else if (e.code == 'failed-precondition' &&
+          (e.message ?? '').contains('cooldown')) {
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_cooldown'.tr);
+      } else if (e.code == 'invalid-argument' &&
+          (e.message ?? '').contains('nickname_too_short')) {
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_min_length'.tr);
+      } else {
+        AppSnackbar(
+            'common.error'.tr, 'editor_nickname.error_update_failed'.tr);
+      }
     } catch (e) {
       debugPrint('EditorNicknameController.setData error: $e');
       if (e.toString().contains('taken')) {
-        AppSnackbar('Hata', 'Bu kullanıcı adı zaten alınmış.');
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_taken'.tr);
       } else if (e.toString().contains('grace_limit')) {
-        AppSnackbar('Hata', 'İlk 1 saatte en fazla 3 kez değiştirebilirsin.');
-      } else if (e.toString().contains('cooldown')) {
         AppSnackbar(
-            'Hata', 'Kullanıcı adı 15 gün dolmadan tekrar değiştirilemez.');
+            'common.error'.tr, 'editor_nickname.error_grace_limit'.tr);
+      } else if (e.toString().contains('cooldown')) {
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_cooldown'.tr);
       } else {
-        AppSnackbar('Hata', 'Kullanıcı adı güncellenemedi.');
+        AppSnackbar(
+            'common.error'.tr, 'editor_nickname.error_update_failed'.tr);
       }
     }
   }
