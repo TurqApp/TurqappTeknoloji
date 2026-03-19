@@ -50,8 +50,7 @@ class DenemeGrid extends StatelessWidget {
         shortUrl = fallbackUrl;
       }
 
-      if (shortUrl.trim().isEmpty ||
-          shortUrl.trim() == 'https://turqapp.com') {
+      if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
         shortUrl = fallbackUrl;
       }
 
@@ -404,88 +403,94 @@ class DenemeGrid extends StatelessWidget {
               _buildMedia(width: 108, height: 108, radius: 10),
               const SizedBox(width: 10),
               Expanded(
-                child: SizedBox(
-                  height: 108,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 108),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Column(
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  model.sinavAdi,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  model.sinavTuru,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.indigo,
-                                    fontSize: 12,
-                                    fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                if (model.sinavAciklama.trim().isNotEmpty) ...[
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    model.sinavAciklama.trim(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 12,
-                                      height: 1.1,
-                                      fontFamily: 'MontserratMedium',
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      model.sinavAdi,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: 'MontserratBold',
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          EducationShareIconButton(
-                            onTap: _shareExternally,
-                            size: 36,
-                            iconSize: 20,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.calendar,
-                            size: 14,
-                            color: Colors.grey.shade500,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              formatTimestamp(model.timeStamp.toInt()),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 12,
-                                fontFamily: 'MontserratMedium',
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      model.sinavTuru,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.indigo,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                    if (model.sinavAciklama
+                                        .trim()
+                                        .isNotEmpty) ...[
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        model.sinavAciklama.trim(),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 12,
+                                          height: 1.1,
+                                          fontFamily: 'MontserratMedium',
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 10),
+                              EducationShareIconButton(
+                                onTap: _shareExternally,
+                                size: 36,
+                                iconSize: 20,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.calendar,
+                                size: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  formatTimestamp(model.timeStamp.toInt()),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 12,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const Spacer(),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
