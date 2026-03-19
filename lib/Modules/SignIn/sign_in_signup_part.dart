@@ -9,7 +9,8 @@ extension SignInSignupPart on SignIn {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Adım ${controller.selection.value - 1}/3",
+                'signup.step'.tr.replaceAll(
+                    '{current}', '${controller.selection.value - 1}'),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 15,
@@ -20,7 +21,7 @@ extension SignInSignupPart on SignIn {
               Row(
                 children: [
                   Text(
-                    "Hesabınızı Oluşturun",
+                    'signup.create_account_title'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -77,8 +78,8 @@ extension SignInSignupPart on SignIn {
                                   fontFamily: 'Montserrat',
                                 ),
                                 children: [
-                                  const TextSpan(
-                                    text: 'Hesap olusturarak ve devam ederek ',
+                                  TextSpan(
+                                    text: 'signup.policy_intro'.tr,
                                   ),
                                   _policyTextSpan(
                                     'Uyelik ve Sozlesme',
@@ -95,8 +96,7 @@ extension SignInSignupPart on SignIn {
                                     'Guvenlik ve Moderasyon',
                                     'moderation',
                                   ),
-                                  const TextSpan(
-                                      text: ' metinlerini kabul ediyorum.'),
+                                  TextSpan(text: 'signup.policy_outro'.tr),
                                 ],
                               ),
                             ),
@@ -105,8 +105,8 @@ extension SignInSignupPart on SignIn {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Bu onay, hesap olusturma akisinin bir parcasi olarak kayda alinabilir.',
+                    Text(
+                      'signup.policy_notice'.tr,
                       style: TextStyle(
                         color: Colors.black45,
                         fontSize: 11,
@@ -150,7 +150,7 @@ extension SignInSignupPart on SignIn {
                             },
                             maxLength: 40,
                             decoration: InputDecoration(
-                              hintText: "E-Posta",
+                              hintText: 'signup.email'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -225,7 +225,7 @@ extension SignInSignupPart on SignIn {
                               }
                             },
                             decoration: InputDecoration(
-                              hintText: "Kullanıcı Adı",
+                              hintText: 'signup.username'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -257,7 +257,7 @@ extension SignInSignupPart on SignIn {
               ),
               SizedBox(height: 4),
               Text(
-                "Kullanıcı adı size özel, özgün ve yanıltıcı olmayan şekilde oluşturulmalıdır. Türkçe karakterler otomatik dönüştürülür.",
+                'signup.username_help'.tr,
                 style: TextStyle(color: Colors.black, fontSize: 12),
               ),
               SizedBox(height: 7),
@@ -300,7 +300,7 @@ extension SignInSignupPart on SignIn {
                               }
                             },
                             decoration: InputDecoration(
-                              hintText: "Şifre",
+                              hintText: 'signup.password'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -332,7 +332,7 @@ extension SignInSignupPart on SignIn {
               ),
               SizedBox(height: 4),
               Text(
-                "Şifre (En az bir harf, bir sayı, bir noktalama; min 6 karakter)",
+                'signup.password_help'.tr,
                 style: TextStyle(color: Colors.black, fontSize: 12),
               ),
               SizedBox(height: 15),
@@ -360,8 +360,8 @@ extension SignInSignupPart on SignIn {
                         borderRadius:
                             const BorderRadius.all(Radius.circular(8)),
                       ),
-                      child: const Text(
-                        "Geri",
+                      child: Text(
+                        'common.back'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -397,8 +397,8 @@ extension SignInSignupPart on SignIn {
                           ? const CupertinoActivityIndicator(
                               color: Colors.white,
                             )
-                          : const Text(
-                              "İleri",
+                          : Text(
+                              'signup.next'.tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -424,7 +424,8 @@ extension SignInSignupPart on SignIn {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Adım ${controller.selection.value - 1}/3",
+                'signup.step'.tr.replaceAll(
+                    '{current}', '${controller.selection.value - 1}'),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 15,
@@ -433,7 +434,7 @@ extension SignInSignupPart on SignIn {
               ),
               SizedBox(height: 12),
               Text(
-                "Kişisel Bilgiler",
+                'signup.personal_info'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
@@ -485,7 +486,7 @@ extension SignInSignupPart on SignIn {
                               );
                             },
                             decoration: InputDecoration(
-                              hintText: "Ad",
+                              hintText: 'signup.first_name'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -557,7 +558,7 @@ extension SignInSignupPart on SignIn {
                               );
                             },
                             decoration: InputDecoration(
-                              hintText: "Soyad (Opsiyonel)",
+                              hintText: 'signup.last_name_optional'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -680,8 +681,8 @@ extension SignInSignupPart on SignIn {
                         color: Colors.grey.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        "Geri",
+                      child: Text(
+                        'common.back'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -725,8 +726,8 @@ extension SignInSignupPart on SignIn {
                           ? const CupertinoActivityIndicator(
                               color: Colors.white,
                             )
-                          : const Text(
-                              "İleri",
+                          : Text(
+                              'signup.next'.tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -752,7 +753,8 @@ extension SignInSignupPart on SignIn {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Adım ${controller.selection.value - 1}/3",
+                'signup.step'.tr.replaceAll(
+                    '{current}', '${controller.selection.value - 1}'),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 15,
@@ -763,7 +765,7 @@ extension SignInSignupPart on SignIn {
               Row(
                 children: [
                   Text(
-                    "Doğrulama",
+                    'signup.verification_title'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -774,7 +776,9 @@ extension SignInSignupPart on SignIn {
               ),
               SizedBox(height: 7),
               Text(
-                "+90${controller.phoneNumber.value} telefon numaranıza bir doğrulama kodu gönderdik. Bu doğrulama kodunu girerek devam edebilirsiniz.",
+                'signup.verification_message'
+                    .tr
+                    .replaceAll('{phone}', controller.phoneNumber.value),
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -815,7 +819,7 @@ extension SignInSignupPart on SignIn {
                             ],
                             decoration: InputDecoration(
                               counterText: "",
-                              hintText: "6 haneli kod",
+                              hintText: 'signup.code_hint'.tr,
                               hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -839,10 +843,10 @@ extension SignInSignupPart on SignIn {
                                     : null,
                             child: Text(
                               !controller.signupCodeRequested.value
-                                  ? "Kodu Al"
+                                  ? 'login.get_code'.tr
                                   : controller.otpTimer.value == 0
-                                      ? "Tekrar Gönder"
-                                      : "Tekrar Gönder (${controller.otpTimer.value} sn)",
+                                      ? 'login.resend_code'.tr
+                                      : "${'login.resend_code'.tr} (${controller.otpTimer.value} sn)",
                               style: TextStyle(
                                 color: controller.otpRequestInFlight.value
                                     ? Colors.grey
@@ -878,8 +882,8 @@ extension SignInSignupPart on SignIn {
                         borderRadius:
                             const BorderRadius.all(Radius.circular(8)),
                       ),
-                      child: const Text(
-                        "Geri",
+                      child: Text(
+                        'common.back'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -908,8 +912,8 @@ extension SignInSignupPart on SignIn {
                           ? const CupertinoActivityIndicator(
                               color: Colors.white,
                             )
-                          : const Text(
-                              "Devam",
+                          : Text(
+                              'common.continue'.tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,

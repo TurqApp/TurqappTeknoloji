@@ -68,23 +68,47 @@ class IndexPoolStore {
     IndexPoolKind.shortFullscreen: Duration(minutes: 3),
     IndexPoolKind.story: Duration(minutes: 2),
   };
-  late final String _filePath;
+  String? _filePath;
   bool _ready = false;
+  Future<void>? _initFuture;
 
   Future<void> init() async {
     if (_ready) return;
+    final pending = _initFuture;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+
+    _initFuture = _performInit();
+    try {
+      await _initFuture;
+    } finally {
+      _initFuture = null;
+    }
+  }
+
+  Future<void> _performInit() async {
     final dir = await getApplicationSupportDirectory();
     final poolDir = Directory('${dir.path}/index_pool');
     if (!await poolDir.exists()) {
       await poolDir.create(recursive: true);
     }
-    _filePath = '${poolDir.path}/pool.json';
+    _filePath ??= '${poolDir.path}/pool.json';
     _ready = true;
+  }
+
+  String get _resolvedFilePath {
+    final path = _filePath;
+    if (path == null || path.isEmpty) {
+      throw StateError('Index pool path hazir degil');
+    }
+    return path;
   }
 
   Future<List<IndexPoolEntry>> _loadAll({bool allowStale = true}) async {
     if (!_ready) await init();
-    final file = File(_filePath);
+    final file = File(_resolvedFilePath);
     if (!await file.exists()) return const [];
     try {
       final content = await file.readAsString();
@@ -129,8 +153,9 @@ class IndexPoolStore {
 
   Future<void> _persistAll(List<IndexPoolEntry> all) async {
     if (!_ready) await init();
-    final file = File(_filePath);
-    final tmp = File('$_filePath.tmp');
+    final filePath = _resolvedFilePath;
+    final file = File(filePath);
+    final tmp = File('$filePath.tmp');
     final payload = jsonEncode({
       'schemaVersion': _schemaVersion,
       'updatedDate': DateTime.now().millisecondsSinceEpoch,
@@ -155,7 +180,7 @@ class IndexPoolStore {
   Future<void> _deletePoolFile() async {
     if (!_ready) await init();
     try {
-      final file = File(_filePath);
+      final file = File(_resolvedFilePath);
       if (await file.exists()) {
         await file.delete();
       }

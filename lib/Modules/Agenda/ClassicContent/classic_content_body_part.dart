@@ -85,16 +85,23 @@ extension ClassicContentBodyPart on _ClassicContentState {
         ),
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              SizedBox(width: 58, child: Center(child: commentButton(context))),
-              SizedBox(width: 58, child: Center(child: likeButton())),
-              SizedBox(width: 58, child: Center(child: saveButton())),
-              SizedBox(width: 58, child: Center(child: reshareButton())),
-              SizedBox(width: 58, child: Center(child: statButton())),
-              SizedBox(width: 58, child: Center(child: sendButton())),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              runAlignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                commentButton(context),
+                likeButton(),
+                saveButton(),
+                reshareButton(),
+                statButton(),
+                sendButton(),
+              ],
+            ),
           ),
         ),
         3.ph,

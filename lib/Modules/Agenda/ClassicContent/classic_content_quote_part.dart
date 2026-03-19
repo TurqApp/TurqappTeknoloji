@@ -229,8 +229,12 @@ extension _ClassicContentQuotePart on _ClassicContentState {
   Widget _buildClassicActionRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        runAlignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
         children: [
           commentButton(context),
           likeButton(),

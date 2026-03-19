@@ -164,6 +164,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                               children: [
                                 Text(
                                   offer.itemTitle,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Colors.black,
                                     fontSize: 14,
@@ -173,6 +175,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                                 const SizedBox(height: 4),
                                 Text(
                                   subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Colors.black54,
                                     fontSize: 12,
@@ -183,6 +187,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                                   const SizedBox(height: 4),
                                   Text(
                                     offer.locationText,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Colors.black54,
                                       fontSize: 12,
@@ -199,6 +205,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                         const SizedBox(height: 8),
                         Text(
                           offer.message.trim(),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.black87,
                             fontSize: 13,
@@ -209,15 +217,19 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Text(
-                            '${_formatMoney(offer.offerPrice)} ${offer.currency.toUpperCase() == 'TRY' ? 'TL' : offer.currency}',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontFamily: 'MontserratBold',
+                          Expanded(
+                            child: Text(
+                              '${_formatMoney(offer.offerPrice)} ${offer.currency.toUpperCase() == 'TRY' ? 'TL' : offer.currency}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontFamily: 'MontserratBold',
+                              ),
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 10),
                           _statusChip(_statusLabel(offer.status)),
                         ],
                       ),

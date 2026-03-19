@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
-import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -86,6 +85,9 @@ class MarketView extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     return Obx(() {
+      if (!controller.listingSelectionReady.value) {
+        return const Center(child: CupertinoActivityIndicator());
+      }
       return RefreshIndicator(
         onRefresh: controller.refreshHome,
         child: CustomScrollView(
@@ -208,7 +210,7 @@ class MarketView extends StatelessWidget {
   }
 
   Widget _buildMarketSlider() {
-    const slider = Column(
+    return const Column(
       children: [
         EducationSlider(
           sliderId: 'market',
@@ -220,20 +222,6 @@ class MarketView extends StatelessWidget {
         ),
         SizedBox(height: 16),
       ],
-    );
-
-    if (AdminAccessService.isKnownAdminSync()) {
-      return slider;
-    }
-
-    return FutureBuilder<bool>(
-      future: AdminAccessService.canManageSliders(),
-      builder: (context, snapshot) {
-        if (snapshot.data == true) {
-          return slider;
-        }
-        return const SizedBox.shrink();
-      },
     );
   }
 
@@ -469,155 +457,170 @@ class MarketView extends StatelessWidget {
             border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
             color: Colors.white,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildItemVisual(
-                item,
-                accent,
-                width: 108,
-                height: 108,
-                radius: 10,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox(
-                  height: 108,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 360;
+              final visualSize = compact ? 92.0 : 108.0;
+              final actionButtonSize = compact ? 32.0 : 36.0;
+              final actionIconSize = compact ? 16.0 : 18.0;
+              final buttonText = canCall ? 'Hemen Ara' : 'İncele';
+
+              Widget actionButtons() {
+                final children = [
+                  AppHeaderActionButton(
+                    onTap: () => const MarketShareService().shareItem(item),
+                    size: actionButtonSize,
+                    child: Icon(
+                      AppIcons.share,
+                      color: Colors.black.withValues(alpha: 0.85),
+                      size: actionIconSize,
+                    ),
+                  ),
+                  SizedBox(width: compact ? 0 : 6, height: compact ? 6 : 0),
+                  AppHeaderActionButton(
+                    onTap: () => controller.toggleSaved(
+                      item,
+                      showSnackbar: false,
+                    ),
+                    size: actionButtonSize,
+                    child: Transform.flip(
+                      flipX: true,
+                      child: Icon(
+                        controller.isSaved(item.id)
+                            ? AppIcons.liked
+                            : AppIcons.like,
+                        color: controller.isSaved(item.id)
+                            ? const Color(0xFF2563EB)
+                            : Colors.grey.shade600,
+                        size: compact ? 18 : 20,
+                      ),
+                    ),
+                  ),
+                ];
+
+                if (compact) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: children,
+                  );
+                }
+
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: children,
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildItemVisual(
+                    item,
+                    accent,
+                    width: visualSize,
+                    height: visualSize,
+                    radius: 10,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: visualSize),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: 'MontserratBold',
-                                  ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.title,
+                                      maxLines: compact ? 2 : 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: compact ? 14 : 15,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      item.status == 'active'
+                                          ? item.categoryLabel
+                                          : _statusLabel(item.status),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: item.status == 'active'
+                                            ? accent
+                                            : statusColor,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                    if (item.description.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        item.description.trim(),
+                                        maxLines: compact ? 2 : 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 12,
+                                          height: 1.1,
+                                          fontFamily: 'MontserratMedium',
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  item.status == 'active'
-                                      ? item.categoryLabel
-                                      : _statusLabel(item.status),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: item.status == 'active'
-                                        ? accent
-                                        : statusColor,
-                                    fontSize: 12,
-                                    fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                if (item.description.trim().isNotEmpty) ...[
-                                const SizedBox(height: 1),
-                                Text(
-                                  item.description.trim(),
-                                  maxLines: 1,
+                              ),
+                              const SizedBox(width: 8),
+                              actionButtons(),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.location_solid,
+                                size: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  item.locationText,
+                                  maxLines: compact ? 2 : 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: Colors.grey.shade700,
                                     fontSize: 12,
-                                    height: 1.1,
                                     fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
-                              ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              AppHeaderActionButton(
-                                onTap: () =>
-                                    const MarketShareService().shareItem(item),
-                                size: 36,
-                                child: Icon(
-                                  AppIcons.share,
-                                  color: Colors.black.withValues(alpha: 0.85),
-                                  size: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              AppHeaderActionButton(
-                                onTap: () => controller.toggleSaved(
-                                  item,
-                                  showSnackbar: false,
-                                ),
-                                size: 36,
-                                child: Transform.flip(
-                                  flipX: true,
-                                  child: Icon(
-                                    controller.isSaved(item.id)
-                                        ? AppIcons.liked
-                                        : AppIcons.like,
-                                    color: controller.isSaved(item.id)
-                                        ? const Color(0xFF2563EB)
-                                        : Colors.grey.shade600,
-                                    size: 20,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 0),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Row(
+                          const SizedBox(height: 8),
+                          if (compact)
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              runSpacing: 6,
+                              spacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                Icon(
-                                  CupertinoIcons.location_solid,
-                                  size: 14,
-                                  color: Colors.grey.shade500,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    item.locationText,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 12,
-                                      fontFamily: 'MontserratMedium',
-                                    ),
+                                Text(
+                                  '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF8B0000),
+                                    fontSize: 16,
+                                    fontFamily: 'MontserratBold',
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
-                                style: const TextStyle(
-                                  color: Color(0xFF8B0000),
-                                  fontSize: 17,
-                                  fontFamily: 'MontserratBold',
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              SizedBox(
-                                width: 128,
-                                child: GestureDetector(
+                                GestureDetector(
                                   onTap: () {
                                     if (canCall) {
                                       _contactService.callPhone(item);
@@ -626,7 +629,13 @@ class MarketView extends StatelessWidget {
                                     }
                                   },
                                   child: Container(
-                                    height: 26,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 108,
+                                    ),
+                                    height: 30,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color:
@@ -636,7 +645,7 @@ class MarketView extends StatelessWidget {
                                       ),
                                     ),
                                     child: Text(
-                                      canCall ? 'Hemen Ara' : 'İncele',
+                                      buttonText,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,
@@ -645,16 +654,68 @@ class MarketView extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            )
+                          else
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF8B0000),
+                                      fontSize: 17,
+                                      fontFamily: 'MontserratBold',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                GestureDetector(
+                                  onTap: () {
+                                    if (canCall) {
+                                      _contactService.callPhone(item);
+                                    } else {
+                                      controller.openItem(item);
+                                    }
+                                  },
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 128,
+                                    ),
+                                    height: 26,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color:
+                                          canCall ? Colors.green : Colors.black,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(8),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      buttonText,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratMedium',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -783,14 +844,19 @@ class MarketView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        item.price > 0
-                            ? '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}'
-                            : '',
-                        style: const TextStyle(
-                          color: Color(0xFF8B0000),
-                          fontSize: 19,
-                          fontFamily: 'MontserratBold',
+                      Flexible(
+                        child: Text(
+                          item.price > 0
+                              ? '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}'
+                              : '',
+                          maxLines: 1,
+                          textAlign: TextAlign.right,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF8B0000),
+                            fontSize: 19,
+                            fontFamily: 'MontserratBold',
+                          ),
                         ),
                       ),
                     ],
