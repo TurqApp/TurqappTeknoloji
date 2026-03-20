@@ -18,7 +18,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                           Get.to(() => AboutProfile(
                               userID: FirebaseAuth
                                   .instance.currentUser!.uid))?.then((_) {
-                            controller.pausetheall.value = true;
+                            controller.resumeCenteredPost();
                           });
                         },
                         child: Text(

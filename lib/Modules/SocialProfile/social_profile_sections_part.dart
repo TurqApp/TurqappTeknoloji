@@ -359,14 +359,16 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
               const SizedBox(width: 12),
               Expanded(
                 child: TextButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final sohbet = chatListingController.list.firstWhereOrNull(
                       (val) => val.userID == widget.userID,
                     );
+                    final prevIndex = controller.lastCenteredIndex;
+                    controller.lastCenteredIndex = prevIndex;
                     controller.centeredIndex.value = -1;
 
                     if (sohbet != null) {
-                      Get.to(
+                      await Get.to(
                         () => ChatView(
                           chatID: sohbet.chatID,
                           userID: widget.userID,
@@ -374,12 +376,13 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                           openKeyboard: true,
                         ),
                       );
+                      controller.resumeCenteredPost();
                     } else {
                       final chatId = buildConversationId(
                         _myUserId,
                         widget.userID,
                       );
-                      Get.to(
+                      await Get.to(
                         () => ChatView(
                           chatID: chatId,
                           userID: widget.userID,
@@ -389,6 +392,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       )?.then((_) {
                         chatListingController.getList();
                       });
+                      controller.resumeCenteredPost();
                     }
                   },
                   style: TextButton.styleFrom(

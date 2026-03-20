@@ -66,9 +66,11 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                                   fontFamily: "MontserratMedium")),
                         ),
                         CupertinoDialogAction(
-                          onPressed: () {
+                          onPressed: () async {
                             Get.back();
-                            Get.to(() => EditPost(post: model));
+                            controller.pausetheall.value = true;
+                            await Get.to(() => EditPost(post: model));
+                            controller.resumeCenteredPost();
                           },
                           child: Text("profile.edit".tr,
                               style: TextStyle(
@@ -224,9 +226,11 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                                   fontFamily: "MontserratMedium")),
                         ),
                         CupertinoDialogAction(
-                          onPressed: () {
+                          onPressed: () async {
                             Get.back();
-                            Get.to(() => EditPost(post: model));
+                            controller.pausetheall.value = true;
+                            await Get.to(() => EditPost(post: model));
+                            controller.resumeCenteredPost();
                           },
                           child: Text("profile.edit".tr,
                               style: TextStyle(
@@ -784,9 +788,11 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       ),
                       actions: [
                         CupertinoDialogAction(
-                          onPressed: () {
+                          onPressed: () async {
                             Get.back();
-                            Get.to(() => EditPost(post: model));
+                            controller.pausetheall.value = true;
+                            await Get.to(() => EditPost(post: model));
+                            controller.resumeCenteredPost();
                           },
                           child: Text("profile.edit".tr,
                               style: TextStyle(
