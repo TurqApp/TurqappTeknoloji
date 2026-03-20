@@ -23,4 +23,23 @@ void main() {
       'optimistic_delete_removed_too_many',
     );
   });
+
+  test('records notification delete miss when no requested ids are removed',
+      () {
+    final guard = RuntimeInvariantGuard();
+
+    guard.assertMutationMatched(
+      surface: 'notifications',
+      invariantKey: 'optimistic_delete_matched_none',
+      requestedCount: 2,
+      matchedCount: 0,
+      mutationName: 'delete',
+    );
+
+    expect(guard.recentViolations, hasLength(1));
+    expect(
+      guard.recentViolations.single.invariantKey,
+      'optimistic_delete_matched_none',
+    );
+  });
 }

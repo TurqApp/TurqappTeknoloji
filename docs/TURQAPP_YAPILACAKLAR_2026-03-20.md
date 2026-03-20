@@ -505,7 +505,7 @@ Durum etiketleri:
   Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi; replay sonrasi `count zero drop`, `active doc preserve` ve `notifications unread non-negative` assertion'lari eklendi; fixture contract katmani ile `dart-define` uzerinden `minCount/docIds/maxUnread` beklentileri verilebilir hale geldi; `scripts/run_integration_smoke.sh` ve release gate entegrasyonu ile bu kontratlar otomatik kosuya baglandi; her smoke senaryosu artik `artifacts/integration_smoke/*.json` altina route/state/telemetry dump'i yaziyor. Sonraki adim fixture verisini production-benzeri sabit bir JSON ile doldurmak ve CI/device smoke adimina tasimak.
 - `lib/Core/Services/runtime_invariant_guard.dart`
   Durum: `KISMEN`
-  Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
+  Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. `Notifications` icin optimistic mark-read/delete miss guard'lari ve `Short` icin active player overflow guard'i eklendi. Sonraki adim `route replay`, `visible-center thrash` ve daha genis test coverage.
 - telemetry threshold / alert policy katmani
   Durum: `KISMEN`
   Not: `telemetry_threshold_policy.dart` ile feed/short cache-first, render diff ve playback window KPI'lari icin warning/blocking issue ureten merkezi evaluator eklendi. `tool/telemetry_threshold_report.dart` + `scripts/export_telemetry_threshold_report.sh` ile JSON artefact ihraci ve opsiyonel release-blocking karar akisi baglandi. Sonraki adim bunu dashboard UI'ina ve backend alert kanalina baglamak.
@@ -571,6 +571,7 @@ Aktif faz:
 - Son tamamlanan telemetry isi: threshold policy ile KPI warning/blocking issue evaluator'u.
 - Son tamamlanan telemetry export isi: threshold report CLI + artifact export script + optional release-blocking gate entegrasyonu.
 - Son tamamlanan artifact isi: smoke test sonunda route/state/telemetry JSON dump'larinin `artifacts/integration_smoke/` altina yazilmasi.
+- Son tamamlanan guard genisletmesi: `Notifications` optimistic miss guard'lari ve `Short` active player overflow guard'i.
 - Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; fail anina screenshot artefact'i eklemek.
 
 1. Repo truth pass:

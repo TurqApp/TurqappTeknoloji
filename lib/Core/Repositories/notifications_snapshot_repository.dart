@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Models/notification_model.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
 class NotificationsSnapshotQuery {
   const NotificationsSnapshotQuery({
@@ -211,6 +212,16 @@ class NotificationsSnapshotRepository extends GetxService {
         'requestedCount': wanted.length,
       },
     );
+    _invariantGuard.assertMutationMatched(
+      surface: 'notifications',
+      invariantKey: 'optimistic_mark_read_matched_none',
+      requestedCount: wanted.length,
+      matchedCount: matchedCount,
+      mutationName: 'markRead',
+      payload: <String, dynamic>{
+        'userId': userId,
+      },
+    );
   }
 
   Future<void> deleteLocally({
@@ -250,6 +261,17 @@ class NotificationsSnapshotRepository extends GetxService {
         },
       );
     }
+    _invariantGuard.assertMutationMatched(
+      surface: 'notifications',
+      invariantKey: 'optimistic_delete_matched_none',
+      requestedCount: wanted.length,
+      matchedCount: removedCount,
+      mutationName: 'delete',
+      payload: <String, dynamic>{
+        'userId': userId,
+        'previousCount': items.length,
+      },
+    );
   }
 
   Future<List<NotificationModel>> _fetchServerSnapshot(
@@ -311,26 +333,26 @@ class NotificationsSnapshotRepository extends GetxService {
   String _postTypeFromType(String type) {
     switch (type) {
       case 'follow':
-      case 'User':
-        return 'User';
+      case kNotificationPostTypeUser:
+        return kNotificationPostTypeUser;
       case 'comment':
-      case 'Comment':
-        return 'Comment';
+      case kNotificationPostTypeComment:
+        return kNotificationPostTypeComment;
       case 'message':
-      case 'Chat':
-        return 'Chat';
+      case kNotificationPostTypeChat:
+        return kNotificationPostTypeChat;
       case 'job_application':
-        return 'JobApplication';
+        return kNotificationPostTypeJobApplication;
       case 'tutoring_application':
       case 'tutoring_status':
-        return 'TutoringApplication';
+        return kNotificationPostTypeTutoringApplication;
       case 'like':
       case 'reshared_posts':
       case 'shared_as_posts':
       case 'reshare':
-      case 'Posts':
+      case kNotificationPostTypePosts:
       default:
-        return 'Posts';
+        return kNotificationPostTypePosts;
     }
   }
 

@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/lru_cache.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -70,6 +71,7 @@ class ShortController extends GetxController {
   final ShortRepository _shortRepository = ShortRepository.ensure();
   final ShortSnapshotRepository _shortSnapshotRepository =
       ShortSnapshotRepository.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
 
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
   static bool _globalShuffleCompleted = false;
@@ -402,11 +404,10 @@ class ShortController extends GetxController {
       }
 
       final previousShorts = shorts.toList(growable: false);
-      final previousIndex =
-          lastIndex.value.clamp(0, previousShorts.isEmpty ? 0 : previousShorts.length - 1);
-      final previousDocId = previousShorts.isEmpty
-          ? ''
-          : previousShorts[previousIndex].docID;
+      final previousIndex = lastIndex.value
+          .clamp(0, previousShorts.isEmpty ? 0 : previousShorts.length - 1);
+      final previousDocId =
+          previousShorts.isEmpty ? '' : previousShorts[previousIndex].docID;
       final newList = List<PostsModel>.from(result.posts);
 
       _replaceShorts(newList, remapCache: false);
@@ -424,7 +425,8 @@ class ShortController extends GetxController {
           ? remappedIndex
           : math.min(previousIndex, newList.length - 1);
       if (newList.isNotEmpty && !cache.containsKey(lastIndex.value)) {
-        await _preloadSingleVideoWithCache(lastIndex.value, newList[lastIndex.value]);
+        await _preloadSingleVideoWithCache(
+            lastIndex.value, newList[lastIndex.value]);
       }
       unawaited(_persistVisibleSnapshot());
 
@@ -663,6 +665,18 @@ class ShortController extends GetxController {
     final activeKeys = cache.keys.where((k) => !cache[k]!.isStopped).toList()
       ..sort((a, b) =>
           (a - currentIndex).abs().compareTo((b - currentIndex).abs()));
+
+    _invariantGuard.assertCountWithinLimit(
+      surface: 'short',
+      invariantKey: 'active_player_overflow',
+      observedCount: activeKeys.length,
+      maxAllowed: maxAttachedPlayers,
+      counterName: 'activePlayers',
+      payload: <String, dynamic>{
+        'currentIndex': currentIndex,
+        'cacheSize': cache.length,
+      },
+    );
 
     if (activeKeys.length > maxAttachedPlayers) {
       for (int i = maxAttachedPlayers; i < activeKeys.length; i++) {

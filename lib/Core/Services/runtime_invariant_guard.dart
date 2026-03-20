@@ -133,4 +133,49 @@ class RuntimeInvariantGuard extends GetxService {
       },
     );
   }
+
+  void assertMutationMatched({
+    required String surface,
+    required String invariantKey,
+    required int requestedCount,
+    required int matchedCount,
+    required String mutationName,
+    Map<String, dynamic> payload = const <String, dynamic>{},
+  }) {
+    if (requestedCount <= 0) return;
+    if (matchedCount > 0) return;
+    record(
+      surface: surface,
+      invariantKey: invariantKey,
+      message: 'Optimistic mutation matched no items',
+      payload: <String, dynamic>{
+        'mutation': mutationName,
+        'requestedCount': requestedCount,
+        'matchedCount': matchedCount,
+        ...payload,
+      },
+    );
+  }
+
+  void assertCountWithinLimit({
+    required String surface,
+    required String invariantKey,
+    required int observedCount,
+    required int maxAllowed,
+    required String counterName,
+    Map<String, dynamic> payload = const <String, dynamic>{},
+  }) {
+    if (observedCount <= maxAllowed) return;
+    record(
+      surface: surface,
+      invariantKey: invariantKey,
+      message: 'Observed count exceeded configured limit',
+      payload: <String, dynamic>{
+        'counter': counterName,
+        'observedCount': observedCount,
+        'maxAllowed': maxAllowed,
+        ...payload,
+      },
+    );
+  }
 }
