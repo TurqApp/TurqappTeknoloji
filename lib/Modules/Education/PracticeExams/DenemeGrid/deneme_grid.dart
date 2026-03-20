@@ -302,47 +302,41 @@ class DenemeGrid extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: PasajCardStyles.detail,
         ),
-        Obx(
-          () => Row(
-            children: [
-              Icon(
-                CupertinoIcons.person_2_fill,
-                size: 13,
-                color: Colors.grey.shade500,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  controller.isLoadingApplicants.value
-                      ? 'common.loading'.tr
-                      : _formattedApplicationText(
-                          controller.toplamBasvuru.value,
-                        ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PasajCardStyles.gridLineFour(
-                    PasajCardStyles.lineFourColor,
-                  ),
+        Row(
+          children: [
+            Icon(
+              CupertinoIcons.person_2_fill,
+              size: 13,
+              color: Colors.grey.shade500,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                _formattedApplicationText(
+                  controller.toplamBasvuru.value,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.gridLineFour(
+                  PasajCardStyles.lineFourColor,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
-      cta: Obx(
-        () => Container(
-          height: PasajListCardMetrics.gridCtaHeight,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _ctaColor(controller),
-            borderRadius: const BorderRadius.all(
-              Radius.circular(PasajListCardMetrics.gridCtaRadius),
-            ),
+      cta: Container(
+        height: PasajListCardMetrics.gridCtaHeight,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _ctaColor(controller),
+          borderRadius: const BorderRadius.all(
+            Radius.circular(PasajListCardMetrics.gridCtaRadius),
           ),
-          child: Text(
-            _ctaLabel(controller),
-            style: PasajCardStyles.gridCta,
-          ),
+        ),
+        child: Text(
+          _ctaLabel(controller),
+          style: PasajCardStyles.gridCta,
         ),
       ),
     );
@@ -444,31 +438,27 @@ class DenemeGrid extends StatelessWidget {
                       SizedBox(height: metrics.contentGap),
                       SizedBox(
                         height: metrics.ctaHeight,
-                        child: Obx(
-                          () => Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  CupertinoIcons.person_2_fill,
-                                  size: 14,
-                                  color: Colors.grey.shade500,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    controller.isLoadingApplicants.value
-                                        ? 'common.loading'.tr
-                                        : _formattedApplicationText(
-                                            controller.toplamBasvuru.value,
-                                          ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: PasajCardStyles.lineFour,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.person_2_fill,
+                                size: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  _formattedApplicationText(
+                                    controller.toplamBasvuru.value,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.lineFour,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -520,25 +510,23 @@ class DenemeGrid extends StatelessWidget {
                     const Spacer(),
                     SizedBox(
                       width: metrics.railWidth,
-                      child: Obx(
-                        () => Container(
-                          height: metrics.ctaHeight,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _ctaColor(controller),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
+                      child: Container(
+                        height: metrics.ctaHeight,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _ctaColor(controller),
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(8),
                           ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              _ctaLabel(controller),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: metrics.ctaFontSize,
-                                fontFamily: 'MontserratMedium',
-                              ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _ctaLabel(controller),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: metrics.ctaFontSize,
+                              fontFamily: 'MontserratMedium',
                             ),
                           ),
                         ),
