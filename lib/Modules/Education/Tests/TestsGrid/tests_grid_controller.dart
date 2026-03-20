@@ -7,7 +7,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
@@ -27,6 +27,7 @@ class TestsGridController extends GetxController {
   final appStore = ''.obs;
   final googlePlay = ''.obs;
   final TestRepository _testRepository = TestRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   TestsGridController(this.model, this.onUpdate) {
     _initialize();
@@ -40,10 +41,9 @@ class TestsGridController extends GetxController {
   }
 
   void getUserData() async {
-    final user = await UserRepository.ensure().getUser(
+    final user = await _userSummaryResolver.resolve(
       model.userID,
       preferCache: true,
-      cacheOnly: false,
     );
     fullName.value = user?.displayName ?? '';
     avatarUrl.value = user?.avatarUrl ?? '';
@@ -227,7 +227,7 @@ class TestsGridController extends GetxController {
                   const SizedBox(height: 15),
                   GestureDetector(
                     onTap: () {
-                      secim.value = secim.value != "Spam" ? "Spam" : "";
+                      secim.value = secim.value != "spam" ? "spam" : "";
                       Get.back();
                       modalSetState(() {});
                     },
@@ -235,9 +235,9 @@ class TestsGridController extends GetxController {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Spam",
+                              "report.reason.spam.title".tr,
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
@@ -262,7 +262,7 @@ class TestsGridController extends GetxController {
                                 padding: const EdgeInsets.all(3),
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: secim.value == "Spam"
+                                    color: secim.value == "spam"
                                         ? Colors.indigo
                                         : Colors.white,
                                     borderRadius: const BorderRadius.all(

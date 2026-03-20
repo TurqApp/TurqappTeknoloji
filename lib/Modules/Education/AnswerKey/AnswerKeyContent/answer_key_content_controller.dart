@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
@@ -28,6 +28,7 @@ class AnswerKeyContentController extends GetxController {
   AnswerKeyContentController(this.model, this.onUpdate);
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   bool get isOwner => model.userID == FirebaseAuth.instance.currentUser?.uid;
 
@@ -67,10 +68,9 @@ class AnswerKeyContentController extends GetxController {
 
   Future<void> _fetchUserData() async {
     try {
-      final user = await UserRepository.ensure().getUser(
+      final user = await _userSummaryResolver.resolve(
         model.userID,
         preferCache: true,
-        cacheOnly: false,
       );
       avatarUrl.value = user?.avatarUrl ?? '';
       nickname.value = user?.preferredName ?? '';
@@ -182,8 +182,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Görüntüle",
+              child: Text(
+                "answer_key.inspect".tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.purpleAccent,
@@ -339,11 +339,11 @@ class AnswerKeyContentController extends GetxController {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Cevap Anahtarı Hakkında",
+                        "answer_key.about_title".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -355,17 +355,17 @@ class AnswerKeyContentController extends GetxController {
                   const SizedBox(height: 15),
                   GestureDetector(
                     onTap: () {
-                      secim.value = secim.value == "Spam" ? "" : "Spam";
-                      if (secim.value == "Spam") {
+                      secim.value = secim.value == "spam" ? "" : "spam";
+                      if (secim.value == "spam") {
                         Get.back();
                       }
                     },
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            "Spam",
+                            "common.spam".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -389,7 +389,7 @@ class AnswerKeyContentController extends GetxController {
                             padding: const EdgeInsets.all(3),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: secim.value == "Spam"
+                                color: secim.value == "spam"
                                     ? Colors.indigo
                                     : Colors.white,
                                 borderRadius: const BorderRadius.all(
