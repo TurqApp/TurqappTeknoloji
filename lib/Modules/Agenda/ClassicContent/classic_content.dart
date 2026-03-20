@@ -342,7 +342,35 @@ class _ClassicContentState extends State<ClassicContent>
     return storyUser != null && storyUser.stories.isNotEmpty;
   }
 
+  void _restoreClassicFeedCenter() {
+    final last = agendaController.lastCenteredIndex;
+    int target = -1;
+    if (last != null &&
+        last >= 0 &&
+        last < agendaController.agendaList.length) {
+      target = last;
+    } else {
+      final modelIndex = agendaController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (modelIndex >= 0) {
+        target = modelIndex;
+      } else if (agendaController.agendaList.isNotEmpty) {
+        target = 0;
+      }
+    }
+    if (target >= 0 && target < agendaController.agendaList.length) {
+      agendaController.centeredIndex.value = target;
+      agendaController.lastCenteredIndex = target;
+    }
+  }
+
   void _openAvatarStoryOrProfile() {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
     final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
@@ -352,7 +380,7 @@ class _ClassicContentState extends State<ClassicContent>
             startedUser: storyUser,
             storyOwnerUsers: users,
           ))?.then((_) {
-        videoController?.play();
+        _restoreClassicFeedCenter();
       });
       return;
     }
@@ -363,7 +391,7 @@ class _ClassicContentState extends State<ClassicContent>
         ? Get.to(() => ProfileView())
         : Get.to(() => SocialProfile(userID: widget.model.userID));
     route?.then((_) {
-      videoController?.play();
+      _restoreClassicFeedCenter();
     });
   }
 
@@ -416,8 +444,8 @@ class _ClassicContentState extends State<ClassicContent>
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : const Text(
-                    "Takip Et",
+                : Text(
+                    'following.follow'.tr,
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: "MontserratMedium",

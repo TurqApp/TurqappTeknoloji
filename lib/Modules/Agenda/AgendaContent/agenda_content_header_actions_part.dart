@@ -1,22 +1,50 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentHeaderActionsPart on _AgendaContentState {
+  void _restoreAgendaFeedCenter() {
+    final last = agendaController.lastCenteredIndex;
+    int target = -1;
+    if (last != null &&
+        last >= 0 &&
+        last < agendaController.agendaList.length) {
+      target = last;
+    } else {
+      final modelIndex = agendaController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (modelIndex >= 0) {
+        target = modelIndex;
+      } else if (agendaController.agendaList.isNotEmpty) {
+        target = 0;
+      }
+    }
+    if (target >= 0 && target < agendaController.agendaList.length) {
+      agendaController.centeredIndex.value = target;
+      agendaController.lastCenteredIndex = target;
+    }
+  }
+
   bool _hasStoryAvatar() {
     final storyUser = _resolveStoryUser();
     return storyUser != null && storyUser.stories.isNotEmpty;
   }
 
   void _openAvatarStoryOrProfile() {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
     final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
       final users =
           Get.find<StoryRowController>().users.toList(growable: false);
-      Get.to(() => StoryViewer(
+          Get.to(() => StoryViewer(
             startedUser: storyUser,
             storyOwnerUsers: users,
           ))?.then((_) {
-        videoController?.play();
+        _restoreAgendaFeedCenter();
       });
       return;
     }
@@ -27,7 +55,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         ? Get.to(() => ProfileView())
         : Get.to(() => SocialProfile(userID: widget.model.userID));
     route?.then((_) {
-      videoController?.play();
+      _restoreAgendaFeedCenter();
     });
   }
 
@@ -106,9 +134,15 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         28;
     void openProfile() {
       if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+        final modelIndex = agendaController.agendaList
+            .indexWhere((p) => p.docID == widget.model.docID);
+        if (modelIndex >= 0) {
+          agendaController.lastCenteredIndex = modelIndex;
+        }
+        agendaController.centeredIndex.value = -1;
         videoController?.pause();
         Get.to(SocialProfile(userID: widget.model.userID))?.then((v) {
-          videoController?.play();
+          _restoreAgendaFeedCenter();
         });
       }
     }
@@ -583,7 +617,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
       return AnimatedActionButton(
         enabled: canInteract,
-        semanticsLabel: 'Yorumlar',
+        semanticsLabel: 'common.comments'.tr,
         onTap: canInteract ? controller.showPostCommentsBottomSheet : null,
         showTapArea: _AgendaContentState._showActionTapAreas,
         child: _iconAction(
@@ -605,7 +639,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     return AnimatedActionButton(
       enabled: true,
-      semanticsLabel: 'Beğeniler',
+      semanticsLabel: 'common.likes'.tr,
       onTap: controller.like,
       showTapArea: _AgendaContentState._showActionTapAreas,
       onLongPress: () {
@@ -659,7 +693,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: isReshared ? 'Yeniden paylaşımı geri al' : 'Yeniden paylaş',
+            title: isReshared
+                ? 'post.undo_reshare'.tr
+                : 'common.reshare'.tr,
             icon: Icons.repeat,
           ),
           PullDownMenuItem(
@@ -673,7 +709,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
           onLongPress: canReshare ? _openReshareUsersSheet : null,
           child: AnimatedActionButton(
             enabled: canReshare,
-            semanticsLabel: 'Yeniden paylaş',
+            semanticsLabel: 'common.reshare'.tr,
             onTap: canReshare ? showMenu : null,
             showTapArea: _AgendaContentState._showActionTapAreas,
             child: _iconAction(
@@ -760,7 +796,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     return AnimatedActionButton(
       enabled: true,
-      semanticsLabel: 'Kaydet',
+      semanticsLabel: 'common.save'.tr,
       onTap: controller.save,
       showTapArea: _AgendaContentState._showActionTapAreas,
       child: _iconAction(
@@ -813,7 +849,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   Widget sendButton() {
     return AnimatedActionButton(
       enabled: true,
-      semanticsLabel: 'Dış Kaynakta Paylaş',
+      semanticsLabel: 'common.share_external'.tr,
       onTap: _shareExternally,
       padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       showTapArea: _AgendaContentState._showActionTapAreas,

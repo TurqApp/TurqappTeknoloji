@@ -34,6 +34,12 @@ extension _ClassicContentMediaPart on _ClassicContentState {
   }
 
   void _openImageMedia() {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
     _pauseFeedBeforeFullscreen();
     final visibleList = agendaController.agendaList
         .where((val) =>
@@ -47,14 +53,15 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       Get.to(() => PhotoShorts(
             fetchedList: visibleList,
             startModel: widget.model,
-          ));
+          ))?.then((_) => _restoreClassicFeedCenter());
     } else if (widget.model.floodCount > 1) {
-      Get.to(() => FloodListing(mainModel: widget.model));
+      Get.to(() => FloodListing(mainModel: widget.model))
+          ?.then((_) => _restoreClassicFeedCenter());
     } else {
       Get.to(() => PhotoShorts(
             fetchedList: visibleList,
             startModel: widget.model,
-          ));
+          ))?.then((_) => _restoreClassicFeedCenter());
     }
   }
 
@@ -139,11 +146,15 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       return;
     }
     if (widget.model.floodCount > 1) {
+      final modelIndex = agendaController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (modelIndex >= 0) {
+        agendaController.lastCenteredIndex = modelIndex;
+      }
+      agendaController.centeredIndex.value = -1;
       videoController?.pause();
       await Get.to(() => FloodListing(mainModel: widget.model));
-      if (widget.shouldPlay) {
-        videoController?.play();
-      }
+      _restoreClassicFeedCenter();
       return;
     }
 

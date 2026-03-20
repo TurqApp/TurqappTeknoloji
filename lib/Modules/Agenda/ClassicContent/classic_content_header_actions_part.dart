@@ -17,9 +17,15 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             : widget.model.timeStamp);
     void openProfile() {
       if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+        final modelIndex = agendaController.agendaList
+            .indexWhere((p) => p.docID == widget.model.docID);
+        if (modelIndex >= 0) {
+          agendaController.lastCenteredIndex = modelIndex;
+        }
+        agendaController.centeredIndex.value = -1;
         videoController?.pause();
         Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
-          videoController?.play();
+          _restoreClassicFeedCenter();
         });
       }
     }
@@ -207,9 +213,15 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             : widget.model.timeStamp);
     void openProfile() {
       if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+        final modelIndex = agendaController.agendaList
+            .indexWhere((p) => p.docID == widget.model.docID);
+        if (modelIndex >= 0) {
+          agendaController.lastCenteredIndex = modelIndex;
+        }
+        agendaController.centeredIndex.value = -1;
         videoController?.pause();
         Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
-          videoController?.play();
+          _restoreClassicFeedCenter();
         });
       }
     }
@@ -757,7 +769,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: isReshared ? 'Yeniden paylaşımı geri al' : 'Yeniden paylaş',
+            title: isReshared
+                ? 'post.undo_reshare'.tr
+                : 'common.reshare'.tr,
             icon: Icons.repeat,
           ),
           PullDownMenuItem(
@@ -771,7 +785,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           onLongPress: canReshare ? _openReshareUsersSheet : null,
           child: AnimatedActionButton(
             enabled: canReshare,
-            semanticsLabel: 'Yeniden paylaş',
+            semanticsLabel: 'common.reshare'.tr,
             onTap: canReshare ? showMenu : null,
             child: _iconAction(
               icon:
@@ -799,7 +813,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
       return AnimatedActionButton(
         enabled: canInteract,
-        semanticsLabel: 'Yorumlar',
+        semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
             ? () {
                 videoController?.pause();
@@ -828,7 +842,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
       return AnimatedActionButton(
         enabled: true,
-        semanticsLabel: 'Beğeniler',
+        semanticsLabel: 'common.likes'.tr,
         onTap: controller.like,
         onLongPress: _openLikeListing,
         longPressDuration: const Duration(milliseconds: 220),
@@ -865,7 +879,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
       return AnimatedActionButton(
         enabled: true,
-        semanticsLabel: 'Kaydet',
+        semanticsLabel: 'common.save'.tr,
         onTap: controller.save,
         child: _iconAction(
           icon:
@@ -924,7 +938,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
   Widget sendButton() {
     return AnimatedActionButton(
       enabled: true,
-      semanticsLabel: 'Dış Kaynakta Paylaş',
+      semanticsLabel: 'common.share_external'.tr,
       onTap: _shareExternally,
       padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       child: SizedBox(

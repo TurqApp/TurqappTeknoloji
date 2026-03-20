@@ -109,9 +109,17 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       return;
     }
 
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
+
     if (widget.model.floodCount > 1) {
       _pauseFeedBeforeFullscreen();
       await Get.to(() => FloodListing(mainModel: widget.model));
+      _restoreAgendaFeedCenter();
       return;
     }
 
@@ -124,17 +132,11 @@ extension _AgendaContentMediaPart on _AgendaContentState {
             val.img.isNotEmpty)
         .toList();
 
-    if (widget.isPreview) {
-      Get.to(() => PhotoShorts(
-            fetchedList: visibleList,
-            startModel: widget.model,
-          ));
-    } else {
-      Get.to(() => PhotoShorts(
-            fetchedList: visibleList,
-            startModel: widget.model,
-          ));
-    }
+    await Get.to(() => PhotoShorts(
+          fetchedList: visibleList,
+          startModel: widget.model,
+        ));
+    _restoreAgendaFeedCenter();
   }
 
   Widget _buildImageContent(List<String> images) {
