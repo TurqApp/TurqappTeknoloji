@@ -555,8 +555,10 @@ extension _ProfileViewGridsPart on _ProfileViewState {
     final statusColor = _marketStatusColor(item.status);
     return GestureDetector(
       onTap: () async {
+        controller.pausetheall.value = true;
         await Get.to(() => MarketDetailView(item: item));
         await _loadMarketItems(force: true);
+        controller.resumeCenteredPost();
       },
       child: Container(
         clipBehavior: Clip.antiAlias,
@@ -666,8 +668,10 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () async {
+                        controller.pausetheall.value = true;
                         await Get.to(() => MarketDetailView(item: item));
                         await _loadMarketItems(force: true);
+                        controller.resumeCenteredPost();
                       },
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
