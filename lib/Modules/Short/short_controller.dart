@@ -402,6 +402,11 @@ class ShortController extends GetxController {
       }
 
       final previousShorts = shorts.toList(growable: false);
+      final previousIndex =
+          lastIndex.value.clamp(0, previousShorts.isEmpty ? 0 : previousShorts.length - 1);
+      final previousDocId = previousShorts.isEmpty
+          ? ''
+          : previousShorts[previousIndex].docID;
       final newList = List<PostsModel>.from(result.posts);
 
       _replaceShorts(newList, remapCache: false);
@@ -409,16 +414,18 @@ class ShortController extends GetxController {
         previous: previousShorts,
         next: newList,
       );
-      final preloadCount = math.min(1, newList.length);
-      for (int i = 0; i < preloadCount; i++) {
-        if (!cache.containsKey(i)) {
-          await _preloadSingleVideoWithCache(i, newList[i]);
-        }
-      }
 
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
-      lastIndex.value = 0;
+      final remappedIndex = previousDocId.isEmpty
+          ? 0
+          : newList.indexWhere((item) => item.docID == previousDocId);
+      lastIndex.value = remappedIndex >= 0
+          ? remappedIndex
+          : math.min(previousIndex, newList.length - 1);
+      if (newList.isNotEmpty && !cache.containsKey(lastIndex.value)) {
+        await _preloadSingleVideoWithCache(lastIndex.value, newList[lastIndex.value]);
+      }
       unawaited(_persistVisibleSnapshot());
 
       // Ek arka plan preload kapalı: sadece aktif video cache'te kalsın.
