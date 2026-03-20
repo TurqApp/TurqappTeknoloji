@@ -96,6 +96,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     _telemetryFirstFrame = false;
     _telemetryAdapter = ctrl;
     _activeTelemetryVideoId = post.docID;
+    ctrl.removeListener(_telemetryListener);
     ctrl.addListener(_telemetryListener);
     _scheduleEngagementRescore(currentPage);
   }

@@ -419,6 +419,7 @@ class _ShortViewState extends State<ShortView> {
         );
         _telemetryFirstFrame = false;
         _telemetryAdapter = vc;
+        vc.removeListener(_telemetryListener);
         vc.addListener(_telemetryListener);
         _scheduleEngagementRescore(page);
       }
