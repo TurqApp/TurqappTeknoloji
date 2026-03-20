@@ -96,29 +96,7 @@ class AnswerKeyContent extends StatelessWidget {
     return PasajGridCard(
       onTap: () => _openOwner(context, controller),
       media: _buildMedia(12),
-      overlay: GestureDetector(
-        onTap: controller.toggleBookmark,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: PasajListCardMetrics.gridOverlayButtonSize,
-          height: PasajListCardMetrics.gridOverlayButtonSize,
-          child: Center(
-            child: Icon(
-              controller.isBookmarked.value
-                  ? CupertinoIcons.bookmark_fill
-                  : CupertinoIcons.bookmark,
-              color: Colors.white,
-              size: PasajListCardMetrics.gridOverlayIconSize,
-              shadows: const [
-                Shadow(
-                  color: Color(0x66000000),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      overlay: _buildGridBookmarkOverlay(controller),
       lines: [
         Text(
           controller.model.baslik,
@@ -184,6 +162,53 @@ class AnswerKeyContent extends StatelessWidget {
         controller,
         height: PasajListCardMetrics.gridCtaHeight,
         fontSize: PasajListCardMetrics.gridCtaFontSize,
+      ),
+    );
+  }
+
+  Widget _buildGridBookmarkOverlay(AnswerKeyContentController controller) {
+    return Obx(
+      () => GestureDetector(
+        onTap: controller.toggleBookmark,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: PasajListCardMetrics.gridOverlayButtonSize,
+          height: PasajListCardMetrics.gridOverlayButtonSize,
+          child: Center(
+            child: Icon(
+              controller.isBookmarked.value
+                  ? CupertinoIcons.bookmark_fill
+                  : CupertinoIcons.bookmark,
+              color: Colors.white,
+              size: PasajListCardMetrics.gridOverlayIconSize,
+              shadows: const [
+                Shadow(
+                  color: Color(0x66000000),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListBookmarkAction(
+    AnswerKeyContentController controller,
+    PasajListCardMetrics metrics,
+  ) {
+    return Obx(
+      () => AppHeaderActionButton(
+        onTap: controller.toggleBookmark,
+        size: metrics.actionButtonSize,
+        child: Icon(
+          controller.isBookmarked.value
+              ? CupertinoIcons.bookmark_fill
+              : CupertinoIcons.bookmark,
+          color: controller.isBookmarked.value ? Colors.orange : Colors.black87,
+          size: metrics.actionIconSize,
+        ),
       ),
     );
   }
@@ -314,19 +339,7 @@ class AnswerKeyContent extends StatelessWidget {
                           ),
                           SizedBox(width: metrics.railActionGap),
                         ],
-                        AppHeaderActionButton(
-                          onTap: controller.toggleBookmark,
-                          size: metrics.actionButtonSize,
-                          child: Icon(
-                            controller.isBookmarked.value
-                                ? CupertinoIcons.bookmark_fill
-                                : CupertinoIcons.bookmark,
-                            color: controller.isBookmarked.value
-                                ? Colors.orange
-                                : Colors.black87,
-                            size: metrics.actionIconSize,
-                          ),
-                        ),
+                        _buildListBookmarkAction(controller, metrics),
                       ],
                     ),
                     SizedBox(height: metrics.railSectionGap),
@@ -358,11 +371,8 @@ class AnswerKeyContent extends StatelessWidget {
       tag: model.docID,
     );
     controller.syncModel(model);
-
-    return Obx(
-      () => isListLayout
-          ? _buildListCard(context, controller)
-          : _buildGridCard(context, controller),
-    );
+    return isListLayout
+        ? _buildListCard(context, controller)
+        : _buildGridCard(context, controller);
   }
 }
