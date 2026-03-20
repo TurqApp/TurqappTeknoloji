@@ -54,6 +54,8 @@ class ExploreController extends GetxController {
   DocumentSnapshot? lastExploreDoc;
   RxBool exploreHasMore = true.obs;
   RxBool exploreIsLoading = false.obs;
+  final RxBool explorePreviewSuspended = false.obs;
+  final RxInt explorePreviewFocusIndex = (-1).obs;
 
   // -------------- Videolar --------------
   final ScrollController videoScroll = ScrollController();
@@ -153,6 +155,15 @@ class ExploreController extends GetxController {
       return;
     }
     showScrollToTop.value = shouldShow;
+  }
+
+  void suspendExplorePreview({int focusIndex = -1}) {
+    explorePreviewSuspended.value = true;
+    explorePreviewFocusIndex.value = focusIndex;
+  }
+
+  void resumeExplorePreview() {
+    explorePreviewSuspended.value = false;
   }
 
   void _bindFollowingListener() {

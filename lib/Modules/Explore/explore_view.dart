@@ -129,7 +129,7 @@ class ExploreView extends StatelessWidget {
                           child: TurqSearchBar(
                             controller: controller.searchController,
                             focusNode: controller.searchFocus,
-                            hintText: "Ara",
+                            hintText: 'common.search'.tr,
                             onTap: () {
                               controller.isSearchMode.value = true;
                             },
@@ -189,10 +189,10 @@ class ExploreView extends StatelessWidget {
                       child: Column(
                         children: [
                           PageLineBar(
-                            barList: const [
-                              "Gündem",
-                              "Sana Özel",
-                              "Dizi",
+                            barList: [
+                              'explore.tab.trending'.tr,
+                              'explore.tab.for_you'.tr,
+                              'explore.tab.series'.tr,
                             ],
                             pageName: 'Explore',
                             pageController: controller.pageController,
@@ -265,7 +265,11 @@ class ExploreView extends StatelessWidget {
                                                                   .start,
                                                           children: [
                                                             Text(
-                                                              "${i + 1} - Türkiye tarihinde gündemde",
+                                                              'explore.trending_rank'
+                                                                  .trParams({
+                                                                'index':
+                                                                    '${i + 1}',
+                                                              }),
                                                               style:
                                                                   const TextStyle(
                                                                 color: Colors
@@ -343,7 +347,8 @@ class ExploreView extends StatelessWidget {
                                             !controller.exploreIsLoading.value
                                         ? Center(
                                             child: EmptyRow(
-                                                text: "Sonuç bulunamadı"))
+                                                text:
+                                                    'explore.no_results'.tr))
                                         : GridView.builder(
                                             key: const PageStorageKey(
                                                 'Explore_SanaOzel'),
@@ -372,21 +377,31 @@ class ExploreView extends StatelessWidget {
                                               return RepaintBoundary(
                                                 child: GestureDetector(
                                                   onTap: () async {
+                                                    controller
+                                                        .suspendExplorePreview(
+                                                      focusIndex: i,
+                                                    );
                                                     if (model.floodCount > 1) {
                                                       await VideoControllerPool
                                                           .pauseAll();
-                                                      Get.to(() => FloodListing(
-                                                          mainModel: model));
+                                                      await Get.to(() =>
+                                                          FloodListing(
+                                                              mainModel:
+                                                                  model));
+                                                      controller
+                                                          .resumeExplorePreview();
                                                       return;
                                                     }
                                                     await VideoControllerPool
                                                         .pauseAll();
                                                     final videos = list;
-                                                    Get.to(
+                                                    await Get.to(
                                                         () => SingleShortView(
                                                               startList: videos,
                                                               startModel: model,
                                                             ));
+                                                    controller
+                                                        .resumeExplorePreview();
                                                   },
                                                   child: Stack(
                                                     fit: StackFit.expand,
@@ -494,8 +509,9 @@ class ExploreView extends StatelessWidget {
                                   if (list.isEmpty &&
                                       !controller.floodsIsLoading.value) {
                                     return Center(
-                                          child: EmptyRow(
-                                            text: "Dizi bulunamadı"));
+                                            child: EmptyRow(
+                                                text:
+                                                    'explore.no_series'.tr));
                                   }
                                   return RefreshIndicator(
                                     backgroundColor: Colors.black,
@@ -685,6 +701,12 @@ class ExploreView extends StatelessWidget {
   }
 
   bool _shouldPlayExplorePreview(int index) {
+    if (controller.explorePreviewSuspended.value) {
+      return false;
+    }
+    if (controller.explorePreviewFocusIndex.value == index) {
+      return true;
+    }
     final oneBased = index + 1;
     if (oneBased == 1) return true;
     if (oneBased < 6) return false;
