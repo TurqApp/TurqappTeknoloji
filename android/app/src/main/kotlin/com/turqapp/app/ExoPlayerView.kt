@@ -50,7 +50,7 @@ class ExoPlayerView(
     private var isLooping = false
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
-    private var preferredMaxBufferMs: Long = 8000
+    private var preferredMaxBufferMs: Long = 10000
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
@@ -62,6 +62,7 @@ class ExoPlayerView(
     private var lastSurfaceWidth = 0
     private var lastSurfaceHeight = 0
     private var stableSurfacePasses = 0
+    private var isBufferingDispatched = false
 
     init {
         val layoutRes = R.layout.turq_texture_player_view
@@ -143,14 +144,15 @@ class ExoPlayerView(
         }
 
         val activePlayer = if (existing == null) {
-            // Android yolu AVPlayer'dan belirgin sekilde daha gec tepki veriyordu.
-            // Burada daha kisa ama daha dengeli bir buffer profili kullanip ilk
-            // kareyi hizlandirirken kisa gecislerde stalling riskini dusuruyoruz.
-            val targetBufferMs = preferredMaxBufferMs.coerceIn(3000, 12000).toInt()
-            val minBufferMs = (targetBufferMs * 0.65).toInt().coerceAtLeast(1800)
-            val playbackBufferMs = (minBufferMs * 0.35).toInt().coerceIn(350, 900)
+            // iOS tarafindaki stability-first davranisa yaklasmak icin Android
+            // buffer profili biraz daha genis tutulur. Bu, TTFF'i azicik
+            // uzatabilir ama scroll gecislerinde siyah ekran/rebuffer oranini
+            // gozle gorulur sekilde azaltir.
+            val targetBufferMs = preferredMaxBufferMs.coerceIn(4500, 16000).toInt()
+            val minBufferMs = (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
+            val playbackBufferMs = (minBufferMs * 0.24).toInt().coerceIn(900, 1800)
             val rebufferPlaybackMs =
-                (minBufferMs * 0.75).toInt().coerceIn(900, 2200)
+                (minBufferMs * 0.55).toInt().coerceIn(1600, 3200)
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     minBufferMs,
@@ -187,17 +189,18 @@ class ExoPlayerView(
         lastSurfaceWidth = 0
         lastSurfaceHeight = 0
         stableSurfacePasses = 0
-        if (forceFullscreen) {
-            resetSurfaceVisibility()
-        } else {
-            revealSurface(immediate = true)
-        }
+        isBufferingDispatched = false
+        resetSurfaceVisibility()
 
         if (existing == null) {
             activePlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
                     Player.STATE_READY -> {
+                        if (isBufferingDispatched) {
+                            isBufferingDispatched = false
+                            sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
+                        }
                         isPlayerReady = true
                         scheduleSurfaceReveal()
                         sendEvent(mapOf(
@@ -207,11 +210,18 @@ class ExoPlayerView(
                         startPositionUpdates()
                     }
                     Player.STATE_ENDED -> {
+                        if (isBufferingDispatched) {
+                            isBufferingDispatched = false
+                            sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
+                        }
                         sendEvent(mapOf("event" to "completed"))
                         stopPositionUpdates()
                     }
                     Player.STATE_BUFFERING -> {
-                        sendEvent(mapOf("event" to "buffering", "isBuffering" to true))
+                        if (!isBufferingDispatched) {
+                            isBufferingDispatched = true
+                            sendEvent(mapOf("event" to "buffering", "isBuffering" to true))
+                        }
                     }
                     Player.STATE_IDLE -> {}
                 }
@@ -219,6 +229,10 @@ class ExoPlayerView(
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
+                    if (isBufferingDispatched) {
+                        isBufferingDispatched = false
+                        sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
+                    }
                     sendEvent(mapOf("event" to "play"))
                     startPositionUpdates()
                 } else {
@@ -257,8 +271,8 @@ class ExoPlayerView(
         // HLS URL'leri için HlsMediaSource kullan (ABR desteği)
         if (url.contains(".m3u8") || url.contains("/hls/")) {
             val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-                .setConnectTimeoutMs(3000)  // A6: 8000ms → 3000ms (hızlı bağlantı hatası tespiti)
-                .setReadTimeoutMs(5000)     // A6: 8000ms → 5000ms (segment okuma timeout)
+                .setConnectTimeoutMs(6000)
+                .setReadTimeoutMs(9000)
                 .setDefaultRequestProperties(mapOf(
                     "X-Turq-App" to "turqapp-mobile",
                 ))
@@ -396,14 +410,24 @@ class ExoPlayerView(
             pendingRevealRunnable?.let(handler::removeCallbacks)
             pendingRevealRunnable = null
             playerView.animate().cancel()
-            playerView.alpha = if (forceFullscreen) 0f else 1f
+            playerView.alpha = 0f
         }
     }
 
     private fun scheduleSurfaceReveal() {
         if (!forceFullscreen) {
-            if (hasVideoSize || isPlayerReady || didRenderFirstFrame) {
-                revealSurface(immediate = true)
+            val canReveal = didRenderFirstFrame ||
+                (isPlayerReady && hasVideoSize && hasStableSurfaceLayout)
+            if (!canReveal) return
+            handler.post {
+                pendingRevealRunnable?.let(handler::removeCallbacks)
+                val revealRunnable = Runnable {
+                    pendingRevealRunnable = null
+                    revealSurface(immediate = !didRenderFirstFrame)
+                }
+                pendingRevealRunnable = revealRunnable
+                val revealDelayMs = if (didRenderFirstFrame) 24L else 72L
+                handler.postDelayed(revealRunnable, revealDelayMs)
             }
             return
         }

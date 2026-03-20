@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
@@ -16,6 +15,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -42,11 +42,11 @@ class ShortController extends GetxController {
   static const int _initialPreloadCount = 3;
 
   static final double _activeBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 3.0 : 3.0;
+      defaultTargetPlatform == TargetPlatform.android ? 5.0 : 3.0;
   static final double _neighborBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 2.4 : 2.4;
+      defaultTargetPlatform == TargetPlatform.android ? 3.6 : 2.4;
   static final double _prepBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 2.1 : 2.1;
+      defaultTargetPlatform == TargetPlatform.android ? 2.8 : 2.1;
 
   // Dinamik yükleme durumları
   final int pageSize = 20;
@@ -72,6 +72,8 @@ class ShortController extends GetxController {
   final ShortSnapshotRepository _shortSnapshotRepository =
       ShortSnapshotRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
   static bool _globalShuffleCompleted = false;
@@ -130,8 +132,8 @@ class ShortController extends GetxController {
   /// Fetch following list once
   Future<void> _fetchFollowingList(String myUid) async {
     try {
-      final ids = await FollowRepository.ensure().getFollowingIds(
-        myUid,
+      final ids = await _visibilityPolicy.loadViewerFollowingIds(
+        viewerUserId: myUid,
         preferCache: true,
       );
       _followingIDs
@@ -183,14 +185,16 @@ class ShortController extends GetxController {
         final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
         final Map<String, bool> userPrivacy =
             await _fetchUsersPrivacy(authorIds);
-        final myUid = FirebaseAuth.instance.currentUser?.uid;
 
         final filtered = <PostsModel>[];
         for (final p in finalFiltered) {
           final isPrivate = userPrivacy[p.userID] == true;
-          final include = !isPrivate ||
-              (myUid != null && p.userID == myUid) ||
-              _followingIDs.contains(p.userID);
+          final include = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+            authorUserId: p.userID,
+            followingIds: _followingIDs,
+            isPrivate: isPrivate,
+            isDeleted: false,
+          );
           if (include) {
             filtered.add(p);
           }

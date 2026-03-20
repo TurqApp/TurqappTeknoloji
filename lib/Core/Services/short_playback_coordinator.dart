@@ -31,12 +31,12 @@ class ShortPlaybackCoordinator {
   factory ShortPlaybackCoordinator.forCurrentPlatform() {
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
     return ShortPlaybackCoordinator(
-      // Android tarafı iOS'a gore fazla konservatifti; komsu short'lar
-      // yeterince sicak tutulmadigi icin gecisler belirgin sekilde sertlesiyordu.
-      hotAhead: isAndroid ? 3 : 5,
-      hotBehind: isAndroid ? 1 : 2,
-      warmBehind: isAndroid ? 3 : 5,
-      maxAttachedPlayers: isAndroid ? 5 : 11,
+      // Android tarafinda komsu short'lari biraz daha sicak tutup
+      // gecislerde siyah ekran ve gec first-frame ihtimalini azalt.
+      hotAhead: isAndroid ? 4 : 5,
+      hotBehind: isAndroid ? 2 : 2,
+      warmBehind: isAndroid ? 4 : 5,
+      maxAttachedPlayers: isAndroid ? 6 : 11,
       budgetPolicy: PlayerBudgetPolicy.forSurface(
         PlayerSurfaceKind.shortFullscreen,
         lowMemoryDevice: isAndroid,
