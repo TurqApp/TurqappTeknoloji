@@ -1,12 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeGridController extends GetxController {
-  final PracticeExamRepository _practiceExamRepository =
-      PracticeExamRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   var avatarUrl = ''.obs;
   var nickname = ''.obs;
@@ -14,7 +11,7 @@ class DenemeGridController extends GetxController {
   var currentTime = DateTime.now().millisecondsSinceEpoch.obs;
   var examTime = 0.obs;
   var isLoadingProfile = true.obs;
-  var isLoadingApplicants = true.obs;
+  var isLoadingApplicants = false.obs;
   final int fifteenMinutes = 15 * 60 * 1000;
   String _initializedDocId = '';
   String _initializedUserId = '';
@@ -29,7 +26,6 @@ class DenemeGridController extends GetxController {
     examTime.value = model.timeStamp.toInt();
     toplamBasvuru.value = model.participantCount.toInt();
     fetchProfileData(model.userID);
-    fetchApplicantCount(model.docID);
   }
 
   Future<void> fetchProfileData(String userID) async {
@@ -47,21 +43,6 @@ class DenemeGridController extends GetxController {
       nickname.value = '';
     } finally {
       isLoadingProfile.value = false;
-    }
-  }
-
-  Future<void> fetchApplicantCount(String docID) async {
-    isLoadingApplicants.value = true;
-    try {
-      toplamBasvuru.value = await _practiceExamRepository.fetchParticipantCount(
-        docID,
-        preferCache: false,
-      );
-    } catch (e) {
-      debugPrint('[DenemeGrid] applicant count fetch failed: $e');
-      toplamBasvuru.value = 0;
-    } finally {
-      isLoadingApplicants.value = false;
     }
   }
 }

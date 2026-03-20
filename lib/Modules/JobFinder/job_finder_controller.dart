@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
@@ -190,6 +191,7 @@ class JobFinderController extends GetxController {
 
   Future<void> _bootstrapStartData() async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    await JobContentController.warmSavedIdsForCurrentUser();
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _jobHomeSnapshotRepository
         .openHome(
@@ -215,7 +217,9 @@ class JobFinderController extends GetxController {
         limit: limit,
         forceSync: forceRefresh,
       );
-      final fetchedJobs = resource.data ?? const <JobModel>[];
+      final fetchedJobs = _applyCurrentSorting(
+        resource.data ?? const <JobModel>[],
+      );
       list.assignAll(fetchedJobs);
       allJobs.assignAll(fetchedJobs);
       SilentRefreshGate.markRefreshed('jobs:home');
@@ -289,9 +293,9 @@ class JobFinderController extends GetxController {
         );
       }).toList();
 
-      updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
-      list.assignAll(updatedJobs);
-      allJobs.assignAll(updatedJobs);
+      final sortedJobs = _applyCurrentSorting(updatedJobs);
+      list.assignAll(sortedJobs);
+      allJobs.assignAll(sortedJobs);
     } catch (_) {}
   }
 
@@ -536,10 +540,16 @@ class JobFinderController extends GetxController {
     return jobs.map(_attachDistance).toList(growable: false);
   }
 
+  List<JobModel> _applyCurrentSorting(List<JobModel> jobs) {
+    final sorted = List<JobModel>.from(jobs);
+    applySorting(sorted);
+    return sorted;
+  }
+
   void _applyHomeSnapshotResource(CachedResource<List<JobModel>> resource) {
     final jobs = resource.data ?? const <JobModel>[];
     if (jobs.isNotEmpty) {
-      final withDistance = _applyDistanceToJobs(jobs);
+      final withDistance = _applyCurrentSorting(_applyDistanceToJobs(jobs));
       list.assignAll(withDistance);
       allJobs.assignAll(withDistance);
       _scheduleLocationHydration(withDistance);

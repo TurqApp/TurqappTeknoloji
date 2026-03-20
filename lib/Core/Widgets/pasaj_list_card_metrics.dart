@@ -2,10 +2,19 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class PasajListCardMetrics {
+  static const double gridRadius = 12;
   static const double gridMediaAspectRatio = 0.78;
   static const double gridOverlayButtonSize = 30;
   static const double gridOverlayIconSize = 18;
   static const double gridOverlayInset = 6;
+  static const double gridContentHorizontalPadding = 8;
+  static const double gridContentTopPadding = 8;
+  static const double gridContentBottomPadding = 3;
+  static const double gridLineGap = 4;
+  static const double gridCtaTopGap = 3;
+  static const double gridCtaHeight = 30;
+  static const double gridCtaFontSize = 15;
+  static const double gridCtaRadius = 8;
 
   const PasajListCardMetrics({
     required this.mediaSize,

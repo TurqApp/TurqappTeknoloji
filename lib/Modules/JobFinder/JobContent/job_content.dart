@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
@@ -27,16 +28,6 @@ class JobContent extends StatelessWidget {
       return 'pasaj.job_finder.salary_not_specified'.tr;
     }
     return model.calismaTuru.join(', ');
-  }
-
-  String get _gridWorkTypeText {
-    if (model.calismaTuru.isEmpty) {
-      return 'pasaj.job_finder.salary_not_specified'.tr;
-    }
-    if (model.calismaTuru.length == 1) {
-      return model.calismaTuru.first;
-    }
-    return '${model.calismaTuru.first} +${model.calismaTuru.length - 1}';
   }
 
   String get _cityTownText {
@@ -89,28 +80,6 @@ class JobContent extends StatelessWidget {
         : ClipRRect(borderRadius: borderRadius, child: image);
   }
 
-  Widget _buildResolvedLogo({
-    required JobContentController controller,
-    required double? width,
-    required double? height,
-    required BorderRadius borderRadius,
-  }) {
-    return FutureBuilder<JobModel?>(
-      future: controller.resolveFreshJob(model),
-      initialData: model,
-      builder: (context, snapshot) {
-        final freshLogo = snapshot.data?.logo.trim() ?? '';
-        final imageUrl = freshLogo.isNotEmpty ? freshLogo : model.logo.trim();
-        return _buildLogo(
-          imageUrl: imageUrl,
-          width: width,
-          height: height,
-          borderRadius: borderRadius,
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final controller =
@@ -118,7 +87,7 @@ class JobContent extends StatelessWidget {
             ? Get.find<JobContentController>(tag: _controllerTag)
             : Get.put(JobContentController(), tag: _controllerTag);
     if (model.docID.trim().isNotEmpty) {
-      controller.checkSaved(model.docID);
+      controller.primeSavedState(model.docID);
     }
     return isGrid ? gridView(controller) : listingView(controller);
   }
@@ -150,8 +119,8 @@ class JobContent extends StatelessWidget {
                   child: SizedBox(
                     width: metrics.mediaSize,
                     height: metrics.railHeight,
-                    child: _buildResolvedLogo(
-                      controller: controller,
+                    child: _buildLogo(
+                      imageUrl: model.logo.trim(),
                       width: metrics.mediaSize,
                       height: metrics.railHeight,
                       borderRadius: const BorderRadius.all(Radius.circular(10)),
@@ -171,8 +140,8 @@ class JobContent extends StatelessWidget {
                             alignment: Alignment.centerLeft,
                             child: Text(
                               model.ilanBasligi.isNotEmpty
-                                  ? model.ilanBasligi
-                                  : model.meslek,
+                                  ? model.meslek
+                                  : model.brand,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: PasajCardStyles.lineOne,
@@ -185,9 +154,7 @@ class JobContent extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              model.ilanBasligi.isNotEmpty
-                                  ? model.meslek
-                                  : model.brand,
+                              _workTypeText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: PasajCardStyles.lineTwo,
@@ -200,7 +167,9 @@ class JobContent extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              _workTypeText,
+                              model.ilanBasligi.isNotEmpty
+                                  ? model.ilanBasligi
+                                  : model.meslek,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: PasajCardStyles.detail,
@@ -306,126 +275,83 @@ class JobContent extends StatelessWidget {
   }
 
   Widget gridView(JobContentController controller) {
-    const metrics = PasajListCardMetrics.regular;
-    return GestureDetector(
+    return PasajGridCard(
       onTap: () => Get.to(JobDetails(model: model)),
       onLongPress: () => controller.reactivateEndedJob(model),
-      child: Container(
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-            border: Border.all(color: Colors.grey.withAlpha(50))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: _buildResolvedLogo(
-                      controller: controller,
-                      width: null,
-                      height: null,
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(8),
-                        topLeft: Radius.circular(8),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: PasajListCardMetrics.gridOverlayInset,
-                    right: PasajListCardMetrics.gridOverlayInset,
-                    child: Obx(
-                      () => GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: model.docID.trim().isEmpty
-                            ? null
-                            : () => controller.toggleSave(model.docID),
-                        child: SizedBox(
-                          width: PasajListCardMetrics.gridOverlayButtonSize,
-                          height: PasajListCardMetrics.gridOverlayButtonSize,
-                          child: Center(
-                            child: Icon(
-                              controller.saved.value
-                                  ? AppIcons.saved
-                                  : AppIcons.save,
-                              size: PasajListCardMetrics.gridOverlayIconSize,
-                              color: Colors.white,
-                              shadows: const [
-                                Shadow(
-                                  color: Color(0x66000000),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+      media: _buildLogo(
+        imageUrl: model.logo.trim(),
+        width: null,
+        height: null,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(12),
+        ),
+      ),
+      overlay: Obx(
+        () => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: model.docID.trim().isEmpty
+              ? null
+              : () => controller.toggleSave(model.docID),
+          child: SizedBox(
+            width: PasajListCardMetrics.gridOverlayButtonSize,
+            height: PasajListCardMetrics.gridOverlayButtonSize,
+            child: Center(
+              child: Icon(
+                controller.saved.value ? AppIcons.saved : AppIcons.save,
+                size: PasajListCardMetrics.gridOverlayIconSize,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x66000000),
+                    blurRadius: 8,
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 7, 8, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    model.ilanBasligi.isNotEmpty
-                        ? model.ilanBasligi
-                        : model.meslek,
-                    maxLines: 1,
-                    style: PasajCardStyles.lineOne,
-                  ),
-                  Text(
-                    _gridWorkTypeText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.lineTwo,
-                  ),
-                  Text(
-                    model.brand,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.detail,
-                  ),
-                  Text(
-                    _cityTownText,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.lineFour,
-                  ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      width: metrics.railWidth,
-                      child: GestureDetector(
-                        onTap: () => Get.to(JobDetails(model: model)),
-                        child: Container(
-                          height: metrics.ctaHeight,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                          ),
-                          child: Text(
-                            'pasaj.market.inspect'.tr,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: metrics.ctaFontSize,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
+          ),
+        ),
+      ),
+      lines: [
+        Text(
+          model.ilanBasligi.isNotEmpty ? model.meslek : model.brand,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.lineOne,
+        ),
+        Text(
+          _workTypeText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.gridLineTwo(PasajCardStyles.lineTwoColor),
+        ),
+        Text(
+          model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.detail,
+        ),
+        Text(
+          _cityTownText,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.gridLineFour(PasajCardStyles.lineFourColor),
+        ),
+      ],
+      cta: GestureDetector(
+        onTap: () => Get.to(JobDetails(model: model)),
+        child: Container(
+          height: PasajListCardMetrics.gridCtaHeight,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.all(
+              Radius.circular(PasajListCardMetrics.gridCtaRadius),
+            ),
+          ),
+          child: Text(
+            'pasaj.market.inspect'.tr,
+            style: PasajCardStyles.gridCta,
+          ),
         ),
       ),
     );

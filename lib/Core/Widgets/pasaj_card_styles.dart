@@ -35,4 +35,32 @@ class PasajCardStyles {
     fontFamily: 'MontserratMedium',
     height: 1.25,
   );
+
+  static TextStyle gridLineTwo(Color color) => TextStyle(
+        color: color,
+        fontSize: 14,
+        fontFamily: 'MontserratMedium',
+        height: 1.25,
+      );
+
+  static TextStyle gridLineFour(Color color) => TextStyle(
+        color: color,
+        fontSize: 12,
+        fontFamily: 'MontserratMedium',
+        height: 1.25,
+      );
+
+  static const TextStyle gridPrice = TextStyle(
+    color: Color(0xFF8B0000),
+    fontSize: 19,
+    fontFamily: 'MontserratBold',
+    height: 1.25,
+  );
+
+  static const TextStyle gridCta = TextStyle(
+    color: Colors.white,
+    fontSize: 15,
+    fontFamily: 'MontserratMedium',
+    height: 1.25,
+  );
 }

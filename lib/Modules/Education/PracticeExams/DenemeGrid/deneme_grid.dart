@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
@@ -171,19 +172,15 @@ class DenemeGrid extends StatelessWidget {
 
   String _formattedApplicationText(int count) {
     final scaled = count * 3;
+    String value;
     if (scaled / 1000000 > 1) {
-      return 'practice.application_count'.trParams({
-        'count': '${(scaled / 1000000).toStringAsFixed(2)}M',
-      });
+      value = '${(scaled / 1000000).toStringAsFixed(2)}M';
+    } else if (scaled / 1000 > 1) {
+      value = '${(scaled / 1000).toStringAsFixed(1)}B';
+    } else {
+      value = '$scaled';
     }
-    if (scaled / 1000 > 1) {
-      return 'practice.application_count'.trParams({
-        'count': '${(scaled / 1000).toStringAsFixed(1)}B',
-      });
-    }
-    return 'practice.application_count'.trParams({
-      'count': '$scaled',
-    });
+    return '${'practice.application_count'.tr}: $value';
   }
 
   Color _ctaColor(DenemeGridController controller) {
@@ -253,138 +250,99 @@ class DenemeGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildGridCard(DenemeGridController controller) {
-    const metrics = PasajListCardMetrics.regular;
-    return GestureDetector(
+  Widget _buildGridCard(
+    DenemeGridController controller,
+    SavedPracticeExamsController savedController,
+  ) {
+    return PasajGridCard(
       onTap: _openCard,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+      media: _buildMedia(radius: 12),
+      overlay: GestureDetector(
+        onTap: model.docID.trim().isEmpty
+            ? null
+            : () => savedController.toggleSavedExam(model.docID),
+        child: SizedBox(
+          width: PasajListCardMetrics.gridOverlayButtonSize,
+          height: PasajListCardMetrics.gridOverlayButtonSize,
+          child: Center(
+            child: Obx(
+              () => Icon(
+                savedController.savedExamIds.contains(model.docID)
+                    ? AppIcons.saved
+                    : AppIcons.save,
+                color: Colors.white,
+                size: PasajListCardMetrics.gridOverlayIconSize,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x55000000),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
-              child: Stack(
-                children: [
-                  Positioned.fill(child: _buildMedia(radius: 12)),
-                  Positioned(
-                    top: PasajListCardMetrics.gridOverlayInset,
-                    right: PasajListCardMetrics.gridOverlayInset,
-                    child: EducationShareIconButton(
-                      onTap: _shareExternally,
-                      size: PasajListCardMetrics.gridOverlayButtonSize,
-                      iconSize: PasajListCardMetrics.gridOverlayIconSize,
-                    ),
-                  ),
-                ],
+      ),
+      lines: [
+        Text(
+          model.sinavAdi,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.lineOne,
+        ),
+        Text(
+          formatTimestamp(model.timeStamp.toInt()),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.gridLineTwo(Colors.indigo),
+        ),
+        Text(
+          model.sinavTuru,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.detail,
+        ),
+        Obx(
+          () => Row(
+            children: [
+              Icon(
+                CupertinoIcons.person_2_fill,
+                size: 13,
+                color: Colors.grey.shade500,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    model.sinavAdi,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          model.sinavTuru,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontSize: 12,
-                            fontFamily: 'MontserratBold',
-                          ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  controller.isLoadingApplicants.value
+                      ? 'common.loading'.tr
+                      : _formattedApplicationText(
+                          controller.toplamBasvuru.value,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        formatTimestamp(model.timeStamp.toInt()),
-                        style: PasajCardStyles.detail,
-                      ),
-                    ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PasajCardStyles.gridLineFour(
+                    PasajCardStyles.lineFourColor,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    model.sinavAciklama.trim().isNotEmpty
-                        ? model.sinavAciklama.trim()
-                        : 'practice.online_exam_fallback'.tr,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.detail,
-                  ),
-                  const SizedBox(height: 4),
-                  Obx(
-                    () => Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.person_2_fill,
-                          size: 13,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            controller.isLoadingApplicants.value
-                                ? 'common.loading'.tr
-                                : _formattedApplicationText(
-                                    controller.toplamBasvuru.value,
-                                  ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.lineOne,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Obx(
-                    () => Align(
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        width: metrics.railWidth,
-                        child: Container(
-                          height: metrics.ctaHeight,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _ctaColor(controller),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            _ctaLabel(controller),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: metrics.ctaFontSize,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
+            ],
+          ),
+        ),
+      ],
+      cta: Obx(
+        () => Container(
+          height: PasajListCardMetrics.gridCtaHeight,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _ctaColor(controller),
+            borderRadius: const BorderRadius.all(
+              Radius.circular(PasajListCardMetrics.gridCtaRadius),
             ),
-          ],
+          ),
+          child: Text(
+            _ctaLabel(controller),
+            style: PasajCardStyles.gridCta,
+          ),
         ),
       ),
     );
@@ -610,6 +568,6 @@ class DenemeGrid extends StatelessWidget {
 
     return isListLayout
         ? _buildListCard(controller, savedController)
-        : _buildGridCard(controller);
+        : _buildGridCard(controller, savedController);
   }
 }

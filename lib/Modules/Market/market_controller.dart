@@ -150,13 +150,14 @@ class MarketController extends GetxController {
       categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
     } catch (_) {}
+    await _loadSavedItems();
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _marketSnapshotRepository
         .openHome(
-          userId: userId,
-          limit: 120,
-        )
+      userId: userId,
+      limit: 120,
+    )
         .listen((resource) {
       unawaited(_applyHomeSnapshotResource(resource));
     });
@@ -606,10 +607,9 @@ class MarketController extends GetxController {
       );
       if (!_isLatestSearch(requestId, query)) return;
 
-      final results =
-          (fetched.data ?? const <MarketItemModel>[])
-              .where((item) => item.status == 'active')
-              .toList(
+      final results = (fetched.data ?? const <MarketItemModel>[])
+          .where((item) => item.status == 'active')
+          .toList(
             growable: false,
           );
       searchedItems.assignAll(results);
@@ -693,10 +693,10 @@ class MarketController extends GetxController {
         .toList(growable: false);
     if (activeItems.isNotEmpty) {
       items.assignAll(_mergePendingCreatedItems(activeItems));
-      await _loadAllCityOptions();
-      await _loadSavedItems();
-      await _loadRoundMenuBadges(forceRefresh: false);
       _applyFilters();
+      unawaited(_loadAllCityOptions());
+      unawaited(_loadSavedItems());
+      unawaited(_loadRoundMenuBadges(forceRefresh: false));
     }
 
     if (!resource.isRefreshing || activeItems.isNotEmpty) {

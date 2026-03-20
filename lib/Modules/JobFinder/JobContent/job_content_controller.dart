@@ -16,27 +16,54 @@ import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 
 class JobContentController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
+  static final Map<String, Set<String>> _savedIdsByUser =
+      <String, Set<String>>{};
+  static final Map<String, Future<Set<String>>> _savedIdsLoaders =
+      <String, Future<Set<String>>>{};
   var saved = false.obs;
-  final Map<String, Future<JobModel?>> _jobFutureCache = <String, Future<JobModel?>>{};
+  String _initializedSavedDocId = '';
 
-  Future<JobModel?> resolveFreshJob(JobModel model) {
-    final docId = model.docID.trim();
-    if (docId.isEmpty) return Future<JobModel?>.value(model);
-    return _jobFutureCache.putIfAbsent(
-      docId,
-      () => _jobRepository.fetchById(
-        docId,
-        preferCache: true,
-        forceRefresh: true,
-      ),
-    );
+  Future<Set<String>> _loadSavedIds(String uid) {
+    final cached = _savedIdsByUser[uid];
+    if (cached != null) return Future<Set<String>>.value(cached);
+    return _savedIdsLoaders.putIfAbsent(uid, () async {
+      try {
+        final records = await JobSavedStore.getSavedJobs(
+          uid,
+          preferCache: true,
+        );
+        final ids = records.map((record) => record.jobId).toSet();
+        _savedIdsByUser[uid] = ids;
+        return ids;
+      } finally {
+        _savedIdsLoaders.remove(uid);
+      }
+    });
   }
 
-  Future<void> checkSaved(String docId) async {
+  static Future<void> warmSavedIdsForCurrentUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    final cached = _savedIdsByUser[uid];
+    if (cached != null) return;
+    final records = await JobSavedStore.getSavedJobs(
+      uid,
+      preferCache: true,
+    );
+    _savedIdsByUser[uid] = records.map((record) => record.jobId).toSet();
+  }
+
+  Future<void> primeSavedState(String docId) async {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty || _initializedSavedDocId == normalizedDocId) {
+      return;
+    }
+    _initializedSavedDocId = normalizedDocId;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      saved.value = await JobSavedStore.isSaved(uid, docId);
+      final savedIds = await _loadSavedIds(uid);
+      saved.value = savedIds.contains(normalizedDocId);
     } catch (_) {
       saved.value = false;
     }
@@ -50,12 +77,15 @@ class JobContentController extends GetxController {
     if (uid == null) return;
 
     try {
-      final isAlreadySaved = await JobSavedStore.isSaved(uid, docId);
+      final savedIds = await _loadSavedIds(uid);
+      final isAlreadySaved = savedIds.contains(docId);
       if (isAlreadySaved) {
         await JobSavedStore.unsave(uid, docId);
+        savedIds.remove(docId);
         saved.value = false;
       } else {
         await JobSavedStore.save(uid, docId);
+        savedIds.add(docId);
         saved.value = true;
       }
     } catch (_) {}

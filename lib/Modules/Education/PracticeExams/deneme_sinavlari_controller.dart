@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.da
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinavlariController extends GetxController {
@@ -93,6 +94,10 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
+    final savedController = Get.isRegistered<SavedPracticeExamsController>()
+        ? Get.find<SavedPracticeExamsController>()
+        : Get.put(SavedPracticeExamsController(), permanent: true);
+    await savedController.loadSavedExams(silent: true);
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _practiceExamSnapshotRepository

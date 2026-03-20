@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
@@ -680,180 +681,109 @@ class MarketView extends StatelessWidget {
     final accent = _accentForItem(item);
     final statusColor = _statusColor(item.status);
     final canCall = item.canShowPhone;
-    return GestureDetector(
+    return PasajGridCard(
       onTap: () => controller.openItem(item),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+      media: _MarketGridMedia(
+        item: item,
+        accent: accent,
+        radius: PasajListCardMetrics.gridRadius,
+        fallbackBuilder: (marketItem, marketAccent) =>
+            _buildItemFallback(marketItem, marketAccent),
+      ),
+      overlay: GestureDetector(
+        onTap: () => controller.toggleSaved(item, showSnackbar: false),
+        child: SizedBox(
+          width: PasajListCardMetrics.gridOverlayButtonSize,
+          height: PasajListCardMetrics.gridOverlayButtonSize,
+          child: Center(
+            child: Icon(
+              controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
+              color: Colors.white,
+              size: PasajListCardMetrics.gridOverlayIconSize,
+              shadows: const [
+                Shadow(
+                  color: Color(0x55000000),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      lines: [
+        Text(
+          item.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.lineOne,
+        ),
+        Text(
+          item.status == 'active'
+              ? item.categoryLabel
+              : _statusLabel(item.status),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.gridLineTwo(
+            item.status == 'active' ? accent : statusColor,
+          ),
+        ),
+        Text(
+          item.description.trim(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.detail,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            AspectRatio(
-              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: _MarketGridMedia(
-                      item: item,
-                      accent: accent,
-                      radius: 12,
-                      fallbackBuilder: (marketItem, marketAccent) =>
-                          _buildItemFallback(marketItem, marketAccent),
-                    ),
-                  ),
-                  Positioned(
-                    top: PasajListCardMetrics.gridOverlayInset,
-                    right: PasajListCardMetrics.gridOverlayInset,
-                    child: GestureDetector(
-                      onTap: () =>
-                          controller.toggleSaved(item, showSnackbar: false),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: PasajListCardMetrics.gridOverlayButtonSize,
-                            height: PasajListCardMetrics.gridOverlayButtonSize,
-                            child: Center(
-                              child: Icon(
-                                controller.isSaved(item.id)
-                                    ? AppIcons.saved
-                                    : AppIcons.save,
-                                color: Colors.white,
-                                size: PasajListCardMetrics.gridOverlayIconSize,
-                                shadows: const [
-                                  Shadow(
-                                    color: Color(0x55000000),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (item.favoriteCount > 0) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              '${item.favoriteCount}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontFamily: 'MontserratBold',
-                                shadows: [
-                                  Shadow(
-                                    color: Color(0x55000000),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            Expanded(
+              child: Text(
+                item.locationText.isNotEmpty ? item.locationText : item.city,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.gridLineFour(
+                  PasajCardStyles.lineFourColor,
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.status == 'active'
-                        ? item.categoryLabel
-                        : _statusLabel(item.status),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: item.status == 'active' ? accent : statusColor,
-                      fontSize: 12,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.locationText.isNotEmpty
-                              ? item.locationText
-                              : item.city,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 13,
-                            fontFamily: 'MontserratMedium',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          item.price > 0
-                              ? '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}'
-                              : '',
-                          maxLines: 1,
-                          textAlign: TextAlign.right,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF8B0000),
-                            fontSize: 19,
-                            fontFamily: 'MontserratBold',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Container(
-                    height: 30,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: canCall ? Colors.green : Colors.black,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(8),
-                      ),
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        if (canCall) {
-                          _contactService.callPhone(item);
-                        } else {
-                          controller.openItem(item);
-                        }
-                      },
-                      child: Center(
-                        child: Text(
-                          canCall
-                              ? 'pasaj.market.call_now'.tr
-                              : 'pasaj.market.inspect'.tr,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: 'MontserratMedium',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                item.price > 0
+                    ? '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}'
+                    : '',
+                maxLines: 1,
+                textAlign: TextAlign.right,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.gridPrice,
               ),
             ),
           ],
+        ),
+      ],
+      cta: Container(
+        height: PasajListCardMetrics.gridCtaHeight,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: canCall ? Colors.green : Colors.black,
+          borderRadius: const BorderRadius.all(
+            Radius.circular(PasajListCardMetrics.gridCtaRadius),
+          ),
+        ),
+        child: InkWell(
+          onTap: () {
+            if (canCall) {
+              _contactService.callPhone(item);
+            } else {
+              controller.openItem(item);
+            }
+          },
+          child: Center(
+            child: Text(
+              canCall ? 'pasaj.market.call_now'.tr : 'pasaj.market.inspect'.tr,
+              style: PasajCardStyles.gridCta,
+            ),
+          ),
         ),
       ),
     );

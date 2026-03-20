@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
@@ -42,6 +43,10 @@ class TutoringController extends GetxController {
   }
 
   Future<void> _bootstrapTutoringData() async {
+    final savedController = Get.isRegistered<SavedTutoringsController>()
+        ? Get.find<SavedTutoringsController>()
+        : Get.put(SavedTutoringsController(), permanent: true);
+    await savedController.loadSavedTutorings();
     final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _tutoringSnapshotRepository
@@ -89,8 +94,7 @@ class TutoringController extends GetxController {
           (key, value) => MapEntry(key, value.toMap()),
         ),
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> listenToTutoringData({
@@ -110,9 +114,10 @@ class TutoringController extends GetxController {
       );
       final items = result.data ?? const <TutoringModel>[];
       hasMore.value = items.length >= _pageSize;
-      final userIds = items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-      await _batchFetchUsers(userIds);
       tutoringList.value = _applyPersonalization(items);
+      final userIds =
+          items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
+      unawaited(_batchFetchUsers(userIds));
       SilentRefreshGate.markRefreshed('tutoring:home');
     } catch (_) {
       tutoringList.value = [];
@@ -137,12 +142,13 @@ class TutoringController extends GetxController {
       hasMore.value = newItems.length >= _pageSize;
       _currentPage = nextPage;
 
-      // Batch fetch users for new items
-      final userIds = newItems.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-      await _batchFetchUsers(userIds);
       final existingIds = tutoringList.map((item) => item.docID).toSet();
-      final merged = newItems.where((item) => !existingIds.contains(item.docID));
+      final merged =
+          newItems.where((item) => !existingIds.contains(item.docID));
       tutoringList.addAll(merged);
+      final userIds =
+          newItems.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
+      unawaited(_batchFetchUsers(userIds));
     } catch (_) {
     } finally {
       isLoadingMore.value = false;
@@ -178,10 +184,14 @@ class TutoringController extends GetxController {
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       final results = result.data ?? const <TutoringModel>[];
-      await _batchFetchUsers(results.map((t) => t.userID).where((id) => id.isNotEmpty).toSet());
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       searchResults.assignAll(_applyPersonalization(results));
+      unawaited(
+        _batchFetchUsers(
+          results.map((t) => t.userID).where((id) => id.isNotEmpty).toSet(),
+        ),
+      );
     } catch (_) {
       if (token == _searchToken) {
         searchResults.clear();
@@ -273,10 +283,10 @@ class TutoringController extends GetxController {
     final items = resource.data ?? const <TutoringModel>[];
     if (items.isNotEmpty) {
       hasMore.value = items.length >= _pageSize;
+      tutoringList.value = _applyPersonalization(items);
       final userIds =
           items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-      await _batchFetchUsers(userIds);
-      tutoringList.value = _applyPersonalization(items);
+      unawaited(_batchFetchUsers(userIds));
     }
 
     if (!resource.isRefreshing || items.isNotEmpty) {

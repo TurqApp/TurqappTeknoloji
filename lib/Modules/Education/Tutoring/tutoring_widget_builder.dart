@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -99,11 +100,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
           horizontalSpacing: 8,
           rowSpacing: 8,
           itemBuilder: (tutoring, index) {
-            const metrics = PasajListCardMetrics.regular;
             final lessonPlace = _lessonPlaceText(tutoring);
             final imageUrl = _imageUrl(tutoring);
-            final teacherName = _teacherName(tutoring);
-            return GestureDetector(
+            return PasajGridCard(
               onTap: () async {
                 if (allowReactivate &&
                     tutoring.ended == true &&
@@ -113,140 +112,97 @@ class TutoringWidgetBuilder extends StatelessWidget {
                 }
                 await Get.to(() => TutoringDetail(), arguments: tutoring);
               },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  border: Border.all(color: Colors.grey.withAlpha(50)),
+              media: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                child: imageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => _fallbackImage(),
+                      )
+                    : _fallbackImage(),
+              ),
+              overlay: Obx(
+                () => GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _toggleSave(
+                    tutoring: tutoring,
+                    currentUserId: currentUserId,
+                    controller: tutoringController,
+                    savedController: savedController,
+                  ),
+                  child: SizedBox(
+                    width: PasajListCardMetrics.gridOverlayButtonSize,
+                    height: PasajListCardMetrics.gridOverlayButtonSize,
+                    child: Center(
+                      child: Icon(
+                        savedController.savedTutoringIds
+                                .contains(tutoring.docID)
+                            ? AppIcons.saved
+                            : AppIcons.save,
+                        size: PasajListCardMetrics.gridOverlayIconSize,
+                        color: Colors.white,
+                        shadows: const [
+                          Shadow(
+                            color: Color(0x66000000),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AspectRatio(
-                      aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(8),
-                                topLeft: Radius.circular(8),
-                              ),
-                              child: imageUrl.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (_, __, ___) =>
-                                          _fallbackImage(),
-                                    )
-                                  : _fallbackImage(),
-                            ),
-                          ),
-                          Positioned(
-                            top: PasajListCardMetrics.gridOverlayInset,
-                            right: PasajListCardMetrics.gridOverlayInset,
-                            child: Obx(
-                              () => GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => _toggleSave(
-                                  tutoring: tutoring,
-                                  currentUserId: currentUserId,
-                                  controller: tutoringController,
-                                  savedController: savedController,
-                                ),
-                                child: SizedBox(
-                                  width: PasajListCardMetrics
-                                      .gridOverlayButtonSize,
-                                  height: PasajListCardMetrics
-                                      .gridOverlayButtonSize,
-                                  child: Center(
-                                    child: Icon(
-                                      savedController.savedTutoringIds
-                                              .contains(tutoring.docID)
-                                          ? AppIcons.saved
-                                          : AppIcons.save,
-                                      size: PasajListCardMetrics
-                                          .gridOverlayIconSize,
-                                      color: Colors.white,
-                                      shadows: const [
-                                        Shadow(
-                                          color: Color(0x66000000),
-                                          blurRadius: 8,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+              ),
+              lines: [
+                Text(
+                  tutoring.baslik,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PasajCardStyles.lineOne,
+                ),
+                Text(
+                  tutoring.brans,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PasajCardStyles.gridLineTwo(
+                    PasajCardStyles.lineTwoColor,
+                  ),
+                ),
+                Text(
+                  lessonPlace,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PasajCardStyles.detail,
+                ),
+                Text(
+                  _cityDistrictText(tutoring),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: PasajCardStyles.gridLineFour(
+                    PasajCardStyles.lineFourColor,
+                  ),
+                ),
+              ],
+              cta: GestureDetector(
+                onTap: () => Get.to(
+                  () => TutoringDetail(),
+                  arguments: tutoring,
+                ),
+                child: Container(
+                  height: PasajListCardMetrics.gridCtaHeight,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(PasajListCardMetrics.gridCtaRadius),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tutoring.baslik,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.lineOne,
-                          ),
-                          Text(
-                            teacherName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.lineTwo,
-                          ),
-                          Text(
-                            lessonPlace,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
-                          ),
-                          Text(
-                            _cityDistrictText(tutoring),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.lineFour,
-                          ),
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: SizedBox(
-                              width: metrics.railWidth,
-                              child: GestureDetector(
-                                onTap: () => Get.to(
-                                  () => TutoringDetail(),
-                                  arguments: tutoring,
-                                ),
-                                child: Container(
-                                  height: metrics.ctaHeight,
-                                  alignment: Alignment.center,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(8)),
-                                  ),
-                                  child: Text(
-                                    allowReactivate && tutoring.ended == true
-                                        ? 'admin.reports.restore'.tr
-                                        : 'common.view'.tr,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: metrics.ctaFontSize,
-                                      fontFamily: 'MontserratMedium',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
+                  child: Text(
+                    allowReactivate && tutoring.ended == true
+                        ? 'admin.reports.restore'.tr
+                        : 'common.view'.tr,
+                    style: PasajCardStyles.gridCta,
+                  ),
                 ),
               ),
             );
@@ -488,21 +444,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
     } else {
       savedController.addSavedTutoring(tutoring.docID);
     }
-  }
-
-  String _teacherName(TutoringModel tutoring) {
-    if (tutoring.displayName.trim().isNotEmpty) {
-      return tutoring.displayName.trim();
-    }
-    if (tutoring.nickname.trim().isNotEmpty) {
-      return tutoring.nickname.trim();
-    }
-    final user = users[tutoring.userID];
-    final displayName = (user?['displayName'] ?? '').toString().trim();
-    if (displayName.isNotEmpty) return displayName;
-    final nickname = (user?['nickname'] ?? '').toString().trim();
-    if (nickname.isNotEmpty) return nickname;
-    return 'Öğretmen';
   }
 
   String _lessonPlaceText(TutoringModel tutoring) {

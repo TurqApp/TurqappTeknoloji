@@ -41,8 +41,7 @@ class PracticeExamSnapshotRepository extends GetxService {
   );
 
   late final EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>
-      _homeAdapter =
-      EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>(
+      _homeAdapter = EducationTypesenseDocIdHydrationAdapter<List<SinavModel>>(
     surfaceKey: _homeSurfaceKey,
     coordinator: _coordinator,
     fetchDocIds: EducationTypesenseDocIdHydrationAdapter.defaultFetchDocIds,
@@ -168,6 +167,7 @@ class PracticeExamSnapshotRepository extends GetxService {
               'soruSayilari': item.soruSayilari,
               'bitis': item.bitis,
               'bitisDk': item.bitisDk,
+              'participantCount': item.participantCount,
             },
           )
           .toList(growable: false),
@@ -209,6 +209,12 @@ class PracticeExamSnapshotRepository extends GetxService {
             bitisDk: item['bitisDk'] is num
                 ? item['bitisDk'] as num
                 : num.tryParse((item['bitisDk'] ?? '0').toString()) ?? 0,
+            participantCount: item['participantCount'] is num
+                ? item['participantCount'] as num
+                : num.tryParse(
+                      (item['participantCount'] ?? '0').toString(),
+                    ) ??
+                    0,
           );
         })
         .where((item) => item.docID.isNotEmpty)

@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/formatters.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
@@ -27,6 +28,17 @@ class AnswerKeyContent extends StatelessWidget {
 
   void _openOwner(BuildContext context, AnswerKeyContentController controller) {
     controller.openBooklet(context);
+  }
+
+  String _publisherLine(AnswerKeyContentController controller) {
+    final publisher = controller.model.yayinEvi.trim();
+    final publishDate = controller.model.basimTarihi.trim();
+    if (publisher.isNotEmpty && publishDate.isNotEmpty) {
+      return '$publisher • $publishDate';
+    }
+    if (publisher.isNotEmpty) return publisher;
+    if (publishDate.isNotEmpty) return publishDate;
+    return 'answer_key.answer_key_label'.tr;
   }
 
   Widget _buildMedia(double radius) {
@@ -81,152 +93,97 @@ class AnswerKeyContent extends StatelessWidget {
     BuildContext context,
     AnswerKeyContentController controller,
   ) {
-    const metrics = PasajListCardMetrics.regular;
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final canShareFeed = AdminAccessService.isKnownAdminSync() ||
-        controller.model.userID == currentUid;
-    return GestureDetector(
+    return PasajGridCard(
       onTap: () => _openOwner(context, controller),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
-              child: Stack(
-                children: [
-                  Positioned.fill(child: _buildMedia(12)),
-                  Positioned(
-                    top: PasajListCardMetrics.gridOverlayInset,
-                    right: PasajListCardMetrics.gridOverlayInset,
-                    child: Column(
-                      children: [
-                        if (canShareFeed)
-                          EducationShareIconButton(
-                            onTap: controller.shareBooklet,
-                            size: PasajListCardMetrics.gridOverlayButtonSize,
-                            iconSize: PasajListCardMetrics.gridOverlayIconSize,
-                          ),
-                        if (canShareFeed) const SizedBox(height: 6),
-                        AppHeaderActionButton(
-                          onTap: controller.toggleBookmark,
-                          size: PasajListCardMetrics.gridOverlayButtonSize,
-                          child: Icon(
-                            controller.isBookmarked.value
-                                ? CupertinoIcons.bookmark_fill
-                                : CupertinoIcons.bookmark,
-                            color: controller.isBookmarked.value
-                                ? Colors.orange
-                                : Colors.black87,
-                            size: PasajListCardMetrics.gridOverlayIconSize,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+      media: _buildMedia(12),
+      overlay: GestureDetector(
+        onTap: controller.toggleBookmark,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: PasajListCardMetrics.gridOverlayButtonSize,
+          height: PasajListCardMetrics.gridOverlayButtonSize,
+          child: Center(
+            child: Icon(
+              controller.isBookmarked.value
+                  ? CupertinoIcons.bookmark_fill
+                  : CupertinoIcons.bookmark,
+              color: Colors.white,
+              size: PasajListCardMetrics.gridOverlayIconSize,
+              shadows: const [
+                Shadow(
+                  color: Color(0x66000000),
+                  blurRadius: 8,
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    controller.model.baslik,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          controller.model.sinavTuru,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: PasajCardStyles.detail,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        controller.model.basimTarihi,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: PasajCardStyles.detail,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    controller.model.yayinEvi.trim().isNotEmpty
-                        ? controller.model.yayinEvi.trim()
-                        : 'answer_key.answer_key_label'.tr,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.detail,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          controller.model.dil.isNotEmpty
-                              ? controller.model.dil
-                              : controller.model.yayinEvi,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: PasajCardStyles.detail,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SvgPicture.asset(
-                        'assets/icons/statsyeni.svg',
-                        height: 16,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.black,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        NumberFormatter.format(controller.model.viewCount),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SizedBox(
-                      width: metrics.railWidth,
-                      child: _buildPrimaryButton(
-                        context,
-                        controller,
-                        height: metrics.ctaHeight,
-                        fontSize: metrics.ctaFontSize,
-                      ),
-                    ),
-                  ),
-                ],
+          ),
+        ),
+      ),
+      lines: [
+        Text(
+          controller.model.baslik,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.lineOne,
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                controller.model.sinavTuru,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.gridLineTwo(
+                  PasajCardStyles.lineTwoColor,
+                ),
               ),
             ),
           ],
         ),
+        Text(
+          _publisherLine(controller),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.detail,
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                controller.model.dil.isNotEmpty
+                    ? controller.model.dil
+                    : controller.model.yayinEvi,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PasajCardStyles.gridLineFour(
+                  PasajCardStyles.lineFourColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SvgPicture.asset(
+              'assets/icons/statsyeni.svg',
+              height: 16,
+              colorFilter: const ColorFilter.mode(
+                PasajCardStyles.lineFourColor,
+                BlendMode.srcIn,
+              ),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              NumberFormatter.format(controller.model.viewCount),
+              style: PasajCardStyles.gridLineFour(
+                PasajCardStyles.lineFourColor,
+              ),
+            ),
+          ],
+        ),
+      ],
+      cta: _buildPrimaryButton(
+        context,
+        controller,
+        height: PasajListCardMetrics.gridCtaHeight,
+        fontSize: PasajListCardMetrics.gridCtaFontSize,
       ),
     );
   }
@@ -296,7 +253,7 @@ class AnswerKeyContent extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            controller.model.yayinEvi,
+                            _publisherLine(controller),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: PasajCardStyles.detail,
