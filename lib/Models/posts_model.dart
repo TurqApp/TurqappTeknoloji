@@ -175,6 +175,12 @@ class PostsModel {
 
   bool get hasPlayableVideo => playbackUrl.trim().isNotEmpty;
 
+  bool get hasVideoSignal =>
+      video.trim().isNotEmpty || hlsMasterUrl.trim().isNotEmpty;
+
+  bool get hasRenderableVideoCard =>
+      hasPlayableVideo || (thumbnail.trim().isNotEmpty && hasVideoSignal);
+
   bool get shouldHideWhileUploading => isUploading;
 
   int get yorumVisibility {
@@ -280,9 +286,11 @@ class PostsModel {
         : (data['author'] is Map
             ? Map<String, dynamic>.from(data['author'] as Map)
             : const <String, dynamic>{});
-    final resolvedAuthorNickname =
-        (data['authorNickname'] ?? authorMap['nickname'] ?? authorMap['username'] ?? '')
-            .toString();
+    final resolvedAuthorNickname = (data['authorNickname'] ??
+            authorMap['nickname'] ??
+            authorMap['username'] ??
+            '')
+        .toString();
     final resolvedAuthorDisplayName = (data['authorDisplayName'] ??
             authorMap['displayName'] ??
             authorMap['fullName'] ??
@@ -290,7 +298,8 @@ class PostsModel {
         .toString();
     final resolvedAuthorAvatarUrl =
         (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '').toString();
-    final resolvedRozet = (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
+    final resolvedRozet =
+        (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
     final resolvedUserId = (data['userID'] ??
             data['userId'] ??
             authorMap['userID'] ??

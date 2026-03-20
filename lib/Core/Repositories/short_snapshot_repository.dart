@@ -70,8 +70,9 @@ class ShortSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<ShortSnapshotQuery, List<PostsModel>,
-      List<PostsModel>> _homePipeline = CacheFirstQueryPipeline<
-          ShortSnapshotQuery, List<PostsModel>, List<PostsModel>>(
+          List<PostsModel>> _homePipeline =
+      CacheFirstQueryPipeline<ShortSnapshotQuery, List<PostsModel>,
+          List<PostsModel>>(
     surfaceKey: _homeSurfaceKey,
     coordinator: _coordinator,
     userIdResolver: (query) => query.userId.trim(),
@@ -133,7 +134,8 @@ class ShortSnapshotRepository extends GetxService {
     int limit = _defaultPersistLimit,
     CachedResourceSource source = CachedResourceSource.server,
   }) async {
-    final normalized = _normalizePosts(posts).take(limit).toList(growable: false);
+    final normalized =
+        _normalizePosts(posts).take(limit).toList(growable: false);
     if (normalized.isEmpty) return;
     final key = ScopedSnapshotKey(
       surfaceKey: _homeSurfaceKey,
@@ -249,8 +251,10 @@ class ShortSnapshotRepository extends GetxService {
         .toList(growable: false);
     if (normalized.isEmpty) return const <PostsModel>[];
 
-    final authorIds =
-        normalized.map((post) => post.userID).where((id) => id.isNotEmpty).toSet();
+    final authorIds = normalized
+        .map((post) => post.userID)
+        .where((id) => id.isNotEmpty)
+        .toSet();
     final summaries = await _userSummaryResolver.resolveMany(
       authorIds.toList(growable: false),
       preferCache: true,
@@ -260,7 +264,7 @@ class ShortSnapshotRepository extends GetxService {
     for (final post in normalized) {
       final summary = summaries[post.userID];
       if (summary == null) continue;
-      if (summary.isDeleted || !summary.isApproved) continue;
+      if (summary.isDeleted) continue;
       final isMine =
           currentUserId.isNotEmpty && post.userID.trim() == currentUserId;
       if (summary.isPrivate && !isMine && !followingIds.contains(post.userID)) {

@@ -148,6 +148,198 @@ export async function upsertPostIntoHybridFeed(args: {
     );
 }
 
+async function collectRelationIds(
+  uid: string,
+  relation: string
+): Promise<string[]> {
+  const normalizedUid = uid.trim();
+  if (!normalizedUid) return [];
+
+  const ids: string[] = [];
+  let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+
+  while (true) {
+    let q: admin.firestore.Query = db()
+      .collection("users")
+      .doc(normalizedUid)
+      .collection(relation)
+      .orderBy(admin.firestore.FieldPath.documentId())
+      .limit(450);
+    if (lastDoc) q = q.startAfter(lastDoc);
+
+    const snap = await q.get();
+    if (snap.empty) break;
+
+    ids.push(...snap.docs.map((doc) => doc.id).filter((id) => id.trim().length > 0));
+    lastDoc = snap.docs[snap.docs.length - 1];
+    if (snap.docs.length < 450) break;
+  }
+
+  return Array.from(new Set(ids));
+}
+
+function isVisiblePostRecord(data: FirebaseFirestore.DocumentData | undefined): boolean {
+  if (!data) return false;
+  return (
+    data.arsiv !== true &&
+    data.deletedPost !== true &&
+    data.gizlendi !== true &&
+    data.isUploading !== true
+  );
+}
+
+export async function rebuildHybridFeedForUser(args: {
+  uid: string;
+  perAuthorLimit?: number;
+}): Promise<{
+  uid: string;
+  followingCount: number;
+  authorCount: number;
+  postCount: number;
+  writeCount: number;
+}> {
+  const normalizedUid = args.uid.trim();
+  if (!normalizedUid) {
+    return {
+      uid: "",
+      followingCount: 0,
+      authorCount: 0,
+      postCount: 0,
+      writeCount: 0,
+    };
+  }
+
+  const perAuthorLimit = Math.min(Math.max(Number(args.perAuthorLimit) || 3, 1), 20);
+  const cutoffMs = Date.now() - FEED_TTL_MS;
+  const followings = await collectRelationIds(normalizedUid, "followings");
+  const authorIds = Array.from(new Set<string>([normalizedUid, ...followings]));
+  const celebIds = new Set(
+    (
+      await Promise.all(
+        authorIds
+          .filter((id) => id.trim().length > 0)
+          .reduce<string[][]>((chunks, id, index) => {
+            const chunkIndex = Math.floor(index / 10);
+            if (!chunks[chunkIndex]) chunks[chunkIndex] = [];
+            chunks[chunkIndex].push(id);
+            return chunks;
+          }, [])
+          .map(async (chunk) => {
+            const snap = await db()
+              .collection("celebAccounts")
+              .where(admin.firestore.FieldPath.documentId(), "in", chunk)
+              .get();
+            return snap.docs.map((doc) => doc.id);
+          })
+      )
+    ).flat()
+  );
+
+  const postEntries = (
+    await Promise.all(
+      authorIds.map(async (authorId) => {
+        const postsSnap = await db()
+          .collection("Posts")
+          .where("userID", "==", authorId)
+          .where("arsiv", "==", false)
+          .where("deletedPost", "==", false)
+          .orderBy("timeStamp", "desc")
+          .limit(perAuthorLimit)
+          .get();
+
+        return postsSnap.docs
+          .filter((doc) => {
+            const data = doc.data();
+            const timeStamp = Number(data?.timeStamp) || 0;
+            return isVisiblePostRecord(data) && timeStamp >= cutoffMs;
+          })
+          .map((doc) => {
+            const data = doc.data();
+            const timeStamp = Number(data?.timeStamp) || Date.now();
+            return {
+              postId: doc.id,
+              authorId,
+              timeStamp,
+              isVideo: !!(data?.videoHLSMasterUrl || data?.hlsMasterUrl || data?.video),
+              isCelebrity: celebIds.has(authorId),
+            };
+          });
+      })
+    )
+  ).flat();
+
+  const deduped = new Map<string, {
+    postId: string;
+    authorId: string;
+    timeStamp: number;
+    isVideo: boolean;
+    isCelebrity: boolean;
+  }>();
+  for (const entry of postEntries) {
+    deduped.set(entry.postId, entry);
+  }
+
+  const entries = Array.from(deduped.values()).sort((a, b) => b.timeStamp - a.timeStamp);
+  let writeCount = 0;
+  for (let i = 0; i < entries.length; i += 400) {
+    const chunk = entries.slice(i, i + 400);
+    const wb = db().batch();
+    for (const entry of chunk) {
+      wb.set(
+        db()
+          .collection("userFeeds")
+          .doc(normalizedUid)
+          .collection("items")
+          .doc(entry.postId),
+        {
+          postId: entry.postId,
+          authorId: entry.authorId,
+          timeStamp: entry.timeStamp,
+          isVideo: entry.isVideo,
+          expiresAt: entry.timeStamp + FEED_TTL_MS,
+          isCelebrity: entry.isCelebrity,
+        },
+        { merge: true }
+      );
+      writeCount += 1;
+    }
+    await wb.commit();
+  }
+
+  return {
+    uid: normalizedUid,
+    followingCount: followings.length,
+    authorCount: authorIds.length,
+    postCount: entries.length,
+    writeCount,
+  };
+}
+
+export const backfillHybridFeedForUser = functions
+  .region("europe-west1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Auth required");
+    }
+
+    const requestedUid = typeof data?.uid === "string" ? data.uid.trim() : "";
+    const targetUid = requestedUid || context.auth.uid;
+    const isAdmin = (context.auth.token as { admin?: unknown } | undefined)?.admin === true;
+    if (!isAdmin && targetUid !== context.auth.uid) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can backfill other users"
+      );
+    }
+
+    const result = await rebuildHybridFeedForUser({
+      uid: targetUid,
+      perAuthorLimit: Number(data?.perAuthorLimit) || 3,
+    });
+    console.log("[HybridFeed] Backfill callable complete", result);
+    return result;
+  });
+
 // ─────────────────────────────────────────────────────────
 // 📤 TRIGGER: Post oluşturulduğunda fan-out başlat
 // ─────────────────────────────────────────────────────────

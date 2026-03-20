@@ -46,6 +46,7 @@ export {
   onPostDelete,
   onNewFollower,
   cleanupExpiredFeedItems,
+  backfillHybridFeedForUser,
 } from "./hybridFeed";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -68,6 +69,7 @@ export * from "./23_sharedPostCascade";
 export * from "./24_reports";
 export * from "./25_typesenseMarket";
 export * from "./26_userBanAdmin";
+export * from "./27_nicknameChange";
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore
@@ -419,7 +421,7 @@ export const onUserNotificationCreate = functions.firestore
 
 // ACCOUNT DELETION CRON: process users whose deletion grace period is over
 export const processScheduledAccountDeletions = functions.pubsub
-  .schedule("0 0 * * *")
+  .schedule("every 60 minutes")
   .timeZone("UTC")
   .onRun(async () => {
     const now = Date.now();
@@ -470,8 +472,12 @@ export const processScheduledAccountDeletions = functions.pubsub
               accountStatus: "deleted",
               username: deletedName,
               nickname: deletedName,
-              updatedAt: Date.now(),
-              deletedAt: Date.now(),
+              usernameLower: deletedName.toLowerCase(),
+              isDeleted: true,
+              isPrivate: true,
+              updatedDate: timestamp,
+              deletedAt: timestamp,
+              deletionCompletedAt: timestamp,
             },
             { merge: true },
           );

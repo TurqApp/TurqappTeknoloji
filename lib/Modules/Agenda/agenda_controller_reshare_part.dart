@@ -276,13 +276,24 @@ extension AgendaControllerResharePart on AgendaController {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd = <PostsModel>[];
+    final skipped = <String>[];
     for (final p in posts) {
-      if (!existingIDs.contains(p.docID) &&
-          !hiddenPosts.contains(p.docID) &&
-          _isInAgendaWindow(p.timeStamp, nowMs) &&
-          _isRenderablePost(p)) {
+      final reasons = <String>[];
+      if (existingIDs.contains(p.docID)) reasons.add('duplicate');
+      if (hiddenPosts.contains(p.docID)) reasons.add('hidden');
+      if (!_isInAgendaWindow(p.timeStamp, nowMs)) reasons.add('out_of_window');
+      if (!_isRenderablePost(p)) reasons.add('not_renderable');
+      if (reasons.isEmpty) {
         toAdd.add(p);
+      } else {
+        skipped.add('${p.docID}:${reasons.join('+')}');
       }
+    }
+    if (!const bool.fromEnvironment('dart.vm.product')) {
+      debugPrint(
+        '[FeedLocalInsert] incoming=${posts.length} added=${toAdd.length} '
+        'skipped=${skipped.take(5).join(',')}',
+      );
     }
     if (toAdd.isEmpty) return;
     agendaList.insertAll(0, toAdd);
@@ -301,7 +312,7 @@ extension AgendaControllerResharePart on AgendaController {
 
     for (final userID in userIDsToLoad) {
       ReshareHelper.getUserNickname(userID).catchError((_) {
-        return 'Bilinmeyen Kullanıcı';
+        return 'common.unknown_user'.tr;
       });
     }
   }

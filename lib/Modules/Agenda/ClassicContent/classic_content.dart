@@ -565,7 +565,7 @@ class _ClassicContentState extends State<ClassicContent>
           else
             widget.model.img.isNotEmpty
                 ? imgBody(context)
-                : (widget.model.hasPlayableVideo
+                : (widget.model.hasRenderableVideoCard
                     ? videoBody(context)
                     : textOnlyBody(context))
         ],

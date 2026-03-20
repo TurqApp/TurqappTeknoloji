@@ -19,7 +19,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         headerUserInfoBar(),
-        if (!widget.model.hasPlayableVideo && widget.model.img.isEmpty)
+        if (!widget.model.hasRenderableVideoCard && widget.model.img.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 45),
             child: buildPollCard(),
@@ -45,7 +45,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
           ),
 
         // Video varsa göster
-        if (widget.model.hasPlayableVideo)
+        if (widget.model.hasRenderableVideoCard)
           Transform.translate(
             offset: Offset(0, mediaVisualLift),
             child: Padding(
@@ -461,7 +461,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
               child: buildImageGrid(widget.model.img),
             ),
           ),
-        if (widget.model.hasPlayableVideo || widget.model.img.isNotEmpty)
+        if (widget.model.hasRenderableVideoCard || widget.model.img.isNotEmpty)
           Transform.translate(
             offset: Offset(0, mediaVisualLift),
             child: Padding(

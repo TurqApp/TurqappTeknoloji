@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -44,6 +46,7 @@ class FeedSnapshotRepository extends GetxService {
 
   static const String _homeSurfaceKey = 'feed_home_snapshot';
   static const int _defaultPersistLimit = 40;
+  static final Set<String> _hybridBackfillRequested = <String>{};
 
   static FeedSnapshotRepository ensure() {
     if (Get.isRegistered<FeedSnapshotRepository>()) {
@@ -81,8 +84,9 @@ class FeedSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>,
-      List<PostsModel>> _homePipeline = CacheFirstQueryPipeline<
-          FeedSnapshotQuery, List<PostsModel>, List<PostsModel>>(
+          List<PostsModel>> _homePipeline =
+      CacheFirstQueryPipeline<FeedSnapshotQuery, List<PostsModel>,
+          List<PostsModel>>(
     surfaceKey: _homeSurfaceKey,
     coordinator: _coordinator,
     userIdResolver: (query) => query.userId.trim(),
@@ -140,7 +144,8 @@ class FeedSnapshotRepository extends GetxService {
     int limit = _defaultPersistLimit,
     CachedResourceSource source = CachedResourceSource.server,
   }) async {
-    final normalized = _normalizePosts(posts).take(limit).toList(growable: false);
+    final normalized =
+        _normalizePosts(posts).take(limit).toList(growable: false);
     if (normalized.isEmpty) return;
     final key = _homeKey(FeedSnapshotQuery(
       userId: userId,
@@ -192,7 +197,7 @@ class FeedSnapshotRepository extends GetxService {
       );
     }
 
-    final refsPage = await _postRepository.fetchUserFeedReferences(
+    var refsPage = await _postRepository.fetchUserFeedReferences(
       uid: normalizedUserId,
       limit: limit,
       startAfter: startAfter,
@@ -200,9 +205,41 @@ class FeedSnapshotRepository extends GetxService {
       cacheOnly: cacheOnly,
     );
 
-    final refs = refsPage.items
+    var refs = refsPage.items
         .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
         .toList(growable: false);
+
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedSnapshot] uid=$normalizedUserId startAfter=${startAfter?.id ?? ''} '
+        'refs=${refsPage.items.length} eligible=${refs.length} limit=$limit',
+      );
+    }
+
+    if (refs.isEmpty && startAfter == null) {
+      final repaired = await _tryRepairHybridFeed(
+        userId: normalizedUserId,
+        limit: limit,
+      );
+      if (repaired) {
+        refsPage = await _postRepository.fetchUserFeedReferences(
+          uid: normalizedUserId,
+          limit: limit,
+          startAfter: null,
+          preferCache: false,
+          cacheOnly: false,
+        );
+        refs = refsPage.items
+            .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
+            .toList(growable: false);
+        if (kDebugMode) {
+          debugPrint(
+            '[FeedSnapshot] uid=$normalizedUserId repairRefetch refs=${refsPage.items.length} '
+            'eligible=${refs.length}',
+          );
+        }
+      }
+    }
 
     final postIds = refs.map((item) => item.postId).toList(growable: false);
     final postsById = postIds.isEmpty
@@ -230,7 +267,8 @@ class FeedSnapshotRepository extends GetxService {
         celebIds,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
-        perAuthorLimit: max(2, (limit / celebIds.length.clamp(1, limit)).ceil()),
+        perAuthorLimit:
+            max(2, (limit / celebIds.length.clamp(1, limit)).ceil()),
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
@@ -250,7 +288,37 @@ class FeedSnapshotRepository extends GetxService {
       merged.putIfAbsent(post.docID, () => post);
     }
 
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedSnapshot] uid=$normalizedUserId merged=${merged.length} '
+        'celebAuthors=${celebIds.length} publicScheduled=${publicScheduled.length}',
+      );
+    }
+
     if (merged.isEmpty && refsPage.lastDoc == null && startAfter == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedSnapshot] uid=$normalizedUserId fallback=personal reason=primary_empty',
+        );
+      }
+      final personalFallback = await _loadPersonalFallbackPage(
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      if (personalFallback.items.isNotEmpty) {
+        return personalFallback;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedSnapshot] uid=$normalizedUserId fallback=legacy reason=personal_empty',
+        );
+      }
       return _loadLegacyPage(
         currentUserId: normalizedUserId,
         followingIds: followingIds,
@@ -274,11 +342,139 @@ class FeedSnapshotRepository extends GetxService {
       limit: limit,
     );
 
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedSnapshot] uid=$normalizedUserId visible=${visible.length} '
+        'sample=${visible.take(5).map((post) => post.docID).join(',')}',
+      );
+    }
+
     return FeedSourcePage(
       items: visible,
       lastDoc: refsPage.lastDoc,
       usesPrimaryFeed: true,
     );
+  }
+
+  Future<FeedSourcePage> _loadPersonalFallbackPage({
+    required String currentUserId,
+    required Set<String> followingIds,
+    required Set<String> hiddenPostIds,
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    if (currentUserId.isEmpty) {
+      return const FeedSourcePage(
+        items: <PostsModel>[],
+        lastDoc: null,
+        usesPrimaryFeed: false,
+      );
+    }
+
+    final merged = <String, PostsModel>{};
+
+    final ownPosts = await _postRepository.fetchRecentPostsForAuthors(
+      <String>[currentUserId],
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      perAuthorLimit: limit,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    for (final post in ownPosts) {
+      merged[post.docID] = post;
+    }
+
+    if (followingIds.isNotEmpty) {
+      final followingSeed = followingIds.toList(growable: false);
+      final perAuthorLimit = followingSeed.length > 150
+          ? 1
+          : followingSeed.length > 50
+              ? 2
+              : 3;
+      final followingPosts = await _postRepository.fetchRecentPostsForAuthors(
+        followingSeed,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        perAuthorLimit: perAuthorLimit,
+        maxConcurrent: 10,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      for (final post in followingPosts) {
+        merged.putIfAbsent(post.docID, () => post);
+      }
+    }
+
+    final publicScheduled = await _fetchVisiblePublicIzBirakPosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit < 20 ? 20 : limit,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    for (final post in publicScheduled) {
+      merged.putIfAbsent(post.docID, () => post);
+    }
+
+    final visible = await filterVisiblePosts(
+      merged.values.toList(growable: false),
+      currentUserId: currentUserId,
+      followingIds: followingIds,
+      hiddenPostIds: hiddenPostIds,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit,
+    );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedSnapshot] uid=$currentUserId personalFallback own=${ownPosts.length} '
+        'followingSeed=${followingIds.length} '
+        'merged=${merged.length} visible=${visible.length}',
+      );
+    }
+
+    return FeedSourcePage(
+      items: visible,
+      lastDoc: null,
+      usesPrimaryFeed: false,
+    );
+  }
+
+  Future<bool> _tryRepairHybridFeed({
+    required String userId,
+    required int limit,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return false;
+    if (_hybridBackfillRequested.contains(normalizedUserId)) return false;
+    _hybridBackfillRequested.add(normalizedUserId);
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
+          .httpsCallable('backfillHybridFeedForUser');
+      final response = await callable.call(<String, dynamic>{
+        'uid': normalizedUserId,
+        'perAuthorLimit': limit < 20 ? 3 : 4,
+      });
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedSnapshot] uid=$normalizedUserId repairTriggered result=${response.data}',
+        );
+      }
+      return true;
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedSnapshot] uid=$normalizedUserId repairFailed error=$error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+      }
+      return false;
+    }
   }
 
   Future<List<PostsModel>> _fetchHomeSnapshot(
@@ -372,30 +568,70 @@ class FeedSnapshotRepository extends GetxService {
     if (items.isEmpty) return const <PostsModel>[];
     final normalized = _normalizePosts(items)
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    final authorIds =
-        normalized.map((post) => post.userID).where((id) => id.isNotEmpty).toSet();
+    final authorIds = normalized
+        .map((post) => post.userID)
+        .where((id) => id.isNotEmpty)
+        .toSet();
     final summaries = await _userSummaryResolver.resolveMany(
       authorIds.toList(growable: false),
       preferCache: true,
     );
 
     final visible = <PostsModel>[];
+    final dropLogs = <String>[];
     for (final post in normalized) {
-      if (hiddenPostIds.contains(post.docID)) continue;
-      if (post.deletedPost == true || post.gizlendi || post.isUploading) {
+      final reasons = <String>[];
+      if (hiddenPostIds.contains(post.docID)) {
+        reasons.add('hidden');
+      }
+      if (post.deletedPost == true) reasons.add('deleted');
+      if (post.gizlendi) reasons.add('gizlendi');
+      if (post.isUploading) reasons.add('uploading');
+      if (reasons.isNotEmpty) {
+        if (kDebugMode && dropLogs.length < 12) {
+          dropLogs.add('${post.docID}:${reasons.join('+')}');
+        }
         continue;
       }
-      if (!_isRenderablePost(post)) continue;
-      if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) continue;
+      if (!_isRenderablePost(post)) {
+        if (kDebugMode && dropLogs.length < 12) {
+          dropLogs.add('${post.docID}:not_renderable');
+        }
+        continue;
+      }
+      if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) {
+        if (kDebugMode && dropLogs.length < 12) {
+          dropLogs.add('${post.docID}:out_of_window:${post.timeStamp}');
+        }
+        continue;
+      }
       final summary = summaries[post.userID];
-      if (summary == null) continue;
-      if (summary.isDeleted || !summary.isApproved) continue;
+      if (summary == null) {
+        if (kDebugMode && dropLogs.length < 12) {
+          dropLogs.add('${post.docID}:missing_summary:${post.userID}');
+        }
+        continue;
+      }
+      if (summary.isDeleted) {
+        if (kDebugMode && dropLogs.length < 12) {
+          final flags = <String>[];
+          if (summary.isDeleted) flags.add('author_deleted');
+          dropLogs.add('${post.docID}:${flags.join('+')}:${post.userID}');
+        }
+        continue;
+      }
       final isMine =
           currentUserId.isNotEmpty && post.userID.trim() == currentUserId;
       if (summary.isPrivate && !isMine && !followingIds.contains(post.userID)) {
+        if (kDebugMode && dropLogs.length < 12) {
+          dropLogs.add('${post.docID}:private_not_following:${post.userID}');
+        }
         continue;
       }
       if (post.timeStamp > nowMs && post.scheduledAt.toInt() <= 0) {
+        if (kDebugMode && dropLogs.length < 12) {
+          dropLogs.add('${post.docID}:future_unscheduled:${post.timeStamp}');
+        }
         continue;
       }
       visible.add(
@@ -413,6 +649,12 @@ class FeedSnapshotRepository extends GetxService {
         ),
       );
       if (visible.length >= limit) break;
+    }
+    if (kDebugMode && dropLogs.isNotEmpty) {
+      debugPrint(
+        '[FeedFilterDrop] uid=$currentUserId count=${dropLogs.length} '
+        'sample=${dropLogs.join(',')}',
+      );
     }
     return visible;
   }
@@ -455,7 +697,8 @@ class FeedSnapshotRepository extends GetxService {
   Future<Map<String, Map<String, dynamic>>> _buildUserMeta(
     List<PostsModel> posts,
   ) async {
-    final userIds = posts.map((post) => post.userID).where((id) => id.isNotEmpty);
+    final userIds =
+        posts.map((post) => post.userID).where((id) => id.isNotEmpty);
     final summaries = await _userSummaryResolver.resolveMany(
       userIds.toSet().toList(growable: false),
       preferCache: true,
@@ -466,8 +709,8 @@ class FeedSnapshotRepository extends GetxService {
   }
 
   bool _isRenderablePost(PostsModel post) {
-    if (post.video.trim().isEmpty) return true;
-    return post.hasPlayableVideo;
+    if (!post.hasVideoSignal) return true;
+    return post.hasRenderableVideoCard;
   }
 
   bool _isInAgendaWindow(int timeStamp, int nowMs, int cutoffMs) {

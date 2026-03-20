@@ -90,10 +90,10 @@ class AgendaController extends GetxController {
   String? _lastPlaybackWindowSignature;
   String? _pendingCenteredDocId;
 
-  // Video içerik ekrana sadece HLS hazır olduğunda düşsün.
+  // Video içerik thumbnail ile render edilebilir; autoplay sadece HLS hazırsa başlar.
   bool _isRenderablePost(PostsModel post) {
-    if (post.video.trim().isEmpty) return true; // text/photo post
-    return post.hasPlayableVideo; // HLS ready + playbackUrl var
+    if (!post.hasVideoSignal) return true; // text/photo post
+    return post.hasRenderableVideoCard;
   }
 
   bool _isBlurredIzBirakVideo(PostsModel post, [int? nowMs]) {
@@ -149,8 +149,8 @@ class AgendaController extends GetxController {
   bool get isCityMode => feedViewMode.value == FeedViewMode.city;
 
   String get feedTitle {
-    if (isFollowingMode) return 'Takip Ettiklerin';
-    if (isCityMode) return 'Şehrim';
+    if (isFollowingMode) return 'agenda.following'.tr;
+    if (isCityMode) return 'agenda.city'.tr;
     return 'TurqApp';
   }
 
@@ -167,7 +167,7 @@ class AgendaController extends GetxController {
       final value = (raw ?? '').trim();
       if (value.isNotEmpty) return value;
     }
-    return 'Türkiye';
+    return 'common.country_turkey'.tr;
   }
 
   void setFeedViewMode(FeedViewMode mode) {

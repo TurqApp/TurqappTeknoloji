@@ -52,6 +52,14 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           final nowPosts =
               uploadedPosts.where((e) => e.timeStamp <= nowMs).toList();
 
+          if (kDebugMode) {
+            debugPrint(
+              '[FeedPublish] directUpload uploaded=${uploadedPosts.length} '
+              'nowPosts=${nowPosts.length} '
+              'ids=${uploadedPosts.map((post) => post.docID).join(',')}',
+            );
+          }
+
           if (nowPosts.isNotEmpty) {
             final ids = nowPosts.map((e) => e.docID).toList();
             agendaController.markHighlighted(ids);
@@ -63,26 +71,26 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           }
 
           Get.find<ProfileController>().getLastPostAndAddToAllPosts();
-          progressController.complete('Gönderiler başarıyla yayınlandı!');
+          progressController.complete('post_creator.upload_success'.tr);
         } else {
           await _errorService.handleError(
             'No posts uploaded',
             category: ErrorCategory.upload,
             severity: ErrorSeverity.medium,
-            userMessage: 'Hiçbir gönderi yüklenemedi',
+            userMessage: 'post_creator.no_post_uploaded'.tr,
           );
-          progressController.setError('Gönderi yüklenirken hata oluştu.');
+          progressController.setError('post_creator.upload_error'.tr);
         }
       } catch (e, stackTrace) {
         await _errorService.handleError(
           e,
           category: ErrorCategory.upload,
           severity: ErrorSeverity.critical,
-          userMessage: 'Yükleme işlemi başarısız',
+          userMessage: 'post_creator.upload_process_failed'.tr,
           stackTrace: stackTrace,
           isRetryable: true,
         );
-        progressController.setError('Kritik hata oluştu.');
+        progressController.setError('post_creator.critical_error'.tr);
       } finally {
         nav?.uploadingPosts.value = false;
       }
@@ -182,8 +190,10 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           // Update progress
           progressController.updateProgress(
             current: index + 1,
-            fileName: 'Gönderi ${index + 1}',
-            statusText: 'Medya dosyaları yükleniyor...',
+            fileName: 'post_creator.publish_item'.trParams({
+              'index': '${index + 1}',
+            }),
+            statusText: 'post_creator.uploading_media'.tr,
           );
 
           final imageUrls = <String>[];
@@ -214,7 +224,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                   e,
                   category: ErrorCategory.upload,
                   severity: ErrorSeverity.high,
-                  userMessage: 'Resim ${j + 1} yüklenemedi',
+                  userMessage: 'post_creator.image_upload_failed'
+                      .trParams({'index': '${j + 1}'}),
                   metadata: {'postIndex': index, 'imageIndex': j},
                   isRetryable: true,
                 );
@@ -233,7 +244,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               final nsfwVideo =
                   await OptimizedNSFWService.checkVideo(post.video!);
               if (nsfwVideo.errorMessage != null) {
-                throw Exception('NSFW video kontrolü başarısız');
+                throw Exception('post_creator.video_nsfw_check_failed'.tr);
               }
               if (nsfwVideo.isNSFW) {
                 throw Exception('Uygunsuz video tespit edildi');
@@ -301,8 +312,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 category: ErrorCategory.upload,
                 severity: ErrorSeverity.high,
                 userMessage: tooLarge
-                    ? 'Video 35MB altına indirilemedi. 35MB altı direkt, 60MB üstü desteklenmez.'
-                    : 'Video yüklenemedi',
+                    ? 'post_creator.video_reduce_failed'.tr
+                    : 'post_creator.video_upload_failed'.tr,
                 metadata: {'postIndex': index},
                 isRetryable: !tooLarge,
               );
@@ -397,6 +408,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "gizlendi": false,
               "img": imageUrls,
               "imgMap": imgMap,
+              "isUploading": false,
               "isAd": false,
               "ad": false,
               "izBirakYayinTarihi": publishTime,
@@ -476,9 +488,14 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               try {
                 final currentUserId = FirebaseAuth.instance.currentUser!.uid;
                 final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
+                final counterTargetPostId = _isQuotedPost
+                    ? await resolveQuoteCounterTargetPostId()
+                    : _sharedOriginalPostID;
                 await FirebaseFirestore.instance
                     .collection("Posts")
-                    .doc(_sharedOriginalPostID)
+                    .doc(counterTargetPostId.isNotEmpty
+                        ? counterTargetPostId
+                        : _sharedOriginalPostID)
                     .collection("postSharers")
                     .doc(currentUserId)
                     .set({
@@ -486,6 +503,16 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                   "timestamp": shareTimestamp,
                   "sharedPostID": docID,
                 }, SetOptions(merge: true));
+                if (_isQuotedPost) {
+                  await FirebaseFirestore.instance
+                      .collection("Posts")
+                      .doc(counterTargetPostId.isNotEmpty
+                          ? counterTargetPostId
+                          : _sharedOriginalPostID)
+                      .update({
+                    'stats.retryCount': FieldValue.increment(1),
+                  });
+                }
               } catch (_, __) {}
             }
 
@@ -502,6 +529,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 floodCount: allPosts.length,
                 gizlendi: false,
                 img: imageUrls,
+                isUploading: false,
                 isAd: false,
                 ad: false,
                 izBirakYayinTarihi: publishTime,
@@ -573,7 +601,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                   e,
                   category: ErrorCategory.storage,
                   severity: ErrorSeverity.low,
-                  userMessage: 'Post sayacı güncellenemedi',
+                  userMessage: 'post_creator.post_counter_failed'.tr,
                   showToUser: false,
                 );
               }
@@ -583,7 +611,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               e,
               category: ErrorCategory.storage,
               severity: ErrorSeverity.high,
-              userMessage: 'Firestore kaydetme başarısız',
+              userMessage: 'post_creator.firestore_save_failed'.tr,
               metadata: {'postIndex': index, 'docID': docID},
               isRetryable: true,
             );
@@ -595,7 +623,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             e,
             category: ErrorCategory.upload,
             severity: ErrorSeverity.high,
-            userMessage: 'Gönderi ${index + 1} yüklenemedi',
+            userMessage: 'post_creator.post_upload_failed'
+                .trParams({'index': '${index + 1}'}),
             metadata: {'postIndex': index},
             isRetryable: false,
           );
@@ -610,7 +639,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
         e,
         category: ErrorCategory.upload,
         severity: ErrorSeverity.critical,
-        userMessage: 'Yükleme işlemi tamamen başarısız',
+        userMessage: 'post_creator.upload_process_failed'.tr,
         stackTrace: stackTrace,
         isRetryable: true,
       );

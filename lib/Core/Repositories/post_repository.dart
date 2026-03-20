@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
@@ -119,9 +120,12 @@ class PostRepository extends GetxService {
   final FirebaseAuth _auth;
   final PostInteractionService _interactionService;
   final PostCountManager _countManager;
-  final TypesensePostService _typesensePostService = TypesensePostService.instance;
+  final TypesensePostService _typesensePostService =
+      TypesensePostService.instance;
 
   static const Duration _interactionTtl = Duration(seconds: 30);
+  static const Duration _stuckUploadingRepairAge = Duration(seconds: 10);
+  static final Set<String> _uploadRepairInFlight = <String>{};
   final Map<String, PostRepositoryState> _states =
       <String, PostRepositoryState>{};
   final Map<String, List<PostSharersModel>> _postSharersMemory =
@@ -366,11 +370,13 @@ class PostRepository extends GetxService {
       );
       for (final doc in snap.docs) {
         final data = doc.data();
-        final model = PostsModel.fromMap(data, doc.id);
+        final model = _normalizeLikelyCompletedOwnPost(
+          PostsModel.fromMap(data, doc.id),
+        );
         result[doc.id] = model;
         final state =
             _states.putIfAbsent(doc.id, () => PostRepositoryState(doc.id));
-        state.latestPostData.value = Map<String, dynamic>.from(data);
+        state.latestPostData.value = model.toMap();
         _seedCounts(state, model);
       }
     }
@@ -397,7 +403,9 @@ class PostRepository extends GetxService {
       final state = _states[id];
       final cached = preferCache ? state?.latestPostData.value : null;
       if (cached != null) {
-        result[id] = PostsModel.fromMap(cached, id);
+        result[id] = _normalizeLikelyCompletedOwnPost(
+          PostsModel.fromMap(cached, id),
+        );
       } else {
         missing.add(id);
       }
@@ -424,10 +432,12 @@ class PostRepository extends GetxService {
       }
 
       final raw = _typesenseDocToPostMap(doc, id);
-      final model = PostsModel.fromMap(raw, id);
+      final model = _normalizeLikelyCompletedOwnPost(
+        PostsModel.fromMap(raw, id),
+      );
       result[id] = model;
       final state = _states.putIfAbsent(id, () => PostRepositoryState(id));
-      state.latestPostData.value = raw;
+      state.latestPostData.value = model.toMap();
       _countManager.initializeCounts(
         model.docID,
         likeCount: model.stats.likeCount.toInt(),
@@ -533,6 +543,14 @@ class PostRepository extends GetxService {
         .where((item) => item.postId.isNotEmpty)
         .toList(growable: false);
 
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedRefs] uid=$normalizedUid count=${items.length} '
+        'startAfter=${startAfter?.id ?? ''} '
+        'sample=${items.take(5).map((item) => item.postId).join(',')}',
+      );
+    }
+
     return UserFeedReferencePage(
       items: items,
       lastDoc: snap.docs.isNotEmpty ? snap.docs.last : null,
@@ -574,6 +592,7 @@ class PostRepository extends GetxService {
     required int nowMs,
     required int cutoffMs,
     int perAuthorLimit = 3,
+    int maxConcurrent = 12,
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
@@ -584,28 +603,36 @@ class PostRepository extends GetxService {
         .toList(growable: false);
     if (cleaned.isEmpty) return const <PostsModel>[];
 
-    final futures = cleaned.map((authorId) async {
-      final snap = await _getQueryWithSource(
-        _firestore
-            .collection('Posts')
-            .where('userID', isEqualTo: authorId)
-            .where('arsiv', isEqualTo: false)
-            .where('deletedPost', isEqualTo: false)
-            .orderBy('timeStamp', descending: true)
-            .limit(perAuthorLimit),
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
+    final nested = <List<PostsModel>>[];
+    final concurrency = maxConcurrent < 1 ? 1 : maxConcurrent;
+    for (int i = 0; i < cleaned.length; i += concurrency) {
+      final chunk = cleaned.sublist(
+        i,
+        i + concurrency > cleaned.length ? cleaned.length : i + concurrency,
       );
-      return snap.docs
-          .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
-          .where((post) =>
-              !post.shouldHideWhileUploading &&
-              post.timeStamp >= cutoffMs &&
-              (post.timeStamp <= nowMs || post.scheduledAt.toInt() > 0))
-          .toList(growable: false);
-    });
+      final futures = chunk.map((authorId) async {
+        final snap = await _getQueryWithSource(
+          _firestore
+              .collection('Posts')
+              .where('userID', isEqualTo: authorId)
+              .where('arsiv', isEqualTo: false)
+              .where('deletedPost', isEqualTo: false)
+              .orderBy('timeStamp', descending: true)
+              .limit(perAuthorLimit),
+          preferCache: preferCache,
+          cacheOnly: cacheOnly,
+        );
+        return snap.docs
+            .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+            .where((post) =>
+                !post.shouldHideWhileUploading &&
+                post.timeStamp >= cutoffMs &&
+                (post.timeStamp <= nowMs || post.scheduledAt.toInt() > 0))
+            .toList(growable: false);
+      });
+      nested.addAll(await Future.wait(futures));
+    }
 
-    final nested = await Future.wait(futures);
     final merged = <String, PostsModel>{};
     for (final posts in nested) {
       for (final post in posts) {
@@ -767,12 +794,61 @@ class PostRepository extends GetxService {
       return false;
     }
     final hasVisual = model.thumbnail.trim().isNotEmpty || model.img.isNotEmpty;
-    final hasVideoSignal =
-        model.video.trim().isNotEmpty || model.hlsMasterUrl.trim().isNotEmpty;
-    if (hasVideoSignal) {
-      return model.hasPlayableVideo && hasVisual;
+    if (model.hasVideoSignal) {
+      return model.hasRenderableVideoCard && hasVisual;
     }
     return model.metin.trim().isNotEmpty || hasVisual || model.floodCount > 1;
+  }
+
+  PostsModel _normalizeLikelyCompletedOwnPost(PostsModel model) {
+    if (!_shouldRepairStuckUploading(model)) {
+      return model;
+    }
+    model.isUploading = false;
+    unawaited(_repairStuckUploadingPost(model));
+    return model;
+  }
+
+  bool _shouldRepairStuckUploading(PostsModel model) {
+    if (!model.isUploading) return false;
+    final currentUser = _auth.currentUser;
+    final currentUid = currentUser == null ? '' : currentUser.uid.trim();
+    if (currentUid.isEmpty || model.userID.trim() != currentUid) return false;
+    if (model.deletedPost || model.arsiv || model.gizlendi) return false;
+    final ageMs =
+        DateTime.now().millisecondsSinceEpoch - model.timeStamp.toInt();
+    if (ageMs < _stuckUploadingRepairAge.inMilliseconds) return false;
+    final hasCompletedMedia = model.img.isNotEmpty ||
+        model.thumbnail.trim().isNotEmpty ||
+        model.hasHls ||
+        model.video.trim().isNotEmpty;
+    return hasCompletedMedia || model.metin.trim().isNotEmpty;
+  }
+
+  Future<void> _repairStuckUploadingPost(PostsModel model) async {
+    final docId = model.docID.trim();
+    if (docId.isEmpty) return;
+    if (_uploadRepairInFlight.contains(docId)) return;
+    _uploadRepairInFlight.add(docId);
+    try {
+      await _firestore.collection('Posts').doc(docId).set(<String, dynamic>{
+        'isUploading': false,
+      }, SetOptions(merge: true));
+      final state =
+          _states.putIfAbsent(docId, () => PostRepositoryState(docId));
+      state.latestPostData.value = model.toMap()..['isUploading'] = false;
+      if (kDebugMode) {
+        debugPrint('[PostRepository] repairedStuckUploading postId=$docId');
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[PostRepository] repairStuckUploadingFailed postId=$docId error=$error',
+        );
+      }
+    } finally {
+      _uploadRepairInFlight.remove(docId);
+    }
   }
 
   Map<String, dynamic> _typesenseDocToPostMap(
