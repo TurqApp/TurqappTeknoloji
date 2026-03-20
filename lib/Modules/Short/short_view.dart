@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
@@ -124,6 +125,8 @@ class ShortView extends StatefulWidget {
 
 class _ShortViewState extends State<ShortView> {
   ShortController get controller => Get.find<ShortController>();
+  final ShortRenderCoordinator _shortRenderCoordinator =
+      ShortRenderCoordinator.ensure();
 
   late PageController pageController;
   int currentPage = 0;
@@ -223,12 +226,7 @@ class _ShortViewState extends State<ShortView> {
     _shortsWorker = ever(controller.shorts, (_) {
       if (!mounted) return;
       final newList = List<PostsModel>.from(controller.shorts);
-      if (_hasRenderableListChanged(_cachedShorts, newList)) {
-        final nextPage = _initialDisplayIndex(newList, currentPage);
-        _cachedShorts = newList;
-        currentPage = nextPage;
-        setState(() {});
-      }
+      _applyRenderListUpdate(newList);
     });
   }
 
@@ -243,6 +241,35 @@ class _ShortViewState extends State<ShortView> {
       }
     }
     return false;
+  }
+
+  void _applyRenderListUpdate(List<PostsModel> nextList) {
+    if (!_hasRenderableListChanged(_cachedShorts, nextList)) {
+      return;
+    }
+
+    final update = _shortRenderCoordinator.buildUpdate(
+      previous: _cachedShorts,
+      next: nextList,
+      currentIndex: currentPage,
+    );
+    if (update.patch.isEmpty) return;
+
+    final previousPage = currentPage;
+    _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
+    final remappedPage = _initialDisplayIndex(_cachedShorts, update.remappedIndex);
+    currentPage = remappedPage;
+
+    setState(() {});
+
+    if (pageController.hasClients && remappedPage != previousPage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !pageController.hasClients) return;
+        try {
+          pageController.jumpToPage(remappedPage);
+        } catch (_) {}
+      });
+    }
   }
 
   void _onPageChanged(int page) {
@@ -316,9 +343,10 @@ class _ShortViewState extends State<ShortView> {
   void _scheduleTierUpdate(int page) {
     _tierDebounce?.cancel();
     _tierDebounce = Timer(_tierDebounceDelay, () async {
+      final hadActiveAdapter = controller.cache[page] != null;
       await controller.updateCacheTiers(page);
       if (!mounted || page != currentPage) return;
-      setState(() {});
+      _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
       _schedulePlayForPage(page);
     });
   }
@@ -327,6 +355,7 @@ class _ShortViewState extends State<ShortView> {
     if (controller.shorts.isEmpty) return;
 
     isManuallyPaused = false;
+    final hadActiveAdapter = controller.cache[currentPage] != null;
 
     // İlk açılışta warm-start/preload cache'inden gelen diğer adapter'ları
     // bırakıp sadece aktif videoyu tut. Aksi halde aktif video birkaç saniye
@@ -336,9 +365,21 @@ class _ShortViewState extends State<ShortView> {
     // Cache tier'larını güncelle (ilk 5 preload dahil)
     await controller.updateCacheTiers(currentPage);
     if (!mounted) return;
-    setState(() {});
+    _setStateIfActiveAdapterChanged(currentPage, hadActiveAdapter, force: false);
 
     _schedulePlayForPage(currentPage);
+  }
+
+  void _setStateIfActiveAdapterChanged(
+    int page,
+    bool hadActiveAdapter, {
+    bool force = false,
+  }) {
+    if (!mounted) return;
+    final hasActiveAdapter = controller.cache[page] != null;
+    if (force || hadActiveAdapter != hasActiveAdapter) {
+      setState(() {});
+    }
   }
 
   void _schedulePlayForPage(int page) {
