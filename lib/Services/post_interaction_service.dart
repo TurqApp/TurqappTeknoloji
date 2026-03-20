@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Utils/bool_utils.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
@@ -95,11 +96,10 @@ class PostInteractionService extends GetxController {
         read: false,
       ).toMap();
 
-      await _firestore
-          .collection('users')
-          .doc(ownerId)
-          .collection('notifications')
-          .add(notification);
+      await NotificationsRepository.ensure().createInboxItem(
+        ownerId,
+        notification,
+      );
     } catch (e) {
       print('Create notification error: $e');
     }

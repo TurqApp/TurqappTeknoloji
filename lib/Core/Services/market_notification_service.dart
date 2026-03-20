@@ -1,14 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MarketNotificationService {
   MarketNotificationService._();
-
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static String get _currentUid =>
       FirebaseAuth.instance.currentUser?.uid ??
@@ -105,14 +103,9 @@ class MarketNotificationService {
     final targetUid = targetUserId.trim();
     if (fromUid.isEmpty || targetUid.isEmpty || fromUid == targetUid) return;
     final now = DateTime.now().millisecondsSinceEpoch;
-    await _firestore
-        .collection('users')
-        .doc(targetUid)
-        .collection('notifications')
-        .add({
+    await NotificationsRepository.ensure().createInboxItem(targetUid, {
       'type': type,
       'fromUserID': fromUid,
-      'userID': targetUid,
       'postID': docId,
       'postType': postType,
       'thumbnail': thumbnail,

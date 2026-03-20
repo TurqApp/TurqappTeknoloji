@@ -20,6 +20,22 @@ class NotificationsRepository extends GetxService {
   CollectionReference<Map<String, dynamic>> _notificationsRef(String uid) =>
       _firestore.collection('users').doc(uid).collection('notifications');
 
+  Future<void> createInboxItem(
+    String uid,
+    Map<String, dynamic> payload,
+  ) async {
+    if (uid.trim().isEmpty || payload.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final data = <String, dynamic>{
+      'userID': uid.trim(),
+      'timeStamp': payload['timeStamp'] ?? now,
+      'read': payload['read'] ?? false,
+      'isRead': payload['isRead'] ?? payload['read'] ?? false,
+      ...payload,
+    };
+    await _notificationsRef(uid.trim()).add(data);
+  }
+
   Stream<DocumentSnapshot<Map<String, dynamic>>> watchSettings(String uid) {
     return _settingsRef(uid).snapshots();
   }
@@ -54,7 +70,8 @@ class NotificationsRepository extends GetxService {
         .snapshots(source: ListenSource.cache);
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchNotificationHead(String uid) {
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchNotificationHead(
+      String uid) {
     return _notificationsRef(uid)
         .orderBy('timeStamp', descending: true)
         .limit(1)
