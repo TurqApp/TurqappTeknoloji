@@ -86,6 +86,28 @@ extension AgendaControllerFeedPart on AgendaController {
     return 0;
   }
 
+  int _resolveInitialCenteredIndex() {
+    if (agendaList.isEmpty) return -1;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < agendaList.length) {
+      return lastCenteredIndex!;
+    }
+    final firstAutoplay =
+        agendaList.indexWhere((post) => _canAutoplayVideoPost(post));
+    if (firstAutoplay >= 0) {
+      return firstAutoplay;
+    }
+    return 0;
+  }
+
+  void primeInitialCenteredPost() {
+    final target = _resolveInitialCenteredIndex();
+    if (target < 0 || target >= agendaList.length) return;
+    centeredIndex.value = target;
+    lastCenteredIndex = target;
+  }
+
   void resumeFeedPlayback() {
     if (agendaList.isEmpty) return;
 

@@ -165,8 +165,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           hasMore.value = previousHasMore;
           _usePrimaryFeedPaging = previousUsePrimaryFeedPaging;
           if (centeredIndex.value == -1) {
-            centeredIndex.value = 0;
-            lastCenteredIndex = 0;
+            primeInitialCenteredPost();
           }
         }
         _scheduleAgendaRetry(initial: initial && agendaList.isEmpty);
@@ -179,8 +178,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         // Bir frame bekle ki VisibilityDetector build olsun
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-            centeredIndex.value = 0;
-            lastCenteredIndex = 0;
+            primeInitialCenteredPost();
           }
         });
       }
@@ -241,8 +239,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (agendaList.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-            centeredIndex.value = 0;
-            lastCenteredIndex = 0;
+            primeInitialCenteredPost();
           }
         });
       }
@@ -265,8 +262,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-          centeredIndex.value = 0;
-          lastCenteredIndex = 0;
+          primeInitialCenteredPost();
         }
       });
     }
@@ -587,8 +583,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         if (agendaList.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-              centeredIndex.value = 0;
-              lastCenteredIndex = 0;
+              primeInitialCenteredPost();
             }
           });
         }
@@ -652,8 +647,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-          centeredIndex.value = 0;
-          lastCenteredIndex = 0;
+          primeInitialCenteredPost();
         }
       });
     }
