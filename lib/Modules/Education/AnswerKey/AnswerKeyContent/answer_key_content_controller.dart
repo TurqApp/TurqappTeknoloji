@@ -48,7 +48,6 @@ class AnswerKeyContentController extends GetxController {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     _primeBookmarkState(currentUserId);
     unawaited(_loadBookmarkState(currentUserId));
-    _updateViewCount(currentUserId);
   }
 
   void _primeBookmarkState(String? currentUserId) {
@@ -111,7 +110,8 @@ class AnswerKeyContentController extends GetxController {
     await _loadSavedIds(userId);
   }
 
-  void _updateViewCount(String? currentUserId) {
+  void _updateViewCount() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId != null && model.userID != currentUserId) {
       FirebaseFirestore.instance.collection("books").doc(model.docID).update({
         "viewCount": FieldValue.increment(1),
@@ -157,6 +157,7 @@ class AnswerKeyContentController extends GetxController {
   }
 
   void navigateToPreview(BuildContext context) {
+    _updateViewCount();
     Get.to(() => BookletPreview(model: model));
   }
 
