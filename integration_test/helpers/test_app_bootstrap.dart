@@ -46,6 +46,8 @@ Future<void> tapItKey(
 }) async {
   final finder = byItKey(key);
   expect(finder, findsOneWidget);
+  await tester.ensureVisible(finder);
+  await tester.pump(const Duration(milliseconds: 100));
   await tester.tap(finder);
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 250));
