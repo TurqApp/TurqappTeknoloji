@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
+import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../Models/posts_model.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
@@ -32,17 +33,10 @@ class AgendaView extends StatelessWidget {
   AgendaView({super.key});
   static bool _androidVisibilityTuned = false;
 
-  bool _shouldInsertPromoAfterPost(int postNumber) =>
-      postNumber > 0 && postNumber % 3 == 0;
-
-  bool _isAdPromo(int postNumber) {
-    final slotNumber = postNumber ~/ 3;
-    return slotNumber.isOdd;
-  }
-
-  Widget _buildPromoSlot(int postNumber) {
-    final slotNumber = postNumber ~/ 3;
-    if (_isAdPromo(postNumber)) {
+  Widget _buildPromoSlot(Map<String, dynamic> entry) {
+    final promoType = (entry['promoType'] ?? '').toString();
+    final slotNumber = (entry['slotNumber'] ?? 0) as int;
+    if (promoType == 'ad') {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: AdmobKare(
@@ -50,7 +44,7 @@ class AgendaView extends StatelessWidget {
         ),
       );
     }
-    final recommendedBatch = slotNumber ~/ 2;
+    final recommendedBatch = (entry['recommendedBatch'] ?? 0) as int;
     return Padding(
       padding: const EdgeInsets.only(top: 2, bottom: 10),
       child: RecommendedUserList(
@@ -161,6 +155,9 @@ class AgendaView extends StatelessWidget {
                       List<Map<String, dynamic>> filteredDisplay = controller
                           .filteredFeedEntries
                           .toList(growable: false);
+                      List<Map<String, dynamic>> renderDisplay = controller
+                          .renderFeedEntries
+                          .toList(growable: false);
 
                       final bool shouldFallbackToForYou = display.isNotEmpty &&
                           filteredDisplay.isEmpty &&
@@ -168,6 +165,10 @@ class AgendaView extends StatelessWidget {
                           (controller.isFollowingMode || controller.isCityMode);
                       if (shouldFallbackToForYou) {
                         filteredDisplay = display;
+                        renderDisplay =
+                            FeedRenderCoordinator.ensure().buildRenderEntries(
+                          filteredEntries: filteredDisplay,
+                        );
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!Get.isRegistered<AgendaController>()) return;
                           final agendaController = Get.find<AgendaController>();
@@ -237,13 +238,13 @@ class AgendaView extends StatelessWidget {
                         padding: EdgeInsets.only(
                           bottom: kBottomNavigationBarHeight + 16,
                         ),
-                        itemCount: filteredDisplay.length + 1,
+                        itemCount: renderDisplay.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) return header();
 
                           final actualIndex = index - 1;
 
-                          if (actualIndex >= filteredDisplay.length) {
+                          if (actualIndex >= renderDisplay.length) {
                             if (controller.hasMore.value) {
                               if (!controller.isLoading.value) {
                                 controller.fetchAgendaBigData();
@@ -252,7 +253,20 @@ class AgendaView extends StatelessWidget {
                             return const SizedBox.shrink();
                           }
 
-                          final item = filteredDisplay[actualIndex];
+                          final item = renderDisplay[actualIndex];
+                          final renderType =
+                              (item['renderType'] ?? 'post').toString();
+                          if (renderType == 'promo') {
+                            return RepaintBoundary(
+                              child: Padding(
+                                key: ValueKey(
+                                  'promo-${item['promoType']}-${item['slotNumber']}',
+                                ),
+                                padding: const EdgeInsets.only(bottom: 0),
+                                child: _buildPromoSlot(item),
+                              ),
+                            );
+                          }
                           final model = item['model'] as PostsModel;
                           final isReshare = (item['reshare'] == true);
                           final reshareUserID =
@@ -392,11 +406,6 @@ class AgendaView extends StatelessWidget {
                               height: 3,
                             ),
                           );
-
-                          final postNumber = actualIndex + 1;
-                          if (_shouldInsertPromoAfterPost(postNumber)) {
-                            columnChildren.add(_buildPromoSlot(postNumber));
-                          }
 
                           // RepaintBoundary ile her postu izole et - scroll sırasında
                           // sadece görünür postların repaint'ini sağlar

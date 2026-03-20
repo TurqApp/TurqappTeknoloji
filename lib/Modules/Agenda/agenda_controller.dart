@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -50,11 +51,15 @@ class AgendaController extends GetxController {
   PostRepository get _postRepository => PostRepository.ensure();
   FeedSnapshotRepository get _feedSnapshotRepository =>
       FeedSnapshotRepository.ensure();
+  FeedRenderCoordinator get _feedRenderCoordinator =>
+      FeedRenderCoordinator.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final RxList<Map<String, dynamic>> mergedFeedEntries =
       <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> filteredFeedEntries =
+      <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> renderFeedEntries =
       <Map<String, dynamic>>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
 
@@ -78,6 +83,7 @@ class AgendaController extends GetxController {
   int _agendaRetryCount = 0;
   Worker? _mergedFeedWorker;
   Worker? _filteredFeedWorker;
+  Worker? _renderFeedWorker;
   final Map<int, double> _visibleFractions = <int, double>{};
   final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
 
@@ -237,6 +243,7 @@ class AgendaController extends GetxController {
     _bindCenteredIndexListener();
     _bindMergedFeedEntries();
     _bindFilteredFeedEntries();
+    _bindRenderFeedEntries();
   }
 
   @override
@@ -262,6 +269,7 @@ class AgendaController extends GetxController {
   void onClose() {
     _mergedFeedWorker?.dispose();
     _filteredFeedWorker?.dispose();
+    _renderFeedWorker?.dispose();
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
     _agendaRetryTimer?.cancel();
@@ -424,57 +432,30 @@ class AgendaController extends GetxController {
     _rebuildFilteredFeedEntries();
   }
 
+  void _bindRenderFeedEntries() {
+    _renderFeedWorker?.dispose();
+    _renderFeedWorker = ever<List<Map<String, dynamic>>>(
+      filteredFeedEntries,
+      (_) => _rebuildRenderFeedEntries(),
+    );
+    _rebuildRenderFeedEntries();
+  }
+
   void _rebuildMergedFeedEntries() {
     if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
       mergedFeedEntries.clear();
       return;
     }
-
-    final agendaIndexByDoc = <String, int>{
-      for (int i = 0; i < agendaList.length; i++) agendaList[i].docID: i,
-    };
-
-    final displayByDoc = <String, Map<String, dynamic>>{};
-
-    for (int i = 0; i < agendaList.length; i++) {
-      final post = agendaList[i];
-      displayByDoc[post.docID] = {
-        'type': 'normal',
-        'model': post,
-        'reshare': false,
-        'reshareUserID': null,
-        'timestamp': post.timeStamp,
-        'agendaIndex': i,
-      };
-    }
-
-    for (final reshareEntry in feedReshareEntries) {
-      final post = reshareEntry['post'] as PostsModel;
-      final idx = agendaIndexByDoc[post.docID] ?? -1;
-      final modelRef = idx >= 0 ? agendaList[idx] : post;
-      final reshareTimestamp = (reshareEntry['reshareTimestamp'] ?? 0) as int;
-      final reshareUserID = reshareEntry['reshareUserID'] as String?;
-
-      final existing = displayByDoc[post.docID];
-      final existingTs = (existing?['timestamp'] ?? 0) as int;
-      if (existing == null || reshareTimestamp >= existingTs) {
-        displayByDoc[post.docID] = {
-          'type': 'reshare',
-          'model': modelRef,
-          'reshare': true,
-          'reshareUserID': reshareUserID,
-          'timestamp': reshareTimestamp,
-          'agendaIndex': idx,
-        };
-      }
-    }
-
-    final merged = displayByDoc.values.toList(growable: false)
-      ..sort(
-        (a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int),
-      );
-
-    mergedFeedEntries.assignAll(merged);
+    final merged = _feedRenderCoordinator.buildMergedEntries(
+      agendaList: agendaList.toList(growable: false),
+      feedReshareEntries: feedReshareEntries.toList(growable: false),
+    );
+    final patch = _feedRenderCoordinator.buildPatch(
+      previous: mergedFeedEntries.toList(growable: false),
+      next: merged,
+      reason: 'merged_feed_rebuild',
+    );
+    _feedRenderCoordinator.applyPatch(mergedFeedEntries, patch);
   }
 
   void _rebuildFilteredFeedEntries() {
@@ -482,25 +463,35 @@ class AgendaController extends GetxController {
       filteredFeedEntries.clear();
       return;
     }
+    final filtered = _feedRenderCoordinator.filterEntries(
+      mergedEntries: mergedFeedEntries.toList(growable: false),
+      isFollowingMode: isFollowingMode,
+      isCityMode: isCityMode,
+      followingIds: followingIDs.toSet(),
+      city: currentUserLocationCity,
+    );
+    final patch = _feedRenderCoordinator.buildPatch(
+      previous: filteredFeedEntries.toList(growable: false),
+      next: filtered,
+      reason: 'filtered_feed_rebuild',
+    );
+    _feedRenderCoordinator.applyPatch(filteredFeedEntries, patch);
+  }
 
-    List<Map<String, dynamic>> filtered =
-        mergedFeedEntries.toList(growable: false);
-
-    if (isFollowingMode && followingIDs.isNotEmpty) {
-      final followingSet = followingIDs;
-      filtered = filtered.where((item) {
-        final model = item['model'] as PostsModel;
-        return followingSet.contains(model.userID);
-      }).toList(growable: false);
-    } else if (isCityMode) {
-      final city = currentUserLocationCity.trim().toLowerCase();
-      filtered = filtered.where((item) {
-        final model = item['model'] as PostsModel;
-        return model.locationCity.trim().toLowerCase() == city;
-      }).toList(growable: false);
+  void _rebuildRenderFeedEntries() {
+    if (filteredFeedEntries.isEmpty) {
+      renderFeedEntries.clear();
+      return;
     }
-
-    filteredFeedEntries.assignAll(filtered);
+    final renderEntries = _feedRenderCoordinator.buildRenderEntries(
+      filteredEntries: filteredFeedEntries.toList(growable: false),
+    );
+    final patch = _feedRenderCoordinator.buildPatch(
+      previous: renderFeedEntries.toList(growable: false),
+      next: renderEntries,
+      reason: 'render_feed_rebuild',
+    );
+    _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
   }
 
   /// Pull-based following + reshares fetch (realtime listener yerine).
