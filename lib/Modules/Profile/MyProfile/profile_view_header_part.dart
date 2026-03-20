@@ -127,10 +127,13 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
 
                           if (myStoryUser != null &&
                               myStoryUser.stories.isNotEmpty) {
+                            controller.pausetheall.value = true;
                             Get.to(() => StoryViewer(
                                   startedUser: myStoryUser,
                                   storyOwnerUsers: [myStoryUser],
-                                ));
+                                ))?.then((_) {
+                              controller.resumeCenteredPost();
+                            });
                           } else {
                             controller.pausetheall.value = true;
                             Get.to(() => StoryMaker())?.then((_) {

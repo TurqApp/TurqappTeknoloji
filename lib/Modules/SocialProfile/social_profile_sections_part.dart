@@ -193,9 +193,14 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   controller.storyUserModel!.stories.isNotEmpty) {
                 try {
                   _setCenteredIndex(-1);
+                  controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
+                      ? controller.currentVisibleIndex.value
+                      : controller.lastCenteredIndex;
                   Get.to(() => StoryViewer(
                       startedUser: controller.storyUserModel!,
-                      storyOwnerUsers: [controller.storyUserModel!]));
+                      storyOwnerUsers: [controller.storyUserModel!]))?.then((_) {
+                    controller.resumeCenteredPost();
+                  });
                 } catch (_) {}
               }
             },
