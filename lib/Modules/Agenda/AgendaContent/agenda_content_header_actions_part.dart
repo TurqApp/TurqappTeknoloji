@@ -1,6 +1,16 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentHeaderActionsPart on _AgendaContentState {
+  void _suspendAgendaFeedForRoute() {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
+    videoController?.pause();
+  }
+
   void _restoreAgendaFeedCenter() {
     final last = agendaController.lastCenteredIndex;
     int target = -1;
@@ -322,7 +332,10 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
               widget.model.flood == false)
             GestureDetector(
               onTap: () {
-                Get.to(() => FloodListing(mainModel: widget.model));
+                _suspendAgendaFeedForRoute();
+                Get.to(() => FloodListing(mainModel: widget.model))?.then((_) {
+                  _restoreAgendaFeedCenter();
+                });
               },
               child: Texts.colorfulFloodLeftSide,
             ),
@@ -400,7 +413,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () async {
-            videoController?.pause();
+            _suspendAgendaFeedForRoute();
 
             Get.to(() => PostCreator(
                   sharedVideoUrl: widget.model.playbackUrl,
@@ -413,7 +426,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                       PostStoryShareService.resolveOriginalPostId(widget.model),
                   sharedAsPost: true,
                 ))?.then((_) {
-              videoController?.play();
+              _restoreAgendaFeedCenter();
             });
           },
           title: 'short.publish_as_post'.tr,
@@ -431,13 +444,13 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         if (canManagePost)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendAgendaFeedForRoute();
               Get.to(() => PostSharers(
                     postID: PostStoryShareService.resolveOriginalPostId(
                       widget.model,
                     ),
                   ))?.then((_) {
-                videoController?.play();
+                _restoreAgendaFeedCenter();
               });
             },
             title: 'short.shared_as_post_by'.tr,
@@ -461,12 +474,12 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         if (canManagePost)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendAgendaFeedForRoute();
               Get.to(() => PostCreator(
                     editMode: true,
                     editPost: widget.model,
                   ))?.then((_) {
-                videoController?.play();
+                _restoreAgendaFeedCenter();
               });
             },
             title: 'common.edit'.tr,
@@ -581,12 +594,12 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendAgendaFeedForRoute();
               Get.to(() => ReportUser(
                   userID: widget.model.userID,
                   postID: widget.model.docID,
                   commentID: ""))?.then((_) {
-                videoController?.play();
+                _restoreAgendaFeedCenter();
               });
             },
             title: 'common.report'.tr,
@@ -769,6 +782,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       finalOriginalPostID = widget.model.docID;
     }
 
+    _suspendAgendaFeedForRoute();
     Get.to(() => PostCreator(
           sharedVideoUrl: widget.model.playbackUrl,
           sharedImageUrls: widget.model.img,
@@ -785,7 +799,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
           quotedSourceUsername: resolvedQuotedSourceUsername,
           quotedSourceAvatarUrl: resolvedQuotedSourceAvatarUrl,
         ))?.then((_) {
-      videoController?.play();
+      _restoreAgendaFeedCenter();
     });
   }
 

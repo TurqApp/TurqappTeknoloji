@@ -1,6 +1,16 @@
 part of 'classic_content.dart';
 
 extension ClassicContentHeaderActionsPart on _ClassicContentState {
+  void _suspendClassicFeedForRoute() {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
+    videoController?.pause();
+  }
+
   Widget headerUserInfoBar() {
     final primaryName = widget.model.authorDisplayName.trim().isNotEmpty
         ? widget.model.authorDisplayName.trim().replaceAll("  ", " ")
@@ -396,7 +406,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () async {
-            videoController?.pause();
+            _suspendClassicFeedForRoute();
 
             Get.to(() => PostCreator(
                   sharedVideoUrl: widget.model.playbackUrl,
@@ -409,7 +419,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                       PostStoryShareService.resolveOriginalPostId(widget.model),
                   sharedAsPost: true,
                 ))?.then((_) {
-              videoController?.play();
+              _restoreClassicFeedCenter();
             });
           },
           title: 'short.publish_as_post'.tr,
@@ -427,13 +437,13 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         if (canManagePost)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendClassicFeedForRoute();
               Get.to(() => PostSharers(
                     postID: PostStoryShareService.resolveOriginalPostId(
                       widget.model,
                     ),
                   ))?.then((_) {
-                videoController?.play();
+                _restoreClassicFeedCenter();
               });
             },
             title: 'short.shared_as_post_by'.tr,
@@ -457,12 +467,12 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         if (canManagePost)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendClassicFeedForRoute();
               Get.to(() => PostCreator(
                     editMode: true,
                     editPost: widget.model,
                   ))?.then((_) {
-                videoController?.play();
+                _restoreClassicFeedCenter();
               });
             },
             title: 'common.edit'.tr,
@@ -577,12 +587,12 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendClassicFeedForRoute();
               Get.to(() => ReportUser(
                   userID: widget.model.userID,
                   postID: widget.model.docID,
                   commentID: ""))?.then((_) {
-                videoController?.play();
+                _restoreClassicFeedCenter();
               });
             },
             title: 'common.report'.tr,
@@ -715,6 +725,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       finalOriginalPostID = widget.model.docID;
     }
 
+    _suspendClassicFeedForRoute();
     Get.to(() => PostCreator(
           sharedVideoUrl: widget.model.playbackUrl,
           sharedImageUrls: widget.model.img,
@@ -731,7 +742,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           quotedSourceUsername: resolvedQuotedSourceUsername,
           quotedSourceAvatarUrl: resolvedQuotedSourceAvatarUrl,
         ))?.then((_) {
-      videoController?.play();
+      _restoreClassicFeedCenter();
     });
   }
 
