@@ -68,6 +68,7 @@ class FeedSnapshotRepository extends GetxService {
       CacheFirstCoordinator<List<PostsModel>>(
     memoryStore: _memoryStore,
     snapshotStore: _snapshotStore,
+    telemetry: const CacheFirstKpiTelemetry<List<PostsModel>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 10),
       minLiveSyncInterval: Duration(seconds: 20),

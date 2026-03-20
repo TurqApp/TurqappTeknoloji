@@ -29,6 +29,7 @@ class JobHomeSnapshotRepository extends GetxService {
       encode: _encodeJobs,
       decode: _decodeJobs,
     ),
+    telemetry: const CacheFirstKpiTelemetry<List<JobModel>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),

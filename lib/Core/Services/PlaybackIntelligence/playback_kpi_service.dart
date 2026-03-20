@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 enum PlaybackKpiEventType {
   startup,
+  cacheFirstLifecycle,
   firstFrame,
   rebuffer,
   cacheHitRatio,

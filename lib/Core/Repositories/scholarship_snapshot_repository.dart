@@ -39,6 +39,7 @@ class ScholarshipSnapshotRepository extends GetxService {
       encode: _encodeSnapshot,
       decode: _decodeSnapshot,
     ),
+    telemetry: const CacheFirstKpiTelemetry<ScholarshipListingSnapshot>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),

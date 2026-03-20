@@ -1,4 +1,5 @@
 export 'cache_first_coordinator.dart';
+export 'cache_first_kpi_telemetry.dart';
 export 'cache_first_policy.dart';
 export 'cache_first_query_pipeline.dart';
 export 'cache_first_serialization.dart';

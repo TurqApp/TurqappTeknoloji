@@ -26,6 +26,7 @@ class CikmisSorularSnapshotRepository extends GetxService {
       encode: _encodeDocs,
       decode: _decodeDocs,
     ),
+    telemetry: const CacheFirstKpiTelemetry<List<Map<String, dynamic>>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),

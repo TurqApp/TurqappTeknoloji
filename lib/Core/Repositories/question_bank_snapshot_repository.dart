@@ -23,6 +23,7 @@ class QuestionBankSnapshotRepository extends GetxService {
       encode: _encodeItems,
       decode: _decodeItems,
     ),
+    telemetry: const CacheFirstKpiTelemetry<List<QuestionBankModel>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),

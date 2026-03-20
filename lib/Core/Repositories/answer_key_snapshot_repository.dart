@@ -27,6 +27,7 @@ class AnswerKeySnapshotRepository extends GetxService {
       encode: _encodeItems,
       decode: _decodeItems,
     ),
+    telemetry: const CacheFirstKpiTelemetry<List<BookletModel>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),

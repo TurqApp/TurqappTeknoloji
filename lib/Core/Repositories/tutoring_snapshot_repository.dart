@@ -29,6 +29,7 @@ class TutoringSnapshotRepository extends GetxService {
       encode: _encodeTutorings,
       decode: _decodeTutorings,
     ),
+    telemetry: const CacheFirstKpiTelemetry<List<TutoringModel>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),
@@ -61,6 +62,7 @@ class TutoringSnapshotRepository extends GetxService {
   Stream<CachedResource<List<TutoringModel>>> openHome({
     required String userId,
     int limit = 30,
+    int page = 1,
     bool forceSync = false,
   }) {
     return _homeAdapter.open(
@@ -68,9 +70,9 @@ class TutoringSnapshotRepository extends GetxService {
         entity: EducationTypesenseEntity.tutoring,
         query: '*',
         limit: limit,
-        page: 1,
+        page: page,
         userId: userId,
-        scopeTag: 'home',
+        scopeTag: page <= 1 ? 'home' : 'home_page_$page',
       ),
       forceSync: forceSync,
     );
@@ -79,11 +81,13 @@ class TutoringSnapshotRepository extends GetxService {
   Future<CachedResource<List<TutoringModel>>> loadHome({
     required String userId,
     int limit = 30,
+    int page = 1,
     bool forceSync = false,
   }) {
     return openHome(
       userId: userId,
       limit: limit,
+      page: page,
       forceSync: forceSync,
     ).last;
   }

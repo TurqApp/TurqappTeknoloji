@@ -28,6 +28,7 @@ class PracticeExamSnapshotRepository extends GetxService {
       encode: _encodeItems,
       decode: _decodeItems,
     ),
+    telemetry: const CacheFirstKpiTelemetry<List<SinavModel>>(),
     policy: const CacheFirstPolicy(
       snapshotTtl: Duration(minutes: 20),
       minLiveSyncInterval: Duration(seconds: 30),
