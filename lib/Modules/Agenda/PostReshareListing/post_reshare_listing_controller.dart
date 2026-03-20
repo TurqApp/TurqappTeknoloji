@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class ReshareUserItem {
   const ReshareUserItem({
@@ -25,6 +25,7 @@ class PostReshareListingController extends GetxController {
 
   final String postID;
   final PostRepository _postRepository = PostRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final RxList<ReshareUserItem> reshareUsers = <ReshareUserItem>[].obs;
   final RxList<ReshareUserItem> quoteUsers = <ReshareUserItem>[].obs;
   final RxBool isLoadingReshares = false.obs;
@@ -142,10 +143,9 @@ class PostReshareListingController extends GetxController {
 
   Future<ReshareUserItem?> _fetchUserItem(String userID) async {
     try {
-      final summary = await UserRepository.ensure().getUser(
+      final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
-        cacheOnly: false,
       );
       if (summary == null) return null;
       return ReshareUserItem(

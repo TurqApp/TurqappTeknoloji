@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class LikeUserItem {
   const LikeUserItem({
@@ -26,6 +26,7 @@ class PostLikeListingController extends GetxController {
 
   final String postID;
   final PostRepository _postRepository = PostRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final RxList<LikeUserItem> users = <LikeUserItem>[].obs;
   final RxList<LikeUserItem> filteredUsers = <LikeUserItem>[].obs;
   final RxString query = ''.obs;
@@ -94,14 +95,13 @@ class PostLikeListingController extends GetxController {
 
   Future<LikeUserItem?> _fetchUserItem(String userID) async {
     try {
-      final summary = await UserRepository.ensure().getUser(
+      final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
-        cacheOnly: false,
       );
       if (summary == null) return null;
       final nickname = summary.nickname.trim();
-      final username = summary.username.trim();
+      final username = summary.preferredName.trim();
       final fullName = summary.displayName.trim();
       final avatarUrl = summary.avatarUrl.trim();
       final searchText = _normalize([
