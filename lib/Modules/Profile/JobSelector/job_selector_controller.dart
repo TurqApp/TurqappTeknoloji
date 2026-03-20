@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/jobs.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class JobSelectorController extends GetxController {
   var job = "".obs;
@@ -34,6 +35,13 @@ class JobSelectorController extends GetxController {
     super.onInit();
     _initialJobs = _buildInitialJobs();
     filteredJobs.assignAll(_initialJobs);
+    final current = CurrentUserService.instance.currentUser;
+    if (!_userInteracted &&
+        current != null &&
+        current.userID == FirebaseAuth.instance.currentUser?.uid) {
+      job.value = current.meslekKategori.trim();
+      filteredJobs.assignAll(_initialWithSelected());
+    }
     _userRepository
         .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
         .then((data) {
