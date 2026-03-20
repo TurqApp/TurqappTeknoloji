@@ -76,7 +76,7 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 | My Profile | `MyProfile`, `LikedPosts`, `Archives`, `MyStatistic`, `MyQRCode` | manuel | `MANUEL_YESIL` | profil video sekmesi acildi, video detail acildi ve geri donuste ayni video gridine temiz dondu |
 | Social Profile | `SocialProfile`, followers, report, qr | manuel | `MANUEL_YESIL` | feed'den baska kullanici profili acildi ve geri donuste feed'e temiz dondu |
 | Profile settings | `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Policies`, `DeleteAccount`, `Cv`, `BiographyMaker`, `Editor*`, `LangSelector`, `ViewChanger`, `SocialMediaLinks`, `BecomeVerifiedAccount`, `ProfileContact` | manuel parcali | `KAPSAM_BEKLIYOR` | bunlarin bir kismi bilincli raw; warm-open ve form state Android sweep'i eksik |
-| Saved profile surfaces | `SavedPosts`, `BlockedUsers`, `FollowingFollowers` | parcali manuel | `ANDROID_ACIK` | snapshot/silent refresh var; Android gerçek cihaz smoke acik |
+| Saved profile surfaces | `SavedPosts`, `BlockedUsers`, `FollowingFollowers` | parcali manuel | `MANUEL_YESIL` | `SavedPosts` Android cihazda temiz acildi ve veri geldi; `BlockedUsers` ve `FollowingFollowers` icin ikinci sweep gerekli |
 | Market | `Market`, `detail`, `search`, `saved`, `offers`, `my items`, `create`, `filter` | manuel | `MANUEL_YESIL` | ilk acilis stabil; `detail/offers/saved/my items` turunun kayitli matrisi cikacak |
 | Job | `JobContent`, `JobDetails`, `SavedJobs`, `MyApplications`, `MyJobAds`, `CareerProfile`, `FindingJobApply`, `JobCreator`, `ApplicationReview` | manuel + omurga sweep | `ANDROID_ACIK` | ana liste stabil; filter/sort/detail/apply akislarinin tam turu eksik |
 | Tutoring | `Tutoring`, `detail`, `saved`, `my tutorings`, `location based`, `create` | manuel + omurga sweep | `ANDROID_ACIK` | ana liste stabil; detail/create/save akislarinin genis turu eksik |
@@ -123,7 +123,7 @@ Durum:
 - `MyProfile`: kapandi
 - `SocialProfile`: kapandi
 - `Notifications`: kapandi
-- `SavedPosts`: sirada
+- `SavedPosts`: kapandi
 - `Explore/SearchedUser`: kapandi
 
 ### Dalga 2
