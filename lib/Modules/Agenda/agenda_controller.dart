@@ -88,6 +88,7 @@ class AgendaController extends GetxController {
   final Map<int, double> _visibleFractions = <int, double>{};
   final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
   String? _lastPlaybackWindowSignature;
+  String? _pendingCenteredDocId;
 
   // Video içerik ekrana sadece HLS hazır olduğunda düşsün.
   bool _isRenderablePost(PostsModel post) {

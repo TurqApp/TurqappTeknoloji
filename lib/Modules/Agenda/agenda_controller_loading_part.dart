@@ -543,8 +543,15 @@ extension AgendaControllerLoadingPart on AgendaController {
     try {
       // Refresh başlarken tüm oynatımları kesin durdur.
       pauseAll.value = true;
+      final currentCentered = centeredIndex.value;
+      if (currentCentered >= 0 && currentCentered < agendaList.length) {
+        _pendingCenteredDocId = agendaList[currentCentered].docID;
+      } else if (lastCenteredIndex != null &&
+          lastCenteredIndex! >= 0 &&
+          lastCenteredIndex! < agendaList.length) {
+        _pendingCenteredDocId = agendaList[lastCenteredIndex!].docID;
+      }
       centeredIndex.value = -1;
-      lastCenteredIndex = null;
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
       } catch (_) {}

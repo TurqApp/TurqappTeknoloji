@@ -64,6 +64,9 @@ extension AgendaControllerFeedPart on AgendaController {
   int _resolveResumeIndex() {
     if (agendaList.isEmpty) return -1;
 
+    final pendingDocIndex = _resolvePendingCenteredDocIndex();
+    if (pendingDocIndex >= 0) return pendingDocIndex;
+
     int bestIndex = -1;
     double bestFraction = 0.0;
     _visibleFractions.forEach((idx, fraction) {
@@ -88,6 +91,10 @@ extension AgendaControllerFeedPart on AgendaController {
 
   int _resolveInitialCenteredIndex() {
     if (agendaList.isEmpty) return -1;
+    final pendingDocIndex = _resolvePendingCenteredDocIndex();
+    if (pendingDocIndex >= 0) {
+      return pendingDocIndex;
+    }
     if (lastCenteredIndex != null &&
         lastCenteredIndex! >= 0 &&
         lastCenteredIndex! < agendaList.length) {
@@ -106,6 +113,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (target < 0 || target >= agendaList.length) return;
     centeredIndex.value = target;
     lastCenteredIndex = target;
+    _pendingCenteredDocId = null;
   }
 
   void resumeFeedPlayback() {
@@ -133,6 +141,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (centeredIndex.value != target) {
       centeredIndex.value = target;
     }
+    _pendingCenteredDocId = null;
 
     final targetPost = agendaList[target];
     if (!_canAutoplayVideoPost(targetPost)) return;
@@ -144,6 +153,12 @@ extension AgendaControllerFeedPart on AgendaController {
       if (centeredIndex.value != target) return;
       manager.playOnlyThis(targetPost.docID);
     });
+  }
+
+  int _resolvePendingCenteredDocIndex() {
+    final pendingDocId = _pendingCenteredDocId;
+    if (pendingDocId == null || pendingDocId.isEmpty) return -1;
+    return agendaList.indexWhere((post) => post.docID == pendingDocId);
   }
 
   void _prefetchUpcomingImages() {
