@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/user_post_reference.dart';
@@ -12,20 +13,17 @@ import 'package:turqappv2/Services/user_post_link_service.dart';
 class SavedPostsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
-  final RxList<PostsModel> savedPhotos = <PostsModel>[].obs;
-  final RxList<PostsModel> savedVideos = <PostsModel>[].obs;
   final RxList<PostsModel> savedAgendas = <PostsModel>[].obs;
+  final RxList<PostsModel> savedPostsOnly = <PostsModel>[].obs;
+  final RxList<PostsModel> savedSeries = <PostsModel>[].obs;
 
-  final selection = 0.obs;
   final isLoading = false.obs;
-  PageController pageController = PageController(initialPage: 0);
-  final currentVisibleIndex = RxInt(-1);
-  final centeredIndex = 0.obs;
+  final PageController pageController = PageController(initialPage: 0);
 
   StreamSubscription<User?>? _authSub;
   StreamSubscription<List<UserPostReference>>? _savedPostsSub;
-  final Map<int, GlobalKey> _postKeys = {};
   final UserPostLinkService _linkService = Get.put(UserPostLinkService());
+  final PostRepository _postRepository = PostRepository.ensure();
 
   String? _currentUserId;
   List<UserPostReference> _latestRefs = const [];
@@ -70,7 +68,7 @@ class SavedPostsController extends GetxController {
       cacheOnly: true,
     );
     if (cached.isNotEmpty) {
-      _applySavedPosts(cached);
+      await _applySavedPosts(cached);
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'saved_posts:$userId',
@@ -97,7 +95,12 @@ class SavedPostsController extends GetxController {
   }) async {
     if (!silent) {
       isLoading.value = true;
-      _clearLists();
+      final hasVisibleSnapshot = savedAgendas.isNotEmpty ||
+          savedPostsOnly.isNotEmpty ||
+          savedSeries.isNotEmpty;
+      if (!hasVisibleSnapshot) {
+        _clearLists();
+      }
     }
 
     try {
@@ -106,7 +109,7 @@ class SavedPostsController extends GetxController {
         refs,
         preferCache: !forceRefresh,
       );
-      _applySavedPosts(posts);
+      await _applySavedPosts(posts);
       SilentRefreshGate.markRefreshed('saved_posts:$userId');
     } catch (_) {
     } finally {
@@ -118,52 +121,83 @@ class SavedPostsController extends GetxController {
   Future<void> refresh() async {
     final userId = _currentUserId;
     if (userId == null) return;
-    await _hydrateSavedPosts(userId, _latestRefs);
+    await _hydrateSavedPosts(userId, _latestRefs, forceRefresh: true);
   }
 
   void _clearLists() {
-    savedPhotos.clear();
-    savedVideos.clear();
     savedAgendas.clear();
+    savedPostsOnly.clear();
+    savedSeries.clear();
   }
 
-  void _applySavedPosts(List<PostsModel> posts) {
-    final nextPhotos = <PostsModel>[];
-    final nextVideos = <PostsModel>[];
+  Future<void> _applySavedPosts(List<PostsModel> posts) async {
     final nextAgendas = <PostsModel>[];
+    final nextPostsOnly = <PostsModel>[];
+    final nextSeries = <PostsModel>[];
     final now = DateTime.now().millisecondsSinceEpoch;
+    final rootIdsInOrder = <String>[];
+    final rootsById = <String, PostsModel>{};
+    final singleIds = <String>{};
+    final agendaIds = <String>{};
 
     for (final post in posts) {
       if (post.deletedPost == true) continue;
-      if (post.timeStamp > now) {
+      if (post.timeStamp > now) continue;
+
+      final isSeries = post.floodCount.toInt() > 1;
+      if (isSeries) {
+        final rootId = post.flood == true && post.mainFlood.trim().isNotEmpty
+            ? post.mainFlood.trim()
+            : post.docID;
+        if (!rootIdsInOrder.contains(rootId)) {
+          rootIdsInOrder.add(rootId);
+        }
+        if (rootId == post.docID) {
+          rootsById[rootId] = post;
+        }
         continue;
       }
 
-      if (post.hasPlayableVideo) {
-        nextVideos.add(post);
-      } else if (post.img.isNotEmpty) {
-        nextPhotos.add(post);
+      if (singleIds.add(post.docID)) {
+        nextPostsOnly.add(post);
       }
-      nextAgendas.add(post);
     }
 
-    savedPhotos.assignAll(nextPhotos);
-    savedVideos.assignAll(nextVideos);
+    final missingRootIds = rootIdsInOrder
+        .where((rootId) => !rootsById.containsKey(rootId))
+        .toList(growable: false);
+    if (missingRootIds.isNotEmpty) {
+      final fetchedRoots = await _postRepository.fetchPostsByIds(
+        missingRootIds,
+        preferCache: true,
+      );
+      rootsById.addAll(fetchedRoots);
+    }
+
+    for (final rootId in rootIdsInOrder) {
+      final root = rootsById[rootId];
+      if (root == null) continue;
+      if (root.deletedPost == true || root.timeStamp > now) continue;
+      nextSeries.add(root);
+    }
+
+    for (final post in posts) {
+      if (post.deletedPost == true || post.timeStamp > now) continue;
+      if (post.floodCount.toInt() > 1) continue;
+      if (agendaIds.add(post.docID)) {
+        nextAgendas.add(post);
+      }
+    }
+    for (final post in nextSeries) {
+      if (agendaIds.add(post.docID)) {
+        nextAgendas.add(post);
+      }
+    }
+
     savedAgendas.assignAll(nextAgendas);
+    savedPostsOnly.assignAll(nextPostsOnly);
+    savedSeries.assignAll(nextSeries);
   }
-
-  void goToPage(int index) {
-    pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  GlobalKey getPostKey(int index) {
-    return _postKeys.putIfAbsent(index, () => GlobalObjectKey('post_$index'));
-  }
-
   @override
   void onClose() {
     _savedPostsSub?.cancel();
