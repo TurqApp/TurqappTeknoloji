@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class FollowingFollowersController extends GetxController {
   static const Duration _nicknameCacheTtl = Duration(minutes: 5);
@@ -60,7 +60,7 @@ class FollowingFollowersController extends GetxController {
       <String, _SearchResultCacheEntry>{};
 
   var nickname = "".obs;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
 
   FollowingFollowersController(
@@ -111,15 +111,12 @@ class FollowingFollowersController extends GetxController {
     }
 
     try {
-      final data = await _userRepository.getUserRaw(userId);
-      final followers =
-          ((data?['followerCount'] ?? data?['followersCount']) as num?)
-                  ?.toInt() ??
-              0;
-      final followings =
-          ((data?['followingCount'] ?? data?['followingsCount']) as num?)
-                  ?.toInt() ??
-              0;
+      final summary = await _userSummaryResolver.resolve(
+        userId,
+        preferCache: true,
+      );
+      final followers = summary?.followerCount ?? 0;
+      final followings = summary?.followingCount ?? 0;
       takipciCounter.value = followers;
       takipedilenCounter.value = followings;
       _counterCacheByUserId[userId] = _CounterCacheEntry(
@@ -139,9 +136,11 @@ class FollowingFollowersController extends GetxController {
       return;
     }
     try {
-      final data = await _userRepository.getUserRaw(userId);
-      final name =
-          ((data?['nickname'] ?? data?['username'] ?? '').toString().trim());
+      final summary = await _userSummaryResolver.resolve(
+        userId,
+        preferCache: true,
+      );
+      final name = summary?.nickname.trim() ?? '';
       nickname.value = name;
       _nicknameCacheByUserId[userId] = _NicknameCacheEntry(
         nickname: name,
@@ -179,7 +178,6 @@ class FollowingFollowersController extends GetxController {
 
     isLoadingFollowers = true;
     if (initial) {
-      takipciler.clear();
       hasMoreFollowers = true;
     }
 
@@ -211,7 +209,6 @@ class FollowingFollowersController extends GetxController {
 
     isLoadingFollowing = true;
     if (initial) {
-      takipEdilenler.clear();
       hasMoreFollowing = true;
     }
 
@@ -474,19 +471,16 @@ class FollowingFollowersController extends GetxController {
     if (relationIds.isEmpty) return const <String>[];
     final normalizedQuery = q.trim().toLowerCase();
     if (normalizedQuery.isEmpty) return relationIds.toList(growable: false);
-    final rawUsers = await _userRepository.getUsersRaw(
+    final users = await _userSummaryResolver.resolveMany(
       relationIds.toList(growable: false),
     );
     final results = <String>[];
     for (final id in relationIds) {
-      final data = rawUsers[id] ?? const <String, dynamic>{};
-      final nickname =
-          (data['nickname'] ?? data['username'] ?? '').toString().toLowerCase();
-      final firstName = (data['firstName'] ?? '').toString().toLowerCase();
-      final lastName = (data['lastName'] ?? '').toString().toLowerCase();
-      final fullName = '$firstName $lastName'.trim();
+      final data = users[id];
+      final nickname = data?.nickname.toLowerCase() ?? '';
+      final displayName = data?.displayName.toLowerCase() ?? '';
       if (nickname.contains(normalizedQuery) ||
-          fullName.contains(normalizedQuery)) {
+          displayName.contains(normalizedQuery)) {
         results.add(id);
       }
     }

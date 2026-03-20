@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import '../../../Models/ogrenci_model.dart';
 
@@ -16,6 +17,7 @@ class BlockedUsersController extends GetxController {
   RxList<OgrenciModel> blockedUserDetails = <OgrenciModel>[].obs;
   RxBool isLoading = true.obs;
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
 
@@ -121,20 +123,32 @@ class BlockedUsersController extends GetxController {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
-    blockedUserDetails.clear();
-    if (blockedUsers.isEmpty) return;
+    if (blockedUsers.isEmpty) {
+      blockedUserDetails.clear();
+      return;
+    }
 
-    final profiles = await _userRepository.getUsersRaw(
+    final profiles = await _userSummaryResolver.resolveMany(
       blockedUsers.toList(),
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
+    final nextDetails = <OgrenciModel>[];
     for (final userID in blockedUsers) {
       final data = profiles[userID];
       if (data != null) {
-        blockedUserDetails.add(OgrenciModel.fromMap(userID, data));
+        nextDetails.add(
+          OgrenciModel(
+            userID: userID,
+            firstName: data.displayName,
+            lastName: '',
+            avatarUrl: data.avatarUrl,
+            nickname: data.preferredName,
+          ),
+        );
       }
     }
+    blockedUserDetails.assignAll(nextDetails);
   }
 
   Future<void> askToUserAndRemoveBlock(String userID, String nickname) async {
@@ -148,8 +162,8 @@ class BlockedUsersController extends GetxController {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "Engeli Kaldır",
+            Text(
+              "blocked_users.unblock_confirm_title".tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -158,7 +172,9 @@ class BlockedUsersController extends GetxController {
             ),
             const SizedBox(height: 10),
             Text(
-              "$nickname kullanıcısının engelini kaldırmak istediğinizden emin misin?",
+              "blocked_users.unblock_confirm_body".trParams({
+                'nickname': nickname,
+              }),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.black,
@@ -181,8 +197,8 @@ class BlockedUsersController extends GetxController {
                         color: Colors.grey.withAlpha(50),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        "Vazgeç",
+                      child: Text(
+                        "common.cancel".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -210,9 +226,15 @@ class BlockedUsersController extends GetxController {
 
                         Get.back(); // Sheet’i kapat
                         AppSnackbar(
-                            "Başarılı", "$nickname engelden çıkarıldı.");
+                          "common.success".tr,
+                          "blocked_users.unblock_success"
+                              .trParams({'nickname': nickname}),
+                        );
                       } catch (e) {
-                        AppSnackbar("Hata", "Engel kaldırılamadı.");
+                        AppSnackbar(
+                          "common.error".tr,
+                          "blocked_users.unblock_failed".tr,
+                        );
                       }
                     },
                     child: Container(
@@ -222,8 +244,8 @@ class BlockedUsersController extends GetxController {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        "Engeli Kaldır",
+                      child: Text(
+                        "blocked_users.unblock".tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
