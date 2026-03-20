@@ -514,7 +514,7 @@ Durum etiketleri:
   Not: `scripts/run_release_gate_checks.sh` analyze/test/functions/security adimlarina ek olarak optional integration smoke ve telemetry threshold artefact export'unu kosuyor. Sonraki adim screenshot artefact'i ve blocking threshold'lari CI/device akislariyla birlestirmek.
 - artifact toplama: screenshot + KPI dump + route dump
   Durum: `KISMEN`
-  Not: `RuntimeHealthExporter` ve smoke artifact collector ile `artifacts/integration_smoke/*.json` altina route/state probe + KPI summary + threshold report dump'i yaziliyor. Sonraki adim fail aninda otomatik screenshot ve gerekirse cihaz/simulatör görüntüsünü ayni artefact paketine baglamak.
+  Not: `RuntimeHealthExporter` ve smoke artifact collector ile `artifacts/integration_smoke/*.json` altina route/state probe + KPI summary + threshold report dump'i yaziliyor. Smoke fail aninda integration test binding destek verirse ayni klasore best-effort `.png` screenshot da yaziliyor. Sonraki adim bunu cihaz/simulatör native screenshot ve zorunlu gate davranisiyla birlestirmek.
 - flaky test / unstable raporlama katmani
   Durum: `EKSIK ALTYAPI`
 
@@ -571,6 +571,7 @@ Aktif faz:
 - Son tamamlanan telemetry isi: threshold policy ile KPI warning/blocking issue evaluator'u.
 - Son tamamlanan telemetry export isi: threshold report CLI + artifact export script + optional release-blocking gate entegrasyonu.
 - Son tamamlanan artifact isi: smoke test sonunda route/state/telemetry JSON dump'larinin `artifacts/integration_smoke/` altina yazilmasi.
+- Son tamamlanan screenshot isi: smoke fail aninda integration binding uzerinden best-effort `.png` capture denemesi.
 - Son tamamlanan guard genisletmesi: `Notifications` optimistic miss guard'lari ve `Short` active player overflow guard'i.
 - Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; fail anina screenshot artefact'i eklemek.
 

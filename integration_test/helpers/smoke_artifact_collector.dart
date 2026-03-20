@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
 
@@ -12,6 +14,7 @@ class SmokeArtifactCollector {
 
   static Future<void> runScenario(
     String scenarioName,
+    WidgetTester tester,
     Future<void> Function() body,
   ) async {
     Object? caughtError;
@@ -25,6 +28,7 @@ class SmokeArtifactCollector {
 
     await writeArtifact(
       scenarioName,
+      tester: tester,
       error: caughtError,
       stackTrace: caughtStackTrace,
     );
@@ -36,9 +40,16 @@ class SmokeArtifactCollector {
 
   static Future<void> writeArtifact(
     String scenarioName, {
+    WidgetTester? tester,
     Object? error,
     StackTrace? stackTrace,
   }) async {
+    final screenshotPath = error == null
+        ? null
+        : await _captureFailureScreenshot(
+            scenarioName,
+            tester: tester,
+          );
     final outputFile = File(
       'artifacts/integration_smoke/${_sanitizeFileName(scenarioName)}.json',
     );
@@ -52,6 +63,7 @@ class SmokeArtifactCollector {
         'failure': <String, dynamic>{
           'error': '$error',
           if (stackTrace != null) 'stackTrace': '$stackTrace',
+          if (screenshotPath != null) 'screenshotPath': screenshotPath,
         },
       },
     };
@@ -70,6 +82,29 @@ class SmokeArtifactCollector {
         Get.find<PlaybackKpiService>(),
       ),
     };
+  }
+
+  static Future<String?> _captureFailureScreenshot(
+    String scenarioName, {
+    WidgetTester? tester,
+  }) async {
+    final binding = IntegrationTestWidgetsFlutterBinding.instance;
+    final fileName = '${_sanitizeFileName(scenarioName)}.png';
+    final outputFile = File('artifacts/integration_smoke/$fileName');
+    try {
+      await outputFile.parent.create(recursive: true);
+      await binding.convertFlutterSurfaceToImage();
+      if (tester != null) {
+        await tester.pump();
+      }
+      final bytes = await binding.takeScreenshot(
+        _sanitizeFileName(scenarioName),
+      );
+      await outputFile.writeAsBytes(bytes, flush: true);
+      return outputFile.path;
+    } catch (_) {
+      return null;
+    }
   }
 
   static String _sanitizeFileName(String value) {

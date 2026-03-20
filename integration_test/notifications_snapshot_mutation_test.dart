@@ -13,6 +13,7 @@ void main() {
     (tester) async {
       await SmokeArtifactCollector.runScenario(
         'notifications_snapshot_mutation',
+        tester,
         () async {
           await launchTurqApp(tester);
           final beforeFeed = readSurfaceProbe('feed');

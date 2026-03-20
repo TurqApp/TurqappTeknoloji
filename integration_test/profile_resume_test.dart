@@ -12,19 +12,23 @@ void main() {
   testWidgets(
     'Profile smoke bootstraps without centered-resume exception',
     (tester) async {
-      await SmokeArtifactCollector.runScenario('profile_resume', () async {
-        await launchTurqApp(tester);
-        await tapItKey(tester, IntegrationTestKeys.navProfile);
-        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
-        expectSurfaceRegistered('profile');
-        expectCenteredIndexValid(
-          'profile',
-          indexField: 'centeredIndex',
-          countField: 'count',
-        );
-        await goToFeedTab(tester);
-        expectSurfaceRegistered('feed');
-      });
+      await SmokeArtifactCollector.runScenario(
+        'profile_resume',
+        tester,
+        () async {
+          await launchTurqApp(tester);
+          await tapItKey(tester, IntegrationTestKeys.navProfile);
+          expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+          expectSurfaceRegistered('profile');
+          expectCenteredIndexValid(
+            'profile',
+            indexField: 'centeredIndex',
+            countField: 'count',
+          );
+          await goToFeedTab(tester);
+          expectSurfaceRegistered('feed');
+        },
+      );
     },
     skip: !kRunIntegrationSmoke,
   );

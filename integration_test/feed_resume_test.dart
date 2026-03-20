@@ -12,7 +12,7 @@ void main() {
   testWidgets(
     'Feed smoke bootstraps without route-return exception',
     (tester) async {
-      await SmokeArtifactCollector.runScenario('feed_resume', () async {
+      await SmokeArtifactCollector.runScenario('feed_resume', tester, () async {
         await launchTurqApp(tester);
         await expectFeedScreen(tester);
         expect(byItKey(IntegrationTestKeys.navBarRoot), findsOneWidget);

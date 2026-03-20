@@ -126,6 +126,7 @@ k6 run \
 - `tests/load/k6_results_latest.json`
 - `artifacts/telemetry_threshold_report_latest.json`
 - `artifacts/integration_smoke/*.json`
+- `artifacts/integration_smoke/*.png` (fail aninda destek varsa)
 - `tests/load/k6_summary_smoke_search_only_latest.json`
 - `tests/load/k6_summary_feed_only_feed_only_latest.json`
 - `tests/load/k6_summary_smoke_interaction_only_latest.json`

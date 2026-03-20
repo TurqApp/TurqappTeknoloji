@@ -13,6 +13,7 @@ void main() {
     (tester) async {
       await SmokeArtifactCollector.runScenario(
         'short_refresh_preserve',
+        tester,
         () async {
           await launchTurqApp(tester);
           final beforeFeed = readSurfaceProbe('feed');
