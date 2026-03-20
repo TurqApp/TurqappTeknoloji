@@ -306,6 +306,7 @@ class _ProfileViewState extends State<ProfileView> {
           if (!mounted) return;
           setState(() {
             controller.centeredIndex.value = i;
+            controller.lastCenteredIndex = i;
           });
         }
         break;

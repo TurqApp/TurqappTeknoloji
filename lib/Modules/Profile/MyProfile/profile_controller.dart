@@ -134,6 +134,28 @@ class ProfileController extends GetxController {
     showScrollToTop.value = shouldShow;
   }
 
+  int resolveResumeCenteredIndex() {
+    if (mergedPosts.isEmpty) return -1;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < mergedPosts.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < mergedPosts.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void resumeCenteredPost() {
+    final target = resolveResumeCenteredIndex();
+    if (target < 0 || target >= mergedPosts.length) return;
+    lastCenteredIndex = target;
+    centeredIndex.value = target;
+    currentVisibleIndex.value = target;
+    pausetheall.value = false;
+  }
+
   @override
   void onClose() {
     // Bellek sızıntısını önlemek için dinleyiciyi kapat

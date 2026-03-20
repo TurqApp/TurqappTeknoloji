@@ -45,7 +45,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => MyQRCode())?.then((_) {
-                      controller.pausetheall.value = false;
+                      controller.resumeCenteredPost();
                     });
                   },
                   child: Icon(
@@ -59,7 +59,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => ChatListing())?.then((_) {
-                      controller.pausetheall.value = false;
+                      controller.resumeCenteredPost();
                     });
                   },
                   child: Icon(
@@ -73,7 +73,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => SettingsView())?.then((_) {
-                      controller.pausetheall.value = false;
+                      controller.resumeCenteredPost();
                       _refreshUserState();
                     });
                   },
@@ -134,21 +134,21 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                           } else {
                             controller.pausetheall.value = true;
                             Get.to(() => StoryMaker())?.then((_) {
-                              controller.pausetheall.value = false;
+                              controller.resumeCenteredPost();
                               _refreshUserState();
                             });
                           }
                         } catch (_) {
                           controller.pausetheall.value = true;
                           Get.to(() => StoryMaker())?.then((_) {
-                            controller.pausetheall.value = false;
+                            controller.resumeCenteredPost();
                             _refreshUserState();
                           });
                         }
                       } else {
                         controller.pausetheall.value = true;
                         Get.to(() => StoryMaker())?.then((_) {
-                          controller.pausetheall.value = false;
+                          controller.resumeCenteredPost();
                           _refreshUserState();
                         });
                       }
@@ -165,7 +165,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                       onTap: () {
                         controller.pausetheall.value = true;
                         Get.to(() => StoryMaker())?.then((_) {
-                          controller.pausetheall.value = false;
+                          controller.resumeCenteredPost();
                           _refreshUserState();
                         });
                       },
@@ -196,7 +196,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         onTap: () {
                           controller.pausetheall.value = true;
                           Get.to(() => EditProfile())?.then((_) {
-                            controller.pausetheall.value = false;
+                            controller.resumeCenteredPost();
                             _refreshUserState();
                           });
                         },
@@ -208,7 +208,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            "Düzenle",
+                            "profile.edit".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 13,
@@ -224,7 +224,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         onTap: () {
                           controller.pausetheall.value = true;
                           Get.to(() => MyStatisticView())?.then((_) {
-                            controller.pausetheall.value = false;
+                            controller.resumeCenteredPost();
                           });
                         },
                         child: Container(
@@ -235,7 +235,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            "İstatistikler",
+                            "profile.statistics".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 13,
@@ -277,7 +277,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => BecomeVerifiedAccount())?.then((_) {
-                      controller.pausetheall.value = false;
+                      controller.resumeCenteredPost();
                     });
                   },
                   child: Row(
@@ -288,8 +288,8 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         size: 15,
                       ),
                       4.pw,
-                      const Text(
-                        "Onaylı Hesap Ol",
+                      Text(
+                        "settings.become_verified".tr,
                         style: TextStyle(
                           color: Colors.blueAccent,
                           fontSize: 15,
@@ -318,7 +318,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               onTap: () {
                 controller.pausetheall.value = true;
                 Get.to(() => BiographyMaker())?.then((_) {
-                  controller.pausetheall.value = false;
+                  controller.resumeCenteredPost();
                   _refreshUserState();
                 });
               },
@@ -380,8 +380,8 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "Gönderi",
+                    Text(
+                      "profile.posts".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
@@ -401,7 +401,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               Get.to(() => FollowingFollowers(
                   selection: 0,
                   userId: FirebaseAuth.instance.currentUser!.uid))?.then((_) {
-                controller.pausetheall.value = false;
+                controller.resumeCenteredPost();
               });
             },
             child: Container(
@@ -420,8 +420,8 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "Takipci",
+                    Text(
+                      "profile.followers".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
@@ -441,7 +441,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               Get.to(() => FollowingFollowers(
                   selection: 1,
                   userId: FirebaseAuth.instance.currentUser!.uid))?.then((_) {
-                controller.pausetheall.value = false;
+                controller.resumeCenteredPost();
               });
             },
             child: Container(
@@ -460,8 +460,8 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "Takip",
+                    Text(
+                      "profile.following".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
@@ -491,8 +491,8 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                       fontFamily: "MontserratBold",
                     ),
                   ),
-                  const Text(
-                    "Beğeni",
+                  Text(
+                    "profile.likes".tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 13,
@@ -525,8 +525,8 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "İlan",
+                    Text(
+                      "profile.listings".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
