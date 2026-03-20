@@ -169,8 +169,19 @@ class _SocialProfileState extends State<SocialProfile> {
   void _showProfileImagePreview() {
     if (!mounted || controller.avatarUrl.value.isEmpty) return;
     setState(() {
+      controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
+          ? controller.currentVisibleIndex.value
+          : controller.lastCenteredIndex;
       controller.showPfImage.value = true;
       controller.centeredIndex.value = -1;
+    });
+  }
+
+  void _hideProfileImagePreview() {
+    if (!mounted) return;
+    setState(() {
+      controller.showPfImage.value = false;
+      controller.resumeCenteredPost();
     });
   }
 
@@ -431,7 +442,7 @@ class _SocialProfileState extends State<SocialProfile> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          controller.showPfImage.value = false;
+                          _hideProfileImagePreview();
                         },
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),

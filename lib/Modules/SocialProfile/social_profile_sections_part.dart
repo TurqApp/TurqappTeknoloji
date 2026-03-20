@@ -109,18 +109,20 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   ),
                   if (!_isBlockedByMe(widget.userID))
                     PullDownMenuItem(
-                      onTap: () {
-                        controller.centeredIndex.value = -1;
-                        controller.block();
+                      onTap: () async {
+                        _setCenteredIndex(-1);
+                        await controller.block();
+                        controller.resumeCenteredPost();
                       },
                       title: 'common.block'.tr,
                       icon: CupertinoIcons.xmark_circle,
                     ),
                   if (_isBlockedByMe(widget.userID))
                     PullDownMenuItem(
-                      onTap: () {
-                        controller.centeredIndex.value = -1;
-                        controller.unblock();
+                      onTap: () async {
+                        _setCenteredIndex(-1);
+                        await controller.unblock();
+                        controller.resumeCenteredPost();
                       },
                       title: 'profile.unblock'.tr,
                       icon: CupertinoIcons.xmark_circle,
@@ -869,8 +871,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       fontFamily: "MontserratBold",
                     ),
                   ),
-                  const Text(
-                    "Beğeni",
+                  Text(
+                    'profile.likes'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 13,
@@ -906,8 +908,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "İlan",
+                    Text(
+                      'profile.listings'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,

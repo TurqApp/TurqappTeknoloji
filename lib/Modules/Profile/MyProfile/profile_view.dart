@@ -229,6 +229,19 @@ class _ProfileViewState extends State<ProfileView> {
     unawaited(_loadMarketItems(force: true));
   }
 
+  void _showProfileImagePreview() {
+    controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
+        ? controller.currentVisibleIndex.value
+        : controller.lastCenteredIndex;
+    controller.showPfImage.value = true;
+    controller.centeredIndex.value = -1;
+  }
+
+  void _hideProfileImagePreview() {
+    controller.showPfImage.value = false;
+    controller.resumeCenteredPost();
+  }
+
   Future<void> _loadMarketItems({bool force = false}) async {
     final uid = _myUserId.trim();
     if (uid.isEmpty) return;
@@ -495,7 +508,7 @@ class _ProfileViewState extends State<ProfileView> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          controller.showPfImage.value = false;
+                          _hideProfileImagePreview();
                         },
                         child: BackdropFilter(
                           filter: ImageFilter.blur(

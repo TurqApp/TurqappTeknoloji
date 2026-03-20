@@ -157,7 +157,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                       }
                     },
                     onLongPress: () {
-                      controller.showPfImage.value = true;
+                      _showProfileImagePreview();
                     },
                     child: _buildProfileImageWithBorder(),
                   ),
