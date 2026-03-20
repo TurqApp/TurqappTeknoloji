@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -17,6 +18,43 @@ class LocationBasedTutoringController extends GetxController {
   var isLoading = true.obs;
   var tutoringList = <TutoringModel>[].obs;
 
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -26,7 +64,9 @@ class LocationBasedTutoringController extends GetxController {
   Future<void> _bootstrapData() async {
     final cached = await _readCache();
     if (cached.isNotEmpty) {
-      tutoringList.assignAll(cached);
+      if (!_sameTutoringEntries(tutoringList, cached)) {
+        tutoringList.assignAll(cached);
+      }
       isLoading.value = false;
       await fetchLocationBasedTutoring(silent: true);
       return;
@@ -79,7 +119,9 @@ class LocationBasedTutoringController extends GetxController {
         return aDist.compareTo(bDist);
       });
 
-      tutoringList.value = tempList;
+      if (!_sameTutoringEntries(tutoringList, tempList)) {
+        tutoringList.value = tempList;
+      }
       await _writeCache(tempList);
     } catch (_) {
     } finally {

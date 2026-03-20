@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
@@ -16,6 +17,43 @@ class TutoringSearchController extends GetxController {
 
   List<TutoringModel> _initialTutorings = [];
 
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -24,7 +62,9 @@ class TutoringSearchController extends GetxController {
       if (query.isNotEmpty) {
         performSearch(query);
       } else {
-        searchResults.value = _initialTutorings;
+        if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+          searchResults.value = _initialTutorings;
+        }
       }
     }, time: Duration(milliseconds: 500));
   }
@@ -44,7 +84,9 @@ class TutoringSearchController extends GetxController {
       final cachedItems = resource.data ?? const <TutoringModel>[];
       if (cachedItems.isNotEmpty) {
         _initialTutorings = cachedItems;
-        searchResults.value = cachedItems;
+        if (!_sameTutoringEntries(searchResults, cachedItems)) {
+          searchResults.value = cachedItems;
+        }
         isLoading.value = false;
         await fetchInitialData(silent: true);
         return;
@@ -69,7 +111,9 @@ class TutoringSearchController extends GetxController {
         forceSync: forceRefresh,
       );
       _initialTutorings = result.data ?? const <TutoringModel>[];
-      searchResults.value = _initialTutorings;
+      if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+        searchResults.value = _initialTutorings;
+      }
     } catch (_) {
     } finally {
       if (shouldShowLoader || searchResults.isEmpty) {
@@ -81,7 +125,9 @@ class TutoringSearchController extends GetxController {
   Future<void> performSearch(String query) async {
     final normalized = query.trim();
     if (normalized.isEmpty) {
-      searchResults.value = _initialTutorings;
+      if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+        searchResults.value = _initialTutorings;
+      }
       return;
     }
 
@@ -93,9 +139,13 @@ class TutoringSearchController extends GetxController {
         forceSync: true,
       );
       final items = result.data ?? const <TutoringModel>[];
-      searchResults.value = items;
+      if (!_sameTutoringEntries(searchResults, items)) {
+        searchResults.value = items;
+      }
     } catch (_) {
-      searchResults.value = const <TutoringModel>[];
+      if (searchResults.isNotEmpty) {
+        searchResults.value = const <TutoringModel>[];
+      }
     }
   }
 
