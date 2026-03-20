@@ -126,6 +126,7 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // Required by Flutter deferred component manager references during R8 minify.
     implementation("com.google.android.play:core:1.10.3")
+    implementation(project(":integration_test"))
 
     // ExoPlayer (Media3) - Native HLS video playback
     implementation("androidx.media3:media3-exoplayer:1.3.1")

@@ -29,3 +29,13 @@ plugins {
 
 
 include(":app")
+include(":integration_test")
+project(":integration_test").projectDir = file(
+    run {
+        val properties = java.util.Properties()
+        file("local.properties").inputStream().use { properties.load(it) }
+        val flutterSdkPath = properties.getProperty("flutter.sdk")
+        require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
+        "$flutterSdkPath/packages/integration_test/android"
+    }
+)
