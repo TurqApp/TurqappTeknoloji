@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Services/typesense_user_service.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/posts_model.dart';
@@ -26,11 +28,13 @@ class ProfileController extends GetxController {
   StreamSubscription<User?>? _authSub;
   StreamSubscription<Map<String, dynamic>?>? _counterSub;
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
+  final ProfilePostsSnapshotRepository _profileSnapshotRepository =
+      ProfilePostsSnapshotRepository.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final SocialMediaLinksRepository _socialLinksRepository =
       SocialMediaLinksRepository.ensure();
-  final TypesenseUserService _typesenseUserService = TypesenseUserService.instance;
   Timer? _persistCacheTimer;
   Worker? _allPostsWorker;
   Worker? _photosWorker;
@@ -149,7 +153,7 @@ class ProfileController extends GetxController {
     getCounters();
     _listenToCounterChanges();
     _bindResharesRealtime();
-    await _fetchPrimaryBuckets(initial: true);
+    await _loadInitialPrimaryBuckets();
     getReshares();
   }
 
@@ -157,12 +161,21 @@ class ProfileController extends GetxController {
     final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.isEmpty) return;
     try {
-      final cards = await _typesenseUserService.getUserCardsByIds(<String>[uid]);
-      final card = cards[uid];
-      if (card == null || card.isEmpty) return;
-      await _userRepository.putUserRaw(uid, card);
-      _applyHeaderCard(card);
-      if (_needsHeaderSupplementalData(card)) {
+      final summary = await _userSummaryResolver.resolve(
+        uid,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      final cachedRaw = await _userRepository.getUserRaw(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      final bootstrapData = cachedRaw ??
+          (summary != null ? summary.toMap() : const <String, dynamic>{});
+      if (bootstrapData.isEmpty) return;
+      _applyHeaderCard(bootstrapData);
+      if (_needsHeaderSupplementalData(bootstrapData)) {
         final raw = await _userRepository.getUserRaw(
           uid,
           preferCache: false,
@@ -267,29 +280,27 @@ class ProfileController extends GetxController {
   }
 
   Future<void> _persistPostCaches(String uid) async {
-    await _profileRepository.writeBuckets(
-      uid,
-      ProfileBuckets(
+    await _profileSnapshotRepository.persistBuckets(
+      userId: uid,
+      buckets: ProfileBuckets(
         all: allPosts,
         photos: photos,
         videos: videos,
         scheduled: scheduledPosts,
       ),
+      limit: postLimit,
+      source: CachedResourceSource.server,
     );
   }
 
   Future<void> _restoreCachedListsForActiveUser() async {
     final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.isEmpty) return;
-    final buckets = await _profileRepository.readCachedBuckets(uid);
-    if (buckets != null) {
-      if (buckets.all.isNotEmpty) allPosts.assignAll(buckets.all);
-      if (buckets.photos.isNotEmpty) photos.assignAll(buckets.photos);
-      if (buckets.videos.isNotEmpty) videos.assignAll(buckets.videos);
-      if (buckets.scheduled.isNotEmpty) {
-        scheduledPosts.assignAll(buckets.scheduled);
-      }
-    }
+    final resource = await _profileSnapshotRepository.bootstrapProfile(
+      userId: uid,
+      limit: postLimit,
+    );
+    _applyProfileBuckets(resource.data);
     unawaited(_warmProfileSurfaceCache());
   }
 
@@ -528,10 +539,10 @@ class ProfileController extends GetxController {
 
   Future<void> showSocialMediaLinkDelete(String docID) async {
     await noYesAlert(
-      title: "Bağlantıyı Kaldır",
-      message: "Bu bağlantıyı kaldırmak istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Kaldır",
+      title: "profile.link_remove_title".tr,
+      message: "profile.link_remove_body".tr,
+      cancelText: "common.cancel".tr,
+      yesText: "common.remove".tr,
       onYesPressed: () async {
         final uid = FirebaseAuth.instance.currentUser!.uid;
         await _socialLinksRepository.deleteLink(uid, docID);
@@ -607,12 +618,40 @@ class ProfileController extends GetxController {
       await getCounters();
 
       await Future.wait([
-        _fetchPrimaryBuckets(initial: true, force: true),
+        _loadInitialPrimaryBuckets(forceSync: true),
         getReshares(),
       ]);
     } catch (e) {
       print('refreshAll error: $e');
     }
+  }
+
+  Future<void> _loadInitialPrimaryBuckets({
+    bool forceSync = false,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    final resource = await _profileSnapshotRepository.loadProfile(
+      userId: uid,
+      limit: postLimit,
+      forceSync: forceSync,
+    );
+    final applied = _applyProfileBuckets(resource.data);
+    if (!applied) {
+      await _fetchPrimaryBuckets(initial: true, force: forceSync);
+      return;
+    }
+    _lastPrimaryDoc = null;
+    _hasMorePrimary = true;
+    lastPostDoc = null;
+    lastPostDocPhotos = null;
+    lastPostDocVideos = null;
+    lastScheduledDoc = null;
+    hasMorePosts = true;
+    hasMorePostsPhotos = true;
+    hasMorePostsVideos = true;
+    hasMoreScheduled = true;
+    unawaited(_warmProfileSurfaceCache());
   }
 
   Future<void> _fetchPrimaryBuckets({
@@ -682,5 +721,22 @@ class ProfileController extends GetxController {
   ) {
     final known = existing.map((e) => e.docID).toSet();
     return incoming.where((post) => known.add(post.docID)).toList();
+  }
+
+  bool _applyProfileBuckets(ProfileBuckets? buckets) {
+    if (buckets == null) return false;
+    if (buckets.all.isEmpty &&
+        buckets.photos.isEmpty &&
+        buckets.videos.isEmpty &&
+        buckets.scheduled.isEmpty) {
+      return false;
+    }
+    if (buckets.all.isNotEmpty) allPosts.assignAll(buckets.all);
+    if (buckets.photos.isNotEmpty) photos.assignAll(buckets.photos);
+    if (buckets.videos.isNotEmpty) videos.assignAll(buckets.videos);
+    if (buckets.scheduled.isNotEmpty) {
+      scheduledPosts.assignAll(buckets.scheduled);
+    }
+    return true;
   }
 }
