@@ -8,7 +8,7 @@ Bu not, cache-first mimari, user-summary resolver standardizasyonu, feed/short/p
 
 Son guvenli durum:
 
-- `HEAD`: `095c4163` `Resolve deep links and scholarship details through cache layers`
+- `HEAD`: `863b6a98` `Finalize urgent resolver follow-ups`
 - Ana mimari safhasi bitti.
 - Resolver / cache-first yayginlastirma buyuk olcude bitti.
 - Kalan isler buyuk refactor degil; tuning, gercek cihaz dogrulama ve az sayida dirty legacy cleanup.
@@ -161,6 +161,7 @@ Son continuation dosyasi olusturulduktan sonra su isler de tamamlandi:
 
 En yeni commitler:
 
+- `863b6a98` `Finalize urgent resolver follow-ups`
 - `095c4163` `Resolve deep links and scholarship details through cache layers`
 - `da5083ba` `Resolve cached avatars through summary cache`
 - `6602f1da` `Resolve chat message users through summary cache`
@@ -263,6 +264,82 @@ Bakilacak metrikler:
 - active/visible center thrash
 - player recreate rate
 
+### F. Tam otomatik kalite plani
+
+Bu kisim, tek kisi calisan bir ekip icin agir QA orgutu kurmadan maksimum otomasyon hedefiyle yazildi.
+
+1. Faz 1: kritik integration smoke test
+   - `Feed` acilis -> route ac -> geri don -> merkez korunuyor mu
+   - `Short` refresh -> aktif `docID` korunuyor mu
+   - `Profile/SocialProfile` route donusu -> merkez geri geliyor mu
+   - `Explore` sekme degisimi -> preview yanlis sekmede aciliyor mu
+   - `Notifications` read/delete -> optimistic state ve snapshot state uyumlu mu
+
+2. Faz 2: runtime invariant guard
+   - snapshot varsa refresh sonrasi liste `0` item'a dusmemeli
+   - aktif `docID` yeni listede varsa merkez ayni item'a donmeli
+   - `centeredIndex` gecersiz aralikta kalmamali
+   - `Short` tarafinda ayni item icin gereksiz adapter recreate sayisi esik ustune cikmamali
+   - route donusu sonrasi `resumeCenteredPost()` cagrisi sonunda aktif item gorunur listede olmali
+
+3. Faz 3: telemetry threshold ve alarm
+   - `feedWarmSnapshotHit` ani duserse alarm
+   - `shortWarmSnapshotHit` ani duserse alarm
+   - `renderDiff` avg/max ani ziplarsa alarm
+   - `player recreate rate` esigi gecerse alarm
+   - `empty-after-refresh` veya `empty-after-filter` olursa alarm
+   - `Notifications` optimistic rollback oranı artarsa alarm
+
+4. Faz 4: release gate
+   - release oncesi zorunlu `flutter test`
+   - kritik integration smoke testi
+   - son runtime KPI ozeti kontrolu
+   - zayif ag smoke testi
+   - gercek cihazda en az bir Android ve bir iOS hızlı senaryo turu
+
+5. Faz 5: tek kisilik operasyon modeli
+   - her yeni kritik bug once test senaryosuna eklenir
+   - sonra patch yazilir
+   - patch sonrasi smoke test ve KPI karsilastirmasi yapilir
+   - checklist guncellenmeden is kapanmis sayilmaz
+
+6. Otomasyon backlog'u
+   - `integration_test/feed_resume_test.dart`
+   - `integration_test/short_refresh_preserve_test.dart`
+   - `integration_test/profile_resume_test.dart`
+   - `integration_test/explore_preview_gate_test.dart`
+   - `integration_test/notifications_snapshot_mutation_test.dart`
+   - debug invariant helper: `lib/Core/Services/runtime_invariant_guard.dart`
+   - telemetry threshold config: `lib/Core/Services/PlaybackIntelligence/`
+
+7. Tam otomatik icin eklenecek diger katmanlar
+   - screenshot diff smoke:
+     `Feed`, `Short`, `Profile`, `SocialProfile`, `Explore`, `Notifications`
+   - route replay senaryolari:
+     once bug cikan navigation zincirlerini tekrar oynatan regression testleri
+   - zayif ag profilleri:
+     `offline`, `high latency`, `packet loss` icin ayri smoke test
+   - test verisi sabitleme:
+     integration testlerde sabit kullanici / sabit feed / sabit short fixture
+   - crash artifact toplama:
+     fail olan smoke test sonunda otomatik screenshot + son KPI dump + route dump
+   - flaky test guard:
+     test 1 kez fail, 1 kez pass olursa `unstable` olarak raporlansin
+   - release summary raporu:
+     tek komut sonunda `pass/fail + screenshot + KPI summary` cikti dosyasi uretsin
+
+8. Tam otomasyon icin tek kisilik pratik sira
+   - once runtime invariant guard
+   - sonra 5 kritik integration smoke test
+   - sonra screenshot diff
+   - sonra zayif ag matrix
+   - en son telemetry threshold alarm
+
+9. Bu fazin hedefi
+   - "bug olunca elle fark et" modelinden cikmak
+   - "bug cikinca test/alarm versin" modeline gecmek
+   - tek kisi olsan bile release oncesi minimum manuel kontrolle guvenli cikis yapmak
+
 ## Sonraki Oturumda Ilk Yapilacaklar
 
 1. `git status` ile dirty worktree'yi dikkatli incele.
@@ -274,6 +351,8 @@ Bakilacak metrikler:
    `SavedPosts`, `MyProfile`, `SocialProfile`, `cached_user_avatar` smoke test
 6. Sonraki teknik odak:
    dirty kalan raw/form ekranlarini tek tek ayirip, sadece gerekli olanlari raw belgede birak
+7. Otomasyon fazina gec:
+   `integration smoke tests + runtime invariant guard + telemetry alarms`
 
 ## Teknik Notlar
 
