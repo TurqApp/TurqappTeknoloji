@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
@@ -19,6 +20,72 @@ class OpticsAndBooksPublishedController extends GetxController {
   final isLoading = true.obs;
   final RxDouble scrollOffset = 0.0.obs;
   int _lastOpenRefreshAt = 0;
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
+  bool _sameOpticalEntries(
+    List<OpticalFormModel> current,
+    List<OpticalFormModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.timeStamp,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.timeStamp,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -58,8 +125,12 @@ class OpticsAndBooksPublishedController extends GetxController {
       if (cachedBooks.isNotEmpty || cachedOptikler.isNotEmpty) {
         cachedBooks.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
         cachedOptikler.sort((a, b) => b.docID.compareTo(a.docID));
-        list.assignAll(cachedBooks);
-        optikler.assignAll(cachedOptikler);
+        if (!_sameBookletEntries(list, cachedBooks)) {
+          list.assignAll(cachedBooks);
+        }
+        if (!_sameOpticalEntries(optikler, cachedOptikler)) {
+          optikler.assignAll(cachedOptikler);
+        }
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
           'answer_key:published:$uid',
@@ -101,7 +172,9 @@ class OpticsAndBooksPublishedController extends GetxController {
       forceRefresh: forceRefresh,
     );
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    list.assignAll(tempList);
+    if (!_sameBookletEntries(list, tempList)) {
+      list.assignAll(tempList);
+    }
   }
 
   Future<void> getOptikler({bool forceRefresh = false}) async {
@@ -111,6 +184,8 @@ class OpticsAndBooksPublishedController extends GetxController {
       forceRefresh: forceRefresh,
     );
     tempList.sort((a, b) => b.docID.compareTo(a.docID));
-    optikler.assignAll(tempList);
+    if (!_sameOpticalEntries(optikler, tempList)) {
+      optikler.assignAll(tempList);
+    }
   }
 }

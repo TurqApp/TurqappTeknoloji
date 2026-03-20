@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
@@ -17,6 +18,46 @@ class SavedJobsController extends GetxController {
   RxBool isLoading = false.obs;
   static const int _whereInChunkSize = 10;
   Position? _lastResolvedPosition;
+
+  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
+    final currentKeys = current
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -110,7 +151,9 @@ class SavedJobsController extends GetxController {
       final savedIds = savedRecords.map((e) => e.jobId).toList();
 
       if (savedIds.isEmpty) {
-        list.clear();
+        if (list.isNotEmpty) {
+          list.clear();
+        }
         return;
       }
 
@@ -172,7 +215,9 @@ class SavedJobsController extends GetxController {
       );
       if (position == null) {
         jobs.shuffle();
-        list.value = jobs;
+        if (!_sameJobEntries(list, jobs)) {
+          list.value = jobs;
+        }
         return;
       }
       double userLat = position.latitude;
@@ -193,7 +238,9 @@ class SavedJobsController extends GetxController {
       }).toList();
 
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
-      list.value = updatedJobs;
+      if (!_sameJobEntries(list, updatedJobs)) {
+        list.value = updatedJobs;
+      }
     } catch (_) {
     } finally {
       if (shouldShowLoader || list.isEmpty) {

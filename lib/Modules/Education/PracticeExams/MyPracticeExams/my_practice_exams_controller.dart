@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
@@ -15,6 +16,37 @@ class MyPracticeExamsController extends GetxController {
 
   final RxList<SinavModel> exams = <SinavModel>[].obs;
   final RxBool isLoading = true.obs;
+
+  bool _sameExamEntries(
+    List<SinavModel> current,
+    List<SinavModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -33,7 +65,9 @@ class MyPracticeExamsController extends GetxController {
     try {
       final cached = await _practiceExamRepository.fetchByOwner(uid);
       if (cached.isNotEmpty) {
-        exams.assignAll(cached);
+        if (!_sameExamEntries(exams, cached)) {
+          exams.assignAll(cached);
+        }
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
           'practice_exams:owner:$uid',
@@ -69,7 +103,9 @@ class MyPracticeExamsController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
-      exams.assignAll(items);
+      if (!_sameExamEntries(exams, items)) {
+        exams.assignAll(items);
+      }
       SilentRefreshGate.markRefreshed('practice_exams:owner:$uid');
     } catch (e) {
       log('MyPracticeExamsController.fetchExams error: $e');
