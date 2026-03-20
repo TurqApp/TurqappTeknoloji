@@ -19,14 +19,15 @@ import '../../ShareGrid/share_grid.dart';
 import '../../Short/short_controller.dart';
 import '../Comments/post_comments.dart';
 import '../../../Services/post_delete_service.dart';
-import '../../../Core/Repositories/user_repository.dart';
 import '../../../Core/Services/admin_access_service.dart';
 import '../../../Core/Repositories/post_repository.dart';
 import '../../../Core/Repositories/admin_push_repository.dart';
+import '../../../Core/Services/user_summary_resolver.dart';
 import '../../../Core/Services/typesense_post_service.dart';
 
 class PhotoShortsContentController extends GetxController {
   PostsModel model;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   PhotoShortsContentController({required this.model});
 
@@ -528,10 +529,9 @@ class PhotoShortsContentController extends GetxController {
       return;
     }
 
-    final summary = await UserRepository.ensure().getUser(
+    final summary = await _userSummaryResolver.resolve(
       userID,
       preferCache: true,
-      cacheOnly: false,
     );
     if (summary != null) {
       avatarUrl.value = model.authorAvatarUrl.trim().isNotEmpty
