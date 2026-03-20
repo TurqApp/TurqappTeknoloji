@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_content.dart';
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
@@ -26,6 +27,7 @@ class InAppNotifications extends StatelessWidget {
       controller.markInboxSeen();
     });
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenNotifications),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -53,9 +55,9 @@ class InAppNotifications extends StatelessWidget {
             icon:
                 const Icon(CupertinoIcons.back, size: 24, color: Colors.black),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              "Bildirimler",
+              "notifications.title".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 25,
@@ -125,8 +127,8 @@ class InAppNotifications extends StatelessWidget {
                         _actionTile(
                           icon: Icons.mark_email_read_outlined,
                           title: controller.busyMarkAllRead.value
-                              ? "Okundu işaretleniyor..."
-                              : "Tümünü okundu yap",
+                              ? "notifications.marking_read".tr
+                              : "notifications.mark_all_read".tr,
                           enabled: controller.unreadCount > 0 &&
                               !controller.busyMarkAllRead.value,
                           onTap: () {
@@ -137,7 +139,7 @@ class InAppNotifications extends StatelessWidget {
                         Divider(height: 1, color: Colors.black.withAlpha(18)),
                         _actionTile(
                           icon: Icons.delete_outline,
-                          title: "Tümünü Sil",
+                          title: "notifications.delete_all".tr,
                           isDestructive: true,
                           onTap: () {
                             Navigator.of(ctx).pop();
@@ -194,12 +196,12 @@ class InAppNotifications extends StatelessWidget {
 
   Widget _buildTabs() {
     return PageLineBar(
-      barList: const [
-        "Tümü",
-        "Takip",
-        "Yorum",
-        "Bahsedenler",
-        "İlan",
+      barList: [
+        "common.all".tr,
+        "notifications.tab_follow".tr,
+        "notifications.tab_comment".tr,
+        "notifications.tab_mentions".tr,
+        "notifications.tab_listings".tr,
       ],
       pageName: 'Notifications',
       fontSize: 15,
@@ -212,28 +214,28 @@ class InAppNotifications extends StatelessWidget {
       case 1:
         return _notificationList(
           _followNotifications(),
-          emptyText: "Bu filtrede bildirim yok",
+          emptyText: "notifications.empty_filtered".tr,
         );
       case 2:
         return _notificationList(
           _commentNotifications(),
-          emptyText: "Bu filtrede bildirim yok",
+          emptyText: "notifications.empty_filtered".tr,
         );
       case 3:
         return _notificationList(
           _mentionNotifications(),
-          emptyText: "Bu filtrede bildirim yok",
+          emptyText: "notifications.empty_filtered".tr,
         );
       case 4:
         return _notificationList(
           _listingNotifications(),
-          emptyText: "Bu filtrede bildirim yok",
+          emptyText: "notifications.empty_filtered".tr,
         );
       case 0:
       default:
         return _notificationList(
           controller.list.toList(),
-          emptyText: "Bu filtrede bildirim yok",
+          emptyText: "notifications.empty_filtered".tr,
         );
     }
   }
@@ -271,7 +273,7 @@ class InAppNotifications extends StatelessWidget {
     final children = <Widget>[const SizedBox(height: 6)];
 
     if (controller.list.isEmpty) {
-      children.add(EmptyRow(text: "Bildiriminiz"));
+      children.add(EmptyRow(text: "notifications.empty".tr));
     } else if (notifications.isEmpty) {
       children.add(EmptyRow(text: emptyText));
     } else {
@@ -324,10 +326,10 @@ class InAppNotifications extends StatelessWidget {
 
     if (unread.isNotEmpty) {
       widgets.add(
-        const Padding(
-          padding: EdgeInsets.fromLTRB(14, 10, 14, 6),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
           child: Text(
-            "Yeni",
+            "notifications.new".tr,
             style: TextStyle(
               fontSize: 20,
               color: Colors.black,
@@ -465,20 +467,23 @@ class InAppNotifications extends StatelessWidget {
       timeStamp: base.timeStamp,
       title: base.title,
       userID: base.userID,
-      desc: "${base.desc} ve $extra bildirim daha",
+      desc: "notifications.and_more".trParams({
+        'base': base.desc,
+        'count': '$extra',
+      }),
     );
   }
 
   String _sectionTitle(int ts) {
-    if (ts <= 0) return "Gündem";
+    if (ts <= 0) return "notifications.today".tr;
     final now = DateTime.now();
     final d = DateTime.fromMillisecondsSinceEpoch(ts);
     final startToday = DateTime(now.year, now.month, now.day);
     final startYesterday = startToday.subtract(const Duration(days: 1));
 
-    if (d.isAfter(startToday)) return "Gündem";
-    if (d.isAfter(startYesterday)) return "Dün";
-    return "Daha eski";
+    if (d.isAfter(startToday)) return "notifications.today".tr;
+    if (d.isAfter(startYesterday)) return "notifications.yesterday".tr;
+    return "notifications.older".tr;
   }
 
   void _openGroupSheet(_NotificationGroup g) {
@@ -495,14 +500,14 @@ class InAppNotifications extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: AppSheetHeader(title: "Bildirimler"),
+                child: AppSheetHeader(title: "notifications.title".tr),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
-                  "${g.count} adet",
+                  "notifications.count_items".trParams({'count': '${g.count}'}),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.black54,

@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
@@ -263,7 +264,8 @@ class _ShortViewState extends State<ShortView> {
 
     final previousPage = currentPage;
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
-    final remappedPage = _initialDisplayIndex(_cachedShorts, update.remappedIndex);
+    final remappedPage =
+        _initialDisplayIndex(_cachedShorts, update.remappedIndex);
     currentPage = remappedPage;
 
     setState(() {});
@@ -371,7 +373,8 @@ class _ShortViewState extends State<ShortView> {
     // Cache tier'larını güncelle (ilk 5 preload dahil)
     await controller.updateCacheTiers(currentPage);
     if (!mounted) return;
-    _setStateIfActiveAdapterChanged(currentPage, hadActiveAdapter, force: false);
+    _setStateIfActiveAdapterChanged(currentPage, hadActiveAdapter,
+        force: false);
 
     _schedulePlayForPage(currentPage);
   }
@@ -729,6 +732,7 @@ class _ShortViewState extends State<ShortView> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
+        key: const ValueKey(IntegrationTestKeys.screenShort),
         backgroundColor: Colors.black,
         body: Obx(() {
           // Sadece bu değerleri oku (hedefli reaktivite)

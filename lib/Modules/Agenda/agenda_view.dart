@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../Models/posts_model.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
@@ -108,6 +109,7 @@ class AgendaView extends StatelessWidget {
     unreadController.startListeners();
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenFeed),
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -155,9 +157,8 @@ class AgendaView extends StatelessWidget {
                       List<Map<String, dynamic>> filteredDisplay = controller
                           .filteredFeedEntries
                           .toList(growable: false);
-                      List<Map<String, dynamic>> renderDisplay = controller
-                          .renderFeedEntries
-                          .toList(growable: false);
+                      List<Map<String, dynamic>> renderDisplay =
+                          controller.renderFeedEntries.toList(growable: false);
 
                       final bool shouldFallbackToForYou = display.isNotEmpty &&
                           filteredDisplay.isEmpty &&
@@ -531,15 +532,15 @@ class AgendaView extends StatelessWidget {
                         ),
                         onSelected: controller.setFeedViewMode,
                         itemBuilder: (context) => [
-                          const PopupMenuItem<FeedViewMode>(
+                          PopupMenuItem<FeedViewMode>(
                             value: FeedViewMode.forYou,
                             child: Row(
                               children: [
-                                Icon(CupertinoIcons.sparkles, size: 18),
-                                SizedBox(width: 8),
+                                const Icon(CupertinoIcons.sparkles, size: 18),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Sana Özel',
-                                  style: TextStyle(
+                                  'explore.tab.for_you'.tr,
+                                  style: const TextStyle(
                                     fontFamily: AppFontFamilies.mmedium,
                                     fontSize: 15,
                                     color: Colors.black,
@@ -548,15 +549,15 @@ class AgendaView extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const PopupMenuItem<FeedViewMode>(
+                          PopupMenuItem<FeedViewMode>(
                             value: FeedViewMode.following,
                             child: Row(
                               children: [
-                                Icon(CupertinoIcons.person_2, size: 18),
-                                SizedBox(width: 8),
+                                const Icon(CupertinoIcons.person_2, size: 18),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Takip Ettiklerin',
-                                  style: TextStyle(
+                                  'agenda.following'.tr,
+                                  style: const TextStyle(
                                     fontFamily: AppFontFamilies.mmedium,
                                     fontSize: 15,
                                     color: Colors.black,
@@ -565,15 +566,16 @@ class AgendaView extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const PopupMenuItem<FeedViewMode>(
+                          PopupMenuItem<FeedViewMode>(
                             value: FeedViewMode.city,
                             child: Row(
                               children: [
-                                Icon(CupertinoIcons.location_solid, size: 18),
-                                SizedBox(width: 8),
+                                const Icon(CupertinoIcons.location_solid,
+                                    size: 18),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Şehrim',
-                                  style: TextStyle(
+                                  'agenda.city'.tr,
+                                  style: const TextStyle(
                                     fontFamily: AppFontFamilies.mmedium,
                                     fontSize: 15,
                                     color: Colors.black,
@@ -701,6 +703,9 @@ class AgendaView extends StatelessWidget {
                   Obx(() {
                     final hasUnread = notificationsController.unreadCount > 0;
                     return AppHeaderActionButton(
+                      key: const ValueKey(
+                        IntegrationTestKeys.actionOpenNotifications,
+                      ),
                       size: actionSize,
                       showBadge: hasUnread,
                       onTap: () {

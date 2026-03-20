@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -107,6 +108,7 @@ class ExploreView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenExplore),
       body: SafeArea(
         bottom: false,
         child: Stack(
@@ -179,8 +181,7 @@ class ExploreView extends StatelessWidget {
                   ),
                 ),
                 Obx(() {
-                  final showExploreTabs =
-                      !controller.isSearchMode.value &&
+                  final showExploreTabs = !controller.isSearchMode.value &&
                       !controller.isKeyboardOpen.value &&
                       controller.searchText.value.trim().isEmpty;
 
@@ -194,7 +195,7 @@ class ExploreView extends StatelessWidget {
                               'explore.tab.for_you'.tr,
                               'explore.tab.series'.tr,
                             ],
-                            pageName: 'Explore',
+                            pageName: kExplorePageLineBarTag,
                             pageController: controller.pageController,
                           ),
                           Expanded(
@@ -203,7 +204,8 @@ class ExploreView extends StatelessWidget {
                               physics: const ClampingScrollPhysics(),
                               onPageChanged: (idx) {
                                 controller.selection.value = idx;
-                                Get.find<PageLineBarController>(tag: "Explore")
+                                Get.find<PageLineBarController>(
+                                        tag: kExplorePageLineBarTag)
                                     .selection
                                     .value = idx;
                                 if (idx == 0 &&
@@ -246,8 +248,8 @@ class ExploreView extends StatelessWidget {
                                               onTap: () {
                                                 controller
                                                     .suspendExplorePreview();
-                                                Get.to(() =>
-                                                        TagPosts(tag: item.hashtag))
+                                                Get.to(() => TagPosts(
+                                                        tag: item.hashtag))
                                                     ?.then((_) {
                                                   controller
                                                       .resumeExplorePreview();
@@ -354,8 +356,7 @@ class ExploreView extends StatelessWidget {
                                             !controller.exploreIsLoading.value
                                         ? Center(
                                             child: EmptyRow(
-                                                text:
-                                                    'explore.no_results'.tr))
+                                                text: 'explore.no_results'.tr))
                                         : GridView.builder(
                                             key: const PageStorageKey(
                                                 'Explore_SanaOzel'),
@@ -516,9 +517,8 @@ class ExploreView extends StatelessWidget {
                                   if (list.isEmpty &&
                                       !controller.floodsIsLoading.value) {
                                     return Center(
-                                            child: EmptyRow(
-                                                text:
-                                                    'explore.no_series'.tr));
+                                        child: EmptyRow(
+                                            text: 'explore.no_series'.tr));
                                   }
                                   return RefreshIndicator(
                                     backgroundColor: Colors.black,

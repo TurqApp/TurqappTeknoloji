@@ -60,6 +60,7 @@ import '../../Story/StoryMaker/story_maker.dart';
 import '../../Story/StoryRow/story_row_controller.dart';
 import '../../Story/StoryRow/story_user_model.dart';
 import '../../../Core/Services/audio_focus_coordinator.dart';
+import '../../../Core/Services/integration_test_keys.dart';
 import '../../../Core/Services/iz_birak_subscription_service.dart';
 import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/video_state_manager.dart';
@@ -98,6 +99,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (serviceUserId.isNotEmpty) return serviceUserId;
     return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   }
+
   String get _myNickname => userService.currentUserRx.value?.nickname ?? '';
   String get _myIosSafeNickname {
     final controllerNickname = controller.headerNickname.value.trim();
@@ -115,6 +117,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (direct.isNotEmpty) return direct;
     return userService.avatarUrl;
   }
+
   String _normalizeRozetValue(String raw) {
     final value = raw.trim();
     if (value.isEmpty) return '';
@@ -136,6 +139,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (direct.isNotEmpty) return direct;
     return _normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '');
   }
+
   bool get _hasVerifiedRozet {
     final headerRozet = _normalizeRozetValue(controller.headerRozet.value);
     if (headerRozet.isNotEmpty) return true;
@@ -337,6 +341,7 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenProfile),
       body: SafeArea(
         bottom: false,
         child: Stack(
@@ -465,8 +470,8 @@ class _ProfileViewState extends State<ProfileView> {
                                         const SliverToBoxAdapter(
                                             child: SizedBox(height: 8)),
                                         SliverToBoxAdapter(
-                                            child:
-                                                EmptyRow(text: "profile.no_posts".tr)),
+                                            child: EmptyRow(
+                                                text: "profile.no_posts".tr)),
                                         const SliverToBoxAdapter(
                                             child: SizedBox(height: 50)),
                                       ],

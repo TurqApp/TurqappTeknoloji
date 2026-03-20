@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import 'helpers/test_app_bootstrap.dart';
 
@@ -9,7 +10,8 @@ void main() {
     'Short smoke bootstraps without refresh-preserve exception',
     (tester) async {
       await launchTurqApp(tester);
-      await expectNoFlutterException(tester);
+      await tapItKey(tester, IntegrationTestKeys.navShort);
+      expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
     },
     skip: !kRunIntegrationSmoke,
   );
