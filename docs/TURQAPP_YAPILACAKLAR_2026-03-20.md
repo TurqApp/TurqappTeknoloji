@@ -501,7 +501,8 @@ Durum etiketleri:
 ### F. Repo icinde henuz eksik olan altyapi
 
 - `integration_test/` kritik smoke test dizini
-  Durum: `EKSIK ALTYAPI`
+  Durum: `KISMEN`
+  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Bu ilk dilim su an app boot/no-exception seviyesinde; route automation, fixture, deterministic navigation ve cihaz hook'lari sonraki adim.
 - `lib/Core/Services/runtime_invariant_guard.dart`
   Durum: `KISMEN`
   Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
@@ -556,7 +557,8 @@ Aktif faz:
 
 - Su an `Faz 3` ilk dilimi aktif.
 - Son tamamlanan kritik urun isi: feed visibility + hybrid feed fallback fix.
-- Sonraki teknik hedef: `integration_test/` iskeleti ve `Notifications` invariantlari.
+- Son tamamlanan kalite isi: `runtime invariant guard` ilk dilimi + `Notifications` invariantlari + `integration_test/` iskeleti.
+- Sonraki teknik hedef: smoke testleri route automation ve deterministic fixture seviyesine tasimak.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
