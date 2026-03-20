@@ -54,6 +54,7 @@ declare -a smoke_artifacts=(
 
 declare -a flutter_args=(
   "test"
+  "--no-pub"
   "--dart-define=RUN_INTEGRATION_SMOKE=true"
   "--dart-define=INTEGRATION_DETERMINISTIC_STARTUP=true"
   "--dart-define=INTEGRATION_SUPPRESS_PERIODIC_SIDE_EFFECTS=true"
