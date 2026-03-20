@@ -66,6 +66,7 @@ class _LikedPostsState extends State<LikedPosts> {
         if (controller.centeredIndex.value != i) {
           setState(() {
             controller.centeredIndex.value = i;
+            controller.lastCenteredIndex = i;
           });
         }
         break;
@@ -80,9 +81,13 @@ class _LikedPostsState extends State<LikedPosts> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Beğenilenler"),
+            BackButtons(text: "settings.liked_posts".tr),
             PageLineBar(
-              barList: ["Tümü", "Videolar", "Fotoğraflar"],
+              barList: [
+                "common.all".tr,
+                "common.videos".tr,
+                "common.photos".tr,
+              ],
               pageName: "LikedPosts",
               pageController: controller.pageController,
             ),
@@ -117,7 +122,7 @@ class _LikedPostsState extends State<LikedPosts> {
       );
     }
     if (list.isEmpty) {
-      return EmptyRow(text: "Sonuç bulunamadı");
+      return EmptyRow(text: "common.no_results".tr);
     }
     return SizedBox.expand(
       child: Container(
@@ -181,7 +186,7 @@ class _LikedPostsState extends State<LikedPosts> {
                       )),
                 )
               : Center(
-                  child: EmptyRow(text: "Gönderi yok"),
+                  child: EmptyRow(text: "liked_posts.no_posts".tr),
                 )),
     );
   }
@@ -194,7 +199,7 @@ class _LikedPostsState extends State<LikedPosts> {
       );
     }
     if (list.isEmpty) {
-      return EmptyRow(text: "Sonuç bulunamadı");
+      return EmptyRow(text: "common.no_results".tr);
     }
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -206,11 +211,16 @@ class _LikedPostsState extends State<LikedPosts> {
       itemCount: list.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () {
-            Get.to(() => PhotoShorts(
+          onTap: () async {
+            controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
+                ? controller.currentVisibleIndex.value
+                : controller.lastCenteredIndex;
+            controller.centeredIndex.value = -1;
+            await Get.to(() => PhotoShorts(
                   startModel: list[index],
                   fetchedList: list,
                 ));
+            controller.resumeCenteredPost();
           },
           child: CachedNetworkImage(
             imageUrl: list[index].img.first,
@@ -234,7 +244,7 @@ class _LikedPostsState extends State<LikedPosts> {
       );
     }
     if (list.isEmpty) {
-      return EmptyRow(text: "Sonuç bulunamadı");
+      return EmptyRow(text: "common.no_results".tr);
     }
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -246,11 +256,16 @@ class _LikedPostsState extends State<LikedPosts> {
       itemCount: list.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () {
-            Get.to(() => SingleShortView(
+          onTap: () async {
+            controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
+                ? controller.currentVisibleIndex.value
+                : controller.lastCenteredIndex;
+            controller.centeredIndex.value = -1;
+            await Get.to(() => SingleShortView(
                   startModel: list[index],
                   startList: list,
                 ));
+            controller.resumeCenteredPost();
           },
           child: CachedNetworkImage(
             imageUrl: list[index].thumbnail,

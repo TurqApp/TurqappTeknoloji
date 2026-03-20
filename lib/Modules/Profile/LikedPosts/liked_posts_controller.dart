@@ -17,6 +17,7 @@ class LikedPostControllers extends GetxController {
   PageController pageController = PageController(initialPage: 0);
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
+  int? lastCenteredIndex;
 
   final UserPostLinkService _linkService = Get.put(UserPostLinkService());
   StreamSubscription<User?>? _authSub;
@@ -131,6 +132,27 @@ class LikedPostControllers extends GetxController {
   void _applyPosts(List<PostsModel> posts) {
     final visiblePosts = posts.where((p) => p.deletedPost != true).toList();
     all.assignAll(visiblePosts);
+  }
+
+  int resolveResumeCenteredIndex() {
+    if (all.isEmpty) return -1;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < all.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < all.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void resumeCenteredPost() {
+    final target = resolveResumeCenteredIndex();
+    if (target < 0 || target >= all.length) return;
+    lastCenteredIndex = target;
+    centeredIndex.value = target;
+    currentVisibleIndex.value = target;
   }
 
   @override
