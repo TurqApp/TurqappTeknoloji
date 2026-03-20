@@ -4,13 +4,14 @@ Tarih: 20 Mart 2026
 
 ## Amac
 
-Bu not, cache-first mimari, feed/short/profile playback-render stabilizasyonu ve kalan son mil tuning isi icin devam noktasi olarak tutulur.
+Bu not, cache-first mimari, user-summary resolver standardizasyonu, feed/short/profile playback-render stabilizasyonu ve kalan son mil tuning isi icin devam noktasi olarak tutulur.
 
 Son guvenli durum:
 
-- `HEAD`: `130d2e80` `Restore profile center after avatar overlays`
+- `HEAD`: `da5083ba` `Resolve cached avatars through summary cache`
 - Ana mimari safhasi bitti.
-- Kalan isler buyuk refactor degil; tuning, dogrulama ve az sayida legacy cleanup.
+- Resolver / cache-first yayginlastirma buyuk olcude bitti.
+- Kalan isler buyuk refactor degil; tuning, gercek cihaz dogrulama ve az sayida dirty legacy cleanup.
 
 ## Bu Fazda Yapilan Ana Isler
 
@@ -95,11 +96,17 @@ Liste, kart ve header yuzeylerinin buyuk kismi `UserSummaryResolver` cizgisine c
 - Profile
 - SocialProfile
 - Followers
+- BlockedUsers
 - Comments
 - Share grid
 - Story
 - Job
 - Tutoring
+- Explore user cards
+- Like / reshare user listeleri
+- Reshare attribution
+- Rozet / avatar ortak widget ve helper katmani
+- Chat message / create chat user kartlari
 - Egitim detail/review aileleri
 
 ### 7. Feed/Short/Profile route-return stabilizasyonu
@@ -125,49 +132,52 @@ Ana etkiler:
 - modal/bottom sheet donuslerinde restore mantigi toplandi
 - profile avatar overlay ve sosyal profil avatar overlay kapanisinda merkez geri kuruluyor
 
+### 8. Bu not yazildiktan sonra ek tamamlananlar
+
+Son continuation dosyasi olusturulduktan sonra su isler de tamamlandi:
+
+- `AgendaContent` kullanan lokal feed baglamlari icin ortak restore:
+  - `FloodListing`
+  - `MyProfile`
+  - `SocialProfile`
+  - `Archives`
+  - `LikedPosts`
+  - `TopTags`
+  - `TagPosts`
+- `LikedPosts`, `TopTags`, `SocialProfile.refreshAll()` icin refresh sirasinda listeyi gereksiz bosaltmama
+- `BlockedUsers` ve `FollowingFollowers` user-summary resolver cizgisine gecis
+- `PostLikeListing`, `PostReshareListing`, `PostLikeContent` summary cache gecisi
+- `StoryCommentUser`, `StoryContentProfile`, `PostCommentContent` summary cache gecisi
+- `PhotoShorts` user profile fetch gecisi
+- `AboutProfile` ve `Interests` warm current-user / summary seed
+- `JobSelector` ve `AddressSelector` current-user warm seed
+- `ReshareHelper`, `RozetContent`, `rozet_permissions`, `cached_user_avatar` ortak helper/widget gecisleri
+- `AccountCenterService`, `CreateChatContent`, `MessageContent`, `DenemeGrid`, `TestsGrid`, `AnswerKeyContent` user-summary gecisleri
+
 ## Son Commit Zinciri
 
 En yeni commitler:
 
+- `da5083ba` `Resolve cached avatars through summary cache`
+- `6602f1da` `Resolve chat message users through summary cache`
+- `70f70189` `Resolve rozet permissions through summary cache`
+- `64259f73` `Resolve education cards through summary cache`
+- `1e873d90` `Resolve account and content cards through summary cache`
+- `956d5076` `Resolve shared user helpers through summary cache`
+- `421403f5` `Warm profile details from summary and current cache`
+- `cfea84c1` `Warm profile selectors from current user cache`
+- `638a0739` `Resolve photo shorts profiles through summary cache`
+- `2ab443e6` `Resolve story and comment profiles through summary cache`
+- `3da56338` `Resolve reshare attribution through summary cache`
+- `fe7ed644` `Resolve agenda user lists through summary cache`
+- `65ba1597` `Unify profile relation list resolvers`
+- `8a8b9c03` `Preserve profile and tag lists during refresh`
+- `59052c32` `Restore embedded feed contexts after content routes`
+- `1701a490` `Add TurqApp continuation todo list`
 - `130d2e80` `Restore profile center after avatar overlays`
 - `2eaf48f2` `Stabilize saved posts snapshot rendering`
 - `3c887cd2` `Resume social profile grids after media routes`
 - `62c44695` `Restore feed center after flood and comment routes`
-- `f9ae0877` `Suspend explore previews during profile routes`
-- `4b3fc2cc` `Restore feed center after quote routes`
-- `b0c4996c` `Restore feed center after modal actions`
-- `37c72d5f` `Restore feed center after menu routes`
-- `900303ab` `Gate explore previews by active tab`
-- `4fc7f679` `Resume explore previews after media routes`
-- `00653546` `Restore feed center after content routes`
-- `cb8a5b0c` `Stabilize top tag feed playback`
-- `798c1612` `Resume liked posts after media routes`
-- `3b2447c8` `Preserve archive centered post across refresh`
-- `3c72aa52` `Resume profile playback after market details`
-- `d408782e` `Resume social profile playback after following routes`
-- `9c078c72` `Resume profile playback after story viewer`
-- `d337d026` `Resume profile playback after detail routes`
-- `c2bed955` `Resume my profile feed after content routes`
-- `0d2262c9` `Resume my profile playback after returns`
-- `29639504` `Preserve centered feed post across refresh`
-- `ac8dd656` `Preserve centered profile post across returns`
-- `ae0c5e1b` `Resume feed playback after story routes`
-- `f20176e6` `Resume feed playback after route returns`
-- `7e607684` `Refine profile merged feed rendering`
-- `aa677256` `Stabilize notifications snapshot mutations`
-- `a493c907` `Add profile posts snapshot bootstrap`
-- `3d5a1c8e` `Keep active short ready after refresh`
-- `3031182d` `Deduplicate short telemetry listeners`
-- `9e1f8ee2` `Preserve short adapters across refresh`
-- `d56daacf` `Export runtime health summaries on startup`
-- `b5961866` `Add feed and short runtime health summaries`
-- `89395983` `Add notifications snapshot bootstrap`
-- `a1a07b2a` `Show cache-first telemetry in health dashboard`
-- `aac56ced` `Add cache-first lifecycle telemetry`
-- `57987e58` `Stabilize short warm start and splash metrics`
-- `8e954729` `Refine feed render mixing`
-- `dd12ebb7` `Reduce short render churn`
-- `d322f700` `Feed and short cache-first runtime skeleton`
 
 ## Kalan Isler
 
@@ -178,31 +188,66 @@ En yeni commitler:
 3. `media-ready rerank` etkisini gercek kullanicida dogrula.
 4. `promo mixing` sahadaki davranisini kontrol et.
 5. `Notifications` optimistic state ile server merge arasinda kopma var mi loglardan bak.
+6. `cached_user_avatar` davranisini zayif ag ve stale avatar senaryosunda dogrula.
+7. `CurrentUserService` ile warm acilan selector/form ekranlarinda gec acilis regresssion'i var mi bak.
 
-### B. Kalan kucuk legacy cleanup
+### B. Bilincli olarak raw kalan veya ikinci faza birakilan yerler
+
+Buralar halen `getUserRaw` veya tam profile/raw belge kullaniyor; bu durum bilincli:
+
+- `EditProfile`
+- `EditorEmail`
+- `EditorPhoneNumber`
+- `EditorNickname`
+- `AddressSelector`
+- `JobSelector` raw fallback'i
+- `Interests` raw fallback'i
+- `AboutProfile` `createdDate` icin raw fallback
+- `SocialProfileController` tam profile alanlari
+- `MyProfileController` tam profile/raw bucket alanlari
+- `account_center_view`
+- `moderation_settings_view`
+- `deep_link_service`
+- `education_feed_cta_navigation_service`
+- `admin_push_repository`
+
+Bu ekranlar/formlar tam belge veya raw alan ihtiyaci tasidigi icin tamamen resolver'a zorlanmadi.
+
+### C. Kalan kucuk legacy cleanup
 
 1. Feed-benzeri daha kucuk yuzeylerde route donusleri tekrar taranabilir.
 2. `FloodListing` icin ekstra route-return tuning gerekirse ayri ele alinabilir.
 3. `SavedPosts` yeni davranisi gercek cihazda dogrulanmali.
 4. `Profile` ve `SocialProfile` avatar overlay davranisi gercek cihazda kontrol edilmeli.
+5. Dirty worktree icindeki eski i18n / UI metin cleanup commit zincirinden ayiklanabilir.
+6. `Explore/SearchedUser` aktif hesap kontrolundeki raw fallback, istenirse second-pass optimize edilebilir.
 
-### C. Dogrulama backlog'u
+### D. Dogrulama backlog'u
 
 1. Android gercek cihaz:
    - Feed acilis
    - Feed -> PostCreator / Story / Comments / Quote / Report donusu
    - Short refresh sonrasi aktif video korunumu
    - Explore preview sekme degisimi
+   - Like / reshare / comments user card acilislari
+   - cached avatar yenileme davranisi
 2. iOS gercek cihaz:
    - Profile / SocialProfile route donusleri
    - avatar overlay ac/kapat
    - autoplay resume davranisi
+   - Account center / selector ekranlarinda warm acilis
 3. Zayif ag senaryosu:
    - snapshot hit
    - liste korunumu
    - bos state'e dusmeme
+   - stale avatar / stale nickname fallback
+4. User metadata regression:
+   - rozet rengi
+   - reshare attribution nickname'i
+   - blocked/followers listeleri
+   - story comment / story profile avatarlari
 
-### D. Analytics / KPI kullanimi
+### E. Analytics / KPI kullanimi
 
 Bakilacak metrikler:
 
@@ -223,7 +268,9 @@ Bakilacak metrikler:
 4. Ilk odak:
    `Feed autoplay tuning` + `Short playback churn olcumu`
 5. Sonra:
-   `SavedPosts`, `MyProfile`, `SocialProfile` gercek cihaz smoke test
+   `SavedPosts`, `MyProfile`, `SocialProfile`, `cached_user_avatar` smoke test
+6. Sonraki teknik odak:
+   dirty kalan raw/form ekranlarini tek tek ayirip, sadece gerekli olanlari raw belgede birak
 
 ## Teknik Notlar
 
@@ -231,6 +278,8 @@ Bakilacak metrikler:
 - `functions/node_modules`, `.idea`, tmp image dosyalari ve diger daginik degisiklikler bu isin parcasi degil.
 - Dar commit mantigiyla devam et.
 - Yeni buyuk mimari dosya yazmaktan cok mevcut KPI'a gore tuning yap.
+- `UserRepository.ensure().getUser(...)` kullanan temiz gorunur yuzeylerin tamami kapatildi.
+- Bundan sonraki resolver isleri daha cok dirty dosyalarda veya bilincli raw ekranlarda kaldi.
 
 ## Kisa Durum Ozeti
 
@@ -238,10 +287,11 @@ Bugun:
 
 - Ana cache-first / snapshot-first iskelet kuruldu.
 - Feed / Short / Profile / SocialProfile playback-restore davranisi buyuk olcude toparlandi.
-- Kalan isler artik refactor degil, kalite ve tuning.
+- User-summary resolver hatlari gorunur UI yuzeylerinde buyuk olcude tekillesti.
+- Kalan isler artik refactor degil, kalite, gercek cihaz dogrulama ve tuning.
 
 Pratik kalan oran:
 
-- `%3-5`
+- `%2-4`
 
 Bu not, limit acildiginda dogrudan devam noktasi olarak kullanilsin.
