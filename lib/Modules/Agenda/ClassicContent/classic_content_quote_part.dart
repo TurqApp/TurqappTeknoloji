@@ -6,7 +6,9 @@ extension _ClassicContentQuotePart on _ClassicContentState {
         await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (targetUid.isNotEmpty && targetUid != currentUid) {
+      _suspendClassicFeedForRoute();
       await Get.to(() => SocialProfile(userID: targetUid));
+      _restoreClassicFeedCenter();
     }
   }
 
@@ -67,7 +69,10 @@ extension _ClassicContentQuotePart on _ClassicContentState {
               onUrlTap: (url) => RedirectionLink().goToLink(url),
               onHashtagTap: (tag) {
                 if (tag.trim().isEmpty) return;
-                Get.to(() => TagPosts(tag: tag.trim()));
+                _suspendClassicFeedForRoute();
+                Get.to(() => TagPosts(tag: tag.trim()))?.then((_) {
+                  _restoreClassicFeedCenter();
+                });
               },
               onMentionTap: (mention) {
                 unawaited(_openMentionProfile(mention));
@@ -105,7 +110,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
                 child: Container(
                   color: Colors.white,
                   padding: const EdgeInsets.only(left: 8),
-                  child: const Text('...devamı', style: moreStyle),
+                  child: Text('common.show_more'.tr, style: moreStyle),
                 ),
               ),
             ],
@@ -207,7 +212,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
                     child: Container(
                       color: Colors.white,
                       padding: const EdgeInsets.only(left: 8),
-                      child: const Text('...devamı', style: moreStyle),
+                      child: Text('common.show_more'.tr, style: moreStyle),
                     ),
                   ),
                 ],

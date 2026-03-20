@@ -407,7 +407,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
   Future<void> _openQuotedOriginalPost() async {
     final originalPostId = widget.model.originalPostID.trim();
     if (originalPostId.isEmpty) {
-      AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
+      AppSnackbar('common.info'.tr, 'post.source_unavailable'.tr);
       return;
     }
 
@@ -418,22 +418,22 @@ extension _AgendaContentQuotePart on _AgendaContentState {
       );
 
       if (model == null) {
-        AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
+        AppSnackbar('common.info'.tr, 'post.source_unavailable'.tr);
         return;
       }
       if (model.deletedPost) {
-        AppSnackbar('Bilgi', 'Kaynak gönderi silinmiş.');
+        AppSnackbar('common.info'.tr, 'post.source_deleted'.tr);
         return;
       }
 
       if (model.floodCount > 1) {
+        _suspendAgendaFeedForRoute();
         await Get.to(() => FloodListing(mainModel: model));
+        _restoreAgendaFeedCenter();
         return;
       }
 
-      try {
-        videoController?.pause();
-      } catch (_) {}
+      _suspendAgendaFeedForRoute();
       try {
         videoStateManager.pauseAllVideos(force: true);
       } catch (_) {}
@@ -441,8 +441,9 @@ extension _AgendaContentQuotePart on _AgendaContentState {
         agendaController.pauseAll.value = false;
       } catch (_) {}
       await Get.to(() => SinglePost(model: model, showComments: false));
+      _restoreAgendaFeedCenter();
     } catch (_) {
-      AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
+      AppSnackbar('common.info'.tr, 'post.source_unavailable'.tr);
     }
   }
 
