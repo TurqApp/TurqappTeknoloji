@@ -46,6 +46,9 @@ echo "[telemetry-threshold-report]"
 TELEMETRY_FAIL_ON_BLOCKING="$telemetry_fail_on_blocking" \
   bash scripts/export_telemetry_threshold_report.sh
 
+echo "[release-alert-bundle]"
+bash scripts/export_release_alert_bundle.sh
+
 if [[ "${RUN_K6_SMOKE:-0}" == "1" ]]; then
   echo "[k6] smoke profile"
   if [[ -z "${ID_TOKEN:-}" ]]; then

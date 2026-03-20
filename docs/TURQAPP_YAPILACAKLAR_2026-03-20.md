@@ -589,6 +589,7 @@ Aktif faz:
 - Son tamamlanan smoke runner hizi: `scripts/run_integration_smoke.sh` icine `--no-pub` eklendi; her smoke turunda tekrar dependency cozumleme maliyeti kaldirildi.
 - Son tamamlanan smoke artifact isi: Android paket test sonunda uninstall olsa bile runner host tarafta stub artifact yaziyor; `integration_smoke_report_latest.json` artik artefactsiz kalmiyor ve `artifactExported/artifactReason` alanlariyla gercek export ile host fallback ayrisiyor.
 - Son tamamlanan release gate isi: `scripts/run_release_gate_checks.sh` artik opsiyonel smoke adimindan sonra `export_integration_smoke_report.sh` cagiriyor; `INTEGRATION_SMOKE_FAIL_ON_BLOCKING` ve `TELEMETRY_FAIL_ON_BLOCKING` ile smoke/telemetry blocking signal'lari gate kararina baglanabiliyor.
+- Son tamamlanan alert bundle isi: `tool/release_alert_bundle.dart` + `scripts/export_release_alert_bundle.sh` ile smoke report + telemetry threshold report tek JSON payload'da birlestiriliyor; backend/disk/dashboard dis kanalina tasinacak kanonik alarm paketi hazir.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
