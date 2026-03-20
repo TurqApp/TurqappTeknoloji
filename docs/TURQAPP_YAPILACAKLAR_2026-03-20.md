@@ -595,6 +595,7 @@ Aktif faz:
 - Son tamamlanan provider format isi: `tool/release_alert_message.dart` ile ayni alert bundle `raw`, `slack` veya `discord` JSON formatina cevrilebiliyor; `RELEASE_ALERT_PAYLOAD_FORMAT` ile post script'i hedef webhook'un bekledigi payload sekline geciyor.
 - Son tamamlanan message export isi: `scripts/export_release_alert_message.sh` ile release gate sonunda provider'a uygun son mesaj payload'i da artifact olarak yaziliyor; boylece gonderimden bagimsiz incelenebilir `release_alert_message_latest.json` ciktisi var.
 - Son tamamlanan provider otomasyonu: release alert message/post script'leri `RELEASE_ALERT_WEBHOOK_PROVIDER=slack|discord|teams` verildiginde format secimini otomatik yapiyor; `teams` adaptive-card payload'i da destekleniyor.
+- Son tamamlanan webhook dayanikliligi: `post_release_alert_bundle.sh` artik bearer token, ek custom header, timeout ve retry parametreleri destekliyor; `scripts/release_alert_webhook.env.example` ile canli kanal config ornegi de eklendi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:

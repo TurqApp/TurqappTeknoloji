@@ -9,6 +9,12 @@ webhook_url="${RELEASE_ALERT_WEBHOOK_URL:-}"
 fail_on_post_error="${RELEASE_ALERT_FAIL_ON_POST_ERROR:-0}"
 payload_format="${RELEASE_ALERT_PAYLOAD_FORMAT:-}"
 webhook_provider="${RELEASE_ALERT_WEBHOOK_PROVIDER:-}"
+webhook_bearer_token="${RELEASE_ALERT_WEBHOOK_BEARER_TOKEN:-}"
+webhook_header_name="${RELEASE_ALERT_WEBHOOK_HEADER_NAME:-}"
+webhook_header_value="${RELEASE_ALERT_WEBHOOK_HEADER_VALUE:-}"
+connect_timeout="${RELEASE_ALERT_CONNECT_TIMEOUT_SECONDS:-10}"
+max_time="${RELEASE_ALERT_MAX_TIME_SECONDS:-30}"
+retry_count="${RELEASE_ALERT_RETRY_COUNT:-2}"
 
 if [[ -z "$webhook_url" ]]; then
   echo "[release-alert-post] skipped (set RELEASE_ALERT_WEBHOOK_URL to execute)"
@@ -41,15 +47,31 @@ severity="$(node -e "const fs=require('fs');const raw=JSON.parse(fs.readFileSync
 headline="$(node -e "const fs=require('fs');const raw=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const text=String(raw.summary?.headline || 'release alert').replace(/[\\r\\n]+/g,' ').slice(0,180);process.stdout.write(text);" "$bundle_file")"
 payload="$(dart run tool/release_alert_message.dart --input "$bundle_file" --format "$payload_format")"
 
-set +e
-curl -sS \
-  -X POST \
-  -H "content-type: application/json" \
-  -H "x-release-alert-format: $payload_format" \
-  -H "x-release-alert-severity: $severity" \
-  -H "x-release-alert-headline: $headline" \
-  --data "$payload" \
+curl_args=(
+  -sS
+  -X POST
+  -H "content-type: application/json"
+  -H "x-release-alert-format: $payload_format"
+  -H "x-release-alert-severity: $severity"
+  -H "x-release-alert-headline: $headline"
+  --connect-timeout "$connect_timeout"
+  --max-time "$max_time"
+  --retry "$retry_count"
+  --retry-all-errors
+  --data "$payload"
   "$webhook_url"
+)
+
+if [[ -n "$webhook_bearer_token" ]]; then
+  curl_args+=(-H "authorization: Bearer $webhook_bearer_token")
+fi
+
+if [[ -n "$webhook_header_name" && -n "$webhook_header_value" ]]; then
+  curl_args+=(-H "$webhook_header_name: $webhook_header_value")
+fi
+
+set +e
+curl "${curl_args[@]}"
 post_status=$?
 set -e
 
