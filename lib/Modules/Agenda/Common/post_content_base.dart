@@ -101,6 +101,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isStandalonePostInstance =>
       (widget.instanceTag ?? '').startsWith('single_');
 
+  bool get shouldLoopVideo => isStandalonePostInstance;
+
   @override
   void initState() {
     super.initState();
@@ -165,7 +167,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       cacheKey: widget.model.docID,
       url: widget.model.playbackUrl,
       autoPlay: widget.shouldPlay,
-      loop: true,
+      loop: shouldLoopVideo,
     );
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
@@ -342,6 +344,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _startPlayback() {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     _hasAutoPlayed = true;
     unawaited(adapter.play());
@@ -372,8 +375,78 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void tryAutoPlayWhenBuffered() {
     // Adapter initialize olmadan çağrı gelirse pending-play kuyruğa alınır.
     if (_videoAdapter != null) {
+      unawaited(_videoAdapter!.setLooping(shouldLoopVideo));
       _videoAdapter!.play();
     }
+  }
+
+  Future<void> replayVideoFromStart() async {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    await adapter.setLooping(shouldLoopVideo);
+    await adapter.seekTo(Duration.zero);
+    _startPlayback();
+  }
+
+  Widget buildFeedReplayOverlay(HLSVideoValue value) {
+    if (isStandalonePostInstance) return const SizedBox.shrink();
+    if (!value.isCompleted) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: false,
+        child: ColoredBox(
+          color: Colors.black.withValues(alpha: 0.28),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => unawaited(replayVideoFromStart()),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: const Text(
+                      'Tekrar izle',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: 'MontserratSemiBold',
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: const Text(
+                    'Daha fazla Reels videosu izle',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void reportMediaVisibility(double visibleFraction) {

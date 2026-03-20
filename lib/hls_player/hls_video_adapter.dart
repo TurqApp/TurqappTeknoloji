@@ -11,6 +11,7 @@ class HLSVideoValue {
   final bool isInitialized;
   final bool isPlaying;
   final bool isBuffering;
+  final bool isCompleted;
   final bool hasRenderedFirstFrame;
   final Duration position;
   final Duration duration;
@@ -22,6 +23,7 @@ class HLSVideoValue {
     this.isInitialized = false,
     this.isPlaying = false,
     this.isBuffering = false,
+    this.isCompleted = false,
     this.hasRenderedFirstFrame = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
@@ -124,6 +126,7 @@ class HLSVideoAdapter extends ChangeNotifier {
       isInitialized: false,
       isPlaying: false,
       isBuffering: false,
+      isCompleted: false,
       hasRenderedFirstFrame: false,
       position: _value.position,
       duration: _value.duration,
@@ -145,6 +148,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _viewReady,
         isPlaying: state == PlayerState.playing,
         isBuffering: state == PlayerState.buffering,
+        isCompleted: state == PlayerState.completed,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: _value.position,
         duration: _value.duration,
@@ -166,6 +170,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: pos,
         duration: _value.duration,
@@ -182,6 +187,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: _value.position,
         duration: dur,
@@ -198,6 +204,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
         hasRenderedFirstFrame: hasRenderedFirstFrame,
         position: _value.position,
         duration: _value.duration,

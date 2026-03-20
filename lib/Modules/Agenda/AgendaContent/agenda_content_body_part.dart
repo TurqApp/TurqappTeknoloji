@@ -273,6 +273,11 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                             right: 8,
                                             child: buildUploadIndicator(),
                                           ),
+                                          ValueListenableBuilder<HLSVideoValue>(
+                                            valueListenable: videoValueNotifier,
+                                            builder: (_, v, __) =>
+                                                buildFeedReplayOverlay(v),
+                                          ),
                                         ],
                                       );
                                     }),

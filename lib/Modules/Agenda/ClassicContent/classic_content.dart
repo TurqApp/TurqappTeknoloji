@@ -530,7 +530,7 @@ class _ClassicContentState extends State<ClassicContent>
         videoController?.pause();
       } else if (widget.shouldPlay) {
         videoController!
-          ..setLooping(true)
+          ..setLooping(shouldLoopVideo)
           ..play();
       } else {
         videoController?.pause();

@@ -565,6 +565,10 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     right: 8,
                     child: buildUploadIndicator(),
                   ),
+                  ValueListenableBuilder<HLSVideoValue>(
+                    valueListenable: videoValueNotifier,
+                    builder: (_, v, __) => buildFeedReplayOverlay(v),
+                  ),
                 ] else
                   widget.model.thumbnail.isEmpty
                       ? const SizedBox.expand()
