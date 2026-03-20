@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/notification_model.dart';
@@ -22,7 +22,7 @@ class NotificationContentController extends GetxController {
   var followLoading = false.obs;
   var model = PostsModel.empty().obs;
   var targetHint = "".obs;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final NotifyLookupRepository _notifyLookupRepository =
       NotifyLookupRepository.ensure();
@@ -54,12 +54,12 @@ class NotificationContentController extends GetxController {
     final postId = notification.postID.trim();
 
     if (normalizedType == "follow" || normalizedType == "user") {
-      targetHint.value = "Profil";
+      targetHint.value = "notification.hint.profile".tr;
       return;
     }
 
     if (normalizedType == "message" || normalizedType == "chat") {
-      targetHint.value = "Sohbet";
+      targetHint.value = "notification.hint.chat".tr;
       return;
     }
 
@@ -81,7 +81,9 @@ class NotificationContentController extends GetxController {
       final label = lookup.model?.ilanBasligi.trim().isNotEmpty == true
           ? lookup.model!.ilanBasligi.trim()
           : lookup.model?.brand.trim() ?? "";
-      targetHint.value = label.isNotEmpty ? "İlan: $label" : "İlan";
+      targetHint.value = label.isNotEmpty
+          ? "notification.hint.listing_named".trParams({'label': label})
+          : "notification.hint.listing".tr;
       return;
     }
 
@@ -89,7 +91,9 @@ class NotificationContentController extends GetxController {
         normalizedType == "tutoring_status") {
       final lookup = await _notifyLookupRepository.getTutoringLookup(postId);
       final label = lookup.model?.baslik.trim() ?? "";
-      targetHint.value = label.isNotEmpty ? "İlan: $label" : "Özel ders ilanı";
+      targetHint.value = label.isNotEmpty
+          ? "notification.hint.listing_named".trParams({'label': label})
+          : "notification.hint.tutoring".tr;
       return;
     }
 
@@ -106,7 +110,9 @@ class NotificationContentController extends GetxController {
             ? post.metin.trim()
             : post.konum.trim();
     final normalizedPreview = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
-    final prefix = normalizedType == "comment" ? "Yorumlar" : "Gönderi";
+    final prefix = normalizedType == "comment"
+        ? "notification.hint.comments".tr
+        : "notification.hint.post".tr;
     if (normalizedPreview.isEmpty) return prefix;
     return "$prefix: $normalizedPreview";
   }
@@ -129,20 +135,20 @@ class NotificationContentController extends GetxController {
   String _fallbackHint(String normalizedType) {
     switch (normalizedType) {
       case "comment":
-        return "Yorumlar";
+        return "notification.hint.comments".tr;
       case "job_application":
-        return "İlan";
+        return "notification.hint.listing".tr;
       case "tutoring_application":
       case "tutoring_status":
-        return "Özel ders ilanı";
+        return "notification.hint.tutoring".tr;
       case "message":
       case "chat":
-        return "Sohbet";
+        return "notification.hint.chat".tr;
       case "follow":
       case "user":
-        return "Profil";
+        return "notification.hint.profile".tr;
       default:
-        return "Gönderi";
+        return "notification.hint.post".tr;
     }
   }
 
@@ -155,7 +161,10 @@ class NotificationContentController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       following.value = outcome.nowFollowing; // reconcile
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar(
+          'following.limit_title'.tr,
+          'following.limit_body'.tr,
+        );
       }
     } catch (e) {
       following.value = wasFollowing; // revert
@@ -165,10 +174,9 @@ class NotificationContentController extends GetxController {
   }
 
   Future<void> _loadUser() async {
-    final user = await _userRepository.getUser(
+    final user = await _userSummaryResolver.resolve(
       userID,
       preferCache: true,
-      cacheOnly: false,
     );
     if (user == null) {
       avatarUrl.value = "";

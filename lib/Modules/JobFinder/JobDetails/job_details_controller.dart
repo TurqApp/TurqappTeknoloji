@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -35,6 +36,7 @@ class JobDetailsController extends GetxController {
   final reviews = <JobReviewModel>[].obs;
   final reviewUsers = <String, Map<String, dynamic>>{}.obs;
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final CvRepository _cvRepository = CvRepository.ensure();
   final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
       JobHomeSnapshotRepository.ensure();
@@ -83,7 +85,10 @@ class JobDetailsController extends GetxController {
 
   Future<void> getUserData(String userID) async {
     try {
-      final summary = await _userRepository.getUser(userID);
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
       if (summary == null) {
         avatarUrl.value = kDefaultAvatarUrl;
         return;
@@ -487,7 +492,10 @@ class JobDetailsController extends GetxController {
       final wasApplied = await _jobRepository.hasApplication(docId, uid);
       final job = model.value;
       final title = job.ilanBasligi.isNotEmpty ? job.ilanBasligi : job.meslek;
-      final currentUserSummary = await _userRepository.getUser(uid);
+      final currentUserSummary = await _userSummaryResolver.resolve(
+        uid,
+        preferCache: true,
+      );
       final applicantName = currentUserSummary?.displayName.trim() ?? '';
       final applicantImage =
           currentUserSummary?.avatarUrl.trim() ?? kDefaultAvatarUrl;

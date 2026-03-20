@@ -8,7 +8,7 @@ Bu not, cache-first mimari, user-summary resolver standardizasyonu, feed/short/p
 
 Son guvenli durum:
 
-- `HEAD`: `da5083ba` `Resolve cached avatars through summary cache`
+- `HEAD`: `095c4163` `Resolve deep links and scholarship details through cache layers`
 - Ana mimari safhasi bitti.
 - Resolver / cache-first yayginlastirma buyuk olcude bitti.
 - Kalan isler buyuk refactor degil; tuning, gercek cihaz dogrulama ve az sayida dirty legacy cleanup.
@@ -153,11 +153,15 @@ Son continuation dosyasi olusturulduktan sonra su isler de tamamlandi:
 - `JobSelector` ve `AddressSelector` current-user warm seed
 - `ReshareHelper`, `RozetContent`, `rozet_permissions`, `cached_user_avatar` ortak helper/widget gecisleri
 - `AccountCenterService`, `CreateChatContent`, `MessageContent`, `DenemeGrid`, `TestsGrid`, `AnswerKeyContent` user-summary gecisleri
+- `DeepLinkService` story owner lookup user-summary gecisi
+- `ScholarshipApplicationsContent` tekrarli raw user fetch birlestirme
+- `NotificationContent` ve `JobDetails` owner/applicant summary gecisleri
 
 ## Son Commit Zinciri
 
 En yeni commitler:
 
+- `095c4163` `Resolve deep links and scholarship details through cache layers`
 - `da5083ba` `Resolve cached avatars through summary cache`
 - `6602f1da` `Resolve chat message users through summary cache`
 - `70f70189` `Resolve rozet permissions through summary cache`
@@ -207,7 +211,6 @@ Buralar halen `getUserRaw` veya tam profile/raw belge kullaniyor; bu durum bilin
 - `MyProfileController` tam profile/raw bucket alanlari
 - `account_center_view`
 - `moderation_settings_view`
-- `deep_link_service`
 - `education_feed_cta_navigation_service`
 - `admin_push_repository`
 
