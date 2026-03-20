@@ -1,16 +1,16 @@
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class StoryContentProfileController extends GetxController {
   var nickname = "".obs;
   var avatarUrl = "".obs;
   var fullName = "".obs;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   Future<void> getUserData(String userID) async {
-    final summary = await UserRepository.ensure().getUser(
+    final summary = await _userSummaryResolver.resolve(
       userID,
       preferCache: true,
-      cacheOnly: false,
     );
     if (summary == null) return;
     nickname.value = summary.preferredName;

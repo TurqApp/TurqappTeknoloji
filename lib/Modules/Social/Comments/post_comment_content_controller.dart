@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 import '../../../Models/post_interactions_models_new.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -17,6 +17,7 @@ class PostCommentContentController extends GetxController {
   final RxList<String> likes = <String>[].obs;
   final PostInteractionService _interactionService =
       Get.put(PostInteractionService());
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   @override
   void onInit() {
@@ -27,10 +28,9 @@ class PostCommentContentController extends GetxController {
 
   Future<void> _loadUserProfile(String userID) async {
     try {
-      final summary = await UserRepository.ensure().getUser(
+      final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
-        cacheOnly: false,
       );
       if (summary != null) {
         nickname.value = summary.preferredName;
