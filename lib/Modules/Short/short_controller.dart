@@ -7,12 +7,14 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
-import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/lru_cache.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -29,6 +31,8 @@ class ShortController extends GetxController {
 
   final RxList<PostsModel> shorts = <PostsModel>[].obs;
   final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
+  final ShortPlaybackCoordinator _playbackCoordinator =
+      ShortPlaybackCoordinator.forCurrentPlatform();
   final Map<int, HLSVideoAdapter> cache = {};
   final Map<int, _CacheTier> _tiers = {};
   final lastIndex = 0.obs;
@@ -36,15 +40,6 @@ class ShortController extends GetxController {
   Future<void>? _initialLoadFuture;
   static const int _initialPreloadCount = 3;
 
-  // +5/-5 kuralı: önündeki 5 video HOT, gerideki 5 video WARM (cache korumalı)
-  static final int _hotAhead =
-      defaultTargetPlatform == TargetPlatform.android ? 1 : 5;
-  static final int _hotBehind =
-      defaultTargetPlatform == TargetPlatform.android ? 0 : 2;
-  static final int _warmBehind =
-      defaultTargetPlatform == TargetPlatform.android ? 1 : 5;
-  static final int _maxPlayers =
-      defaultTargetPlatform == TargetPlatform.android ? 2 : 11;
   static final double _activeBufferSeconds =
       defaultTargetPlatform == TargetPlatform.android ? 2.4 : 3.0;
   static final double _neighborBufferSeconds =
@@ -73,6 +68,8 @@ class ShortController extends GetxController {
   );
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ShortRepository _shortRepository = ShortRepository.ensure();
+  final ShortSnapshotRepository _shortSnapshotRepository =
+      ShortSnapshotRepository.ensure();
 
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
   static bool _globalShuffleCompleted = false;
@@ -113,6 +110,7 @@ class ShortController extends GetxController {
   @override
   void onClose() {
     _log('[Shorts] ❌ ShortController.onClose() called');
+    _playbackCoordinator.reset();
     clearCache();
     _followingSub?.cancel();
     super.onClose();
@@ -267,8 +265,12 @@ class ShortController extends GetxController {
         '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}');
 
     if (shorts.isEmpty) {
-      await _tryQuickFillFromPool();
-      if (shorts.isNotEmpty) {
+      final snapshot = await _shortSnapshotRepository.loadHome(
+        userId: _currentUserId,
+        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+      );
+      final applied = _applySnapshotResource(snapshot);
+      if (applied) {
         await preloadRange(0, range: 0);
         if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
           unawaited(_loadNextPage());
@@ -400,7 +402,6 @@ class ShortController extends GetxController {
       }
 
       final newList = List<PostsModel>.from(result.posts);
-      newList.shuffle();
 
       final newCache = <int, HLSVideoAdapter>{};
       final preloadCount = math.min(1, newList.length);
@@ -411,7 +412,7 @@ class ShortController extends GetxController {
 
       final oldAdapters = cache.values.toList(growable: false);
 
-      shorts.assignAll(newList);
+      _replaceShorts(newList);
       cache
         ..clear()
         ..addAll(newCache);
@@ -419,6 +420,7 @@ class ShortController extends GetxController {
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
       lastIndex.value = 0;
+      unawaited(_persistVisibleSnapshot());
 
       // Eski adapter'ları serbest bırak
       for (final adapter in oldAdapters) {
@@ -503,17 +505,20 @@ class ShortController extends GetxController {
 
       _lastDoc = result.lastDoc;
 
-      final incoming = result.posts;
+      final existingIds = shorts.map((post) => post.docID).toSet();
+      final incoming = result.posts
+          .where((post) => !existingIds.contains(post.docID))
+          .toList(growable: false);
       if (incoming.isNotEmpty) {
         if (shorts.isEmpty && !_globalShuffleCompleted) {
           final shuffled = List<PostsModel>.from(incoming);
           shuffled.shuffle();
           shorts.addAll(shuffled);
-          unawaited(_saveShortsToPool(shuffled));
+          unawaited(_persistVisibleSnapshot());
           _globalShuffleCompleted = true;
         } else {
           shorts.addAll(incoming);
-          unawaited(_saveShortsToPool(incoming));
+          unawaited(_persistVisibleSnapshot());
         }
       }
 
@@ -590,22 +595,9 @@ class ShortController extends GetxController {
   /// COLD (geri kalan)              : Tamamen dispose
   Future<void> updateCacheTiers(int currentIndex) async {
     if (shorts.isEmpty) return;
-
-    final hotStart = math.max(0, currentIndex - _hotBehind);
-    final hotEnd = math.min(shorts.length - 1, currentIndex + _hotAhead);
-    final warmStart = math.max(0, currentIndex - _warmBehind);
-
-    // HOT indekslerini belirle
-    final hotIndices = <int>{};
-    for (int i = hotStart; i <= hotEnd; i++) {
-      hotIndices.add(i);
-    }
-
-    // WARM indekslerini belirle (hot'un gerisinde)
-    final warmIndices = <int>{};
-    for (int i = warmStart; i < hotStart; i++) {
-      warmIndices.add(i);
-    }
+    final window = _playbackCoordinator.buildWindow(shorts, currentIndex);
+    final hotIndices = window.hotIndices;
+    final warmIndices = window.warmIndices;
 
     // 1. HOT: eksik adapter oluştur, stopped olanları reload et
     final futures = <Future>[];
@@ -657,7 +649,7 @@ class ShortController extends GetxController {
     }
 
     // 5. Max player limiti
-    _enforceMaxPlayers(currentIndex);
+    _enforceMaxPlayers(currentIndex, window.maxAttachedPlayers);
 
     // 6. Wi-Fi prefetch tetikle
     try {
@@ -668,13 +660,13 @@ class ShortController extends GetxController {
     } catch (_) {}
   }
 
-  void _enforceMaxPlayers(int currentIndex) {
+  void _enforceMaxPlayers(int currentIndex, int maxAttachedPlayers) {
     final activeKeys = cache.keys.where((k) => !cache[k]!.isStopped).toList()
       ..sort((a, b) =>
           (a - currentIndex).abs().compareTo((b - currentIndex).abs()));
 
-    if (activeKeys.length > _maxPlayers) {
-      for (int i = _maxPlayers; i < activeKeys.length; i++) {
+    if (activeKeys.length > maxAttachedPlayers) {
+      for (int i = maxAttachedPlayers; i < activeKeys.length; i++) {
         final k = activeKeys[i];
         final adapter = cache[k];
         cache.remove(k);
@@ -724,6 +716,7 @@ class ShortController extends GetxController {
 
   /// Tamamen temizler
   void clearCache() {
+    _playbackCoordinator.reset();
     for (final adapter in cache.values) {
       unawaited(_videoPool.release(adapter));
     }
@@ -762,104 +755,51 @@ class ShortController extends GetxController {
     }
   }
 
-  Future<void> _tryQuickFillFromPool() async {
-    if (!Get.isRegistered<IndexPoolStore>()) return;
-    final pool = Get.find<IndexPoolStore>();
-    final fromPool = await pool.loadPosts(
-      IndexPoolKind.shortFullscreen,
-      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
-      allowStale: false,
-    );
-    if (fromPool.isEmpty) return;
+  void markPlaybackReady(String docId) {
+    _playbackCoordinator.markFirstFrame(docId);
+  }
 
-    final filtered = fromPool
-        .where((p) => p.hasPlayableVideo)
-        .where((p) => p.deletedPost != true)
-        .toList();
-    if (filtered.isEmpty) return;
-
-    final valid = ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)
-        ? await _validatePoolPostsAndPrune(filtered)
-        : filtered;
-    if (valid.isEmpty) return;
-
-    shorts.assignAll(valid);
+  bool _applySnapshotResource(CachedResource<List<PostsModel>> resource) {
+    final data = resource.data;
+    if (data == null || data.isEmpty) return false;
+    _replaceShorts(data);
     hasMore.value = true;
+    return true;
   }
 
-  Future<void> _saveShortsToPool(List<PostsModel> posts) async {
-    if (posts.isEmpty) return;
-    if (!Get.isRegistered<IndexPoolStore>()) return;
-    await Get.find<IndexPoolStore>().savePosts(
-      IndexPoolKind.shortFullscreen,
-      posts,
-    );
+  void _replaceShorts(List<PostsModel> newItems) {
+    if (_hasSameRenderOrder(shorts, newItems)) {
+      return;
+    }
+    shorts.assignAll(newItems);
   }
 
-  Future<List<PostsModel>> _validatePoolPostsAndPrune(
-      List<PostsModel> posts) async {
-    if (posts.isEmpty) return const <PostsModel>[];
-    if (!Get.isRegistered<IndexPoolStore>()) return posts;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final postIds =
-        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet().toList();
-    final userIds =
-        posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
-
-    final validPostIds = <String>{};
-    final postMap = await _shortRepository.fetchByIds(
-      postIds,
-      preferCache: true,
-    );
-    for (final entry in postMap.entries) {
-      final post = entry.value;
-      final isPlayable = post.hasPlayableVideo;
-      if (post.deletedPost == true) continue;
-      if (post.arsiv == true) continue;
-      if (!isPlayable) continue;
-      if (post.timeStamp > nowMs) continue;
-      validPostIds.add(entry.key);
-    }
-
-    final validUserIds = <String>{};
-    for (final chunk in _chunkList(userIds.toList(), 10)) {
-      final users = await _userSummaryResolver.resolveMany(
-        chunk,
-        preferCache: true,
-      );
-      validUserIds.addAll(users.keys);
-    }
-
-    final valid = posts
-        .where((p) =>
-            validPostIds.contains(p.docID) && validUserIds.contains(p.userID))
-        .toList();
-
-    if (valid.length != posts.length) {
-      final invalidIds = posts
-          .where((p) =>
-              !validPostIds.contains(p.docID) ||
-              !validUserIds.contains(p.userID))
-          .map((p) => p.docID)
-          .toList();
-      if (invalidIds.isNotEmpty) {
-        await Get.find<IndexPoolStore>()
-            .removePosts(IndexPoolKind.shortFullscreen, invalidIds);
+  bool _hasSameRenderOrder(
+    List<PostsModel> current,
+    List<PostsModel> next,
+  ) {
+    if (identical(current, next)) return true;
+    if (current.length != next.length) return false;
+    for (int i = 0; i < current.length; i++) {
+      if (current[i].docID != next[i].docID) {
+        return false;
       }
     }
-    return valid;
+    return true;
   }
 
-  List<List<T>> _chunkList<T>(List<T> input, int size) {
-    if (input.isEmpty) return <List<T>>[];
-    final chunks = <List<T>>[];
-    for (int i = 0; i < input.length; i += size) {
-      final end = (i + size > input.length) ? input.length : i + size;
-      chunks.add(input.sublist(i, end));
-    }
-    return chunks;
+  Future<void> _persistVisibleSnapshot() async {
+    final userId = _currentUserId;
+    if (userId.isEmpty || shorts.isEmpty) return;
+    await _shortSnapshotRepository.persistHomeSnapshot(
+      userId: userId,
+      posts: shorts.toList(growable: false),
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+      source: CachedResourceSource.server,
+    );
   }
+
+  String get _currentUserId => FirebaseAuth.instance.currentUser?.uid ?? '';
 }
 
 enum _CacheTier { hot, warm }

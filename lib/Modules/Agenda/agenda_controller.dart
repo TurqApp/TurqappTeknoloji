@@ -5,7 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -46,6 +48,8 @@ class AgendaController extends GetxController {
           : Get.put(UserProfileCacheService(), permanent: true);
   UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
   PostRepository get _postRepository => PostRepository.ensure();
+  FeedSnapshotRepository get _feedSnapshotRepository =>
+      FeedSnapshotRepository.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final RxList<Map<String, dynamic>> mergedFeedEntries =
@@ -182,14 +186,6 @@ class AgendaController extends GetxController {
       return true;
     }
     return post.scheduledAt.toInt() > 0;
-  }
-
-  bool _isEligibleFeedReference(num ts, int nowMs) {
-    final value = ts.toInt();
-    if (_agendaWindow != null && value < _agendaCutoffMs(nowMs)) {
-      return false;
-    }
-    return value > 0;
   }
 
   Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({

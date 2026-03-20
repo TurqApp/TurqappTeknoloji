@@ -1,0 +1,145 @@
+import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/playback_state_machine.dart';
+import 'package:turqappv2/Core/Services/player_budget_policy.dart';
+import 'package:turqappv2/Models/posts_model.dart';
+
+class ShortPlaybackWindow {
+  const ShortPlaybackWindow({
+    required this.activeIndex,
+    required this.hotIndices,
+    required this.warmIndices,
+    required this.maxAttachedPlayers,
+  });
+
+  final int activeIndex;
+  final Set<int> hotIndices;
+  final Set<int> warmIndices;
+  final int maxAttachedPlayers;
+}
+
+class ShortPlaybackCoordinator {
+  ShortPlaybackCoordinator({
+    required this.hotAhead,
+    required this.hotBehind,
+    required this.warmBehind,
+    required this.maxAttachedPlayers,
+    required this.budgetPolicy,
+  });
+
+  factory ShortPlaybackCoordinator.forCurrentPlatform() {
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    return ShortPlaybackCoordinator(
+      hotAhead: isAndroid ? 1 : 5,
+      hotBehind: isAndroid ? 0 : 2,
+      warmBehind: isAndroid ? 1 : 5,
+      maxAttachedPlayers: isAndroid ? 2 : 11,
+      budgetPolicy: PlayerBudgetPolicy.forSurface(
+        PlayerSurfaceKind.shortFullscreen,
+        lowMemoryDevice: isAndroid,
+      ),
+    );
+  }
+
+  final int hotAhead;
+  final int hotBehind;
+  final int warmBehind;
+  final int maxAttachedPlayers;
+  final PlayerBudgetPolicy budgetPolicy;
+
+  final Map<String, PlaybackStateMachine> _machineByDocId =
+      <String, PlaybackStateMachine>{};
+
+  ShortPlaybackWindow buildWindow(
+    List<PostsModel> items,
+    int rawIndex,
+  ) {
+    if (items.isEmpty) {
+      return const ShortPlaybackWindow(
+        activeIndex: 0,
+        hotIndices: <int>{},
+        warmIndices: <int>{},
+        maxAttachedPlayers: 0,
+      );
+    }
+
+    final currentIndex = rawIndex.clamp(0, items.length - 1);
+    final hotStart = currentIndex - hotBehind < 0 ? 0 : currentIndex - hotBehind;
+    final hotEnd =
+        currentIndex + hotAhead >= items.length ? items.length - 1 : currentIndex + hotAhead;
+    final warmStart =
+        currentIndex - warmBehind < 0 ? 0 : currentIndex - warmBehind;
+
+    final hotIndices = <int>{};
+    for (int i = hotStart; i <= hotEnd; i++) {
+      hotIndices.add(i);
+    }
+
+    final warmIndices = <int>{};
+    for (int i = warmStart; i < hotStart; i++) {
+      warmIndices.add(i);
+    }
+
+    _syncStates(
+      items,
+      currentIndex: currentIndex,
+      hotIndices: hotIndices,
+      warmIndices: warmIndices,
+    );
+
+    return ShortPlaybackWindow(
+      activeIndex: currentIndex,
+      hotIndices: hotIndices,
+      warmIndices: warmIndices,
+      maxAttachedPlayers: maxAttachedPlayers,
+    );
+  }
+
+  void markFirstFrame(String docId) {
+    if (docId.trim().isEmpty) return;
+    _machineByDocId[docId]?.transition(
+      PlaybackSessionEvent.firstFrameRendered,
+    );
+  }
+
+  void reset() {
+    _machineByDocId.clear();
+  }
+
+  void _syncStates(
+    List<PostsModel> items, {
+    required int currentIndex,
+    required Set<int> hotIndices,
+    required Set<int> warmIndices,
+  }) {
+    final activeDocId = items[currentIndex].docID;
+    final liveDocIds = items.map((item) => item.docID).toSet();
+
+    _machineByDocId.removeWhere((docId, _) => !liveDocIds.contains(docId));
+
+    for (int i = 0; i < items.length; i++) {
+      final docId = items[i].docID;
+      if (docId.isEmpty) continue;
+      final machine = _machineByDocId.putIfAbsent(
+        docId,
+        () => PlaybackStateMachine(),
+      );
+      if (docId == activeDocId) {
+        machine.transition(PlaybackSessionEvent.primeRequested);
+        machine.transition(PlaybackSessionEvent.attachRequested);
+        machine.transition(PlaybackSessionEvent.activateRequested);
+        continue;
+      }
+      if (hotIndices.contains(i)) {
+        machine.transition(PlaybackSessionEvent.primeRequested);
+        machine.transition(PlaybackSessionEvent.attachRequested);
+        continue;
+      }
+      if (warmIndices.contains(i)) {
+        machine.transition(PlaybackSessionEvent.primeRequested);
+        machine.transition(PlaybackSessionEvent.suspendRequested);
+        continue;
+      }
+      machine.transition(PlaybackSessionEvent.disposeRequested);
+    }
+  }
+}

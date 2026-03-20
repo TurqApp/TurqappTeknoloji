@@ -163,7 +163,6 @@ class _ShortViewState extends State<ShortView> {
 
   int _initialDisplayIndex(List<PostsModel> list, int rawIndex) {
     if (list.isEmpty) return 0;
-    if (rawIndex <= 0 && list.length > 1) return 1;
     return rawIndex.clamp(0, list.length - 1);
   }
 
@@ -224,11 +223,26 @@ class _ShortViewState extends State<ShortView> {
     _shortsWorker = ever(controller.shorts, (_) {
       if (!mounted) return;
       final newList = List<PostsModel>.from(controller.shorts);
-      if (newList.length != _cachedShorts.length) {
+      if (_hasRenderableListChanged(_cachedShorts, newList)) {
+        final nextPage = _initialDisplayIndex(newList, currentPage);
         _cachedShorts = newList;
+        currentPage = nextPage;
         setState(() {});
       }
     });
+  }
+
+  bool _hasRenderableListChanged(
+    List<PostsModel> previous,
+    List<PostsModel> next,
+  ) {
+    if (previous.length != next.length) return true;
+    for (int i = 0; i < previous.length; i++) {
+      if (previous[i].docID != next[i].docID) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _onPageChanged(int page) {
@@ -428,6 +442,7 @@ class _ShortViewState extends State<ShortView> {
     // TTFF: ilk kez playing state'e geçiş
     if (!_telemetryFirstFrame && v.isPlaying) {
       _telemetryFirstFrame = true;
+      controller.markPlaybackReady(videoId);
       VideoTelemetryService.instance.onFirstFrame(videoId);
     }
 

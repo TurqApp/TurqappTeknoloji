@@ -111,66 +111,18 @@ extension AgendaControllerLoadingPart on AgendaController {
         cutoffMs: cutoffMs,
         limit: loadLimit,
       );
-
-      final items = page.items
-          .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
-          .where((p) => p.deletedPost != true)
-          .toList();
-
-      // Yazarların gizlilik durumlarını çek ve gizli profilleri filtrele
-      final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
-      Map<String, bool> userPrivacy = {};
-      Map<String, bool> userDeactivated = {};
-      Map<String, Map<String, dynamic>> userMeta = {};
-      if (uniqueUserIDs.isNotEmpty) {
-        final unresolved = _primeAgendaUserStateFromCaches(
-          uniqueUserIDs,
-          userPrivacy,
-          userDeactivated,
-          userMeta,
-        );
-        if (unresolved.isNotEmpty) {
-          await _fillAgendaUserStateFromProfiles(
-            unresolved,
-            userPrivacy,
-            userDeactivated,
-            userMeta,
-          );
-        }
-      }
-
-      final String? me = FirebaseAuth.instance.currentUser?.uid;
-      final visibleItems = items.where((post) {
-        if (hiddenPosts.contains(post.docID)) return false;
-        if (post.deletedPost == true) return false;
-        if (!_isRenderablePost(post)) return false;
-        if (userDeactivated[post.userID] == true) return false;
-        final isPrivate = userPrivacy[post.userID] ?? false;
-        if (!isPrivate) return true;
-        // Gizli ise: sadece kendi gönderisi veya takip ediliyorsa göster
-        final isMine = me != null && post.userID == me;
-        final follows = followingIDs.contains(post.userID);
-        return isMine || follows;
-      }).toList();
+      final visibleItems = page.items;
 
       _usePrimaryFeedPaging = page.usesPrimaryFeed;
       lastDoc = page.lastDoc;
 
       if (visibleItems.isNotEmpty) {
-        final missingMetaUserIDs = visibleItems
-            .map((post) => post.userID)
-            .where((uid) => !userMeta.containsKey(uid))
-            .toSet()
-            .toList();
-        if (missingMetaUserIDs.isNotEmpty) {
-          await _fillAgendaUserStateFromProfiles(
-            missingMetaUserIDs,
-            userPrivacy,
-            userDeactivated,
-            userMeta,
-          );
-        }
-        unawaited(_saveFeedPostsToPool(visibleItems, userMeta));
+        unawaited(
+          _saveFeedPostsToPool(
+            visibleItems,
+            const <String, Map<String, dynamic>>{},
+          ),
+        );
         // Yeni eklenecekler içinde "zamanlıydı ve yeni görünür oldu" olanları vurgula
         final existingIDs = agendaList.map((e) => e.docID).toSet();
         final toAdd = <PostsModel>[];
@@ -198,7 +150,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
       }
 
-      if (page.lastDoc == null || items.length < loadLimit) {
+      if (page.lastDoc == null || visibleItems.length < loadLimit) {
         hasMore.value = false;
       }
       _clearAgendaRetry();
@@ -271,46 +223,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       preferCache: true,
       cacheOnly: true,
     );
-    if (page.items.isEmpty) return;
-
-    final items = page.items
-        .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
-        .where((p) => p.deletedPost != true)
-        .toList();
-    if (items.isEmpty) return;
-
-    // Kullanıcı gizliliklerini merkezi profile cache + Firestore cache'ten getir
-    final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
-    Map<String, bool> userPrivacy = {};
-    Map<String, bool> userDeactivated = {};
-    final profiles = await _profileCache.getProfiles(
-      uniqueUserIDs,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    for (final uid in uniqueUserIDs) {
-      final data = profiles[uid];
-      if (data == null) continue;
-      final gizli = (data['isPrivate'] ?? false) == true;
-      final deactivated = _isUserMarkedDeactivated(data);
-      userPrivacy[uid] = gizli;
-      userDeactivated[uid] = deactivated;
-      _userPrivacyCache[uid] = gizli;
-      _userDeactivatedCache[uid] = deactivated;
-    }
-
-    final String? me = FirebaseAuth.instance.currentUser?.uid;
-    final filtered = items.where((post) {
-      if (hiddenPosts.contains(post.docID)) return false;
-      if (!_isRenderablePost(post)) return false;
-      if (userDeactivated[post.userID] == true) return false;
-      final isPrivate = userPrivacy[post.userID] ?? false;
-      if (!isPrivate) return true;
-      final isMine = me != null && post.userID == me;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
-    }).toList();
-
+    final filtered = page.items;
     if (filtered.isEmpty) return;
     // Duplicate'e düşmemek için mevcut ID'leri kontrol et
     final existingIDs = agendaList.map((e) => e.docID).toSet();
@@ -337,65 +250,17 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> _tryQuickFillFromPool() async {
-    if (!Get.isRegistered<IndexPoolStore>()) return;
-    final pool = Get.find<IndexPoolStore>();
-    final fromPool = await pool.loadPosts(
-      IndexPoolKind.feed,
-      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
-      allowStale: true,
-    );
-    if (fromPool.isEmpty) return;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final cutoffMs = _agendaCutoffMs(nowMs);
-    final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
-      preferCache: true,
-      cacheOnly: true,
-    );
-    final sourcePosts = <PostsModel>[
-      ...fromPool,
-      ...publicIzBirakPosts,
-    ];
-    final uniqueUserIDs = sourcePosts.map((e) => e.userID).toSet().toList();
-    final profiles = await _profileCache.getProfiles(
-      uniqueUserIDs,
-      preferCache: true,
-      cacheOnly: true,
-    );
     final me = FirebaseAuth.instance.currentUser?.uid;
-
-    // Pool'dan gelen postları gerçekten hızlıca göster.
-    // Gizlilik için sadece cache-only profillere güveniriz; bilinmeyen kullanıcıyı
-    // hızlı listede göstermeyip ağ fetch'ine bırakırız.
-    final quickFiltered = sourcePosts.where((post) {
-      if (hiddenPosts.contains(post.docID)) return false;
-      if (post.deletedPost == true) return false;
-      if (!_isInAgendaWindow(post.timeStamp, nowMs)) return false;
-      if (!_isRenderablePost(post)) return false;
-      final profile = profiles[post.userID];
-      if (profile == null) return false;
-      final isPrivate = (profile['isPrivate'] ?? false) == true;
-      final isDeactivated = _isUserMarkedDeactivated(profile);
-      _userPrivacyCache[post.userID] = isPrivate;
-      _userDeactivatedCache[post.userID] = isDeactivated;
-      if (isDeactivated) return false;
-      if (!isPrivate) return true;
-      final isMine = me != null && post.userID == me;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
-    }).toList();
-
+    if (me == null || me.isEmpty) return;
+    final snapshot = await _feedSnapshotRepository.bootstrapHome(
+      userId: me,
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
+    );
+    final quickFiltered = snapshot.data ?? const <PostsModel>[];
     if (quickFiltered.isEmpty) return;
 
     _addUniqueToAgenda(quickFiltered);
-
-    // Arka planda: validasyon + gizlilik kontrolü + reshare
-    if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
-      unawaited(_postPoolFillCleanup(sourcePosts, quickFiltered));
-    }
+    unawaited(_revalidateQuickFilledAgenda(quickFiltered));
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -428,6 +293,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   /// Pool fill sonrası arka planda: validasyon, gizlilik prune, reshare fetch
+  // ignore: unused_element
   Future<void> _postPoolFillCleanup(
       List<PostsModel> originalPool, List<PostsModel> shown) async {
     try {
@@ -559,14 +425,16 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   Future<void> _saveFeedPostsToPool(
     List<PostsModel> posts,
-    Map<String, Map<String, dynamic>> userMeta,
+    Map<String, Map<String, dynamic>> _,
   ) async {
     if (posts.isEmpty) return;
-    if (!Get.isRegistered<IndexPoolStore>()) return;
-    await Get.find<IndexPoolStore>().savePosts(
-      IndexPoolKind.feed,
-      posts,
-      userMeta: userMeta,
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null || userId.isEmpty) return;
+    await _feedSnapshotRepository.persistHomeSnapshot(
+      userId: userId,
+      posts: posts,
+      limit: 40,
+      source: CachedResourceSource.server,
     );
   }
 
@@ -608,18 +476,8 @@ extension AgendaControllerLoadingPart on AgendaController {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
-    if (!_usePrimaryFeedPaging) {
-      return _loadLegacyAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    }
-
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    if (uid == null || uid.isEmpty) {
       return _loadLegacyAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
@@ -629,88 +487,24 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
     }
 
-    final page = await _postRepository.fetchUserFeedReferences(
-      uid: uid,
+    final page = await _feedSnapshotRepository.fetchHomePage(
+      userId: uid,
+      followingIds: followingIDs.toSet(),
+      hiddenPostIds: hiddenPosts.toSet(),
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
       limit: limit,
       startAfter: lastDoc is DocumentSnapshot<Map<String, dynamic>>
           ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
           : null,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
+      usePrimaryFeedPaging: _usePrimaryFeedPaging,
     );
-
-    final refs = page.items
-        .where(
-          (item) =>
-              item.timeStamp > 0 &&
-              _isEligibleFeedReference(item.timeStamp, nowMs) &&
-              (item.expiresAt <= 0 || item.expiresAt >= nowMs),
-        )
-        .toList(growable: false);
-
-    final postIds = refs.map((item) => item.postId).toList(growable: false);
-    final postsById = postIds.isEmpty
-        ? const <String, PostsModel>{}
-        : await _postRepository.fetchPostCardsByIds(
-            postIds,
-            preferCache: preferCache,
-            cacheOnly: cacheOnly,
-          );
-
-    final merged = <String, PostsModel>{};
-    for (final ref in refs) {
-      final post = postsById[ref.postId];
-      if (post == null) continue;
-      merged[post.docID] = post;
-    }
-
-    final celebIds = await _postRepository.fetchCelebrityAuthorIds(
-      <String>{uid, ...followingIDs}.toList(growable: false),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    if (celebIds.isNotEmpty) {
-      final celebPosts = await _postRepository.fetchRecentPostsForAuthors(
-        celebIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        perAuthorLimit: max(2, (limit / max(1, celebIds.length)).ceil()),
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      for (final post in celebPosts) {
-        merged.putIfAbsent(post.docID, () => post);
-      }
-    }
-
-    final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: max(20, limit),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    for (final post in publicIzBirakPosts) {
-      merged.putIfAbsent(post.docID, () => post);
-    }
-
-    if (merged.isEmpty && page.lastDoc == null && lastDoc == null) {
-      return _loadLegacyAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    }
-
-    final items = merged.values.toList()
-      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-
     return _AgendaSourcePage(
-      items: items,
+      items: page.items,
       lastDoc: page.lastDoc,
-      usesPrimaryFeed: true,
+      usesPrimaryFeed: page.usesPrimaryFeed,
     );
   }
 
