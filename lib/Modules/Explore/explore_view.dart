@@ -202,6 +202,7 @@ class ExploreView extends StatelessWidget {
                               controller: controller.pageController,
                               physics: const ClampingScrollPhysics(),
                               onPageChanged: (idx) {
+                                controller.selection.value = idx;
                                 Get.find<PageLineBarController>(tag: "Explore")
                                     .selection
                                     .value = idx;
@@ -243,8 +244,14 @@ class ExploreView extends StatelessWidget {
                                             GestureDetector(
                                               behavior: HitTestBehavior.opaque,
                                               onTap: () {
-                                                Get.to(() => TagPosts(
-                                                    tag: item.hashtag));
+                                                controller
+                                                    .suspendExplorePreview();
+                                                Get.to(() =>
+                                                        TagPosts(tag: item.hashtag))
+                                                    ?.then((_) {
+                                                  controller
+                                                      .resumeExplorePreview();
+                                                });
                                               },
                                               child: Padding(
                                                 padding:
@@ -607,8 +614,13 @@ class ExploreView extends StatelessWidget {
                                       fontFamily: "MontserratSemiBold",
                                     ),
                                   ),
-                                  onTap: () =>
-                                      Get.to(() => TagPosts(tag: tag.hashtag)),
+                                  onTap: () {
+                                    controller.suspendExplorePreview();
+                                    Get.to(() => TagPosts(tag: tag.hashtag))
+                                        ?.then((_) {
+                                      controller.resumeExplorePreview();
+                                    });
+                                  },
                                   trailing: const Icon(
                                       CupertinoIcons.arrow_turn_up_left,
                                       color: Colors.black45,
@@ -629,8 +641,13 @@ class ExploreView extends StatelessWidget {
                                       fontFamily: "MontserratSemiBold",
                                     ),
                                   ),
-                                  onTap: () =>
-                                      Get.to(() => TagPosts(tag: tag.hashtag)),
+                                  onTap: () {
+                                    controller.suspendExplorePreview();
+                                    Get.to(() => TagPosts(tag: tag.hashtag))
+                                        ?.then((_) {
+                                      controller.resumeExplorePreview();
+                                    });
+                                  },
                                   trailing: const Icon(
                                       CupertinoIcons.arrow_turn_up_left,
                                       color: Colors.black45,
@@ -702,6 +719,13 @@ class ExploreView extends StatelessWidget {
 
   bool _shouldPlayExplorePreview(int index) {
     if (controller.explorePreviewSuspended.value) {
+      return false;
+    }
+    final exploreTabSelected = controller.selection.value == 1 &&
+        !controller.isSearchMode.value &&
+        !controller.isKeyboardOpen.value &&
+        controller.searchText.value.trim().isEmpty;
+    if (!exploreTabSelected) {
       return false;
     }
     if (controller.explorePreviewFocusIndex.value == index) {
