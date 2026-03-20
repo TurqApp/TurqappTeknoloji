@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -36,6 +37,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   String _resolvedUrl = '';
   String _resolvedFilePath = '';
   bool _didBootstrap = false;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   String _pickAvatarUrl(Map<String, dynamic>? raw) {
     if (raw == null || raw.isEmpty) return '';
@@ -112,7 +114,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     final users = UserRepository.ensure();
 
     try {
-      final cached = await users.getUser(
+      final cached = await _userSummaryResolver.resolve(
         uid,
         preferCache: true,
         cacheOnly: true,
@@ -148,7 +150,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     if (_resolvedUrl.isNotEmpty) return;
 
     try {
-      final fetched = await users.getUser(
+      final fetched = await _userSummaryResolver.resolve(
         uid,
         preferCache: true,
         cacheOnly: false,
