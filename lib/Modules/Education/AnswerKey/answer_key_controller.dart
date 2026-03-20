@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart'
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
+import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
 
 class AnswerKeyController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
@@ -82,6 +83,7 @@ class AnswerKeyController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
+    await AnswerKeyContentController.warmSavedIdsForCurrentUser();
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _answerKeySnapshotRepository

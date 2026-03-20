@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,25 +12,25 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
 
 class AnswerKeyContentController extends GetxController {
+  static final Map<String, Set<String>> _savedIdsByUser =
+      <String, Set<String>>{};
+  static final Map<String, Future<Set<String>>> _savedIdsLoaders =
+      <String, Future<Set<String>>>{};
   BookletModel model;
   final Function(bool) onUpdate;
 
   final isBookmarked = false.obs;
-  final avatarUrl = ''.obs;
-  final nickname = ''.obs;
   final secim = ''.obs;
 
   AnswerKeyContentController(this.model, this.onUpdate);
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   bool get isOwner => isCurrentUserId(model.userID);
 
@@ -45,39 +46,69 @@ class AnswerKeyContentController extends GetxController {
 
   void _initialize() {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    _fetchUserData();
-    _loadBookmarkState(currentUserId);
+    _primeBookmarkState(currentUserId);
+    unawaited(_loadBookmarkState(currentUserId));
     _updateViewCount(currentUserId);
+  }
+
+  void _primeBookmarkState(String? currentUserId) {
+    if (currentUserId == null) {
+      isBookmarked.value = false;
+      return;
+    }
+    final cachedIds = _savedIdsByUser[currentUserId];
+    if (cachedIds != null) {
+      isBookmarked.value = cachedIds.contains(model.docID);
+      return;
+    }
+    isBookmarked.value = false;
   }
 
   Future<void> _loadBookmarkState(String? currentUserId) async {
     if (currentUserId == null) return;
 
     try {
-      final savedEntry = await _userSubcollectionRepository.getEntry(
-        currentUserId,
-        subcollection: 'books',
-        docId: model.docID,
-        preferCache: true,
-        forceRefresh: false,
-      );
-      isBookmarked.value = savedEntry != null;
+      final savedIds = await _loadSavedIds(currentUserId);
+      isBookmarked.value = savedIds.contains(model.docID);
     } catch (e) {
       log("Kaydet durumu okunamadı: $e");
     }
   }
 
-  Future<void> _fetchUserData() async {
-    try {
-      final user = await _userSummaryResolver.resolve(
-        model.userID,
-        preferCache: true,
-      );
-      avatarUrl.value = user?.avatarUrl ?? '';
-      nickname.value = user?.preferredName ?? '';
-    } catch (e) {
-      log("Kullanıcı verisi çekme hatası: $e");
+  static Future<Set<String>> _loadSavedIds(String userId) {
+    final cached = _savedIdsByUser[userId];
+    if (cached != null) {
+      return Future<Set<String>>.value(cached);
     }
+    final existingLoader = _savedIdsLoaders[userId];
+    if (existingLoader != null) {
+      return existingLoader;
+    }
+
+    final loader = () async {
+      final entries = await UserSubcollectionRepository.ensure().getEntries(
+        userId,
+        subcollection: 'books',
+        orderByField: 'createdAt',
+        descending: true,
+        preferCache: true,
+        forceRefresh: false,
+      );
+      final ids = entries.map((entry) => entry.id).toSet();
+      _savedIdsByUser[userId] = ids;
+      return ids;
+    }();
+
+    _savedIdsLoaders[userId] = loader;
+    return loader.whenComplete(() {
+      _savedIdsLoaders.remove(userId);
+    });
+  }
+
+  static Future<void> warmSavedIdsForCurrentUser() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null || userId.isEmpty) return;
+    await _loadSavedIds(userId);
   }
 
   void _updateViewCount(String? currentUserId) {
@@ -106,6 +137,7 @@ class AnswerKeyContentController extends GetxController {
           docId: model.docID,
         );
         isBookmarked.value = false;
+        _savedIdsByUser[userId]?.remove(model.docID);
         return;
       }
 
@@ -118,6 +150,7 @@ class AnswerKeyContentController extends GetxController {
         },
       );
       isBookmarked.value = true;
+      _savedIdsByUser.putIfAbsent(userId, () => <String>{}).add(model.docID);
     } catch (e) {
       log("Yer işareti değiştirme hatası: $e");
     }
