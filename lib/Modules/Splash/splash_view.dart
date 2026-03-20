@@ -38,6 +38,7 @@ import '../../Modules/RecommendedUserList/recommended_user_list_controller.dart'
 import '../../Modules/Short/short_controller.dart';
 import '../../Modules/Story/StoryRow/story_row_controller.dart';
 import '../../Services/story_interaction_optimizer.dart';
+import '../../Services/user_analytics_service.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import '../../Services/current_user_service.dart';
 import '../../Services/account_center_service.dart';
@@ -228,7 +229,8 @@ class _SplashViewState extends State<SplashView> {
       loggedIn = false;
     }
     if (Get.isRegistered<PlaybackKpiService>()) {
-      Get.find<PlaybackKpiService>().track(
+      final playbackKpi = Get.find<PlaybackKpiService>();
+      playbackKpi.track(
         PlaybackKpiEventType.startup,
         {
           'launchToRouteMs':
@@ -243,6 +245,70 @@ class _SplashViewState extends State<SplashView> {
           'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
         },
       );
+      if (loggedIn) {
+        unawaited(
+          UserAnalyticsService.instance.trackRuntimeHealthSummary(
+            surface: 'feed',
+            cacheFirst: playbackKpi.summarizeCacheFirst(
+              surfaceKeyPrefix: 'feed_',
+            ),
+            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'feed'),
+            playbackWindow: playbackKpi.summarizePlaybackWindow(
+              surface: 'feed',
+            ),
+            extra: <String, dynamic>{
+              'launchToRouteMs':
+                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+              'warmSnapshotHit': _feedWarmSnapshotHit,
+              'warmSnapshotSource': _feedWarmSnapshotSource,
+              'warmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+            },
+          ),
+        );
+        unawaited(
+          UserAnalyticsService.instance.trackRuntimeHealthSummary(
+            surface: 'short',
+            cacheFirst: playbackKpi.summarizeCacheFirst(
+              surfaceKeyPrefix: 'short_',
+            ),
+            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'short'),
+            playbackWindow: playbackKpi.summarizePlaybackWindow(
+              surface: 'short',
+            ),
+            extra: <String, dynamic>{
+              'launchToRouteMs':
+                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+              'warmSnapshotHit': _shortWarmSnapshotHit,
+              'warmSnapshotSource': _shortWarmSnapshotSource,
+              'warmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
+            },
+          ),
+        );
+        unawaited(
+          UserAnalyticsService.instance.trackRuntimeHealthSummary(
+            surface: 'market',
+            cacheFirst: playbackKpi.summarizeCacheFirst(
+              surfaceKeyPrefix: 'market_',
+            ),
+            extra: <String, dynamic>{
+              'launchToRouteMs':
+                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+            },
+          ),
+        );
+        unawaited(
+          UserAnalyticsService.instance.trackRuntimeHealthSummary(
+            surface: 'jobs',
+            cacheFirst: playbackKpi.summarizeCacheFirst(
+              surfaceKeyPrefix: 'jobs_',
+            ),
+            extra: <String, dynamic>{
+              'launchToRouteMs':
+                  DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+            },
+          ),
+        );
+      }
     }
     _didNavigate = true;
     if (loggedIn) {

@@ -4,6 +4,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class UserAnalyticsService {
@@ -90,6 +91,58 @@ class UserAnalyticsService {
           .add({
         'feature': featureName,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        _writesDisabledByPermission = true;
+      }
+    } catch (_) {
+      // Silent fail for analytics
+    }
+  }
+
+  Future<void> trackRuntimeHealthSummary({
+    required String surface,
+    CacheFirstSurfaceSummary? cacheFirst,
+    RenderDiffSurfaceSummary? renderDiff,
+    PlaybackWindowSurfaceSummary? playbackWindow,
+    Map<String, dynamic>? extra,
+  }) async {
+    try {
+      if (!_canWrite) return;
+      if (!_userService.isLoggedIn) return;
+
+      await FirebaseFirestore.instance
+          .collection('Analytics')
+          .doc('RuntimeHealth')
+          .collection(_userService.userId)
+          .add({
+        'surface': surface,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        if (cacheFirst != null) ...{
+          'cacheEventCount': cacheFirst.eventCount,
+          'cacheLocalHitCount': cacheFirst.localHitCount,
+          'cacheWarmHitCount': cacheFirst.warmHitCount,
+          'cacheLiveSuccessCount': cacheFirst.liveSuccessCount,
+          'cacheLiveFailCount': cacheFirst.liveFailCount,
+          'cachePreservedPreviousCount': cacheFirst.preservedPreviousCount,
+          'cacheLocalHitRatio': cacheFirst.localHitRatio,
+        },
+        if (renderDiff != null) ...{
+          'renderEventCount': renderDiff.eventCount,
+          'renderPatchEventCount': renderDiff.patchEventCount,
+          'renderZeroDiffCount': renderDiff.zeroDiffCount,
+          'renderAverageOperations': renderDiff.averageOperations,
+          'renderMaxOperations': renderDiff.maxOperations,
+        },
+        if (playbackWindow != null) ...{
+          'playbackEventCount': playbackWindow.eventCount,
+          'playbackAverageVisibleCount': playbackWindow.averageVisibleCount,
+          'playbackAverageHotCount': playbackWindow.averageHotCount,
+          'playbackActiveLostCount': playbackWindow.activeLostCount,
+          'playbackMaxAttachedPlayers': playbackWindow.maxAttachedPlayers,
+        },
+        ...?extra,
       });
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
