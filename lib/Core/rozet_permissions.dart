@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 String normalizeRozetValue(String? raw) {
@@ -66,10 +67,9 @@ Future<String> getCurrentUserRozet() async {
   if (uid == null || uid.isEmpty) return '';
 
   try {
-    final summary = await UserRepository.ensure().getUser(
+    final summary = await UserSummaryResolver.ensure().resolve(
       uid,
       preferCache: true,
-      cacheOnly: false,
     );
     return summary?.rozet.trim() ?? '';
   } catch (_) {
@@ -91,10 +91,33 @@ Future<bool> ensureCurrentUserRozetPermission({
 }) async {
   final allowed = await currentUserHasRozetPermission(minimumRozet);
   if (!allowed) {
+    final badgeLabel = _localizedRozetLabel(minimumRozet);
     AppSnackbar(
-      'Yetki',
-      '$featureName için $minimumRozet rozet ve üstü hesap gerekli.',
+      'permission.required_title'.tr,
+      'permission.rozet_required_body'.trParams({
+        'feature': featureName,
+        'badge': badgeLabel,
+      }),
     );
   }
   return allowed;
+}
+
+String _localizedRozetLabel(String raw) {
+  switch (normalizeRozetValue(raw)) {
+    case 'gri':
+      return 'become_verified.badge_gray'.tr;
+    case 'turkuaz':
+      return 'become_verified.badge_turquoise'.tr;
+    case 'sari':
+      return 'become_verified.badge_yellow'.tr;
+    case 'mavi':
+      return 'become_verified.badge_blue'.tr;
+    case 'siyah':
+      return 'become_verified.badge_black'.tr;
+    case 'kirmizi':
+      return 'become_verified.badge_red'.tr;
+    default:
+      return raw;
+  }
 }
