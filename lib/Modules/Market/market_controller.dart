@@ -141,6 +141,10 @@ class MarketController extends GetxController {
     return listEquals(currentKeys, nextKeys);
   }
 
+  bool _sameVisibleItems(List<MarketItemModel> next) {
+    return _sameMarketEntries(visibleItems, next);
+  }
+
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
@@ -626,6 +630,9 @@ class MarketController extends GetxController {
       return _matchesLocalQuery(item, query);
     }).toList(growable: false)
       ..sort(_compareItems);
+    if (_sameVisibleItems(filtered)) {
+      return;
+    }
     visibleItems.assignAll(filtered);
   }
 

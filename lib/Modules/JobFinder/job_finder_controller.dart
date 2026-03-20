@@ -266,8 +266,10 @@ class JobFinderController extends GetxController {
       final fetchedJobs = _applyCurrentSorting(
         resource.data ?? const <JobModel>[],
       );
-      list.assignAll(fetchedJobs);
-      allJobs.assignAll(fetchedJobs);
+      if (!_sameJobList(fetchedJobs)) {
+        list.assignAll(fetchedJobs);
+        allJobs.assignAll(fetchedJobs);
+      }
       SilentRefreshGate.markRefreshed('jobs:home');
       if (shouldShowLoader) {
         isLoading.value = false;
