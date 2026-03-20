@@ -92,7 +92,9 @@ class LikedPostControllers extends GetxController {
   }) async {
     if (!silent) {
       isLoading.value = true;
-      all.clear();
+      if (all.isEmpty) {
+        all.clear();
+      }
     }
 
     try {
@@ -113,7 +115,7 @@ class LikedPostControllers extends GetxController {
   Future<void> refresh() async {
     final userId = _currentUserId;
     if (userId == null) return;
-    await _hydrate(userId, _latestRefs);
+    await _hydrate(userId, _latestRefs, forceRefresh: true);
   }
 
   void goToPage(int index) {

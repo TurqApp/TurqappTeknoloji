@@ -317,10 +317,6 @@ class SocialProfileController extends GetxController {
 
       _lastPrimaryDoc = null;
       _hasMorePrimary = true;
-      allPosts.clear();
-      photos.clear();
-      scheduledPosts.clear();
-      reshares.clear();
 
       await Future.wait([
         _fetchPrimaryBuckets(initial: true, force: true),

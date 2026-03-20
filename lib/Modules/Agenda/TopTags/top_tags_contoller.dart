@@ -73,7 +73,6 @@ class TopTagsController extends GetxController {
         limit: 15,
         reset: initial,
       );
-      if (initial) agendaList.clear();
       agendaList.assignAll(items);
       _restoreCenteredPost();
       if (items.length == before) {
@@ -87,7 +86,6 @@ class TopTagsController extends GetxController {
   }
 
   Future<void> getTags() async {
-    tags.clear();
     try {
       final list = await _repo.fetchTrendingTags(resultLimit: 15);
       tags.assignAll(list);
