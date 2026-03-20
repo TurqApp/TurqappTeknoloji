@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 
 import '../../../Models/posts_model.dart';
@@ -30,6 +30,7 @@ class ReshareAttribution extends StatefulWidget {
 
 class _ReshareAttributionState extends State<ReshareAttribution> {
   String? _resolvedNickname;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   TextStyle get _labelStyle =>
       widget.style ??
@@ -68,10 +69,9 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
   }
 
   Future<void> _loadNickname(String userId) async {
-    final summary = await UserRepository.ensure().getUser(
+    final summary = await _userSummaryResolver.resolve(
       userId,
       preferCache: true,
-      cacheOnly: false,
     );
     if (!mounted) return;
     final resolved = summary?.nickname.trim().isNotEmpty == true
