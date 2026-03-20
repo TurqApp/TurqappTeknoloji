@@ -160,6 +160,67 @@ class NotificationsSnapshotRepository extends GetxService {
     );
   }
 
+  Future<void> markReadLocally({
+    required String userId,
+    required List<String> docIds,
+    int limit = 300,
+  }) async {
+    if (userId.trim().isEmpty || docIds.isEmpty) return;
+    final current = await bootstrapInbox(
+      userId: userId,
+      limit: limit,
+    );
+    final items = current.data;
+    if (items == null || items.isEmpty) return;
+    final wanted = docIds.toSet();
+    final updated = items
+        .map((item) => wanted.contains(item.docID)
+            ? NotificationModel(
+                docID: item.docID,
+                desc: item.desc,
+                isRead: true,
+                type: item.type,
+                postID: item.postID,
+                postType: item.postType,
+                thumbnail: item.thumbnail,
+                timeStamp: item.timeStamp,
+                title: item.title,
+                userID: item.userID,
+              )
+            : item)
+        .toList(growable: false);
+    await persistInboxSnapshot(
+      userId: userId,
+      notifications: updated,
+      limit: limit,
+      source: CachedResourceSource.scopedDisk,
+    );
+  }
+
+  Future<void> deleteLocally({
+    required String userId,
+    required List<String> docIds,
+    int limit = 300,
+  }) async {
+    if (userId.trim().isEmpty || docIds.isEmpty) return;
+    final current = await bootstrapInbox(
+      userId: userId,
+      limit: limit,
+    );
+    final items = current.data;
+    if (items == null || items.isEmpty) return;
+    final wanted = docIds.toSet();
+    final updated = items
+        .where((item) => !wanted.contains(item.docID))
+        .toList(growable: false);
+    await persistInboxSnapshot(
+      userId: userId,
+      notifications: updated,
+      limit: limit,
+      source: CachedResourceSource.scopedDisk,
+    );
+  }
+
   Future<List<NotificationModel>> _fetchServerSnapshot(
     NotificationsSnapshotQuery query,
   ) async {

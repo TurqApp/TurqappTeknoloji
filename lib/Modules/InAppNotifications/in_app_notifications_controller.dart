@@ -273,10 +273,29 @@ class InAppNotificationsController extends GetxController {
   Future<void> delete(String docID) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    await _notificationsRepository.delete(uid, docID);
-
-    // Arayüz listesinden de kaldır
-    list.removeWhere((n) => n.docID == docID);
+    final previousAll = List<NotificationModel>.from(_allNotifications);
+    _allNotifications.removeWhere((n) => n.docID == docID);
+    _applyFilters();
+    _refreshUnreadTotal();
+    await _notificationsSnapshotRepository.deleteLocally(
+      userId: uid,
+      docIds: <String>[docID],
+    );
+    try {
+      await _notificationsRepository.delete(uid, docID);
+    } catch (_) {
+      _allNotifications
+        ..clear()
+        ..addAll(previousAll);
+      _applyFilters();
+      _refreshUnreadTotal();
+      unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
+        userId: uid,
+        notifications: previousAll,
+        source: CachedResourceSource.scopedDisk,
+      ));
+      rethrow;
+    }
   }
 
   Future<void> deleteMany(List<String> docIDs) async {
@@ -285,26 +304,57 @@ class InAppNotificationsController extends GetxController {
     if (uid == null) return;
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
-    await _notificationsRepository.deleteMany(uid, uniqueIds);
-    list.removeWhere((n) => uniqueIds.contains(n.docID));
+    final previousAll = List<NotificationModel>.from(_allNotifications);
+    _allNotifications.removeWhere((n) => uniqueIds.contains(n.docID));
+    _applyFilters();
+    _refreshUnreadTotal();
+    await _notificationsSnapshotRepository.deleteLocally(
+      userId: uid,
+      docIds: uniqueIds,
+    );
+    try {
+      await _notificationsRepository.deleteMany(uid, uniqueIds);
+    } catch (_) {
+      _allNotifications
+        ..clear()
+        ..addAll(previousAll);
+      _applyFilters();
+      _refreshUnreadTotal();
+      unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
+        userId: uid,
+        notifications: previousAll,
+        source: CachedResourceSource.scopedDisk,
+      ));
+      rethrow;
+    }
   }
 
   Future<void> markAsRead(String docID) async {
-    final idx = list.indexWhere((n) => n.docID == docID);
-    if (idx < 0 || list[idx].isRead) return;
+    final idx = _allNotifications.indexWhere((n) => n.docID == docID);
+    if (idx < 0 || _allNotifications[idx].isRead) return;
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    list[idx].isRead = true;
-    list.refresh();
+    _allNotifications[idx].isRead = true;
+    _applyFilters();
+    _refreshUnreadTotal();
+    await _notificationsSnapshotRepository.markReadLocally(
+      userId: uid,
+      docIds: <String>[docID],
+    );
 
     try {
       await _notificationsRepository.markRead(uid, docID);
       _refreshUnreadTotal();
     } catch (_) {
-      list[idx].isRead = false;
-      list.refresh();
+      _allNotifications[idx].isRead = false;
+      _applyFilters();
       _refreshUnreadTotal();
+      unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
+        userId: uid,
+        notifications: List<NotificationModel>.from(_allNotifications),
+        source: CachedResourceSource.scopedDisk,
+      ));
     }
   }
 
@@ -315,25 +365,37 @@ class InAppNotificationsController extends GetxController {
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
     final changed = <int>[];
-    for (var i = 0; i < list.length; i++) {
-      if (!uniqueIds.contains(list[i].docID) || list[i].isRead) continue;
-      list[i].isRead = true;
+    for (var i = 0; i < _allNotifications.length; i++) {
+      if (!uniqueIds.contains(_allNotifications[i].docID) ||
+          _allNotifications[i].isRead) {
+        continue;
+      }
+      _allNotifications[i].isRead = true;
       changed.add(i);
     }
     if (changed.isNotEmpty) {
-      list.refresh();
+      _applyFilters();
       _refreshUnreadTotal();
+      await _notificationsSnapshotRepository.markReadLocally(
+        userId: uid,
+        docIds: uniqueIds,
+      );
     }
 
     try {
       await _notificationsRepository.markManyRead(uid, uniqueIds);
     } catch (_) {
       for (final idx in changed) {
-        list[idx].isRead = false;
+        _allNotifications[idx].isRead = false;
       }
       if (changed.isNotEmpty) {
-        list.refresh();
+        _applyFilters();
         _refreshUnreadTotal();
+        unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
+          userId: uid,
+          notifications: List<NotificationModel>.from(_allNotifications),
+          source: CachedResourceSource.scopedDisk,
+        ));
       }
     }
   }
@@ -378,11 +440,15 @@ class InAppNotificationsController extends GetxController {
 
     try {
       await _notificationsRepository.markManyRead(uid, unread);
-      for (final item in list) {
+      for (final item in _allNotifications) {
         item.isRead = true;
       }
-      list.refresh();
+      _applyFilters();
       _refreshUnreadTotal();
+      await _notificationsSnapshotRepository.markReadLocally(
+        userId: uid,
+        docIds: unread,
+      );
     } finally {
       busyMarkAllRead.value = false;
     }

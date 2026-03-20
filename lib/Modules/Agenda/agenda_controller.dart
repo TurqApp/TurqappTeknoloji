@@ -391,17 +391,69 @@ class AgendaController extends GetxController {
     // merkez postu gereksiz yere -1 yapıp oynatma/pausa döngüsü oluşturmasın.
     final double stopThreshold = GetPlatform.isAndroid ? 0.25 : 0.40;
 
-    if (visibleFraction >= playThreshold) {
-      if (centeredIndex.value != modelIndex) {
-        centeredIndex.value = modelIndex;
-        lastCenteredIndex = modelIndex;
+    _scheduleVisibilityEvaluation(
+      playThreshold: playThreshold,
+      stopThreshold: stopThreshold,
+    );
+  }
+
+  void _scheduleVisibilityEvaluation({
+    required double playThreshold,
+    required double stopThreshold,
+  }) {
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(
+      GetPlatform.isAndroid
+          ? const Duration(milliseconds: 24)
+          : const Duration(milliseconds: 40),
+      () => _evaluateCenteredPlayback(
+        playThreshold: playThreshold,
+        stopThreshold: stopThreshold,
+      ),
+    );
+  }
+
+  void _evaluateCenteredPlayback({
+    required double playThreshold,
+    required double stopThreshold,
+  }) {
+    final current = centeredIndex.value;
+    var bestIndex = -1;
+    var bestFraction = 0.0;
+
+    _visibleFractions.forEach((index, fraction) {
+      if (index < 0 || index >= agendaList.length) return;
+      if (fraction < playThreshold) return;
+      final post = agendaList[index];
+      if (!_canAutoplayVideoPost(post)) return;
+      if (fraction > bestFraction) {
+        bestFraction = fraction;
+        bestIndex = index;
+      }
+    });
+
+    if (bestIndex >= 0) {
+      final currentFraction =
+          current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
+      final hysteresis = GetPlatform.isAndroid ? 0.10 : 0.06;
+      final shouldSwitch = current == -1 ||
+          current == bestIndex ||
+          currentFraction < playThreshold ||
+          bestFraction >= currentFraction + hysteresis;
+
+      if (shouldSwitch && centeredIndex.value != bestIndex) {
+        centeredIndex.value = bestIndex;
+        lastCenteredIndex = bestIndex;
       }
       _trackPlaybackWindow();
       return;
     }
 
-    if (visibleFraction < stopThreshold && centeredIndex.value == modelIndex) {
-      centeredIndex.value = -1;
+    if (current >= 0) {
+      final currentFraction = _visibleFractions[current] ?? 0.0;
+      if (currentFraction < stopThreshold) {
+        centeredIndex.value = -1;
+      }
     }
 
     _trackPlaybackWindow();
