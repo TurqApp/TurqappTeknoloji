@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/BottomSheets/show_action_sheet.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -37,6 +37,7 @@ class MessageContentController extends GetxController {
   var postPfImage = "".obs;
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   @override
   void onInit() {
@@ -54,10 +55,9 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> _loadMessageUser() async {
-    final user = await UserRepository.ensure().getUser(
+    final user = await _userSummaryResolver.resolve(
       model.userID,
       preferCache: true,
-      cacheOnly: false,
     );
     if (user == null) return;
     nickname.value = user.nickname.isNotEmpty
@@ -84,7 +84,7 @@ class MessageContentController extends GetxController {
               Row(
                 children: [
                   Text(
-                    "Haritalarda Aç",
+                    'chat.open_in_maps'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -114,7 +114,7 @@ class MessageContentController extends GetxController {
                       ),
                       SizedBox(width: 12),
                       Text(
-                        "Google Haritalar'da Aç",
+                        'chat.open_in_google_maps'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -147,7 +147,7 @@ class MessageContentController extends GetxController {
                         ),
                         SizedBox(width: 12),
                         Text(
-                          "Apple Haritalar'da Aç",
+                          'chat.open_in_apple_maps'.tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -189,7 +189,7 @@ class MessageContentController extends GetxController {
                       ),
                       SizedBox(width: 12),
                       Text(
-                        "Yandex Haritalar'da Aç",
+                        'chat.open_in_yandex_maps'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -230,7 +230,7 @@ class MessageContentController extends GetxController {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Kişi Bilgisi",
+                    'chat.contact_info'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -283,7 +283,7 @@ class MessageContentController extends GetxController {
                           border: Border.all(color: Colors.grey),
                         ),
                         child: Text(
-                          "Rehbere Kaydet",
+                          'chat.save_to_contacts'.tr,
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -309,7 +309,7 @@ class MessageContentController extends GetxController {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 15),
                           child: Text(
-                            "Telefon Et",
+                            'chat.call'.tr,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -339,15 +339,15 @@ class MessageContentController extends GetxController {
     if (currentUid == null || currentUid.isEmpty) return;
 
     await showActionSheet(
-      title: "Mesajı Sil",
-      message: "Bu mesajı silmek istediğinizden emin misiniz?",
+      title: 'chat.delete_message_title'.tr,
+      message: 'chat.delete_message_body'.tr,
       titleColor: Colors.black,
       messageColor: Colors.grey.shade600,
-      cancelText: "Vazgeç",
+      cancelText: 'common.cancel'.tr,
       cancelButtonColor: Colors.blueAccent,
       actions: [
         {
-          'text': "Sadece Benden Sil",
+          'text': 'chat.delete_for_me'.tr,
           'isDestructive': true,
           'color': Colors.red,
           'onPressed': () async {
@@ -359,7 +359,7 @@ class MessageContentController extends GetxController {
           },
         },
         {
-          'text': "Mesajı Herkesten Sil",
+          'text': 'chat.delete_for_everyone'.tr,
           'isDestructive': false,
           'color': Colors.red,
           'onPressed': () async {
@@ -387,10 +387,10 @@ class MessageContentController extends GetxController {
   Future<void> deleteSingleImage(String imgUrl) async {
     if (model.source == "preview") return;
     await noYesAlert(
-      title: "Fotoğrafı Sil",
-      message: "Bu fotoğrafı silmek istediğinizden emin misiniz?",
-      cancelText: "İptal",
-      yesText: "Fotoğrafı Sil",
+      title: 'chat.delete_photo_title'.tr,
+      message: 'chat.delete_photo_body'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'chat.delete_photo_confirm'.tr,
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
         await _conversationRepository.removeMessageImage(
@@ -410,10 +410,9 @@ class MessageContentController extends GetxController {
       return;
     }
     postModel.value = lookup.model;
-    final user = await UserRepository.ensure().getUser(
+    final user = await _userSummaryResolver.resolve(
       lookup.model!.userID,
       preferCache: true,
-      cacheOnly: false,
     );
     if (user == null) return;
     postNickname.value = user.preferredName;
