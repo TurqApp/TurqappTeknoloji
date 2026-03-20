@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 
 import 'test_state_probe.dart';
 
@@ -59,6 +60,7 @@ class SmokeArtifactCollector {
       'scenario': scenarioName,
       'probe': readIntegrationProbe(),
       'telemetry': _readTelemetry(),
+      'invariants': _readInvariants(),
       if (error != null) ...<String, dynamic>{
         'failure': <String, dynamic>{
           'error': '$error',
@@ -81,6 +83,20 @@ class SmokeArtifactCollector {
       ...RuntimeHealthExporter.exportFromKpiService(
         Get.find<PlaybackKpiService>(),
       ),
+    };
+  }
+
+  static Map<String, dynamic> _readInvariants() {
+    if (!Get.isRegistered<RuntimeInvariantGuard>()) {
+      return const <String, dynamic>{'registered': false};
+    }
+    final guard = Get.find<RuntimeInvariantGuard>();
+    return <String, dynamic>{
+      'registered': true,
+      'count': guard.recentViolations.length,
+      'violations': guard.recentViolations
+          .map((violation) => violation.toJson())
+          .toList(growable: false),
     };
   }
 
