@@ -342,8 +342,15 @@ class JobFinderController extends GetxController {
       }).toList();
 
       final sortedJobs = _applyCurrentSorting(updatedJobs);
-      list.assignAll(sortedJobs);
-      allJobs.assignAll(sortedJobs);
+      if (_sameJobEntries(allJobs, sortedJobs) && _sameJobList(sortedJobs)) {
+        return;
+      }
+      if (!_sameJobList(sortedJobs)) {
+        list.assignAll(sortedJobs);
+      }
+      if (!_sameJobEntries(allJobs, sortedJobs)) {
+        allJobs.assignAll(sortedJobs);
+      }
     } catch (_) {}
   }
 
