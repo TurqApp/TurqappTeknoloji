@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -94,6 +95,16 @@ class MarketController extends GetxController {
 
   bool _sameBadgeMap(Map<String, int> left, Map<String, int> right) {
     return mapEquals(left, right);
+  }
+
+  bool _sameMapList(
+    Iterable<Map<String, dynamic>> left,
+    Iterable<Map<String, dynamic>> right,
+  ) {
+    return listEquals(
+      left.map(jsonEncode).toList(growable: false),
+      right.map(jsonEncode).toList(growable: false),
+    );
   }
 
   bool _sameMarketList(List<MarketItemModel> next) {
@@ -208,8 +219,13 @@ class MarketController extends GetxController {
                 (b['label'] ?? '').toString(),
               ),
             );
-      categories.assignAll(loadedCategories);
-      roundMenuItems.assignAll(_schemaService.roundMenuItems());
+      final roundMenu = _schemaService.roundMenuItems();
+      if (!_sameMapList(categories, loadedCategories)) {
+        categories.assignAll(loadedCategories);
+      }
+      if (!_sameMapList(roundMenuItems, roundMenu)) {
+        roundMenuItems.assignAll(roundMenu);
+      }
     } catch (_) {}
     await _loadSavedItems();
     final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -242,8 +258,13 @@ class MarketController extends GetxController {
                 (b['label'] ?? '').toString(),
               ),
             );
-      categories.assignAll(loadedCategories);
-      roundMenuItems.assignAll(_schemaService.roundMenuItems());
+      final roundMenu = _schemaService.roundMenuItems();
+      if (!_sameMapList(categories, loadedCategories)) {
+        categories.assignAll(loadedCategories);
+      }
+      if (!_sameMapList(roundMenuItems, roundMenu)) {
+        roundMenuItems.assignAll(roundMenu);
+      }
       await _loadListingFromSnapshot(forceRefresh: forceRefresh);
       await _loadAllCityOptions();
       await _loadSavedItems();
@@ -696,12 +717,14 @@ class MarketController extends GetxController {
   Future<void> _loadRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
     final values = prefs.getStringList(_recentSearchesKey) ?? const <String>[];
-    recentSearches.assignAll(
-      values
-          .map((item) => item.trim())
-          .where((item) => item.isNotEmpty)
-          .toList(growable: false),
-    );
+    final next = values
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    if (_sameStringList(recentSearches, next)) {
+      return;
+    }
+    recentSearches.assignAll(next);
   }
 
   Future<void> _storeRecentSearch(String query) async {
@@ -717,7 +740,9 @@ class MarketController extends GetxController {
     if (next.length > 12) {
       next.removeRange(12, next.length);
     }
-    recentSearches.assignAll(next);
+    if (!_sameStringList(recentSearches, next)) {
+      recentSearches.assignAll(next);
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_recentSearchesKey, next);
   }
@@ -734,9 +759,15 @@ class MarketController extends GetxController {
       final activeFetched = (fetched.data ?? const <MarketItemModel>[])
           .where((item) => item.status == 'active')
           .toList(growable: false);
-      items.assignAll(_mergePendingCreatedItems(activeFetched));
+      final merged = _mergePendingCreatedItems(activeFetched);
+      if (!_sameMarketList(merged)) {
+        items.assignAll(merged);
+      }
     } catch (_) {
-      items.assignAll(_mergePendingCreatedItems(const <MarketItemModel>[]));
+      final merged = _mergePendingCreatedItems(const <MarketItemModel>[]);
+      if (!_sameMarketList(merged)) {
+        items.assignAll(merged);
+      }
     }
   }
 
