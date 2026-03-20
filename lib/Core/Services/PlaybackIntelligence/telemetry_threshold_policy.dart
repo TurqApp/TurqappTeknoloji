@@ -44,6 +44,15 @@ class SurfaceTelemetrySnapshot {
   final RenderDiffSurfaceSummary? renderDiff;
   final PlaybackWindowSurfaceSummary? playbackWindow;
 
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'surface': surface,
+      if (cacheFirst != null) 'cacheFirst': cacheFirst!.toJson(),
+      if (renderDiff != null) 'renderDiff': renderDiff!.toJson(),
+      if (playbackWindow != null) 'playbackWindow': playbackWindow!.toJson(),
+    };
+  }
+
   factory SurfaceTelemetrySnapshot.fromJson(Map<String, dynamic> json) {
     return SurfaceTelemetrySnapshot(
       surface: (json['surface'] ?? '').toString().trim(),

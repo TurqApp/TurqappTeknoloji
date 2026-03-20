@@ -502,7 +502,7 @@ Durum etiketleri:
 
 - `integration_test/` kritik smoke test dizini
   Durum: `KISMEN`
-  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi; replay sonrasi `count zero drop`, `active doc preserve` ve `notifications unread non-negative` assertion'lari eklendi; fixture contract katmani ile `dart-define` uzerinden `minCount/docIds/maxUnread` beklentileri verilebilir hale geldi; `scripts/run_integration_smoke.sh` ve release gate entegrasyonu ile bu kontratlar otomatik kosuya baglandi. Sonraki adim fixture verisini production-benzeri sabit bir JSON ile doldurmak ve CI/device smoke adimina tasimak.
+  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi; replay sonrasi `count zero drop`, `active doc preserve` ve `notifications unread non-negative` assertion'lari eklendi; fixture contract katmani ile `dart-define` uzerinden `minCount/docIds/maxUnread` beklentileri verilebilir hale geldi; `scripts/run_integration_smoke.sh` ve release gate entegrasyonu ile bu kontratlar otomatik kosuya baglandi; her smoke senaryosu artik `artifacts/integration_smoke/*.json` altina route/state/telemetry dump'i yaziyor. Sonraki adim fixture verisini production-benzeri sabit bir JSON ile doldurmak ve CI/device smoke adimina tasimak.
 - `lib/Core/Services/runtime_invariant_guard.dart`
   Durum: `KISMEN`
   Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
@@ -511,9 +511,10 @@ Durum etiketleri:
   Not: `telemetry_threshold_policy.dart` ile feed/short cache-first, render diff ve playback window KPI'lari icin warning/blocking issue ureten merkezi evaluator eklendi. `tool/telemetry_threshold_report.dart` + `scripts/export_telemetry_threshold_report.sh` ile JSON artefact ihraci ve opsiyonel release-blocking karar akisi baglandi. Sonraki adim bunu dashboard UI'ina ve backend alert kanalina baglamak.
 - release gate tek komut akisi
   Durum: `KISMEN`
-  Not: `scripts/run_release_gate_checks.sh` analyze/test/functions/security adimlarina ek olarak optional integration smoke ve telemetry threshold artefact export'unu kosuyor. Sonraki adim screenshot/KPI dump/route dump artefact toplama ve blocking threshold'lari CI/device akislariyla birlestirmek.
+  Not: `scripts/run_release_gate_checks.sh` analyze/test/functions/security adimlarina ek olarak optional integration smoke ve telemetry threshold artefact export'unu kosuyor. Sonraki adim screenshot artefact'i ve blocking threshold'lari CI/device akislariyla birlestirmek.
 - artifact toplama: screenshot + KPI dump + route dump
-  Durum: `EKSIK ALTYAPI`
+  Durum: `KISMEN`
+  Not: `RuntimeHealthExporter` ve smoke artifact collector ile `artifacts/integration_smoke/*.json` altina route/state probe + KPI summary + threshold report dump'i yaziliyor. Sonraki adim fail aninda otomatik screenshot ve gerekirse cihaz/simulatör görüntüsünü ayni artefact paketine baglamak.
 - flaky test / unstable raporlama katmani
   Durum: `EKSIK ALTYAPI`
 
@@ -569,7 +570,8 @@ Aktif faz:
 - Son tamamlanan gate isi: `scripts/run_integration_smoke.sh` + release gate optional smoke adimi.
 - Son tamamlanan telemetry isi: threshold policy ile KPI warning/blocking issue evaluator'u.
 - Son tamamlanan telemetry export isi: threshold report CLI + artifact export script + optional release-blocking gate entegrasyonu.
-- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak.
+- Son tamamlanan artifact isi: smoke test sonunda route/state/telemetry JSON dump'larinin `artifacts/integration_smoke/` altina yazilmasi.
+- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; fail anina screenshot artefact'i eklemek.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi

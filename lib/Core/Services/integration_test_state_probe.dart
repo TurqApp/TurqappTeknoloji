@@ -10,6 +10,7 @@ class IntegrationTestStateProbe {
   const IntegrationTestStateProbe._();
 
   static Map<String, dynamic> snapshot() {
+    final routing = Get.routing;
     return <String, dynamic>{
       'feed': _feedSnapshot(),
       'short': _shortSnapshot(),
@@ -18,6 +19,10 @@ class IntegrationTestStateProbe {
       'notifications': _notificationsSnapshot(),
       'navBar': _navBarSnapshot(),
       'currentRoute': Get.currentRoute,
+      'previousRoute': routing.previous,
+      'isBack': routing.isBack,
+      'isBottomSheet': routing.isBottomSheet,
+      'isDialog': routing.isDialog,
     };
   }
 
