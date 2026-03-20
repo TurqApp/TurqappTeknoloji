@@ -106,7 +106,7 @@ Future<void> replayFeedToNotificationsToFeed(
     field: 'unreadTotal',
   );
   expectSurfaceMatchesFixture('notifications', notificationsSnapshot);
-  await pageBackAndSettle(tester);
+  await popRouteAndSettle(tester);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);
   final feedSnapshot = readSurfaceProbe('feed');
