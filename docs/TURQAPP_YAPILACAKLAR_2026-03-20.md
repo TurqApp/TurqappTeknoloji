@@ -607,6 +607,7 @@ Aktif faz:
 - Son tamamlanan Android video smoke sonucu: `Feed` ilk kare ve scroll sonrasi siyah frame yakalanmadi; `Short` acilis, 4 swipe stress ve `Short -> Feed` geri donusu temiz gecti; `MyProfile` video detail geri donusu ve `SocialProfile -> Feed` geri donusu temiz dogrulandi.
 - Son tamamlanan Android bildirim/explore sonucu: `Notifications` empty state Android cihazda temiz acildi; `Explore` acildi ve `SearchedUser` arama sonucu Android cihazda temiz listelendi.
 - Son tamamlanan Android saved profile sonucu: `SavedPosts` Android cihazda temiz acildi; sekmeler stabil yüklendi ve kayitli icerik gorundu.
+- Son tamamlanan Android avatar smoke sonucu: `cached_user_avatar` current-user avatarinda ve feed/story yuzeyinde temiz cozuldu; placeholder yerine gercek avatarlar Android cihazda yüklendi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
@@ -633,7 +634,7 @@ Aktif faz:
 5. Ilk teknik odak:
    `Feed autoplay tuning` + `Short playback churn olcumu`
 6. Sonra:
-   `cached_user_avatar`, `BlockedUsers`, `FollowingFollowers` ve kalan Android profile yuzeylerini ikinci sweep ile tamamla
+   `FollowingFollowers` ve kalan Android profile yuzeylerini ikinci sweep ile tamamla
 7. Sonra:
    Android sweep matrisi `Dalga 2` yuzeylerini kayitli cihaz turu ile kapat
 8. Sonraki teknik odak:

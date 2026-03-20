@@ -69,7 +69,7 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 | Alan | Ekranlar | Kapsam | Durum | Android odak / acik |
 |---|---|---|---|---|
 | App shell | `Splash`, `SignIn`, `NavBar`, `Maintenance` | smoke + manuel | `OTOMATIK_YESIL` | login, route ve ana nav aciliyor; uzun sureli auth/session churn icin son sweep yine gerekli |
-| Feed / Agenda | `Feed`, `ClassicContent`, `SinglePost`, `Comments`, `TopTags`, `TagPosts`, `FloodListing`, `PostLikeListing`, `PostReshareListing` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi siyah frame yakalanmadi; feed video loop kapandi ve replay overlay geldi. Kalan acik: uzun scroll autoplay tuning ve decoder warning gozlemi |
+| Feed / Agenda | `Feed`, `ClassicContent`, `SinglePost`, `Comments`, `TopTags`, `TagPosts`, `FloodListing`, `PostLikeListing`, `PostReshareListing` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi siyah frame yakalanmadi; feed video loop kapandi ve replay overlay geldi; current user + feed/story avatar cozulumu temiz. Kalan acik: uzun scroll autoplay tuning ve decoder warning gozlemi |
 | Short | `Short`, `DynamicShort`, `SingleShort`, `PhotoShorts` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi acilis, 4-swipe stress ve feed geri donus temiz. Kalan acik: uzun swipe serilerinde decoder/churn sinyali olcumu |
 | Explore | `Explore`, `SearchedUser`, recent search | smoke + manuel | `MANUEL_YESIL` | ana explore ve `SearchedUser` arama sonucu temiz acildi; preview gate ve uzun arama/geri donus turu yine ikinci sweep ister |
 | Notifications | `InAppNotifications`, `notification_content` | smoke + manuel | `MANUEL_YESIL` | empty state Android cihazda temiz acildi; uzun liste + route return + content derinligi icin ikinci sweep gerekli |
