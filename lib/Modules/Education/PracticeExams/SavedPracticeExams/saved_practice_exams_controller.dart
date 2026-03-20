@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
@@ -16,6 +17,13 @@ class SavedPracticeExamsController extends GetxController {
   final RxList<String> savedExamIds = <String>[].obs;
   final RxList<SinavModel> savedExams = <SinavModel>[].obs;
   final RxBool isLoading = false.obs;
+
+  bool _sameIds(Iterable<String> next) {
+    return listEquals(
+      savedExamIds.toList(growable: false),
+      next.toList(growable: false),
+    );
+  }
 
   @override
   void onInit() {
@@ -34,7 +42,10 @@ class SavedPracticeExamsController extends GetxController {
       descending: true,
       cacheOnly: true,
     );
-    savedExamIds.assignAll(savedEntries.map((doc) => doc.id));
+    final cachedIds = savedEntries.map((doc) => doc.id).toList(growable: false);
+    if (!_sameIds(cachedIds)) {
+      savedExamIds.assignAll(cachedIds);
+    }
     if (savedEntries.isNotEmpty) {
       final exams = await _practiceExamRepository.fetchByIds(
         savedEntries.map((doc) => doc.id).toList(growable: false),
@@ -75,7 +86,10 @@ class SavedPracticeExamsController extends GetxController {
         forceRefresh: forceRefresh,
       );
 
-      savedExamIds.assignAll(savedEntries.map((doc) => doc.id));
+      final nextIds = savedEntries.map((doc) => doc.id).toList(growable: false);
+      if (!_sameIds(nextIds)) {
+        savedExamIds.assignAll(nextIds);
+      }
       if (savedEntries.isEmpty) {
         savedExams.clear();
         return;

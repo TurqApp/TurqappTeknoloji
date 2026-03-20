@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
@@ -83,6 +84,17 @@ class MarketController extends GetxController {
   StreamSubscription<CachedResource<List<MarketItemModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
+
+  bool _sameStringList(Iterable<String> left, Iterable<String> right) {
+    return listEquals(
+      left.toList(growable: false),
+      right.toList(growable: false),
+    );
+  }
+
+  bool _sameBadgeMap(Map<String, int> left, Map<String, int> right) {
+    return mapEquals(left, right);
+  }
 
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
@@ -710,14 +722,19 @@ class MarketController extends GetxController {
 
   Future<void> _loadAllCityOptions() async {
     try {
-      allCityOptions.assignAll(
-        await _cityDirectoryService.getSortedCities(),
-      );
+      final next = await _cityDirectoryService.getSortedCities();
+      if (_sameStringList(allCityOptions, next)) {
+        return;
+      }
+      allCityOptions.assignAll(next);
     } catch (_) {
       final fallback = <String>{
         ...availableCities,
       }.toList(growable: true);
       sortTurkishStrings(fallback);
+      if (_sameStringList(allCityOptions, fallback)) {
+        return;
+      }
       allCityOptions.assignAll(fallback);
     }
   }
@@ -758,21 +775,32 @@ class MarketController extends GetxController {
   Future<void> _loadSavedItems() async {
     final uid = _currentUid;
     if (uid.isEmpty) {
-      savedItemIds.clear();
+      if (savedItemIds.isNotEmpty) {
+        savedItemIds.clear();
+      }
       return;
     }
     try {
-      final ids = await MarketSavedStore.getSavedItemIds(uid);
-      savedItemIds.assignAll(ids.toList(growable: false));
+      final ids = (await MarketSavedStore.getSavedItemIds(uid)).toList(
+        growable: false,
+      )..sort();
+      if (_sameStringList(savedItemIds, ids)) {
+        return;
+      }
+      savedItemIds.assignAll(ids);
     } catch (_) {
-      savedItemIds.clear();
+      if (savedItemIds.isNotEmpty) {
+        savedItemIds.clear();
+      }
     }
   }
 
   Future<void> _loadRoundMenuBadges({required bool forceRefresh}) async {
     final uid = _currentUid;
     if (uid.isEmpty) {
-      roundMenuBadges.assignAll(const <String, int>{});
+      if (roundMenuBadges.isNotEmpty) {
+        roundMenuBadges.assignAll(const <String, int>{});
+      }
       return;
     }
 
@@ -797,17 +825,25 @@ class MarketController extends GetxController {
       final receivedOffers = results[2] as List<MarketOfferModel>;
       final totalOffers = sentOffers.length + receivedOffers.length;
 
-      roundMenuBadges.assignAll(<String, int>{
+      final next = <String, int>{
         'my_items': ownerItems,
         'saved': savedItemIds.length,
         'offers': totalOffers,
-      });
+      };
+      if (_sameBadgeMap(roundMenuBadges, next)) {
+        return;
+      }
+      roundMenuBadges.assignAll(next);
     } catch (_) {
-      roundMenuBadges.assignAll(<String, int>{
+      final fallback = <String, int>{
         'my_items': roundMenuBadges['my_items'] ?? 0,
         'saved': savedItemIds.length,
         'offers': roundMenuBadges['offers'] ?? 0,
-      });
+      };
+      if (_sameBadgeMap(roundMenuBadges, fallback)) {
+        return;
+      }
+      roundMenuBadges.assignAll(fallback);
     }
   }
 

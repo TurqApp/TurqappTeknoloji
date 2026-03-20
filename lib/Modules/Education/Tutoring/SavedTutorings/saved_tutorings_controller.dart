@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 
@@ -6,6 +7,13 @@ class SavedTutoringsController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
   var savedTutoringIds = <String>[].obs;
+
+  bool _sameIds(Iterable<String> next) {
+    return listEquals(
+      savedTutoringIds.toList(growable: false),
+      next.toList(growable: false),
+    );
+  }
 
   @override
   void onInit() {
@@ -23,9 +31,11 @@ class SavedTutoringsController extends GetxController {
         preferCache: true,
         forceRefresh: false,
       );
-      savedTutoringIds.value = entries.map((doc) => doc.id).toList();
-    } catch (_) {
-    }
+      final nextIds = entries.map((doc) => doc.id).toList(growable: false);
+      if (!_sameIds(nextIds)) {
+        savedTutoringIds.assignAll(nextIds);
+      }
+    } catch (_) {}
   }
 
   Future<void> addSavedTutoring(String docId) async {
