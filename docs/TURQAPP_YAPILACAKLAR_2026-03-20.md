@@ -507,7 +507,8 @@ Durum etiketleri:
   Durum: `KISMEN`
   Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
 - telemetry threshold / alert policy katmani
-  Durum: `EKSIK ALTYAPI`
+  Durum: `KISMEN`
+  Not: `telemetry_threshold_policy.dart` ile feed/short cache-first, render diff ve playback window KPI'lari icin warning/blocking issue ureten merkezi evaluator eklendi. Sonraki adim bunu release gate script raporuna, dashboard UI'ina ve backend alert kanalina baglamak.
 - release gate tek komut akisi
   Durum: `EKSIK ALTYAPI`
 - artifact toplama: screenshot + KPI dump + route dump
@@ -565,7 +566,8 @@ Aktif faz:
 - Son tamamlanan deterministic kalite isi: integration startup test mode ile splash intro / watchdog / periyodik nav yan etkilerinin sakinlestirilmesi.
 - Son tamamlanan fixture isi: integration fixture contract ile `minCount/docIds/maxUnread` beklentilerinin tanimlanabilmesi.
 - Son tamamlanan gate isi: `scripts/run_integration_smoke.sh` + release gate optional smoke adimi.
-- Sonraki teknik hedef: smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak.
+- Son tamamlanan telemetry isi: threshold policy ile KPI warning/blocking issue evaluator'u.
+- Sonraki teknik hedef: threshold report'u release gate script + artifact export + backend alert kanalina baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
