@@ -144,6 +144,7 @@ class DenemeSinavlariController extends GetxController {
   void scrolControlcu() {
     scrollController.addListener(() {
       double currentOffset = scrollController.position.pixels;
+      scrollOffset.value = currentOffset;
 
       if (currentOffset > _previousOffset) {
         if (showButons.value) showButons.value = false;

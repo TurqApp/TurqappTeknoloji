@@ -41,10 +41,6 @@ class DenemeSinavlari extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    _scrollController.addListener(() {
-      controller.scrollOffset.value = _scrollController.offset;
-    });
-
     final bodyContent = Expanded(
       child: RefreshIndicator(
         color: Colors.white,

@@ -137,6 +137,7 @@ class AnswerKeyController extends GetxController {
   }
 
   void _onScroll() {
+    scrollOffset.value = scrollController.offset;
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
         !hasActiveSearch &&
