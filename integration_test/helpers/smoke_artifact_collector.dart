@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/runtime_health_exporter.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
@@ -45,19 +46,21 @@ class SmokeArtifactCollector {
     Object? error,
     StackTrace? stackTrace,
   }) async {
+    final artifactDirectory = await _resolveArtifactDirectory();
     final screenshotPath = error == null
         ? null
         : await _captureFailureScreenshot(
             scenarioName,
+            artifactDirectory: artifactDirectory,
             tester: tester,
           );
     final outputFile = File(
-      'artifacts/integration_smoke/${_sanitizeFileName(scenarioName)}.json',
+      '${artifactDirectory.path}/${_sanitizeFileName(scenarioName)}.json',
     );
-    await outputFile.parent.create(recursive: true);
     final payload = <String, dynamic>{
       'generatedAt': DateTime.now().toUtc().toIso8601String(),
       'scenario': scenarioName,
+      'artifactDirectory': artifactDirectory.path,
       'probe': readIntegrationProbe(),
       'telemetry': _readTelemetry(),
       'invariants': _readInvariants(),
@@ -102,13 +105,13 @@ class SmokeArtifactCollector {
 
   static Future<String?> _captureFailureScreenshot(
     String scenarioName, {
+    required Directory artifactDirectory,
     WidgetTester? tester,
   }) async {
     final binding = IntegrationTestWidgetsFlutterBinding.instance;
     final fileName = '${_sanitizeFileName(scenarioName)}.png';
-    final outputFile = File('artifacts/integration_smoke/$fileName');
+    final outputFile = File('${artifactDirectory.path}/$fileName');
     try {
-      await outputFile.parent.create(recursive: true);
       await binding.convertFlutterSurfaceToImage();
       if (tester != null) {
         await tester.pump();
@@ -120,6 +123,21 @@ class SmokeArtifactCollector {
       return outputFile.path;
     } catch (_) {
       return null;
+    }
+  }
+
+  static Future<Directory> _resolveArtifactDirectory() async {
+    final fallbackBase = await getApplicationSupportDirectory();
+    final fallbackDirectory = Directory(
+      '${fallbackBase.path}/integration_smoke',
+    );
+    try {
+      final repoDirectory = Directory('artifacts/integration_smoke');
+      await repoDirectory.create(recursive: true);
+      return repoDirectory;
+    } catch (_) {
+      await fallbackDirectory.create(recursive: true);
+      return fallbackDirectory;
     }
   }
 
