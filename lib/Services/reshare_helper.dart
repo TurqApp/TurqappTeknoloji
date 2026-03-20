@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReshareHelper {
+  static final UserSummaryResolver _userSummaryResolver =
+      UserSummaryResolver.ensure();
   // Nickname cache - bellekte tutulan kullanıcı adları
   static final Map<String, String> _nicknameCache = {};
   static final Map<String, String> _displayNameCache = {};
@@ -36,10 +38,9 @@ class ReshareHelper {
       }
 
       String nickname = 'Bilinmeyen Kullanıcı';
-      final summary = await UserRepository.ensure().getUser(
+      final summary = await _userSummaryResolver.resolve(
         safeUserID,
         preferCache: true,
-        cacheOnly: false,
       );
       if (summary != null) {
         final resolved = summary.nickname.trim().isNotEmpty
@@ -92,10 +93,9 @@ class ReshareHelper {
       }
 
       String displayName = 'Bilinmeyen Kullanıcı';
-      final summary = await UserRepository.ensure().getUser(
+      final summary = await _userSummaryResolver.resolve(
         safeUserID,
         preferCache: true,
-        cacheOnly: false,
       );
       if (summary != null) {
         final resolved = summary.preferredName.trim();

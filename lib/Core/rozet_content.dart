@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 Color mapRozetToColor(String rozetRaw) {
   final key = rozetRaw.trim().toLowerCase();
@@ -38,6 +38,7 @@ Color mapRozetToColor(String rozetRaw) {
 class RozetController extends GetxController {
   final String userID;
   RozetController(this.userID);
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   Rx<Color> color = Colors.transparent.obs;
   static final Map<String, Color> _badgeCache = <String, Color>{};
@@ -85,10 +86,9 @@ class RozetController extends GetxController {
 
   Future<void> _fetchRozetOnce() async {
     try {
-      final summary = await UserRepository.ensure().getUser(
+      final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
-        cacheOnly: false,
       );
       if (summary == null) {
         color.value = Colors.transparent;
