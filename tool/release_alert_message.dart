@@ -8,7 +8,7 @@ Future<void> main(List<String> args) async {
 
   if (inputPath == null) {
     stderr.writeln(
-      'Usage: dart run tool/release_alert_message.dart --input <file> [--format raw|slack|discord]',
+      'Usage: dart run tool/release_alert_message.dart --input <file> [--format raw|slack|discord|teams]',
     );
     exitCode = 64;
     return;
@@ -38,6 +38,9 @@ Future<void> main(List<String> args) async {
       return;
     case 'discord':
       stdout.write(jsonEncode(_buildDiscordPayload(bundle)));
+      return;
+    case 'teams':
+      stdout.write(jsonEncode(_buildTeamsPayload(bundle)));
       return;
     default:
       stderr.writeln('Unknown format: $format');
@@ -92,6 +95,58 @@ Map<String, dynamic> _buildDiscordPayload(Map<String, dynamic> bundle) {
           ...nextActions.take(3).map((action) => 'Action: ${action.toString()}'),
         ].join('\n'),
         'color': _discordColorForSeverity(severity),
+      },
+    ],
+    'metadata': bundle,
+  };
+}
+
+Map<String, dynamic> _buildTeamsPayload(Map<String, dynamic> bundle) {
+  final summary = _asMap(bundle['summary']);
+  final topSignals = _asList(bundle['topSignals']);
+  final nextActions = _asList(bundle['nextActions']);
+  final severity = (summary['severity'] ?? 'unknown').toString();
+  final headline = (summary['headline'] ?? 'Release alert').toString();
+
+  return <String, dynamic>{
+    'type': 'message',
+    'attachments': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'contentType': 'application/vnd.microsoft.card.adaptive',
+        'content': <String, dynamic>{
+          r'$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',
+          'type': 'AdaptiveCard',
+          'version': '1.4',
+          'body': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'type': 'TextBlock',
+              'size': 'Medium',
+              'weight': 'Bolder',
+              'text': headline,
+              'wrap': true,
+            },
+            <String, dynamic>{
+              'type': 'TextBlock',
+              'spacing': 'Small',
+              'text': 'Severity: ${severity.toUpperCase()}',
+              'wrap': true,
+            },
+            for (final signal in topSignals.take(3))
+              <String, dynamic>{
+                'type': 'TextBlock',
+                'spacing': 'Small',
+                'text': _signalLine(signal),
+                'wrap': true,
+              },
+            for (final action in nextActions.take(3))
+              <String, dynamic>{
+                'type': 'TextBlock',
+                'spacing': 'Small',
+                'text': 'Action: ${action.toString()}',
+                'wrap': true,
+              },
+          ],
+        },
       },
     ],
     'metadata': bundle,
