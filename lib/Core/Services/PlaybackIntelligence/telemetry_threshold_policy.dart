@@ -1,4 +1,4 @@
-import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
 
 enum TelemetryThresholdSeverity {
   warning,
@@ -19,6 +19,16 @@ class TelemetryThresholdIssue {
   final String message;
   final TelemetryThresholdSeverity severity;
   final Map<String, dynamic> metrics;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'surface': surface,
+      'code': code,
+      'message': message,
+      'severity': severity.name,
+      'metrics': metrics,
+    };
+  }
 }
 
 class SurfaceTelemetrySnapshot {
@@ -33,6 +43,61 @@ class SurfaceTelemetrySnapshot {
   final CacheFirstSurfaceSummary? cacheFirst;
   final RenderDiffSurfaceSummary? renderDiff;
   final PlaybackWindowSurfaceSummary? playbackWindow;
+
+  factory SurfaceTelemetrySnapshot.fromJson(Map<String, dynamic> json) {
+    return SurfaceTelemetrySnapshot(
+      surface: (json['surface'] ?? '').toString().trim(),
+      cacheFirst: _parseCacheFirst(json['cacheFirst']),
+      renderDiff: _parseRenderDiff(json['renderDiff']),
+      playbackWindow: _parsePlaybackWindow(json['playbackWindow']),
+    );
+  }
+
+  static CacheFirstSurfaceSummary? _parseCacheFirst(dynamic raw) {
+    if (raw is! Map) return null;
+    return CacheFirstSurfaceSummary(
+      eventCount: _asInt(raw['eventCount']),
+      localHitCount: _asInt(raw['localHitCount']),
+      warmHitCount: _asInt(raw['warmHitCount']),
+      liveSuccessCount: _asInt(raw['liveSuccessCount']),
+      liveFailCount: _asInt(raw['liveFailCount']),
+      preservedPreviousCount: _asInt(raw['preservedPreviousCount']),
+    );
+  }
+
+  static RenderDiffSurfaceSummary? _parseRenderDiff(dynamic raw) {
+    if (raw is! Map) return null;
+    return RenderDiffSurfaceSummary(
+      eventCount: _asInt(raw['eventCount']),
+      patchEventCount: _asInt(raw['patchEventCount']),
+      zeroDiffCount: _asInt(raw['zeroDiffCount']),
+      averageOperations: _asDouble(raw['averageOperations']),
+      maxOperations: _asInt(raw['maxOperations']),
+    );
+  }
+
+  static PlaybackWindowSurfaceSummary? _parsePlaybackWindow(dynamic raw) {
+    if (raw is! Map) return null;
+    return PlaybackWindowSurfaceSummary(
+      eventCount: _asInt(raw['eventCount']),
+      averageVisibleCount: _asDouble(raw['averageVisibleCount']),
+      averageHotCount: _asDouble(raw['averageHotCount']),
+      activeLostCount: _asInt(raw['activeLostCount']),
+      maxAttachedPlayers: _asInt(raw['maxAttachedPlayers']),
+    );
+  }
+
+  static int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse('$value') ?? 0;
+  }
+
+  static double _asDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0;
+  }
 }
 
 class TelemetryThresholdReport {
@@ -46,6 +111,14 @@ class TelemetryThresholdReport {
 
   bool get hasBlocking => issues
       .any((issue) => issue.severity == TelemetryThresholdSeverity.blocking);
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'hasIssues': hasIssues,
+      'hasBlocking': hasBlocking,
+      'issues': issues.map((issue) => issue.toJson()).toList(growable: false),
+    };
+  }
 }
 
 class _SurfaceThresholds {
@@ -135,25 +208,6 @@ class TelemetryThresholdPolicy {
       issues.addAll(_evaluateSurface(snapshot, thresholds));
     }
     return TelemetryThresholdReport(issues: issues);
-  }
-
-  static TelemetryThresholdReport evaluateKpiService(
-    PlaybackKpiService service,
-  ) {
-    return evaluateSnapshots(<SurfaceTelemetrySnapshot>[
-      SurfaceTelemetrySnapshot(
-        surface: 'feed',
-        cacheFirst: service.summarizeCacheFirst(surfaceKeyPrefix: 'feed_'),
-        renderDiff: service.summarizeRenderDiff(surface: 'feed'),
-        playbackWindow: service.summarizePlaybackWindow(surface: 'feed'),
-      ),
-      SurfaceTelemetrySnapshot(
-        surface: 'short',
-        cacheFirst: service.summarizeCacheFirst(surfaceKeyPrefix: 'short_'),
-        renderDiff: service.summarizeRenderDiff(surface: 'short'),
-        playbackWindow: service.summarizePlaybackWindow(surface: 'short'),
-      ),
-    ]);
   }
 
   static List<TelemetryThresholdIssue> _evaluateSurface(

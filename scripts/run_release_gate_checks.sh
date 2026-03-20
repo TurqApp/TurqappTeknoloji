@@ -32,6 +32,9 @@ echo "[7/8] cloudflare-shortlink-worker npm test"
 echo "[8/8] security regression guard"
 bash scripts/check_repo_security_regressions.sh
 
+echo "[telemetry-threshold-report]"
+bash scripts/export_telemetry_threshold_report.sh
+
 if [[ "${RUN_K6_SMOKE:-0}" == "1" ]]; then
   echo "[k6] smoke profile"
   if [[ -z "${ID_TOKEN:-}" ]]; then

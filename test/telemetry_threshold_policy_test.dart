@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/telemetry_threshold_policy_adapter.dart';
 
 void main() {
   test('flags blocking issue when feed local hit ratio collapses', () {
@@ -71,7 +73,7 @@ void main() {
       });
     }
 
-    final report = TelemetryThresholdPolicy.evaluateKpiService(service);
+    final report = TelemetryThresholdPolicyAdapter.evaluateKpiService(service);
     expect(report.hasIssues, isTrue);
     expect(
       report.issues.any((issue) => issue.surface == 'feed'),

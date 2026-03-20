@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
 
 enum PlaybackKpiEventType {
   startup,
@@ -23,59 +24,6 @@ class PlaybackKpiEvent {
     required this.type,
     required this.payload,
   });
-}
-
-class CacheFirstSurfaceSummary {
-  const CacheFirstSurfaceSummary({
-    required this.eventCount,
-    required this.localHitCount,
-    required this.warmHitCount,
-    required this.liveSuccessCount,
-    required this.liveFailCount,
-    required this.preservedPreviousCount,
-  });
-
-  final int eventCount;
-  final int localHitCount;
-  final int warmHitCount;
-  final int liveSuccessCount;
-  final int liveFailCount;
-  final int preservedPreviousCount;
-
-  double get localHitRatio =>
-      eventCount == 0 ? 0 : localHitCount / eventCount;
-}
-
-class RenderDiffSurfaceSummary {
-  const RenderDiffSurfaceSummary({
-    required this.eventCount,
-    required this.patchEventCount,
-    required this.zeroDiffCount,
-    required this.averageOperations,
-    required this.maxOperations,
-  });
-
-  final int eventCount;
-  final int patchEventCount;
-  final int zeroDiffCount;
-  final double averageOperations;
-  final int maxOperations;
-}
-
-class PlaybackWindowSurfaceSummary {
-  const PlaybackWindowSurfaceSummary({
-    required this.eventCount,
-    required this.averageVisibleCount,
-    required this.averageHotCount,
-    required this.activeLostCount,
-    required this.maxAttachedPlayers,
-  });
-
-  final int eventCount;
-  final double averageVisibleCount;
-  final double averageHotCount;
-  final int activeLostCount;
-  final int maxAttachedPlayers;
 }
 
 class PlaybackKpiService extends GetxService {
@@ -206,10 +154,12 @@ class PlaybackKpiService extends GetxService {
 
     return PlaybackWindowSurfaceSummary(
       eventCount: eventCount,
-      averageVisibleCount:
-          surface == 'feed' && eventCount > 0 ? visibleOrHotTotal / eventCount : 0,
-      averageHotCount:
-          surface == 'short' && eventCount > 0 ? visibleOrHotTotal / eventCount : 0,
+      averageVisibleCount: surface == 'feed' && eventCount > 0
+          ? visibleOrHotTotal / eventCount
+          : 0,
+      averageHotCount: surface == 'short' && eventCount > 0
+          ? visibleOrHotTotal / eventCount
+          : 0,
       activeLostCount: activeLostCount,
       maxAttachedPlayers: maxAttachedPlayers,
     );

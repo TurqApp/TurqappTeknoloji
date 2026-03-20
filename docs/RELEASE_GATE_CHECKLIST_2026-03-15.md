@@ -9,6 +9,7 @@
 - `functions/npm run build`
 - `cloudflare-shortlink-worker/npm test`
 - `bash scripts/check_repo_security_regressions.sh`
+- `bash scripts/export_telemetry_threshold_report.sh` (`TELEMETRY_INPUT_FILE` varsa)
 
 Tek komut:
 
@@ -29,6 +30,22 @@ Doğrudan smoke script:
 ```bash
 INTEGRATION_FIXTURE_FILE=integration_test/fixtures/smoke_fixture.example.json \
 bash scripts/run_integration_smoke.sh
+```
+
+Telemetry threshold report:
+
+```bash
+TELEMETRY_INPUT_FILE=tests/fixtures/telemetry_threshold_input.example.json \
+TELEMETRY_REPORT_OUTPUT=artifacts/telemetry_threshold_report_latest.json \
+bash scripts/export_telemetry_threshold_report.sh
+```
+
+Blocking threshold ihlalinde release gate'i düşürmek için:
+
+```bash
+TELEMETRY_INPUT_FILE=tests/fixtures/telemetry_threshold_input.example.json \
+TELEMETRY_FAIL_ON_BLOCKING=1 \
+bash scripts/run_release_gate_checks.sh
 ```
 
 ## k6 Testleri
@@ -88,6 +105,8 @@ k6 run \
 - Functions unit/rules/build yeşil
 - Cloudflare worker testleri yeşil
 - Security regression guard yeşil
+- Telemetry threshold report üretilmiş
+- Telemetry blocking issue yok, varsa gate bilinçli olarak kırılmış
 - k6 smoke raporu üretilmiş
 - Crashlytics kritik yeni issue yok
 - Performance dashboard’da startup / first frame / error bandı stabil
@@ -102,6 +121,7 @@ k6 run \
 
 ## Artefactlar
 - `tests/load/k6_results_latest.json`
+- `artifacts/telemetry_threshold_report_latest.json`
 - `tests/load/k6_summary_smoke_search_only_latest.json`
 - `tests/load/k6_summary_feed_only_feed_only_latest.json`
 - `tests/load/k6_summary_smoke_interaction_only_latest.json`

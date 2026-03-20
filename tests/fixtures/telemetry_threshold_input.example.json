@@ -1,0 +1,54 @@
+{
+  "surfaces": [
+    {
+      "surface": "feed",
+      "cacheFirst": {
+        "eventCount": 6,
+        "localHitCount": 1,
+        "warmHitCount": 0,
+        "liveSuccessCount": 2,
+        "liveFailCount": 3,
+        "preservedPreviousCount": 1
+      },
+      "renderDiff": {
+        "eventCount": 6,
+        "patchEventCount": 6,
+        "zeroDiffCount": 1,
+        "averageOperations": 18,
+        "maxOperations": 34
+      },
+      "playbackWindow": {
+        "eventCount": 6,
+        "averageVisibleCount": 2.1,
+        "averageHotCount": 0,
+        "activeLostCount": 1,
+        "maxAttachedPlayers": 3
+      }
+    },
+    {
+      "surface": "short",
+      "cacheFirst": {
+        "eventCount": 5,
+        "localHitCount": 1,
+        "warmHitCount": 1,
+        "liveSuccessCount": 3,
+        "liveFailCount": 1,
+        "preservedPreviousCount": 0
+      },
+      "renderDiff": {
+        "eventCount": 5,
+        "patchEventCount": 5,
+        "zeroDiffCount": 0,
+        "averageOperations": 9,
+        "maxOperations": 17
+      },
+      "playbackWindow": {
+        "eventCount": 5,
+        "averageVisibleCount": 0,
+        "averageHotCount": 3,
+        "activeLostCount": 0,
+        "maxAttachedPlayers": 6
+      }
+    }
+  ]
+}
