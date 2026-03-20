@@ -609,6 +609,7 @@ Aktif faz:
 - Son tamamlanan Android saved profile sonucu: `SavedPosts` Android cihazda temiz acildi; sekmeler stabil yüklendi ve kayitli icerik gorundu.
 - Son tamamlanan Android avatar smoke sonucu: `cached_user_avatar` current-user avatarinda ve feed/story yuzeyinde temiz cozuldu; placeholder yerine gercek avatarlar Android cihazda yüklendi.
 - Son tamamlanan Android egitim/pasaj sonucu: `Job` listesi, owner `JobDetails` ve listeye geri donus temiz; `Özel Ders` detail ekranı temiz acildi; `Online Sınav` liste ve `Basvuru/Hemen Basvur` satiri Android cihazda stabil gorundu.
+- Son tamamlanan Android cevap anahtari sonucu: `Cevap Anahtari` listesi temiz acildi; `Kitap Detayi` ve alt `Cevap Anahtarlari` preview bolumu Android cihazda temiz doğrulandi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
