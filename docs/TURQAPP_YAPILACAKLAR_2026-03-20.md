@@ -502,7 +502,7 @@ Durum etiketleri:
 
 - `integration_test/` kritik smoke test dizini
   Durum: `KISMEN`
-  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini bulabiliyor; sonraki adim deterministic fixture, route replay ve daha derin assertion'lar.
+  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini bulabiliyor. Ek olarak state probe ile `feed/short/profile/socialProfile/notifications` controller snapshot'i testten okunabilir hale geldi; sonraki adim deterministic fixture, route replay ve daha derin assertion'lar.
 - `lib/Core/Services/runtime_invariant_guard.dart`
   Durum: `KISMEN`
   Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
@@ -559,6 +559,7 @@ Aktif faz:
 - Son tamamlanan kritik urun isi: feed visibility + hybrid feed fallback fix.
 - Son tamamlanan kalite isi: `runtime invariant guard` ilk dilimi + `Notifications` invariantlari + `integration_test/` iskeleti.
 - Son tamamlanan smoke isi: ana nav ve kritik ekranlar icin kararlı integration test key'leri.
+- Son tamamlanan probe isi: kritik controller state'lerini testten okunabilir hale getiren state probe katmani.
 - Sonraki teknik hedef: smoke testleri deterministic fixture + route replay + state assertion seviyesine tasimak.
 
 1. Repo truth pass:
