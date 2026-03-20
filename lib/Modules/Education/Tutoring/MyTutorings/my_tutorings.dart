@@ -92,7 +92,6 @@ class MyTutorings extends StatelessWidget {
                                 builder: (context) {
                                   final content = TutoringWidgetBuilder(
                                     tutoringList: controller.activeTutorings,
-                                    users: controller.users,
                                     isGridView:
                                         viewModeController.isGridView.value,
                                     infoMessage: Infomessage(
@@ -123,7 +122,6 @@ class MyTutorings extends StatelessWidget {
                             : SingleChildScrollView(
                                 child: TutoringWidgetBuilder(
                                   tutoringList: controller.expiredTutorings,
-                                  users: controller.users,
                                   isGridView: false,
                                   allowReactivate: true,
                                   infoMessage: Infomessage(

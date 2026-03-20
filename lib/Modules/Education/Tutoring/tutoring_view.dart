@@ -161,7 +161,8 @@ class TutoringView extends StatelessWidget {
               } else if (filterController.selectedSort.value ==
                   'Bana En Yakın') {
                 final userCity =
-                    (CurrentUserService.instance.currentUser?.city ?? '').trim();
+                    (CurrentUserService.instance.currentUser?.city ?? '')
+                        .trim();
                 filteredList.sort((a, b) {
                   final aScore = a.sehir == userCity ? 1 : 0;
                   final bScore = b.sehir == userCity ? 1 : 0;
@@ -285,7 +286,6 @@ class TutoringView extends StatelessWidget {
                   }
                   final content = TutoringWidgetBuilder(
                     tutoringList: filteredList,
-                    users: tutoringController.users,
                     isGridView: viewModeController.isGridView.value,
                   );
                   if (viewModeController.isGridView.value) {

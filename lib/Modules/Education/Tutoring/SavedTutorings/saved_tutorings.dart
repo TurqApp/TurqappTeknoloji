@@ -48,15 +48,13 @@ class SavedTutorings extends StatelessWidget {
               child: Obx(() {
                 final filteredList = tutoringController.tutoringList
                     .where(
-                      (tutoring) =>
-                          savedController.savedTutoringIds.contains(
+                      (tutoring) => savedController.savedTutoringIds.contains(
                         tutoring.docID,
                       ),
                     )
                     .toList();
                 final content = TutoringWidgetBuilder(
                   tutoringList: filteredList,
-                  users: tutoringController.users,
                   isGridView: viewModeController.isGridView.value,
                   infoMessage: Infomessage(
                     infoMessage: 'tutoring.saved_empty'.tr,

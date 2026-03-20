@@ -27,7 +27,6 @@ String? getCurrentUserId() {
 
 class TutoringWidgetBuilder extends StatelessWidget {
   final List<TutoringModel> tutoringList;
-  final Map<String, Map<String, dynamic>> users;
   final bool isGridView;
   final Widget? infoMessage;
   final bool allowReactivate;
@@ -35,7 +34,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
   const TutoringWidgetBuilder({
     super.key,
     required this.tutoringList,
-    required this.users,
     required this.isGridView,
     this.infoMessage,
     this.allowReactivate = false,

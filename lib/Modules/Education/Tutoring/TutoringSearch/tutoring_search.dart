@@ -64,7 +64,6 @@ class TutoringSearch extends StatelessWidget {
                     return SingleChildScrollView(
                       child: TutoringWidgetBuilder(
                         tutoringList: controller.searchResults,
-                        users: controller.users,
                         isGridView: viewModeController.isGridView.value,
                         infoMessage: Infomessage(
                           infoMessage: 'tutoring.search_empty_info'.tr,

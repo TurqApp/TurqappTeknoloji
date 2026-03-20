@@ -61,7 +61,6 @@ class LocationBasedTutoring extends StatelessWidget {
                   final content = SingleChildScrollView(
                     child: TutoringWidgetBuilder(
                       tutoringList: controller.tutoringList,
-                      users: controller.users,
                       isGridView: viewModeController.isGridView.value,
                       infoMessage: Infomessage(
                         infoMessage: 'tutoring.no_listings_in_region'.tr,

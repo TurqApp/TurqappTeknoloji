@@ -49,7 +49,6 @@ class TutoringContent extends StatelessWidget {
                 final content = SingleChildScrollView(
                   child: TutoringWidgetBuilder(
                     tutoringList: filteredTutoringList,
-                    users: controller.users,
                     isGridView: viewModeController.isGridView.value,
                   ),
                 );
