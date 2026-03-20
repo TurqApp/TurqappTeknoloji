@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
@@ -18,6 +19,46 @@ class MyJobAdsController extends GetxController {
   RxList<JobModel> active = <JobModel>[].obs;
   RxList<JobModel> deactive = <JobModel>[].obs;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
+  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
+    final currentKeys = current
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.ended,
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.ended,
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -47,7 +88,10 @@ class MyJobAdsController extends GetxController {
       cacheOnly: true,
     );
     if (cachedActive.isNotEmpty) {
-      active.assignAll(_filterAndNormalizeExpired(cachedActive));
+      final nextActive = _filterAndNormalizeExpired(cachedActive);
+      if (!_sameJobEntries(active, nextActive)) {
+        active.assignAll(nextActive);
+      }
       isLoadingActive.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:my_ads:active:$uid',
@@ -65,7 +109,9 @@ class MyJobAdsController extends GetxController {
       cacheOnly: true,
     );
     if (cachedEnded.isNotEmpty) {
-      deactive.assignAll(cachedEnded);
+      if (!_sameJobEntries(deactive, cachedEnded)) {
+        deactive.assignAll(cachedEnded);
+      }
       isLoadingDeactive.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'jobs:my_ads:ended:$uid',
@@ -97,7 +143,10 @@ class MyJobAdsController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
-      active.assignAll(_filterAndNormalizeExpired(jobs));
+      final nextActive = _filterAndNormalizeExpired(jobs);
+      if (!_sameJobEntries(active, nextActive)) {
+        active.assignAll(nextActive);
+      }
       SilentRefreshGate.markRefreshed('jobs:my_ads:active:$uid');
     } catch (_) {
     } finally {
@@ -115,12 +164,15 @@ class MyJobAdsController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
-      deactive.value = await _jobRepository.fetchByOwnerAndEnded(
+      final nextDeactive = await _jobRepository.fetchByOwnerAndEnded(
         uid,
         ended: true,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      if (!_sameJobEntries(deactive, nextDeactive)) {
+        deactive.value = nextDeactive;
+      }
       SilentRefreshGate.markRefreshed('jobs:my_ads:ended:$uid');
     } catch (_) {
     } finally {

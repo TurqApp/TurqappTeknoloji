@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
@@ -24,6 +25,47 @@ class MyTutoringsController extends GetxController {
   final PageController pageController = PageController();
   final RxInt selection = 0.obs;
   final RxBool isLoading = true.obs;
+
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+            item.ended,
+            item.endedAt,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+            item.ended,
+            item.endedAt,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -49,7 +91,9 @@ class MyTutoringsController extends GetxController {
       cacheOnly: true,
     );
     if (cached.isNotEmpty) {
-      myTutorings.assignAll(cached);
+      if (!_sameTutoringEntries(myTutorings, cached)) {
+        myTutorings.assignAll(cached);
+      }
       updateTutoringsStatus();
       final userIds = cached.map((t) => t.userID).toSet();
       if (userIds.isNotEmpty) {
@@ -91,7 +135,9 @@ class MyTutoringsController extends GetxController {
         preferCache: false,
         forceRefresh: true,
       );
-      myTutorings.assignAll(refreshed);
+      if (!_sameTutoringEntries(myTutorings, refreshed)) {
+        myTutorings.assignAll(refreshed);
+      }
 
       updateTutoringsStatus();
 

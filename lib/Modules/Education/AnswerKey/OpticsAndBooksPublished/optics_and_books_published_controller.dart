@@ -66,10 +66,13 @@ class OpticsAndBooksPublishedController extends GetxController {
         .map(
           (item) => [
             item.docID,
-            item.baslik,
-            item.sinavTuru,
-            item.timeStamp,
-            item.cover,
+            item.name,
+            item.userID,
+            item.cevaplar.length,
+            item.max,
+            item.baslangic,
+            item.bitis,
+            item.kisitlama,
           ].join('::'),
         )
         .toList(growable: false);
@@ -77,10 +80,13 @@ class OpticsAndBooksPublishedController extends GetxController {
         .map(
           (item) => [
             item.docID,
-            item.baslik,
-            item.sinavTuru,
-            item.timeStamp,
-            item.cover,
+            item.name,
+            item.userID,
+            item.cevaplar.length,
+            item.max,
+            item.baslangic,
+            item.bitis,
+            item.kisitlama,
           ].join('::'),
         )
         .toList(growable: false);
