@@ -172,3 +172,14 @@ Future<void> pageBackAndSettle(
   }
   await expectNoFlutterException(tester);
 }
+
+Future<void> popRouteAndSettle(
+  WidgetTester tester, {
+  int settlePumps = 8,
+}) async {
+  await tester.binding.handlePopRoute();
+  for (var i = 0; i < settlePumps; i++) {
+    await tester.pump(const Duration(milliseconds: 250));
+  }
+  await expectNoFlutterException(tester);
+}

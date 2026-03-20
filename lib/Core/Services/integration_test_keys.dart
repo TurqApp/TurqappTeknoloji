@@ -13,4 +13,5 @@ class IntegrationTestKeys {
   static const String screenNotifications = 'it-screen-notifications';
 
   static const String actionOpenNotifications = 'it-action-open-notifications';
+  static const String actionShortBack = 'it-action-short-back';
 }

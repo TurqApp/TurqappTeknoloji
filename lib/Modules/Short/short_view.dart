@@ -365,10 +365,13 @@ class _ShortViewState extends State<ShortView> {
     isManuallyPaused = false;
     final hadActiveAdapter = controller.cache[currentPage] != null;
 
-    // İlk açılışta warm-start/preload cache'inden gelen diğer adapter'ları
-    // bırakıp sadece aktif videoyu tut. Aksi halde aktif video birkaç saniye
-    // sonra offscreen adapter akışı tarafından susturulabiliyor.
-    await controller.keepOnlyIndex(currentPage);
+    // Android'de ilk giriste komsu short'lari fazla erken dispose etmek,
+    // ilk swipe'ta videonun ilk karede kalmasina yol aciyordu. Burada
+    // sadece iOS tarafinda agresif trim yapip Android'in hot/warm penceresini
+    // koruyoruz; updateCacheTiers zaten toplam oyuncu sayisini kontrol ediyor.
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      await controller.keepOnlyIndex(currentPage);
+    }
 
     // Cache tier'larını güncelle (ilk 5 preload dahil)
     await controller.updateCacheTiers(currentPage);
@@ -927,6 +930,9 @@ class _ShortViewState extends State<ShortView> {
                                   children: [
                                     _buildCircleButton(
                                       icon: CupertinoIcons.arrow_left,
+                                      key: const ValueKey(
+                                        IntegrationTestKeys.actionShortBack,
+                                      ),
                                       onTap: () => Get.back(),
                                     ),
                                     _buildCircleButton(
@@ -990,10 +996,12 @@ class _ShortViewState extends State<ShortView> {
   }
 
   Widget _buildCircleButton({
+    Key? key,
     required IconData icon,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
         width: 40,

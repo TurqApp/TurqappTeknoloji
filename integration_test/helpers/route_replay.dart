@@ -68,7 +68,7 @@ Future<void> replayFeedToShortToFeed(
   );
   final shortSnapshot = readSurfaceProbe('short');
   expectSurfaceMatchesFixture('short', shortSnapshot);
-  await pageBackAndSettle(tester);
+  await popRouteAndSettle(tester);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);
   final feedSnapshot = readSurfaceProbe('feed');
