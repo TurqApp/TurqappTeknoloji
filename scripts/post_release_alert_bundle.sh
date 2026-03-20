@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+source scripts/load_release_alert_env.sh
+
 bundle_file="${RELEASE_ALERT_BUNDLE_OUTPUT:-artifacts/release_alert_bundle_latest.json}"
 webhook_url="${RELEASE_ALERT_WEBHOOK_URL:-}"
 fail_on_post_error="${RELEASE_ALERT_FAIL_ON_POST_ERROR:-0}"
