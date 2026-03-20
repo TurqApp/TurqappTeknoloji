@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
-import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
@@ -15,10 +14,8 @@ class LocationBasedTutoringController extends GetxController {
   static const String _cacheKey = 'location_tutoring_cache_v1';
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   var isLoading = true.obs;
   var tutoringList = <TutoringModel>[].obs;
-  var users = <String, Map<String, dynamic>>{}.obs;
 
   @override
   void onInit() {
@@ -30,34 +27,11 @@ class LocationBasedTutoringController extends GetxController {
     final cached = await _readCache();
     if (cached.isNotEmpty) {
       tutoringList.assignAll(cached);
-      await _batchFetchUsers(
-        cached.map((t) => t.userID).where((id) => id.isNotEmpty).toSet(),
-        cacheOnly: true,
-      );
       isLoading.value = false;
       await fetchLocationBasedTutoring(silent: true);
       return;
     }
     await fetchLocationBasedTutoring();
-  }
-
-  Future<void> _batchFetchUsers(
-    Set<String> userIds, {
-    bool cacheOnly = false,
-  }) async {
-    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
-    if (toFetch.isEmpty) return;
-
-    try {
-      final fetched = await _userSummaryResolver.resolveMany(
-        toFetch,
-        cacheOnly: cacheOnly,
-      );
-      users.addAll(
-        fetched.map((key, value) => MapEntry(key, value.toMap())),
-      );
-    } catch (_) {
-    }
   }
 
   Future<void> fetchLocationBasedTutoring({
@@ -95,10 +69,6 @@ class LocationBasedTutoringController extends GetxController {
               normalizeLocationText(item.sehir) ==
               normalizeLocationText(currentCity))
           .toList(growable: true);
-
-      // Batch fetch users instead of N+1
-      final userIds = tempList.map((t) => t.userID).toSet();
-      await _batchFetchUsers(userIds);
 
       // Mesafeye göre sırala (lat/long olan ilanlar önce, yakından uzağa)
       tempList.sort((a, b) {

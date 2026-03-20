@@ -4,18 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
-import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class TutoringSearchController extends GetxController {
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TextEditingController searchController = TextEditingController();
   var isLoading = true.obs;
   var searchQuery = ''.obs;
   var searchResults = <TutoringModel>[].obs;
-  var users = <String, Map<String, dynamic>>{}.obs;
 
   List<TutoringModel> _initialTutorings = [];
 
@@ -38,19 +35,6 @@ class TutoringSearchController extends GetxController {
     super.onClose();
   }
 
-  Future<void> _batchFetchUsers(Set<String> userIds) async {
-    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
-    if (toFetch.isEmpty) return;
-
-    try {
-      final fetched = await _userSummaryResolver.resolveMany(toFetch);
-      users.addAll(
-        fetched.map((key, value) => MapEntry(key, value.toMap())),
-      );
-    } catch (_) {
-    }
-  }
-
   Future<void> _bootstrapInitialData() async {
     try {
       final resource = await _tutoringSnapshotRepository.loadHome(
@@ -60,7 +44,6 @@ class TutoringSearchController extends GetxController {
       final cachedItems = resource.data ?? const <TutoringModel>[];
       if (cachedItems.isNotEmpty) {
         _initialTutorings = cachedItems;
-        await _batchFetchUsers(cachedItems.map((t) => t.userID).toSet());
         searchResults.value = cachedItems;
         isLoading.value = false;
         await fetchInitialData(silent: true);
@@ -86,10 +69,6 @@ class TutoringSearchController extends GetxController {
         forceSync: forceRefresh,
       );
       _initialTutorings = result.data ?? const <TutoringModel>[];
-
-      final userIds = _initialTutorings.map((t) => t.userID).toSet();
-      await _batchFetchUsers(userIds);
-
       searchResults.value = _initialTutorings;
     } catch (_) {
     } finally {
@@ -114,7 +93,6 @@ class TutoringSearchController extends GetxController {
         forceSync: true,
       );
       final items = result.data ?? const <TutoringModel>[];
-      await _batchFetchUsers(items.map((t) => t.userID).toSet());
       searchResults.value = items;
     } catch (_) {
       searchResults.value = const <TutoringModel>[];
