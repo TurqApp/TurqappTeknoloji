@@ -192,7 +192,9 @@ class DenemeSinavlariController extends GetxController {
         limit: _pageSize,
       );
       final items = resource.data ?? const <SinavModel>[];
-      list.assignAll(items);
+      if (!_sameExamList(items)) {
+        list.assignAll(items);
+      }
       hasMore.value = items.length >= _pageSize;
     } catch (e) {
       log("DenemeSinavlariController.getData error: $e");

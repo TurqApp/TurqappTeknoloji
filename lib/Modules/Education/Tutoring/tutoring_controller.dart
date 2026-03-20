@@ -165,13 +165,18 @@ class TutoringController extends GetxController {
       );
       final items = result.data ?? const <TutoringModel>[];
       hasMore.value = items.length >= _pageSize;
-      tutoringList.value = _applyPersonalization(items);
+      final nextList = _applyPersonalization(items);
+      if (!_sameTutoringList(nextList)) {
+        tutoringList.assignAll(nextList);
+      }
       final userIds =
           items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
       unawaited(_batchFetchUsers(userIds));
       SilentRefreshGate.markRefreshed('tutoring:home');
     } catch (_) {
-      tutoringList.value = [];
+      if (tutoringList.isNotEmpty) {
+        tutoringList.clear();
+      }
     } finally {
       isLoading.value = false;
     }

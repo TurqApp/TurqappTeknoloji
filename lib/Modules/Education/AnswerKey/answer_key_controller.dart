@@ -221,7 +221,9 @@ class AnswerKeyController extends GetxController {
         limit: _pageSize,
       );
       final items = resource.data ?? const <BookletModel>[];
-      bookList.assignAll(items);
+      if (!_sameBookletList(items)) {
+        bookList.assignAll(items);
+      }
       hasMore.value = items.length >= _pageSize;
     } catch (_) {
     } finally {
