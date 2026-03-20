@@ -42,7 +42,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                                   controller.headerRozet.value,
                                 )
                               : normalizeRozetValue(
-                                  userService.currentUserRx.value?.rozet ?? '',
+                                  userService.rozet,
                                 ),
                         ),
                       ],
@@ -415,31 +415,36 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                 controller.resumeCenteredPost();
               });
             },
-            child: Container(
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(color: Colors.white),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      NumberFormatter.format(controller.followerCount.value),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontFamily: "MontserratBold",
+            child: Semantics(
+              label: IntegrationTestKeys.profileFollowersCounter,
+              button: true,
+              child: Container(
+                key: const ValueKey(IntegrationTestKeys.profileFollowersCounter),
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(color: Colors.white),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        NumberFormatter.format(controller.followerCount.value),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontFamily: "MontserratBold",
+                        ),
                       ),
-                    ),
-                    Text(
-                      "profile.followers".tr,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: "MontserratMedium",
+                      Text(
+                        "profile.followers".tr,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontFamily: "MontserratMedium",
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -455,31 +460,36 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                 controller.resumeCenteredPost();
               });
             },
-            child: Container(
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(color: Colors.white),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      NumberFormatter.format(controller.followingCount.value),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontFamily: "MontserratBold",
+            child: Semantics(
+              label: IntegrationTestKeys.profileFollowingCounter,
+              button: true,
+              child: Container(
+                key: const ValueKey(IntegrationTestKeys.profileFollowingCounter),
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(color: Colors.white),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        NumberFormatter.format(controller.followingCount.value),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontFamily: "MontserratBold",
+                        ),
                       ),
-                    ),
-                    Text(
-                      "profile.following".tr,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: "MontserratMedium",
+                      Text(
+                        "profile.following".tr,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontFamily: "MontserratMedium",
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

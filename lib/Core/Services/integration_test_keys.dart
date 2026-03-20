@@ -14,4 +14,6 @@ class IntegrationTestKeys {
 
   static const String actionOpenNotifications = 'it-action-open-notifications';
   static const String actionShortBack = 'it-action-short-back';
+  static const String profileFollowersCounter = 'it-profile-followers-counter';
+  static const String profileFollowingCounter = 'it-profile-following-counter';
 }
