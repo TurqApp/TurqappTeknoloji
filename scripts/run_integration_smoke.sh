@@ -11,6 +11,9 @@ android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-fi
 default_fixture_file="integration_test/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
+allow_stored_auth="${INTEGRATION_ALLOW_STORED_AUTH:-0}"
+login_email="${INTEGRATION_LOGIN_EMAIL:-}"
+login_password="${INTEGRATION_LOGIN_PASSWORD:-}"
 
 if [[ -z "$fixture_file" && -f "$default_fixture_file" ]]; then
   fixture_file="$default_fixture_file"
@@ -22,6 +25,15 @@ if [[ -n "$fixture_file" ]]; then
     exit 1
   fi
   fixture_json="$(node -e "const fs=require('fs');const p=process.argv[1];const raw=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(JSON.stringify(raw));" "$fixture_file")"
+fi
+
+if [[ "$allow_stored_auth" != "1" ]]; then
+  if [[ -z "$login_email" || -z "$login_password" ]]; then
+    echo "[integration-smoke] auth credentials required" >&2
+    echo "[integration-smoke] set INTEGRATION_LOGIN_EMAIL and INTEGRATION_LOGIN_PASSWORD" >&2
+    echo "[integration-smoke] or set INTEGRATION_ALLOW_STORED_AUTH=1 for a best-effort local session run" >&2
+    exit 2
+  fi
 fi
 
 declare -a smoke_tests=(
@@ -47,6 +59,11 @@ declare -a flutter_args=(
   "--dart-define=INTEGRATION_SUPPRESS_PERIODIC_SIDE_EFFECTS=true"
   "--dart-define=INTEGRATION_SKIP_BACKGROUND_STARTUP_WORK=true"
 )
+
+if [[ -n "$login_email" && -n "$login_password" ]]; then
+  flutter_args+=("--dart-define=INTEGRATION_LOGIN_EMAIL=$login_email")
+  flutter_args+=("--dart-define=INTEGRATION_LOGIN_PASSWORD=$login_password")
+fi
 
 if [[ -n "$fixture_json" ]]; then
   flutter_args+=("--dart-define=INTEGRATION_FIXTURE_JSON=$fixture_json")

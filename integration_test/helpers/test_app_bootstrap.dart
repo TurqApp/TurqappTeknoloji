@@ -15,6 +15,8 @@ const String kIntegrationLoginEmail =
 const String kIntegrationLoginPassword =
     String.fromEnvironment('INTEGRATION_LOGIN_PASSWORD', defaultValue: '');
 
+AccountSessionCredential? _cachedIntegrationCredential;
+
 IntegrationTestWidgetsFlutterBinding ensureIntegrationBinding() {
   return IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 }
@@ -49,7 +51,8 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   if (!kRunIntegrationSmoke) return;
   if (FirebaseAuth.instance.currentUser != null) return;
 
-  final credentials = await _resolveIntegrationCredentials();
+  final credentials =
+      _cachedIntegrationCredential ??= await _resolveIntegrationCredentials();
   if (credentials == null) {
     throw TestFailure(
       'Integration smoke requires an authenticated session. '
