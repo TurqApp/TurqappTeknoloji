@@ -466,6 +466,54 @@ class MarketView extends StatelessWidget {
     );
   }
 
+  Widget _buildSavedActionButton(
+    MarketItemModel item, {
+    required double buttonSize,
+    required double iconSize,
+  }) {
+    return Obx(
+      () => AppHeaderActionButton(
+        onTap: () => controller.toggleSaved(
+          item,
+          showSnackbar: false,
+        ),
+        size: buttonSize,
+        child: Icon(
+          controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
+          color: controller.isSaved(item.id)
+              ? Colors.orange
+              : Colors.grey.shade600,
+          size: iconSize,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridSavedOverlay(MarketItemModel item) {
+    return Obx(
+      () => GestureDetector(
+        onTap: () => controller.toggleSaved(item, showSnackbar: false),
+        child: SizedBox(
+          width: PasajListCardMetrics.gridOverlayButtonSize,
+          height: PasajListCardMetrics.gridOverlayButtonSize,
+          child: Center(
+            child: Icon(
+              controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
+              color: Colors.white,
+              size: PasajListCardMetrics.gridOverlayIconSize,
+              shadows: const [
+                Shadow(
+                  color: Color(0x55000000),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildListingCard(MarketItemModel item) {
     final accent = _accentForItem(item);
     final canCall = item.canShowPhone;
@@ -502,21 +550,10 @@ class MarketView extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: compact ? 0 : 6, height: compact ? 6 : 0),
-                  AppHeaderActionButton(
-                    onTap: () => controller.toggleSaved(
-                      item,
-                      showSnackbar: false,
-                    ),
-                    size: metrics.actionButtonSize,
-                    child: Icon(
-                      controller.isSaved(item.id)
-                          ? AppIcons.saved
-                          : AppIcons.save,
-                      color: controller.isSaved(item.id)
-                          ? Colors.orange
-                          : Colors.grey.shade600,
-                      size: metrics.actionIconSize,
-                    ),
+                  _buildSavedActionButton(
+                    item,
+                    buttonSize: metrics.actionButtonSize,
+                    iconSize: metrics.actionIconSize,
                   ),
                 ];
 
@@ -690,26 +727,7 @@ class MarketView extends StatelessWidget {
         fallbackBuilder: (marketItem, marketAccent) =>
             _buildItemFallback(marketItem, marketAccent),
       ),
-      overlay: GestureDetector(
-        onTap: () => controller.toggleSaved(item, showSnackbar: false),
-        child: SizedBox(
-          width: PasajListCardMetrics.gridOverlayButtonSize,
-          height: PasajListCardMetrics.gridOverlayButtonSize,
-          child: Center(
-            child: Icon(
-              controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
-              color: Colors.white,
-              size: PasajListCardMetrics.gridOverlayIconSize,
-              shadows: const [
-                Shadow(
-                  color: Color(0x55000000),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      overlay: _buildGridSavedOverlay(item),
       lines: [
         Text(
           item.title,

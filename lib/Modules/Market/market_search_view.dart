@@ -170,6 +170,21 @@ class _MarketSearchViewState extends State<MarketSearchView> {
     );
   }
 
+  Widget _buildSavedIcon(MarketItemModel item) {
+    return Obx(
+      () => GestureDetector(
+        onTap: () => controller.toggleSaved(item),
+        child: Icon(
+          controller.isSaved(item.id) ? AppIcons.saved : AppIcons.save,
+          color: controller.isSaved(item.id)
+              ? Colors.orange
+              : Colors.grey.shade600,
+          size: 22,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecentSearches() {
     return Obx(() {
       final items = controller.recentSearches;
@@ -350,18 +365,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
             const SizedBox(width: 8),
             Column(
               children: [
-                GestureDetector(
-                  onTap: () => controller.toggleSaved(item),
-                  child: Icon(
-                    controller.isSaved(item.id)
-                        ? AppIcons.saved
-                        : AppIcons.save,
-                    color: controller.isSaved(item.id)
-                        ? Colors.orange
-                        : Colors.grey.shade600,
-                    size: 22,
-                  ),
-                ),
+                _buildSavedIcon(item),
                 const SizedBox(height: 10),
                 Container(
                   padding:
