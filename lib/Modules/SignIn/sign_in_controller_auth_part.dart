@@ -1,6 +1,68 @@
 part of 'sign_in_controller.dart';
 
 extension SignInControllerAuthPart on SignInController {
+  void _finalizeSuccessfulSignInNavigation() {
+    wait.value = false;
+    _ensureFeedTabSelected();
+    Get.offAll(() => NavBarView());
+  }
+
+  void _startPostAuthTasks({
+    required String email,
+    required String password,
+  }) {
+    unawaited(() async {
+      Future<void> runStep(
+        String label,
+        Future<void> Function() action, {
+        Duration timeout = const Duration(seconds: 6),
+      }) async {
+        try {
+          await action().timeout(timeout);
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[SignIn] post-auth step skipped ($label): $e');
+          }
+        }
+      }
+
+      await runStep(
+        'refreshEmailVerificationStatus',
+        () => CurrentUserService.instance.refreshEmailVerificationStatus(
+          reloadAuthUser: true,
+        ),
+      );
+      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
+      unawaited(_postLoginWarmup());
+      await runStep(
+          '_trackCurrentAccountForDevice', _trackCurrentAccountForDevice);
+      await runStep(
+        'registerCurrentDeviceSessionIfEnabled',
+        () => AccountCenterService.ensure()
+            .registerCurrentDeviceSessionIfEnabled(),
+      );
+      await runStep(
+        '_persistStoredSessionCredential',
+        () => _persistStoredSessionCredential(
+          email: email,
+          password: password,
+        ),
+        timeout: const Duration(seconds: 3),
+      );
+
+      try {
+        if (Get.isRegistered<UnreadMessagesController>()) {
+          final unreadController = Get.find<UnreadMessagesController>();
+          unreadController.startListeners();
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[SignIn] unread listener skipped: $e');
+        }
+      }
+    }());
+  }
+
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
     if (!account.hasPasswordProvider) return false;
     if (account.requiresReauth) return false;
@@ -31,30 +93,11 @@ extension SignInControllerAuthPart on SignInController {
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      await _restoreAccountIfPendingDeletion();
-      await CurrentUserService.instance.refreshEmailVerificationStatus(
-        reloadAuthUser: true,
-      );
-      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-      unawaited(_postLoginWarmup());
-      await _trackCurrentAccountForDevice();
-      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
-      await _persistStoredSessionCredential(
+      _startPostAuthTasks(
         email: credential.email,
         password: credential.password,
       );
-
-      try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-        }
-      } catch (_) {}
-
-      wait.value = false;
-      await Future.delayed(const Duration(milliseconds: 300));
-      _ensureFeedTabSelected();
-      Get.offAll(() => NavBarView());
+      _finalizeSuccessfulSignInNavigation();
       return true;
     } on FirebaseAuthException catch (_) {
       wait.value = false;
@@ -338,35 +381,11 @@ extension SignInControllerAuthPart on SignInController {
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      await _restoreAccountIfPendingDeletion();
-      await CurrentUserService.instance.refreshEmailVerificationStatus(
-        reloadAuthUser: true,
-      );
-      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-      unawaited(_postLoginWarmup());
-      await _trackCurrentAccountForDevice();
-      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
-      await _persistStoredSessionCredential(
+      _startPostAuthTasks(
         email: _resolvedSignInEmail(),
         password: password.value,
       );
-
-      try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-        }
-      } catch (_) {}
-
-      wait.value = false;
-
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      try {
-        TextInput.finishAutofillContext(shouldSave: true);
-      } catch (_) {}
-      _ensureFeedTabSelected();
-      Get.offAll(() => NavBarView());
+      _finalizeSuccessfulSignInNavigation();
       return true;
     } on FirebaseAuthException catch (e) {
       wait.value = false;
