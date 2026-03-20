@@ -115,17 +115,31 @@ class _ProfileViewState extends State<ProfileView> {
     if (direct.isNotEmpty) return direct;
     return userService.avatarUrl;
   }
+  String _normalizeRozetValue(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return '';
+    final lower = value.toLowerCase();
+    if (lower == 'rozetsiz' ||
+        lower == 'none' ||
+        lower == 'null' ||
+        lower == 'false' ||
+        lower == 'yok') {
+      return '';
+    }
+    return value;
+  }
+
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
   String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
   String get _myRozet {
-    final direct = controller.headerRozet.value.trim();
+    final direct = _normalizeRozetValue(controller.headerRozet.value);
     if (direct.isNotEmpty) return direct;
-    return userService.currentUserRx.value?.rozet ?? '';
+    return _normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '');
   }
   bool get _hasVerifiedRozet {
-    final headerRozet = controller.headerRozet.value.trim();
+    final headerRozet = _normalizeRozetValue(controller.headerRozet.value);
     if (headerRozet.isNotEmpty) return true;
-    return _myRozet.trim().isNotEmpty;
+    return _myRozet.isNotEmpty;
   }
 
   String get _myMeslek => userService.currentUserRx.value?.meslekKategori ?? '';
@@ -267,7 +281,8 @@ class _ProfileViewState extends State<ProfileView> {
     final screenHeight = MediaQuery.of(context).size.height;
     final centerY = screenHeight / 2;
 
-    for (int i = 0; i < controller.allPosts.length; i++) {
+    final merged = controller.mergedPosts;
+    for (int i = 0; i < merged.length; i++) {
       final key = controller.getPostKey(i);
       final ctx = key.currentContext;
       if (ctx == null) continue;
@@ -286,6 +301,7 @@ class _ProfileViewState extends State<ProfileView> {
       final bottom = pos.dy + box.size.height;
 
       if (top <= centerY && bottom >= centerY) {
+        controller.currentVisibleIndex.value = i;
         if (controller.centeredIndex.value != i) {
           if (!mounted) return;
           setState(() {
@@ -436,7 +452,7 @@ class _ProfileViewState extends State<ProfileView> {
                                             child: SizedBox(height: 8)),
                                         SliverToBoxAdapter(
                                             child:
-                                                EmptyRow(text: "Gönderi Yok")),
+                                                EmptyRow(text: "profile.no_posts".tr)),
                                         const SliverToBoxAdapter(
                                             child: SizedBox(height: 50)),
                                       ],

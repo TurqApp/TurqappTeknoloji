@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/profile_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
@@ -30,6 +31,8 @@ class ProfileController extends GetxController {
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
   final ProfilePostsSnapshotRepository _profileSnapshotRepository =
       ProfilePostsSnapshotRepository.ensure();
+  final ProfileRenderCoordinator _profileRenderCoordinator =
+      ProfileRenderCoordinator.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -239,35 +242,16 @@ class ProfileController extends GetxController {
       return;
     }
 
-    final combined = <Map<String, dynamic>>[];
-
-    for (final post in allPosts.where((post) =>
-        !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
-      combined.add({
-        'post': post,
-        'isReshare': false,
-        'timestamp': post.timeStamp,
-      });
-    }
-
-    for (final reshare in reshares.where((post) =>
-        !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
-      final reshareTimestamp = reshareSortTimestampFor(
-        reshare.docID,
-        reshare.timeStamp.toInt(),
-      );
-      combined.add({
-        'post': reshare,
-        'isReshare': true,
-        'timestamp': reshareTimestamp,
-      });
-    }
-
-    combined.sort(
-      (a, b) => (b['timestamp'] as num).compareTo(a['timestamp'] as num),
+    final combined = _profileRenderCoordinator.buildMergedEntries(
+      allPosts: allPosts.toList(growable: false),
+      reshares: reshares.toList(growable: false),
+      reshareSortTimestampFor: reshareSortTimestampFor,
     );
-
-    mergedPosts.assignAll(combined);
+    final patch = _profileRenderCoordinator.buildPatch(
+      previous: mergedPosts.toList(growable: false),
+      next: combined,
+    );
+    _profileRenderCoordinator.applyPatch(mergedPosts, patch);
   }
 
   void _schedulePersistPostCaches() {
