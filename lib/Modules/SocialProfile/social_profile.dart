@@ -147,6 +147,25 @@ class _SocialProfileState extends State<SocialProfile> {
     });
   }
 
+  void _suspendCenteredPostForRoute([PostsModel? model]) {
+    if (!mounted) return;
+    if (model != null) {
+      final modelIndex =
+          controller.allPosts.indexWhere((post) => post.docID == model.docID);
+      if (modelIndex >= 0) {
+        controller.lastCenteredIndex = modelIndex;
+      }
+    }
+    _setCenteredIndex(-1);
+  }
+
+  void _resumeCenteredPostAfterRoute() {
+    if (!mounted) return;
+    setState(() {
+      controller.resumeCenteredPost();
+    });
+  }
+
   void _showProfileImagePreview() {
     if (!mounted || controller.avatarUrl.value.isEmpty) return;
     setState(() {
@@ -503,9 +522,10 @@ class _SocialProfileState extends State<SocialProfile> {
             delegate: SliverChildBuilderDelegate((context, index) {
               final model = controller.reshares[index];
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  _suspendCenteredPostForRoute(model);
                   if (model.hasPlayableVideo) {
-                    Get.to(
+                    await Get.to(
                       () => SingleShortView(
                         startList: controller.reshares
                             .where((val) => val.hasPlayableVideo)
@@ -514,7 +534,7 @@ class _SocialProfileState extends State<SocialProfile> {
                       ),
                     );
                   } else {
-                    Get.to(
+                    await Get.to(
                       () => PhotoShorts(
                         fetchedList: controller.reshares
                             .where((val) => val.img.isNotEmpty)
@@ -523,6 +543,7 @@ class _SocialProfileState extends State<SocialProfile> {
                       ),
                     );
                   }
+                  _resumeCenteredPostAfterRoute();
                 },
                 child: Stack(
                   children: [
@@ -634,13 +655,15 @@ class _SocialProfileState extends State<SocialProfile> {
 
               final model = visiblePosts[index];
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  _suspendCenteredPostForRoute(model);
                   if (model.floodCount > 1) {
-                    Get.to(() => FloodListing(mainModel: model));
+                    await Get.to(() => FloodListing(mainModel: model));
                   } else {
-                    Get.to(() => PhotoShorts(
+                    await Get.to(() => PhotoShorts(
                         fetchedList: visiblePosts, startModel: model));
                   }
+                  _resumeCenteredPostAfterRoute();
                 },
                 child: Stack(
                   children: [
@@ -736,13 +759,15 @@ class _SocialProfileState extends State<SocialProfile> {
 
               final model = visibleVideos[index];
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  _suspendCenteredPostForRoute(model);
                   if (model.floodCount > 1) {
-                    Get.to(() => FloodListing(mainModel: model));
+                    await Get.to(() => FloodListing(mainModel: model));
                   } else {
-                    Get.to(() => SingleShortView(
+                    await Get.to(() => SingleShortView(
                         startList: visibleVideos, startModel: model));
                   }
+                  _resumeCenteredPostAfterRoute();
                 },
                 child: Stack(
                   children: [
