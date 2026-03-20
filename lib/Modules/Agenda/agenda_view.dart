@@ -435,9 +435,10 @@ class AgendaView extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () {
                     final prevIndex = controller.lastCenteredIndex;
+                    controller.lastCenteredIndex = prevIndex;
                     controller.centeredIndex.value = -1;
                     Get.to(() => PostCreator())?.then((_) {
-                      controller.centeredIndex.value = prevIndex ?? 0;
+                      controller.resumeFeedPlayback();
                     });
                   },
                   child: ClipOval(
@@ -680,9 +681,10 @@ class AgendaView extends StatelessWidget {
                               .markManyAsRead(unreadChatIds);
                         }
                         final prevIndex = controller.lastCenteredIndex;
+                        controller.lastCenteredIndex = prevIndex;
                         controller.centeredIndex.value = -1;
                         Get.to(() => ChatListing())?.then((_) {
-                          controller.centeredIndex.value = prevIndex ?? 0;
+                          controller.resumeFeedPlayback();
                           try {
                             recommendedController.getUsers();
                           } catch (_) {}
@@ -703,9 +705,10 @@ class AgendaView extends StatelessWidget {
                       showBadge: hasUnread,
                       onTap: () {
                         final prevIndex = controller.lastCenteredIndex;
+                        controller.lastCenteredIndex = prevIndex;
                         controller.centeredIndex.value = -1;
                         Get.to(() => InAppNotifications())?.then((_) {
-                          controller.centeredIndex.value = prevIndex ?? 0;
+                          controller.resumeFeedPlayback();
                           try {
                             recommendedController.getUsers();
                           } catch (_) {}
