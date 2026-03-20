@@ -19,6 +19,7 @@ class ArchiveController extends GetxController {
   final Map<int, GlobalKey> _agendaKeys = {};
   int? lastCenteredIndex;
   final centeredIndex = 0.obs;
+  String? _pendingCenteredDocId;
   StreamSubscription<User?>? _authSub;
   String? _currentUserId;
 
@@ -88,6 +89,32 @@ class ArchiveController extends GetxController {
     }
   }
 
+  int _resolveRestoreIndex() {
+    if (list.isEmpty) return -1;
+    final pendingDocId = _pendingCenteredDocId;
+    if (pendingDocId != null && pendingDocId.isNotEmpty) {
+      final mapped = list.indexWhere((post) => post.docID == pendingDocId);
+      if (mapped >= 0) return mapped;
+    }
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < list.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < list.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void _restoreCenteredPost() {
+    final target = _resolveRestoreIndex();
+    if (target < 0 || target >= list.length) return;
+    centeredIndex.value = target;
+    lastCenteredIndex = target;
+    _pendingCenteredDocId = null;
+  }
+
   void _bindAuth() {
     _authSub = FirebaseAuth.instance.userChanges().listen((user) {
       final nextUserId = user?.uid;
@@ -125,9 +152,18 @@ class ArchiveController extends GetxController {
     if (!silent) {
       isLoading.value = true;
     }
+    final currentCentered = centeredIndex.value;
+    if (currentCentered >= 0 && currentCentered < list.length) {
+      _pendingCenteredDocId = list[currentCentered].docID;
+    } else if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < list.length) {
+      _pendingCenteredDocId = list[lastCenteredIndex!].docID;
+    }
     try {
       final posts = await _profileRepository.fetchArchive(uid);
       list.assignAll(posts);
+      _restoreCenteredPost();
       SilentRefreshGate.markRefreshed('archive:$uid');
     } finally {
       isLoading.value = false;
