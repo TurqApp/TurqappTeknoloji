@@ -80,13 +80,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         return;
                                       }
                                       if (widget.model.floodCount > 1) {
-                                        videoController?.pause();
+                                        _suspendAgendaFeedForRoute();
                                         await Get.to(() => FloodListing(
                                               mainModel: widget.model,
                                             ));
-                                        if (widget.shouldPlay) {
-                                          videoController?.play();
-                                        }
+                                        if (!mounted) return;
+                                        _restoreAgendaFeedCenter();
                                         return;
                                       }
                                       if (widget.isPreview) {
@@ -360,11 +359,13 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                     left: 0,
                                     child: GestureDetector(
                                       onTap: () {
-                                        videoController?.pause();
+                                        _suspendAgendaFeedForRoute();
                                         Get.to(() => FloodListing(
                                                 mainModel: widget.model))
-                                            ?.then(
-                                                (_) => videoController?.play());
+                                            ?.then((_) {
+                                          if (!mounted) return;
+                                          _restoreAgendaFeedCenter();
+                                        });
                                       },
                                       child: Texts.colorfulFloodLeftSide,
                                     ),

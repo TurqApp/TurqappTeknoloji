@@ -20,7 +20,11 @@ extension ClassicContentBodyPart on _ClassicContentState {
             onDoubleTap: () => controller.like(),
             onTap: () {
               if (widget.model.floodCount > 1) {
-                Get.to(() => FloodListing(mainModel: widget.model));
+                _suspendClassicFeedForRoute();
+                Get.to(() => FloodListing(mainModel: widget.model))?.then((_) {
+                  if (!mounted) return;
+                  _restoreClassicFeedCenter();
+                });
               }
             },
             child: Stack(

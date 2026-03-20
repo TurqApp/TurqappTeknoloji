@@ -741,7 +741,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
   }
 
   void _openReshareUsersSheet() {
-    videoController?.pause();
+    _suspendClassicFeedForRoute();
     final targetPostId = widget.model.originalPostID.trim().isNotEmpty
         ? widget.model.originalPostID.trim()
         : widget.model.docID;
@@ -750,7 +750,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     ).then((_) {
-      videoController?.play();
+      _restoreClassicFeedCenter();
     });
   }
 

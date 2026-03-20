@@ -625,7 +625,14 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       return AnimatedActionButton(
         enabled: canInteract,
         semanticsLabel: 'common.comments'.tr,
-        onTap: canInteract ? controller.showPostCommentsBottomSheet : null,
+        onTap: canInteract
+            ? () {
+                _suspendAgendaFeedForRoute();
+                controller.showPostCommentsBottomSheet(
+                  onClosed: _restoreAgendaFeedCenter,
+                );
+              }
+            : null,
         showTapArea: _AgendaContentState._showActionTapAreas,
         child: _iconAction(
           icon: CupertinoIcons.bubble_left,
