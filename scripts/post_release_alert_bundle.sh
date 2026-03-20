@@ -18,10 +18,15 @@ if [[ ! -f "$bundle_file" ]]; then
   exit 1
 fi
 
+severity="$(node -e "const fs=require('fs');const raw=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(raw.summary?.severity || 'unknown'));" "$bundle_file")"
+headline="$(node -e "const fs=require('fs');const raw=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const text=String(raw.summary?.headline || 'release alert').replace(/[\\r\\n]+/g,' ').slice(0,180);process.stdout.write(text);" "$bundle_file")"
+
 set +e
 curl -sS \
   -X POST \
   -H "content-type: application/json" \
+  -H "x-release-alert-severity: $severity" \
+  -H "x-release-alert-headline: $headline" \
   --data-binary @"$bundle_file" \
   "$webhook_url"
 post_status=$?

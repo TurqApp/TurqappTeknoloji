@@ -591,6 +591,7 @@ Aktif faz:
 - Son tamamlanan release gate isi: `scripts/run_release_gate_checks.sh` artik opsiyonel smoke adimindan sonra `export_integration_smoke_report.sh` cagiriyor; `INTEGRATION_SMOKE_FAIL_ON_BLOCKING` ve `TELEMETRY_FAIL_ON_BLOCKING` ile smoke/telemetry blocking signal'lari gate kararina baglanabiliyor.
 - Son tamamlanan alert bundle isi: `tool/release_alert_bundle.dart` + `scripts/export_release_alert_bundle.sh` ile smoke report + telemetry threshold report tek JSON payload'da birlestiriliyor; backend/disk/dashboard dis kanalina tasinacak kanonik alarm paketi hazir.
 - Son tamamlanan alert post isi: `scripts/post_release_alert_bundle.sh` ile olusan alarm paketi opsiyonel webhook kanalina POST edilebiliyor; `RELEASE_ALERT_WEBHOOK_URL` verilirse release gate cikisinda dis kanal teslim zinciri de tamamlanmis oluyor.
+- Son tamamlanan alert summary isi: release alert bundle artik `severity`, `headline`, `topSignals` ve `nextActions` alanlarini da uretiyor; webhook post script'i bu ozeti `x-release-alert-severity` ve `x-release-alert-headline` header'lariyla da dis kanala tasiyor.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:

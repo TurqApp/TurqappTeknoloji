@@ -20,9 +20,35 @@ Future<void> main(List<String> args) async {
 
   final smokeSummary = _asMap(smoke['summary']);
   final telemetrySummary = _asMap(telemetry['summary']);
+  final smokeScenarios = _asList(smoke['scenarios']);
+  final telemetryIssues = _asList(telemetry['issues']);
   final smokeBlockingCount = _asInt(smokeSummary['blockingScenarioCount']);
   final telemetryBlocking = telemetrySummary['hasBlocking'] == true;
   final smokeFailures = _asInt(smokeSummary['failureCount']);
+  final telemetryIssueCount = _asInt(telemetrySummary['issueCount']);
+  final severity = _resolveSeverity(
+    smokeFailures: smokeFailures,
+    smokeBlockingCount: smokeBlockingCount,
+    telemetryBlocking: telemetryBlocking,
+    telemetryIssueCount: telemetryIssueCount,
+  );
+  final headline = _buildHeadline(
+    severity: severity,
+    smokeFailures: smokeFailures,
+    smokeBlockingCount: smokeBlockingCount,
+    telemetryBlocking: telemetryBlocking,
+    telemetryIssueCount: telemetryIssueCount,
+  );
+  final topSignals = _collectTopSignals(
+    smokeScenarios: smokeScenarios,
+    telemetryIssues: telemetryIssues,
+  );
+  final nextActions = _suggestNextActions(
+    smokeFailures: smokeFailures,
+    smokeBlockingCount: smokeBlockingCount,
+    telemetryBlocking: telemetryBlocking,
+    telemetryIssueCount: telemetryIssueCount,
+  );
 
   final payload = <String, dynamic>{
     'generatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -31,12 +57,16 @@ Future<void> main(List<String> args) async {
       'telemetryReport': telemetryPath ?? '',
     },
     'summary': <String, dynamic>{
+      'severity': severity,
+      'headline': headline,
       'hasBlockingSignals': smokeBlockingCount > 0 || telemetryBlocking,
       'smokeFailureCount': smokeFailures,
       'smokeBlockingScenarioCount': smokeBlockingCount,
       'telemetryBlocking': telemetryBlocking,
-      'telemetryIssueCount': _asInt(telemetrySummary['issueCount']),
+      'telemetryIssueCount': telemetryIssueCount,
     },
+    'topSignals': topSignals,
+    'nextActions': nextActions,
     'smoke': smoke,
     'telemetry': telemetry,
   };
@@ -48,8 +78,100 @@ Future<void> main(List<String> args) async {
   );
 
   stdout.writeln(
-    '[release-alert-bundle] blocking=${payload['summary']?['hasBlockingSignals'] == true} smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking',
+    '[release-alert-bundle] severity=$severity blocking=${payload['summary']?['hasBlockingSignals'] == true} smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking',
   );
+}
+
+String _resolveSeverity({
+  required int smokeFailures,
+  required int smokeBlockingCount,
+  required bool telemetryBlocking,
+  required int telemetryIssueCount,
+}) {
+  if (smokeFailures > 0 || smokeBlockingCount > 0 || telemetryBlocking) {
+    return 'blocking';
+  }
+  if (telemetryIssueCount > 0) {
+    return 'warning';
+  }
+  return 'ok';
+}
+
+String _buildHeadline({
+  required String severity,
+  required int smokeFailures,
+  required int smokeBlockingCount,
+  required bool telemetryBlocking,
+  required int telemetryIssueCount,
+}) {
+  if (severity == 'blocking') {
+    return 'Release gate blocking: smokeFailures=$smokeFailures smokeBlocking=$smokeBlockingCount telemetryBlocking=$telemetryBlocking';
+  }
+  if (severity == 'warning') {
+    return 'Release gate warning: telemetryIssues=$telemetryIssueCount';
+  }
+  return 'Release gate healthy';
+}
+
+List<Map<String, dynamic>> _collectTopSignals({
+  required List<dynamic> smokeScenarios,
+  required List<dynamic> telemetryIssues,
+}) {
+  final signals = <Map<String, dynamic>>[];
+
+  for (final scenarioRaw in smokeScenarios.take(5)) {
+    final scenario = _asMap(scenarioRaw);
+    final hasFailure = scenario['hasFailure'] == true;
+    final telemetryBlockingCount =
+        _asInt(scenario['telemetryBlockingCount']);
+    final invariantCount = _asInt(scenario['invariantCount']);
+    if (!hasFailure && telemetryBlockingCount == 0 && invariantCount == 0) {
+      continue;
+    }
+    signals.add(<String, dynamic>{
+      'type': 'smoke',
+      'scenario': (scenario['scenario'] ?? '').toString(),
+      'hasFailure': hasFailure,
+      'telemetryBlockingCount': telemetryBlockingCount,
+      'invariantCount': invariantCount,
+    });
+  }
+
+  for (final issueRaw in telemetryIssues.take(5 - signals.length)) {
+    final issue = _asMap(issueRaw);
+    signals.add(<String, dynamic>{
+      'type': 'telemetry',
+      'surface': (issue['surface'] ?? '').toString(),
+      'code': (issue['code'] ?? '').toString(),
+      'severity': (issue['severity'] ?? '').toString(),
+    });
+  }
+
+  return signals;
+}
+
+List<String> _suggestNextActions({
+  required int smokeFailures,
+  required int smokeBlockingCount,
+  required bool telemetryBlocking,
+  required int telemetryIssueCount,
+}) {
+  final actions = <String>[];
+  if (smokeFailures > 0) {
+    actions.add('Fix failing smoke scenarios before release');
+  }
+  if (smokeBlockingCount > 0) {
+    actions.add('Review blocking smoke scenarios and invariant violations');
+  }
+  if (telemetryBlocking) {
+    actions.add('Investigate blocking telemetry thresholds on feed/short');
+  } else if (telemetryIssueCount > 0) {
+    actions.add('Review warning telemetry thresholds before release');
+  }
+  if (actions.isEmpty) {
+    actions.add('No blocking signals detected');
+  }
+  return actions;
 }
 
 Future<Map<String, dynamic>> _readJsonFile(String? path) async {
@@ -96,4 +218,9 @@ int _asInt(dynamic value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse('$value') ?? 0;
+}
+
+List<dynamic> _asList(dynamic value) {
+  if (value is List) return value;
+  return const <dynamic>[];
 }
