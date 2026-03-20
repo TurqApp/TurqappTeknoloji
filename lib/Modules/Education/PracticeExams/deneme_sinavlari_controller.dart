@@ -46,7 +46,11 @@ class DenemeSinavlariController extends GetxController {
   int _searchToken = 0;
 
   bool _sameExamList(List<SinavModel> next) {
-    final currentKeys = list
+    return _sameExamEntries(list, next);
+  }
+
+  bool _sameExamEntries(List<SinavModel> current, List<SinavModel> next) {
+    final currentKeys = current
         .map(
           (item) => [
             item.docID,
@@ -249,7 +253,9 @@ class DenemeSinavlariController extends GetxController {
       final results = resource.data ?? const <SinavModel>[];
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
-      searchResults.assignAll(results);
+      if (!_sameExamEntries(searchResults, results)) {
+        searchResults.assignAll(results);
+      }
     } catch (e) {
       log("Deneme typesense search error: $e");
       if (token == _searchToken) {

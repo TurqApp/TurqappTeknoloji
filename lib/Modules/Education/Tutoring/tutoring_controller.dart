@@ -39,8 +39,11 @@ class TutoringController extends GetxController {
     return imgs.first;
   }
 
-  bool _sameTutoringList(List<TutoringModel> next) {
-    final currentKeys = tutoringList
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
         .map(
           (item) => [
             item.docID,
@@ -76,6 +79,9 @@ class TutoringController extends GetxController {
         .toList(growable: false);
     return listEquals(currentKeys, nextKeys);
   }
+
+  bool _sameTutoringList(List<TutoringModel> next) =>
+      _sameTutoringEntries(tutoringList, next);
 
   static const int _pageSize = 30;
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
@@ -231,7 +237,10 @@ class TutoringController extends GetxController {
       final results = result.data ?? const <TutoringModel>[];
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
-      searchResults.assignAll(_applyPersonalization(results));
+      final nextResults = _applyPersonalization(results);
+      if (!_sameTutoringEntries(searchResults, nextResults)) {
+        searchResults.assignAll(nextResults);
+      }
       unawaited(
         _batchFetchUsers(
           results.map((t) => t.userID).where((id) => id.isNotEmpty).toSet(),

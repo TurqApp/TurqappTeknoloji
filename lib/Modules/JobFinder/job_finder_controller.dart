@@ -69,8 +69,8 @@ class JobFinderController extends GetxController {
   StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
   Timer? _deferredLocationTimer;
 
-  bool _sameJobList(List<JobModel> next) {
-    final currentKeys = list
+  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
+    final currentKeys = current
         .map(
           (job) => [
             job.docID,
@@ -108,6 +108,8 @@ class JobFinderController extends GetxController {
         .toList(growable: false);
     return listEquals(currentKeys, nextKeys);
   }
+
+  bool _sameJobList(List<JobModel> next) => _sameJobEntries(list, next);
 
   String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
   bool isAllTurkeySelection(String value) =>
@@ -218,7 +220,10 @@ class JobFinderController extends GetxController {
 
       final results = resource.data ?? const <JobModel>[];
       if (requestId != _searchRequestId || search.text.trim() != query) return;
-      aramaSonucu.assignAll(_applyDistanceToJobs(results));
+      final nextResults = _applyDistanceToJobs(results);
+      if (!_sameJobEntries(aramaSonucu, nextResults)) {
+        aramaSonucu.assignAll(nextResults);
+      }
     } catch (_) {
       if (requestId == _searchRequestId) {
         aramaSonucu.clear();

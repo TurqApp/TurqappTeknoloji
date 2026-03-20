@@ -97,7 +97,14 @@ class MarketController extends GetxController {
   }
 
   bool _sameMarketList(List<MarketItemModel> next) {
-    final currentKeys = items
+    return _sameMarketEntries(items, next);
+  }
+
+  bool _sameMarketEntries(
+    List<MarketItemModel> current,
+    List<MarketItemModel> next,
+  ) {
+    final currentKeys = current
         .map(
           (item) => [
             item.id,
@@ -662,7 +669,9 @@ class MarketController extends GetxController {
           .toList(
             growable: false,
           );
-      searchedItems.assignAll(results);
+      if (!_sameMarketEntries(searchedItems, results)) {
+        searchedItems.assignAll(results);
+      }
       if (results.isNotEmpty) {
         await _storeRecentSearch(query);
       }

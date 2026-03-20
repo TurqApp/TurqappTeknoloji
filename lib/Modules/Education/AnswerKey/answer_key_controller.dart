@@ -36,7 +36,14 @@ class AnswerKeyController extends GetxController {
   int _searchToken = 0;
 
   bool _sameBookletList(List<BookletModel> next) {
-    final currentKeys = bookList
+    return _sameBookletEntries(bookList, next);
+  }
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
         .map(
           (item) => [
             item.docID,
@@ -272,7 +279,9 @@ class AnswerKeyController extends GetxController {
       final results = resource.data ?? const <BookletModel>[];
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
-      searchResults.assignAll(results);
+      if (!_sameBookletEntries(searchResults, results)) {
+        searchResults.assignAll(results);
+      }
     } catch (_) {
       if (token == _searchToken) {
         searchResults.clear();
