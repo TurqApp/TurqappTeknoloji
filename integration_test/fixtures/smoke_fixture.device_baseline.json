@@ -1,9 +1,6 @@
 {
   "feed": {
-    "minCount": 1,
-    "docIds": [
-      "example-feed-doc-1"
-    ]
+    "minCount": 1
   },
   "profile": {
     "minCount": 1
@@ -12,6 +9,6 @@
     "minCount": 1
   },
   "notifications": {
-    "maxUnread": 99
+    "maxUnread": 250
   }
 }

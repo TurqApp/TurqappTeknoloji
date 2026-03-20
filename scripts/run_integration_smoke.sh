@@ -8,8 +8,13 @@ artifact_dir="artifacts/integration_smoke"
 android_package="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 
+default_fixture_file="integration_test/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
+
+if [[ -z "$fixture_file" && -f "$default_fixture_file" ]]; then
+  fixture_file="$default_fixture_file"
+fi
 
 if [[ -n "$fixture_file" ]]; then
   if [[ ! -f "$fixture_file" ]]; then
@@ -56,16 +61,41 @@ fi
 rm -rf "$artifact_dir"
 mkdir -p "$artifact_dir"
 
-echo "[integration-smoke] running ${#smoke_tests[@]} smoke tests"
-smoke_status=0
-if ! flutter "${flutter_args[@]}" "${smoke_tests[@]}"; then
-  smoke_status=$?
-fi
+pick_android_device() {
+  local android_devices=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    android_devices+=("$line")
+  done < <(
+    /Users/turqapp/Library/Android/sdk/platform-tools/adb devices |
+      awk 'NR > 1 && $2 == "device" { print $1 }'
+  )
+  if [[ "${#android_devices[@]}" -eq 0 ]]; then
+    return 0
+  fi
+  for candidate in "${android_devices[@]}"; do
+    if [[ "$candidate" == *:* ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  printf '%s\n' "${android_devices[0]}"
+}
 
 device_id="${INTEGRATION_SMOKE_DEVICE_ID:-}"
 if [[ -z "$device_id" ]]; then
-  device_id="$(/Users/turqapp/Library/Android/sdk/platform-tools/adb devices | awk 'NR > 1 && $2 == "device" { print $1; exit }')"
+  device_id="$(pick_android_device)"
 fi
+if [[ -n "$device_id" ]]; then
+  flutter_args+=("-d" "$device_id")
+  echo "[integration-smoke] target device: $device_id"
+fi
+
+echo "[integration-smoke] running ${#smoke_tests[@]} smoke tests"
+set +e
+flutter "${flutter_args[@]}" "${smoke_tests[@]}"
+smoke_status=$?
+set -e
 
 pull_android_artifacts() {
   local target_device="$1"
@@ -76,6 +106,10 @@ pull_android_artifacts() {
   for artifact in "${smoke_artifacts[@]}"; do
     local file_name
     file_name="$(basename "$artifact")"
+    if ! /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$file_name"; then
+      echo "[integration-smoke] remote artifact missing: $file_name" >&2
+      return 1
+    fi
     /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" exec-out run-as "$android_package" cat "$android_remote_artifact_dir/$file_name" > "$artifact"
     local screenshot_path="${artifact%.json}.png"
     if /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$(basename "$screenshot_path")"; then
