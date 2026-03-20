@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
@@ -18,6 +19,37 @@ class DenemeTurleriListesiController extends GetxController {
 
   DenemeTurleriListesiController({required this.sinavTuru});
 
+  bool _sameExamEntries(
+    List<SinavModel> current,
+    List<SinavModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -30,7 +62,9 @@ class DenemeTurleriListesiController extends GetxController {
       cacheOnly: true,
     );
     if (cached.isNotEmpty) {
-      list.assignAll(cached);
+      if (!_sameExamEntries(list, cached)) {
+        list.assignAll(cached);
+      }
       isLoading.value = false;
       isInitialized.value = true;
       if (SilentRefreshGate.shouldRefresh(
@@ -57,7 +91,9 @@ class DenemeTurleriListesiController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
-      list.assignAll(items);
+      if (!_sameExamEntries(list, items)) {
+        list.assignAll(items);
+      }
       SilentRefreshGate.markRefreshed('practice_exams:type:$sinavTuru');
     } catch (error) {
       AppSnackbar('common.error'.tr, 'tests.exams_load_failed'.tr);

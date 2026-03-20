@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
@@ -17,6 +18,43 @@ class CategoryBasedAnswerKeyController extends GetxController {
   final BookletRepository _bookletRepository = BookletRepository.ensure();
 
   CategoryBasedAnswerKeyController(this.sinavTuru);
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -38,8 +76,12 @@ class CategoryBasedAnswerKeyController extends GetxController {
         cacheOnly: true,
       );
       if (cached.isNotEmpty) {
-        list.assignAll(cached);
-        filteredList.assignAll(cached);
+        if (!_sameBookletEntries(list, cached)) {
+          list.assignAll(cached);
+        }
+        if (!_sameBookletEntries(filteredList, cached)) {
+          filteredList.assignAll(cached);
+        }
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
           'answer_key:type:$sinavTuru',
@@ -68,8 +110,12 @@ class CategoryBasedAnswerKeyController extends GetxController {
         preferCache: true,
         forceRefresh: forceRefresh,
       );
-      list.assignAll(items);
-      filteredList.assignAll(list);
+      if (!_sameBookletEntries(list, items)) {
+        list.assignAll(items);
+      }
+      if (!_sameBookletEntries(filteredList, list)) {
+        filteredList.assignAll(list);
+      }
       SilentRefreshGate.markRefreshed('answer_key:type:$sinavTuru');
     } catch (_) {
     } finally {
@@ -85,13 +131,18 @@ class CategoryBasedAnswerKeyController extends GetxController {
 
   void filterSearchResults(String query) {
     if (query.isEmpty) {
-      filteredList.assignAll(list);
+      if (!_sameBookletEntries(filteredList, list)) {
+        filteredList.assignAll(list);
+      }
     } else {
-      filteredList.assignAll(
-        list.where(
-          (val) => normalizeText(val.baslik).contains(normalizeText(query)),
-        ),
-      );
+      final next = list
+          .where(
+            (val) => normalizeText(val.baslik).contains(normalizeText(query)),
+          )
+          .toList(growable: false);
+      if (!_sameBookletEntries(filteredList, next)) {
+        filteredList.assignAll(next);
+      }
     }
   }
 }
