@@ -1,0 +1,142 @@
+# Android Ekran Test Matrisi
+
+Tarih: 21 Mart 2026
+
+## Amac
+
+Bu not, Android tarafinda tum uygulama yuzeylerini ekran ekran taramak, hangi alanin otomatik yesil oldugunu, hangisinin manuel dogrulandigini ve hangisinin hala acik oldugunu tek yerde tutmak icin acildi.
+
+Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
+
+## Legend
+
+- `OTOMATIK_YESIL`: integration smoke veya scripted replay ile gecti
+- `MANUEL_YESIL`: gercek Android cihazda elle dogrulandi
+- `ANDROID_ACIK`: Android ozel tuning veya runtime sorunlari var
+- `KAPSAM_BEKLIYOR`: yuzey var ama bu fazda sistematik sweep yapilmadi
+- `DUSUK_ONCELIK`: cekirdek akis degil, son turda taranabilir
+
+## Android Tarafinda iOS'tan Geri Kalan Ana Nedenler
+
+1. `Short` ve `Feed` video gecisleri Android'de `AndroidView + ExoPlayer` uzerinden gidiyor; iOS tarafi `AVPlayer` ile daha stabil.
+2. Android Exo buffer profili daha agresif; iOS tarafindaki gibi stability-first degil.
+3. Android non-fullscreen reveal yolu daha erken aciliyor; siyah frame / gec first-frame hissi uretebiliyor.
+4. Android playback telemetry halen iOS kadar zengin degil; dropped frame / rebuffer / bitrate switch sinyalleri az.
+5. Platform-view, reklam ve scroll geometri hassasiyeti Android'de daha yuksek.
+
+## Bu Fazda Yesil Olanlar
+
+### Otomatik yesil
+
+- `Feed`
+- `Explore`
+- `Profile`
+- `Short`
+- `Notifications`
+
+### Manuel yesil
+
+- `Market`
+- `Is Veren`
+- `Ozel Ders`
+- `Online Sinav`
+- `Cevap Anahtari`
+
+## Android Sweep Oncelik Sirasi
+
+1. `Feed`
+2. `Short`
+3. `MyProfile`
+4. `SocialProfile`
+5. `Notifications`
+6. `SavedPosts`
+7. `Explore/SearchedUser`
+8. `Market`
+9. `Is Veren`
+10. `Ozel Ders`
+11. `Online Sinav`
+12. `Cevap Anahtari`
+13. `Chat`
+14. `Story`
+15. `PostCreator`
+16. `Scholarships / PreviousQuestions / CikmisSorular / Tests`
+17. `Settings / raw-form ekranlari`
+
+## Matris
+
+| Alan | Ekranlar | Kapsam | Durum | Android odak / acik |
+|---|---|---|---|---|
+| App shell | `Splash`, `SignIn`, `NavBar`, `Maintenance` | smoke + manuel | `OTOMATIK_YESIL` | login, route ve ana nav aciliyor; uzun sureli auth/session churn icin son sweep yine gerekli |
+| Feed / Agenda | `Feed`, `ClassicContent`, `SinglePost`, `Comments`, `TopTags`, `TagPosts`, `FloodListing`, `PostLikeListing`, `PostReshareListing` | smoke + kismi manuel | `ANDROID_ACIK` | correctness yesil; Android'de `autoplay tuning`, `player recreate rate`, `scroll first-frame` hala acik |
+| Short | `Short`, `DynamicShort`, `SingleShort`, `PhotoShorts` | smoke + kismi manuel | `ANDROID_ACIK` | iOS iyi, Android'de `first-frame`, `black frame`, `rebuffer`, `player churn` odak alanlari |
+| Explore | `Explore`, `SearchedUser`, recent search | smoke + kismi manuel | `ANDROID_ACIK` | ana explore yesil; `SearchedUser` ve preview gate zinciri icin genis Android sweep gerekli |
+| Notifications | `InAppNotifications`, `notification_content` | smoke | `OTOMATIK_YESIL` | optimistic mutation yesil; uzun liste + route return + empty state smoke tekrari gerekli |
+| My Profile | `MyProfile`, `LikedPosts`, `Archives`, `MyStatistic`, `MyQRCode` | kismi manuel | `ANDROID_ACIK` | centered restore ve scroll stabilizasyonu geldi; genis cihaz turu eksik |
+| Social Profile | `SocialProfile`, followers, report, qr | kismi manuel | `ANDROID_ACIK` | route return ve restore mantigi var; Android detail geri donus sweep'i eksik |
+| Profile settings | `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Policies`, `DeleteAccount`, `Cv`, `BiographyMaker`, `Editor*`, `LangSelector`, `ViewChanger`, `SocialMediaLinks`, `BecomeVerifiedAccount`, `ProfileContact` | manuel parcali | `KAPSAM_BEKLIYOR` | bunlarin bir kismi bilincli raw; warm-open ve form state Android sweep'i eksik |
+| Saved profile surfaces | `SavedPosts`, `BlockedUsers`, `FollowingFollowers` | parcali manuel | `ANDROID_ACIK` | snapshot/silent refresh var; Android gerçek cihaz smoke acik |
+| Market | `Market`, `detail`, `search`, `saved`, `offers`, `my items`, `create`, `filter` | manuel | `MANUEL_YESIL` | ilk acilis stabil; `detail/offers/saved/my items` turunun kayitli matrisi cikacak |
+| Job | `JobContent`, `JobDetails`, `SavedJobs`, `MyApplications`, `MyJobAds`, `CareerProfile`, `FindingJobApply`, `JobCreator`, `ApplicationReview` | manuel + omurga sweep | `ANDROID_ACIK` | ana liste stabil; filter/sort/detail/apply akislarinin tam turu eksik |
+| Tutoring | `Tutoring`, `detail`, `saved`, `my tutorings`, `location based`, `create` | manuel + omurga sweep | `ANDROID_ACIK` | ana liste stabil; detail/create/save akislarinin genis turu eksik |
+| Practice exams | `Online Sinav`, `saved`, `my exams`, `type list`, `sonuclarim` | manuel + omurga sweep | `ANDROID_ACIK` | basvuru satiri ve liste stabil; detail/preview/apply akis sweep'i eksik |
+| Answer key | `Cevap Anahtari`, `book detail`, `saved books`, `optics published` | manuel + omurga sweep | `ANDROID_ACIK` | liste/grid stabil; kitap detayi ve booklet preview sweep'i eksik |
+| Other education | `Scholarships`, `PreviousQuestions`, `CikmisSorular`, `Tests`, `Antreman3`, `QuestionBank` | parcali | `KAPSAM_BEKLIYOR` | cache-first omurga var; Android yuzey taramasi henuz sistematik degil |
+| Story | `StoryRow`, `StoryViewer`, `StoryMaker`, `StoryMusic`, `Highlights`, `DeletedStories` | parcali | `KAPSAM_BEKLIYOR` | video/media ve gesture davranisi Android'de mutlaka sweep ister |
+| Chat | `ChatListing`, `CreateChat`, `MessageContent`, `LocationShareView` | parcali | `KAPSAM_BEKLIYOR` | liste, acilis, geri donus ve attachment akis turu gerekli |
+| Post creation | `PostCreator`, `CreatorContent`, `EditPost`, `UrlPostMaker`, `hashtag_text_post` | parcali | `KAPSAM_BEKLIYOR` | upload, local insert, refresh persistence, route return Android sweep'i gerekli |
+| Share / misc | `ShareGrid`, `RecommendedUserList`, `SpotifySelector`, `TypeWriter` | parcali | `DUSUK_ONCELIK` | cekirdek akis degil; son turda taranabilir |
+
+## Feed / Short Android Ozel Kabul Kriterleri
+
+### Feed
+
+- cold open sonrasi ilk gorunur postta siyah frame olmamali
+- scroll penceresinde `player recreate` dalgasi gozle gorulur seviyede olmamali
+- refresh sonrasi liste bosalmamali
+- detail ve profile gidis-donusunde ayni bolgeye stabil donmeli
+
+### Short
+
+- ilk acilista siyah ekran olmamali
+- yukari/asagi gecislerde ses-goruntu gec baglanmamali
+- yeni short'a geciste onceki player gec cozulup yeni player gec acilmamali
+- geri donuste aktif short korunmali
+
+## Sonraki Android Sweep Uygulamasi
+
+### Dalga 1
+
+- `Feed`
+- `Short`
+- `MyProfile`
+- `SocialProfile`
+- `Notifications`
+- `SavedPosts`
+- `Explore/SearchedUser`
+
+### Dalga 2
+
+- `Market`
+- `Is Veren`
+- `Ozel Ders`
+- `Online Sinav`
+- `Cevap Anahtari`
+- `Scholarships`
+- `PreviousQuestions`
+- `CikmisSorular`
+
+### Dalga 3
+
+- `Chat`
+- `Story`
+- `PostCreator`
+- `Settings/raw-form` ekranlari
+
+## Bu Dosya Ile Master Plan Iliskisi
+
+- Stratejik plan ve genel ilerleme:
+  [TURQAPP_YAPILACAKLAR_2026-03-20.md](/Users/turqapp/Desktop/TurqApp/docs/TURQAPP_YAPILACAKLAR_2026-03-20.md)
+- Mimari audit ve cache-first notlari:
+  [cache_first_audit_2026_03_19.md](/Users/turqapp/Desktop/TurqApp/docs/architecture/cache_first_audit_2026_03_19.md)
+
+Bu matris, master planin Android saha uygulama ekidir.

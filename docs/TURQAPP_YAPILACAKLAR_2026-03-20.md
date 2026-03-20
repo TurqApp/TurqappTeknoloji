@@ -10,11 +10,13 @@ Bu dosya artik otomasyon + manuel dogrulama + bilincli raw alanlar + legacy clea
 
 Referans durum:
 
-- Guncel `HEAD`: `18b8f582` `Skip redundant saved results and books patches`
+- Guncel `HEAD`: `4a9b5334` `Finalize smoke report exports after green run`
 - Resolver/cache-first stabilizasyon checkpoint'i: `863b6a98` `Finalize urgent resolver follow-ups`
 - Ana mimari safhasi bitti.
 - Resolver / cache-first yayginlastirma buyuk olcude bitti.
 - Kalan isler buyuk refactor degil; tuning, gercek cihaz dogrulama ve az sayida dirty legacy cleanup.
+- Android ekran ekran sweep matrisi:
+  [ANDROID_TEST_MATRIX_2026-03-21.md](/Users/turqapp/Desktop/TurqApp/docs/ANDROID_TEST_MATRIX_2026-03-21.md)
 
 ## Bu Fazda Yapilan Ana Isler
 
@@ -621,20 +623,21 @@ Aktif faz:
 
 1. `git status` ile dirty worktree'yi dikkatli incele.
 2. Bu notu ve `docs/architecture/cache_first_audit_2026_03_19.md` dosyasini ac.
-3. `Master Plan Durum Kontrolu` kismini referans alip aciklari `KISMEN / ACIK / BILINCLI / EKSIK ALTYAPI` diye ayir.
-4. Ilk teknik odak:
-   tam 5'li `integration smoke` turunu yeni auth + short + host-stub artifact hattiyla yesil tamamla
-5. Sonra:
+3. `docs/ANDROID_TEST_MATRIX_2026-03-21.md` dosyasini ac ve Android sweep dalgasini oradan yurut.
+4. `Master Plan Durum Kontrolu` kismini referans alip aciklari `KISMEN / ACIK / BILINCLI / EKSIK ALTYAPI` diye ayir.
+5. Ilk teknik odak:
    `Feed autoplay tuning` + `Short playback churn olcumu`
 6. Sonra:
    `Notifications`, `SavedPosts`, `MyProfile`, `SocialProfile`, `cached_user_avatar`, `Explore/SearchedUser` smoke/dogrulama
-7. Sonraki teknik odak:
+7. Sonra:
+   Android sweep matrisi `Dalga 2` yuzeylerini kayitli cihaz turu ile kapat
+8. Sonraki teknik odak:
    dirty kalan raw/form ekranlarini tek tek ayirip sadece gerekli olanlari raw belgede birak
-8. Sonraki kalite odagi:
-   `telemetry alarms + release gate + dashboard/backend alert baglantisi`
-9. Sonraki Android runtime odagi:
+9. Sonraki kalite odagi:
+   `telemetry alarms + release gate + dashboard/backend alert` hattini gercek config ile dogrula
+10. Sonraki Android runtime odagi:
    `AdmobKare` pool reuse icin daha guvenli lease/refcount tasarimi veya kalici pool iptali karari
-10. Sonraki backend operasyon odagi:
+11. Sonraki backend operasyon odagi:
    `firestore.indexes.json` icindeki `offers` indexlerini deploy edip market offer warning'lerini temiz run ile tekrar okumak
 
 ## Teknik Notlar
