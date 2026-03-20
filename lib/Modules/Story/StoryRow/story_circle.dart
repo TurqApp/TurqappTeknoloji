@@ -56,6 +56,7 @@ class _StoryCircleState extends State<StoryCircle> {
                       ? Get.find<AgendaController>()
                       : null;
                   final prevIndex = cont?.lastCenteredIndex;
+                  cont?.lastCenteredIndex = prevIndex;
                   cont?.centeredIndex.value = -1;
                   final myUserID = FirebaseAuth.instance.currentUser?.uid;
                   final isMe =
@@ -72,14 +73,14 @@ class _StoryCircleState extends State<StoryCircle> {
                           startedUser: widget.model,
                           storyOwnerUsers: widget.users))?.then((_) {
                         if (cont != null) {
-                          cont.centeredIndex.value = prevIndex ?? 0;
+                          cont.resumeFeedPlayback();
                         }
                       });
                     } else {
                       // Story'im yok, StoryMaker'a git
                       Get.to(() => StoryMaker())?.then((_) {
                         if (cont != null) {
-                          cont.centeredIndex.value = prevIndex ?? 0;
+                          cont.resumeFeedPlayback();
                         }
                       });
                     }
@@ -89,7 +90,7 @@ class _StoryCircleState extends State<StoryCircle> {
                         startedUser: widget.model,
                         storyOwnerUsers: widget.users))?.then((_) {
                       if (cont != null) {
-                        cont.centeredIndex.value = prevIndex ?? 0;
+                        cont.resumeFeedPlayback();
                       }
                     });
                   }
@@ -104,6 +105,7 @@ class _StoryCircleState extends State<StoryCircle> {
                         : null;
                     final prevIndex = agenda?.lastCenteredIndex;
                     if (agenda != null) {
+                      agenda.lastCenteredIndex = prevIndex;
                       agenda.centeredIndex.value = -1;
                       agenda.pauseAll.value = true;
                     }
@@ -113,7 +115,7 @@ class _StoryCircleState extends State<StoryCircle> {
                     Get.to(() => const DeletedStoriesView())?.then((_) {
                       if (agenda != null) {
                         agenda.pauseAll.value = false;
-                        agenda.centeredIndex.value = prevIndex ?? 0;
+                        agenda.resumeFeedPlayback();
                       }
                     });
                   }
@@ -244,12 +246,13 @@ class _StoryCircleState extends State<StoryCircle> {
                                 ? Get.find<AgendaController>()
                                 : null;
                             final prevIndex = cont?.lastCenteredIndex;
+                            cont?.lastCenteredIndex = prevIndex;
                             cont?.centeredIndex.value = -1;
 
                             Get.to(() => StoryMaker())?.then((_) {
                               // Geri dönünce merkezdeki gönderiyi geri yükle
                               if (cont != null) {
-                                cont.centeredIndex.value = prevIndex ?? 0;
+                                cont.resumeFeedPlayback();
                               }
                             });
                           },
