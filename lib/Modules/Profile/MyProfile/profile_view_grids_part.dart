@@ -30,23 +30,25 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
+                  controller.pausetheall.value = true;
                   if (model.floodCount > 1) {
-                    Get.to(() => FloodListing(mainModel: model));
+                    await Get.to(() => FloodListing(mainModel: model));
                   } else {
-                    Get.to(() =>
+                    await Get.to(() =>
                         PhotoShorts(fetchedList: templist, startModel: model));
                   }
+                  controller.resumeCenteredPost();
                 },
                 onLongPress: () {
                   Get.dialog(
                     CupertinoAlertDialog(
-                      title: Text("Gönderi hakkında",
+                      title: Text("profile.post_about_title".tr,
                           style: TextStyles.bold15Black,
                           textAlign: TextAlign.center),
                       content: Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          "Bu gönderi için ne yapmak istiyorsunuz?",
+                          "profile.post_about_body".tr,
                           style: TextStyles.medium15Black,
                           textAlign: TextAlign.center,
                         ),
@@ -57,7 +59,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             Get.back();
                             arsivle(model);
                           },
-                          child: const Text("Arşivle",
+                          child: Text("profile.archive".tr,
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -68,7 +70,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             Get.back();
                             Get.to(() => EditPost(post: model));
                           },
-                          child: const Text("Düzenle",
+                          child: Text("profile.edit".tr,
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -85,7 +87,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             await PostDeleteService.instance.softDelete(model);
                           },
                           isDestructiveAction: true,
-                          child: const Text("Sil",
+                          child: Text("common.delete".tr,
                               style: TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,
@@ -93,7 +95,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         ),
                         CupertinoDialogAction(
                           onPressed: () => Get.back(),
-                          child: const Text("Vazgeç",
+                          child: Text("common.cancel".tr,
                               style: TextStyle(
                                   color: Colors.blueAccent,
                                   fontSize: 15,
@@ -152,7 +154,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
             }, childCount: templist.length),
           )
         else
-          SliverToBoxAdapter(child: EmptyRow(text: "Fotoğraf Yok")),
+          SliverToBoxAdapter(child: EmptyRow(text: "profile.no_photos".tr)),
       ],
     );
   }
@@ -186,23 +188,25 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
+                  controller.pausetheall.value = true;
                   if (model.floodCount > 1) {
-                    Get.to(() => FloodListing(mainModel: model));
+                    await Get.to(() => FloodListing(mainModel: model));
                   } else {
-                    Get.to(() => SingleShortView(
+                    await Get.to(() => SingleShortView(
                         startList: templist, startModel: model));
                   }
+                  controller.resumeCenteredPost();
                 },
                 onLongPress: () {
                   Get.dialog(
                     CupertinoAlertDialog(
-                      title: Text("Gönderi hakkında",
+                      title: Text("profile.post_about_title".tr,
                           style: TextStyles.bold15Black,
                           textAlign: TextAlign.center),
                       content: Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          "Bu gönderi için ne yapmak istiyorsunuz?",
+                          "profile.post_about_body".tr,
                           style: TextStyles.medium15Black,
                           textAlign: TextAlign.center,
                         ),
@@ -213,7 +217,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             Get.back();
                             arsivle(model);
                           },
-                          child: const Text("Arşivle",
+                          child: Text("profile.archive".tr,
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -224,7 +228,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             Get.back();
                             Get.to(() => EditPost(post: model));
                           },
-                          child: const Text("Düzenle",
+                          child: Text("profile.edit".tr,
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -241,7 +245,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             await PostDeleteService.instance.softDelete(model);
                           },
                           isDestructiveAction: true,
-                          child: const Text("Sil",
+                          child: Text("common.delete".tr,
                               style: TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,
@@ -249,7 +253,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         ),
                         CupertinoDialogAction(
                           onPressed: () => Get.back(),
-                          child: const Text("Vazgeç",
+                          child: Text("common.cancel".tr,
                               style: TextStyle(
                                   color: Colors.blueAccent,
                                   fontSize: 15,
@@ -304,7 +308,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
           )
         else
           SliverToBoxAdapter(
-            child: Center(child: EmptyRow(text: "Video Yok")),
+            child: Center(child: EmptyRow(text: "profile.no_videos".tr)),
           ),
       ],
     );
@@ -389,9 +393,10 @@ extension _ProfileViewGridsPart on _ProfileViewState {
             delegate: SliverChildBuilderDelegate((context, index) {
               final model = controller.reshares[index];
               return GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  controller.pausetheall.value = true;
                   if (model.hasPlayableVideo) {
-                    Get.to(
+                    await Get.to(
                       () => SingleShortView(
                         startList: controller.reshares
                             .where((val) => val.hasPlayableVideo)
@@ -400,7 +405,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       ),
                     );
                   } else {
-                    Get.to(
+                    await Get.to(
                       () => PhotoShorts(
                         fetchedList: controller.reshares
                             .where((val) => val.img.isNotEmpty)
@@ -409,12 +414,12 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       ),
                     );
                   }
+                  controller.resumeCenteredPost();
                 },
                 onLongPress: () {
                   noYesAlert(
-                      title: "Gönderiyi kaldır",
-                      message:
-                          "Bu gönderiyi yeniden paylaşılan gönderiler arasından silmek istediğinizden emin misiniz ?",
+                      title: "profile.remove_reshare_title".tr,
+                      message: "profile.remove_reshare_body".tr,
                       onYesPressed: () {
                         final store = Get.find<ProfileController>();
                         final index = store.reshares.indexOf(model);
@@ -488,7 +493,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
           )
         else
           SliverToBoxAdapter(
-              child: Center(child: EmptyRow(text: "Yeniden paylaşım yok"))),
+              child: Center(child: EmptyRow(text: "profile.no_reshares".tr))),
       ],
     );
   }
@@ -514,10 +519,12 @@ extension _ProfileViewGridsPart on _ProfileViewState {
             ),
           )
         else if (_marketItems.isEmpty)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(top: 10),
-              child: EmptyRow(text: 'İlan Yok'),
+          SliverToBoxAdapter(
+            child: Builder(
+              builder: (_) => Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: EmptyRow(text: 'profile.no_listings'.tr),
+              ),
             ),
           )
         else
@@ -639,7 +646,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                   const SizedBox(height: 4),
                   Text(
                     item.locationText.isEmpty
-                        ? 'Konum belirtilmedi'
+                        ? 'profile.location_missing'.tr
                         : item.locationText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -666,8 +673,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         ),
                         padding: EdgeInsets.zero,
                       ),
-                      child: const Text(
-                        'İncele',
+                      child: Text(
+                        'profile.review'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -715,13 +722,13 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   String _marketStatusLabel(String status) {
     switch (status) {
       case 'sold':
-        return 'Satıldı';
+        return 'profile.status_sold'.tr;
       case 'reserved':
       case 'draft':
       case 'archived':
-        return 'Pasif';
+        return 'profile.status_passive'.tr;
       default:
-        return 'Aktif';
+        return 'profile.status_active'.tr;
     }
   }
 
@@ -764,13 +771,13 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                 onLongPress: () {
                   Get.dialog(
                     CupertinoAlertDialog(
-                      title: Text("İz Bırak Gönderi",
+                      title: Text("profile.scheduled_post_title".tr,
                           style: TextStyles.bold15Black,
                           textAlign: TextAlign.center),
                       content: Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          "Bu gönderi için ne yapmak istersiniz?",
+                          "profile.scheduled_post_body".tr,
                           style: TextStyles.medium15Black,
                           textAlign: TextAlign.center,
                         ),
@@ -781,7 +788,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             Get.back();
                             Get.to(() => EditPost(post: model));
                           },
-                          child: const Text("Düzenle",
+                          child: Text("profile.edit".tr,
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -795,7 +802,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                             await PostDeleteService.instance.softDelete(model);
                           },
                           isDestructiveAction: true,
-                          child: const Text("Sil",
+                          child: Text("common.delete".tr,
                               style: TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,
@@ -803,7 +810,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         ),
                         CupertinoDialogAction(
                           onPressed: () => Get.back(),
-                          child: const Text("Vazgeç",
+                          child: Text("common.cancel".tr,
                               style: TextStyle(
                                   color: Colors.blueAccent,
                                   fontSize: 15,
@@ -889,8 +896,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                                 await IzBirakSubscriptionService.ensure()
                                     .subscribe(model.docID);
                                 AppSnackbar(
-                                  'İz Bırak',
-                                  'Yayın tarihinde bildirim alacaksınız.',
+                                  'profile.scheduled_subscribe_title'.tr,
+                                  'profile.scheduled_subscribe_body'.tr,
                                 );
                               },
                               child: SizedBox(
@@ -924,7 +931,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
           )
         else
           SliverToBoxAdapter(
-              child: Center(child: EmptyRow(text: "İz bırak gönderisi yok"))),
+              child: Center(child: EmptyRow(text: "profile.scheduled_none".tr))),
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],
     );
