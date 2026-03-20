@@ -25,6 +25,34 @@ class SavedPracticeExamsController extends GetxController {
     );
   }
 
+  bool _sameExamEntries(List<SinavModel> current, List<SinavModel> next) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -52,7 +80,9 @@ class SavedPracticeExamsController extends GetxController {
         cacheOnly: true,
       );
       if (exams.isNotEmpty) {
-        savedExams.assignAll(exams);
+        if (!_sameExamEntries(savedExams, exams)) {
+          savedExams.assignAll(exams);
+        }
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
           'practice_exams:saved:$uid',
@@ -91,7 +121,9 @@ class SavedPracticeExamsController extends GetxController {
         savedExamIds.assignAll(nextIds);
       }
       if (savedEntries.isEmpty) {
-        savedExams.clear();
+        if (savedExams.isNotEmpty) {
+          savedExams.clear();
+        }
         return;
       }
 
@@ -99,7 +131,9 @@ class SavedPracticeExamsController extends GetxController {
         savedEntries.map((doc) => doc.id).toList(growable: false),
         preferCache: !forceRefresh,
       );
-      savedExams.assignAll(exams);
+      if (!_sameExamEntries(savedExams, exams)) {
+        savedExams.assignAll(exams);
+      }
       SilentRefreshGate.markRefreshed('practice_exams:saved:$uid');
     } finally {
       isLoading.value = false;

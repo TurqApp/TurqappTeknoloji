@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -17,6 +18,34 @@ class SinavSonuclarimController extends GetxController {
   var isLoading = true.obs;
   final ScrollController scrollController = ScrollController();
   double _previousOffset = 0.0;
+
+  bool _sameExamEntries(List<SinavModel> current, List<SinavModel> next) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -47,7 +76,9 @@ class SinavSonuclarimController extends GetxController {
       cacheOnly: true,
     );
     if (cached.isNotEmpty) {
-      list.assignAll(cached);
+      if (!_sameExamEntries(list, cached)) {
+        list.assignAll(cached);
+      }
       isLoading.value = false;
       if (SilentRefreshGate.shouldRefresh(
         'practice_exams:results:$currentUserID',
@@ -74,7 +105,9 @@ class SinavSonuclarimController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
-      list.assignAll(exams);
+      if (!_sameExamEntries(list, exams)) {
+        list.assignAll(exams);
+      }
       SilentRefreshGate.markRefreshed('practice_exams:results:$currentUserID');
     } catch (e) {
       log("SinavSonuclarimController error: $e");

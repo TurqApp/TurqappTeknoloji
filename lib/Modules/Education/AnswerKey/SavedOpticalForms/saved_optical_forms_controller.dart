@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
@@ -14,6 +15,43 @@ class SavedOpticalFormsController extends GetxController {
   final isLoading = false.obs;
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -43,7 +81,9 @@ class SavedOpticalFormsController extends GetxController {
           cacheOnly: true,
         );
         if (books.isNotEmpty) {
-          list.assignAll(books);
+          if (!_sameBookletEntries(list, books)) {
+            list.assignAll(books);
+          }
           isLoading.value = false;
           if (SilentRefreshGate.shouldRefresh(
             'answer_key:saved_books:$uid',
@@ -81,7 +121,9 @@ class SavedOpticalFormsController extends GetxController {
         savedEntries.map((e) => e.id).toList(growable: false),
         preferCache: true,
       );
-      list.assignAll(books);
+      if (!_sameBookletEntries(list, books)) {
+        list.assignAll(books);
+      }
       SilentRefreshGate.markRefreshed('answer_key:saved_books:$uid');
     } catch (_) {
     } finally {
