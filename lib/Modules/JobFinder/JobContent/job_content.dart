@@ -335,8 +335,8 @@ class JobContent extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: PasajListCardMetrics.gridOverlayInset,
+                    right: PasajListCardMetrics.gridOverlayInset,
                     child: Obx(
                       () => GestureDetector(
                         behavior: HitTestBehavior.opaque,
@@ -344,14 +344,14 @@ class JobContent extends StatelessWidget {
                             ? null
                             : () => controller.toggleSave(model.docID),
                         child: SizedBox(
-                          width: 36,
-                          height: 36,
+                          width: PasajListCardMetrics.gridOverlayButtonSize,
+                          height: PasajListCardMetrics.gridOverlayButtonSize,
                           child: Center(
                             child: Icon(
                               controller.saved.value
                                   ? AppIcons.saved
                                   : AppIcons.save,
-                              size: 24,
+                              size: PasajListCardMetrics.gridOverlayIconSize,
                               color: Colors.white,
                               shadows: const [
                                 Shadow(

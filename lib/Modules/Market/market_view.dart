@@ -715,8 +715,8 @@ class MarketView extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: PasajListCardMetrics.gridOverlayInset,
+                    right: PasajListCardMetrics.gridOverlayInset,
                     child: GestureDetector(
                       onTap: () =>
                           controller.toggleSaved(item, showSnackbar: false),
@@ -729,7 +729,7 @@ class MarketView extends StatelessWidget {
                             color: controller.isSaved(item.id)
                                 ? _gridSavedAccentColor
                                 : Colors.grey.shade600,
-                            size: 26,
+                            size: PasajListCardMetrics.gridOverlayIconSize,
                             shadows: const [
                               Shadow(
                                 color: Color(0x55000000),

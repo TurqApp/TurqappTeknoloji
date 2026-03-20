@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
@@ -43,7 +44,7 @@ class JobDetails extends StatelessWidget {
       Get.find<JobDetailsController>(tag: model.docID);
 
   Future<void> _openMentionProfile(String mention) async {
-    final normalizedMention = mention.trim().replaceFirst('@', '');
+    final normalizedMention = normalizeHandleInput(mention);
     if (normalizedMention.isEmpty) return;
     final targetUid =
         await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';

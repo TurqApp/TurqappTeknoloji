@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 @immutable
 class PasajListCardMetrics {
   static const double gridMediaAspectRatio = 0.78;
+  static const double gridOverlayButtonSize = 30;
+  static const double gridOverlayIconSize = 18;
+  static const double gridOverlayInset = 6;
 
   const PasajListCardMetrics({
     required this.mediaSize,
@@ -35,7 +38,7 @@ class PasajListCardMetrics {
   static const PasajListCardMetrics regular = PasajListCardMetrics(
     mediaSize: 88,
     railWidth: 108,
-    railHeight: 88,
+    railHeight: 96,
     actionButtonSize: 36,
     actionIconSize: 20,
     middleSlotHeight: 20,

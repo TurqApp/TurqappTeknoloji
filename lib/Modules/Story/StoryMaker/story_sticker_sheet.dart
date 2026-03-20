@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 
 import 'story_maker_controller.dart';
@@ -105,7 +106,7 @@ Future<void> showStoryStickerSheet(
                       'story.placeholder_nickname'.tr,
                     );
                     if (v == null || v.trim().isEmpty) return;
-                    final clean = v.trim().replaceFirst('@', '');
+                    final clean = normalizeHandleInput(v);
                     controller.addSticker(
                       stickerType: 'mention',
                       label: '@$clean',

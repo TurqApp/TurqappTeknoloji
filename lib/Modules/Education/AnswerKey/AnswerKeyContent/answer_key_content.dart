@@ -81,6 +81,7 @@ class AnswerKeyContent extends StatelessWidget {
     BuildContext context,
     AnswerKeyContentController controller,
   ) {
+    const metrics = PasajListCardMetrics.regular;
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final canShareFeed = AdminAccessService.isKnownAdminSync() ||
         controller.model.userID == currentUid;
@@ -101,20 +102,20 @@ class AnswerKeyContent extends StatelessWidget {
                 children: [
                   Positioned.fill(child: _buildMedia(12)),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: PasajListCardMetrics.gridOverlayInset,
+                    right: PasajListCardMetrics.gridOverlayInset,
                     child: Column(
                       children: [
                         if (canShareFeed)
                           EducationShareIconButton(
                             onTap: controller.shareBooklet,
-                            size: 36,
-                            iconSize: 20,
+                            size: PasajListCardMetrics.gridOverlayButtonSize,
+                            iconSize: PasajListCardMetrics.gridOverlayIconSize,
                           ),
                         if (canShareFeed) const SizedBox(height: 6),
                         AppHeaderActionButton(
                           onTap: controller.toggleBookmark,
-                          size: 36,
+                          size: PasajListCardMetrics.gridOverlayButtonSize,
                           child: Icon(
                             controller.isBookmarked.value
                                 ? CupertinoIcons.bookmark_fill
@@ -122,7 +123,7 @@ class AnswerKeyContent extends StatelessWidget {
                             color: controller.isBookmarked.value
                                 ? Colors.orange
                                 : Colors.black87,
-                            size: 20,
+                            size: PasajListCardMetrics.gridOverlayIconSize,
                           ),
                         ),
                       ],
@@ -206,10 +207,21 @@ class AnswerKeyContent extends StatelessWidget {
                           fontFamily: 'MontserratMedium',
                         ),
                       ),
-                    ],
-                  ),
+                  ],
+                ),
                   const SizedBox(height: 6),
-                  _buildPrimaryButton(context, controller),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: metrics.railWidth,
+                      child: _buildPrimaryButton(
+                        context,
+                        controller,
+                        height: metrics.ctaHeight,
+                        fontSize: metrics.ctaFontSize,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -252,117 +264,105 @@ class AnswerKeyContent extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Text(
+                      controller.model.baslik,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontFamily: 'MontserratBold',
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      controller.model.sinavTuru,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: PasajCardStyles.detail,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      controller.model.yayinEvi,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: PasajCardStyles.detail,
+                    ),
+                    SizedBox(height: metrics.contentGap),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                controller.model.baslik,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: 'MontserratBold',
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                controller.model.sinavTuru,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: PasajCardStyles.detail,
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                controller.model.yayinEvi,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: PasajCardStyles.detail,
-                              ),
-                            ],
+                        SvgPicture.asset(
+                          'assets/icons/statsyeni.svg',
+                          height: 14,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.black,
+                            BlendMode.srcIn,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (canShareFeed) ...[
-                              EducationShareIconButton(
-                                onTap: controller.shareBooklet,
-                                size: metrics.actionButtonSize,
-                                iconSize: metrics.actionIconSize,
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'answer_key.views'.trParams({
+                              'count': NumberFormatter.format(
+                                controller.model.viewCount,
                               ),
-                              SizedBox(width: metrics.railActionGap),
-                            ],
-                            AppHeaderActionButton(
-                              onTap: controller.toggleBookmark,
-                              size: metrics.actionButtonSize,
-                              child: Icon(
-                                controller.isBookmarked.value
-                                    ? CupertinoIcons.bookmark_fill
-                                    : CupertinoIcons.bookmark,
-                                color: controller.isBookmarked.value
-                                    ? Colors.orange
-                                    : Colors.black87,
-                                size: metrics.actionIconSize,
-                              ),
-                            ),
-                          ],
+                            }),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PasajCardStyles.detail,
+                          ),
                         ),
                       ],
                     ),
                     SizedBox(height: metrics.contentGap),
+                    SizedBox(height: metrics.detailRowHeight),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: metrics.railWidth,
+                height: metrics.railHeight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  SvgPicture.asset(
-                                    'assets/icons/statsyeni.svg',
-                                    height: 14,
-                                    colorFilter: const ColorFilter.mode(
-                                      Colors.black,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      'answer_key.views'.trParams({
-                                        'count': NumberFormatter.format(
-                                          controller.model.viewCount,
-                                        ),
-                                      }),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: PasajCardStyles.detail,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                        if (canShareFeed) ...[
+                          EducationShareIconButton(
+                            onTap: controller.shareBooklet,
+                            size: metrics.actionButtonSize,
+                            iconSize: metrics.actionIconSize,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: metrics.railWidth,
-                          child: _buildPrimaryButton(
-                            context,
-                            controller,
-                            height: 22,
-                            fontSize: 10,
+                          SizedBox(width: metrics.railActionGap),
+                        ],
+                        AppHeaderActionButton(
+                          onTap: controller.toggleBookmark,
+                          size: metrics.actionButtonSize,
+                          child: Icon(
+                            controller.isBookmarked.value
+                                ? CupertinoIcons.bookmark_fill
+                                : CupertinoIcons.bookmark,
+                            color: controller.isBookmarked.value
+                                ? Colors.orange
+                                : Colors.black87,
+                            size: metrics.actionIconSize,
                           ),
                         ),
                       ],
+                    ),
+                    SizedBox(height: metrics.railSectionGap),
+                    SizedBox(height: metrics.middleSlotHeight),
+                    const Spacer(),
+                    SizedBox(
+                      width: metrics.railWidth,
+                      child: _buildPrimaryButton(
+                        context,
+                        controller,
+                        height: metrics.ctaHeight,
+                        fontSize: metrics.ctaFontSize,
+                      ),
                     ),
                   ],
                 ),

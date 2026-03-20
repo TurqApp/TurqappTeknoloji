@@ -146,11 +146,10 @@ extension AgendaControllerResharePart on AgendaController {
 
   bool _isUserMarkedDeactivated(Map<String, dynamic>? data) {
     if (data == null) return false;
-    final deletedAccount = (data['isDeleted'] ?? false) == true;
-    final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-    return deletedAccount ||
-        status == 'pending_deletion' ||
-        status == 'deleted';
+    return isDeactivatedAccount(
+      accountStatus: data['accountStatus'],
+      isDeleted: data['isDeleted'],
+    );
   }
 
   Future<bool> _isUserDeactivated(String userID) async {

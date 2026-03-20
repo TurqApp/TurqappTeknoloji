@@ -13,9 +13,11 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       final data = snapshot.data();
       if (data == null) return;
 
-      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      final isDeleted = data['isDeleted'] == true;
-      if (status != 'pending_deletion' && !isDeleted) {
+      final isDeleted = isDeactivatedAccount(
+        accountStatus: data['accountStatus'],
+        isDeleted: data['isDeleted'],
+      );
+      if (!isDeleted) {
         return;
       }
 
@@ -103,8 +105,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       final raw = normalizedFields[key];
       if (raw is bool) return raw;
       if (raw == null || isDeleteMarker(raw)) return fallback;
-      if (raw is num) return raw != 0;
-      return raw.toString().toLowerCase() == 'true';
+      return parseAccountFlag(raw, fallback: fallback);
     }
 
     String avatarValue() {

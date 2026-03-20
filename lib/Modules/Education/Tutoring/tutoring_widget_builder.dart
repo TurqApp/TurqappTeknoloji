@@ -142,8 +142,8 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             ),
                           ),
                           Positioned(
-                            top: 8,
-                            right: 8,
+                            top: PasajListCardMetrics.gridOverlayInset,
+                            right: PasajListCardMetrics.gridOverlayInset,
                             child: Obx(
                               () => GestureDetector(
                                 behavior: HitTestBehavior.opaque,
@@ -154,15 +154,15 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   savedController: savedController,
                                 ),
                                 child: SizedBox(
-                                  width: 36,
-                                  height: 36,
+                                  width: PasajListCardMetrics.gridOverlayButtonSize,
+                                  height: PasajListCardMetrics.gridOverlayButtonSize,
                                   child: Center(
                                     child: Icon(
                                       savedController.savedTutoringIds
                                               .contains(tutoring.docID)
                                           ? AppIcons.saved
                                           : AppIcons.save,
-                                      size: 24,
+                                      size: PasajListCardMetrics.gridOverlayIconSize,
                                       color: Colors.white,
                                       shadows: const [
                                         Shadow(
@@ -359,9 +359,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
                     const SizedBox(width: 6),
                     SizedBox(
                       width: metrics.railWidth,
+                      height: metrics.railHeight,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -399,6 +399,8 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             ],
                           ),
                           SizedBox(height: metrics.railSectionGap),
+                          SizedBox(height: metrics.middleSlotHeight),
+                          const Spacer(),
                           SizedBox(
                             width: metrics.railWidth,
                             child: GestureDetector(

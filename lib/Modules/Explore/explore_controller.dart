@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
@@ -300,10 +301,10 @@ class ExploreController extends GetxController {
       final profile = profiles[p.userID];
       if (profile == null) return false;
       final isPrivate = (profile['isPrivate'] ?? false) == true;
-      final isDeleted = (profile['isDeleted'] ?? false) == true;
-      final status = (profile['accountStatus'] ?? '').toString().toLowerCase();
-      final isDeactivated =
-          isDeleted || status == 'pending_deletion' || status == 'deleted';
+      final isDeactivated = isDeactivatedAccount(
+        accountStatus: profile['accountStatus'],
+        isDeleted: profile['isDeleted'],
+      );
       if (isDeactivated) return false;
       if (!isPrivate) return true;
       final isMine = me != null && p.userID == me;
@@ -770,11 +771,10 @@ class ExploreController extends GetxController {
     );
     for (final entry in profiles.entries) {
       final data = entry.value;
-      final deletedAccount = (data['isDeleted'] ?? false) == true;
-      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      final pendingOrDeleted =
-          status == 'pending_deletion' || status == 'deleted';
-      if (deletedAccount || pendingOrDeleted) {
+      if (isDeactivatedAccount(
+        accountStatus: data['accountStatus'],
+        isDeleted: data['isDeleted'],
+      )) {
         blocked.add(entry.key);
       }
     }

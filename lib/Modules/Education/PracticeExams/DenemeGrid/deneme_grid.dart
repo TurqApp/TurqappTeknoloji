@@ -269,12 +269,12 @@ class DenemeGrid extends StatelessWidget {
                 children: [
                   Positioned.fill(child: _buildMedia(radius: 12)),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: PasajListCardMetrics.gridOverlayInset,
+                    right: PasajListCardMetrics.gridOverlayInset,
                     child: EducationShareIconButton(
                       onTap: _shareExternally,
-                      size: 36,
-                      iconSize: 20,
+                      size: PasajListCardMetrics.gridOverlayButtonSize,
+                      iconSize: PasajListCardMetrics.gridOverlayIconSize,
                     ),
                   ),
                 ],
@@ -414,33 +414,15 @@ class DenemeGrid extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                model.sinavAdi,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: 'MontserratBold',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        EducationShareIconButton(
-                          onTap: _shareExternally,
-                          size: metrics.actionButtonSize,
-                          iconSize: metrics.actionIconSize,
-                        ),
-                      ],
+                    Text(
+                      model.sinavAdi,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontFamily: 'MontserratBold',
+                      ),
                     ),
                     SizedBox(height: metrics.contentGap),
                     Row(
@@ -461,89 +443,103 @@ class DenemeGrid extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: metrics.contentGap + 2),
+                    SizedBox(height: metrics.contentGap),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        Icon(
+                          CupertinoIcons.doc_text,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 4),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    CupertinoIcons.doc_text,
-                                    size: 14,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      model.sinavTuru,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: PasajCardStyles.detail,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Obx(
-                                () => Row(
-                                  children: [
-                                    Icon(
-                                      CupertinoIcons.person_2_fill,
-                                      size: 14,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        controller.isLoadingApplicants.value
-                                            ? 'common.loading'.tr
-                                            : _formattedApplicationText(
-                                                controller.toplamBasvuru.value,
-                                              ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: PasajCardStyles.detail,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            model.sinavTuru,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PasajCardStyles.detail,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                      ],
+                    ),
+                    SizedBox(height: metrics.contentGap),
+                    Obx(
+                      () => Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.person_2_fill,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              controller.isLoadingApplicants.value
+                                  ? 'common.loading'.tr
+                                  : _formattedApplicationText(
+                                      controller.toplamBasvuru.value,
+                                    ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.detail,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: metrics.railWidth,
+                height: metrics.railHeight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        EducationShareIconButton(
+                          onTap: _shareExternally,
+                          size: metrics.actionButtonSize,
+                          iconSize: metrics.actionIconSize,
+                        ),
+                        SizedBox(width: metrics.railActionGap),
                         SizedBox(
-                          width: metrics.railWidth,
-                          child: Obx(
-                            () => Container(
-                              height: 22,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: _ctaColor(controller),
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(8),
-                                ),
-                              ),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  _ctaLabel(controller),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
+                          width: metrics.actionButtonSize,
+                          height: metrics.actionButtonSize,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: metrics.railSectionGap),
+                    SizedBox(height: metrics.middleSlotHeight),
+                    const Spacer(),
+                    SizedBox(
+                      width: metrics.railWidth,
+                      child: Obx(
+                        () => Container(
+                          height: metrics.ctaHeight,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _ctaColor(controller),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(8),
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _ctaLabel(controller),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: metrics.ctaFontSize,
+                                fontFamily: 'MontserratMedium',
                               ),
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

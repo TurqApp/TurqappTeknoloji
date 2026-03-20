@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
@@ -72,11 +73,10 @@ class SearchUserContent extends StatelessWidget {
       }
       final data = await _userRepository.getUserRaw(targetUid);
       if (data == null) return false;
-      final deletedAccount = (data['isDeleted'] ?? false) == true;
-      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      if (deletedAccount ||
-          status == 'pending_deletion' ||
-          status == 'deleted') {
+      if (isDeactivatedAccount(
+        accountStatus: data['accountStatus'],
+        isDeleted: data['isDeleted'],
+      )) {
         return false;
       }
       return true;

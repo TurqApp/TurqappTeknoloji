@@ -361,7 +361,7 @@ extension MessageContentBodyParts on MessageContent {
   }
 
   Future<void> _openMentionProfile(String mention) async {
-    final nick = mention.trim().replaceFirst('@', '');
+    final nick = normalizeHandleInput(mention);
     if (nick.isEmpty) return;
     final uid = await UsernameLookupRepository.ensure().findUidForHandle(nick);
     if (uid == null || uid.isEmpty) return;

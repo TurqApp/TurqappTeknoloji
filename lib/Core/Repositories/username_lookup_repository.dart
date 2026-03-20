@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 
 class UsernameLookupRepository extends GetxService {
   UsernameLookupRepository({
@@ -20,7 +21,7 @@ class UsernameLookupRepository extends GetxService {
   }
 
   Future<String?> findUidForHandle(String handle) async {
-    final normalized = handle.trim().replaceFirst('@', '').toLowerCase();
+    final normalized = normalizeNicknameInput(handle);
     if (normalized.isEmpty) return null;
 
     final cached = _cache[normalized];
@@ -55,7 +56,7 @@ class UsernameLookupRepository extends GetxService {
       try {
         final byNickname = await _firestore
             .collection('users')
-            .where('nickname', isEqualTo: handle.trim().replaceFirst('@', ''))
+            .where('nickname', isEqualTo: normalizeHandleInput(handle))
             .limit(1)
             .get();
         if (byNickname.docs.isNotEmpty) {
