@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
@@ -33,12 +35,18 @@ class PlaybackKpiService extends GetxService {
 
   void track(PlaybackKpiEventType type, Map<String, dynamic> payload) {
     final event = PlaybackKpiEvent(type: type, payload: payload);
+    scheduleMicrotask(() {
+      _appendEvent(event);
+    });
+    if (kDebugMode) {
+      debugPrint('[PlaybackKPI] ${type.name}: $payload');
+    }
+  }
+
+  void _appendEvent(PlaybackKpiEvent event) {
     _recent.add(event);
     if (_recent.length > 200) {
       _recent.removeRange(0, _recent.length - 200);
-    }
-    if (kDebugMode) {
-      debugPrint('[PlaybackKPI] ${type.name}: $payload');
     }
   }
 

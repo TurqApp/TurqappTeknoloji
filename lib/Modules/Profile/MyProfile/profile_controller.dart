@@ -47,6 +47,7 @@ class ProfileController extends GetxController {
   Worker? _resharesWorker;
   Worker? _scheduledWorker;
   Worker? _mergedPostsWorker;
+  Worker? _postSelectionWorker;
   var postSelection = 0.obs;
 
   final currentVisibleIndex = RxInt(-1);
@@ -111,8 +112,20 @@ class ProfileController extends GetxController {
 
   var pausetheall = false.obs;
   final RxBool showScrollToTop = false.obs;
-  final ScrollController scrollController = ScrollController();
+  final Map<int, ScrollController> _scrollControllers =
+      <int, ScrollController>{};
   var showPfImage = false.obs;
+
+  ScrollController scrollControllerForSelection(int selection) {
+    return _scrollControllers.putIfAbsent(
+      selection,
+      () => _buildTrackedScrollController(selection),
+    );
+  }
+
+  ScrollController get currentScrollController =>
+      scrollControllerForSelection(postSelection.value);
+
   @override
   void onInit() {
     super.onInit();
@@ -122,10 +135,28 @@ class ProfileController extends GetxController {
 
     _bindCacheWorkers();
     unawaited(_bootstrapProfileData());
-
-    scrollController.addListener(() {
-      _syncScrollToTopVisibility(scrollController.offset);
+    for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
+      scrollControllerForSelection(selection);
+    }
+    _postSelectionWorker = ever<int>(postSelection, (selection) {
+      final controller = scrollControllerForSelection(selection);
+      _syncScrollToTopVisibility(
+        controller.hasClients ? controller.offset : 0,
+      );
+      if (selection == 5 &&
+          (scheduledPosts.isEmpty || lastScheduledDoc == null)) {
+        unawaited(fetchScheduledPosts(isInitial: true));
+      }
     });
+  }
+
+  ScrollController _buildTrackedScrollController(int selection) {
+    final controller = ScrollController();
+    controller.addListener(() {
+      if (postSelection.value != selection) return;
+      _syncScrollToTopVisibility(controller.offset);
+    });
+    return controller;
   }
 
   void _syncScrollToTopVisibility(double offset) {
@@ -188,6 +219,10 @@ class ProfileController extends GetxController {
     _resharesWorker?.dispose();
     _scheduledWorker?.dispose();
     _mergedPostsWorker?.dispose();
+    _postSelectionWorker?.dispose();
+    for (final controller in _scrollControllers.values) {
+      controller.dispose();
+    }
     super.onClose();
   }
 
@@ -530,12 +565,6 @@ class ProfileController extends GetxController {
 
   void setPostSelection(int index) {
     postSelection.value = index;
-    if (index == 5) {
-      // Ayak izi sekmesine geçildiğinde liste boşsa veya ilk kez ise çek
-      if (scheduledPosts.isEmpty || lastScheduledDoc == null) {
-        fetchScheduledPosts(isInitial: true);
-      }
-    }
   }
 
   GlobalKey getPostKey(int index) {

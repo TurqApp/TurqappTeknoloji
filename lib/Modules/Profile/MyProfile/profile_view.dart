@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
@@ -91,6 +92,7 @@ class _ProfileViewState extends State<ProfileView> {
   final MarketRepository _marketRepository = MarketRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
+  bool _scrollProbeScheduled = false;
   Worker? _marketUserWorker;
 
   String get _myUserId {
@@ -118,30 +120,16 @@ class _ProfileViewState extends State<ProfileView> {
     return userService.avatarUrl;
   }
 
-  String _normalizeRozetValue(String raw) {
-    final value = raw.trim();
-    if (value.isEmpty) return '';
-    final lower = value.toLowerCase();
-    if (lower == 'rozetsiz' ||
-        lower == 'none' ||
-        lower == 'null' ||
-        lower == 'false' ||
-        lower == 'yok') {
-      return '';
-    }
-    return value;
-  }
-
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
   String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
   String get _myRozet {
-    final direct = _normalizeRozetValue(controller.headerRozet.value);
+    final direct = normalizeRozetValue(controller.headerRozet.value);
     if (direct.isNotEmpty) return direct;
-    return _normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '');
+    return normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '');
   }
 
   bool get _hasVerifiedRozet {
-    final headerRozet = _normalizeRozetValue(controller.headerRozet.value);
+    final headerRozet = normalizeRozetValue(controller.headerRozet.value);
     if (headerRozet.isNotEmpty) return true;
     return _myRozet.isNotEmpty;
   }
@@ -206,8 +194,7 @@ class _ProfileViewState extends State<ProfileView> {
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
-    controller.scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+    _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       socialMediaController.getData();
     });
@@ -282,58 +269,63 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _onScroll() {
+    _scrollProbeScheduled = false;
     if (!mounted) return;
+    final activeScrollController = controller.currentScrollController;
     // ScrollController bağlı değilse çık
-    if (!controller.scrollController.hasClients) return;
+    if (!activeScrollController.hasClients) return;
 
-    final position = controller.scrollController.position;
+    final position = activeScrollController.position;
     // Sayfanın sonuna yaklaşıldıysa yeni postları getir
     if (position.pixels >= position.maxScrollExtent - 300) {
       controller.fetchPosts();
       controller.fetchPhotos();
       controller.fetchVideos();
     }
-
-    // Ortadaki widget’ı tespit etmek için
-    final screenHeight = MediaQuery.of(context).size.height;
-    final centerY = screenHeight / 2;
-
     final merged = controller.mergedPosts;
-    for (int i = 0; i < merged.length; i++) {
-      final key = controller.getPostKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-      if (!ctx.mounted) continue;
+    if (merged.isEmpty) return;
 
-      RenderBox? box;
-      try {
-        box = ctx.findRenderObject() as RenderBox?;
-      } catch (_) {
-        continue;
+    // RenderBox geometry reads here were causing layout-time assertions on
+    // device. Keep the active index conservative until we wire a safer probe.
+    if (position.pixels <= 0) {
+      controller.currentVisibleIndex.value = 0;
+      if (controller.centeredIndex.value != 0) {
+        if (!mounted) return;
+        setState(() {
+          controller.centeredIndex.value = 0;
+          controller.lastCenteredIndex = 0;
+        });
       }
-      if (box == null || !box.attached) continue;
-
-      final pos = box.localToGlobal(Offset.zero);
-      final top = pos.dy;
-      final bottom = pos.dy + box.size.height;
-
-      if (top <= centerY && bottom >= centerY) {
-        controller.currentVisibleIndex.value = i;
-        if (controller.centeredIndex.value != i) {
-          if (!mounted) return;
-          setState(() {
-            controller.centeredIndex.value = i;
-            controller.lastCenteredIndex = i;
-          });
-        }
-        break;
-      }
+      return;
     }
+
+    final safeLastIndex = merged.length - 1;
+    if (controller.currentVisibleIndex.value > safeLastIndex) {
+      controller.currentVisibleIndex.value = safeLastIndex;
+    }
+    if (controller.centeredIndex.value > safeLastIndex) {
+      if (!mounted) return;
+      setState(() {
+        controller.centeredIndex.value = safeLastIndex;
+        controller.lastCenteredIndex = safeLastIndex;
+      });
+    }
+  }
+
+  void _scheduleOnScroll() {
+    if (_scrollProbeScheduled || !mounted) return;
+    _scrollProbeScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        _scrollProbeScheduled = false;
+        return;
+      }
+      _onScroll();
+    });
   }
 
   @override
   void dispose() {
-    controller.scrollController.removeListener(_onScroll);
     _marketUserWorker?.dispose();
     super.dispose();
   }
@@ -363,11 +355,12 @@ class _ProfileViewState extends State<ProfileView> {
                               return combinedPosts.isNotEmpty
                                   ? NotificationListener<ScrollNotification>(
                                       onNotification: (notification) {
-                                        _onScroll();
+                                        _scheduleOnScroll();
                                         return false;
                                       },
                                       child: ListView.builder(
-                                        controller: controller.scrollController,
+                                        controller: controller
+                                            .scrollControllerForSelection(0),
                                         physics:
                                             const AlwaysScrollableScrollPhysics(
                                                 parent:
@@ -461,7 +454,8 @@ class _ProfileViewState extends State<ProfileView> {
                                         },
                                       ))
                                   : CustomScrollView(
-                                      controller: controller.scrollController,
+                                      controller: controller
+                                          .scrollControllerForSelection(0),
                                       physics:
                                           const AlwaysScrollableScrollPhysics(
                                               parent: BouncingScrollPhysics()),
@@ -499,9 +493,14 @@ class _ProfileViewState extends State<ProfileView> {
                     right: 20,
                     child: GestureDetector(
                       onTap: () {
-                        controller.scrollController.animateTo(0,
-                            duration: Duration(milliseconds: 300),
-                            curve: Curves.bounceIn);
+                        final activeScrollController =
+                            controller.currentScrollController;
+                        if (!activeScrollController.hasClients) return;
+                        activeScrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.bounceIn,
+                        );
                       },
                       child: RoadToTop(),
                     ),

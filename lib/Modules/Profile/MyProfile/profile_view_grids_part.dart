@@ -7,7 +7,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
         .toList();
 
     return CustomScrollView(
-      controller: controller.scrollController,
+      controller: controller.scrollControllerForSelection(2),
       physics:
           const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       slivers: [
@@ -167,7 +167,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
         .toList();
 
     return CustomScrollView(
-      controller: controller.scrollController,
+      controller: controller.scrollControllerForSelection(1),
       physics:
           const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       slivers: [
@@ -381,7 +381,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
     final hasVideos = controller.reshares.isNotEmpty;
 
     return CustomScrollView(
-      controller: controller.scrollController,
+      controller: controller.scrollControllerForSelection(3),
       physics:
           const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       slivers: [
@@ -503,14 +503,16 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   }
 
   Widget buildMarkets(BuildContext context) {
-    if (!_marketLoading && _marketItems.isEmpty && _myUserId.trim().isNotEmpty) {
+    if (!_marketLoading &&
+        _marketItems.isEmpty &&
+        _myUserId.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _marketLoading) return;
         unawaited(_loadMarketItems(force: true));
       });
     }
     return CustomScrollView(
-      controller: controller.scrollController,
+      controller: controller.scrollControllerForSelection(4),
       physics:
           const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       slivers: [
@@ -755,7 +757,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
 
   Widget buildIzbiraklar(BuildContext context) {
     return CustomScrollView(
-      controller: controller.scrollController,
+      controller: controller.scrollControllerForSelection(5),
       slivers: [
         SliverToBoxAdapter(child: header()),
         if (controller.scheduledPosts.isNotEmpty)
@@ -941,7 +943,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
           )
         else
           SliverToBoxAdapter(
-              child: Center(child: EmptyRow(text: "profile.scheduled_none".tr))),
+              child:
+                  Center(child: EmptyRow(text: "profile.scheduled_none".tr))),
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],
     );

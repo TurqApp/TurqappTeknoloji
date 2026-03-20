@@ -365,7 +365,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.postSelection.value = 0;
+              controller.setPostSelection(0);
             },
             child: Container(
               alignment: Alignment.center,
@@ -510,7 +510,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.postSelection.value = 4;
+              controller.setPostSelection(4);
             },
             child: Container(
               alignment: Alignment.center,

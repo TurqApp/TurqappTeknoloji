@@ -17,6 +17,7 @@ import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
+import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_view.dart';
@@ -68,29 +69,11 @@ class EducationView extends StatelessWidget {
       ? Get.find<EducationController>()
       : Get.put(EducationController(), permanent: true);
 
-  String _titleForIndex(int actualIndex) => controller.titles[actualIndex];
+  String _tabIdForIndex(int actualIndex) => controller.titles[actualIndex];
 
-  String _localizedPasajTitle(String title) {
-    switch (title) {
-      case "Burslar":
-        return 'pasaj.tabs.scholarships'.tr;
-      case "Mabil Pazar":
-        return 'pasaj.tabs.market'.tr;
-      case "Soru Bankası":
-        return 'pasaj.tabs.question_bank'.tr;
-      case "Denemeler":
-        return 'pasaj.tabs.practice_exams'.tr;
-      case "Online Sınav":
-        return 'pasaj.tabs.online_exam'.tr;
-      case "Cevap Anahtarı":
-        return 'pasaj.tabs.answer_key'.tr;
-      case "Özel Ders":
-        return 'pasaj.tabs.tutoring'.tr;
-      case "İş Veren":
-        return 'pasaj.tabs.job_finder'.tr;
-      default:
-        return title;
-    }
+  String _localizedPasajTitle(String tabId) {
+    final translationKey = pasajTitleTranslationKey(tabId);
+    return translationKey.isNotEmpty ? translationKey.tr : tabId;
   }
 
   void _focusGlobalSearch() {
@@ -99,7 +82,7 @@ class EducationView extends StatelessWidget {
   }
 
   MarketController? _activeMarketController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Mabil Pazar") {
+    if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.market) {
       return null;
     }
     if (!Get.isRegistered<MarketController>()) {
@@ -115,7 +98,9 @@ class EducationView extends StatelessWidget {
   }
 
   JobFinderController? _activeJobFinderController() {
-    if (_titleForIndex(controller.selectedTab.value) != "İş Veren") return null;
+    if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.jobFinder) {
+      return null;
+    }
     if (!Get.isRegistered<JobFinderController>()) {
       Get.put(JobFinderController(), permanent: true);
     }
@@ -128,8 +113,16 @@ class EducationView extends StatelessWidget {
         !controller.isSearchMode.value;
   }
 
+  ViewModeController _viewModeController() {
+    if (!Get.isRegistered<ViewModeController>()) {
+      Get.put(ViewModeController(), permanent: true);
+    }
+    return Get.find<ViewModeController>();
+  }
+
   DenemeSinavlariController? _activePracticeExamController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Online Sınav") {
+    if (_tabIdForIndex(controller.selectedTab.value) !=
+        PasajTabIds.onlineExam) {
       return null;
     }
     if (!Get.isRegistered<DenemeSinavlariController>()) {
@@ -145,7 +138,7 @@ class EducationView extends StatelessWidget {
   }
 
   AnswerKeyController? _activeAnswerKeyController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Cevap Anahtarı") {
+    if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.answerKey) {
       return null;
     }
     if (!Get.isRegistered<AnswerKeyController>()) {
@@ -161,8 +154,9 @@ class EducationView extends StatelessWidget {
   }
 
   TutoringController? _activeTutoringController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders")
+    if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
+    }
     if (!Get.isRegistered<TutoringController>()) {
       Get.put(TutoringController(), permanent: true);
     }
@@ -170,8 +164,9 @@ class EducationView extends StatelessWidget {
   }
 
   TutoringFilterController? _activeTutoringFilterController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders")
+    if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
+    }
     if (!Get.isRegistered<TutoringFilterController>()) {
       Get.put(TutoringFilterController(), permanent: true);
     }
@@ -317,24 +312,24 @@ class EducationView extends StatelessWidget {
   }
 
   ScrollController? _activeScrollController() {
-    switch (_titleForIndex(controller.selectedTab.value)) {
-      case "Burslar":
+    switch (_tabIdForIndex(controller.selectedTab.value)) {
+      case PasajTabIds.scholarships:
         return Get.isRegistered<ScholarshipsController>()
             ? Get.find<ScholarshipsController>().scrollController
             : null;
-      case "Online Sınav":
+      case PasajTabIds.onlineExam:
         return Get.isRegistered<DenemeSinavlariController>()
             ? Get.find<DenemeSinavlariController>().scrollController
             : null;
-      case "Cevap Anahtarı":
+      case PasajTabIds.answerKey:
         return Get.isRegistered<AnswerKeyController>()
             ? Get.find<AnswerKeyController>().scrollController
             : null;
-      case "Özel Ders":
+      case PasajTabIds.tutoring:
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollController
             : null;
-      case "Mabil Pazar":
+      case PasajTabIds.market:
         return Get.isRegistered<MarketController>()
             ? Get.find<MarketController>().scrollController
             : null;
@@ -344,24 +339,24 @@ class EducationView extends StatelessWidget {
   }
 
   bool _showMenuByScrollOffset() {
-    switch (_titleForIndex(controller.selectedTab.value)) {
-      case "Burslar":
+    switch (_tabIdForIndex(controller.selectedTab.value)) {
+      case PasajTabIds.scholarships:
         return Get.isRegistered<ScholarshipsController>()
             ? Get.find<ScholarshipsController>().scrollOffset.value <= 350
             : true;
-      case "Online Sınav":
+      case PasajTabIds.onlineExam:
         return Get.isRegistered<DenemeSinavlariController>()
             ? Get.find<DenemeSinavlariController>().scrollOffset.value <= 350
             : true;
-      case "Cevap Anahtarı":
+      case PasajTabIds.answerKey:
         return Get.isRegistered<AnswerKeyController>()
             ? Get.find<AnswerKeyController>().scrollOffset.value <= 350
             : true;
-      case "Özel Ders":
+      case PasajTabIds.tutoring:
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollOffset.value <= 350
             : true;
-      case "Mabil Pazar":
+      case PasajTabIds.market:
         return Get.isRegistered<MarketController>()
             ? Get.find<MarketController>().scrollOffset.value <= 350
             : true;
@@ -371,8 +366,8 @@ class EducationView extends StatelessWidget {
   }
 
   List<PullDownMenuItem> _menuItemsForActiveTab(BuildContext context) {
-    switch (_titleForIndex(controller.selectedTab.value)) {
-      case "Burslar":
+    switch (_tabIdForIndex(controller.selectedTab.value)) {
+      case PasajTabIds.scholarships:
         return [
           PullDownMenuItem(
             title: 'common.search'.tr,
@@ -398,8 +393,8 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.add_circled,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
-                minimumRozet: 'Sarı',
-                featureName: 'Burs oluşturma',
+                minimumRozet: 'sari',
+                featureName: 'scholarship.create_title'.tr,
               );
               if (!allowed) return;
               Get.delete<CreateScholarshipController>(force: true);
@@ -411,8 +406,8 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.doc_text,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
-                minimumRozet: 'Sarı',
-                featureName: 'Burs ilanları',
+                minimumRozet: 'sari',
+                featureName: 'scholarship.my_listings'.tr,
               );
               if (!allowed) return;
               Get.to(MyScholarshipView());
@@ -429,7 +424,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(PersonalizedView()),
           ),
         ];
-      case "Soru Bankası":
+      case PasajTabIds.questionBank:
         return [
           PullDownMenuItem(
             title: 'education.change_main_category'.tr,
@@ -447,7 +442,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => ThenSolve()),
           ),
         ];
-      case "Mabil Pazar":
+      case PasajTabIds.market:
         return [
           PullDownMenuItem(
             title: 'common.search'.tr,
@@ -503,7 +498,7 @@ class EducationView extends StatelessWidget {
             ),
           ),
         ];
-      case "Denemeler":
+      case PasajTabIds.practiceExams:
         return [
           PullDownMenuItem(
             icon: Icons.history,
@@ -521,7 +516,7 @@ class EducationView extends StatelessWidget {
             ),
           ),
         ];
-      case "Online Sınav":
+      case PasajTabIds.onlineExam:
         return [
           PullDownMenuItem(
             icon: CupertinoIcons.search,
@@ -533,8 +528,8 @@ class EducationView extends StatelessWidget {
             title: 'common.create'.tr,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
-                minimumRozet: 'Sarı',
-                featureName: 'Online sınav oluşturma',
+                minimumRozet: 'sari',
+                featureName: 'tests.create_title'.tr,
               );
               if (!allowed) return;
               Get.to(() => SinavHazirla());
@@ -566,7 +561,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => const SavedPracticeExams()),
           ),
         ];
-      case "Cevap Anahtarı":
+      case PasajTabIds.answerKey:
         return [
           PullDownMenuItem(
             title: 'common.search'.tr,
@@ -615,7 +610,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(OpticsAndBooksPublished()),
           ),
         ];
-      case "Özel Ders":
+      case PasajTabIds.tutoring:
         return [
           PullDownMenuItem(
             title: 'common.search'.tr,
@@ -658,7 +653,7 @@ class EducationView extends StatelessWidget {
             ),
           ),
         ];
-      case "İş Veren":
+      case PasajTabIds.jobFinder:
         return [
           PullDownMenuItem(
             title: 'common.search'.tr,
@@ -675,8 +670,8 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.add_circled,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
-                minimumRozet: 'Sarı',
-                featureName: 'İş ilanı verme',
+                minimumRozet: 'sari',
+                featureName: 'pasaj.common.post_listing'.tr,
               );
               if (!allowed) return;
               Get.to(() => JobCreator());
@@ -687,8 +682,8 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.doc_text,
             onTap: () async {
               final allowed = await ensureCurrentUserRozetPermission(
-                minimumRozet: 'Sarı',
-                featureName: 'İş ilanları',
+                minimumRozet: 'sari',
+                featureName: 'pasaj.market.my_listings'.tr,
               );
               if (!allowed) return;
               Get.to(() => MyJobAds());
@@ -761,9 +756,9 @@ class EducationView extends StatelessWidget {
                             focusNode: controller.searchFocus,
                             hintText: "common.search".tr,
                             onTap: () {
-                              if (_titleForIndex(
+                              if (_tabIdForIndex(
                                       controller.selectedTab.value) ==
-                                  "Mabil Pazar") {
+                                  PasajTabIds.market) {
                                 Get.to(() => const MarketSearchView());
                                 return;
                               }
@@ -855,12 +850,11 @@ class EducationView extends StatelessWidget {
                         if (showTutoringActions) ...[
                           const SizedBox(width: 8),
                           _marketTopActionButton(
-                            icon:
-                                Get.find<ViewModeController>().isGridView.value
-                                    ? Icons.view_agenda_outlined
-                                    : Icons.grid_view_rounded,
+                            icon: _viewModeController().isGridView.value
+                                ? Icons.view_agenda_outlined
+                                : Icons.grid_view_rounded,
                             onTap: () {
-                              Get.find<ViewModeController>().toggleView();
+                              _viewModeController().toggleView();
                             },
                           ),
                           const SizedBox(width: 6),
@@ -1011,13 +1005,13 @@ class EducationView extends StatelessWidget {
                         itemBuilder: (context, visibleIndex) {
                           final actualIndex =
                               controller.actualIndexForVisible(visibleIndex);
-                          switch (_titleForIndex(actualIndex)) {
-                            case "Burslar":
+                          switch (_tabIdForIndex(actualIndex)) {
+                            case PasajTabIds.scholarships:
                               return ScholarshipsView(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "Mabil Pazar":
+                            case PasajTabIds.market:
                               final marketController =
                                   Get.isRegistered<MarketController>()
                                       ? Get.find<MarketController>()
@@ -1028,32 +1022,32 @@ class EducationView extends StatelessWidget {
                                 showEmbeddedControls: false,
                                 controller: marketController,
                               );
-                            case "Soru Bankası":
+                            case PasajTabIds.questionBank:
                               return AntremanView2(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "Denemeler":
+                            case PasajTabIds.practiceExams:
                               return CikmisSorular(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "Online Sınav":
+                            case PasajTabIds.onlineExam:
                               return DenemeSinavlari(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "Cevap Anahtarı":
+                            case PasajTabIds.answerKey:
                               return AnswerKey(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "Özel Ders":
+                            case PasajTabIds.tutoring:
                               return TutoringView(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "İş Veren":
+                            case PasajTabIds.jobFinder:
                               return JobFinder(
                                 embedded: true,
                                 showEmbeddedControls: false,
@@ -1100,11 +1094,13 @@ class EducationView extends StatelessWidget {
                         backgroundColor: Colors.green,
                         iconColor: Colors.white,
                         permissionScope: switch (
-                            _titleForIndex(controller.selectedTab.value)) {
-                          "Burslar" => ActionButtonPermissionScope.scholarships,
-                          "Online Sınav" =>
+                            _tabIdForIndex(controller.selectedTab.value)) {
+                          PasajTabIds.scholarships =>
+                            ActionButtonPermissionScope.scholarships,
+                          PasajTabIds.onlineExam =>
                             ActionButtonPermissionScope.practiceExams,
-                          "İş Veren" => ActionButtonPermissionScope.jobFinder,
+                          PasajTabIds.jobFinder =>
+                            ActionButtonPermissionScope.jobFinder,
                           _ => ActionButtonPermissionScope.none,
                         },
                       ),

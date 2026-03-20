@@ -60,10 +60,22 @@ class SocialProfile extends StatefulWidget {
 
 class _SocialProfileState extends State<SocialProfile> {
   late SocialProfileController controller;
-  final ScrollController scrollController = ScrollController();
+  final Map<int, ScrollController> _scrollControllers =
+      <int, ScrollController>{};
+  bool _scrollProbeScheduled = false;
   final userService = CurrentUserService.instance;
   final chatListingController = Get.put(ChatListingController());
   final ShortLinkService _shortLinkService = ShortLinkService();
+
+  ScrollController _scrollControllerForSelection(int selection) {
+    return _scrollControllers.putIfAbsent(
+      selection,
+      () => _buildTrackedScrollController(selection),
+    );
+  }
+
+  ScrollController get _currentScrollController =>
+      _scrollControllerForSelection(controller.postSelection.value);
 
   String get _myUserId => userService.currentUserRx.value?.userID ?? '';
   bool _isBlockedByMe(String otherUserId) {
@@ -90,13 +102,27 @@ class _SocialProfileState extends State<SocialProfile> {
       StoryHighlightsController(userId: widget.userID),
       tag: 'highlights_${widget.userID}',
     );
-    scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+    for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
+      _scrollControllerForSelection(selection);
+    }
+    _scheduleOnScroll();
+  }
+
+  ScrollController _buildTrackedScrollController(int selection) {
+    final scrollController = ScrollController();
+    scrollController.addListener(() {
+      if (controller.postSelection.value != selection) return;
+      if (controller.showScrollToTop.value != (scrollController.offset > 500)) {
+        controller.showScrollToTop.value = scrollController.offset > 500;
+      }
+    });
+    return scrollController;
   }
 
   void _onScroll() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenCenterY = screenHeight / 2;
+    _scrollProbeScheduled = false;
+    final scrollController = _currentScrollController;
+    if (!scrollController.hasClients) return;
 
     // Yukarı butonu görünürlüğü
     final shouldShowScrollToTop = scrollController.offset > 500;
@@ -110,31 +136,48 @@ class _SocialProfileState extends State<SocialProfile> {
       controller.getPhotos(initial: false);
     }
 
-    for (int i = 0; i < controller.allPosts.length; i++) {
-      final key = controller.getPostKey(i);
-      final context = key.currentContext;
-      if (context == null) continue;
+    if (controller.allPosts.isEmpty) return;
 
-      final renderBox = context.findRenderObject() as RenderBox?;
-      if (renderBox == null || !renderBox.attached) continue;
-
-      final position = renderBox.localToGlobal(Offset.zero);
-      final size = renderBox.size;
-      final widgetTop = position.dy;
-      final widgetBottom = position.dy + size.height;
-
-      final centerYInViewport = screenCenterY;
-
-      if (widgetTop <= centerYInViewport && widgetBottom >= centerYInViewport) {
-        if (controller.centeredIndex.value != i) {
-          setState(() {
-            controller.centeredIndex.value = i;
-            controller.lastCenteredIndex = i;
-          });
-        }
-        break;
+    // RenderBox geometry reads here were causing layout-time assertions on
+    // device. Keep the active index conservative until we wire a safer probe.
+    if (scrollController.offset <= 0) {
+      if (controller.centeredIndex.value != 0) {
+        setState(() {
+          controller.centeredIndex.value = 0;
+          controller.lastCenteredIndex = 0;
+        });
       }
+      return;
     }
+
+    final safeLastIndex = controller.allPosts.length - 1;
+    if (controller.centeredIndex.value > safeLastIndex) {
+      setState(() {
+        controller.centeredIndex.value = safeLastIndex;
+        controller.lastCenteredIndex = safeLastIndex;
+      });
+    }
+  }
+
+  void _scheduleOnScroll() {
+    if (_scrollProbeScheduled || !mounted) return;
+    _scrollProbeScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        _scrollProbeScheduled = false;
+        return;
+      }
+      _onScroll();
+    });
+  }
+
+  Future<void> _changePostSelection(int index) async {
+    await controller.setPostSelection(index);
+    final scrollController = _scrollControllerForSelection(index);
+    if (!mounted) return;
+    controller.showScrollToTop.value =
+        scrollController.hasClients && scrollController.offset > 500;
+    _scheduleOnScroll();
   }
 
   void _setCenteredIndex(int value) {
@@ -183,6 +226,14 @@ class _SocialProfileState extends State<SocialProfile> {
       controller.showPfImage.value = false;
       controller.resumeCenteredPost();
     });
+  }
+
+  @override
+  void dispose() {
+    for (final scrollController in _scrollControllers.values) {
+      scrollController.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -282,14 +333,12 @@ class _SocialProfileState extends State<SocialProfile> {
                                       return NotificationListener<
                                           ScrollNotification>(
                                         onNotification: (notification) {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback(
-                                            (_) => _onScroll(),
-                                          );
+                                          _scheduleOnScroll();
                                           return false;
                                         },
                                         child: ListView.builder(
-                                          controller: scrollController,
+                                          controller:
+                                              _scrollControllerForSelection(0),
                                           physics:
                                               const AlwaysScrollableScrollPhysics(
                                                   parent:
@@ -501,9 +550,13 @@ class _SocialProfileState extends State<SocialProfile> {
                   bottom: 20,
                   child: GestureDetector(
                     onTap: () {
-                      scrollController.animateTo(0,
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeOut);
+                      final scrollController = _currentScrollController;
+                      if (!scrollController.hasClients) return;
+                      scrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOut,
+                      );
                     },
                     child: const RoadToTop(),
                   ),
@@ -519,7 +572,7 @@ class _SocialProfileState extends State<SocialProfile> {
     final hasVideos = controller.reshares.isNotEmpty;
 
     return CustomScrollView(
-      controller: scrollController,
+      controller: _scrollControllerForSelection(3),
       slivers: [
         SliverToBoxAdapter(child: header()),
         if (hasVideos)
@@ -621,8 +674,7 @@ class _SocialProfileState extends State<SocialProfile> {
           )
         else
           SliverToBoxAdapter(
-              child:
-                  Center(child: EmptyRow(text: 'profile.no_reshares'.tr))),
+              child: Center(child: EmptyRow(text: 'profile.no_reshares'.tr))),
       ],
     );
   }
@@ -644,7 +696,7 @@ class _SocialProfileState extends State<SocialProfile> {
     }
 
     return CustomScrollView(
-      controller: scrollController,
+      controller: _scrollControllerForSelection(2),
       slivers: [
         SliverToBoxAdapter(child: header()),
         SliverGrid(
@@ -746,7 +798,7 @@ class _SocialProfileState extends State<SocialProfile> {
     }
 
     return CustomScrollView(
-      controller: scrollController,
+      controller: _scrollControllerForSelection(1),
       physics:
           const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       slivers: [
@@ -832,7 +884,7 @@ class _SocialProfileState extends State<SocialProfile> {
 
   Widget buildIzbiraklar(BuildContext context) {
     return CustomScrollView(
-      controller: scrollController,
+      controller: _scrollControllerForSelection(5),
       slivers: [
         SliverToBoxAdapter(child: header()),
         if (controller.scheduledPosts.isNotEmpty)
@@ -959,8 +1011,8 @@ class _SocialProfileState extends State<SocialProfile> {
           )
         else
           SliverToBoxAdapter(
-              child: Center(
-                  child: EmptyRow(text: 'profile.scheduled_none'.tr))),
+              child:
+                  Center(child: EmptyRow(text: 'profile.scheduled_none'.tr))),
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],
     );

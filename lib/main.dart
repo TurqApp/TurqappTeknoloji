@@ -10,6 +10,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Localization/app_language_service.dart';
+import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
@@ -27,7 +29,7 @@ late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorWidget.builder = (FlutterErrorDetails details) {
     _reportStartupFallbackError(details);
@@ -71,6 +73,10 @@ void main() {
   }
   if (!Get.isRegistered<NetworkAwarenessService>()) {
     Get.put(NetworkAwarenessService(), permanent: true);
+  }
+  if (!Get.isRegistered<AppLanguageService>()) {
+    final languageService = await AppLanguageService().init();
+    Get.put(languageService, permanent: true);
   }
 
   runApp(const MyApp());
@@ -225,160 +231,183 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final languageService = Get.find<AppLanguageService>();
     return GetMaterialApp(
-        navigatorKey: navigatorKey,
-        navigatorObservers: [routeObserver],
-        routingCallback: (routing) {
-          if (routing == null) return;
-          final current = routing.current;
-          final previous = routing.previous;
-          if (current == previous) return;
-          try {
-            if (Get.isRegistered<VideoStateManager>()) {
-              Get.find<VideoStateManager>().pauseAllVideos(force: true);
-            }
-          } catch (_) {}
-          unawaited(AudioFocusCoordinator.instance.pauseAllAudioPlayers());
-        },
-        defaultTransition: Transition.fade,
-        locale: const Locale('tr', 'TR'),
-        supportedLocales: const [Locale('tr', 'TR')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        title: 'TurqApp',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          fontFamily: AppFontFamilies.mregular,
-          scaffoldBackgroundColor: Colors.white,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.black,
-            primary: Colors.black,
-            secondary: Colors.black,
-            surface: Colors.white,
-            brightness: Brightness.light,
-          ),
-          cupertinoOverrideTheme: const CupertinoThemeData(
-            primaryColor: Colors.black,
-          ),
-          textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
-          textTheme: const TextTheme(
-            bodySmall: TextStyle(
-              fontSize: 12,
-              fontFamily: AppFontFamilies.mregular,
-              color: Colors.black,
-            ),
-            bodyMedium: TextStyle(
-              fontSize: 14,
-              fontFamily: AppFontFamilies.mregular,
-              color: Colors.black,
-            ),
-            bodyLarge: TextStyle(
-              fontSize: 16,
-              fontFamily: AppFontFamilies.mregular,
-              color: Colors.black,
-            ),
-            titleSmall: TextStyle(
-              fontSize: 14,
-              fontFamily: AppFontFamilies.mmedium,
-              color: Colors.black,
-            ),
-            titleMedium: TextStyle(
-              fontSize: 16,
-              fontFamily: AppFontFamilies.mmedium,
-              color: Colors.black,
-            ),
-            titleLarge: TextStyle(
-              fontSize: 20,
-              fontFamily: AppFontFamilies.mbold,
-              color: Colors.black,
-            ),
-            labelLarge: TextStyle(
-              fontSize: 15,
-              fontFamily: AppFontFamilies.mmedium,
-              color: Colors.white,
-            ),
-          ),
-          progressIndicatorTheme: const ProgressIndicatorThemeData(
+      navigatorKey: navigatorKey,
+      navigatorObservers: [routeObserver],
+      routingCallback: (routing) {
+        if (routing == null) return;
+        final current = routing.current;
+        final previous = routing.previous;
+        if (current == previous) return;
+      },
+      defaultTransition: Transition.fade,
+      translations: AppTranslations(),
+      locale: languageService.currentLocale,
+      fallbackLocale: AppLanguageService.fallbackLocale,
+      supportedLocales: AppLanguageService.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      title: 'TurqApp',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        fontFamily: AppFontFamilies.mregular,
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.black,
+          primary: Colors.black,
+          secondary: Colors.black,
+          surface: Colors.white,
+          brightness: Brightness.light,
+        ),
+        cupertinoOverrideTheme: const CupertinoThemeData(
+          primaryColor: Colors.black,
+        ),
+        textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
+        textTheme: const TextTheme(
+          bodySmall: TextStyle(
+            fontSize: 12,
+            fontFamily: AppFontFamilies.mregular,
             color: Colors.black,
           ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, TurqButtonTokens.height),
-              padding: const EdgeInsets.symmetric(
-                horizontal: TurqButtonTokens.horizontalPadding,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-              disabledBackgroundColor: Colors.black26,
-              disabledForegroundColor: Colors.white70,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
-              ),
-            ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            fontFamily: AppFontFamilies.mregular,
+            color: Colors.black,
           ),
-          filledButtonTheme: FilledButtonThemeData(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(0, TurqButtonTokens.height),
-              padding: const EdgeInsets.symmetric(
-                horizontal: TurqButtonTokens.horizontalPadding,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
-              ),
-            ),
+          bodyLarge: TextStyle(
+            fontSize: 16,
+            fontFamily: AppFontFamilies.mregular,
+            color: Colors.black,
           ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.black,
-              minimumSize: const Size(0, TurqButtonTokens.height),
-              padding: const EdgeInsets.symmetric(
-                horizontal: TurqButtonTokens.horizontalPadding,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
-              ),
-            ),
+          titleSmall: TextStyle(
+            fontSize: 14,
+            fontFamily: AppFontFamilies.mmedium,
+            color: Colors.black,
           ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black,
-              minimumSize: const Size(0, TurqButtonTokens.height),
-              padding: const EdgeInsets.symmetric(
-                horizontal: TurqButtonTokens.horizontalPadding,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-              side: const BorderSide(color: Colors.black),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
-              ),
-            ),
+          titleMedium: TextStyle(
+            fontSize: 16,
+            fontFamily: AppFontFamilies.mmedium,
+            color: Colors.black,
           ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          titleLarge: TextStyle(
+            fontSize: 20,
+            fontFamily: AppFontFamilies.mbold,
+            color: Colors.black,
+          ),
+          labelLarge: TextStyle(
+            fontSize: 15,
+            fontFamily: AppFontFamilies.mmedium,
+            color: Colors.white,
+          ),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Colors.black,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            disabledBackgroundColor: Colors.black26,
+            disabledForegroundColor: Colors.white70,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
           ),
-          appBarTheme: const AppBarTheme(
-            systemOverlayStyle: SystemUiOverlayStyle(
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            side: const BorderSide(color: Colors.black),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+        appBarTheme: const AppBarTheme(
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: Brightness.dark,
+            systemNavigationBarContrastEnforced: false,
+          ),
+        ),
+      ),
+      builder: (ctx, child) {
+        final mq = MediaQuery.of(ctx);
+        final topGap =
+            GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
+        final adjustedPadding = mq.padding.copyWith(
+          top: mq.padding.top + topGap,
+        );
+        final adjustedViewPadding = mq.viewPadding.copyWith(
+          top: mq.viewPadding.top + topGap,
+        );
+        return MediaQuery(
+          data: mq.copyWith(
+            padding: adjustedPadding,
+            viewPadding: adjustedViewPadding,
+          ),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: const SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
               statusBarIconBrightness: Brightness.dark,
               statusBarBrightness: Brightness.light,
@@ -386,57 +415,32 @@ class MyApp extends StatelessWidget {
               systemNavigationBarIconBrightness: Brightness.dark,
               systemNavigationBarContrastEnforced: false,
             ),
-          ),
-        ),
-        builder: (ctx, child) {
-          final mq = MediaQuery.of(ctx);
-          final topGap =
-              GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
-          final adjustedPadding = mq.padding.copyWith(
-            top: mq.padding.top + topGap,
-          );
-          final adjustedViewPadding = mq.viewPadding.copyWith(
-            top: mq.viewPadding.top + topGap,
-          );
-          return MediaQuery(
-            data: mq.copyWith(
-              padding: adjustedPadding,
-              viewPadding: adjustedViewPadding,
-            ),
-            child: AnnotatedRegion<SystemUiOverlayStyle>(
-              value: const SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
-                statusBarIconBrightness: Brightness.dark,
-                statusBarBrightness: Brightness.light,
-                systemNavigationBarColor: Colors.transparent,
-                systemNavigationBarIconBrightness: Brightness.dark,
-                systemNavigationBarContrastEnforced: false,
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: IgnorePointer(
-                      child: Container(
-                        height: adjustedViewPadding.top,
-                        color: Colors.white,
-                      ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: adjustedViewPadding.top,
+                      color: Colors.white,
                     ),
                   ),
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                    },
-                    child: child ?? const SplashView(),
-                  ),
-                ],
-              ),
+                ),
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
+                  child: child ?? const SplashView(),
+                ),
+              ],
             ),
-          );
-        },
-        home: const SplashView());
+          ),
+        );
+      },
+      home: const SplashView(),
+    );
   }
 }

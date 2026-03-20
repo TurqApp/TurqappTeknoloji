@@ -65,7 +65,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       final result = await _shortLinkService.upsertUser(
                         userId: widget.userID,
                         slug: safeSlug,
-                        title: '@${controller.nickname.value} - TurqApp',
+                        title: 'profile.profile_link_title'.trParams({
+                          'nickname': controller.nickname.value,
+                          'app': 'app.name'.tr,
+                        }),
                         desc: 'qr.profile_desc'.tr,
                         imageUrl: controller.avatarUrl.value,
                       );
@@ -74,8 +77,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                               ? (result['url'] ?? '').toString().trim()
                               : 'https://turqapp.com/u/$safeSlug';
                       await Clipboard.setData(ClipboardData(text: link));
-                      AppSnackbar(
-                          'common.copied'.tr, 'common.link_copied'.tr);
+                      AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
                     },
                     title: 'profile.copy_profile_link'.tr,
                     icon: CupertinoIcons.doc_on_doc,
@@ -89,7 +91,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         final result = await _shortLinkService.upsertUser(
                           userId: widget.userID,
                           slug: safeSlug,
-                          title: '@${controller.nickname.value} - TurqApp',
+                          title: 'profile.profile_link_title'.trParams({
+                            'nickname': controller.nickname.value,
+                            'app': 'app.name'.tr,
+                          }),
                           desc: 'qr.profile_desc'.tr,
                           imageUrl: controller.avatarUrl.value,
                         );
@@ -99,7 +104,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                                 : 'https://turqapp.com/u/$safeSlug';
                         await ShareLinkService.shareUrl(
                           url: link,
-                          title: '@${controller.nickname} - TurqApp',
+                          title: 'profile.profile_link_title'.trParams({
+                            'nickname': controller.nickname.value,
+                            'app': 'app.name'.tr,
+                          }),
                           subject: 'profile.profile_share_title'.tr,
                         );
                       });
@@ -195,12 +203,14 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   controller.storyUserModel!.stories.isNotEmpty) {
                 try {
                   _setCenteredIndex(-1);
-                  controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
-                      ? controller.currentVisibleIndex.value
-                      : controller.lastCenteredIndex;
+                  controller.lastCenteredIndex =
+                      controller.currentVisibleIndex.value >= 0
+                          ? controller.currentVisibleIndex.value
+                          : controller.lastCenteredIndex;
                   Get.to(() => StoryViewer(
-                      startedUser: controller.storyUserModel!,
-                      storyOwnerUsers: [controller.storyUserModel!]))?.then((_) {
+                          startedUser: controller.storyUserModel!,
+                          storyOwnerUsers: [controller.storyUserModel!]))
+                      ?.then((_) {
                     controller.resumeCenteredPost();
                   });
                 } catch (_) {}
@@ -730,7 +740,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.postSelection.value = 0;
+              _changePostSelection(0);
             },
             child: Container(
               alignment: Alignment.center,
@@ -887,7 +897,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.postSelection.value = 4;
+              _changePostSelection(4);
             },
             child: Container(
               alignment: Alignment.center,
@@ -935,7 +945,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  controller.setPostSelection(0);
+                  _changePostSelection(0);
                 },
                 child: Container(
                   color: Colors.white,
@@ -956,7 +966,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  controller.setPostSelection(3);
+                  _changePostSelection(3);
                 },
                 child: Container(
                   color: Colors.white,
@@ -977,7 +987,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  controller.setPostSelection(1);
+                  _changePostSelection(1);
                 },
                 child: Container(
                   color: Colors.white,
@@ -998,7 +1008,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  controller.setPostSelection(2);
+                  _changePostSelection(2);
                 },
                 child: Container(
                   color: Colors.white,
@@ -1019,7 +1029,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  controller.setPostSelection(5);
+                  _changePostSelection(5);
                 },
                 child: Container(
                   color: Colors.white,
@@ -1040,7 +1050,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  controller.setPostSelection(4);
+                  _changePostSelection(4);
                 },
                 child: Container(
                   color: Colors.white,
@@ -1065,7 +1075,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
   }
 
   Widget buildMarkets(BuildContext context) {
-    return ListView(children: [header(), EmptyRow(text: 'profile.no_listings'.tr)]);
+    return ListView(
+      controller: _scrollControllerForSelection(4),
+      children: [header(), EmptyRow(text: 'profile.no_listings'.tr)],
+    );
   }
 
   Widget _buildProfileImageWithBorder() {
