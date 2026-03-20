@@ -32,6 +32,9 @@ INTEGRATION_FIXTURE_FILE=integration_test/fixtures/smoke_fixture.example.json \
 bash scripts/run_integration_smoke.sh
 ```
 
+Not:
+- Script 5 smoke senaryosunu koşturur ve sonunda `artifacts/integration_smoke/*.json` dump'larının varlığını doğrular.
+
 Telemetry threshold report:
 
 ```bash

@@ -23,6 +23,14 @@ declare -a smoke_tests=(
   "integration_test/notifications_snapshot_mutation_test.dart"
 )
 
+declare -a smoke_artifacts=(
+  "artifacts/integration_smoke/feed_resume.json"
+  "artifacts/integration_smoke/explore_preview_gate.json"
+  "artifacts/integration_smoke/profile_resume.json"
+  "artifacts/integration_smoke/short_refresh_preserve.json"
+  "artifacts/integration_smoke/notifications_snapshot_mutation.json"
+)
+
 declare -a flutter_args=(
   "test"
   "--dart-define=RUN_INTEGRATION_SMOKE=true"
@@ -43,3 +51,12 @@ fi
 
 echo "[integration-smoke] running ${#smoke_tests[@]} smoke tests"
 flutter "${flutter_args[@]}" "${smoke_tests[@]}"
+
+echo "[integration-smoke] verifying ${#smoke_artifacts[@]} artifact dumps"
+for artifact in "${smoke_artifacts[@]}"; do
+  if [[ ! -f "$artifact" ]]; then
+    echo "[integration-smoke] missing artifact: $artifact" >&2
+    exit 1
+  fi
+  echo "[integration-smoke] artifact ok: $artifact"
+done
