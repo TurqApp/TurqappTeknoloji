@@ -3,6 +3,7 @@
 ## Otomatik Testler
 - `flutter analyze --no-fatal-infos`
 - `flutter test`
+- `bash scripts/run_integration_smoke.sh` (`RUN_INTEGRATION_SMOKE=1` ise)
 - `functions/npm test`
 - `functions/npm run test:rules`
 - `functions/npm run build`
@@ -13,6 +14,21 @@ Tek komut:
 
 ```bash
 bash scripts/run_release_gate_checks.sh
+```
+
+Fixture contract ile app smoke:
+
+```bash
+RUN_INTEGRATION_SMOKE=1 \
+INTEGRATION_FIXTURE_FILE=integration_test/fixtures/smoke_fixture.example.json \
+bash scripts/run_release_gate_checks.sh
+```
+
+Doğrudan smoke script:
+
+```bash
+INTEGRATION_FIXTURE_FILE=integration_test/fixtures/smoke_fixture.example.json \
+bash scripts/run_integration_smoke.sh
 ```
 
 ## k6 Testleri
@@ -68,6 +84,7 @@ k6 run \
 ## Release Gate
 - `flutter analyze --no-fatal-infos` yeşil
 - `flutter test` yeşil
+- App integration smoke yeşil
 - Functions unit/rules/build yeşil
 - Cloudflare worker testleri yeşil
 - Security regression guard yeşil

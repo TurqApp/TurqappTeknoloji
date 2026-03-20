@@ -502,7 +502,7 @@ Durum etiketleri:
 
 - `integration_test/` kritik smoke test dizini
   Durum: `KISMEN`
-  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi; replay sonrasi `count zero drop`, `active doc preserve` ve `notifications unread non-negative` assertion'lari eklendi; fixture contract katmani ile `dart-define` uzerinden `minCount/docIds/maxUnread` beklentileri verilebilir hale geldi. Sonraki adim fixture verisini sabitleyip bu kontratlari CI smoke'a baglamak.
+  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi; replay sonrasi `count zero drop`, `active doc preserve` ve `notifications unread non-negative` assertion'lari eklendi; fixture contract katmani ile `dart-define` uzerinden `minCount/docIds/maxUnread` beklentileri verilebilir hale geldi; `scripts/run_integration_smoke.sh` ve release gate entegrasyonu ile bu kontratlar otomatik kosuya baglandi. Sonraki adim fixture verisini production-benzeri sabit bir JSON ile doldurmak ve CI/device smoke adimina tasimak.
 - `lib/Core/Services/runtime_invariant_guard.dart`
   Durum: `KISMEN`
   Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
@@ -564,7 +564,8 @@ Aktif faz:
 - Son tamamlanan smoke derinlestirme isi: state assertion + route-back geri donusu + route replay helper'lari + replay continuity assertion'lari.
 - Son tamamlanan deterministic kalite isi: integration startup test mode ile splash intro / watchdog / periyodik nav yan etkilerinin sakinlestirilmesi.
 - Son tamamlanan fixture isi: integration fixture contract ile `minCount/docIds/maxUnread` beklentilerinin tanimlanabilmesi.
-- Sonraki teknik hedef: smoke testleri sabit fixture JSON + CI smoke parametresi + veri seviyesinde state assertion seviyesine tasimak.
+- Son tamamlanan gate isi: `scripts/run_integration_smoke.sh` + release gate optional smoke adimi.
+- Sonraki teknik hedef: smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
