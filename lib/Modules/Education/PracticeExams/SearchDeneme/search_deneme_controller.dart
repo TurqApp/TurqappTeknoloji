@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -13,6 +14,37 @@ class SearchDenemeController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   final FocusNode focusNode = FocusNode();
   int _searchToken = 0;
+
+  bool _sameExamEntries(
+    List<SinavModel> current,
+    List<SinavModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -30,7 +62,9 @@ class SearchDenemeController extends GetxController {
     final normalized = query.trim();
     final token = ++_searchToken;
     if (normalized.length < 2) {
-      filteredList.clear();
+      if (filteredList.isNotEmpty) {
+        filteredList.clear();
+      }
       isLoading.value = false;
       return;
     }
@@ -45,7 +79,9 @@ class SearchDenemeController extends GetxController {
       );
       if (token != _searchToken) return;
       final results = resource.data ?? const <SinavModel>[];
-      filteredList.assignAll(results);
+      if (!_sameExamEntries(filteredList, results)) {
+        filteredList.assignAll(results);
+      }
     } finally {
       if (token == _searchToken) {
         isLoading.value = false;

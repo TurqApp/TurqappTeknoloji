@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
@@ -14,6 +15,43 @@ class SearchAnswerKeyController extends GetxController {
   final AnswerKeySnapshotRepository _answerKeySnapshotRepository =
       AnswerKeySnapshotRepository.ensure();
   int _searchToken = 0;
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
@@ -33,7 +71,9 @@ class SearchAnswerKeyController extends GetxController {
     final normalized = value.trim();
     final token = ++_searchToken;
     if (normalized.length < 2) {
-      filteredList.clear();
+      if (filteredList.isNotEmpty) {
+        filteredList.clear();
+      }
       isLoading.value = false;
       return;
     }
@@ -48,11 +88,15 @@ class SearchAnswerKeyController extends GetxController {
       );
       if (token != _searchToken) return;
       final results = resource.data ?? const <BookletModel>[];
-      filteredList.assignAll(results);
+      if (!_sameBookletEntries(filteredList, results)) {
+        filteredList.assignAll(results);
+      }
     } catch (e) {
       log("Answer key typesense search error: $e");
       if (token == _searchToken) {
-        filteredList.clear();
+        if (filteredList.isNotEmpty) {
+          filteredList.clear();
+        }
       }
     } finally {
       if (token == _searchToken) {
