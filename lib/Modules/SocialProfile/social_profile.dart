@@ -129,6 +129,7 @@ class _SocialProfileState extends State<SocialProfile> {
         if (controller.centeredIndex.value != i) {
           setState(() {
             controller.centeredIndex.value = i;
+            controller.lastCenteredIndex = i;
           });
         }
         break;
@@ -140,6 +141,9 @@ class _SocialProfileState extends State<SocialProfile> {
     if (!mounted) return;
     setState(() {
       controller.centeredIndex.value = value;
+      if (value >= 0) {
+        controller.lastCenteredIndex = value;
+      }
     });
   }
 

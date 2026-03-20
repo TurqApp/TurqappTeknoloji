@@ -131,6 +131,26 @@ class SocialProfileController extends GetxController {
     return displayName;
   }
 
+  int resolveResumeCenteredIndex() {
+    if (allPosts.isEmpty) return -1;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < allPosts.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < allPosts.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void resumeCenteredPost() {
+    final target = resolveResumeCenteredIndex();
+    if (target < 0 || target >= allPosts.length) return;
+    lastCenteredIndex = target;
+    centeredIndex.value = target;
+  }
+
   @override
   void onInit() {
     UserAnalyticsService.instance.trackFeatureUsage('social_profile_open');
@@ -338,8 +358,8 @@ class SocialProfileController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Bağlantıyı Kaldır ?",
+            Text(
+              'social_links.remove_title'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -348,8 +368,8 @@ class SocialProfileController extends GetxController {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Bu bağlantıyı kaldırmak istediğinizden emin misiniz",
+            Text(
+              'social_links.remove_message'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -372,8 +392,8 @@ class SocialProfileController extends GetxController {
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        "Vazgeç",
+                      child: Text(
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -400,8 +420,8 @@ class SocialProfileController extends GetxController {
                         color: Colors.black,
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
-                      child: const Text(
-                        "Kaldır",
+                      child: Text(
+                        'common.remove'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -582,7 +602,7 @@ class SocialProfileController extends GetxController {
       }
 
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
     } catch (e) {
       // Revert on error
@@ -595,10 +615,11 @@ class SocialProfileController extends GetxController {
 
   Future<void> block() async {
     await noYesAlert(
-      title: "Engelle",
-      message: "Bu kullanıcıyı engellemek istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Engelle",
+      title: 'common.block'.tr,
+      message: 'social_profile.block_confirm_body'
+          .trParams({'nickname': nickname.value}),
+      cancelText: 'common.cancel'.tr,
+      yesText: 'common.block'.tr,
       onYesPressed: () async {
         final currentUid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -637,10 +658,11 @@ class SocialProfileController extends GetxController {
 
   Future<void> unblock() async {
     await noYesAlert(
-      title: "Engeli Kaldır",
-      message: "Engeli kaldırmak istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Engeli Kaldır",
+      title: 'blocked_users.unblock_confirm_title'.tr,
+      message: 'blocked_users.unblock_confirm_body'
+          .trParams({'nickname': nickname.value}),
+      cancelText: 'common.cancel'.tr,
+      yesText: 'blocked_users.unblock'.tr,
       onYesPressed: () async {
         // 1) Engellenenler listesinden kaldır
         final currentUid = FirebaseAuth.instance.currentUser!.uid;

@@ -31,7 +31,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         _setCenteredIndex(-1);
                         Get.to(() => AboutProfile(userID: widget.userID))
                             ?.then((_) {
-                          controller.centeredIndex.value = 0;
+                          controller.resumeCenteredPost();
                         });
                       },
                       child: Text(
@@ -135,7 +135,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                           commentID: "",
                         ),
                       )?.then((_) {
-                        _setCenteredIndex(0);
+                        controller.resumeCenteredPost();
                         controller.getUserData();
                       });
                     },
@@ -740,8 +740,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "Gönderi",
+                    Text(
+                      'profile.posts'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
@@ -761,7 +761,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
               Get.to(() =>
                       FollowingFollowers(selection: 0, userId: widget.userID))
                   ?.then((_) {
-                controller.centeredIndex.value = 0;
+                controller.resumeCenteredPost();
               });
             },
             child: Container(
@@ -783,8 +783,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "Takipci",
+                    Text(
+                      'profile.followers'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
@@ -826,8 +826,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         fontFamily: "MontserratBold",
                       ),
                     ),
-                    const Text(
-                      "Takip",
+                    Text(
+                      'profile.following'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 13,
@@ -1054,7 +1054,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
   }
 
   Widget buildMarkets(BuildContext context) {
-    return ListView(children: [header(), EmptyRow(text: "İlan Yok")]);
+    return ListView(children: [header(), EmptyRow(text: 'profile.no_listings'.tr)]);
   }
 
   Widget _buildProfileImageWithBorder() {
