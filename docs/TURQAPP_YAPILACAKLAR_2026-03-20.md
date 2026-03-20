@@ -502,7 +502,7 @@ Durum etiketleri:
 
 - `integration_test/` kritik smoke test dizini
   Durum: `KISMEN`
-  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi. Sonraki adim fixture verisini deterministiklestirmek ve state assertion'lari veri seviyesine cikarmak.
+  Not: dizin + ortak bootstrap helper + 5 kritik smoke dosyasi acildi. Ilk dilim artik kararlı test key'leri ile `Feed`, `Explore`, `Profile`, `Short`, `Notifications` ekran hedeflerini buluyor; state probe ile `feed/short/profile/socialProfile/notifications/navBar` controller snapshot'i testten okunuyor; deterministic integration test mode ile startup intro/watchdog/periyodik yan etkiler sakinlestirildi; route replay helper'lari ile `Feed -> Explore/Profile/Short/Notifications -> Feed` zinciri ortaklastirildi; replay sonrasi `count zero drop`, `active doc preserve` ve `notifications unread non-negative` assertion'lari eklendi. Sonraki adim fixture verisini deterministiklestirmek ve state assertion'lari sabit veri beklentisi seviyesine cikarmak.
 - `lib/Core/Services/runtime_invariant_guard.dart`
   Durum: `KISMEN`
   Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
@@ -561,7 +561,7 @@ Aktif faz:
 - Son tamamlanan kalite isi: `runtime invariant guard` ilk dilimi + `Notifications` invariantlari + `integration_test/` iskeleti.
 - Son tamamlanan smoke isi: ana nav ve kritik ekranlar icin kararlı integration test key'leri.
 - Son tamamlanan probe isi: kritik controller state'lerini testten okunabilir hale getiren state probe katmani.
-- Son tamamlanan smoke derinlestirme isi: state assertion + route-back geri donusu + route replay helper'lari.
+- Son tamamlanan smoke derinlestirme isi: state assertion + route-back geri donusu + route replay helper'lari + replay continuity assertion'lari.
 - Son tamamlanan deterministic kalite isi: integration startup test mode ile splash intro / watchdog / periyodik nav yan etkilerinin sakinlestirilmesi.
 - Sonraki teknik hedef: smoke testleri deterministik fixture + veri seviyesinde state assertion + route replay coverage seviyesine tasimak.
 

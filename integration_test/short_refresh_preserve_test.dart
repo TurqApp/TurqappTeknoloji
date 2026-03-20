@@ -11,7 +11,8 @@ void main() {
     'Short smoke bootstraps without refresh-preserve exception',
     (tester) async {
       await launchTurqApp(tester);
-      await replayFeedToShortToFeed(tester);
+      final beforeFeed = readSurfaceProbe('feed');
+      await replayFeedToShortToFeed(tester, beforeFeed: beforeFeed);
       expectSurfaceRegistered('feed');
     },
     skip: !kRunIntegrationSmoke,

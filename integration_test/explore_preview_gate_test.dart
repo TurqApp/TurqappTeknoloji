@@ -11,10 +11,23 @@ void main() {
     'Explore smoke bootstraps without preview-gate exception',
     (tester) async {
       await launchTurqApp(tester);
+      final beforeFeed = readSurfaceProbe('feed');
       await replayFeedToExploreToFeed(tester);
       final probe = readIntegrationProbe();
       expect(probe['currentRoute'], isA<String>());
       expectSurfaceRegistered('feed');
+      final afterFeed = readSurfaceProbe('feed');
+      expectCountNeverDropsToZeroAfterReplay(
+        'feed',
+        before: beforeFeed,
+        after: afterFeed,
+      );
+      expectDocPreservedIfStillPresent(
+        'feed',
+        before: beforeFeed,
+        after: afterFeed,
+        activeDocField: 'centeredDocId',
+      );
     },
     skip: !kRunIntegrationSmoke,
   );

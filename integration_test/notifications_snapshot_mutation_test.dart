@@ -11,7 +11,8 @@ void main() {
     'Notifications smoke bootstraps without optimistic-mutation exception',
     (tester) async {
       await launchTurqApp(tester);
-      await replayFeedToNotificationsToFeed(tester);
+      final beforeFeed = readSurfaceProbe('feed');
+      await replayFeedToNotificationsToFeed(tester, beforeFeed: beforeFeed);
       expectSurfaceRegistered('feed');
     },
     skip: !kRunIntegrationSmoke,

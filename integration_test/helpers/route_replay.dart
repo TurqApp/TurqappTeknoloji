@@ -17,7 +17,10 @@ Future<void> replayFeedToExploreToFeed(WidgetTester tester) async {
   await goToFeedTab(tester);
 }
 
-Future<void> replayFeedToProfileToFeed(WidgetTester tester) async {
+Future<void> replayFeedToProfileToFeed(
+  WidgetTester tester, {
+  Map<String, dynamic>? beforeFeed,
+}) async {
   await tapItKey(tester, IntegrationTestKeys.navProfile);
   expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
   expectSurfaceRegistered('profile');
@@ -26,10 +29,33 @@ Future<void> replayFeedToProfileToFeed(WidgetTester tester) async {
     indexField: 'centeredIndex',
     countField: 'count',
   );
+  final profileSnapshot = readSurfaceProbe('profile');
   await goToFeedTab(tester);
+  final feedSnapshot = readSurfaceProbe('feed');
+  if (beforeFeed != null) {
+    expectCountNeverDropsToZeroAfterReplay(
+      'feed',
+      before: beforeFeed,
+      after: feedSnapshot,
+    );
+    expectDocPreservedIfStillPresent(
+      'feed',
+      before: beforeFeed,
+      after: feedSnapshot,
+      activeDocField: 'centeredDocId',
+    );
+  }
+  expectCountNeverDropsToZeroAfterReplay(
+    'profile',
+    before: profileSnapshot,
+    after: profileSnapshot,
+  );
 }
 
-Future<void> replayFeedToShortToFeed(WidgetTester tester) async {
+Future<void> replayFeedToShortToFeed(
+  WidgetTester tester, {
+  Map<String, dynamic>? beforeFeed,
+}) async {
   await tapItKey(tester, IntegrationTestKeys.navShort);
   expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
   expectSurfaceRegistered('short');
@@ -38,16 +64,53 @@ Future<void> replayFeedToShortToFeed(WidgetTester tester) async {
     indexField: 'activeIndex',
     countField: 'count',
   );
+  final shortSnapshot = readSurfaceProbe('short');
   await pageBackAndSettle(tester);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);
+  final feedSnapshot = readSurfaceProbe('feed');
+  if (beforeFeed != null) {
+    expectCountNeverDropsToZeroAfterReplay(
+      'feed',
+      before: beforeFeed,
+      after: feedSnapshot,
+    );
+    expectDocPreservedIfStillPresent(
+      'feed',
+      before: beforeFeed,
+      after: feedSnapshot,
+      activeDocField: 'centeredDocId',
+    );
+  }
+  expectCountNeverDropsToZeroAfterReplay(
+    'short',
+    before: shortSnapshot,
+    after: shortSnapshot,
+  );
 }
 
-Future<void> replayFeedToNotificationsToFeed(WidgetTester tester) async {
+Future<void> replayFeedToNotificationsToFeed(
+  WidgetTester tester, {
+  Map<String, dynamic>? beforeFeed,
+}) async {
   await tapItKey(tester, IntegrationTestKeys.actionOpenNotifications);
   expect(byItKey(IntegrationTestKeys.screenNotifications), findsOneWidget);
   expectSurfaceRegistered('notifications');
+  final notificationsSnapshot = readSurfaceProbe('notifications');
+  expectNonNegativeCounter(
+    'notifications',
+    notificationsSnapshot,
+    field: 'unreadTotal',
+  );
   await pageBackAndSettle(tester);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);
+  final feedSnapshot = readSurfaceProbe('feed');
+  if (beforeFeed != null) {
+    expectCountNeverDropsToZeroAfterReplay(
+      'feed',
+      before: beforeFeed,
+      after: feedSnapshot,
+    );
+  }
 }

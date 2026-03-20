@@ -22,7 +22,8 @@ void main() {
         indexField: 'centeredIndex',
         countField: 'count',
       );
-      await replayFeedToProfileToFeed(tester);
+      final beforeFeed = readSurfaceProbe('feed');
+      await replayFeedToProfileToFeed(tester, beforeFeed: beforeFeed);
       expectSurfaceRegistered('feed');
       expectCenteredIndexValid(
         'feed',

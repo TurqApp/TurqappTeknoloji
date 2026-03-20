@@ -47,6 +47,8 @@ class IntegrationTestStateProbe {
       'centeredDocId': centeredIndex >= 0 && centeredIndex < items.length
           ? items[centeredIndex].docID
           : '',
+      'docIds':
+          items.take(24).map((item) => item.docID).toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
     };
   }
@@ -64,6 +66,8 @@ class IntegrationTestStateProbe {
       'activeIndex': index,
       'activeDocId':
           index >= 0 && index < items.length ? items[index].docID : '',
+      'docIds':
+          items.take(24).map((item) => item.docID).toList(growable: false),
     };
   }
 
@@ -81,6 +85,10 @@ class IntegrationTestStateProbe {
       'centeredDocId': index >= 0 && index < items.length
           ? (items[index]['docID'] ?? '').toString()
           : '',
+      'docIds': items
+          .take(24)
+          .map((item) => (item['docID'] ?? '').toString())
+          .toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
     };
   }
@@ -98,6 +106,8 @@ class IntegrationTestStateProbe {
       'centeredIndex': index,
       'centeredDocId':
           index >= 0 && index < items.length ? items[index].docID : '',
+      'docIds':
+          items.take(24).map((item) => item.docID).toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
     };
   }
