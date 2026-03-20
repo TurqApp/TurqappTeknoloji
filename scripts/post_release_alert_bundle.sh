@@ -7,6 +7,7 @@ cd "$REPO_ROOT"
 bundle_file="${RELEASE_ALERT_BUNDLE_OUTPUT:-artifacts/release_alert_bundle_latest.json}"
 webhook_url="${RELEASE_ALERT_WEBHOOK_URL:-}"
 fail_on_post_error="${RELEASE_ALERT_FAIL_ON_POST_ERROR:-0}"
+payload_format="${RELEASE_ALERT_PAYLOAD_FORMAT:-raw}"
 
 if [[ -z "$webhook_url" ]]; then
   echo "[release-alert-post] skipped (set RELEASE_ALERT_WEBHOOK_URL to execute)"
@@ -20,14 +21,16 @@ fi
 
 severity="$(node -e "const fs=require('fs');const raw=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(raw.summary?.severity || 'unknown'));" "$bundle_file")"
 headline="$(node -e "const fs=require('fs');const raw=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const text=String(raw.summary?.headline || 'release alert').replace(/[\\r\\n]+/g,' ').slice(0,180);process.stdout.write(text);" "$bundle_file")"
+payload="$(dart run tool/release_alert_message.dart --input "$bundle_file" --format "$payload_format")"
 
 set +e
 curl -sS \
   -X POST \
   -H "content-type: application/json" \
+  -H "x-release-alert-format: $payload_format" \
   -H "x-release-alert-severity: $severity" \
   -H "x-release-alert-headline: $headline" \
-  --data-binary @"$bundle_file" \
+  --data "$payload" \
   "$webhook_url"
 post_status=$?
 set -e
