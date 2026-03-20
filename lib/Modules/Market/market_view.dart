@@ -35,6 +35,7 @@ class MarketView extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   static const MarketContactService _contactService = MarketContactService();
+  static bool _bannerWarmupTriggered = false;
   final MarketController controller;
 
   String _categoryLabel(Map<String, dynamic> category) {
@@ -43,11 +44,14 @@ class MarketView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    unawaited(
-      AdmobBannerWarmupService.ensure().warmForPasajEntry(
-        surfaceKey: 'market',
-      ),
-    );
+    if (!_bannerWarmupTriggered) {
+      _bannerWarmupTriggered = true;
+      unawaited(
+        AdmobBannerWarmupService.ensure().warmForPasajEntry(
+          surfaceKey: 'market',
+        ),
+      );
+    }
 
     final content = Column(
       children: [

@@ -28,17 +28,21 @@ class JobFinder extends StatelessWidget {
   });
   final bool embedded;
   final bool showEmbeddedControls;
+  static bool _bannerWarmupTriggered = false;
   final controller = Get.isRegistered<JobFinderController>()
       ? Get.find<JobFinderController>()
       : Get.put(JobFinderController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {
-    unawaited(
-      AdmobBannerWarmupService.ensure().warmForPasajEntry(
-        surfaceKey: 'job_finder',
-      ),
-    );
+    if (!_bannerWarmupTriggered) {
+      _bannerWarmupTriggered = true;
+      unawaited(
+        AdmobBannerWarmupService.ensure().warmForPasajEntry(
+          surfaceKey: 'job_finder',
+        ),
+      );
+    }
 
     final content = Column(
       children: [
