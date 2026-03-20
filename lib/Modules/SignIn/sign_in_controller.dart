@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/notification_service.dart';

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class AppImagePickerService {
   static final ImagePicker _picker = ImagePicker();
@@ -58,7 +59,7 @@ class AppImagePickerService {
     final picked = await _picker.pickMultipleMedia(limit: maxAssets);
     if (picked.isEmpty) return <File>[];
     final videos = picked.where((x) {
-      final lowerPath = x.path.toLowerCase();
+      final lowerPath = normalizeLowercase(x.path);
       return _videoExtensions.any(lowerPath.endsWith);
     }).toList();
     return videos.map((x) => File(x.path)).toList();

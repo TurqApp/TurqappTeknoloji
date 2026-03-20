@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Models/report_model.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'dart:ui' as ui;
 
 part 'external_text_utils_part.dart';

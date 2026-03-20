@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -114,7 +115,7 @@ class UploadQueueService extends GetxController {
   }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {
-    final code = e.code.toLowerCase();
+    final code = normalizeLowercase(e.code);
     return code == 'unauthenticated' || code == 'unauthorized';
   }
 

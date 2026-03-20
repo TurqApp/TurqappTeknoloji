@@ -22,6 +22,7 @@ import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';

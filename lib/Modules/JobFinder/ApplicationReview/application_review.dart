@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
+import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'application_review_controller.dart';
 
@@ -24,50 +25,8 @@ class ApplicationReview extends StatelessWidget {
 
   String _localizedCvLanguage(dynamic rawValue) {
     final raw = (rawValue ?? '').toString().trim();
-    switch (raw.toLowerCase()) {
-      case 'cv.language.english':
-      case 'english':
-      case 'ingilizce':
-        return 'cv.language.english'.tr;
-      case 'cv.language.german':
-      case 'german':
-      case 'almanca':
-        return 'cv.language.german'.tr;
-      case 'cv.language.french':
-      case 'french':
-      case 'fransızca':
-      case 'fransizca':
-        return 'cv.language.french'.tr;
-      case 'cv.language.spanish':
-      case 'spanish':
-      case 'ispanyolca':
-        return 'cv.language.spanish'.tr;
-      case 'cv.language.arabic':
-      case 'arabic':
-      case 'arapça':
-      case 'arapca':
-        return 'cv.language.arabic'.tr;
-      case 'cv.language.turkish':
-      case 'turkish':
-      case 'türkçe':
-      case 'turkce':
-        return 'cv.language.turkish'.tr;
-      case 'cv.language.russian':
-      case 'russian':
-      case 'rusça':
-      case 'rusca':
-        return 'cv.language.russian'.tr;
-      case 'cv.language.italian':
-      case 'italian':
-      case 'italyanca':
-        return 'cv.language.italian'.tr;
-      case 'cv.language.korean':
-      case 'korean':
-      case 'korece':
-        return 'cv.language.korean'.tr;
-      default:
-        return raw;
-    }
+    final normalized = normalizeCvLanguageValue(raw);
+    return normalized.startsWith('cv.language.') ? normalized.tr : raw;
   }
 
   @override

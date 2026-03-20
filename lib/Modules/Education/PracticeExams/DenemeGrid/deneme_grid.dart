@@ -8,14 +8,17 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_hazirla.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class DenemeGrid extends StatelessWidget {
@@ -345,7 +348,7 @@ class DenemeGrid extends StatelessWidget {
                                   ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
+                            style: PasajCardStyles.lineOne,
                           ),
                         ),
                       ],
@@ -387,14 +390,17 @@ class DenemeGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildListCard(DenemeGridController controller) {
+  Widget _buildListCard(
+    DenemeGridController controller,
+    SavedPracticeExamsController savedController,
+  ) {
     const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
       onTap: _openCard,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
@@ -410,84 +416,106 @@ class DenemeGrid extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      model.sinavAdi,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: 'MontserratBold',
+                child: SizedBox(
+                  height: metrics.railHeight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: metrics.detailRowHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            model.sinavAdi,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PasajCardStyles.detail,
+                          ),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: metrics.contentGap),
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.calendar,
-                          size: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            formatTimestamp(model.timeStamp.toInt()),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(
+                        height: metrics.detailRowHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.calendar,
+                                size: 14,
+                                color: PasajCardStyles.lineTwoColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  formatTimestamp(model.timeStamp.toInt()),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.lineTwo,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: metrics.contentGap),
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.doc_text,
-                          size: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            model.sinavTuru,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(
+                        height: metrics.detailRowHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.doc_text,
+                                size: 14,
+                                color: PasajCardStyles.lineFourColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  model.sinavTuru,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.detail,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: metrics.contentGap),
-                    Obx(
-                      () => Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.person_2_fill,
-                            size: 14,
-                            color: Colors.grey.shade500,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              controller.isLoadingApplicants.value
-                                  ? 'common.loading'.tr
-                                  : _formattedApplicationText(
-                                      controller.toplamBasvuru.value,
-                                    ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: PasajCardStyles.detail,
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(
+                        height: metrics.ctaHeight,
+                        child: Obx(
+                          () => Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  CupertinoIcons.person_2_fill,
+                                  size: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    controller.isLoadingApplicants.value
+                                        ? 'common.loading'.tr
+                                        : _formattedApplicationText(
+                                            controller.toplamBasvuru.value,
+                                          ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: PasajCardStyles.lineFour,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -506,9 +534,26 @@ class DenemeGrid extends StatelessWidget {
                           iconSize: metrics.actionIconSize,
                         ),
                         SizedBox(width: metrics.railActionGap),
-                        SizedBox(
-                          width: metrics.actionButtonSize,
-                          height: metrics.actionButtonSize,
+                        Obx(
+                          () => AppHeaderActionButton(
+                            onTap: model.docID.trim().isEmpty
+                                ? null
+                                : () => savedController.toggleSavedExam(
+                                      model.docID,
+                                    ),
+                            size: metrics.actionButtonSize,
+                            child: Icon(
+                              savedController.savedExamIds.contains(model.docID)
+                                  ? AppIcons.saved
+                                  : AppIcons.save,
+                              size: metrics.actionIconSize,
+                              color: savedController.savedExamIds.contains(
+                                model.docID,
+                              )
+                                  ? Colors.orange
+                                  : Colors.black87,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -557,10 +602,14 @@ class DenemeGrid extends StatelessWidget {
       DenemeGridController(),
       tag: model.docID,
     );
+    final SavedPracticeExamsController savedController =
+        Get.isRegistered<SavedPracticeExamsController>()
+            ? Get.find<SavedPracticeExamsController>()
+            : Get.put(SavedPracticeExamsController());
     controller.initData(model);
 
     return isListLayout
-        ? _buildListCard(controller)
+        ? _buildListCard(controller, savedController)
         : _buildGridCard(controller);
   }
 }

@@ -10,17 +10,17 @@ import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Themes/app_assets.dart';
 
 class MarketView extends StatelessWidget {
-  static const Color _gridSavedAccentColor = Color(0xFFF59E0B);
-
   MarketView({
     super.key,
     this.embedded = false,
@@ -467,14 +467,13 @@ class MarketView extends StatelessWidget {
 
   Widget _buildListingCard(MarketItemModel item) {
     final accent = _accentForItem(item);
-    final statusColor = _statusColor(item.status);
     final canCall = item.canShowPhone;
     return GestureDetector(
       onTap: () => controller.openItem(item),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
@@ -542,77 +541,68 @@ class MarketView extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    item.title,
-                                    maxLines: compact ? 2 : 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: compact ? 14 : 15,
-                                      fontFamily: 'MontserratBold',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    item.status == 'active'
-                                        ? item.categoryLabel
-                                        : _statusLabel(item.status),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: item.status == 'active'
-                                          ? accent
-                                          : statusColor,
-                                      fontSize: 12,
-                                      fontFamily: 'MontserratBold',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  if (item.description.trim().isNotEmpty)
-                                    Text(
-                                      item.description.trim(),
-                                      maxLines: compact ? 2 : 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 12,
-                                        height: 1.1,
-                                        fontFamily: 'MontserratMedium',
-                                      ),
-                                    )
-                                  else
-                                    SizedBox(height: metrics.detailRowHeight),
-                                ],
+                    child: SizedBox(
+                      height: metrics.railHeight,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: metrics.detailRowHeight,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                item.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: PasajCardStyles.lineOne,
                               ),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: metrics.contentGap),
-                        Text(
-                          item.locationText,
-                          maxLines: compact ? 2 : 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontSize: 12,
-                            fontFamily: 'MontserratMedium',
                           ),
-                        ),
-                        SizedBox(height: metrics.contentGap),
-                        SizedBox(height: metrics.detailRowHeight),
-                      ],
+                          SizedBox(height: metrics.contentGap),
+                          SizedBox(
+                            height: metrics.detailRowHeight,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                item.status == 'active'
+                                    ? item.categoryLabel
+                                    : _statusLabel(item.status),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: PasajCardStyles.lineTwo,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: metrics.contentGap),
+                          SizedBox(
+                            height: metrics.detailRowHeight,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: item.description.trim().isNotEmpty
+                                  ? Text(
+                                      item.description.trim(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: PasajCardStyles.detail,
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ),
+                          SizedBox(height: metrics.contentGap),
+                          SizedBox(
+                            height: metrics.ctaHeight,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                item.locationText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: PasajCardStyles.lineFour,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -722,20 +712,24 @@ class MarketView extends StatelessWidget {
                           controller.toggleSaved(item, showSnackbar: false),
                       child: Column(
                         children: [
-                          Icon(
-                            controller.isSaved(item.id)
-                                ? AppIcons.saved
-                                : AppIcons.save,
-                            color: controller.isSaved(item.id)
-                                ? _gridSavedAccentColor
-                                : Colors.grey.shade600,
-                            size: PasajListCardMetrics.gridOverlayIconSize,
-                            shadows: const [
-                              Shadow(
-                                color: Color(0x55000000),
-                                blurRadius: 6,
+                          SizedBox(
+                            width: PasajListCardMetrics.gridOverlayButtonSize,
+                            height: PasajListCardMetrics.gridOverlayButtonSize,
+                            child: Center(
+                              child: Icon(
+                                controller.isSaved(item.id)
+                                    ? AppIcons.saved
+                                    : AppIcons.save,
+                                color: Colors.white,
+                                size: PasajListCardMetrics.gridOverlayIconSize,
+                                shadows: const [
+                                  Shadow(
+                                    color: Color(0x55000000),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                           if (item.favoriteCount > 0) ...[
                             const SizedBox(height: 2),
@@ -956,9 +950,7 @@ class MarketView extends StatelessWidget {
   }
 
   String _currencyLabel(String value) {
-    final normalized = value.trim().toUpperCase();
-    if (normalized == 'TRY') return 'TL';
-    return value.trim();
+    return marketCurrencyLabel(value);
   }
 
   String _formattedPrice(double value) {

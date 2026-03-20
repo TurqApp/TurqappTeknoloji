@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Models/posts_model.dart';

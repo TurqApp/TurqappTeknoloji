@@ -18,7 +18,7 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
   }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {
-    final code = e.code.toLowerCase();
+    final code = normalizeLowercase(e.code);
     return code == 'unauthenticated' || code == 'unauthorized';
   }
 

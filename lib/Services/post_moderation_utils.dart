@@ -1,3 +1,5 @@
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+
 const Map<String, String> kModerationReasonMap = {
   'Uyuşturucu': 'drugs',
   'Kumar': 'gambling',
@@ -67,11 +69,11 @@ const Map<String, Set<String>> kModerationReasonTitleVariants = {
 String normalizeModerationReason(String reason) {
   final trimmed = reason.trim();
   if (trimmed.isEmpty) return 'other';
+  final normalized = normalizeLowercase(trimmed);
   final mapped =
-      kModerationReasonMap[trimmed] ?? kModerationReasonMap[trimmed.toLowerCase()];
+      kModerationReasonMap[trimmed] ?? kModerationReasonMap[normalized];
   if (mapped != null) return mapped;
 
-  final normalized = trimmed.toLowerCase();
   for (final entry in kModerationReasonTitleVariants.entries) {
     if (entry.value.contains(normalized)) {
       return entry.key;

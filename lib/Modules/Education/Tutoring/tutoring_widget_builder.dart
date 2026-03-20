@@ -154,15 +154,18 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   savedController: savedController,
                                 ),
                                 child: SizedBox(
-                                  width: PasajListCardMetrics.gridOverlayButtonSize,
-                                  height: PasajListCardMetrics.gridOverlayButtonSize,
+                                  width: PasajListCardMetrics
+                                      .gridOverlayButtonSize,
+                                  height: PasajListCardMetrics
+                                      .gridOverlayButtonSize,
                                   child: Center(
                                     child: Icon(
                                       savedController.savedTutoringIds
                                               .contains(tutoring.docID)
                                           ? AppIcons.saved
                                           : AppIcons.save,
-                                      size: PasajListCardMetrics.gridOverlayIconSize,
+                                      size: PasajListCardMetrics
+                                          .gridOverlayIconSize,
                                       color: Colors.white,
                                       shadows: const [
                                         Shadow(
@@ -294,7 +297,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                       borderRadius: const BorderRadius.all(Radius.circular(10)),
                       child: SizedBox(
                         width: metrics.mediaSize,
-                        height: metrics.mediaSize,
+                        height: metrics.railHeight,
                         child: imageUrl.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: imageUrl,
@@ -306,44 +309,54 @@ class TutoringWidgetBuilder extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            tutoring.baslik,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
-                          ),
-                          SizedBox(height: metrics.contentGap / 2),
-                          Text(
-                            tutoring.brans,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
-                          ),
-                          SizedBox(height: metrics.contentGap),
-                          Text(
-                            lessonPlace,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
-                          ),
-                          SizedBox(height: metrics.contentGap),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: Colors.grey.shade500,
+                      child: SizedBox(
+                        height: metrics.railHeight,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: metrics.detailRowHeight,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  tutoring.baslik,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.lineOne,
+                                ),
                               ),
-                              const SizedBox(width: 4),
-                              Expanded(
+                            ),
+                            SizedBox(height: metrics.contentGap),
+                            SizedBox(
+                              height: metrics.detailRowHeight,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  tutoring.brans,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.lineTwo,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: metrics.contentGap),
+                            SizedBox(
+                              height: metrics.detailRowHeight,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  lessonPlace,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.lineFour,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: metrics.contentGap),
+                            SizedBox(
+                              height: metrics.ctaHeight,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
                                 child: Text(
                                   "${tutoring.sehir}, ${tutoring.ilce}",
                                   maxLines: 1,
@@ -351,9 +364,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   style: PasajCardStyles.detail,
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),

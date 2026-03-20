@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
 class AdsDeliveryMonitorView extends StatelessWidget {
@@ -80,7 +81,7 @@ class AdsDeliveryMonitorView extends StatelessWidget {
                           ? (row['reasons'] as List).join(', ')
                           : '-';
                       return Text(
-                        '$campaignId • ${eligible ? 'common.ok'.tr : 'common.reject'.tr.toLowerCase()} • $reasons',
+                        '$campaignId • ${eligible ? 'common.ok'.tr : normalizeLowercase('common.reject'.tr)} • $reasons',
                         style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 11,

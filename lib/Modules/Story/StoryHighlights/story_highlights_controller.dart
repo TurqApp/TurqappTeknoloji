@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'story_highlight_model.dart';
 
@@ -233,7 +234,7 @@ class StoryHighlightsController extends GetxController {
 
       // 1) Image/GIF iceriklerini onceliklendir.
       for (final m in asMaps) {
-        final type = (m['type'] ?? '').toString().toLowerCase();
+        final type = normalizeSearchText((m['type'] ?? '').toString());
         final content = (m['content'] ?? '').toString().trim();
         if (content.isEmpty) continue;
         if ((type == 'image' || type == 'gif') && _isLikelyImageUrl(content)) {

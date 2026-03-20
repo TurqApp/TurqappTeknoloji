@@ -205,7 +205,7 @@ class StoredAccount {
         .toList(growable: false);
     return StoredAccount(
       uid: firebaseUser.uid,
-      email: email.toLowerCase(),
+      email: normalizeEmailAddress(email),
       username: derivedUsername,
       displayName: displayName,
       rozet: '',

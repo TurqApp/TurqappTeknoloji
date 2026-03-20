@@ -5,7 +5,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (error is FirebaseException && error.code == 'unavailable') {
       return true;
     }
-    final message = error.toString().toLowerCase();
+    final message = normalizeLowercase(error.toString());
     return message.contains('cloud_firestore/unavailable') ||
         message.contains('unable to resolve host firestore.googleapis.com') ||
         message.contains('unknownhostexception') ||

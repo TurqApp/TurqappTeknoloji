@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 enum ErrorSeverity {
   low('error_handling.severity_low'),
@@ -188,7 +189,7 @@ class ErrorHandlingService extends GetxController {
 
     // Analyze error type and categorize
     if (!hasExplicitCategory) {
-      final lower = error.toString().toLowerCase();
+      final lower = normalizeLowercase(error.toString());
       if (error is SocketException || error is TimeoutException) {
         errorCategory = ErrorCategory.network;
         userFriendlyMessage =

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 String? _lastSnackbarSignature;
 DateTime? _lastSnackbarAt;
@@ -269,7 +270,8 @@ _AppSnackbarPalette _resolvePalette({
     );
   }
 
-  final haystack = '${title.toLowerCase()} ${message.toLowerCase()}';
+  final haystack =
+      '${normalizeLowercase(title)} ${normalizeLowercase(message)}';
   final errorKeywords = <String>[
     'common.error'.tr,
     'error',
@@ -284,7 +286,7 @@ _AppSnackbarPalette _resolvePalette({
     'erro',
     'ошибка',
     'не удалось',
-  ].map((e) => e.toLowerCase()).toList();
+  ].map(normalizeLowercase).toList();
   final warningKeywords = <String>[
     'common.warning'.tr,
     'warning',
@@ -301,7 +303,7 @@ _AppSnackbarPalette _resolvePalette({
     'разрешение',
     'eksik',
     'missing',
-  ].map((e) => e.toLowerCase()).toList();
+  ].map(normalizeLowercase).toList();
   final successKeywords = <String>[
     'common.success'.tr,
     'common.done'.tr,
@@ -321,7 +323,7 @@ _AppSnackbarPalette _resolvePalette({
     'gönderildi',
     'kaydedildi',
     'güncellendi',
-  ].map((e) => e.toLowerCase()).toList();
+  ].map(normalizeLowercase).toList();
 
   if (errorKeywords.any(haystack.contains)) {
     return const _AppSnackbarPalette(

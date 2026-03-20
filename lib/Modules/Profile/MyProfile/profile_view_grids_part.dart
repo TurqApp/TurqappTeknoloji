@@ -644,7 +644,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${_formatMarketMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+                    '${_formatMarketMoney(item.price)} ${marketCurrencyLabel(item.currency)}',
                     style: const TextStyle(
                       color: Color(0xFF8B0000),
                       fontSize: 19,

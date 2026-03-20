@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 enum FilterType {
   none('Original'),
@@ -527,7 +528,7 @@ class MediaEnhancementService extends GetxController {
 
   /// Check if file is an image
   bool _isImageFile(File file) {
-    final extension = file.path.toLowerCase().split('.').last;
+    final extension = normalizeLowercase(file.path.split('.').last);
     return ['jpg', 'jpeg', 'png', 'bmp', 'webp'].contains(extension);
   }
 

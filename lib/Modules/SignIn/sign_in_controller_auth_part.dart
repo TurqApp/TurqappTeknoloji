@@ -153,7 +153,7 @@ extension SignInControllerAuthPart on SignInController {
           message = 'sign_in.reset_account_not_found'.tr;
           break;
         case 'failed-precondition':
-          final raw = (e.message ?? "").toLowerCase();
+          final raw = normalizeLowercase(e.message ?? "");
           if (raw.contains("yeni sms için")) {
             message = 'sign_in.reset_code_already_sent'.trParams(
               {'time': _formatSeconds(otpTimerReset.value)},
@@ -473,7 +473,7 @@ extension SignInControllerAuthPart on SignInController {
 
   Future<void> nicknameFinder() async {
     try {
-      final search = emailcontroller.text.toLowerCase();
+      final search = normalizeEmailAddress(emailcontroller.text);
       if (search.length < 2) return;
 
       if (FirebaseAuth.instance.currentUser == null) {

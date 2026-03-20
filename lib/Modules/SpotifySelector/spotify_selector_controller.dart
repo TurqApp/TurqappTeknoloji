@@ -51,7 +51,7 @@ class SpotifySelectorController extends GetxController {
       ..sort((a, b) {
         final byPopularity = _byPopularity(a, b);
         if (byPopularity != 0) return byPopularity;
-        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        return compareNormalizedText(a.title, b.title);
       });
     return _sliceVisible(filtered);
   }
@@ -204,7 +204,7 @@ class SpotifySelectorController extends GetxController {
           ..sort((a, b) {
             final byPopularity = _byPopularity(a, b);
             if (byPopularity != 0) return byPopularity;
-            return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+            return compareNormalizedText(a.title, b.title);
           });
       default:
         return _applyQuery(library).toList(growable: true)..sort(_byPopularity);
@@ -237,7 +237,7 @@ class SpotifySelectorController extends GetxController {
     if (byStory != 0) return byStory;
     final byOrder = a.order.compareTo(b.order);
     if (byOrder != 0) return byOrder;
-    return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    return compareNormalizedText(a.title, b.title);
   }
 
   @override

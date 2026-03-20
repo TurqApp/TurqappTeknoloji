@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:uuid/uuid.dart';
 
@@ -164,7 +165,7 @@ class MarketFeedPostShareService {
   String _caption(MarketItemModel item) {
     return <String>[
       '"${item.title}"',
-      '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+      '${item.price.toStringAsFixed(0)} ${marketCurrencyLabel(item.currency)}',
       if (item.locationText.trim().isNotEmpty) item.locationText.trim(),
     ].join('\n');
   }

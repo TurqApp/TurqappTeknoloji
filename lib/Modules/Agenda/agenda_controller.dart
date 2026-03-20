@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 import '../../Core/Services/video_state_manager.dart';

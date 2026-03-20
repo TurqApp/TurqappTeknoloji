@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:turqappv2/Core/Services/media_compression_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:video_player/video_player.dart';
 import '../upload_constants.dart';
 
@@ -240,7 +241,7 @@ class UploadValidationService {
 
   /// Get image format from file path
   static String _getImageFormat(String path) {
-    final extension = path.split('.').last.toLowerCase();
+    final extension = normalizeLowercase(path.split('.').last);
     switch (extension) {
       case 'jpg':
       case 'jpeg':

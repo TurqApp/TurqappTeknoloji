@@ -3,6 +3,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 import 'notify_reader_controller.dart';
 
@@ -23,7 +24,7 @@ class NotifyReader extends StatelessWidget {
 
   void _routeByType() {
     final rawType = type.trim();
-    final normalized = rawType.toLowerCase();
+    final normalized = normalizeSearchText(rawType);
 
     if (docID.trim().isEmpty) {
       Get.back();

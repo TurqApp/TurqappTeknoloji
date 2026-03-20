@@ -39,25 +39,15 @@ class JobContent extends StatelessWidget {
     return '${model.calismaTuru.first} +${model.calismaTuru.length - 1}';
   }
 
-  String get _distanceAndLocationText {
-    final parts = <String>[];
-    if (model.kacKm.isFinite && model.kacKm > 0) {
-      parts.add('${model.kacKm.toStringAsFixed(2)} km');
-    }
-
+  String get _cityTownText {
     final city = model.city.trim();
     final town = model.town.trim();
     if (city.isNotEmpty && town.isNotEmpty) {
-      parts.add('$city, $town');
-    } else if (city.isNotEmpty) {
-      parts.add(city);
-    } else if (town.isNotEmpty) {
-      parts.add(town);
+      return '$city, $town';
     }
-
-    return parts.isEmpty
-        ? 'pasaj.market.location_missing'.tr
-        : parts.join('\n');
+    if (city.isNotEmpty) return city;
+    if (town.isNotEmpty) return town;
+    return 'pasaj.market.location_missing'.tr;
   }
 
   Widget _buildLogo({
@@ -159,71 +149,79 @@ class JobContent extends StatelessWidget {
                   borderRadius: const BorderRadius.all(Radius.circular(10)),
                   child: SizedBox(
                     width: metrics.mediaSize,
-                    height: metrics.mediaSize,
+                    height: metrics.railHeight,
                     child: _buildResolvedLogo(
                       controller: controller,
                       width: metrics.mediaSize,
-                      height: metrics.mediaSize,
+                      height: metrics.railHeight,
                       borderRadius: const BorderRadius.all(Radius.circular(10)),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        model.ilanBasligi.isNotEmpty
-                            ? model.ilanBasligi
-                            : model.meslek,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                      SizedBox(height: metrics.contentGap / 2),
-                      Text(
-                        model.ilanBasligi.isNotEmpty
-                            ? model.meslek
-                            : model.brand,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: PasajCardStyles.detail,
-                      ),
-                      SizedBox(height: metrics.contentGap),
-                      Text(
-                        _workTypeText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: PasajCardStyles.detail,
-                      ),
-                      SizedBox(height: metrics.contentGap),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 14,
-                            color: Colors.grey.shade500,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
+                  child: SizedBox(
+                    height: metrics.railHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
                             child: Text(
-                              "${model.city}, ${model.town}",
+                              model.ilanBasligi.isNotEmpty
+                                  ? model.ilanBasligi
+                                  : model.meslek,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.lineOne,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: metrics.contentGap),
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              model.ilanBasligi.isNotEmpty
+                                  ? model.meslek
+                                  : model.brand,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.lineTwo,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: metrics.contentGap),
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _workTypeText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: PasajCardStyles.detail,
                             ),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: metrics.contentGap),
-                      SizedBox(height: metrics.detailRowHeight),
-                    ],
+                        ),
+                        SizedBox(height: metrics.contentGap),
+                        SizedBox(
+                          height: metrics.ctaHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _cityTownText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.lineFour,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -378,16 +376,13 @@ class JobContent extends StatelessWidget {
                         ? model.ilanBasligi
                         : model.meslek,
                     maxLines: 1,
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontFamily: "MontserratBold"),
+                    style: PasajCardStyles.lineOne,
                   ),
                   Text(
                     _gridWorkTypeText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.detail,
+                    style: PasajCardStyles.lineTwo,
                   ),
                   Text(
                     model.brand,
@@ -396,10 +391,10 @@ class JobContent extends StatelessWidget {
                     style: PasajCardStyles.detail,
                   ),
                   Text(
-                    _distanceAndLocationText,
+                    _cityTownText,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: PasajCardStyles.detail,
+                    style: PasajCardStyles.lineFour,
                   ),
                   const SizedBox(height: 6),
                   Align(

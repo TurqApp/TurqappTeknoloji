@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
@@ -43,7 +44,7 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                       controller.urlController.text = item == kSocialMediaWhatsApp
                           ? "https://wa.me/+90"
                           : item != kSocialMediaTurqApp
-                              ? "https://${item.toLowerCase()}.com/"
+                              ? "https://${normalizeLowercase(item)}.com/"
                               : "";
                     },
                     child: Container(
@@ -299,10 +300,9 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               controller.resetFields();
                               Get.back();
                             } catch (e) {
-                              final msg = e
-                                      .toString()
-                                      .toLowerCase()
-                                      .contains('permission-denied')
+                              final msg = normalizeLowercase(
+                                        e.toString(),
+                                      ).contains('permission-denied')
                                   ? 'social_links.save_permission_error'.tr
                                   : 'social_links.save_failed'.tr;
                               AppSnackbar('common.error'.tr, msg);

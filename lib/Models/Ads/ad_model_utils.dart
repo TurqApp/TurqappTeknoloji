@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
 
 DateTime? parseDateTime(dynamic raw) {
   if (raw == null) return null;
@@ -34,13 +35,7 @@ double parseDouble(dynamic raw, {double fallback = 0}) {
 }
 
 bool parseBool(dynamic raw, {bool fallback = false}) {
-  if (raw is bool) return raw;
-  if (raw is String) {
-    final lower = raw.toLowerCase().trim();
-    if (lower == 'true') return true;
-    if (lower == 'false') return false;
-  }
-  return fallback;
+  return parseFlexibleBool(raw, fallback: fallback);
 }
 
 List<String> parseStringList(dynamic raw) {

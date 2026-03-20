@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -208,14 +209,14 @@ Future<void> _activateAppCheck() async {
 }
 
 bool _isFirestoreConfigError(Object error) {
-  final text = error.toString().toLowerCase();
+  final text = normalizeLowercase(error.toString());
   return text.contains('cloud_firestore/permission-denied') ||
       text.contains('cloud_firestore/failed-precondition') ||
       text.contains('requires an index');
 }
 
 bool _isExpectedNonFatalNoise(Object error) {
-  final text = error.toString().toLowerCase();
+  final text = normalizeLowercase(error.toString());
   if (_isFirestoreConfigError(error)) return true;
   return text.contains('firebase_app_check/unknown') ||
       text.contains('exchangedevicechecktoken') ||

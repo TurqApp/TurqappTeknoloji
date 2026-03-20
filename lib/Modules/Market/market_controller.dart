@@ -737,8 +737,9 @@ class MarketController extends GetxController {
       item.categoryPath.join(' '),
       item.sellerName,
       item.attributes.values.map((value) => value.toString()).join(' '),
-    ].join(' ').toLowerCase();
-    return haystack.contains(query);
+    ].join(' ');
+    final normalizedHaystack = normalizeSearchText(haystack);
+    return normalizedHaystack.contains(query);
   }
 
   int _compareItems(MarketItemModel a, MarketItemModel b) {

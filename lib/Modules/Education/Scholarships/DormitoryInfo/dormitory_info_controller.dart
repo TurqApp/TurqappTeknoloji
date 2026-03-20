@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
@@ -279,6 +280,5 @@ class DormitoryInfoController extends GetxController {
     }
   }
 
-  String capitalize(String s) =>
-      s.isNotEmpty ? s[0].toUpperCase() + s.substring(1).toLowerCase() : s;
+  String capitalize(String s) => capitalizeWords(s);
 }

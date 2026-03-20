@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 String kacGunKaldi(int timestampMillis) {
   final hedefTarih = DateTime.fromMillisecondsSinceEpoch(timestampMillis);
@@ -164,15 +165,7 @@ void showAlertDialog(BuildContext context, String title, String desc) {
 }
 
 String capitalize(String s) {
-  return s
-      .replaceAll(RegExp(' +'), ' ')
-      .split(' ')
-      .map(
-        (str) => str.isNotEmpty
-            ? '${str[0].toUpperCase()}${str.substring(1).toLowerCase()}'
-            : '',
-      )
-      .join(' ');
+  return capitalizeWords(s);
 }
 
 String calculateDiscountedPrice(String priceStr, int discount) {

@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class AntremanScoreController extends GetxController {
   static List<Map<String, dynamic>>? _cachedLeaderboard;
@@ -117,12 +118,12 @@ class AntremanScoreController extends GetxController {
     final updatedCompare = _resolveUpdatedAt(a).compareTo(_resolveUpdatedAt(b));
     if (updatedCompare != 0) return updatedCompare;
 
-    final aNickname = (a['displayName'] ?? a['username'] ?? a['nickname'] ?? '')
-        .toString()
-        .toLowerCase();
-    final bNickname = (b['displayName'] ?? b['username'] ?? b['nickname'] ?? '')
-        .toString()
-        .toLowerCase();
+    final aNickname = normalizeLowercase(
+      (a['displayName'] ?? a['username'] ?? a['nickname'] ?? '').toString(),
+    );
+    final bNickname = normalizeLowercase(
+      (b['displayName'] ?? b['username'] ?? b['nickname'] ?? '').toString(),
+    );
     return aNickname.compareTo(bNickname);
   }
 

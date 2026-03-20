@@ -215,7 +215,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
     final musicTitle = currentStory.musicTitle.trim();
     final rawMusicArtist = currentStory.musicArtist.trim();
     final musicArtist = (() {
-      final normalized = rawMusicArtist.toLowerCase();
+      final normalized = normalizeSearchText(rawMusicArtist);
       if (normalized == 'turqapp müzik' || normalized == 'turqapp muzik') {
         return '';
       }

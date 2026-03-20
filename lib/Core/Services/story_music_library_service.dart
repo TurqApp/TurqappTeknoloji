@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/music_model.dart';
 
 class StoryMusicLibraryService {
@@ -63,7 +64,7 @@ class StoryMusicLibraryService {
           ..sort((a, b) {
             final byOrder = a.order.compareTo(b.order);
             if (byOrder != 0) return byOrder;
-            return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+            return compareNormalizedText(a.title, b.title);
           });
       }
     }
@@ -83,7 +84,7 @@ class StoryMusicLibraryService {
         ..sort((a, b) {
           final byOrder = a.order.compareTo(b.order);
           if (byOrder != 0) return byOrder;
-          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+          return compareNormalizedText(a.title, b.title);
         });
     }
   }
@@ -526,7 +527,7 @@ class StoryMusicLibraryService {
         if (byUse != 0) return byUse;
         final byOrder = a.order.compareTo(b.order);
         if (byOrder != 0) return byOrder;
-        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        return compareNormalizedText(a.title, b.title);
       });
     if (sorted.length <= limit) return sorted;
     return sorted.take(limit).toList(growable: false);

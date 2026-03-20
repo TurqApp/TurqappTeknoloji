@@ -82,15 +82,7 @@ int generateRandomNumber(int min, int max) {
 }
 
 String capitalize(String s) {
-  return s
-      .replaceAll(RegExp(' +'), ' ')
-      .split(' ')
-      .map(
-        (str) => str.isNotEmpty
-            ? '${str[0].toUpperCase()}${str.substring(1).toLowerCase()}'
-            : '',
-      )
-      .join(' ');
+  return capitalizeWords(s);
 }
 
 String formatTimestampToTurkish(String timestamp) {
@@ -373,12 +365,7 @@ class CapitalizeInputFormatter2 extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     if (newValue.text.isNotEmpty) {
-      final capitalized = newValue.text.split(' ').map((word) {
-        if (word.isNotEmpty) {
-          return word[0].toUpperCase() + word.substring(1).toLowerCase();
-        }
-        return '';
-      }).join(' ');
+      final capitalized = capitalizeWords(newValue.text);
       return newValue.copyWith(
         text: capitalized,
         selection: TextSelection.collapsed(offset: capitalized.length),
@@ -475,7 +462,7 @@ String capitalizeEachWord(String text) {
       .split(' ')
       .map(
         (word) => word.isNotEmpty
-            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+            ? '${word[0].toUpperCase()}${normalizeLowercase(word.substring(1))}'
             : word,
       )
       .join(' ');

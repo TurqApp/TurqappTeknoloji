@@ -207,8 +207,8 @@ class AnswerKeyContent extends StatelessWidget {
                           fontFamily: 'MontserratMedium',
                         ),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   Align(
                     alignment: Alignment.centerRight,
@@ -244,7 +244,7 @@ class AnswerKeyContent extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
@@ -260,63 +260,83 @@ class AnswerKeyContent extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      controller.model.baslik,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      controller.model.sinavTuru,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: PasajCardStyles.detail,
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      controller.model.yayinEvi,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: PasajCardStyles.detail,
-                    ),
-                    SizedBox(height: metrics.contentGap),
-                    Row(
-                      children: [
-                        SvgPicture.asset(
-                          'assets/icons/statsyeni.svg',
-                          height: 14,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.black,
-                            BlendMode.srcIn,
+                child: SizedBox(
+                  height: metrics.railHeight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: metrics.detailRowHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            controller.model.baslik,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PasajCardStyles.lineOne,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(
+                        height: metrics.detailRowHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
                           child: Text(
-                            'answer_key.views'.trParams({
-                              'count': NumberFormatter.format(
-                                controller.model.viewCount,
-                              ),
-                            }),
+                            controller.model.sinavTuru,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: PasajCardStyles.lineTwo,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(
+                        height: metrics.detailRowHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            controller.model.yayinEvi,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: PasajCardStyles.detail,
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: metrics.contentGap),
-                    SizedBox(height: metrics.detailRowHeight),
-                  ],
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(
+                        height: metrics.ctaHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              SvgPicture.asset(
+                                'assets/icons/statsyeni.svg',
+                                height: 14,
+                                colorFilter: const ColorFilter.mode(
+                                  PasajCardStyles.lineFourColor,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'answer_key.views'.trParams({
+                                    'count': NumberFormatter.format(
+                                      controller.model.viewCount,
+                                    ),
+                                  }),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: PasajCardStyles.lineFour,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 6),

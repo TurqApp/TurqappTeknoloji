@@ -1,9 +1,10 @@
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+
 part 'blocked_texts_words_1_part.dart';
 part 'blocked_texts_words_2_part.dart';
 
 bool kufurKontrolEt(String text) {
-  final words = text
-      .toLowerCase()
+  final words = normalizeSearchText(text)
       .replaceAll(RegExp(r'[^\wçğıöşüÇĞİÖŞÜ\s]'),
           '') // Türkçe karakterlere göre temizle
       .split(RegExp(r'\s+'));

@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class WebpUploadService {
   static const int defaultMaxImageDimension = 600;
@@ -31,7 +32,7 @@ class WebpUploadService {
   }
 
   static bool _isAuthRetryable(FirebaseException e) {
-    final code = e.code.toLowerCase();
+    final code = normalizeLowercase(e.code);
     return code == 'unauthenticated' || code == 'unauthorized';
   }
 

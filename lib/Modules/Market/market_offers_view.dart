@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
@@ -104,7 +105,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
           return Center(
             child: Text(
               'pasaj.market.offer_empty'.trParams({
-                'subtitle': subtitle.toLowerCase(),
+                'subtitle': normalizeLowercase(subtitle),
               }),
               style: const TextStyle(
                 color: Colors.black54,
@@ -222,7 +223,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${_formatMoney(offer.offerPrice)} ${offer.currency.toUpperCase() == 'TRY' ? 'TL' : offer.currency}',
+                              '${_formatMoney(offer.offerPrice)} ${marketCurrencyLabel(offer.currency)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(

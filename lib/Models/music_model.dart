@@ -1,3 +1,5 @@
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+
 class MusicModel {
   final String docID;
   final String title;
@@ -38,7 +40,7 @@ class MusicModel {
   String get displayArtist {
     final cleanArtist = artist.trim();
     if (cleanArtist.isEmpty) return '';
-    final normalized = cleanArtist.toLowerCase();
+    final normalized = normalizeSearchText(cleanArtist);
     if (normalized == 'turqapp müzik' || normalized == 'turqapp muzik') {
       return '';
     }

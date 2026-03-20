@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
@@ -458,11 +459,13 @@ class JobFinderController extends GetxController {
                       final filtered = allJobs.where((job) {
                         final matchCity = isAllTurkeySelection(sehir.value) ||
                             job.city == sehir.value;
+                        final normalizedSelectedType = normalizeSearchText(
+                          selectedType.value,
+                        );
                         final matchType = selectedType.value.isEmpty ||
                             job.calismaTuru
-                                .map((e) => e.toLowerCase().trim())
-                                .contains(
-                                    selectedType.value.toLowerCase().trim());
+                                .map(normalizeSearchText)
+                                .contains(normalizedSelectedType);
                         return matchCity && matchType;
                       }).toList();
 

@@ -20,7 +20,7 @@ String localizeJobDisplayText(String value) {
     text = text.replaceAll(source, target);
   });
 
-  switch (text.toLowerCase()) {
+  switch (normalizeSearchText(text)) {
     case 'tam zamanlı':
       return 'pasaj.job_finder.work_type.full_time'.tr;
     case 'yarı zamanlı':

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 import 'package:turqappv2/Core/text_styles.dart';
@@ -650,12 +651,7 @@ class CapitalizeInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     if (newValue.text.isNotEmpty) {
-      String capitalized = newValue.text.split(' ').map((word) {
-        if (word.isNotEmpty) {
-          return word[0].toUpperCase() + word.substring(1).toLowerCase();
-        }
-        return '';
-      }).join(' ');
+      final capitalized = capitalizeWords(newValue.text);
       return newValue.copyWith(
         text: capitalized,
         selection: TextSelection.collapsed(offset: capitalized.length),

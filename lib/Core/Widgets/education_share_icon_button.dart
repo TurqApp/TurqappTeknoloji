@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 
 class EducationActionIconButton extends StatelessWidget {
   const EducationActionIconButton({
@@ -22,19 +22,15 @@ class EducationActionIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AppHeaderActionButton(
       onTap: onTap,
-      child: AppIconSurface(
-        size: size,
-        radius: 10,
-        child: child ??
-            Icon(
-              icon,
-              color: iconColor,
-              size: iconSize,
-            ),
-      ),
+      size: size,
+      child: child ??
+          Icon(
+            icon,
+            color: iconColor,
+            size: iconSize,
+          ),
     );
   }
 }
@@ -118,7 +114,8 @@ class _EducationFeedSharePainter extends CustomPainter {
     );
     canvas.drawLine(
       Offset(left.dx + nodeRadius * 0.85, left.dy + nodeRadius * 0.55),
-      Offset(bottomRight.dx - nodeRadius * 0.95, bottomRight.dy - nodeRadius * 0.45),
+      Offset(bottomRight.dx - nodeRadius * 0.95,
+          bottomRight.dy - nodeRadius * 0.45),
       stroke,
     );
     canvas.drawCircle(left, nodeRadius, stroke);

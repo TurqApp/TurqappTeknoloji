@@ -18,6 +18,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_review_model.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
@@ -1361,7 +1362,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   }
 
   String _currencyLabel(String currency) {
-    return currency.toUpperCase() == 'TRY' ? 'TL' : currency;
+    return marketCurrencyLabel(currency);
   }
 
   Widget _imageFallback() {

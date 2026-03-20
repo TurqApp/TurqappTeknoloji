@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class CategoryBasedAnswerKeyController extends GetxController {
@@ -79,26 +80,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
   }
 
   String normalizeText(String text) {
-    const replacements = {
-      'ç': 'c',
-      'Ç': 'c',
-      'ğ': 'g',
-      'Ğ': 'g',
-      'ı': 'i',
-      'İ': 'i',
-      'ö': 'o',
-      'Ö': 'o',
-      'ş': 's',
-      'Ş': 's',
-      'ü': 'u',
-      'Ü': 'u',
-    };
-
-    return text
-        .toLowerCase()
-        .split('')
-        .map((char) => replacements[char] ?? char)
-        .join();
+    return normalizeSearchText(text);
   }
 
   void filterSearchResults(String query) {

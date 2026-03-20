@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.da
 import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
@@ -410,7 +411,7 @@ class InAppNotificationsController extends GetxController {
     for (final item in _allNotifications) {
       if (item.isRead) continue;
       final normalizedType =
-          (item.type.isNotEmpty ? item.type : item.postType).toLowerCase();
+          normalizeLowercase(item.type.isNotEmpty ? item.type : item.postType);
       final isChatType =
           normalizedType == "chat" || normalizedType == "message";
       if (!isChatType) continue;
@@ -463,8 +464,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   bool isMentionNotification(NotificationModel model) {
-    final desc = model.desc.toLowerCase();
-    final title = model.title.toLowerCase();
+    final desc = normalizeSearchText(model.desc);
+    final title = normalizeSearchText(model.title);
     final isComment = model.postType == kNotificationPostTypeComment;
     return desc.contains("@") ||
         title.contains("@") ||

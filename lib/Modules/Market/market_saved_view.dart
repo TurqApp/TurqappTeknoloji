@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
@@ -166,7 +167,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${_formatMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+                    '${_formatMoney(item.price)} ${marketCurrencyLabel(item.currency)}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 14,

@@ -271,11 +271,12 @@ class PostEditingService extends GetxController {
   /// Generate hashtag suggestions
   List<SmartSuggestion> _generateHashtagSuggestions(String text) {
     final suggestions = <SmartSuggestion>[];
-    final words = text.toLowerCase().split(' ');
+    final normalizedText = normalizeSearchText(text);
+    final words = normalizedText.split(' ');
 
     // Check for relevant hashtags based on keywords
     for (final hashtag in _commonHashtags) {
-      final keyword = hashtag.substring(1); // Remove #
+      final keyword = normalizeSearchText(hashtag.substring(1)); // Remove #
 
       if (words.any((word) => word.contains(keyword)) &&
           !text.contains(hashtag)) {
@@ -300,11 +301,11 @@ class PostEditingService extends GetxController {
     final match = mentionPattern.firstMatch(text);
 
     if (match != null) {
-      final partial = match.group(1) ?? '';
+      final partial = normalizeSearchText(match.group(1) ?? '');
       final mockUsers = ['arkadas1', 'kullanici2', 'friend3'];
 
       for (final user in mockUsers) {
-        if (user.toLowerCase().startsWith(partial.toLowerCase())) {
+        if (normalizeSearchText(user).startsWith(partial)) {
           suggestions.add(SmartSuggestion(
             type: 'mention',
             text: text,
@@ -393,7 +394,7 @@ class PostEditingService extends GetxController {
   /// Suggest emojis based on text content
   List<SmartSuggestion> _suggestEmojis(String text) {
     final suggestions = <SmartSuggestion>[];
-    final lowerText = text.toLowerCase();
+    final lowerText = normalizeSearchText(text);
 
     final emojiMap = {
       'mutlu': '😊',

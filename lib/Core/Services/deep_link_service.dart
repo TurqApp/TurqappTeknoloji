@@ -245,8 +245,8 @@ class DeepLinkService extends GetxService {
   }
 
   _ParsedDeepLink? _parse(Uri uri) {
-    final scheme = uri.scheme.toLowerCase();
-    final host = uri.host.toLowerCase();
+    final scheme = normalizeLowercase(uri.scheme);
+    final host = normalizeLowercase(uri.host);
     final segments = uri.pathSegments.where((e) => e.isNotEmpty).toList();
 
     if (scheme == 'http' || scheme == 'https') {
