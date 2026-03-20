@@ -34,6 +34,7 @@ bash scripts/run_integration_smoke.sh
 
 Not:
 - Script 5 smoke senaryosunu koşturur ve sonunda `artifacts/integration_smoke/*.json` dump'larının varlığını doğrular.
+- Ardından `artifacts/integration_smoke_report_latest.json` toplu özet raporunu üretir.
 
 Telemetry threshold report:
 
@@ -127,6 +128,7 @@ k6 run \
 - `artifacts/telemetry_threshold_report_latest.json`
 - `artifacts/integration_smoke/*.json`
 - `artifacts/integration_smoke/*.png` (fail aninda destek varsa)
+- `artifacts/integration_smoke_report_latest.json`
 - `tests/load/k6_summary_smoke_search_only_latest.json`
 - `tests/load/k6_summary_feed_only_feed_only_latest.json`
 - `tests/load/k6_summary_smoke_interaction_only_latest.json`

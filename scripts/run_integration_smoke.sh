@@ -60,3 +60,6 @@ for artifact in "${smoke_artifacts[@]}"; do
   fi
   echo "[integration-smoke] artifact ok: $artifact"
 done
+
+echo "[integration-smoke] exporting summary report"
+bash scripts/export_integration_smoke_report.sh
