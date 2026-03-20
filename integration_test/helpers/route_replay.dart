@@ -8,6 +8,7 @@ Future<void> goToFeedTab(WidgetTester tester) async {
   await tapItKey(tester, IntegrationTestKeys.navFeed);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);
+  expectSurfaceMatchesFixture('feed', readSurfaceProbe('feed'));
 }
 
 Future<void> replayFeedToExploreToFeed(WidgetTester tester) async {
@@ -30,6 +31,7 @@ Future<void> replayFeedToProfileToFeed(
     countField: 'count',
   );
   final profileSnapshot = readSurfaceProbe('profile');
+  expectSurfaceMatchesFixture('profile', profileSnapshot);
   await goToFeedTab(tester);
   final feedSnapshot = readSurfaceProbe('feed');
   if (beforeFeed != null) {
@@ -65,6 +67,7 @@ Future<void> replayFeedToShortToFeed(
     countField: 'count',
   );
   final shortSnapshot = readSurfaceProbe('short');
+  expectSurfaceMatchesFixture('short', shortSnapshot);
   await pageBackAndSettle(tester);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);
@@ -102,6 +105,7 @@ Future<void> replayFeedToNotificationsToFeed(
     notificationsSnapshot,
     field: 'unreadTotal',
   );
+  expectSurfaceMatchesFixture('notifications', notificationsSnapshot);
   await pageBackAndSettle(tester);
   await expectFeedScreen(tester);
   expectSelectedNavIndex(0);

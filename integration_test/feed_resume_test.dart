@@ -23,6 +23,7 @@ void main() {
         countField: 'count',
       );
       final beforeFeed = readSurfaceProbe('feed');
+      expectSurfaceMatchesFixture('feed', beforeFeed);
       await replayFeedToProfileToFeed(tester, beforeFeed: beforeFeed);
       expectSurfaceRegistered('feed');
       expectCenteredIndexValid(
@@ -30,6 +31,7 @@ void main() {
         indexField: 'centeredIndex',
         countField: 'count',
       );
+      expectSurfaceMatchesFixture('feed', readSurfaceProbe('feed'));
     },
     skip: !kRunIntegrationSmoke,
   );

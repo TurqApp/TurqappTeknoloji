@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 
 Map<String, dynamic> readIntegrationProbe() {
@@ -90,4 +91,44 @@ void expectNonNegativeCounter(
   final value = (payload[field] as num?)?.toInt() ?? 0;
   expect(value, greaterThanOrEqualTo(0),
       reason: '$surface $field became negative');
+}
+
+void expectSurfaceMatchesFixture(
+  String surface,
+  Map<String, dynamic> payload, {
+  String countField = 'count',
+  String docIdsField = 'docIds',
+  String unreadField = 'unreadTotal',
+}) {
+  final contract = IntegrationTestFixtureContract.current.surface(surface);
+  if (contract == null || !contract.isConfigured) return;
+
+  final count = (payload[countField] as num?)?.toInt() ?? 0;
+  if (contract.minCount != null) {
+    expect(
+      count,
+      greaterThanOrEqualTo(contract.minCount!),
+      reason: '$surface count is below fixture contract minimum',
+    );
+  }
+
+  final docIds = _readDocIds(
+    <String, dynamic>{'docIds': payload[docIdsField]},
+  );
+  for (final docId in contract.requiredDocIds) {
+    expect(
+      docIds,
+      contains(docId),
+      reason: '$surface fixture docId missing: $docId',
+    );
+  }
+
+  if (contract.maxUnread != null) {
+    final unread = (payload[unreadField] as num?)?.toInt() ?? 0;
+    expect(
+      unread,
+      lessThanOrEqualTo(contract.maxUnread!),
+      reason: '$surface unread total exceeded fixture contract maximum',
+    );
+  }
 }
