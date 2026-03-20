@@ -7,7 +7,6 @@ import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
-import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -15,7 +14,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class TutoringController extends GetxController {
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
-  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
   var isLoading = true.obs;
@@ -25,7 +23,6 @@ class TutoringController extends GetxController {
   var tutoringList = <TutoringModel>[].obs;
   var searchResults = <TutoringModel>[].obs;
   final RxString searchQuery = ''.obs;
-  var users = <String, Map<String, dynamic>>{}.obs;
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
   StreamSubscription<CachedResource<List<TutoringModel>>>? _homeSnapshotSub;
@@ -128,26 +125,6 @@ class TutoringController extends GetxController {
     }
   }
 
-  /// Batch fetch user data for a set of userIDs (max 30 per whereIn)
-  Future<void> _batchFetchUsers(Set<String> userIds) async {
-    // Filter out already-fetched users
-    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
-    if (toFetch.isEmpty) return;
-
-    try {
-      final fetched = await _userSummaryResolver.resolveMany(
-        toFetch,
-        preferCache: true,
-        cacheOnly: false,
-      );
-      users.addAll(
-        fetched.map(
-          (key, value) => MapEntry(key, value.toMap()),
-        ),
-      );
-    } catch (_) {}
-  }
-
   Future<void> listenToTutoringData({
     bool forceRefresh = false,
   }) async {
@@ -169,9 +146,6 @@ class TutoringController extends GetxController {
       if (!_sameTutoringList(nextList)) {
         tutoringList.assignAll(nextList);
       }
-      final userIds =
-          items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-      unawaited(_batchFetchUsers(userIds));
       SilentRefreshGate.markRefreshed('tutoring:home');
     } catch (_) {
       if (tutoringList.isNotEmpty) {
@@ -202,9 +176,6 @@ class TutoringController extends GetxController {
       final merged =
           newItems.where((item) => !existingIds.contains(item.docID));
       tutoringList.addAll(merged);
-      final userIds =
-          newItems.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-      unawaited(_batchFetchUsers(userIds));
     } catch (_) {
     } finally {
       isLoadingMore.value = false;
@@ -246,11 +217,6 @@ class TutoringController extends GetxController {
       if (!_sameTutoringEntries(searchResults, nextResults)) {
         searchResults.assignAll(nextResults);
       }
-      unawaited(
-        _batchFetchUsers(
-          results.map((t) => t.userID).where((id) => id.isNotEmpty).toSet(),
-        ),
-      );
     } catch (_) {
       if (token == _searchToken) {
         searchResults.clear();
@@ -346,9 +312,6 @@ class TutoringController extends GetxController {
       if (!_sameTutoringList(nextList)) {
         tutoringList.assignAll(nextList);
       }
-      final userIds =
-          items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
-      unawaited(_batchFetchUsers(userIds));
     }
 
     if (!resource.isRefreshing || items.isNotEmpty) {
