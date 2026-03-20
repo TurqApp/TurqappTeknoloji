@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/render_list_patch.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -118,6 +119,10 @@ class FeedRenderCoordinator extends GetxService {
         'recommendedBatch': slotNumber ~/ 2,
       });
     }
+    _trackRenderEntries(
+      filteredCount: filteredEntries.length,
+      renderEntries: renderEntries,
+    );
     return renderEntries;
   }
 
@@ -127,6 +132,11 @@ class FeedRenderCoordinator extends GetxService {
     String reason = '',
   }) {
     if (_sameRenderableSequence(previous, next)) {
+      _trackPatch(
+        previousCount: previous.length,
+        nextCount: next.length,
+        patch: const RenderListPatch<Map<String, dynamic>>(operations: []),
+      );
       return const RenderListPatch<Map<String, dynamic>>(operations: []);
     }
 
@@ -167,10 +177,16 @@ class FeedRenderCoordinator extends GetxService {
       }
     }
 
-    return RenderListPatch<Map<String, dynamic>>(
+    final patch = RenderListPatch<Map<String, dynamic>>(
       operations: operations,
       reason: reason,
     );
+    _trackPatch(
+      previousCount: previous.length,
+      nextCount: next.length,
+      patch: patch,
+    );
+    return patch;
   }
 
   void applyPatch(
@@ -314,5 +330,69 @@ class FeedRenderCoordinator extends GetxService {
 
   bool _shouldInsertPromoAfterPost(int postNumber) {
     return postNumber > 0 && postNumber % 3 == 0;
+  }
+
+  void _trackRenderEntries({
+    required int filteredCount,
+    required List<Map<String, dynamic>> renderEntries,
+  }) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final promoCount = renderEntries.where((entry) {
+      return (entry['renderType'] ?? 'post') == 'promo';
+    }).length;
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.renderDiff,
+      <String, dynamic>{
+        'surface': 'feed',
+        'stage': 'render_entries',
+        'filteredCount': filteredCount,
+        'renderCount': renderEntries.length,
+        'promoCount': promoCount,
+      },
+    );
+  }
+
+  void _trackPatch({
+    required int previousCount,
+    required int nextCount,
+    required RenderListPatch<Map<String, dynamic>> patch,
+  }) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    var insertCount = 0;
+    var updateCount = 0;
+    var removeCount = 0;
+    var moveCount = 0;
+    for (final operation in patch.operations) {
+      switch (operation.type) {
+        case RenderPatchOperationType.insert:
+          insertCount += 1;
+          break;
+        case RenderPatchOperationType.update:
+        case RenderPatchOperationType.replace:
+          updateCount += 1;
+          break;
+        case RenderPatchOperationType.remove:
+          removeCount += 1;
+          break;
+        case RenderPatchOperationType.move:
+          moveCount += 1;
+          break;
+      }
+    }
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.renderDiff,
+      <String, dynamic>{
+        'surface': 'feed',
+        'stage': 'render_patch',
+        'previousCount': previousCount,
+        'nextCount': nextCount,
+        'operations': patch.operations.length,
+        'insertCount': insertCount,
+        'updateCount': updateCount,
+        'removeCount': removeCount,
+        'moveCount': moveCount,
+        'reason': patch.reason,
+      },
+    );
   }
 }

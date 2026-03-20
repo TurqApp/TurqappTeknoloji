@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -86,6 +87,7 @@ class AgendaController extends GetxController {
   Worker? _renderFeedWorker;
   final Map<int, double> _visibleFractions = <int, double>{};
   final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
+  String? _lastPlaybackWindowSignature;
 
   // Video içerik ekrana sadece HLS hazır olduğunda düşsün.
   bool _isRenderablePost(PostsModel post) {
@@ -394,12 +396,52 @@ class AgendaController extends GetxController {
         centeredIndex.value = modelIndex;
         lastCenteredIndex = modelIndex;
       }
+      _trackPlaybackWindow();
       return;
     }
 
     if (visibleFraction < stopThreshold && centeredIndex.value == modelIndex) {
       centeredIndex.value = -1;
     }
+
+    _trackPlaybackWindow();
+  }
+
+  void _trackPlaybackWindow() {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final centered = centeredIndex.value;
+    final activeDocId = centered >= 0 && centered < agendaList.length
+        ? agendaList[centered].docID
+        : '';
+    final visibleCount = _visibleFractions.length;
+    var strongestIndex = -1;
+    var strongestFraction = 0.0;
+    _visibleFractions.forEach((index, fraction) {
+      if (fraction > strongestFraction) {
+        strongestFraction = fraction;
+        strongestIndex = index;
+      }
+    });
+    final signature = <String>[
+      '$centered',
+      activeDocId,
+      '$visibleCount',
+      '$strongestIndex',
+      strongestFraction.toStringAsFixed(2),
+    ].join('|');
+    if (signature == _lastPlaybackWindowSignature) return;
+    _lastPlaybackWindowSignature = signature;
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.playbackWindow,
+      <String, dynamic>{
+        'surface': 'feed',
+        'activeIndex': centered,
+        'activeDocId': activeDocId,
+        'visibleCount': visibleCount,
+        'strongestIndex': strongestIndex,
+        'strongestFraction': strongestFraction,
+      },
+    );
   }
 
   void _bindFollowingListener() {

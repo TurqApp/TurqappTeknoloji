@@ -254,6 +254,12 @@ class _ShortViewState extends State<ShortView> {
       currentIndex: currentPage,
     );
     if (update.patch.isEmpty) return;
+    _shortRenderCoordinator.trackUpdateMetrics(
+      previous: _cachedShorts,
+      currentIndex: currentPage,
+      update: update,
+      next: nextList,
+    );
 
     final previousPage = currentPage;
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
@@ -737,7 +743,7 @@ class _ShortViewState extends State<ShortView> {
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
             } else {
-              return const Center(
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -745,12 +751,12 @@ class _ShortViewState extends State<ShortView> {
                         color: Colors.white, size: 64),
                     SizedBox(height: 16),
                     Text(
-                      'Henüz video bulunamadı',
+                      'short.empty_title'.tr,
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Yeni videolar için daha sonra tekrar deneyin',
+                      'short.empty_body'.tr,
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],

@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/playback_state_machine.dart';
 import 'package:turqappv2/Core/Services/player_budget_policy.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -48,6 +50,7 @@ class ShortPlaybackCoordinator {
 
   final Map<String, PlaybackStateMachine> _machineByDocId =
       <String, PlaybackStateMachine>{};
+  String? _lastWindowSignature;
 
   ShortPlaybackWindow buildWindow(
     List<PostsModel> items,
@@ -85,6 +88,12 @@ class ShortPlaybackCoordinator {
       hotIndices: hotIndices,
       warmIndices: warmIndices,
     );
+    _trackWindow(
+      items: items,
+      activeIndex: currentIndex,
+      hotIndices: hotIndices,
+      warmIndices: warmIndices,
+    );
 
     return ShortPlaybackWindow(
       activeIndex: currentIndex,
@@ -103,6 +112,7 @@ class ShortPlaybackCoordinator {
 
   void reset() {
     _machineByDocId.clear();
+    _lastWindowSignature = null;
   }
 
   void _syncStates(
@@ -141,5 +151,41 @@ class ShortPlaybackCoordinator {
       }
       machine.transition(PlaybackSessionEvent.disposeRequested);
     }
+  }
+
+  void _trackWindow({
+    required List<PostsModel> items,
+    required int activeIndex,
+    required Set<int> hotIndices,
+    required Set<int> warmIndices,
+  }) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final safeIndex = items.isEmpty ? 0 : activeIndex.clamp(0, items.length - 1);
+    final activeDocId = items.isEmpty ? '' : items[safeIndex].docID;
+    final signature = <String>[
+      '${items.length}',
+      '$safeIndex',
+      activeDocId,
+      hotIndices.join(','),
+      warmIndices.join(','),
+      '$maxAttachedPlayers',
+    ].join('|');
+    if (signature == _lastWindowSignature) return;
+    _lastWindowSignature = signature;
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.playbackWindow,
+      <String, dynamic>{
+        'surface': 'short',
+        'itemCount': items.length,
+        'activeIndex': safeIndex,
+        'activeDocId': activeDocId,
+        'hotCount': hotIndices.length,
+        'warmCount': warmIndices.length,
+        'maxAttachedPlayers': maxAttachedPlayers,
+        'budgetMaxActivePlayers': budgetPolicy.maxActivePlayers,
+        'budgetMaxWarmPlayers': budgetPolicy.maxWarmPlayers,
+        'budgetMaxPreparedNeighbors': budgetPolicy.maxPreparedNeighbors,
+      },
+    );
   }
 }

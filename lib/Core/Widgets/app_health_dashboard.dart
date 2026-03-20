@@ -21,7 +21,7 @@ class AppHealthDashboard extends StatelessWidget {
     _ensureDashboardServices();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Uygulama Sağlık Paneli'),
+        title: Text('settings.diagnostics.app_health_panel'.tr),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         actions: [
@@ -102,19 +102,42 @@ class AppHealthDashboard extends StatelessWidget {
     final policy = Get.isRegistered<PlaybackPolicyEngine>()
         ? Get.find<PlaybackPolicyEngine>().snapshot()
         : null;
-    final recentEvents = Get.isRegistered<PlaybackKpiService>()
-        ? Get.find<PlaybackKpiService>().recentEvents
-        : const <PlaybackKpiEvent>[];
+    final kpiService = Get.isRegistered<PlaybackKpiService>()
+        ? Get.find<PlaybackKpiService>()
+        : null;
+    final recentEvents = kpiService?.recentEvents ?? const <PlaybackKpiEvent>[];
+    final feedCacheSummary = kpiService?.summarizeCacheFirst(
+          surfaceKeyPrefix: 'feed_',
+        );
+    final shortCacheSummary = kpiService?.summarizeCacheFirst(
+          surfaceKeyPrefix: 'short_',
+        );
+    final feedRenderSummary = kpiService?.summarizeRenderDiff(surface: 'feed');
+    final shortRenderSummary =
+        kpiService?.summarizeRenderDiff(surface: 'short');
+    final feedPlaybackSummary =
+        kpiService?.summarizePlaybackWindow(surface: 'feed');
+    final shortPlaybackSummary =
+        kpiService?.summarizePlaybackWindow(surface: 'short');
     final lastEvent = recentEvents.isNotEmpty ? recentEvents.last : null;
     PlaybackKpiEvent? lastIntentEvent;
     PlaybackKpiEvent? lastCacheFirstEvent;
+    PlaybackKpiEvent? lastRenderDiffEvent;
+    PlaybackKpiEvent? lastPlaybackWindowEvent;
     for (final event in recentEvents.reversed) {
       if (event.type == PlaybackKpiEventType.playbackIntent) {
         lastIntentEvent = event;
       } else if (event.type == PlaybackKpiEventType.cacheFirstLifecycle) {
         lastCacheFirstEvent = event;
+      } else if (event.type == PlaybackKpiEventType.renderDiff) {
+        lastRenderDiffEvent = event;
+      } else if (event.type == PlaybackKpiEventType.playbackWindow) {
+        lastPlaybackWindowEvent = event;
       }
-      if (lastIntentEvent != null && lastCacheFirstEvent != null) {
+      if (lastIntentEvent != null &&
+          lastCacheFirstEvent != null &&
+          lastRenderDiffEvent != null &&
+          lastPlaybackWindowEvent != null) {
         break;
       }
     }
@@ -237,6 +260,86 @@ class AppHealthDashboard extends StatelessWidget {
                 ),
               ),
             ],
+            if (feedCacheSummary != null || shortCacheSummary != null) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Cache-first ozeti',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              if (feedCacheSummary != null)
+                Text(
+                  'Feed hit/live/fail: '
+                  '${(feedCacheSummary.localHitRatio * 100).toStringAsFixed(0)}%  •  '
+                  '${feedCacheSummary.liveSuccessCount}/${feedCacheSummary.liveFailCount}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              if (shortCacheSummary != null)
+                Text(
+                  'Short local/warm/preserve: '
+                  '${shortCacheSummary.localHitCount}/${shortCacheSummary.warmHitCount}/${shortCacheSummary.preservedPreviousCount}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+            ],
+            if (feedRenderSummary != null || shortRenderSummary != null) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Render ozeti',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              if (feedRenderSummary != null)
+                Text(
+                  'Feed patch avg/max: '
+                  '${feedRenderSummary.averageOperations.toStringAsFixed(1)} / '
+                  '${feedRenderSummary.maxOperations}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              if (shortRenderSummary != null)
+                Text(
+                  'Short patch avg/max: '
+                  '${shortRenderSummary.averageOperations.toStringAsFixed(1)} / '
+                  '${shortRenderSummary.maxOperations}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+            ],
+            if (feedPlaybackSummary != null || shortPlaybackSummary != null) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Playback window ozeti',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              if (feedPlaybackSummary != null)
+                Text(
+                  'Feed visible/lost: '
+                  '${feedPlaybackSummary.averageVisibleCount.toStringAsFixed(1)} / '
+                  '${feedPlaybackSummary.activeLostCount}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              if (shortPlaybackSummary != null)
+                Text(
+                  'Short hot/attached: '
+                  '${shortPlaybackSummary.averageHotCount.toStringAsFixed(1)} / '
+                  '${shortPlaybackSummary.maxAttachedPlayers}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                ),
+            ],
             const SizedBox(height: 10),
             Text(
               lastEvent == null
@@ -275,6 +378,32 @@ class AppHealthDashboard extends StatelessWidget {
                 '${lastCacheFirstEvent.payload['surfaceKey']}  •  '
                 '${lastCacheFirstEvent.payload['event']}  •  '
                 '${lastCacheFirstEvent.payload['source']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+            if (lastRenderDiffEvent != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Son render diff: '
+                '${lastRenderDiffEvent.payload['surface']}  •  '
+                '${lastRenderDiffEvent.payload['stage']}  •  '
+                '${lastRenderDiffEvent.payload['operations'] ?? lastRenderDiffEvent.payload['renderCount']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+            if (lastPlaybackWindowEvent != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Son playback window: '
+                '${lastPlaybackWindowEvent.payload['surface']}  •  '
+                'active ${lastPlaybackWindowEvent.payload['activeIndex']}  •  '
+                'hot ${lastPlaybackWindowEvent.payload['hotCount']}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[700],
@@ -931,7 +1060,7 @@ class AppHealthDashboard extends StatelessWidget {
 
       Get.dialog(
         AlertDialog(
-          title: const Text('Hata Yönetimi İstatistikleri'),
+          title: Text('app_health.error_stats_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -946,7 +1075,7 @@ class AppHealthDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Kapat'),
+              child: Text('common.close'.tr),
             ),
           ],
         ),
@@ -961,7 +1090,7 @@ class AppHealthDashboard extends StatelessWidget {
 
       Get.dialog(
         AlertDialog(
-          title: const Text('Ağ Farkındalığı İstatistikleri'),
+          title: Text('app_health.network_stats_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,7 +1106,7 @@ class AppHealthDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Kapat'),
+              child: Text('common.close'.tr),
             ),
           ],
         ),
@@ -992,7 +1121,7 @@ class AppHealthDashboard extends StatelessWidget {
 
       Get.dialog(
         AlertDialog(
-          title: const Text('Yükleme Kuyruğu İstatistikleri'),
+          title: Text('app_health.upload_stats_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1008,7 +1137,7 @@ class AppHealthDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Kapat'),
+              child: Text('common.close'.tr),
             ),
           ],
         ),
@@ -1023,7 +1152,7 @@ class AppHealthDashboard extends StatelessWidget {
 
       Get.dialog(
         AlertDialog(
-          title: const Text('Taslak Servisi İstatistikleri'),
+          title: Text('app_health.draft_stats_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1038,7 +1167,7 @@ class AppHealthDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Kapat'),
+              child: Text('common.close'.tr),
             ),
           ],
         ),
@@ -1053,7 +1182,7 @@ class AppHealthDashboard extends StatelessWidget {
 
       Get.dialog(
         AlertDialog(
-          title: const Text('Düzenleme İstatistikleri'),
+          title: Text('app_health.editing_stats_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1069,7 +1198,7 @@ class AppHealthDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Kapat'),
+              child: Text('common.close'.tr),
             ),
           ],
         ),
@@ -1084,7 +1213,7 @@ class AppHealthDashboard extends StatelessWidget {
 
       Get.dialog(
         AlertDialog(
-          title: const Text('Medya İyileştirme İstatistikleri'),
+          title: Text('app_health.media_stats_title'.tr),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1100,7 +1229,7 @@ class AppHealthDashboard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text('Kapat'),
+              child: Text('common.close'.tr),
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/render_list_patch.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -34,6 +35,57 @@ class ShortRenderCoordinator extends GetxService {
     return ShortRenderUpdate(
       patch: patch,
       remappedIndex: remappedIndex,
+    );
+  }
+
+  void trackUpdateMetrics({
+    required List<PostsModel> previous,
+    required int currentIndex,
+    required ShortRenderUpdate update,
+    required List<PostsModel> next,
+  }) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final clampedCurrent = previous.isEmpty
+        ? 0
+        : currentIndex.clamp(0, previous.length - 1);
+    var insertCount = 0;
+    var updateCount = 0;
+    var removeCount = 0;
+    var moveCount = 0;
+    for (final operation in update.patch.operations) {
+      switch (operation.type) {
+        case RenderPatchOperationType.insert:
+          insertCount += 1;
+          break;
+        case RenderPatchOperationType.update:
+        case RenderPatchOperationType.replace:
+          updateCount += 1;
+          break;
+        case RenderPatchOperationType.remove:
+          removeCount += 1;
+          break;
+        case RenderPatchOperationType.move:
+          moveCount += 1;
+          break;
+      }
+    }
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.renderDiff,
+      <String, dynamic>{
+        'surface': 'short',
+        'stage': 'render_patch',
+        'previousCount': previous.length,
+        'nextCount': next.length,
+        'operations': update.patch.operations.length,
+        'insertCount': insertCount,
+        'updateCount': updateCount,
+        'removeCount': removeCount,
+        'moveCount': moveCount,
+        'fromIndex': clampedCurrent,
+        'toIndex': update.remappedIndex,
+        'indexShift': update.remappedIndex - clampedCurrent,
+        'reason': update.patch.reason,
+      },
     );
   }
 
