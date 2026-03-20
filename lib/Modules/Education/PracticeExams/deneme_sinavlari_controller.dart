@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,6 +44,34 @@ class DenemeSinavlariController extends GetxController {
   StreamSubscription<CachedResource<List<SinavModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchToken = 0;
+
+  bool _sameExamList(List<SinavModel> next) {
+    final currentKeys = list
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
@@ -236,7 +265,9 @@ class DenemeSinavlariController extends GetxController {
   void _applyHomeSnapshotResource(CachedResource<List<SinavModel>> resource) {
     final items = resource.data ?? const <SinavModel>[];
     if (items.isNotEmpty) {
-      list.assignAll(items);
+      if (!_sameExamList(items)) {
+        list.assignAll(items);
+      }
       hasMore.value = items.length >= _pageSize;
     }
 

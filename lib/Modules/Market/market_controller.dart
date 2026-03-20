@@ -96,6 +96,44 @@ class MarketController extends GetxController {
     return mapEquals(left, right);
   }
 
+  bool _sameMarketList(List<MarketItemModel> next) {
+    final currentKeys = items
+        .map(
+          (item) => [
+            item.id,
+            item.title,
+            item.price,
+            item.favoriteCount,
+            item.viewCount,
+            item.offerCount,
+            item.city,
+            item.district,
+            item.coverImageUrl,
+            item.status,
+            item.createdAt,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.id,
+            item.title,
+            item.price,
+            item.favoriteCount,
+            item.viewCount,
+            item.offerCount,
+            item.city,
+            item.district,
+            item.coverImageUrl,
+            item.status,
+            item.createdAt,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
@@ -704,8 +742,11 @@ class MarketController extends GetxController {
         .where((item) => item.status == 'active')
         .toList(growable: false);
     if (activeItems.isNotEmpty) {
-      items.assignAll(_mergePendingCreatedItems(activeItems));
-      _applyFilters();
+      final nextItems = _mergePendingCreatedItems(activeItems);
+      if (!_sameMarketList(nextItems)) {
+        items.assignAll(nextItems);
+        _applyFilters();
+      }
       unawaited(_loadAllCityOptions());
       unawaited(_loadSavedItems());
       unawaited(_loadRoundMenuBadges(forceRefresh: false));

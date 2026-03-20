@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
@@ -31,6 +32,50 @@ class TutoringController extends GetxController {
   Timer? _searchDebounce;
   int _searchToken = 0;
   int _currentPage = 1;
+
+  String _firstImage(TutoringModel item) {
+    final imgs = item.imgs;
+    if (imgs == null || imgs.isEmpty) return '';
+    return imgs.first;
+  }
+
+  bool _sameTutoringList(List<TutoringModel> next) {
+    final currentKeys = tutoringList
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+            item.dersYeri.join('|'),
+            _firstImage(item),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+            item.dersYeri.join('|'),
+            _firstImage(item),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   static const int _pageSize = 30;
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
@@ -283,7 +328,10 @@ class TutoringController extends GetxController {
     final items = resource.data ?? const <TutoringModel>[];
     if (items.isNotEmpty) {
       hasMore.value = items.length >= _pageSize;
-      tutoringList.value = _applyPersonalization(items);
+      final nextList = _applyPersonalization(items);
+      if (!_sameTutoringList(nextList)) {
+        tutoringList.assignAll(nextList);
+      }
       final userIds =
           items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
       unawaited(_batchFetchUsers(userIds));

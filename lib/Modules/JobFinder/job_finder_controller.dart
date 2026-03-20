@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -67,6 +68,46 @@ class JobFinderController extends GetxController {
   Position? _lastResolvedPosition;
   StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
   Timer? _deferredLocationTimer;
+
+  bool _sameJobList(List<JobModel> next) {
+    final currentKeys = list
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
   bool isAllTurkeySelection(String value) =>
@@ -550,8 +591,10 @@ class JobFinderController extends GetxController {
     final jobs = resource.data ?? const <JobModel>[];
     if (jobs.isNotEmpty) {
       final withDistance = _applyCurrentSorting(_applyDistanceToJobs(jobs));
-      list.assignAll(withDistance);
-      allJobs.assignAll(withDistance);
+      if (!_sameJobList(withDistance)) {
+        list.assignAll(withDistance);
+        allJobs.assignAll(withDistance);
+      }
       _scheduleLocationHydration(withDistance);
     }
 

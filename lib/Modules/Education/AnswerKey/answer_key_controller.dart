@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +34,40 @@ class AnswerKeyController extends GetxController {
   StreamSubscription<CachedResource<List<BookletModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchToken = 0;
+
+  bool _sameBookletList(List<BookletModel> next) {
+    final currentKeys = bookList
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
@@ -254,7 +289,9 @@ class AnswerKeyController extends GetxController {
   ) {
     final items = resource.data ?? const <BookletModel>[];
     if (items.isNotEmpty) {
-      bookList.assignAll(items);
+      if (!_sameBookletList(items)) {
+        bookList.assignAll(items);
+      }
       hasMore.value = items.length >= _pageSize;
     }
 
