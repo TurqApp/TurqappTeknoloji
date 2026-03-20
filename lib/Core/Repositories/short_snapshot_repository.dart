@@ -96,6 +96,24 @@ class ShortSnapshotRepository extends GetxService {
     );
   }
 
+  Future<CachedResource<List<PostsModel>>> bootstrapHome({
+    required String userId,
+    int limit = _defaultPersistLimit,
+  }) {
+    final query = ShortSnapshotQuery(
+      userId: userId,
+      limit: limit,
+    );
+    return _coordinator.bootstrap(
+      ScopedSnapshotKey(
+        surfaceKey: _homeSurfaceKey,
+        userId: query.userId.trim(),
+        scopeId: query.scopeId,
+      ),
+      loadWarmSnapshot: () => _loadWarmSnapshot(query),
+    );
+  }
+
   Future<CachedResource<List<PostsModel>>> loadHome({
     required String userId,
     int limit = _defaultPersistLimit,

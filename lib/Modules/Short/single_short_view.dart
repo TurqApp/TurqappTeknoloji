@@ -14,6 +14,7 @@ import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
+import '../../Core/Services/short_render_coordinator.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Services/SegmentCache/cache_manager.dart';
@@ -148,6 +149,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final shorts = <PostsModel>[].obs;
   final videoStateManager = VideoStateManager.instance;
   final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
+  final ShortRenderCoordinator _shortRenderCoordinator =
+      ShortRenderCoordinator.ensure();
 
   final PageController pageController = PageController();
   int currentPage = 0;
@@ -167,6 +170,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final Map<int, VoidCallback> _completionListeners = <int, VoidCallback>{};
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
+  List<PostsModel> _renderedShorts = <PostsModel>[];
   Timer? _engagementRescoreTimer;
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
@@ -831,7 +835,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                   0, 0, bounds.width, bounds.height)),
                               blendMode: BlendMode.srcIn,
                               child: Text(
-                                "${shorts[idx].floodCount} DİZİ",
+                                "${shorts[idx].floodCount} ${'saved_posts.series_badge'.tr}",
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontFamily: "MontserratBold",

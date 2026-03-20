@@ -4,13 +4,12 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 
 import 'package:turqappv2/Core/notification_service.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -22,9 +21,12 @@ import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
+import '../../Core/Repositories/feed_snapshot_repository.dart';
+import '../../Core/Repositories/job_home_snapshot_repository.dart';
+import '../../Core/Repositories/short_snapshot_repository.dart';
+import '../../Core/Services/CacheFirst/cached_resource.dart';
 import '../../Modules/Agenda/agenda_controller.dart';
 import '../../Modules/Education/education_controller.dart';
 import '../../Modules/Explore/explore_controller.dart';
@@ -43,11 +45,11 @@ import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/turq_image_cache_manager.dart';
-import '../../Core/Services/typesense_market_service.dart';
-import '../../Core/Services/typesense_education_service.dart';
+import '../../Core/Repositories/market_snapshot_repository.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
 import '../../Core/Services/mandatory_follow_service.dart';
+import '../../Models/market_item_model.dart';
 import '../../Services/offline_mode_service.dart';
 import '../../Core/Services/deep_link_service.dart';
 import '../../main.dart';
@@ -70,6 +72,12 @@ class _SplashViewState extends State<SplashView> {
   static const int _minShortsForNav = 1;
 
   bool _minimumStartupPrepared = false;
+  bool _feedWarmSnapshotHit = false;
+  bool _shortWarmSnapshotHit = false;
+  String _feedWarmSnapshotSource = 'none';
+  String _shortWarmSnapshotSource = 'none';
+  int? _feedWarmSnapshotAgeMs;
+  int? _shortWarmSnapshotAgeMs;
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
   Timer? _startupWatchdogTimer;
@@ -227,6 +235,12 @@ class _SplashViewState extends State<SplashView> {
               DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
           'loggedIn': loggedIn,
           'minimumStartupPrepared': _minimumStartupPrepared,
+          'feedWarmSnapshotHit': _feedWarmSnapshotHit,
+          'feedWarmSnapshotSource': _feedWarmSnapshotSource,
+          'feedWarmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+          'shortWarmSnapshotHit': _shortWarmSnapshotHit,
+          'shortWarmSnapshotSource': _shortWarmSnapshotSource,
+          'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
         },
       );
     }
@@ -367,15 +381,10 @@ class _SplashViewState extends State<SplashView> {
 
   Future<void> _initAdMob({int targetCount = 4}) async {
     try {
-      if (kDebugMode) {
-        // Debug'da Ads SDK log gürültüsünü azalt.
-        return;
-      }
-      await MobileAds.instance.initialize();
-      unawaited(AdmobKare.warmupPool(targetCount: targetCount));
-      Future.delayed(const Duration(seconds: 2), () {
-        unawaited(AdmobKare.warmupPool(targetCount: targetCount));
-      });
+      await AdmobBannerWarmupService.ensure().warmFromSplash(
+        isFirstLaunch:
+            targetCount >= AdmobBannerWarmupService.splashFirstLaunchTarget,
+      );
     } catch (_) {}
   }
 
@@ -386,6 +395,9 @@ class _SplashViewState extends State<SplashView> {
 
     if (!Get.isRegistered<GlobalLoaderController>()) {
       Get.put(GlobalLoaderController(), permanent: true);
+    }
+    if (!Get.isRegistered<AdmobBannerWarmupService>()) {
+      Get.put(AdmobBannerWarmupService(), permanent: true);
     }
     Get.put(StoryInteractionOptimizer());
     Get.lazyPut(() => UnreadMessagesController());
@@ -434,6 +446,10 @@ class _SplashViewState extends State<SplashView> {
         (() async {
           try {
             final shorts = Get.find<ShortController>();
+            await _warmShortSnapshotForStartup(
+              onWiFi: onWiFi,
+              isFirstLaunch: isFirstLaunch,
+            );
             await shorts.backgroundPreload().timeout(
                   Duration(seconds: onWiFi ? 4 : 2),
                   onTimeout: () {},
@@ -454,6 +470,10 @@ class _SplashViewState extends State<SplashView> {
         // Feed
         (() async {
           try {
+            await _warmFeedSnapshotForStartup(
+              onWiFi: onWiFi,
+              isFirstLaunch: isFirstLaunch,
+            );
             await agendaController
                 .ensureInitialFeedLoaded()
                 .timeout(const Duration(seconds: 3));
@@ -703,22 +723,29 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _warmMarketListings({required bool onWiFi}) async {
     try {
       final warmLimit = onWiFi ? 18 : 10;
-      final cached = await TypesenseMarketSearchService.instance.searchItems(
-        query: '*',
-        limit: warmLimit,
-        preferCache: true,
-        cacheOnly: true,
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final cached = await MarketSnapshotRepository.ensure()
+          .openHome(
+            userId: userId,
+            limit: warmLimit,
+          )
+          .first;
+      _trackStartupSnapshot(
+        surface: 'market',
+        resource: cached,
+        itemCount: (cached.data ?? const <MarketItemModel>[]).length,
       );
+      final cachedItems = cached.data ?? const <MarketItemModel>[];
 
       // Minimum sıcak başlangıç hedefi: en az 10 aktif ilan.
-      if (cached.where((item) => item.status == 'active').length >= 10) {
+      if (cachedItems.where((item) => item.status == 'active').length >= 10) {
         return;
       }
 
-      await TypesenseMarketSearchService.instance.searchItems(
-        query: '*',
+      await MarketSnapshotRepository.ensure().loadHome(
+        userId: userId,
         limit: warmLimit,
-        preferCache: true,
+        forceSync: true,
       );
     } catch (_) {}
   }
@@ -726,25 +753,101 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _warmJobListings({required bool onWiFi}) async {
     try {
       final warmLimit = onWiFi ? 18 : 10;
-      final cached = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
-        query: '*',
-        limit: warmLimit,
-        preferCache: true,
-        cacheOnly: true,
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final cached = await JobHomeSnapshotRepository.ensure()
+          .openHome(
+            userId: userId,
+            limit: warmLimit,
+          )
+          .first;
+      _trackStartupSnapshot(
+        surface: 'jobs',
+        resource: cached,
+        itemCount: (cached.data ?? const <dynamic>[]).length,
       );
+      final cachedItems = cached.data ?? const <dynamic>[];
 
-      if (cached.hits.length >= 10) {
+      if (cachedItems.length >= 10) {
         return;
       }
 
-      await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.job,
-        query: '*',
+      await JobHomeSnapshotRepository.ensure().loadHome(
+        userId: userId,
         limit: warmLimit,
-        preferCache: true,
+        forceSync: true,
       );
     } catch (_) {}
+  }
+
+  Future<void> _warmFeedSnapshotForStartup({
+    required bool onWiFi,
+    required bool isFirstLaunch,
+  }) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (userId.isEmpty) return;
+      final warmLimit = onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6);
+      final snapshot = await FeedSnapshotRepository.ensure().bootstrapHome(
+        userId: userId,
+        limit: warmLimit,
+      );
+      _feedWarmSnapshotHit = snapshot.hasLocalSnapshot;
+      _feedWarmSnapshotSource = snapshot.source.name;
+      _feedWarmSnapshotAgeMs = snapshot.snapshotAt == null
+          ? null
+          : DateTime.now().difference(snapshot.snapshotAt!).inMilliseconds;
+      _trackStartupSnapshot(
+        surface: 'feed',
+        resource: snapshot,
+        itemCount: (snapshot.data ?? const <dynamic>[]).length,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _warmShortSnapshotForStartup({
+    required bool onWiFi,
+    required bool isFirstLaunch,
+  }) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (userId.isEmpty) return;
+      final warmLimit = onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4);
+      final snapshot = await ShortSnapshotRepository.ensure().bootstrapHome(
+        userId: userId,
+        limit: warmLimit,
+      );
+      _shortWarmSnapshotHit = snapshot.hasLocalSnapshot;
+      _shortWarmSnapshotSource = snapshot.source.name;
+      _shortWarmSnapshotAgeMs = snapshot.snapshotAt == null
+          ? null
+          : DateTime.now().difference(snapshot.snapshotAt!).inMilliseconds;
+      _trackStartupSnapshot(
+        surface: 'short',
+        resource: snapshot,
+        itemCount: (snapshot.data ?? const <dynamic>[]).length,
+      );
+    } catch (_) {}
+  }
+
+  void _trackStartupSnapshot<T>({
+    required String surface,
+    required CachedResource<T> resource,
+    required int itemCount,
+  }) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.startup,
+      <String, dynamic>{
+        'surface': surface,
+        'hasLocalSnapshot': resource.hasLocalSnapshot,
+        'source': resource.source.name,
+        'isStale': resource.isStale,
+        'snapshotAgeMs': resource.snapshotAt == null
+            ? null
+            : DateTime.now().difference(resource.snapshotAt!).inMilliseconds,
+        'itemCount': itemCount,
+      },
+    );
   }
 
   Future<void> _warmUserMetaAndAvatars({
