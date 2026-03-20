@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import 'helpers/test_app_bootstrap.dart';
+import 'helpers/test_state_probe.dart';
 
 void main() {
   ensureIntegrationBinding();
@@ -13,6 +14,12 @@ void main() {
       await expectFeedScreen(tester);
       expect(byItKey(IntegrationTestKeys.navBarRoot), findsOneWidget);
       expect(byItKey(IntegrationTestKeys.navFeed), findsOneWidget);
+      expectSurfaceRegistered('feed');
+      expectCenteredIndexValid(
+        'feed',
+        indexField: 'centeredIndex',
+        countField: 'count',
+      );
     },
     skip: !kRunIntegrationSmoke,
   );
