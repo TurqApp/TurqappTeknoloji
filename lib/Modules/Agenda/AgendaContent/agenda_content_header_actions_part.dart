@@ -434,9 +434,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         ),
         PullDownMenuItem(
           onTap: () async {
-            videoController?.pause();
+            _suspendAgendaFeedForRoute();
             await PostStoryShareService.openStoryMakerForPost(widget.model);
-            videoController?.play();
+            _restoreAgendaFeedCenter();
           },
           title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
@@ -488,11 +488,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         if (controller.canSendAdminPush)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendAgendaFeedForRoute();
               controller.sendAdminPushForPost().whenComplete(() {
-                if (widget.shouldPlay) {
-                  videoController?.play();
-                }
+                _restoreAgendaFeedCenter();
               });
             },
             title: 'common.push'.tr,
@@ -544,10 +542,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         if (canManagePost)
           PullDownMenuItem(
             onTap: () {
-              // 2) Videoyu durdur
-              videoController?.pause();
-
-              // 3) Alert’i göster ve kapandıktan sonra silinme durumuna göre videoyu devam ettir
+              _suspendAgendaFeedForRoute();
               noYesAlert(
                 title: 'common.delete_post_title'.tr,
                 message: 'common.delete_post_message'.tr,
@@ -557,9 +552,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                   controller.sil();
                 },
               ).then((_) {
-                // Eğer silinmediyse videoyu tekrar başlat
                 if (!controller.silindi.value) {
-                  videoController?.play();
+                  _restoreAgendaFeedCenter();
                 }
               });
             },
@@ -656,7 +650,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       onTap: controller.like,
       showTapArea: _AgendaContentState._showActionTapAreas,
       onLongPress: () {
-        videoController?.pause();
+        _suspendAgendaFeedForRoute();
         Get.bottomSheet(
           Container(
             height: Get.height / 2,
@@ -670,7 +664,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             child: PostLikeListing(postID: widget.model.docID),
           ),
         ).then((_) {
-          videoController?.play();
+          _restoreAgendaFeedCenter();
         });
       },
       child: _iconAction(
@@ -743,7 +737,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   void _openReshareUsersSheet() {
-    videoController?.pause();
+    _suspendAgendaFeedForRoute();
     final targetPostId = widget.model.originalPostID.trim().isNotEmpty
         ? widget.model.originalPostID.trim()
         : widget.model.docID;
@@ -752,7 +746,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     ).then((_) {
-      videoController?.play();
+      _restoreAgendaFeedCenter();
     });
   }
 

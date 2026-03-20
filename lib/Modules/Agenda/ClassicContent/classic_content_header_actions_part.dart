@@ -427,9 +427,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         ),
         PullDownMenuItem(
           onTap: () async {
-            videoController?.pause();
+            _suspendClassicFeedForRoute();
             await PostStoryShareService.openStoryMakerForPost(widget.model);
-            videoController?.play();
+            _restoreClassicFeedCenter();
           },
           title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
@@ -481,11 +481,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         if (controller.canSendAdminPush)
           PullDownMenuItem(
             onTap: () {
-              videoController?.pause();
+              _suspendClassicFeedForRoute();
               controller.sendAdminPushForPost().whenComplete(() {
-                if (widget.shouldPlay) {
-                  videoController?.play();
-                }
+                _restoreClassicFeedCenter();
               });
             },
             title: 'common.push'.tr,
@@ -537,10 +535,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         if (canManagePost)
           PullDownMenuItem(
             onTap: () {
-              // 2) Videoyu durdur
-              videoController?.pause();
-
-              // 3) Alert’i göster ve kapandıktan sonra silinme durumuna göre videoyu devam ettir
+              _suspendClassicFeedForRoute();
               noYesAlert(
                 title: 'common.delete_post_title'.tr,
                 message: 'common.delete_post_message'.tr,
@@ -550,9 +545,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                   controller.sil();
                 },
               ).then((_) {
-                // Eğer silinmediyse videoyu tekrar başlat
                 if (!controller.silindi.value) {
-                  videoController?.play();
+                  _restoreClassicFeedCenter();
                 }
               });
             },
@@ -827,9 +821,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
             ? () {
-                videoController?.pause();
+                _suspendClassicFeedForRoute();
                 controller.showPostCommentsBottomSheet(
-                  onClosed: () => videoController?.play(),
+                  onClosed: _restoreClassicFeedCenter,
                 );
               }
             : null,
@@ -872,13 +866,13 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
   }
 
   void _openLikeListing() {
-    videoController?.pause();
+    _suspendClassicFeedForRoute();
     Get.bottomSheet(
       PostLikeListing(postID: widget.model.docID),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     ).then((_) {
-      videoController?.play();
+      _restoreClassicFeedCenter();
     });
   }
 
