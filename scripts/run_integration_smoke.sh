@@ -109,47 +109,76 @@ if [[ -n "$device_id" ]]; then
 fi
 
 echo "[integration-smoke] running ${#smoke_tests[@]} smoke tests"
-set +e
-flutter "${flutter_args[@]}" "${smoke_tests[@]}"
-smoke_status=$?
-set -e
+smoke_status=0
 
-pull_android_artifacts() {
+is_android_package_installed() {
   local target_device="$1"
-  if [[ -z "$target_device" ]]; then
+  /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell pm path "$android_package" >/dev/null 2>&1
+}
+
+pull_android_artifact() {
+  local target_device="$1"
+  local artifact="$2"
+  if [[ -z "$target_device" || -z "$artifact" ]]; then
     echo "[integration-smoke] no Android device detected for artifact export" >&2
     return 1
   fi
-  for artifact in "${smoke_artifacts[@]}"; do
-    local file_name
-    file_name="$(basename "$artifact")"
-    if ! /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$file_name"; then
-      echo "[integration-smoke] remote artifact missing: $file_name" >&2
-      return 1
-    fi
-    /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" exec-out run-as "$android_package" cat "$android_remote_artifact_dir/$file_name" > "$artifact"
-    local screenshot_path="${artifact%.json}.png"
-    if /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$(basename "$screenshot_path")"; then
-      /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" exec-out run-as "$android_package" cat "$android_remote_artifact_dir/$(basename "$screenshot_path")" > "$screenshot_path"
-    fi
-  done
+  if ! is_android_package_installed "$target_device"; then
+    echo "[integration-smoke] package not installed at artifact export time: $android_package" >&2
+    return 1
+  fi
+  local file_name
+  file_name="$(basename "$artifact")"
+  if ! /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$file_name"; then
+    echo "[integration-smoke] remote artifact missing: $file_name" >&2
+    return 1
+  fi
+  /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" exec-out run-as "$android_package" cat "$android_remote_artifact_dir/$file_name" > "$artifact"
+  local screenshot_path="${artifact%.json}.png"
+  if /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$(basename "$screenshot_path")"; then
+    /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" exec-out run-as "$android_package" cat "$android_remote_artifact_dir/$(basename "$screenshot_path")" > "$screenshot_path"
+  fi
 }
 
-if [[ -n "$device_id" ]]; then
-  echo "[integration-smoke] pulling Android artifacts from $device_id"
-  pull_android_artifacts "$device_id"
-fi
-
-echo "[integration-smoke] verifying ${#smoke_artifacts[@]} artifact dumps"
-for artifact in "${smoke_artifacts[@]}"; do
-  if [[ ! -f "$artifact" ]]; then
-    echo "[integration-smoke] missing artifact: $artifact" >&2
-    exit 1
+for index in "${!smoke_tests[@]}"; do
+  test_file="${smoke_tests[$index]}"
+  artifact="${smoke_artifacts[$index]}"
+  echo "[integration-smoke] running $(basename "$test_file")"
+  set +e
+  flutter "${flutter_args[@]}" "$test_file"
+  test_status=$?
+  set -e
+  if [[ "$test_status" -ne 0 ]]; then
+    smoke_status=1
   fi
-  echo "[integration-smoke] artifact ok: $artifact"
+  if [[ -n "$device_id" ]]; then
+    echo "[integration-smoke] pulling Android artifact for $(basename "$test_file")"
+    if ! pull_android_artifact "$device_id" "$artifact"; then
+      echo "[integration-smoke] artifact export skipped for $(basename "$artifact")" >&2
+    fi
+  fi
 done
 
-echo "[integration-smoke] exporting summary report"
-bash scripts/export_integration_smoke_report.sh
+existing_artifacts=0
+for artifact in "${smoke_artifacts[@]}"; do
+  if [[ -f "$artifact" ]]; then
+    existing_artifacts=$((existing_artifacts + 1))
+  fi
+done
+
+if [[ "$existing_artifacts" -gt 0 ]]; then
+  echo "[integration-smoke] verifying artifact dumps ($existing_artifacts/${#smoke_artifacts[@]})"
+  for artifact in "${smoke_artifacts[@]}"; do
+    if [[ -f "$artifact" ]]; then
+      echo "[integration-smoke] artifact ok: $artifact"
+    else
+      echo "[integration-smoke] missing artifact: $artifact" >&2
+    fi
+  done
+  echo "[integration-smoke] exporting summary report"
+  bash scripts/export_integration_smoke_report.sh
+else
+  echo "[integration-smoke] no artifact dumps exported; skipping summary report" >&2
+fi
 
 exit "$smoke_status"

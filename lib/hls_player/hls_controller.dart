@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 
+const bool _suppressHlsSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
+
 enum PlayerState {
   idle,
   loading,
@@ -368,7 +371,7 @@ class HLSController {
         if (event is! Map) return;
 
         final eventType = event['event'] as String?;
-        if (kDebugMode) {
+        if (kDebugMode && !_suppressHlsSmokeLogs) {
           debugPrint(
             '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] event=$eventType payload=$event url=$_currentUrl',
           );
@@ -480,7 +483,7 @@ class HLSController {
         }
       },
       onError: (dynamic error) {
-        if (kDebugMode) {
+        if (kDebugMode && !_suppressHlsSmokeLogs) {
           debugPrint(
             '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] streamError=$error url=$_currentUrl',
           );
@@ -508,7 +511,7 @@ class HLSController {
   }
 
   void _handleError(String message) {
-    if (kDebugMode) {
+    if (kDebugMode && !_suppressHlsSmokeLogs) {
       debugPrint(
         '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] error=$message url=$_currentUrl fallback=$_fallbackUrl attempted=$_fallbackAttempted',
       );

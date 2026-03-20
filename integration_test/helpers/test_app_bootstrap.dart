@@ -1,11 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/main.dart' as app;
 
 const bool kRunIntegrationSmoke =
@@ -22,9 +24,15 @@ IntegrationTestWidgetsFlutterBinding ensureIntegrationBinding() {
 }
 
 Future<void> launchTurqApp(WidgetTester tester) async {
+  debugPrint('[integration-smoke] launch: app.main start');
+  final originalErrorWidgetBuilder = ErrorWidget.builder;
   await app.main();
+  ErrorWidget.builder = originalErrorWidgetBuilder;
+  debugPrint('[integration-smoke] launch: app.main done');
   await pumpForAppStartup(tester);
+  debugPrint('[integration-smoke] launch: startup pumped');
   await ensureSignedInForSmoke(tester);
+  debugPrint('[integration-smoke] launch: signed-in gate passed');
 }
 
 Future<void> pumpForAppStartup(
@@ -49,7 +57,10 @@ Future<void> expectNoFlutterException(WidgetTester tester) async {
 
 Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   if (!kRunIntegrationSmoke) return;
-  if (FirebaseAuth.instance.currentUser != null) return;
+  if (FirebaseAuth.instance.currentUser != null) {
+    debugPrint('[integration-smoke] auth: already signed in');
+    return;
+  }
 
   final credentials =
       _cachedIntegrationCredential ??= await _resolveIntegrationCredentials();
@@ -61,21 +72,46 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   }
 
   try {
+    debugPrint('[integration-smoke] auth: sign-in start for ${credentials.email}');
     await FirebaseAuth.instance.signInWithEmailAndPassword(
       email: credentials.email,
       password: credentials.password,
     );
+    debugPrint('[integration-smoke] auth: sign-in success');
   } on FirebaseAuthException catch (error) {
     throw TestFailure(
       'Integration smoke sign-in failed for ${credentials.email}: ${error.code}',
     );
   }
 
-  await pumpForAppStartup(
-    tester,
-    step: const Duration(milliseconds: 250),
-    maxPumps: 32,
-  );
+  await tester.pump(const Duration(milliseconds: 300));
+  final signInError = tester.takeException();
+  if (signInError != null) {
+    throw TestFailure('Integration smoke post-sign-in exception: $signInError');
+  }
+  debugPrint('[integration-smoke] auth: immediate post-sign-in pump complete');
+
+  await CurrentUserService.instance.initialize();
+  debugPrint('[integration-smoke] auth: current user initialized');
+
+  final accountCenter = AccountCenterService.ensure();
+  await accountCenter.init();
+  await accountCenter.refreshCurrentAccountMetadata();
+  final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  if (signedUid.isNotEmpty) {
+    await accountCenter.markSuccessfulSignIn(signedUid);
+  }
+  debugPrint('[integration-smoke] auth: account center synced');
+
+  if (Get.currentRoute != '/NavBarView') {
+    Get.offAll(() => NavBarView());
+    await pumpForAppStartup(
+      tester,
+      step: const Duration(milliseconds: 250),
+      maxPumps: 12,
+    );
+    debugPrint('[integration-smoke] auth: routed to NavBar');
+  }
 }
 
 Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {

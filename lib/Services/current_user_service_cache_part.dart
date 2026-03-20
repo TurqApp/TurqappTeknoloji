@@ -1,5 +1,8 @@
 part of 'current_user_service.dart';
 
+const bool _suppressCurrentUserSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
+
 extension CurrentUserServiceCachePart on CurrentUserService {
   Future<bool> _loadFromCache({String? expectedUid}) async {
     try {
@@ -215,7 +218,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     }
     _silentLogAt[key] = now;
     debugPrint('⚠️ [CurrentUserService:$key] $error');
-    if (stackTrace != null) {
+    if (!_suppressCurrentUserSmokeLogs && stackTrace != null) {
       debugPrintStack(stackTrace: stackTrace);
     }
   }

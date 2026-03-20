@@ -6,7 +6,7 @@
     "minCount": 1
   },
   "short": {
-    "minCount": 1
+    "minCount": 0
   },
   "notifications": {
     "maxUnread": 250

@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
 
+const bool _suppressPlaybackKpiSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
+
 enum PlaybackKpiEventType {
   startup,
   cacheFirstLifecycle,
@@ -38,7 +41,7 @@ class PlaybackKpiService extends GetxService {
     scheduleMicrotask(() {
       _appendEvent(event);
     });
-    if (kDebugMode) {
+    if (kDebugMode && !_suppressPlaybackKpiSmokeLogs) {
       debugPrint('[PlaybackKPI] ${type.name}: $payload');
     }
   }
