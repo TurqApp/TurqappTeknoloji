@@ -71,8 +71,8 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 | App shell | `Splash`, `SignIn`, `NavBar`, `Maintenance` | smoke + manuel | `OTOMATIK_YESIL` | login, route ve ana nav aciliyor; uzun sureli auth/session churn icin son sweep yine gerekli |
 | Feed / Agenda | `Feed`, `ClassicContent`, `SinglePost`, `Comments`, `TopTags`, `TagPosts`, `FloodListing`, `PostLikeListing`, `PostReshareListing` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi siyah frame yakalanmadi; feed video loop kapandi ve replay overlay geldi. Kalan acik: uzun scroll autoplay tuning ve decoder warning gozlemi |
 | Short | `Short`, `DynamicShort`, `SingleShort`, `PhotoShorts` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi acilis, 4-swipe stress ve feed geri donus temiz. Kalan acik: uzun swipe serilerinde decoder/churn sinyali olcumu |
-| Explore | `Explore`, `SearchedUser`, recent search | smoke + kismi manuel | `ANDROID_ACIK` | ana explore yesil; `SearchedUser` ve preview gate zinciri icin genis Android sweep gerekli |
-| Notifications | `InAppNotifications`, `notification_content` | smoke | `OTOMATIK_YESIL` | optimistic mutation yesil; uzun liste + route return + empty state smoke tekrari gerekli |
+| Explore | `Explore`, `SearchedUser`, recent search | smoke + manuel | `MANUEL_YESIL` | ana explore ve `SearchedUser` arama sonucu temiz acildi; preview gate ve uzun arama/geri donus turu yine ikinci sweep ister |
+| Notifications | `InAppNotifications`, `notification_content` | smoke + manuel | `MANUEL_YESIL` | empty state Android cihazda temiz acildi; uzun liste + route return + content derinligi icin ikinci sweep gerekli |
 | My Profile | `MyProfile`, `LikedPosts`, `Archives`, `MyStatistic`, `MyQRCode` | manuel | `MANUEL_YESIL` | profil video sekmesi acildi, video detail acildi ve geri donuste ayni video gridine temiz dondu |
 | Social Profile | `SocialProfile`, followers, report, qr | manuel | `MANUEL_YESIL` | feed'den baska kullanici profili acildi ve geri donuste feed'e temiz dondu |
 | Profile settings | `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Policies`, `DeleteAccount`, `Cv`, `BiographyMaker`, `Editor*`, `LangSelector`, `ViewChanger`, `SocialMediaLinks`, `BecomeVerifiedAccount`, `ProfileContact` | manuel parcali | `KAPSAM_BEKLIYOR` | bunlarin bir kismi bilincli raw; warm-open ve form state Android sweep'i eksik |
@@ -122,9 +122,9 @@ Durum:
 - `Short`: kismi kapandi
 - `MyProfile`: kapandi
 - `SocialProfile`: kapandi
-- `Notifications`: sirada
+- `Notifications`: kapandi
 - `SavedPosts`: sirada
-- `Explore/SearchedUser`: sirada
+- `Explore/SearchedUser`: kapandi
 
 ### Dalga 2
 
