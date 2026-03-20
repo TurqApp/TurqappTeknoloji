@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -352,6 +353,9 @@ class DenemeGrid extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Container(
+          key: ValueKey(
+            IntegrationTestKeys.practiceExamOpen(model.docID),
+          ),
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
@@ -511,6 +515,9 @@ class DenemeGrid extends StatelessWidget {
                     SizedBox(
                       width: metrics.railWidth,
                       child: Container(
+                        key: ValueKey(
+                          IntegrationTestKeys.practiceExamCta(model.docID),
+                        ),
                         height: metrics.ctaHeight,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(

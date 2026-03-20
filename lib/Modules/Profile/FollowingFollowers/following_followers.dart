@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
@@ -30,6 +31,7 @@ class FollowingFollowers extends StatelessWidget {
     final scrollController = ScrollController();
 
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenFollowingFollowers),
       body: SafeArea(
         bottom: false,
         child: Stack(
