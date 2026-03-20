@@ -702,7 +702,7 @@ class MarketView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
-              aspectRatio: 0.78,
+              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
               child: Stack(
                 children: [
                   Positioned.fill(

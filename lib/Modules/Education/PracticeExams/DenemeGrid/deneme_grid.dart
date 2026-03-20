@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
@@ -250,6 +251,7 @@ class DenemeGrid extends StatelessWidget {
   }
 
   Widget _buildGridCard(DenemeGridController controller) {
+    const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
       onTap: _openCard,
       child: Container(
@@ -262,7 +264,7 @@ class DenemeGrid extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
-              aspectRatio: 0.78,
+              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
               child: Stack(
                 children: [
                   Positioned.fill(child: _buildMedia(radius: 12)),
@@ -311,11 +313,7 @@ class DenemeGrid extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         formatTimestamp(model.timeStamp.toInt()),
-                        style: const TextStyle(
-                          color: Colors.pinkAccent,
-                          fontSize: 12,
-                          fontFamily: 'MontserratMedium',
-                        ),
+                        style: PasajCardStyles.detail,
                       ),
                     ],
                   ),
@@ -326,11 +324,7 @@ class DenemeGrid extends StatelessWidget {
                         : 'practice.online_exam_fallback'.tr,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
-                    ),
+                    style: PasajCardStyles.detail,
                   ),
                   const SizedBox(height: 4),
                   Obx(
@@ -351,11 +345,7 @@ class DenemeGrid extends StatelessWidget {
                                   ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 12,
-                              fontFamily: 'MontserratMedium',
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                         ),
                       ],
@@ -363,21 +353,27 @@ class DenemeGrid extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Obx(
-                    () => Container(
-                      height: 30,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _ctaColor(controller),
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        _ctaLabel(controller),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: 'MontserratMedium',
+                    () => Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        width: metrics.railWidth,
+                        child: Container(
+                          height: metrics.ctaHeight,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _ctaColor(controller),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            _ctaLabel(controller),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: metrics.ctaFontSize,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -460,11 +456,7 @@ class DenemeGrid extends StatelessWidget {
                             formatTimestamp(model.timeStamp.toInt()),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 12,
-                              fontFamily: 'MontserratMedium',
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                         ),
                       ],
@@ -491,11 +483,7 @@ class DenemeGrid extends StatelessWidget {
                                       model.sinavTuru,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 12,
-                                        fontFamily: 'MontserratMedium',
-                                      ),
+                                      style: PasajCardStyles.detail,
                                     ),
                                   ),
                                 ],
@@ -519,11 +507,7 @@ class DenemeGrid extends StatelessWidget {
                                               ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 12,
-                                          fontFamily: 'MontserratMedium',
-                                        ),
+                                        style: PasajCardStyles.detail,
                                       ),
                                     ),
                                   ],

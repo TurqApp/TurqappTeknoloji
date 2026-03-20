@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
@@ -192,22 +193,14 @@ class JobContent extends StatelessWidget {
                             : model.brand,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.blueAccent,
-                          fontSize: 12,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: PasajCardStyles.detail,
                       ),
                       SizedBox(height: metrics.contentGap),
                       Text(
                         _workTypeText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontSize: 12,
-                          fontFamily: "MontserratMedium",
-                        ),
+                        style: PasajCardStyles.detail,
                       ),
                       SizedBox(height: metrics.contentGap),
                       Row(
@@ -223,11 +216,7 @@ class JobContent extends StatelessWidget {
                               "${model.city}, ${model.town}",
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 12,
-                                fontFamily: "MontserratMedium",
-                              ),
+                              style: PasajCardStyles.detail,
                             ),
                           ),
                         ],
@@ -331,7 +320,7 @@ class JobContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
-              aspectRatio: 1,
+              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -398,31 +387,19 @@ class JobContent extends StatelessWidget {
                     _gridWorkTypeText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.pinkAccent,
-                      fontSize: 12,
-                      fontFamily: "MontserratMedium",
-                    ),
+                    style: PasajCardStyles.detail,
                   ),
                   Text(
                     model.brand,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 12,
-                        fontFamily: "MontserratMedium"),
+                    style: PasajCardStyles.detail,
                   ),
                   Text(
                     _distanceAndLocationText,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontFamily: "MontserratMedium",
-                      height: 1.05,
-                    ),
+                    style: PasajCardStyles.detail,
                   ),
                   const SizedBox(height: 6),
                   Align(

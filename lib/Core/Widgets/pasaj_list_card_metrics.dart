@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class PasajListCardMetrics {
+  static const double gridMediaAspectRatio = 0.78;
+
   const PasajListCardMetrics({
     required this.mediaSize,
     required this.railWidth,

@@ -7,6 +7,7 @@ import 'package:svg_flutter/svg_flutter.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
@@ -95,7 +96,7 @@ class AnswerKeyContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
-              aspectRatio: 0.78,
+              aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
               child: Stack(
                 children: [
                   Positioned.fill(child: _buildMedia(12)),
@@ -153,11 +154,7 @@ class AnswerKeyContent extends StatelessWidget {
                           controller.model.sinavTuru,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontSize: 12,
-                            fontFamily: 'MontserratBold',
-                          ),
+                          style: PasajCardStyles.detail,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -165,11 +162,7 @@ class AnswerKeyContent extends StatelessWidget {
                         controller.model.basimTarihi,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.pinkAccent,
-                          fontSize: 12,
-                          fontFamily: 'MontserratMedium',
-                        ),
+                        style: PasajCardStyles.detail,
                       ),
                     ],
                   ),
@@ -180,11 +173,7 @@ class AnswerKeyContent extends StatelessWidget {
                         : 'answer_key.answer_key_label'.tr,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
-                    ),
+                    style: PasajCardStyles.detail,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -196,11 +185,7 @@ class AnswerKeyContent extends StatelessWidget {
                               : controller.model.yayinEvi,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.indigo,
-                            fontSize: 13,
-                            fontFamily: 'MontserratMedium',
-                          ),
+                          style: PasajCardStyles.detail,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -289,23 +274,14 @@ class AnswerKeyContent extends StatelessWidget {
                                 controller.model.sinavTuru,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.indigo,
-                                  fontSize: 12,
-                                  fontFamily: 'MontserratBold',
-                                ),
+                                style: PasajCardStyles.detail,
                               ),
                               const SizedBox(height: 1),
                               Text(
                                 controller.model.yayinEvi,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.grey.shade700,
-                                  fontSize: 12,
-                                  height: 1.1,
-                                  fontFamily: 'MontserratMedium',
-                                ),
+                                style: PasajCardStyles.detail,
                               ),
                             ],
                           ),
@@ -368,11 +344,7 @@ class AnswerKeyContent extends StatelessWidget {
                                       }),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 12,
-                                        fontFamily: 'MontserratMedium',
-                                      ),
+                                      style: PasajCardStyles.detail,
                                     ),
                                   ),
                                 ],

@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -121,7 +122,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AspectRatio(
-                      aspectRatio: 1,
+                      aspectRatio: PasajListCardMetrics.gridMediaAspectRatio,
                       child: Stack(
                         children: [
                           Positioned.fill(
@@ -197,32 +198,19 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             teacherName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.blueAccent,
-                              fontSize: 12,
-                              fontFamily: "MontserratMedium",
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                           Text(
                             lessonPlace,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.pinkAccent,
-                              fontSize: 12,
-                              fontFamily: "MontserratMedium",
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                           Text(
                             "${tutoring.sehir}, ${tutoring.ilce}",
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontFamily: "MontserratMedium",
-                              height: 1.05,
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                           const SizedBox(height: 6),
                           Align(
@@ -337,22 +325,14 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             tutoring.brans,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.blueAccent,
-                              fontSize: 12,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                           SizedBox(height: metrics.contentGap),
                           Text(
                             lessonPlace,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.blueAccent,
-                              fontSize: 12,
-                              fontFamily: "MontserratMedium",
-                            ),
+                            style: PasajCardStyles.detail,
                           ),
                           SizedBox(height: metrics.contentGap),
                           Row(
@@ -368,11 +348,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   "${tutoring.sehir}, ${tutoring.ilce}",
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 12,
-                                    fontFamily: "MontserratMedium",
-                                  ),
+                                  style: PasajCardStyles.detail,
                                 ),
                               ),
                             ],
