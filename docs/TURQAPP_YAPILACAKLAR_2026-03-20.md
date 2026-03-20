@@ -586,6 +586,7 @@ Aktif faz:
 - Son tamamlanan Android Passage refresh sonucu: bugunku cihaz turunda `Market`, `İş Veren`, `Online Sınav`, `Cevap Anahtarı` refresh sonrasi gorunur bosalma, basvuru satiri kaybi veya save-state ziplamasi gostermedi; `Özel Ders` detail ac-kapa sonrasi ayni grid konumuna temiz dondu.
 - Son tamamlanan smoke auth isi: integration smoke login helper'i Firebase auth + `CurrentUserService.initialize()` + `AccountCenter` sync + `NavBarView` route zinciriyle duzeltildi; login ekrani takilmasi kapandi.
 - Son tamamlanan smoke short isi: `Short` smoke replay akisi alt bar anahtarina bagli olmaktan cikarildi; geri donus dogrudan route pop ile stabil hale getirildi ve tekil `short_refresh_preserve_test.dart` yesile dondu.
+- Son tamamlanan smoke notifications isi: `Notifications` replay akisi `pageBack()` yerine dogrudan route pop ile duzeltildi; optimistic mutation smoke senaryosu yesile dondu.
 - Son tamamlanan smoke runner hizi: `scripts/run_integration_smoke.sh` icine `--no-pub` eklendi; her smoke turunda tekrar dependency cozumleme maliyeti kaldirildi.
 - Son tamamlanan smoke artifact isi: Android paket test sonunda uninstall olsa bile runner host tarafta stub artifact yaziyor; `integration_smoke_report_latest.json` artik artefactsiz kalmiyor ve `artifactExported/artifactReason` alanlariyla gercek export ile host fallback ayrisiyor.
 - Son tamamlanan release gate isi: `scripts/run_release_gate_checks.sh` artik opsiyonel smoke adimindan sonra `export_integration_smoke_report.sh` cagiriyor; `INTEGRATION_SMOKE_FAIL_ON_BLOCKING` ve `TELEMETRY_FAIL_ON_BLOCKING` ile smoke/telemetry blocking signal'lari gate kararina baglanabiliyor.
@@ -597,6 +598,8 @@ Aktif faz:
 - Son tamamlanan provider otomasyonu: release alert message/post script'leri `RELEASE_ALERT_WEBHOOK_PROVIDER=slack|discord|teams` verildiginde format secimini otomatik yapiyor; `teams` adaptive-card payload'i da destekleniyor.
 - Son tamamlanan webhook dayanikliligi: `post_release_alert_bundle.sh` artik bearer token, ek custom header, timeout ve retry parametreleri destekliyor; `scripts/release_alert_webhook.env.example` ile canli kanal config ornegi de eklendi.
 - Son tamamlanan env yükleme isi: `scripts/load_release_alert_env.sh` ile `scripts/release_alert_webhook.env` dosyasi varsa otomatik yukleniyor; canli webhook config'i icin artik her komutta env export gerekmeden scriptler calisabiliyor.
+- Son tamamlanan full smoke sonucu: `feed`, `explore`, `profile`, `short`, `notifications` olmak uzere `5/5` integration smoke senaryosu gecti; `integration_smoke_report_latest.json` icinde `blocking=0`, `failures=0` sonucu alindi.
+- Son tamamlanan release alert export sonucu: stale telemetry raporu otomatik atlandi, `release_alert_bundle_latest.json` ve `release_alert_message_latest.json` `severity=ok` ve `No blocking signals detected` ozetiyle uretildi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:

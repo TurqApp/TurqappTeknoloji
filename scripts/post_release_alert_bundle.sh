@@ -28,8 +28,9 @@ if [[ ! -f "$bundle_file" ]]; then
   exit 1
 fi
 
+provider_lower="$(printf '%s' "$webhook_provider" | tr '[:upper:]' '[:lower:]')"
 if [[ -z "$payload_format" ]]; then
-  case "${webhook_provider,,}" in
+  case "$provider_lower" in
     slack)
       payload_format="slack"
       ;;

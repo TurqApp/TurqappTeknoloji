@@ -14,8 +14,9 @@ if [[ ! -f "$bundle_file" ]]; then
   exit 1
 fi
 
+provider_lower="$(printf '%s' "$provider" | tr '[:upper:]' '[:lower:]')"
 if [[ -z "$format" ]]; then
-  case "${provider,,}" in
+  case "$provider_lower" in
     slack)
       format="slack"
       ;;
