@@ -16,6 +16,8 @@ class TutoringController extends GetxController {
       TutoringSnapshotRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
+  final TextEditingController searchPreviewController =
+      TextEditingController();
   var isLoading = true.obs;
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
@@ -110,6 +112,7 @@ class TutoringController extends GetxController {
     _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
     focusNode.dispose();
+    searchPreviewController.dispose();
     scrollController.dispose();
     super.onClose();
   }

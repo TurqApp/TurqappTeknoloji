@@ -190,9 +190,7 @@ class TutoringView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: TurqSearchBar(
-                            controller: TextEditingController(
-                              text: tutoringController.searchQuery.value,
-                            ),
+                            controller: tutoringController.searchPreviewController,
                             hintText: 'tutoring.search_hint'.tr,
                             onTap: () => Get.to(() => const TutoringSearch()),
                           ),
