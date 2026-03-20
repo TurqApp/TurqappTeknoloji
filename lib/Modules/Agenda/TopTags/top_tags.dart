@@ -128,7 +128,10 @@ class TopTags extends StatelessWidget {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      Get.to(() => TagPosts(tag: item.hashtag));
+                      controller.centeredIndex.value = -1;
+                      Get.to(() => TagPosts(tag: item.hashtag))?.then((_) {
+                        controller.resumeCenteredPost();
+                      });
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(

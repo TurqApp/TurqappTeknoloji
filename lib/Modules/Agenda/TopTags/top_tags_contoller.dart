@@ -22,6 +22,7 @@ class TopTagsController extends GetxController {
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
   final RxInt visibleIndex = (-1).obs;
+  String? _pendingCenteredDocId;
 
   final Map<int, GlobalKey> _agendaKeys = {};
   RxList<PostsModel> agendaList = <PostsModel>[].obs;
@@ -47,14 +48,24 @@ class TopTagsController extends GetxController {
   void resetFeedState() {
     hasMore = true;
     agendaList.clear();
-    centeredIndex.value = 0;
-    lastCenteredIndex = null;
+    centeredIndex.value = -1;
+    currentVisibleIndex.value = -1;
   }
 
   Future<void> fetchAgendaBigData({bool initial = false}) async {
     if (isLoadingMore || (!initial && !hasMore)) return;
 
     isLoadingMore = true;
+    if (initial) {
+      final currentCentered = centeredIndex.value;
+      if (currentCentered >= 0 && currentCentered < agendaList.length) {
+        _pendingCenteredDocId = agendaList[currentCentered].docID;
+      } else if (lastCenteredIndex != null &&
+          lastCenteredIndex! >= 0 &&
+          lastCenteredIndex! < agendaList.length) {
+        _pendingCenteredDocId = agendaList[lastCenteredIndex!].docID;
+      }
+    }
 
     try {
       final before = agendaList.length;
@@ -64,6 +75,7 @@ class TopTagsController extends GetxController {
       );
       if (initial) agendaList.clear();
       agendaList.assignAll(items);
+      _restoreCenteredPost();
       if (items.length == before) {
         hasMore = false;
       }
@@ -85,6 +97,37 @@ class TopTagsController extends GetxController {
   GlobalKey getAgendaKey(int index) {
     return _agendaKeys.putIfAbsent(
         index, () => GlobalObjectKey('agenda_$index'));
+  }
+
+  int _resolveRestoreIndex() {
+    if (agendaList.isEmpty) return -1;
+    final pendingDocId = _pendingCenteredDocId;
+    if (pendingDocId != null && pendingDocId.isNotEmpty) {
+      final mapped = agendaList.indexWhere((post) => post.docID == pendingDocId);
+      if (mapped >= 0) return mapped;
+    }
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < agendaList.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < agendaList.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void _restoreCenteredPost() {
+    final target = _resolveRestoreIndex();
+    if (target < 0 || target >= agendaList.length) return;
+    centeredIndex.value = target;
+    currentVisibleIndex.value = target;
+    lastCenteredIndex = target;
+    _pendingCenteredDocId = null;
+  }
+
+  void resumeCenteredPost() {
+    _restoreCenteredPost();
   }
 
   void _onScroll() {
@@ -139,6 +182,8 @@ class TopTagsController extends GetxController {
 
       if (center > topThreshold && center < bottomThreshold) {
         centeredIndex.value = i;
+        currentVisibleIndex.value = i;
+        lastCenteredIndex = i;
         break;
       }
     }

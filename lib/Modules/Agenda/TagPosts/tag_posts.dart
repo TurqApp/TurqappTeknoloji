@@ -19,7 +19,6 @@ class TagPosts extends StatefulWidget {
 class _TagPostsState extends State<TagPosts> {
   late TagPostsController controller;
   final ScrollController scrollController = ScrollController();
-  int centeredIndex = 0;
 
   @override
   void initState() {
@@ -36,13 +35,7 @@ class _TagPostsState extends State<TagPosts> {
   }
 
   void _onScroll() {
-    // Yaklaşık kart yüksekliği ile merkezdeki indexi hesapla
-    final idx = ((scrollController.offset + (Get.height * 0.35)) / 700).floor();
-    if (idx != centeredIndex && idx >= 0) {
-      setState(() {
-        centeredIndex = idx;
-      });
-    }
+    controller.updateVisibleIndexByPosition(context);
   }
 
   @override
@@ -68,36 +61,44 @@ class _TagPostsState extends State<TagPosts> {
                   ],
                 )
               else
-                ListView.builder(
-                  controller: scrollController,
-                  itemCount: list.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return BackButtons(
-                        text: widget.tag.contains("#")
-                            ? widget.tag
-                            : "#${widget.tag}",
-                      );
-                    }
-                    final actualIndex = index - 1;
-                    final model = list[actualIndex];
-                    return Padding(
-                      padding: EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
-                      child: Column(
-                        children: [
-                          AgendaContent(
-                            model: model,
-                            isPreview: false,
-                            shouldPlay: centeredIndex == actualIndex,
-                          ),
-                          SizedBox(
-                            height: 1,
-                            child: Divider(color: Colors.grey.withAlpha(40)),
-                          ),
-                        ],
-                      ),
-                    );
+                NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    controller.updateVisibleIndexByPosition(context);
+                    return false;
                   },
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: list.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return BackButtons(
+                          text: widget.tag.contains("#")
+                              ? widget.tag
+                              : "#${widget.tag}",
+                        );
+                      }
+                      final actualIndex = index - 1;
+                      final model = list[actualIndex];
+                      return Padding(
+                        padding: EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
+                        child: Column(
+                          children: [
+                            AgendaContent(
+                              key: controller.getAgendaKey(actualIndex),
+                              model: model,
+                              isPreview: false,
+                              shouldPlay:
+                                  controller.centeredIndex.value == actualIndex,
+                            ),
+                            SizedBox(
+                              height: 1,
+                              child: Divider(color: Colors.grey.withAlpha(40)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               if (list.isNotEmpty)
                 Positioned(
