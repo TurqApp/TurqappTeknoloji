@@ -13,6 +13,7 @@ class SinavModel {
   bool public;
   num bitisDk;
   num bitis;
+  num participantCount;
   SinavModel({
     required this.docID,
     required this.cover,
@@ -28,5 +29,6 @@ class SinavModel {
     required this.soruSayilari,
     required this.bitis,
     required this.bitisDk,
+    this.participantCount = 0,
   });
 }

@@ -17,6 +17,9 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail_controller.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -521,6 +524,14 @@ class CreateTutoringController extends GetxController {
             .collection('educators')
             .doc(docId)
             .update(updateData);
+        final patchedModel = _buildPatchedModel(
+          initialData: initialData,
+          docId: docId,
+          updateData: updateData,
+        );
+        if (patchedModel != null) {
+          _applyLocalTutoringPatch(patchedModel);
+        }
         Get.back();
         AppSnackbar('common.success'.tr, 'tutoring.create.updated'.tr);
         clearForm();
@@ -552,5 +563,81 @@ class CreateTutoringController extends GetxController {
     availability.clear();
     _lat = null;
     _long = null;
+  }
+
+  TutoringModel? _buildPatchedModel({
+    required TutoringModel? initialData,
+    required String docId,
+    required Map<String, dynamic> updateData,
+  }) {
+    final base = initialData;
+    if (base == null) return null;
+    return base.copyWith(
+      docID: docId,
+      baslik: (updateData['baslik'] ?? base.baslik).toString(),
+      aciklama: (updateData['aciklama'] ?? base.aciklama).toString(),
+      brans: (updateData['brans'] ?? base.brans).toString(),
+      fiyat: (updateData['fiyat'] as num?) ?? base.fiyat,
+      dersYeri: (updateData['dersYeri'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          base.dersYeri,
+      sehir: (updateData['sehir'] ?? base.sehir).toString(),
+      ilce: (updateData['ilce'] ?? base.ilce).toString(),
+      cinsiyet: (updateData['cinsiyet'] ?? base.cinsiyet).toString(),
+      telefon: (updateData['telefon'] as bool?) ?? base.telefon,
+      avatarUrl: (updateData['avatarUrl'] ?? base.avatarUrl).toString(),
+      displayName: (updateData['displayName'] ?? base.displayName).toString(),
+      nickname: (updateData['nickname'] ?? base.nickname).toString(),
+      rozet: (updateData['rozet'] ?? base.rozet).toString(),
+      availability:
+          (updateData['availability'] as Map<String, List<String>>?) ??
+              base.availability,
+      lat: (updateData['lat'] as double?) ?? base.lat,
+      long: (updateData['long'] as double?) ?? base.long,
+      imgs: (updateData['imgs'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          base.imgs,
+    );
+  }
+
+  void _applyLocalTutoringPatch(TutoringModel patchedModel) {
+    if (Get.isRegistered<TutoringController>()) {
+      final controller = Get.find<TutoringController>();
+      final homeIndex = controller.tutoringList.indexWhere(
+        (item) => item.docID == patchedModel.docID,
+      );
+      if (homeIndex != -1) {
+        controller.tutoringList[homeIndex] = patchedModel;
+        controller.tutoringList.refresh();
+      }
+      final searchIndex = controller.searchResults.indexWhere(
+        (item) => item.docID == patchedModel.docID,
+      );
+      if (searchIndex != -1) {
+        controller.searchResults[searchIndex] = patchedModel;
+        controller.searchResults.refresh();
+      }
+    }
+
+    if (Get.isRegistered<MyTutoringsController>()) {
+      final controller = Get.find<MyTutoringsController>();
+      final ownerIndex = controller.myTutorings.indexWhere(
+        (item) => item.docID == patchedModel.docID,
+      );
+      if (ownerIndex != -1) {
+        controller.myTutorings[ownerIndex] = patchedModel;
+        controller.myTutorings.refresh();
+        controller.updateTutoringsStatus();
+      }
+    }
+
+    if (Get.isRegistered<TutoringDetailController>()) {
+      final controller = Get.find<TutoringDetailController>();
+      if (controller.tutoring.value.docID == patchedModel.docID) {
+        controller.tutoring.value = patchedModel;
+      }
+    }
   }
 }

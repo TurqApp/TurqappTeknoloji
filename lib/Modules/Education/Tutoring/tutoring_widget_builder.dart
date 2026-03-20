@@ -206,7 +206,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             style: PasajCardStyles.detail,
                           ),
                           Text(
-                            "${tutoring.sehir}, ${tutoring.ilce}",
+                            _cityDistrictText(tutoring),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: PasajCardStyles.lineFour,
@@ -354,7 +354,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  "${tutoring.sehir}, ${tutoring.ilce}",
+                                  _cityDistrictText(tutoring),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: PasajCardStyles.lineFour,
@@ -510,6 +510,15 @@ class TutoringWidgetBuilder extends StatelessWidget {
     final first = tutoring.dersYeri.first;
     if (tutoring.dersYeri.length == 1) return first;
     return '$first +${tutoring.dersYeri.length - 1}';
+  }
+
+  String _cityDistrictText(TutoringModel tutoring) {
+    final city = tutoring.sehir.trim();
+    final district = tutoring.ilce.trim();
+    if (city.isNotEmpty && district.isNotEmpty) return '$city, $district';
+    if (city.isNotEmpty) return city;
+    if (district.isNotEmpty) return district;
+    return 'pasaj.market.location_missing'.tr;
   }
 
   String _imageUrl(TutoringModel tutoring) {

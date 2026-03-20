@@ -27,6 +27,7 @@ class DenemeGridController extends GetxController {
     _initializedDocId = model.docID;
     _initializedUserId = model.userID;
     examTime.value = model.timeStamp.toInt();
+    toplamBasvuru.value = model.participantCount.toInt();
     fetchProfileData(model.userID);
     fetchApplicantCount(model.docID);
   }
@@ -54,7 +55,7 @@ class DenemeGridController extends GetxController {
     try {
       toplamBasvuru.value = await _practiceExamRepository.fetchParticipantCount(
         docID,
-        preferCache: true,
+        preferCache: false,
       );
     } catch (e) {
       debugPrint('[DenemeGrid] applicant count fetch failed: $e');

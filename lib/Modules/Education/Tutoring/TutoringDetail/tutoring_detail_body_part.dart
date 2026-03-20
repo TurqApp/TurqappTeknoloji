@@ -106,13 +106,15 @@ extension TutoringDetailBodyPart on TutoringDetail {
           }
 
           final current = controller.tutoring.value;
-          final user = controller.users[current.userID] ?? const <String, dynamic>{};
+          final user =
+              controller.users[current.userID] ?? const <String, dynamic>{};
           final teacherName = (user['nickname'] ??
                   user['username'] ??
                   user['displayName'] ??
                   '')
               .toString()
               .trim();
+          final cityDistrict = _cityDistrictText(current);
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
@@ -129,7 +131,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
               ),
               const SizedBox(height: 6),
               Text(
-                '${current.sehir}, ${current.ilce}  •  ${teacherName.isEmpty ? current.brans : teacherName}',
+                '$cityDistrict  •  ${teacherName.isEmpty ? current.brans : teacherName}',
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 13,
@@ -167,7 +169,8 @@ extension TutoringDetailBodyPart on TutoringDetail {
                       'tutoring.lesson_place_title'.tr,
                       current.dersYeri.join(', '),
                     ),
-                  _infoRow('tutoring.detail_price'.tr, _formatPrice(current.fiyat)),
+                  _infoRow(
+                      'tutoring.detail_price'.tr, _formatPrice(current.fiyat)),
                   _infoRow(
                     'tutoring.detail_contact'.tr,
                     current.telefon == true
@@ -198,7 +201,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
                   ),
                   _infoRow(
                     'tutoring.detail_city'.tr,
-                    '${current.sehir}, ${current.ilce}',
+                    cityDistrict,
                   ),
                   _infoRow(
                     'tutoring.detail_views'.tr,
@@ -364,11 +367,12 @@ extension TutoringDetailBodyPart on TutoringDetail {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(CupertinoIcons.location_solid, color: Colors.red, size: 18),
+          const Icon(CupertinoIcons.location_solid,
+              color: Colors.red, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '${model.sehir}, ${model.ilce}',
+              _cityDistrictText(model),
               style: const TextStyle(
                 color: Colors.black87,
                 fontSize: 14,
@@ -387,12 +391,10 @@ extension TutoringDetailBodyPart on TutoringDetail {
     String? currentUserId,
   ) {
     final avatarUrl = (user['avatarUrl'] ?? '').toString().trim();
-    final nickname = (user['nickname'] ??
-            user['username'] ??
-            user['displayName'] ??
-            '')
-        .toString()
-        .trim();
+    final nickname =
+        (user['nickname'] ?? user['username'] ?? user['displayName'] ?? '')
+            .toString()
+            .trim();
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -478,7 +480,8 @@ extension TutoringDetailBodyPart on TutoringDetail {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => Get.to(() => const CreateTutoringView(), arguments: current),
+              onTap: () =>
+                  Get.to(() => const CreateTutoringView(), arguments: current),
               child: _solidAction('common.edit'.tr),
             ),
           ),
@@ -614,6 +617,15 @@ extension TutoringDetailBodyPart on TutoringDetail {
     if (!opened) {
       AppSnackbar('common.error'.tr, 'tutoring.phone_open_failed'.tr);
     }
+  }
+
+  String _cityDistrictText(TutoringModel model) {
+    final city = model.sehir.trim();
+    final district = model.ilce.trim();
+    if (city.isNotEmpty && district.isNotEmpty) return '$city, $district';
+    if (city.isNotEmpty) return city;
+    if (district.isNotEmpty) return district;
+    return 'tutoring.detail_not_specified'.tr;
   }
 
   Widget _solidAction(String text) {

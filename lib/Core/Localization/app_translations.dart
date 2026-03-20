@@ -2964,7 +2964,7 @@ class AppTranslations extends Translations {
         'common.accept': 'Kabul Et',
         'common.reject': 'Reddet',
         'common.open_profile': 'Profili Ac',
-        'tutoring.title': 'Ozel Ders',
+        'tutoring.title': 'Özel Ders',
         'tutoring.search_hint': 'Ne tur ders ariyorsun ?',
         'tutoring.my_applications': 'Basvurularim',
         'tutoring.create_listing': 'Ilan Ver',
@@ -2977,7 +2977,7 @@ class AppTranslations extends Translations {
         'tutoring.review_saved': 'Degerlendirmeniz kaydedildi.',
         'tutoring.applicants_title': 'Basvuranlar',
         'tutoring.no_applications': 'Henuz basvuru yok',
-        'tutoring.application_label': 'Ozel ders basvurusu',
+        'tutoring.application_label': 'Özel ders başvurusu',
         'tutoring.my_applications_empty':
             'Henuz ozel ders basvurusu yapmadiniz',
         'tutoring.instructor_fallback': 'Egitmen',

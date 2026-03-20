@@ -323,8 +323,7 @@ class PracticeExamRepository extends GetxService {
     if (normalizedExamId.isEmpty || normalizedUserId.isEmpty) return false;
     final cacheKey = 'application:$normalizedExamId:$normalizedUserId';
     final cached = _boolMemory[cacheKey];
-    if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _ttl) {
+    if (cached != null && DateTime.now().difference(cached.cachedAt) <= _ttl) {
       return cached.value;
     }
 
@@ -480,6 +479,9 @@ class PracticeExamRepository extends GetxService {
       bitisDk: data['bitisDk'] is num
           ? data['bitisDk'] as num
           : num.tryParse((data['bitisDk'] ?? '0').toString()) ?? 0,
+      participantCount: data['participantCount'] is num
+          ? data['participantCount'] as num
+          : num.tryParse((data['participantCount'] ?? '0').toString()) ?? 0,
     );
   }
 
@@ -509,6 +511,7 @@ class PracticeExamRepository extends GetxService {
                     'soruSayilari': item.soruSayilari,
                     'bitis': item.bitis,
                     'bitisDk': item.bitisDk,
+                    'participantCount': item.participantCount,
                   },
                 })
             .toList(growable: false),

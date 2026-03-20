@@ -429,7 +429,7 @@ class DenemeGrid extends StatelessWidget {
                             model.sinavAdi,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: PasajCardStyles.detail,
+                            style: PasajCardStyles.lineOne,
                           ),
                         ),
                       ),
