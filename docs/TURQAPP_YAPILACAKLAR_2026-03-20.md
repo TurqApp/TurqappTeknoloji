@@ -578,7 +578,9 @@ Aktif faz:
 - Son tamamlanan Android scroll stabilizasyonu: `MyProfile`, `SocialProfile`, `LikedPosts`, `Archives`, `TopTags`, `TagPosts`, `FloodListing` yuzeylerinde layout aninda `RenderBox/localToGlobal` kullanan centered-index paternleri konservatif scroll heuristics'e cekildi.
 - Son tamamlanan Android ad stabilizasyonu: `AdmobKare` shared `BannerAd` pool reuse'u gecici olarak kapatildi; dinamik listelerde `This AdWidget is already in the Widget tree` kirigi baskilandi.
 - Son tamamlanan backend veri isi: `marketStore/offers` collection-group sorgulari icin eksik composite index tanimlari eklendi ve `turqappteknoloji` projesine deploy edildi; gecersiz eski `reshares` index tanimi dosyadan cikarildi.
-- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; market offer fallback loglarini gereksiz gürültü üretmeyecek sekilde sadeleştirmek.
+- Son tamamlanan market offer sadeleştirmesi: offer okumalari mirror subcollection (`users/{uid}/marketOffersSent|Received`) kanonik kaynak olacak sekilde daraltildi; permission gürültüsü ureten collection-group ve item-scan fallback'leri kaldirildi.
+- Son tamamlanan market owner index isi: `marketStore userId + createdAt` composite indexi eklendi ve deploy edildi.
+- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
