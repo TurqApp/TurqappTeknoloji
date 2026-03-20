@@ -602,6 +602,9 @@ Aktif faz:
 - Son tamamlanan env yükleme isi: `scripts/load_release_alert_env.sh` ile `scripts/release_alert_webhook.env` dosyasi varsa otomatik yukleniyor; canli webhook config'i icin artik her komutta env export gerekmeden scriptler calisabiliyor.
 - Son tamamlanan full smoke sonucu: `feed`, `explore`, `profile`, `short`, `notifications` olmak uzere `5/5` integration smoke senaryosu gecti; `integration_smoke_report_latest.json` icinde `blocking=0`, `failures=0` sonucu alindi.
 - Son tamamlanan release alert export sonucu: stale telemetry raporu otomatik atlandi, `release_alert_bundle_latest.json` ve `release_alert_message_latest.json` `severity=ok` ve `No blocking signals detected` ozetiyle uretildi.
+- Son tamamlanan Android Exo tuning isi: `ExoPlayerView.kt` buffer/time-out profili iOS'a daha yakin stability-first davranisa cekildi; non-fullscreen reveal mantigi sıkılaştırıldı; Android short komsu buffer ve sicak pencere genisletildi.
+- Son tamamlanan Android feed replay isi: feed videolarinda otomatik loop kapatildi; bitis sonrasi `Tekrar izle` ve `Daha fazla Reels videosu izle` overlay'i eklendi.
+- Son tamamlanan Android video smoke sonucu: `Feed` ilk kare ve scroll sonrasi siyah frame yakalanmadi; `Short` acilis, 4 swipe stress ve `Short -> Feed` geri donusu temiz gecti; `MyProfile` video detail geri donusu ve `SocialProfile -> Feed` geri donusu temiz dogrulandi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:

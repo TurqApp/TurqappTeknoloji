@@ -41,6 +41,8 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 - `Ozel Ders`
 - `Online Sinav`
 - `Cevap Anahtari`
+- `MyProfile`
+- `SocialProfile`
 
 ## Android Sweep Oncelik Sirasi
 
@@ -67,12 +69,12 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 | Alan | Ekranlar | Kapsam | Durum | Android odak / acik |
 |---|---|---|---|---|
 | App shell | `Splash`, `SignIn`, `NavBar`, `Maintenance` | smoke + manuel | `OTOMATIK_YESIL` | login, route ve ana nav aciliyor; uzun sureli auth/session churn icin son sweep yine gerekli |
-| Feed / Agenda | `Feed`, `ClassicContent`, `SinglePost`, `Comments`, `TopTags`, `TagPosts`, `FloodListing`, `PostLikeListing`, `PostReshareListing` | smoke + kismi manuel | `ANDROID_ACIK` | correctness yesil; Android'de `autoplay tuning`, `player recreate rate`, `scroll first-frame` hala acik |
-| Short | `Short`, `DynamicShort`, `SingleShort`, `PhotoShorts` | smoke + kismi manuel | `ANDROID_ACIK` | iOS iyi, Android'de `first-frame`, `black frame`, `rebuffer`, `player churn` odak alanlari |
+| Feed / Agenda | `Feed`, `ClassicContent`, `SinglePost`, `Comments`, `TopTags`, `TagPosts`, `FloodListing`, `PostLikeListing`, `PostReshareListing` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi siyah frame yakalanmadi; feed video loop kapandi ve replay overlay geldi. Kalan acik: uzun scroll autoplay tuning ve decoder warning gozlemi |
+| Short | `Short`, `DynamicShort`, `SingleShort`, `PhotoShorts` | smoke + manuel | `ANDROID_ACIK` | ilk tuning sonrasi acilis, 4-swipe stress ve feed geri donus temiz. Kalan acik: uzun swipe serilerinde decoder/churn sinyali olcumu |
 | Explore | `Explore`, `SearchedUser`, recent search | smoke + kismi manuel | `ANDROID_ACIK` | ana explore yesil; `SearchedUser` ve preview gate zinciri icin genis Android sweep gerekli |
 | Notifications | `InAppNotifications`, `notification_content` | smoke | `OTOMATIK_YESIL` | optimistic mutation yesil; uzun liste + route return + empty state smoke tekrari gerekli |
-| My Profile | `MyProfile`, `LikedPosts`, `Archives`, `MyStatistic`, `MyQRCode` | kismi manuel | `ANDROID_ACIK` | centered restore ve scroll stabilizasyonu geldi; genis cihaz turu eksik |
-| Social Profile | `SocialProfile`, followers, report, qr | kismi manuel | `ANDROID_ACIK` | route return ve restore mantigi var; Android detail geri donus sweep'i eksik |
+| My Profile | `MyProfile`, `LikedPosts`, `Archives`, `MyStatistic`, `MyQRCode` | manuel | `MANUEL_YESIL` | profil video sekmesi acildi, video detail acildi ve geri donuste ayni video gridine temiz dondu |
+| Social Profile | `SocialProfile`, followers, report, qr | manuel | `MANUEL_YESIL` | feed'den baska kullanici profili acildi ve geri donuste feed'e temiz dondu |
 | Profile settings | `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Policies`, `DeleteAccount`, `Cv`, `BiographyMaker`, `Editor*`, `LangSelector`, `ViewChanger`, `SocialMediaLinks`, `BecomeVerifiedAccount`, `ProfileContact` | manuel parcali | `KAPSAM_BEKLIYOR` | bunlarin bir kismi bilincli raw; warm-open ve form state Android sweep'i eksik |
 | Saved profile surfaces | `SavedPosts`, `BlockedUsers`, `FollowingFollowers` | parcali manuel | `ANDROID_ACIK` | snapshot/silent refresh var; Android gerçek cihaz smoke acik |
 | Market | `Market`, `detail`, `search`, `saved`, `offers`, `my items`, `create`, `filter` | manuel | `MANUEL_YESIL` | ilk acilis stabil; `detail/offers/saved/my items` turunun kayitli matrisi cikacak |
@@ -113,6 +115,16 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 - `Notifications`
 - `SavedPosts`
 - `Explore/SearchedUser`
+
+Durum:
+
+- `Feed`: kismi kapandi
+- `Short`: kismi kapandi
+- `MyProfile`: kapandi
+- `SocialProfile`: kapandi
+- `Notifications`: sirada
+- `SavedPosts`: sirada
+- `Explore/SearchedUser`: sirada
 
 ### Dalga 2
 
