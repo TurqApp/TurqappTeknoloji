@@ -50,7 +50,7 @@ class ExoPlayerView(
     private var isLooping = false
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
-    private var preferredMaxBufferMs: Long = 10000
+    private var preferredMaxBufferMs: Long = 8000
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
@@ -71,7 +71,7 @@ class ExoPlayerView(
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             setShutterBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
             setBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
-            setKeepContentOnPlayerReset(false)
+            setKeepContentOnPlayerReset(true)
             alpha = if (forceFullscreen) 0f else 1f
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -143,17 +143,20 @@ class ExoPlayerView(
         }
 
         val activePlayer = if (existing == null) {
-            // A6: Buffer tuning — TTFF hedefi < 400ms (warm)
-            // maxBuffer: 15s — segment atlama önleme
-            // minBuffer: 2s — önceki 5s çok fazlaydı, gereksiz bekleme üretiyordu
-            val maxBufferMs = preferredMaxBufferMs.coerceIn(15000, 30000).toInt()
-            val minBufferMs = (maxBufferMs * 0.25).toInt().coerceAtLeast(2000)
+            // Android yolu AVPlayer'dan belirgin sekilde daha gec tepki veriyordu.
+            // Burada daha kisa ama daha dengeli bir buffer profili kullanip ilk
+            // kareyi hizlandirirken kisa gecislerde stalling riskini dusuruyoruz.
+            val targetBufferMs = preferredMaxBufferMs.coerceIn(3000, 12000).toInt()
+            val minBufferMs = (targetBufferMs * 0.65).toInt().coerceAtLeast(1800)
+            val playbackBufferMs = (minBufferMs * 0.35).toInt().coerceIn(350, 900)
+            val rebufferPlaybackMs =
+                (minBufferMs * 0.75).toInt().coerceIn(900, 2200)
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    minBufferMs, // minBufferMs: 2s min — segment geçişlerinde yeterli tampon
-                    maxBufferMs, // maxBufferMs: 15s — uzun segment boşalması önleme
-                    500,         // bufferForPlaybackMs: TTFF için hızlı başlat
-                    1500         // bufferForPlaybackAfterRebufferMs: rebuffer sonrası makul tampon
+                    minBufferMs,
+                    targetBufferMs,
+                    playbackBufferMs,
+                    rebufferPlaybackMs
                 )
                 .build()
 

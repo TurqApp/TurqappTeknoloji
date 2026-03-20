@@ -42,11 +42,11 @@ class ShortController extends GetxController {
   static const int _initialPreloadCount = 3;
 
   static final double _activeBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 2.4 : 3.0;
+      defaultTargetPlatform == TargetPlatform.android ? 3.0 : 3.0;
   static final double _neighborBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 2.0 : 2.4;
+      defaultTargetPlatform == TargetPlatform.android ? 2.4 : 2.4;
   static final double _prepBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 1.8 : 2.1;
+      defaultTargetPlatform == TargetPlatform.android ? 2.1 : 2.1;
 
   // Dinamik yükleme durumları
   final int pageSize = 20;
@@ -77,10 +77,8 @@ class ShortController extends GetxController {
   static bool _globalShuffleCompleted = false;
 
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      await adapter.stopPlayback();
-      return;
-    }
+    // Warm tier'de Android'i tam stop etmek geciste yeniden load maliyeti
+    // olusturuyordu. iOS'taki gibi pause ederek yakinda geri donusleri hizlandir.
     await adapter.pause();
   }
 

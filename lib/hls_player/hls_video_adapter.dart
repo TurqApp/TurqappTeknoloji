@@ -83,6 +83,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   double _pendingVolume = 1.0;
   bool _hasPendingVolume = false;
   Duration? _pendingSeek;
+  double? _pendingPreferredBufferDurationSeconds;
 
   HLSController get hlsController => _hls;
 
@@ -209,6 +210,10 @@ class HLSVideoAdapter extends ChangeNotifier {
   }
 
   void _executePendingCommands() {
+    if (_pendingPreferredBufferDurationSeconds != null) {
+      _hls.setPreferredBufferDuration(_pendingPreferredBufferDurationSeconds!);
+      _pendingPreferredBufferDurationSeconds = null;
+    }
     if (_hasPendingVolume) {
       _hls.setVolume(_pendingVolume);
       _hasPendingVolume = false;
@@ -344,6 +349,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   Future<void> setPreferredBufferDuration(double seconds) {
     if (_disposed) return Future.value();
     if (_viewReady) return _hls.setPreferredBufferDuration(seconds);
+    _pendingPreferredBufferDurationSeconds = seconds;
     return Future.value();
   }
 

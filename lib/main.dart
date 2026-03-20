@@ -64,9 +64,12 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  // Firebase/AppCheck bootstrap arka planda tamamlansın; ilk frame bloklanmasın.
-  final bootstrapCompleter = Completer<void>();
-  firebaseBootstrapFuture = bootstrapCompleter.future;
+  // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
+  // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
+  // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
+  // cagrilip startup fallback ekranina dusuyordu.
+  firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
+  await firebaseBootstrapFuture;
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   if (!Get.isRegistered<VideoStateManager>()) {
@@ -88,16 +91,8 @@ Future<void> main() async {
     onDetach: _handleAppBackgroundTransition,
   );
 
-  // İlk frame sonrası sistem UI ayarları ve bootstrap.
+  // Ilk frame sonrasi yalnizca sistem UI ayarlari.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _bootstrapFirebaseAndCrashlytics().then((_) {
-      if (!bootstrapCompleter.isCompleted) bootstrapCompleter.complete();
-    }).catchError((e, st) {
-      if (!bootstrapCompleter.isCompleted) {
-        bootstrapCompleter.completeError(e, st);
-      }
-    });
-
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

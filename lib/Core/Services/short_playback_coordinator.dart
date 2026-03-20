@@ -31,10 +31,12 @@ class ShortPlaybackCoordinator {
   factory ShortPlaybackCoordinator.forCurrentPlatform() {
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
     return ShortPlaybackCoordinator(
-      hotAhead: isAndroid ? 1 : 5,
-      hotBehind: isAndroid ? 0 : 2,
-      warmBehind: isAndroid ? 1 : 5,
-      maxAttachedPlayers: isAndroid ? 2 : 11,
+      // Android tarafı iOS'a gore fazla konservatifti; komsu short'lar
+      // yeterince sicak tutulmadigi icin gecisler belirgin sekilde sertlesiyordu.
+      hotAhead: isAndroid ? 3 : 5,
+      hotBehind: isAndroid ? 1 : 2,
+      warmBehind: isAndroid ? 3 : 5,
+      maxAttachedPlayers: isAndroid ? 5 : 11,
       budgetPolicy: PlayerBudgetPolicy.forSurface(
         PlayerSurfaceKind.shortFullscreen,
         lowMemoryDevice: isAndroid,
@@ -66,9 +68,11 @@ class ShortPlaybackCoordinator {
     }
 
     final currentIndex = rawIndex.clamp(0, items.length - 1);
-    final hotStart = currentIndex - hotBehind < 0 ? 0 : currentIndex - hotBehind;
-    final hotEnd =
-        currentIndex + hotAhead >= items.length ? items.length - 1 : currentIndex + hotAhead;
+    final hotStart =
+        currentIndex - hotBehind < 0 ? 0 : currentIndex - hotBehind;
+    final hotEnd = currentIndex + hotAhead >= items.length
+        ? items.length - 1
+        : currentIndex + hotAhead;
     final warmStart =
         currentIndex - warmBehind < 0 ? 0 : currentIndex - warmBehind;
 
@@ -160,7 +164,8 @@ class ShortPlaybackCoordinator {
     required Set<int> warmIndices,
   }) {
     if (!Get.isRegistered<PlaybackKpiService>()) return;
-    final safeIndex = items.isEmpty ? 0 : activeIndex.clamp(0, items.length - 1);
+    final safeIndex =
+        items.isEmpty ? 0 : activeIndex.clamp(0, items.length - 1);
     final activeDocId = items.isEmpty ? '' : items[safeIndex].docID;
     final signature = <String>[
       '${items.length}',
