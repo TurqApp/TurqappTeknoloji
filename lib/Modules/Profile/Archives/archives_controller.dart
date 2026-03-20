@@ -44,43 +44,33 @@ class ArchiveController extends GetxController {
   }
 
   void _onScroll() {
-    if (scrollController.position.pixels >=
-        scrollController.position.maxScrollExtent - 300) {
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 300) {
       fetchData();
     }
-
-    final screenHeight = Get.height;
-    final screenCenterY = screenHeight / 2;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      for (int i = 0; i < list.length; i++) {
-        final key = _agendaKeys[i];
-        if (key == null) continue;
-
-        final context = key.currentContext;
-        if (context == null) continue;
-
-        final renderBox = context.findRenderObject() as RenderBox?;
-        if (renderBox == null || !renderBox.attached) continue;
-
-        final position = renderBox.localToGlobal(Offset.zero);
-        final size = renderBox.size;
-        final widgetTop = position.dy;
-        final widgetBottom = position.dy + size.height;
-
-        if (widgetTop <= screenCenterY && widgetBottom >= screenCenterY) {
-          if (centeredIndex.value != i) {
-            if (lastCenteredIndex != null && lastCenteredIndex != i) {
-              final prevModel = list[lastCenteredIndex!];
-              disposeAgendaContentController(prevModel.docID);
-            }
-            centeredIndex.value = i;
-            lastCenteredIndex = i;
-          }
-          break;
-        }
+    if (list.isEmpty) return;
+    if (position.pixels <= 0) {
+      centeredIndex.value = 0;
+      lastCenteredIndex = 0;
+      return;
+    }
+    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
+                estimatedItemExtent)
+            .floor())
+        .clamp(0, list.length - 1);
+    if (centeredIndex.value != nextIndex) {
+      if (lastCenteredIndex != null && lastCenteredIndex != nextIndex) {
+        final prevModel = list[lastCenteredIndex!];
+        disposeAgendaContentController(prevModel.docID);
       }
-    });
+      centeredIndex.value = nextIndex;
+      lastCenteredIndex = nextIndex;
+    }
   }
 
   void disposeAgendaContentController(String docID) {

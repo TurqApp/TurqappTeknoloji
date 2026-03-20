@@ -21,6 +21,22 @@ class _LikedPostsState extends State<LikedPosts> {
   late LikedPostControllers controller;
   late PageLineBarController pageLineBarController;
   final scrollController = ScrollController();
+
+  int _estimatedCenteredIndex() {
+    if (!scrollController.hasClients || controller.all.isEmpty) {
+      return -1;
+    }
+    final position = scrollController.position;
+    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final rawIndex = ((position.pixels + position.viewportDimension * 0.25) /
+            estimatedItemExtent)
+        .floor();
+    return rawIndex.clamp(0, controller.all.length - 1);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +52,8 @@ class _LikedPostsState extends State<LikedPosts> {
 
   @override
   void dispose() {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
     if (Get.isRegistered<LikedPostControllers>()) {
       Get.delete<LikedPostControllers>(force: true);
     }
@@ -43,34 +61,14 @@ class _LikedPostsState extends State<LikedPosts> {
   }
 
   void _onScroll() {
-    // ScrollController bağlı değilse çık
-    if (!scrollController.hasClients) return;
-
-    // Ortadaki widget’ı tespit etmek için
-    final screenHeight = MediaQuery.of(context).size.height;
-    final centerY = screenHeight / 2;
-
-    for (int i = 0; i < controller.all.length; i++) {
-      final key = controller.getPostKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-
-      final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null || !box.attached) continue;
-
-      final pos = box.localToGlobal(Offset.zero);
-      final top = pos.dy;
-      final bottom = pos.dy + box.size.height;
-
-      if (top <= centerY && bottom >= centerY) {
-        if (controller.centeredIndex.value != i) {
-          setState(() {
-            controller.centeredIndex.value = i;
-            controller.lastCenteredIndex = i;
-          });
-        }
-        break;
-      }
+    final nextIndex = _estimatedCenteredIndex();
+    if (nextIndex < 0) return;
+    if (controller.centeredIndex.value != nextIndex) {
+      setState(() {
+        controller.centeredIndex.value = nextIndex;
+        controller.currentVisibleIndex.value = nextIndex;
+        controller.lastCenteredIndex = nextIndex;
+      });
     }
   }
 
@@ -88,7 +86,7 @@ class _LikedPostsState extends State<LikedPosts> {
                 "common.videos".tr,
                 "common.photos".tr,
               ],
-              pageName: "LikedPosts",
+              pageName: kLikedPostsPageLineBarTag,
               pageController: controller.pageController,
             ),
             Expanded(
@@ -96,7 +94,8 @@ class _LikedPostsState extends State<LikedPosts> {
                 return PageView(
                   controller: controller.pageController,
                   onPageChanged: (v) {
-                    Get.find<PageLineBarController>(tag: 'LikedPosts')
+                    Get.find<PageLineBarController>(
+                            tag: kLikedPostsPageLineBarTag)
                         .selection
                         .value = v;
                   },
@@ -212,9 +211,10 @@ class _LikedPostsState extends State<LikedPosts> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () async {
-            controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
-                ? controller.currentVisibleIndex.value
-                : controller.lastCenteredIndex;
+            controller.lastCenteredIndex =
+                controller.currentVisibleIndex.value >= 0
+                    ? controller.currentVisibleIndex.value
+                    : controller.lastCenteredIndex;
             controller.centeredIndex.value = -1;
             await Get.to(() => PhotoShorts(
                   startModel: list[index],
@@ -257,9 +257,10 @@ class _LikedPostsState extends State<LikedPosts> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () async {
-            controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
-                ? controller.currentVisibleIndex.value
-                : controller.lastCenteredIndex;
+            controller.lastCenteredIndex =
+                controller.currentVisibleIndex.value >= 0
+                    ? controller.currentVisibleIndex.value
+                    : controller.lastCenteredIndex;
             controller.centeredIndex.value = -1;
             await Get.to(() => SingleShortView(
                   startModel: list[index],

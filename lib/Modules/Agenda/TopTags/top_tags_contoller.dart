@@ -101,7 +101,8 @@ class TopTagsController extends GetxController {
     if (agendaList.isEmpty) return -1;
     final pendingDocId = _pendingCenteredDocId;
     if (pendingDocId != null && pendingDocId.isNotEmpty) {
-      final mapped = agendaList.indexWhere((post) => post.docID == pendingDocId);
+      final mapped =
+          agendaList.indexWhere((post) => post.docID == pendingDocId);
       if (mapped >= 0) return mapped;
     }
     if (lastCenteredIndex != null &&
@@ -162,29 +163,24 @@ class TopTagsController extends GetxController {
 
   void updateVisibleIndexByPosition(
       ScrollMetrics metrics, BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final topThreshold = screenHeight * 0.33;
-    final bottomThreshold = screenHeight * 0.66;
-
-    for (int i = 0; i < agendaList.length; i++) {
-      final key = getAgendaKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-
-      final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null || !box.hasSize) continue;
-
-      final position = box.localToGlobal(Offset.zero).dy;
-      final height = box.size.height;
-      final center = position + height / 2;
-
-      if (center > topThreshold && center < bottomThreshold) {
-        centeredIndex.value = i;
-        currentVisibleIndex.value = i;
-        lastCenteredIndex = i;
-        break;
-      }
+    if (agendaList.isEmpty) return;
+    if (metrics.pixels <= 0) {
+      centeredIndex.value = 0;
+      currentVisibleIndex.value = 0;
+      lastCenteredIndex = 0;
+      return;
     }
+    final estimatedItemExtent = (metrics.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final nextIndex = (((metrics.pixels + metrics.viewportDimension * 0.25) /
+                estimatedItemExtent)
+            .floor())
+        .clamp(0, agendaList.length - 1);
+    centeredIndex.value = nextIndex;
+    currentVisibleIndex.value = nextIndex;
+    lastCenteredIndex = nextIndex;
   }
 
   void disposeAgendaContentController(String docID) {

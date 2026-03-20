@@ -45,29 +45,25 @@ class TagPostsController extends GetxController {
     );
   }
 
-  void updateVisibleIndexByPosition(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final topThreshold = screenHeight * 0.33;
-    final bottomThreshold = screenHeight * 0.66;
-
-    for (int i = 0; i < list.length; i++) {
-      final key = getAgendaKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-
-      final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null || !box.hasSize || !box.attached) continue;
-
-      final position = box.localToGlobal(Offset.zero).dy;
-      final height = box.size.height;
-      final center = position + height / 2;
-
-      if (center > topThreshold && center < bottomThreshold) {
-        centeredIndex.value = i;
-        currentVisibleIndex.value = i;
-        lastCenteredIndex = i;
-        break;
-      }
+  void updateVisibleIndexByPosition(ScrollController controller) {
+    if (!controller.hasClients || list.isEmpty) return;
+    final position = controller.position;
+    if (position.pixels <= 0) {
+      centeredIndex.value = 0;
+      currentVisibleIndex.value = 0;
+      lastCenteredIndex = 0;
+      return;
     }
+    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
+                estimatedItemExtent)
+            .floor())
+        .clamp(0, list.length - 1);
+    centeredIndex.value = nextIndex;
+    currentVisibleIndex.value = nextIndex;
+    lastCenteredIndex = nextIndex;
   }
 }

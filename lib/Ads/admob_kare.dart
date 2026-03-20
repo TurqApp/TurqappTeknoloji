@@ -19,6 +19,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
   static int _loadingCount = 0;
   static const int _defaultWarmupCount = 3;
+  static const int _maxPoolSize = 8;
 
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
@@ -27,13 +28,14 @@ class _AdmobKareState extends State<AdmobKare> {
   int _retryCount = 0;
   Timer? _retryTimer;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
-  static const int _maxRetryCount = 2;
+  static const int _maxRetryCount = 4;
+  static const Duration _cooldownRetryDelay = Duration(seconds: 30);
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
   }
 
-  static bool get _supportsSharedPool => Platform.isAndroid;
+  static bool get _supportsSharedPool => false;
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
@@ -72,7 +74,7 @@ class _AdmobKareState extends State<AdmobKare> {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
           _log(
               'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
-          if (_readyPool.length < 8) {
+          if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
           } else {
             loadedAd.dispose();
@@ -201,6 +203,12 @@ class _AdmobKareState extends State<AdmobKare> {
               _isAdLoaded = false;
             });
           }
+          _retryTimer?.cancel();
+          _retryTimer = Timer(_cooldownRetryDelay, () {
+            if (_isDisposed) return;
+            _retryCount = 0;
+            _loadBanner();
+          });
         },
         onAdOpened: (Ad ad) {
           _log(
@@ -237,18 +245,26 @@ class _AdmobKareState extends State<AdmobKare> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isDisposed || _loadFailed) {
+    if (_isDisposed) {
       return const SizedBox.shrink();
     }
 
     final ad = _bannerAd;
-    if (!_canRenderAd(ad)) {
+    if (_loadFailed || !_canRenderAd(ad)) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Container(
           height: 250,
           alignment: Alignment.center,
-          child: const CupertinoActivityIndicator(),
+          child: _loadFailed
+              ? const Text(
+                  'Reklam yukleniyor',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                )
+              : const CupertinoActivityIndicator(),
         ),
       );
     }

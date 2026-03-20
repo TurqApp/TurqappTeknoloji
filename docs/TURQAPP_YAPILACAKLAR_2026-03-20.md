@@ -574,7 +574,11 @@ Aktif faz:
 - Son tamamlanan screenshot isi: smoke fail aninda integration binding uzerinden best-effort `.png` capture denemesi.
 - Son tamamlanan smoke summary isi: `artifacts/integration_smoke/*.json` dosyalarindan toplu `integration_smoke_report_latest.json` raporu uretilmesi.
 - Son tamamlanan guard genisletmesi: `Notifications` optimistic miss guard'lari ve `Short` active player overflow guard'i.
-- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; fail anina screenshot artefact'i eklemek.
+- Son tamamlanan Android runtime isi: `main.dart` global locale rebuild zinciri sadeleştirildi, `PlaybackKPI.track()` build-phase mutation'dan cikarildi, `Education` tarafinda `ViewModeController` fallback'i eklendi.
+- Son tamamlanan Android scroll stabilizasyonu: `MyProfile`, `SocialProfile`, `LikedPosts`, `Archives`, `TopTags`, `TagPosts`, `FloodListing` yuzeylerinde layout aninda `RenderBox/localToGlobal` kullanan centered-index paternleri konservatif scroll heuristics'e cekildi.
+- Son tamamlanan Android ad stabilizasyonu: `AdmobKare` shared `BannerAd` pool reuse'u gecici olarak kapatildi; dinamik listelerde `This AdWidget is already in the Widget tree` kirigi baskilandi.
+- Son tamamlanan backend veri isi: `marketStore/offers` collection-group sorgulari icin eksik composite index tanimlari `firestore.indexes.json` icine eklendi.
+- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; `firestore.indexes.json` degisikligini deploy etmek; market offer fallback loglarini gereksiz gürültü üretmeyecek sekilde sadeleştirmek.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
@@ -604,6 +608,10 @@ Aktif faz:
    dirty kalan raw/form ekranlarini tek tek ayirip sadece gerekli olanlari raw belgede birak
 7. Sonraki kalite odagi:
    `runtime invariant guard + integration smoke tests + telemetry alarms + release gate`
+8. Sonraki Android runtime odagi:
+   `AdmobKare` pool reuse icin daha guvenli lease/refcount tasarimi veya kalici pool iptali karari
+9. Sonraki backend operasyon odagi:
+   `firestore.indexes.json` icindeki `offers` indexlerini deploy edip market offer warning'lerini temiz run ile tekrar okumak
 
 ## Teknik Notlar
 
@@ -613,6 +621,7 @@ Aktif faz:
 - Yeni buyuk mimari dosya yazmaktan cok mevcut KPI'a gore tuning yap.
 - `UserRepository.ensure().getUser(...)` kullanan temiz gorunur yuzeylerin tamami kapatildi.
 - Bundan sonraki resolver isleri daha cok dirty dosyalarda veya bilincli raw ekranlarda kaldi.
+- Canli Android run'da artik bakilacak iki ana alan: reklam satiri reuse hatalari ve market offer index/rule warning'leri.
 
 ## Kisa Durum Ozeti
 

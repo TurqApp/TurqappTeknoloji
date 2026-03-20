@@ -35,7 +35,7 @@ class _TagPostsState extends State<TagPosts> {
   }
 
   void _onScroll() {
-    controller.updateVisibleIndexByPosition(context);
+    controller.updateVisibleIndexByPosition(scrollController);
   }
 
   @override
@@ -63,7 +63,7 @@ class _TagPostsState extends State<TagPosts> {
               else
                 NotificationListener<ScrollNotification>(
                   onNotification: (notification) {
-                    controller.updateVisibleIndexByPosition(context);
+                    controller.updateVisibleIndexByPosition(scrollController);
                     return false;
                   },
                   child: ListView.builder(
@@ -80,7 +80,8 @@ class _TagPostsState extends State<TagPosts> {
                       final actualIndex = index - 1;
                       final model = list[actualIndex];
                       return Padding(
-                        padding: EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
+                        padding:
+                            EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
                         child: Column(
                           children: [
                             AgendaContent(
