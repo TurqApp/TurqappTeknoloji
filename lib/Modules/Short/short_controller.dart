@@ -401,33 +401,25 @@ class ShortController extends GetxController {
         return;
       }
 
+      final previousShorts = shorts.toList(growable: false);
       final newList = List<PostsModel>.from(result.posts);
 
-      final newCache = <int, HLSVideoAdapter>{};
+      _replaceShorts(newList, remapCache: false);
+      await _remapCacheForNewList(
+        previous: previousShorts,
+        next: newList,
+      );
       final preloadCount = math.min(1, newList.length);
       for (int i = 0; i < preloadCount; i++) {
-        await _preloadSingleVideoWithCache(i, newList[i],
-            targetCache: newCache);
+        if (!cache.containsKey(i)) {
+          await _preloadSingleVideoWithCache(i, newList[i]);
+        }
       }
-
-      final oldAdapters = cache.values.toList(growable: false);
-
-      _replaceShorts(newList);
-      cache
-        ..clear()
-        ..addAll(newCache);
 
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
       lastIndex.value = 0;
       unawaited(_persistVisibleSnapshot());
-
-      // Eski adapter'ları serbest bırak
-      for (final adapter in oldAdapters) {
-        try {
-          await _videoPool.release(adapter);
-        } catch (_) {}
-      }
 
       // Ek arka plan preload kapalı: sadece aktif video cache'te kalsın.
     } catch (e) {
@@ -767,11 +759,21 @@ class ShortController extends GetxController {
     return true;
   }
 
-  void _replaceShorts(List<PostsModel> newItems) {
+  void _replaceShorts(
+    List<PostsModel> newItems, {
+    bool remapCache = true,
+  }) {
     if (_hasSameRenderOrder(shorts, newItems)) {
       return;
     }
+    final previous = shorts.toList(growable: false);
     shorts.assignAll(newItems);
+    if (remapCache) {
+      unawaited(_remapCacheForNewList(
+        previous: previous,
+        next: newItems,
+      ));
+    }
   }
 
   bool _hasSameRenderOrder(
@@ -800,6 +802,65 @@ class ShortController extends GetxController {
   }
 
   String get _currentUserId => FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  Future<void> _remapCacheForNewList({
+    required List<PostsModel> previous,
+    required List<PostsModel> next,
+  }) async {
+    if (cache.isEmpty) return;
+
+    final adaptersByDocId = <String, HLSVideoAdapter>{};
+    final tiersByDocId = <String, _CacheTier>{};
+
+    for (int i = 0; i < previous.length; i++) {
+      final docId = previous[i].docID;
+      if (docId.isEmpty) continue;
+      final adapter = cache[i];
+      if (adapter != null) {
+        adaptersByDocId[docId] = adapter;
+      }
+      final tier = _tiers[i];
+      if (tier != null) {
+        tiersByDocId[docId] = tier;
+      }
+    }
+
+    final remappedCache = <int, HLSVideoAdapter>{};
+    final remappedTiers = <int, _CacheTier>{};
+    final retainedDocIds = <String>{};
+
+    for (int i = 0; i < next.length; i++) {
+      final docId = next[i].docID;
+      final adapter = adaptersByDocId[docId];
+      if (adapter != null) {
+        remappedCache[i] = adapter;
+        retainedDocIds.add(docId);
+      }
+      final tier = tiersByDocId[docId];
+      if (tier != null) {
+        remappedTiers[i] = tier;
+      }
+    }
+
+    final releaseTasks = <Future<void>>[];
+    for (final entry in adaptersByDocId.entries) {
+      if (retainedDocIds.contains(entry.key)) continue;
+      releaseTasks.add(_videoPool.release(entry.value));
+    }
+
+    cache
+      ..clear()
+      ..addAll(remappedCache);
+    _tiers
+      ..clear()
+      ..addAll(remappedTiers);
+
+    if (releaseTasks.isNotEmpty) {
+      try {
+        await Future.wait(releaseTasks);
+      } catch (_) {}
+    }
+  }
 }
 
 enum _CacheTier { hot, warm }
