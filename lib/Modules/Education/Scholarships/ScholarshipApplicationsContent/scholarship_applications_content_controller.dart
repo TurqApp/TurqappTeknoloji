@@ -8,6 +8,7 @@ class ScholarshipApplicationsContentController extends GetxController {
   final String userID;
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  Future<Map<String, dynamic>?>? _userRawFuture;
 
   ScholarshipApplicationsContentController({required this.userID});
 
@@ -96,9 +97,22 @@ class ScholarshipApplicationsContentController extends GetxController {
     }
   }
 
+  Future<Map<String, dynamic>?> _loadUserRaw({bool forceRefresh = false}) {
+    if (!forceRefresh && _userRawFuture != null) {
+      return _userRawFuture!;
+    }
+    final future = _userRepository.getUserRaw(
+      userID,
+      preferCache: !forceRefresh,
+      forceServer: forceRefresh,
+    );
+    _userRawFuture = future;
+    return future;
+  }
+
   Future<void> getData() async {
     try {
-      final data = await _userRepository.getUserRaw(userID);
+      final data = await _loadUserRaw();
       if (data != null) {
         // ad.value = doc.get("firstName") ?? "";
         // soyad.value = doc.get("lastName") ?? "";
@@ -123,7 +137,7 @@ class ScholarshipApplicationsContentController extends GetxController {
 
   Future<void> ogrenciBilgileriniKontrolEt() async {
     try {
-      final data = await _userRepository.getUserRaw(userID);
+      final data = await _loadUserRaw();
       if (data != null) {
         dogumTarigi.value =
             userString(data, key: "dogumTarihi", scope: "profile");
@@ -169,7 +183,10 @@ class ScholarshipApplicationsContentController extends GetxController {
     showDetails.value = !showDetails.value;
     if (showDetails.value) {
       isDetailsLoading.value = true;
-      await Future.wait([getData(), ogrenciBilgileriniKontrolEt()]);
+      await Future.wait([
+        getData(),
+        ogrenciBilgileriniKontrolEt(),
+      ]);
       isDetailsLoading.value = false;
     }
   }

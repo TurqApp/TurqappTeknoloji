@@ -6,12 +6,13 @@ import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
@@ -26,6 +27,7 @@ import 'package:turqappv2/Modules/Short/single_short_view.dart';
 
 class DeepLinkService extends GetxService {
   final ShortLinkService _shortLinkService = ShortLinkService();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   static const Duration _lookupTtl = Duration(seconds: 30);
   static final Map<String, _PostLookupCache> _postLookupCache =
       <String, _PostLookupCache>{};
@@ -87,7 +89,10 @@ class DeepLinkService extends GetxService {
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
       return cached;
     }
-    final data = await UserRepository.ensure().getUserRaw(userId);
+    final data = await _userSummaryResolver.resolve(
+      userId,
+      preferCache: true,
+    );
     final lookup = _UserLookupCache(
       data: data,
       cachedAt: DateTime.now(),
@@ -178,7 +183,7 @@ class DeepLinkService extends GetxService {
       if (entityId.isEmpty) {
         final handled = await _tryDirectFallback(parsed);
         if (!handled) {
-          AppSnackbar('Bilgi', 'Link çözülemedi.');
+          AppSnackbar('common.info'.tr, 'deep_link.resolve_failed'.tr);
         }
         return;
       }
@@ -203,7 +208,7 @@ class DeepLinkService extends GetxService {
     } catch (_) {
       final handled = await _tryDirectFallback(parsed);
       if (!handled) {
-        AppSnackbar('Bilgi', 'Link açılamadı.');
+        AppSnackbar('common.info'.tr, 'deep_link.open_failed'.tr);
       }
     } finally {
       _handling = false;
@@ -310,11 +315,11 @@ class DeepLinkService extends GetxService {
     final lookup = await _getPostLookup(postId);
     final model = lookup.model;
     if (model == null) {
-      AppSnackbar('Bilgi', 'Gönderi bulunamadı.');
+      AppSnackbar('common.info'.tr, 'notify_reader.post_not_found'.tr);
       return;
     }
     if (model.deletedPost) {
-      AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'notify_reader.post_removed'.tr);
       return;
     }
 
@@ -347,31 +352,31 @@ class DeepLinkService extends GetxService {
     final storyLookup = await _getStoryDocLookup(storyId);
     final storyData = storyLookup.data;
     if (storyData == null) {
-      AppSnackbar('Bilgi', 'Hikaye bulunamadı.');
+      AppSnackbar('common.info'.tr, 'deep_link.story_not_found'.tr);
       return;
     }
     if ((storyData['deleted'] ?? false) == true) {
-      AppSnackbar('Bilgi', 'Hikaye süresi dolmuş veya silinmiş.');
+      AppSnackbar('common.info'.tr, 'deep_link.story_removed'.tr);
       return;
     }
 
     final userId = (storyData['userId'] ?? '').toString().trim();
     if (userId.isEmpty) {
-      AppSnackbar('Bilgi', 'Hikaye sahibi bulunamadı.');
+      AppSnackbar('common.info'.tr, 'deep_link.story_owner_missing'.tr);
       return;
     }
 
     final userLookup = await _getUserLookup(userId);
     final userData = userLookup.data;
     if (userData == null) {
-      AppSnackbar('Bilgi', 'Hikaye sahibi bulunamadı.');
+      AppSnackbar('common.info'.tr, 'deep_link.story_owner_missing'.tr);
       return;
     }
 
     final stories = await _fetchStoriesByUserIndexSafe(userId);
 
     if (stories.isEmpty) {
-      AppSnackbar('Bilgi', 'Hikaye bulunamadı.');
+      AppSnackbar('common.info'.tr, 'deep_link.story_not_found'.tr);
       return;
     }
 
@@ -382,11 +387,9 @@ class DeepLinkService extends GetxService {
     }
 
     final user = StoryUserModel(
-      nickname: (userData['nickname'] ?? '').toString(),
-      avatarUrl: (userData['avatarUrl'] ?? '').toString(),
-      fullName:
-          '${(userData['firstName'] ?? '').toString()} ${(userData['lastName'] ?? '').toString()}'
-              .trim(),
+      nickname: userData.preferredName.trim(),
+      avatarUrl: userData.avatarUrl.trim(),
+      fullName: userData.displayName.trim(),
       userID: userId,
       stories: stories,
     );
@@ -401,7 +404,7 @@ class DeepLinkService extends GetxService {
     final lookup = await _getMarketLookup(itemId);
     final item = lookup.model;
     if (item == null) {
-      AppSnackbar('Bilgi', 'Ilan bulunamadi.');
+      AppSnackbar('common.info'.tr, 'deep_link.listing_not_found'.tr);
       return;
     }
     await Get.to(() => MarketDetailView(item: item));
@@ -503,18 +506,18 @@ class DeepLinkService extends GetxService {
   Future<void> _openJob(String jobId) async {
     final cleanId = jobId.trim();
     if (cleanId.isEmpty) {
-      AppSnackbar('Bilgi', 'İlan bulunamadı.');
+      AppSnackbar('common.info'.tr, 'deep_link.listing_not_found'.tr);
       return;
     }
 
     final lookup = await _getJobLookup(cleanId);
     final model = lookup.model;
     if (model == null) {
-      AppSnackbar('Bilgi', 'İlan bulunamadı.');
+      AppSnackbar('common.info'.tr, 'deep_link.listing_not_found'.tr);
       return;
     }
     if (model.ended) {
-      AppSnackbar('Bilgi', 'İlan yayından kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'deep_link.listing_removed'.tr);
       return;
     }
 
@@ -566,7 +569,7 @@ class _MarketLookupCache {
 }
 
 class _UserLookupCache {
-  final Map<String, dynamic>? data;
+  final UserSummary? data;
   final DateTime cachedAt;
 
   const _UserLookupCache({
