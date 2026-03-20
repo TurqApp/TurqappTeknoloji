@@ -287,6 +287,7 @@ class MarketOfferService {
 
   static Future<List<MarketOfferModel>> _fetchReceivedOffers(String uid) async {
     final merged = <String, MarketOfferModel>{};
+    var mirrorQuerySucceeded = false;
 
     try {
       final userSnap = await _firestore
@@ -296,6 +297,7 @@ class MarketOfferService {
           .orderBy('createdAt', descending: true)
           .limit(100)
           .get(const GetOptions(source: Source.serverAndCache));
+      mirrorQuerySucceeded = true;
       for (final doc in userSnap.docs) {
         merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
       }
@@ -307,6 +309,7 @@ class MarketOfferService {
             .collection('marketOffersReceived')
             .limit(100)
             .get(const GetOptions(source: Source.serverAndCache));
+        mirrorQuerySucceeded = true;
         for (final doc in userSnap.docs) {
           merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
         }
@@ -315,23 +318,25 @@ class MarketOfferService {
       }
     }
 
-    try {
-      final direct = await _fetchOffers(field: 'sellerId', uid: uid);
-      for (final offer in direct) {
-        merged[offer.id] = offer;
-      }
-    } on FirebaseException {
-      // sellerId index/permission tarafı düşerse item bazlı fallback aşağıda çalışır.
-    } catch (_) {}
+    if (!mirrorQuerySucceeded) {
+      try {
+        final direct = await _fetchOffers(field: 'sellerId', uid: uid);
+        for (final offer in direct) {
+          merged[offer.id] = offer;
+        }
+      } on FirebaseException {
+        // sellerId index/permission tarafı düşerse item bazlı fallback aşağıda çalışır.
+      } catch (_) {}
 
-    try {
-      final ownedItemOffers = await _fetchReceivedOffersByOwnedItems(uid);
-      for (final offer in ownedItemOffers) {
-        merged[offer.id] = offer;
-      }
-    } on FirebaseException {
-      // İki kaynak da düşerse eldeki veriyle devam et.
-    } catch (_) {}
+      try {
+        final ownedItemOffers = await _fetchReceivedOffersByOwnedItems(uid);
+        for (final offer in ownedItemOffers) {
+          merged[offer.id] = offer;
+        }
+      } on FirebaseException {
+        // İki kaynak da düşerse eldeki veriyle devam et.
+      } catch (_) {}
+    }
 
     final items = merged.values.toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -340,6 +345,7 @@ class MarketOfferService {
 
   static Future<List<MarketOfferModel>> _fetchSentOffers(String uid) async {
     final merged = <String, MarketOfferModel>{};
+    var mirrorQuerySucceeded = false;
 
     try {
       final userSnap = await _firestore
@@ -349,6 +355,7 @@ class MarketOfferService {
           .orderBy('createdAt', descending: true)
           .limit(100)
           .get(const GetOptions(source: Source.serverAndCache));
+      mirrorQuerySucceeded = true;
       for (final doc in userSnap.docs) {
         merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
       }
@@ -360,6 +367,7 @@ class MarketOfferService {
             .collection('marketOffersSent')
             .limit(100)
             .get(const GetOptions(source: Source.serverAndCache));
+        mirrorQuerySucceeded = true;
         for (final doc in userSnap.docs) {
           merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
         }
@@ -368,23 +376,25 @@ class MarketOfferService {
       }
     }
 
-    try {
-      final direct = await _fetchOffers(field: 'buyerId', uid: uid);
-      for (final offer in direct) {
-        merged[offer.id] = offer;
-      }
-    } on FirebaseException {
-      // buyerId index/permission düşerse item bazlı fallback aşağıda çalışır.
-    } catch (_) {}
+    if (!mirrorQuerySucceeded) {
+      try {
+        final direct = await _fetchOffers(field: 'buyerId', uid: uid);
+        for (final offer in direct) {
+          merged[offer.id] = offer;
+        }
+      } on FirebaseException {
+        // buyerId index/permission düşerse item bazlı fallback aşağıda çalışır.
+      } catch (_) {}
 
-    try {
-      final scanned = await _scanAllOffersForUser(uid, matchBuyer: true);
-      for (final offer in scanned) {
-        merged[offer.id] = offer;
-      }
-    } on FirebaseException {
-      // Elimizdeki veriyle devam et.
-    } catch (_) {}
+      try {
+        final scanned = await _scanAllOffersForUser(uid, matchBuyer: true);
+        for (final offer in scanned) {
+          merged[offer.id] = offer;
+        }
+      } on FirebaseException {
+        // Elimizdeki veriyle devam et.
+      } catch (_) {}
+    }
 
     final items = merged.values.toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -427,10 +437,8 @@ class MarketOfferService {
     required bool matchBuyer,
   }) async {
     const options = GetOptions(source: Source.serverAndCache);
-    final itemSnap = await _firestore
-        .collection('marketStore')
-        .limit(200)
-        .get(options);
+    final itemSnap =
+        await _firestore.collection('marketStore').limit(200).get(options);
 
     final offers = <MarketOfferModel>[];
     for (final itemDoc in itemSnap.docs) {
