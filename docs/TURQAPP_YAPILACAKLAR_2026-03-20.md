@@ -577,8 +577,8 @@ Aktif faz:
 - Son tamamlanan Android runtime isi: `main.dart` global locale rebuild zinciri sadeleştirildi, `PlaybackKPI.track()` build-phase mutation'dan cikarildi, `Education` tarafinda `ViewModeController` fallback'i eklendi.
 - Son tamamlanan Android scroll stabilizasyonu: `MyProfile`, `SocialProfile`, `LikedPosts`, `Archives`, `TopTags`, `TagPosts`, `FloodListing` yuzeylerinde layout aninda `RenderBox/localToGlobal` kullanan centered-index paternleri konservatif scroll heuristics'e cekildi.
 - Son tamamlanan Android ad stabilizasyonu: `AdmobKare` shared `BannerAd` pool reuse'u gecici olarak kapatildi; dinamik listelerde `This AdWidget is already in the Widget tree` kirigi baskilandi.
-- Son tamamlanan backend veri isi: `marketStore/offers` collection-group sorgulari icin eksik composite index tanimlari `firestore.indexes.json` icine eklendi.
-- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; `firestore.indexes.json` degisikligini deploy etmek; market offer fallback loglarini gereksiz gürültü üretmeyecek sekilde sadeleştirmek.
+- Son tamamlanan backend veri isi: `marketStore/offers` collection-group sorgulari icin eksik composite index tanimlari eklendi ve `turqappteknoloji` projesine deploy edildi; gecersiz eski `reshares` index tanimi dosyadan cikarildi.
+- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; market offer fallback loglarini gereksiz gürültü üretmeyecek sekilde sadeleştirmek.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
