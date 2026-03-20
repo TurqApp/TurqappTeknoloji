@@ -813,7 +813,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
               Get.to(() =>
                       FollowingFollowers(selection: 1, userId: widget.userID))
                   ?.then((_) {
-                _setCenteredIndex(0);
+                controller.resumeCenteredPost();
               });
             },
             child: Container(
