@@ -49,6 +49,9 @@ TELEMETRY_FAIL_ON_BLOCKING="$telemetry_fail_on_blocking" \
 echo "[release-alert-bundle]"
 bash scripts/export_release_alert_bundle.sh
 
+echo "[release-alert-message]"
+bash scripts/export_release_alert_message.sh
+
 echo "[release-alert-post]"
 bash scripts/post_release_alert_bundle.sh
 

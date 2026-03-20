@@ -593,6 +593,7 @@ Aktif faz:
 - Son tamamlanan alert post isi: `scripts/post_release_alert_bundle.sh` ile olusan alarm paketi opsiyonel webhook kanalina POST edilebiliyor; `RELEASE_ALERT_WEBHOOK_URL` verilirse release gate cikisinda dis kanal teslim zinciri de tamamlanmis oluyor.
 - Son tamamlanan alert summary isi: release alert bundle artik `severity`, `headline`, `topSignals` ve `nextActions` alanlarini da uretiyor; webhook post script'i bu ozeti `x-release-alert-severity` ve `x-release-alert-headline` header'lariyla da dis kanala tasiyor.
 - Son tamamlanan provider format isi: `tool/release_alert_message.dart` ile ayni alert bundle `raw`, `slack` veya `discord` JSON formatina cevrilebiliyor; `RELEASE_ALERT_PAYLOAD_FORMAT` ile post script'i hedef webhook'un bekledigi payload sekline geciyor.
+- Son tamamlanan message export isi: `scripts/export_release_alert_message.sh` ile release gate sonunda provider'a uygun son mesaj payload'i da artifact olarak yaziliyor; boylece gonderimden bagimsiz incelenebilir `release_alert_message_latest.json` ciktisi var.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
