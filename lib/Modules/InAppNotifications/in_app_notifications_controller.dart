@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 
@@ -23,6 +25,8 @@ class InAppNotificationsController extends GetxController {
   final RxInt unreadTotal = 0.obs;
   final NotificationsRepository _notificationsRepository =
       NotificationsRepository.ensure();
+  final NotificationsSnapshotRepository _notificationsSnapshotRepository =
+      NotificationsSnapshotRepository.ensure();
   bool _markAllReadQueued = false;
   bool _inboxSeenRequested = false;
 
@@ -65,19 +69,31 @@ class InAppNotificationsController extends GetxController {
     _notificationSub?.cancel();
     _newNotificationHeadSub?.cancel();
 
-    await _loadInitialNotificationsFromCache(uid);
+    await _loadInitialNotificationsFromSnapshot(uid);
     _bindNotificationsCacheStream(uid);
     _bindNewNotificationHeadStream(uid);
+    unawaited(_refreshNotificationsSnapshot(uid));
   }
 
-  Future<void> _loadInitialNotificationsFromCache(String uid) async {
+  Future<void> _loadInitialNotificationsFromSnapshot(String uid) async {
     try {
-      final snapshot =
-          await _notificationsRepository.fetchCachedNotifications(uid);
-      _applyNotificationDocs(snapshot.docs, replace: true);
+      final resource = await _notificationsSnapshotRepository.bootstrapInbox(
+        userId: uid,
+      );
+      _applySnapshotResource(resource);
     } catch (_) {
       complatedDataFetch.value = true;
     }
+  }
+
+  Future<void> _refreshNotificationsSnapshot(String uid) async {
+    try {
+      final resource = await _notificationsSnapshotRepository.loadInbox(
+        userId: uid,
+        forceSync: true,
+      );
+      _applySnapshotResource(resource);
+    } catch (_) {}
   }
 
   void _bindNotificationsCacheStream(String uid) {
@@ -187,6 +203,30 @@ class InAppNotificationsController extends GetxController {
         ..clear()
         ..addAll(next);
     }
+    complatedDataFetch.value = true;
+    _applyFilters();
+    _refreshUnreadTotal();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
+        userId: uid,
+        notifications: List<NotificationModel>.from(_allNotifications),
+        source: CachedResourceSource.firestoreCache,
+      ));
+    }
+  }
+
+  void _applySnapshotResource(
+    CachedResource<List<NotificationModel>> resource,
+  ) {
+    final notifications = resource.data;
+    if (notifications == null || notifications.isEmpty) {
+      complatedDataFetch.value = true;
+      return;
+    }
+    _allNotifications
+      ..clear()
+      ..addAll(notifications);
     complatedDataFetch.value = true;
     _applyFilters();
     _refreshUnreadTotal();
@@ -395,26 +435,26 @@ class InAppNotificationsController extends GetxController {
   String _descFromType(String type, {String title = ""}) {
     switch (type) {
       case "like":
-        return "gönderini beğendi";
+        return "notification.desc.like".tr;
       case "comment":
-        return "gönderine yorum yaptı";
+        return "notification.desc.comment".tr;
       case "reshared_posts":
-        return "gönderini yeniden paylaştı";
+        return "notification.desc.reshare".tr;
       case "shared_as_posts":
       case "reshare":
-        return "gönderini paylaştı";
+        return "notification.desc.share".tr;
       case "follow":
       case "User":
-        return "seni takip etmeye başladı";
+        return "notification.desc.follow".tr;
       case "message":
       case "Chat":
-        return "sana mesaj gönderdi";
+        return "notification.desc.message".tr;
       case "job_application":
-        return "ilanına başvuru yaptı";
+        return "notification.desc.job_application".tr;
       case "tutoring_application":
-        return "özel ders ilanına başvuru yaptı";
+        return "notification.desc.tutoring_application".tr;
       case "tutoring_status":
-        return "özel ders başvuru durumunu güncelledi";
+        return "notification.desc.tutoring_status".tr;
       default:
         return "";
     }

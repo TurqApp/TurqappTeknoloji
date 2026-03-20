@@ -34,6 +34,16 @@ class NotificationsRepository extends GetxService {
         .get(const GetOptions(source: Source.cache));
   }
 
+  Future<QuerySnapshot<Map<String, dynamic>>> fetchServerNotifications(
+    String uid, {
+    int limit = 300,
+  }) {
+    return _notificationsRef(uid)
+        .orderBy('timeStamp', descending: true)
+        .limit(limit)
+        .get(const GetOptions(source: Source.server));
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> watchCachedNotifications(
     String uid, {
     int limit = 300,
