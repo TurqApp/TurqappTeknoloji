@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/interests_list.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class InterestsController extends GetxController {
   final RxList<String> selecteds = <String>[].obs;
@@ -48,6 +49,15 @@ class InterestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    final currentUser = CurrentUserService.instance.currentUser;
+    if (!_userInteracted &&
+        currentUser != null &&
+        currentUser.userID == FirebaseAuth.instance.currentUser?.uid &&
+        currentUser.ilgialanlari.isNotEmpty) {
+      selecteds.value = currentUser.ilgialanlari
+          .map((e) => _canonicalize(e.toString()))
+          .toList();
+    }
     _userRepository
         .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
         .then((data) {
@@ -77,8 +87,10 @@ class InterestsController extends GetxController {
         if (!_selectionLimitShown) {
           _selectionLimitShown = true;
           AppSnackbar(
-            "Seçim Sınırı",
-            "En fazla $maxSelection ilgi alanı seçebilirsiniz.",
+            'interests.limit_title'.tr,
+            'interests.limit_body'.trParams({
+              'max': '$maxSelection',
+            }),
           );
         }
         return;
@@ -101,8 +113,10 @@ class InterestsController extends GetxController {
   Future<void> setData() async {
     if (selecteds.length < minSelection) {
       AppSnackbar(
-        "Eksik Seçim",
-        "En az $minSelection ilgi alanı seçmelisiniz.",
+        'interests.min_title'.tr,
+        'interests.min_body'.trParams({
+          'min': '$minSelection',
+        }),
       );
       return;
     }
