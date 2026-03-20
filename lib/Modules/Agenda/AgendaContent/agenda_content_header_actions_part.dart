@@ -1,6 +1,162 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentHeaderActionsPart on _AgendaContentState {
+  void _suspendEmbeddedFeedContextsForRoute() {
+    if (Get.isRegistered<FloodListingController>()) {
+      final floodController = Get.find<FloodListingController>();
+      final floodIndex =
+          floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.lastCenteredIndex = floodIndex;
+        floodController.centeredIndex.value = -1;
+      }
+    }
+
+    if (Get.isRegistered<ProfileController>()) {
+      final profileController = Get.find<ProfileController>();
+      final profileIndex = profileController.mergedPosts.indexWhere(
+        (entry) => (entry['post'] as PostsModel).docID == widget.model.docID,
+      );
+      if (profileIndex >= 0) {
+        profileController.lastCenteredIndex = profileIndex;
+        profileController.currentVisibleIndex.value = -1;
+        profileController.centeredIndex.value = -1;
+        profileController.pausetheall.value = true;
+      }
+    }
+
+    if (Get.isRegistered<SocialProfileController>()) {
+      final socialProfileController = Get.find<SocialProfileController>();
+      final socialIndex = socialProfileController.allPosts
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (socialIndex >= 0) {
+        socialProfileController.lastCenteredIndex = socialIndex;
+        socialProfileController.currentVisibleIndex.value = -1;
+        socialProfileController.centeredIndex.value = -1;
+      }
+    }
+
+    if (Get.isRegistered<ArchiveController>()) {
+      final archiveController = Get.find<ArchiveController>();
+      final archiveIndex =
+          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.lastCenteredIndex = archiveIndex;
+        archiveController.centeredIndex.value = -1;
+      }
+    }
+
+    if (Get.isRegistered<LikedPostControllers>()) {
+      final likedController = Get.find<LikedPostControllers>();
+      final likedIndex = likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      if (likedIndex >= 0) {
+        likedController.lastCenteredIndex = likedIndex;
+        likedController.currentVisibleIndex.value = -1;
+        likedController.centeredIndex.value = -1;
+      }
+    }
+
+    if (Get.isRegistered<TopTagsController>()) {
+      final topTagsController = Get.find<TopTagsController>();
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.lastCenteredIndex = topTagsIndex;
+        topTagsController.currentVisibleIndex.value = -1;
+        topTagsController.centeredIndex.value = -1;
+      }
+    }
+
+    if (Get.isRegistered<TagPostsController>()) {
+      final tagPostsController = Get.find<TagPostsController>();
+      final tagPostIndex =
+          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.lastCenteredIndex = tagPostIndex;
+        tagPostsController.currentVisibleIndex.value = -1;
+        tagPostsController.centeredIndex.value = -1;
+      }
+    }
+  }
+
+  void _restoreEmbeddedFeedContexts() {
+    if (Get.isRegistered<FloodListingController>()) {
+      final floodController = Get.find<FloodListingController>();
+      final floodIndex =
+          floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.centeredIndex.value = floodIndex;
+        floodController.lastCenteredIndex = floodIndex;
+      }
+    }
+
+    if (Get.isRegistered<ProfileController>()) {
+      final profileController = Get.find<ProfileController>();
+      final profileIndex = profileController.mergedPosts.indexWhere(
+        (entry) => (entry['post'] as PostsModel).docID == widget.model.docID,
+      );
+      if (profileIndex >= 0) {
+        profileController.lastCenteredIndex = profileIndex;
+        profileController.currentVisibleIndex.value = profileIndex;
+        profileController.centeredIndex.value = profileIndex;
+        profileController.pausetheall.value = false;
+      }
+    }
+
+    if (Get.isRegistered<SocialProfileController>()) {
+      final socialProfileController = Get.find<SocialProfileController>();
+      final socialIndex = socialProfileController.allPosts
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (socialIndex >= 0) {
+        socialProfileController.lastCenteredIndex = socialIndex;
+        socialProfileController.currentVisibleIndex.value = socialIndex;
+        socialProfileController.centeredIndex.value = socialIndex;
+      }
+    }
+
+    if (Get.isRegistered<ArchiveController>()) {
+      final archiveController = Get.find<ArchiveController>();
+      final archiveIndex =
+          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.lastCenteredIndex = archiveIndex;
+        archiveController.centeredIndex.value = archiveIndex;
+      }
+    }
+
+    if (Get.isRegistered<LikedPostControllers>()) {
+      final likedController = Get.find<LikedPostControllers>();
+      final likedIndex = likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      if (likedIndex >= 0) {
+        likedController.lastCenteredIndex = likedIndex;
+        likedController.currentVisibleIndex.value = likedIndex;
+        likedController.centeredIndex.value = likedIndex;
+      }
+    }
+
+    if (Get.isRegistered<TopTagsController>()) {
+      final topTagsController = Get.find<TopTagsController>();
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.lastCenteredIndex = topTagsIndex;
+        topTagsController.currentVisibleIndex.value = topTagsIndex;
+        topTagsController.centeredIndex.value = topTagsIndex;
+      }
+    }
+
+    if (Get.isRegistered<TagPostsController>()) {
+      final tagPostsController = Get.find<TagPostsController>();
+      final tagPostIndex =
+          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.lastCenteredIndex = tagPostIndex;
+        tagPostsController.currentVisibleIndex.value = tagPostIndex;
+        tagPostsController.centeredIndex.value = tagPostIndex;
+      }
+    }
+  }
+
   void _suspendAgendaFeedForRoute() {
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
@@ -8,6 +164,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       agendaController.lastCenteredIndex = modelIndex;
     }
     agendaController.centeredIndex.value = -1;
+    _suspendEmbeddedFeedContextsForRoute();
     videoController?.pause();
   }
 
@@ -31,6 +188,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       agendaController.centeredIndex.value = target;
       agendaController.lastCenteredIndex = target;
     }
+    _restoreEmbeddedFeedContexts();
   }
 
   bool _hasStoryAvatar() {
