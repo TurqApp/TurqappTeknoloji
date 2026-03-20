@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
@@ -21,6 +22,7 @@ class AccountCenterService extends GetxService {
   final RxString lastUsedUid = ''.obs;
   SharedPreferences? _prefs;
   bool _initScheduled = false;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   @override
   void onInit() {
@@ -263,7 +265,7 @@ class AccountCenterService extends GetxService {
       return;
     }
 
-    final summary = await UserRepository.ensure().getUser(
+    final summary = await _userSummaryResolver.resolve(
       firebaseUser.uid,
       preferCache: true,
     );

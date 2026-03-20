@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeGridController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   var avatarUrl = ''.obs;
   var nickname = ''.obs;
   var toplamBasvuru = 0.obs;
@@ -33,10 +34,9 @@ class DenemeGridController extends GetxController {
   Future<void> fetchProfileData(String userID) async {
     isLoadingProfile.value = true;
     try {
-      final user = await UserRepository.ensure().getUser(
+      final user = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
-        cacheOnly: false,
       );
       avatarUrl.value = user?.avatarUrl ?? '';
       nickname.value = user?.preferredName ?? '';
