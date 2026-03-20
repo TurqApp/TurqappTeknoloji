@@ -5,6 +5,8 @@ class IntegrationSmokeScenarioReport {
     required this.previousRoute,
     required this.hasFailure,
     required this.hasScreenshot,
+    required this.artifactExported,
+    required this.artifactReason,
     required this.invariantCount,
     required this.telemetryIssueCount,
     required this.telemetryBlockingCount,
@@ -15,6 +17,8 @@ class IntegrationSmokeScenarioReport {
   final String previousRoute;
   final bool hasFailure;
   final bool hasScreenshot;
+  final bool artifactExported;
+  final String artifactReason;
   final int invariantCount;
   final int telemetryIssueCount;
   final int telemetryBlockingCount;
@@ -29,6 +33,8 @@ class IntegrationSmokeScenarioReport {
       'previousRoute': previousRoute,
       'hasFailure': hasFailure,
       'hasScreenshot': hasScreenshot,
+      'artifactExported': artifactExported,
+      'artifactReason': artifactReason,
       'invariantCount': invariantCount,
       'telemetryIssueCount': telemetryIssueCount,
       'telemetryBlockingCount': telemetryBlockingCount,
@@ -129,6 +135,7 @@ class IntegrationSmokeReporter {
     final thresholdReport = _asMap(telemetry['thresholdReport']);
     final invariants = _asMap(artifact['invariants']);
     final failure = _asMap(artifact['failure']);
+    final artifactStatus = _asMap(artifact['artifactStatus']);
 
     final issues = _asList(thresholdReport['issues']);
     final telemetryBlockingCount = issues.where((issue) {
@@ -142,6 +149,8 @@ class IntegrationSmokeReporter {
       previousRoute: (probe['previousRoute'] ?? '').toString(),
       hasFailure: failure.isNotEmpty,
       hasScreenshot: (failure['screenshotPath'] ?? '').toString().isNotEmpty,
+      artifactExported: artifactStatus['exported'] == true,
+      artifactReason: (artifactStatus['reason'] ?? '').toString(),
       invariantCount: _asInt(invariants['count']),
       telemetryIssueCount: issues.length,
       telemetryBlockingCount: telemetryBlockingCount,

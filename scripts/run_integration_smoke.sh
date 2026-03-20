@@ -7,6 +7,7 @@ cd "$REPO_ROOT"
 artifact_dir="artifacts/integration_smoke"
 android_package="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
+last_artifact_export_reason=""
 
 default_fixture_file="integration_test/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
@@ -100,6 +101,51 @@ pick_android_device() {
   printf '%s\n' "${android_devices[0]}"
 }
 
+scenario_name_for_artifact() {
+  local artifact="$1"
+  basename "$artifact" .json
+}
+
+write_host_stub_artifact() {
+  local artifact="$1"
+  local scenario="$2"
+  local test_status="$3"
+  local export_reason="$4"
+
+  mkdir -p "$(dirname "$artifact")"
+
+  local failure_json='{}'
+  if [[ "$test_status" -ne 0 ]]; then
+    failure_json="$(node -e "process.stdout.write(JSON.stringify({message: 'smoke test exited with code ' + process.argv[1], source: 'host_stub'}))" "$test_status")"
+  fi
+
+  local artifact_status_json
+  artifact_status_json="$(node -e "process.stdout.write(JSON.stringify({source: 'host_stub', exported: false, reason: process.argv[1] || 'artifact_unavailable'}))" "$export_reason")"
+
+  cat >"$artifact" <<EOF
+{
+  "scenario": "$scenario",
+  "probe": {
+    "currentRoute": "",
+    "previousRoute": ""
+  },
+  "telemetry": {
+    "registered": false,
+    "thresholdReport": {
+      "issues": []
+    }
+  },
+  "invariants": {
+    "registered": false,
+    "count": 0,
+    "violations": []
+  },
+  "failure": $failure_json,
+  "artifactStatus": $artifact_status_json
+}
+EOF
+}
+
 device_id="${INTEGRATION_SMOKE_DEVICE_ID:-}"
 if [[ -z "$device_id" ]]; then
   device_id="$(pick_android_device)"
@@ -120,18 +166,22 @@ is_android_package_installed() {
 pull_android_artifact() {
   local target_device="$1"
   local artifact="$2"
+  last_artifact_export_reason=""
   if [[ -z "$target_device" || -z "$artifact" ]]; then
     echo "[integration-smoke] no Android device detected for artifact export" >&2
+    last_artifact_export_reason="no_device"
     return 1
   fi
   if ! is_android_package_installed "$target_device"; then
     echo "[integration-smoke] package not installed at artifact export time: $android_package" >&2
+    last_artifact_export_reason="package_not_installed"
     return 1
   fi
   local file_name
   file_name="$(basename "$artifact")"
   if ! /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" shell run-as "$android_package" test -f "$android_remote_artifact_dir/$file_name"; then
     echo "[integration-smoke] remote artifact missing: $file_name" >&2
+    last_artifact_export_reason="remote_artifact_missing"
     return 1
   fi
   /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "$target_device" exec-out run-as "$android_package" cat "$android_remote_artifact_dir/$file_name" > "$artifact"
@@ -144,6 +194,7 @@ pull_android_artifact() {
 for index in "${!smoke_tests[@]}"; do
   test_file="${smoke_tests[$index]}"
   artifact="${smoke_artifacts[$index]}"
+  scenario_name="$(scenario_name_for_artifact "$artifact")"
   echo "[integration-smoke] running $(basename "$test_file")"
   set +e
   flutter "${flutter_args[@]}" "$test_file"
@@ -156,7 +207,10 @@ for index in "${!smoke_tests[@]}"; do
     echo "[integration-smoke] pulling Android artifact for $(basename "$test_file")"
     if ! pull_android_artifact "$device_id" "$artifact"; then
       echo "[integration-smoke] artifact export skipped for $(basename "$artifact")" >&2
+      write_host_stub_artifact "$artifact" "$scenario_name" "$test_status" "$last_artifact_export_reason"
     fi
+  elif [[ ! -f "$artifact" ]]; then
+    write_host_stub_artifact "$artifact" "$scenario_name" "$test_status" "no_device"
   fi
 done
 

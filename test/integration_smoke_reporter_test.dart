@@ -28,6 +28,10 @@ void main() {
             'currentRoute': '/feed',
             'previousRoute': '/short',
           },
+          'artifactStatus': <String, dynamic>{
+            'exported': false,
+            'reason': 'package_not_installed',
+          },
           'telemetry': <String, dynamic>{
             'thresholdReport': <String, dynamic>{
               'issues': const <Map<String, dynamic>>[],
@@ -46,5 +50,7 @@ void main() {
     expect(report.telemetryBlockingCount, 1);
     expect(report.blockingScenarioCount, 1);
     expect(report.hasBlockingSignals, isTrue);
+    expect(report.scenarios.last.artifactExported, isFalse);
+    expect(report.scenarios.last.artifactReason, 'package_not_installed');
   });
 }
