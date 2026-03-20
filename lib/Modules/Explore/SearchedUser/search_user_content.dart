@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
@@ -17,6 +18,8 @@ class SearchUserContent extends StatelessWidget {
   final OgrenciModel model;
   final bool isSearch;
   static final UserRepository _userRepository = UserRepository.ensure();
+  static final UserSummaryResolver _userSummaryResolver =
+      UserSummaryResolver.ensure();
   static final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
   static final UsernameLookupRepository _usernameLookupRepository =
@@ -59,6 +62,13 @@ class SearchUserContent extends StatelessWidget {
 
   Future<bool> _isTargetAccountActive(String targetUid) async {
     try {
+      final summary = await _userSummaryResolver.resolve(
+        targetUid,
+        preferCache: true,
+      );
+      if (summary != null && summary.isDeleted) {
+        return false;
+      }
       final data = await _userRepository.getUserRaw(targetUid);
       if (data == null) return false;
       final deletedAccount = (data['isDeleted'] ?? false) == true;
@@ -115,13 +125,18 @@ class SearchUserContent extends StatelessWidget {
                     if (!isActive) {
                       await _removeRecent();
                       AppSnackbar(
-                          'Bilgilendirme', 'Bu hesap artık görüntülenemiyor.');
+                          'common.info'.tr, 'explore.account_unavailable'.tr);
                       return;
                     }
-                    Get.to(
+                    final explore = Get.isRegistered<ExploreController>()
+                        ? Get.find<ExploreController>()
+                        : null;
+                    explore?.suspendExplorePreview();
+                    await Get.to(
                       () => SocialProfile(userID: targetUid),
                       preventDuplicates: false,
                     );
+                    explore?.resumeExplorePreview();
                     await _saveRecentIfNeeded(targetUid);
                   },
                   child: Row(

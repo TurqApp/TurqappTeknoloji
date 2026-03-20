@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -15,11 +16,16 @@ class SearchUserContentController extends GetxController {
     if (userID.trim().isEmpty) return;
     isNavigated.value = true;
     try {
+      final explore = Get.isRegistered<ExploreController>()
+          ? Get.find<ExploreController>()
+          : null;
+      explore?.suspendExplorePreview();
       // Sayfa kapandığında isNavigated sıfırlanır (finally)
       await Get.to(
         () => SocialProfile(userID: userID),
         preventDuplicates: false,
       );
+      explore?.resumeExplorePreview();
 
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
       await _userSubcollectionRepository.upsertEntry(
@@ -36,6 +42,9 @@ class SearchUserContentController extends GetxController {
       await CurrentUserService.instance.forceRefresh();
     } catch (_) {
     } finally {
+      if (Get.isRegistered<ExploreController>()) {
+        Get.find<ExploreController>().resumeExplorePreview();
+      }
       isNavigated.value = false;
     }
   }
