@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -56,6 +57,7 @@ class FeedSnapshotRepository extends GetxService {
   }
 
   final PostRepository _postRepository = PostRepository.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final WarmLaunchPool _warmLaunchPool = WarmLaunchPool.ensure();
 
@@ -348,6 +350,18 @@ class FeedSnapshotRepository extends GetxService {
         'sample=${visible.take(5).map((post) => post.docID).join(',')}',
       );
     }
+    _invariantGuard.assertNotEmptyAfterRefresh(
+      surface: 'feed',
+      invariantKey: 'snapshot_visible_after_filter',
+      hadSnapshot: merged.isNotEmpty,
+      previousCount: merged.length,
+      nextCount: visible.length,
+      payload: <String, dynamic>{
+        'uid': normalizedUserId,
+        'refsCount': refs.length,
+        'usesPrimaryFeed': true,
+      },
+    );
 
     return FeedSourcePage(
       items: visible,

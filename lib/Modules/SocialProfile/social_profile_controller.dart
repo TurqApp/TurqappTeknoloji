@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
@@ -43,6 +44,7 @@ class SocialProfileController extends GetxController {
   final RxList<PostsModel> reshares = <PostsModel>[].obs;
   StreamSubscription<List<UserPostReference>>? _resharesSub;
   final UserRepository _userRepository = UserRepository.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final SocialMediaLinksRepository _socialLinksRepository =
       SocialMediaLinksRepository.ensure();
@@ -145,10 +147,25 @@ class SocialProfileController extends GetxController {
   }
 
   void resumeCenteredPost() {
+    final expectedDocId = (lastCenteredIndex != null &&
+            lastCenteredIndex! >= 0 &&
+            lastCenteredIndex! < allPosts.length)
+        ? allPosts[lastCenteredIndex!].docID
+        : null;
     final target = resolveResumeCenteredIndex();
     if (target < 0 || target >= allPosts.length) return;
     lastCenteredIndex = target;
     centeredIndex.value = target;
+    _invariantGuard.assertCenteredSelection(
+      surface: 'social_profile',
+      invariantKey: 'resume_centered_post',
+      centeredIndex: centeredIndex.value,
+      docIds: allPosts.map((post) => post.docID).toList(growable: false),
+      expectedDocId: expectedDocId,
+      payload: <String, dynamic>{
+        'target': target,
+      },
+    );
   }
 
   @override
@@ -449,8 +466,9 @@ class SocialProfileController extends GetxController {
           preferCache: true,
           cacheOnly: true,
         );
-        final bootstrapData =
-            (cachedRaw != null && cachedRaw.isNotEmpty) ? cachedRaw : summary.toMap();
+        final bootstrapData = (cachedRaw != null && cachedRaw.isNotEmpty)
+            ? cachedRaw
+            : summary.toMap();
         _applyUserData(bootstrapData);
         if (_needsHeaderSupplementalData(bootstrapData)) {
           final raw = await _userRepository.getUserRaw(
@@ -484,9 +502,12 @@ class SocialProfileController extends GetxController {
         ? Map<String, dynamic>.from(raw["profile"] as Map)
         : const <String, dynamic>{};
     final bioText = (raw["bio"] ?? profile["bio"] ?? "").toString().trim();
-    final addressText = (raw["adres"] ?? profile["adres"] ?? "").toString().trim();
+    final addressText =
+        (raw["adres"] ?? profile["adres"] ?? "").toString().trim();
     final meslekText =
-        (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString().trim();
+        (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "")
+            .toString()
+            .trim();
     return bioText.isEmpty || addressText.isEmpty || meslekText.isEmpty;
   }
 
@@ -547,8 +568,7 @@ class SocialProfileController extends GetxController {
     aramaIzin.value =
         (raw["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
     ban.value = (raw["isBanned"] ?? raw["ban"] ?? false) == true;
-    gizliHesap.value =
-        (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
+    gizliHesap.value = (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
     hesapOnayi.value =
         (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
     final blocked = raw["blockedUsers"];
@@ -559,8 +579,10 @@ class SocialProfileController extends GetxController {
     }
     final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
     final likesCount = raw["counterOfLikes"] ?? stats["counterOfLikes"] ?? 0;
-    totalPosts.value = (postsCount is num) ? postsCount.toInt() : totalPosts.value;
-    totalLikes.value = (likesCount is num) ? likesCount.toInt() : totalLikes.value;
+    totalPosts.value =
+        (postsCount is num) ? postsCount.toInt() : totalPosts.value;
+    totalLikes.value =
+        (likesCount is num) ? likesCount.toInt() : totalLikes.value;
   }
 
   Future<void> toggleFollowStatus() async {

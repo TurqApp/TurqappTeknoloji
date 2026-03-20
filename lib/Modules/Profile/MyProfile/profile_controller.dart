@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/profile_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
@@ -36,6 +37,7 @@ class ProfileController extends GetxController {
   final FollowRepository _followRepository = FollowRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
   final SocialMediaLinksRepository _socialLinksRepository =
       SocialMediaLinksRepository.ensure();
   Timer? _persistCacheTimer;
@@ -148,12 +150,29 @@ class ProfileController extends GetxController {
   }
 
   void resumeCenteredPost() {
+    final expectedDocId = (lastCenteredIndex != null &&
+            lastCenteredIndex! >= 0 &&
+            lastCenteredIndex! < mergedPosts.length)
+        ? (mergedPosts[lastCenteredIndex!]['docID'] as String?)
+        : null;
     final target = resolveResumeCenteredIndex();
     if (target < 0 || target >= mergedPosts.length) return;
     lastCenteredIndex = target;
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
     pausetheall.value = false;
+    _invariantGuard.assertCenteredSelection(
+      surface: 'profile',
+      invariantKey: 'resume_centered_post',
+      centeredIndex: centeredIndex.value,
+      docIds: mergedPosts
+          .map((post) => (post['docID'] as String?) ?? '')
+          .toList(growable: false),
+      expectedDocId: expectedDocId,
+      payload: <String, dynamic>{
+        'target': target,
+      },
+    );
   }
 
   @override
@@ -236,10 +255,13 @@ class ProfileController extends GetxController {
       headerFirstName.value = display;
       headerLastName.value = '';
     } else {
-      headerFirstName.value = _preserveNonEmpty(headerFirstName, data['firstName']);
-      headerLastName.value = _preserveNonEmpty(headerLastName, data['lastName']);
+      headerFirstName.value =
+          _preserveNonEmpty(headerFirstName, data['firstName']);
+      headerLastName.value =
+          _preserveNonEmpty(headerLastName, data['lastName']);
     }
-    headerMeslek.value = _preserveNonEmpty(headerMeslek, data['meslekKategori']);
+    headerMeslek.value =
+        _preserveNonEmpty(headerMeslek, data['meslekKategori']);
     headerBio.value = _preserveNonEmpty(headerBio, data['bio']);
     headerAdres.value = _preserveNonEmpty(headerAdres, data['adres']);
   }

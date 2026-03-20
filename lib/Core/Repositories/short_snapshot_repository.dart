@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -41,6 +42,7 @@ class ShortSnapshotRepository extends GetxService {
   }
 
   final ShortRepository _shortRepository = ShortRepository.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final WarmLaunchPool _warmLaunchPool = WarmLaunchPool.ensure();
 
@@ -285,6 +287,17 @@ class ShortSnapshotRepository extends GetxService {
         ),
       );
     }
+    _invariantGuard.assertNotEmptyAfterRefresh(
+      surface: 'short',
+      invariantKey: 'eligible_visible_after_filter',
+      hadSnapshot: normalized.isNotEmpty,
+      previousCount: normalized.length,
+      nextCount: visible.length,
+      payload: <String, dynamic>{
+        'currentUserId': currentUserId,
+        'followingCount': followingIds.length,
+      },
+    );
     return visible;
   }
 

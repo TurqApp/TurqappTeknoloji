@@ -1,4 +1,4 @@
-# TurqApp Yapilacaklar
+# TurqApp Master Plan
 
 Tarih: 20 Mart 2026
 
@@ -6,9 +6,12 @@ Tarih: 20 Mart 2026
 
 Bu not, cache-first mimari, user-summary resolver standardizasyonu, feed/short/profile playback-render stabilizasyonu ve kalan son mil tuning isi icin devam noktasi olarak tutulur.
 
-Son guvenli durum:
+Bu dosya artik otomasyon + manuel dogrulama + bilincli raw alanlar + legacy cleanup dahil tum aciklari toplayan kanonik master plan olarak kullanilsin.
 
-- `HEAD`: `863b6a98` `Finalize urgent resolver follow-ups`
+Referans durum:
+
+- Guncel `HEAD`: `ccb53e78` `Expand full automation rollout plan`
+- Resolver/cache-first stabilizasyon checkpoint'i: `863b6a98` `Finalize urgent resolver follow-ups`
 - Ana mimari safhasi bitti.
 - Resolver / cache-first yayginlastirma buyuk olcude bitti.
 - Kalan isler buyuk refactor degil; tuning, gercek cihaz dogrulama ve az sayida dirty legacy cleanup.
@@ -340,19 +343,249 @@ Bu kisim, tek kisi calisan bir ekip icin agir QA orgutu kurmadan maksimum otomas
    - "bug cikinca test/alarm versin" modeline gecmek
    - tek kisi olsan bile release oncesi minimum manuel kontrolle guvenli cikis yapmak
 
+## Master Plan Durum Kontrolu
+
+Durum etiketleri:
+
+- `ACIK`: repo icinde kapanmis gorunmuyor veya saha/cihaz dogrulamasi bekliyor
+- `KISMEN`: kod karsiligi var ama tam kapanmis sayilmasi icin ikinci pass veya manuel dogrulama gerekiyor
+- `BILINCLI`: bu yuzey bilerek raw/tam belge kullaniyor; hemen zorlanmayacak
+- `EKSIK ALTYAPI`: repo icinde dosya/katman olarak henuz yok
+
+### A. En yuksek oncelik: tuning ve dogrulama durum kontrolu
+
+1. `Feed` autoplay ve visibility KPI'larini sahada izle.
+   Durum: `KISMEN`
+   Not: KPI uretimi var; saha izleme ve threshold/alarm yok.
+
+2. `Short` adapter churn, recreate rate ve first-frame gecikmesini izle.
+   Durum: `KISMEN`
+   Not: playback window ve video telemetry/TTFF katmani var; recreate threshold/alarm ve saha takibi acik.
+
+3. `media-ready rerank` etkisini gercek kullanicida dogrula.
+   Durum: `KISMEN`
+   Not: `FeedRenderCoordinator` icinde media-ready rerank kodu var; gercek kullanici etkisi kapanmamis.
+
+4. `promo mixing` sahadaki davranisini kontrol et.
+   Durum: `KISMEN`
+   Not: feed render katmaninda promo/ad/recommended mix var; saha davranisi ve KPI analizi acik.
+
+5. `Notifications` optimistic state ile server merge arasinda kopma var mi loglardan bak.
+   Durum: `KISMEN`
+   Not: optimistic read/delete + rollback + merge kodu var; log/cihaz dogrulamasi acik.
+
+6. `cached_user_avatar` davranisini zayif ag ve stale avatar senaryosunda dogrula.
+   Durum: `KISMEN`
+   Not: summary + raw + current-user fallback zinciri var; zayif ag/stale avatar smoke testi acik.
+
+7. `CurrentUserService` ile warm acilan selector/form ekranlarinda gec acilis regresssion'i var mi bak.
+   Durum: `KISMEN`
+   Not: `AboutProfile`, `Interests`, `JobSelector`, `AddressSelector` current-user warm/acilis yardimi aliyor; gercek cihaz regression gecisi acik.
+
+### B. Bilincli olarak raw kalan veya ikinci faza birakilan yerler durum kontrolu
+
+- `EditProfile`
+  Durum: `BILINCLI`
+  Not: current-user cache kullaniyor ama raw fallback halen var.
+- `EditorEmail`
+  Durum: `BILINCLI`
+  Not: account/email dogasi geregi raw belge ihtiyaci suruyor.
+- `EditorPhoneNumber`
+  Durum: `BILINCLI`
+  Not: phone/email alanlari icin raw okuma halen var.
+- `EditorNickname`
+  Durum: `BILINCLI`
+  Not: nickname degisimi ve force refresh akisi nedeniyle raw okuma suruyor.
+- `AddressSelector`
+  Durum: `BILINCLI`
+  Not: current-user warm seed var, raw fallback devam ediyor.
+- `JobSelector` raw fallback'i
+  Durum: `BILINCLI`
+  Not: current-user warm seed var, raw fallback devam ediyor.
+- `Interests` raw fallback'i
+  Durum: `BILINCLI`
+  Not: current-user warm seed var, raw fallback devam ediyor.
+- `AboutProfile` `createdDate` icin raw fallback
+  Durum: `BILINCLI`
+  Not: summary ile avatar/nickname geliyor; `createdDate` icin raw okuma suruyor.
+- `SocialProfileController` tam profile alanlari
+  Durum: `BILINCLI`
+  Not: tam profile/raw bucket alanlari halen kullaniliyor.
+- `MyProfileController` tam profile/raw bucket alanlari
+  Durum: `BILINCLI`
+  Not: tam profil ve birkac raw alan bilincli sekilde tutuluyor.
+- `account_center_view`
+  Durum: `BILINCLI`
+  Not: contact/account bilgileri icin raw fallback var.
+- `moderation_settings_view`
+  Durum: `BILINCLI`
+  Not: admin/moderation akislarinda raw lookup suruyor.
+- `education_feed_cta_navigation_service`
+  Durum: `BILINCLI`
+  Not: navigation kararlari icin raw user doc okunuyor.
+- `admin_push_repository`
+  Durum: `BILINCLI`
+  Not: admin push isleri icin raw kullanimi suruyor.
+
+### C. Kalan kucuk legacy cleanup durum kontrolu
+
+1. Feed-benzeri daha kucuk yuzeylerde route donusleri tekrar taranabilir.
+   Durum: `ACIK`
+   Not: ana yuzeyler toparlandi; tum kucuk alt yuzeyler icin merkezi kapanis yok.
+
+2. `FloodListing` icin ekstra route-return tuning gerekirse ayri ele alinabilir.
+   Durum: `KISMEN`
+   Not: `centeredIndex/lastCenteredIndex` akisi var; ama route-return standardizasyonu ana yuzeyler kadar guclu degil.
+
+3. `SavedPosts` yeni davranisi gercek cihazda dogrulanmali.
+   Durum: `KISMEN`
+   Not: snapshot + silent refresh davranisi kodda var; gercek cihaz smoke testi acik.
+
+4. `Profile` ve `SocialProfile` avatar overlay davranisi gercek cihazda kontrol edilmeli.
+   Durum: `KISMEN`
+   Not: overlay ac/kapat ve `resumeCenteredPost()` restore akisi var; cihaz dogrulamasi acik.
+
+5. Dirty worktree icindeki eski i18n / UI metin cleanup commit zincirinden ayiklanabilir.
+   Durum: `ACIK`
+   Not: repo halen cok dirty; bu ayiklama bilincli bir temizlik fazi istiyor.
+
+6. `Explore/SearchedUser` aktif hesap kontrolundeki raw fallback, istenirse second-pass optimize edilebilir.
+   Durum: `ACIK`
+   Not: aktif hesap kontrolu icin raw fallback halen duruyor.
+
+### D. Dogrulama backlog'u durum kontrolu
+
+1. Android gercek cihaz:
+   Durum: `ACIK`
+   Not: dokumante edilen senaryolari kapatan otomatik veya kayitli smoke sonucu yok.
+
+2. iOS gercek cihaz:
+   Durum: `ACIK`
+   Not: `Profile/SocialProfile/avatar overlay/autoplay resume` tarafinda kayitli kapanis izi yok.
+
+3. Zayif ag senaryosu:
+   Durum: `ACIK`
+   Not: fallback zinciri ve cache-first mantigi var; zayif ag matrix smoke henuz yok.
+
+4. User metadata regression:
+   Durum: `ACIK`
+   Not: resolver yaygin; ama rozet/nickname/avatar regresyonlari icin ozel smoke ya da alarm yok.
+
+### E. Analytics / KPI kullanimi durum kontrolu
+
+- `cacheFirstLifecycle`
+  Durum: `KISMEN`
+  Not: event ve summary uretimi var; alarm esigi yok.
+- `renderDiff`
+  Durum: `KISMEN`
+  Not: event ve summary uretimi var; threshold/alarm yok.
+- `playbackWindow`
+  Durum: `KISMEN`
+  Not: event ve summary uretimi var; saha alarmi yok.
+- startup `feedWarmSnapshotHit`
+  Durum: `KISMEN`
+  Not: splash/runtime ozetinde var; alarm yok.
+- startup `shortWarmSnapshotHit`
+  Durum: `KISMEN`
+  Not: splash/runtime ozetinde var; alarm yok.
+- render patch avg/max
+  Durum: `KISMEN`
+  Not: `renderDiff` summary icinde var; otomatik threshold yok.
+- active/visible center thrash
+  Durum: `ACIK`
+  Not: dokumanda hedef metrik olarak var; repo icinde acik threshold/alarm katmani yok.
+- player recreate rate
+  Durum: `ACIK`
+  Not: dogrudan merkezi recreate-rate alarm katmani henuz yok.
+
+### F. Repo icinde henuz eksik olan altyapi
+
+- `integration_test/` kritik smoke test dizini
+  Durum: `EKSIK ALTYAPI`
+- `lib/Core/Services/runtime_invariant_guard.dart`
+  Durum: `KISMEN`
+  Not: ilk merkezi guard servisi eklendi; `Feed`, `Short`, `Profile`, `SocialProfile` ve `resume/empty-after-refresh` invariantlari ilk pass baglandi. Sonraki adim `Notifications`, `Short recreate`, `route replay` ve daha genis test coverage.
+- telemetry threshold / alert policy katmani
+  Durum: `EKSIK ALTYAPI`
+- release gate tek komut akisi
+  Durum: `EKSIK ALTYAPI`
+- artifact toplama: screenshot + KPI dump + route dump
+  Durum: `EKSIK ALTYAPI`
+- flaky test / unstable raporlama katmani
+  Durum: `EKSIK ALTYAPI`
+
+### G. Bundan sonraki master uygulama sirasi
+
+Fazli yuruyus:
+
+1. Faz 0: baseline ve worktree hijyeni
+   - dirty worktree siniflandirilir
+   - generated / tmp / node_modules gurultusu ayiklanir
+   - dar commit disiplini korunur
+2. Faz 1: mimari envanter
+   - kritik yuzeyler icin kaynak zinciri cikarilir:
+     Firestore -> repository -> snapshot/cache -> resolver -> controller -> UI
+3. Faz 2: correctness
+   - feed/profile/short veri tutarliligi
+   - refresh sonrasi kaybolma
+   - hybrid feed / publish / filter parity
+   - route-return correctness
+4. Faz 3: runtime invariant guard
+   - ilk pass basladi
+   - sonraki alt adim:
+     `Notifications`, `Short recreate`, `route replay`, `visible-center thrash`
+5. Faz 4: integration smoke
+   - `integration_test/` dizini
+   - 5 kritik smoke senaryosu
+   - deterministic fixture
+6. Faz 5: telemetry threshold + alarm
+   - KPI esikleri
+   - otomatik uyari / release-blocking kurallari
+7. Faz 6: gercek cihaz matrisi
+   - Android
+   - iPhone
+   - iPad/buyuk ekran
+   - zayif ag profilleri
+8. Faz 7: bilincli raw / legacy cleanup
+   - raw kalacaklar
+   - second-pass resolver adaylari
+9. Faz 8: release gate
+   - analyze + test + smoke + KPI summary + artifact export
+
+Aktif faz:
+
+- Su an `Faz 3` ilk dilimi aktif.
+- Son tamamlanan kritik urun isi: feed visibility + hybrid feed fallback fix.
+- Sonraki teknik hedef: `integration_test/` iskeleti ve `Notifications` invariantlari.
+
+1. Repo truth pass:
+   dirty worktree ayiklama + bu master planin guncel tutulmasi
+2. Manuel kritik dogrulama:
+   `Feed`, `Short`, `MyProfile`, `SocialProfile`, `Explore`, `Notifications`, `SavedPosts`, `cached_user_avatar`
+3. Bilincli raw alanlar karari:
+   hangi ekranlar bilincli raw kalacak, hangileri second-pass optimizasyona alinacak
+4. Runtime guard:
+   invariant ihlallerini debug/profile modda gorunur hale getirmek
+5. Integration smoke:
+   5 kritik rota donusu / refresh / optimistic mutation senaryosunu otomatiklestirmek
+6. Telemetry threshold + alerting:
+   KPI'lari sadece log degil karar ureten release signal haline getirmek
+7. Release gate:
+   test + smoke + KPI summary + artifact export tek komutta
+
 ## Sonraki Oturumda Ilk Yapilacaklar
 
 1. `git status` ile dirty worktree'yi dikkatli incele.
 2. Bu notu ve `docs/architecture/cache_first_audit_2026_03_19.md` dosyasini ac.
-3. Runtime KPI / log ureten son commitlerden sonra gercek cihaz dogrulamasina gir.
-4. Ilk odak:
+3. `Master Plan Durum Kontrolu` kismini referans alip aciklari `KISMEN / ACIK / BILINCLI / EKSIK ALTYAPI` diye ayir.
+4. Ilk manuel odak:
    `Feed autoplay tuning` + `Short playback churn olcumu`
 5. Sonra:
-   `SavedPosts`, `MyProfile`, `SocialProfile`, `cached_user_avatar` smoke test
+   `Notifications`, `SavedPosts`, `MyProfile`, `SocialProfile`, `cached_user_avatar`, `Explore/SearchedUser` smoke/dogrulama
 6. Sonraki teknik odak:
-   dirty kalan raw/form ekranlarini tek tek ayirip, sadece gerekli olanlari raw belgede birak
-7. Otomasyon fazina gec:
-   `integration smoke tests + runtime invariant guard + telemetry alarms`
+   dirty kalan raw/form ekranlarini tek tek ayirip sadece gerekli olanlari raw belgede birak
+7. Sonraki kalite odagi:
+   `runtime invariant guard + integration smoke tests + telemetry alarms + release gate`
 
 ## Teknik Notlar
 
@@ -376,4 +609,4 @@ Pratik kalan oran:
 
 - `%2-4`
 
-Bu not, limit acildiginda dogrudan devam noktasi olarak kullanilsin.
+Bu dosya, bundan sonra limit acildiginda dogrudan devam noktasi ve kanonik master plan olarak kullanilsin.

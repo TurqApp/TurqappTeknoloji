@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 
 class NotificationsSnapshotQuery {
@@ -35,6 +36,7 @@ class NotificationsSnapshotRepository extends GetxService {
 
   final NotificationsRepository _notificationsRepository =
       NotificationsRepository.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
 
   late final CacheFirstCoordinator<List<NotificationModel>> _coordinator =
       CacheFirstCoordinator<List<NotificationModel>>(
@@ -57,19 +59,19 @@ class NotificationsSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<NotificationsSnapshotQuery,
-      List<NotificationModel>, List<NotificationModel>> _pipeline =
+          List<NotificationModel>, List<NotificationModel>> _pipeline =
       CacheFirstQueryPipeline<NotificationsSnapshotQuery,
           List<NotificationModel>, List<NotificationModel>>(
-        surfaceKey: _surfaceKey,
-        coordinator: _coordinator,
-        userIdResolver: (query) => query.userId.trim(),
-        scopeIdBuilder: (query) => query.scopeId,
-        fetchRaw: _fetchServerSnapshot,
-        resolve: (items) => items,
-        loadWarmSnapshot: _loadWarmSnapshot,
-        isEmpty: (items) => items.isEmpty,
-        liveSource: CachedResourceSource.server,
-      );
+    surfaceKey: _surfaceKey,
+    coordinator: _coordinator,
+    userIdResolver: (query) => query.userId.trim(),
+    scopeIdBuilder: (query) => query.scopeId,
+    fetchRaw: _fetchServerSnapshot,
+    resolve: (items) => items,
+    loadWarmSnapshot: _loadWarmSnapshot,
+    isEmpty: (items) => items.isEmpty,
+    liveSource: CachedResourceSource.server,
+  );
 
   Stream<CachedResource<List<NotificationModel>>> openInbox({
     required String userId,
@@ -189,11 +191,25 @@ class NotificationsSnapshotRepository extends GetxService {
               )
             : item)
         .toList(growable: false);
+    final matchedCount =
+        items.where((item) => wanted.contains(item.docID)).length;
     await persistInboxSnapshot(
       userId: userId,
       notifications: updated,
       limit: limit,
       source: CachedResourceSource.scopedDisk,
+    );
+    _invariantGuard.assertNotEmptyAfterRefresh(
+      surface: 'notifications',
+      invariantKey: 'optimistic_mark_read_preserve_snapshot',
+      hadSnapshot: items.isNotEmpty,
+      previousCount: items.length,
+      nextCount: updated.length,
+      payload: <String, dynamic>{
+        'userId': userId,
+        'matchedCount': matchedCount,
+        'requestedCount': wanted.length,
+      },
     );
   }
 
@@ -213,12 +229,27 @@ class NotificationsSnapshotRepository extends GetxService {
     final updated = items
         .where((item) => !wanted.contains(item.docID))
         .toList(growable: false);
+    final removedCount = items.length - updated.length;
     await persistInboxSnapshot(
       userId: userId,
       notifications: updated,
       limit: limit,
       source: CachedResourceSource.scopedDisk,
     );
+    if (removedCount > wanted.length) {
+      _invariantGuard.record(
+        surface: 'notifications',
+        invariantKey: 'optimistic_delete_removed_too_many',
+        message: 'Optimistic delete removed more notifications than requested',
+        payload: <String, dynamic>{
+          'userId': userId,
+          'removedCount': removedCount,
+          'requestedCount': wanted.length,
+          'previousCount': items.length,
+          'nextCount': updated.length,
+        },
+      );
+    }
   }
 
   Future<List<NotificationModel>> _fetchServerSnapshot(

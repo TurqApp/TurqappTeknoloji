@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -54,6 +55,7 @@ class AgendaController extends GetxController {
       FeedSnapshotRepository.ensure();
   FeedRenderCoordinator get _feedRenderCoordinator =>
       FeedRenderCoordinator.ensure();
+  RuntimeInvariantGuard get _invariantGuard => RuntimeInvariantGuard.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final RxList<Map<String, dynamic>> mergedFeedEntries =

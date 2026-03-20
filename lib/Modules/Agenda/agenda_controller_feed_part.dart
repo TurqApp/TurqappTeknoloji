@@ -111,15 +111,32 @@ extension AgendaControllerFeedPart on AgendaController {
   void primeInitialCenteredPost() {
     final target = _resolveInitialCenteredIndex();
     if (target < 0 || target >= agendaList.length) return;
+    final expectedDocId = _pendingCenteredDocId;
     centeredIndex.value = target;
     lastCenteredIndex = target;
     _pendingCenteredDocId = null;
+    _invariantGuard.assertCenteredSelection(
+      surface: 'feed',
+      invariantKey: 'prime_initial_centered_post',
+      centeredIndex: centeredIndex.value,
+      docIds: agendaList.map((post) => post.docID).toList(growable: false),
+      expectedDocId: expectedDocId,
+      payload: <String, dynamic>{
+        'target': target,
+      },
+    );
   }
 
   void resumeFeedPlayback() {
     if (agendaList.isEmpty) return;
 
     pauseAll.value = false;
+    final expectedDocId = _pendingCenteredDocId ??
+        ((lastCenteredIndex != null &&
+                lastCenteredIndex! >= 0 &&
+                lastCenteredIndex! < agendaList.length)
+            ? agendaList[lastCenteredIndex!].docID
+            : null);
     int target = _resolveResumeIndex();
     if (target < 0 || target >= agendaList.length) {
       target = 0;
@@ -142,6 +159,16 @@ extension AgendaControllerFeedPart on AgendaController {
       centeredIndex.value = target;
     }
     _pendingCenteredDocId = null;
+    _invariantGuard.assertCenteredSelection(
+      surface: 'feed',
+      invariantKey: 'resume_feed_playback',
+      centeredIndex: centeredIndex.value,
+      docIds: agendaList.map((post) => post.docID).toList(growable: false),
+      expectedDocId: expectedDocId,
+      payload: <String, dynamic>{
+        'target': target,
+      },
+    );
 
     final targetPost = agendaList[target];
     if (!_canAutoplayVideoPost(targetPost)) return;
