@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -66,7 +67,6 @@ class _SplashViewState extends State<SplashView> {
   static const Duration _syncStartupMaxWait = Duration(milliseconds: 900);
   static const Duration _syncMinSplashDuration = Duration(milliseconds: 120);
   static const Duration _syncMinLaunchToNavDuration = Duration.zero;
-  static const Duration _introRevealDuration = Duration(seconds: 2);
   static const String _splashWord = 'TurqApp';
   static const int _minFeedPostsForNav = 3;
   static const int _minStoryUsersForNav = 1;
@@ -90,6 +90,10 @@ class _SplashViewState extends State<SplashView> {
   bool _showCursor = true;
   late final Duration _remainingIntroBudget;
 
+  Duration get _introRevealDuration => Duration(
+        milliseconds: IntegrationTestMode.splashIntroMs.clamp(0, 2000),
+      );
+
   @override
   void initState() {
     super.initState();
@@ -104,9 +108,11 @@ class _SplashViewState extends State<SplashView> {
 
     // Firebase hazır olmadan FirebasePerformance çağrısı yapılmasın.
     unawaited(_initApp());
-    final watchdogDuration = Platform.isIOS
-        ? const Duration(seconds: 4)
-        : const Duration(seconds: 8);
+    final watchdogDuration = IntegrationTestMode.splashWatchdogSeconds > 0
+        ? Duration(seconds: IntegrationTestMode.splashWatchdogSeconds)
+        : Platform.isIOS
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 8);
     _startupWatchdogTimer = Timer(watchdogDuration, () {
       if (!mounted || _didNavigate) return;
       _navigateToPrimaryRoute();
@@ -181,7 +187,9 @@ class _SplashViewState extends State<SplashView> {
             firebaseUser: firebaseUser,
           ));
         }
-        if (Platform.isIOS) {
+        if (IntegrationTestMode.deterministicStartup) {
+          _minimumStartupPrepared = true;
+        } else if (Platform.isIOS) {
           // iOS USB/wireless launch senaryolarinda ilk acilista
           // warm-start ve medya/cache hazirligi jetsam/watchdog riskini artiriyor.
           // Navigasyonu hemen ac; agir hazirliklari sonrasina birak.
@@ -195,6 +203,9 @@ class _SplashViewState extends State<SplashView> {
       }
 
       // 🚀 Ağır işleri arka plana at — navigasyonu BLOKLAMA
+      if (IntegrationTestMode.skipBackgroundStartupWork) {
+        return;
+      }
       if (Platform.isIOS) {
         Future.delayed(const Duration(seconds: 3), () {
           unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
@@ -852,7 +863,8 @@ class _SplashViewState extends State<SplashView> {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (userId.isEmpty) return;
-      final warmLimit = onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6);
+      final warmLimit =
+          onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6);
       final snapshot = await FeedSnapshotRepository.ensure().bootstrapHome(
         userId: userId,
         limit: warmLimit,
@@ -877,7 +889,8 @@ class _SplashViewState extends State<SplashView> {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (userId.isEmpty) return;
-      final warmLimit = onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4);
+      final warmLimit =
+          onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4);
       final snapshot = await ShortSnapshotRepository.ensure().bootstrapHome(
         userId: userId,
         limit: warmLimit,

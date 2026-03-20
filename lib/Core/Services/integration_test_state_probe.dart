@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
@@ -15,7 +16,20 @@ class IntegrationTestStateProbe {
       'profile': _profileSnapshot(),
       'socialProfile': _socialProfileSnapshot(),
       'notifications': _notificationsSnapshot(),
+      'navBar': _navBarSnapshot(),
       'currentRoute': Get.currentRoute,
+    };
+  }
+
+  static Map<String, dynamic> _navBarSnapshot() {
+    if (!Get.isRegistered<NavBarController>()) {
+      return const <String, dynamic>{'registered': false};
+    }
+    final controller = Get.find<NavBarController>();
+    return <String, dynamic>{
+      'registered': true,
+      'selectedIndex': controller.selectedIndex.value,
+      'showBar': controller.showBar.value,
     };
   }
 

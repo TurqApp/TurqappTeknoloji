@@ -17,6 +17,7 @@ import '../Explore/explore_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';
+import '../../Core/Services/integration_test_mode.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 
@@ -145,13 +146,16 @@ class NavBarController extends GetxController
 
     _runAcilisAnimation();
     Future.delayed(const Duration(seconds: 2), () {
-      if (!_isDisposed) {
+      if (!_isDisposed && !IntegrationTestMode.suppressPeriodicSideEffects) {
         unawaited(checkAppVersion());
       }
     });
-    _scheduleRatingPrompt(const Duration(seconds: 25));
+    if (!IntegrationTestMode.suppressPeriodicSideEffects) {
+      _scheduleRatingPrompt(const Duration(seconds: 25));
+    }
 
-    if (!GetPlatform.isIOS) {
+    if (!GetPlatform.isIOS &&
+        !IntegrationTestMode.suppressPeriodicSideEffects) {
       _startBackgroundCacheLoop();
     }
     _startUploadIndicatorSync();
@@ -278,8 +282,10 @@ class NavBarController extends GetxController
     }
 
     if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
-      unawaited(checkAppVersion());
-      _scheduleRatingPrompt(const Duration(seconds: 12));
+      if (!IntegrationTestMode.suppressPeriodicSideEffects) {
+        unawaited(checkAppVersion());
+        _scheduleRatingPrompt(const Duration(seconds: 12));
+      }
       try {
         if (Get.isRegistered<AgendaController>()) {
           Get.find<AgendaController>().resumeFeedPlayback();

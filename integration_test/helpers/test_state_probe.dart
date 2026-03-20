@@ -30,3 +30,14 @@ void expectCenteredIndexValid(
   expect(index, greaterThanOrEqualTo(0), reason: '$surface index negative');
   expect(index, lessThan(count), reason: '$surface index out of range');
 }
+
+void expectSelectedNavIndex(int expectedIndex) {
+  final payload = readSurfaceProbe('navBar');
+  expect(payload['registered'], isTrue,
+      reason: 'navBar controller not registered');
+  expect(
+    (payload['selectedIndex'] as num?)?.toInt(),
+    expectedIndex,
+    reason: 'unexpected navBar selected index',
+  );
+}

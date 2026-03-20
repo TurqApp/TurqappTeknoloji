@@ -9,6 +9,7 @@ void main() {
     expect(snapshot['currentRoute'], isA<String>());
     expect((snapshot['feed'] as Map<String, dynamic>)['registered'], isFalse);
     expect((snapshot['short'] as Map<String, dynamic>)['registered'], isFalse);
+    expect((snapshot['navBar'] as Map<String, dynamic>)['registered'], isFalse);
     expect(
       (snapshot['notifications'] as Map<String, dynamic>)['registered'],
       isFalse,
