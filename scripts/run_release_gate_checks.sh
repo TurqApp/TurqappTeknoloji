@@ -4,6 +4,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+smoke_fail_on_blocking="${INTEGRATION_SMOKE_FAIL_ON_BLOCKING:-0}"
+telemetry_fail_on_blocking="${TELEMETRY_FAIL_ON_BLOCKING:-0}"
+
 echo "[1/8] flutter analyze --no-fatal-infos"
 flutter analyze --no-fatal-infos
 
@@ -13,6 +16,13 @@ flutter test
 echo "[3/8] app integration smoke"
 if [[ "${RUN_INTEGRATION_SMOKE:-0}" == "1" ]]; then
   bash scripts/run_integration_smoke.sh
+  if [[ -d "artifacts/integration_smoke" ]]; then
+    echo "[integration-smoke-report]"
+    INTEGRATION_SMOKE_FAIL_ON_BLOCKING="$smoke_fail_on_blocking" \
+      bash scripts/export_integration_smoke_report.sh
+  else
+    echo "[integration-smoke-report] skipped (artifact directory not found)"
+  fi
 else
   echo "[integration-smoke] skipped (set RUN_INTEGRATION_SMOKE=1 to execute)"
 fi
@@ -33,7 +43,8 @@ echo "[8/8] security regression guard"
 bash scripts/check_repo_security_regressions.sh
 
 echo "[telemetry-threshold-report]"
-bash scripts/export_telemetry_threshold_report.sh
+TELEMETRY_FAIL_ON_BLOCKING="$telemetry_fail_on_blocking" \
+  bash scripts/export_telemetry_threshold_report.sh
 
 if [[ "${RUN_K6_SMOKE:-0}" == "1" ]]; then
   echo "[k6] smoke profile"

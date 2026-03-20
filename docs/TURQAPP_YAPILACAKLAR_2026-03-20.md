@@ -584,7 +584,12 @@ Aktif faz:
 - Son tamamlanan Passage kart stabilizasyonu: grid/list kartlarinda ortak metrik/token cizgisi acildi; save icon guncellemeleri kart seviyesine izole edildi; `Online Sınav` basvuru satiri dogrudan model/snapshot hattina baglandi; `Cevap Anahtarı` hazir soru metni ceviri anahtari geri yuklendi.
 - Son tamamlanan Android Passage smoke sonucu: bugunku cihaz turunda `Market`, `İş Veren`, `Online Sınav`, `Cevap Anahtarı`, `Özel Ders` yuzeyleri acildi; ilk karede kritik veri satirlari geldi ve `Market` ile `İş Veren`de kisa bekleme sonrasi gozle gorulur gec reorder gorulmedi.
 - Son tamamlanan Android Passage refresh sonucu: bugunku cihaz turunda `Market`, `İş Veren`, `Online Sınav`, `Cevap Anahtarı` refresh sonrasi gorunur bosalma, basvuru satiri kaybi veya save-state ziplamasi gostermedi; `Özel Ders` detail ac-kapa sonrasi ayni grid konumuna temiz dondu.
-- Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
+- Son tamamlanan smoke auth isi: integration smoke login helper'i Firebase auth + `CurrentUserService.initialize()` + `AccountCenter` sync + `NavBarView` route zinciriyle duzeltildi; login ekrani takilmasi kapandi.
+- Son tamamlanan smoke short isi: `Short` smoke replay akisi alt bar anahtarina bagli olmaktan cikarildi; geri donus dogrudan route pop ile stabil hale getirildi ve tekil `short_refresh_preserve_test.dart` yesile dondu.
+- Son tamamlanan smoke runner hizi: `scripts/run_integration_smoke.sh` icine `--no-pub` eklendi; her smoke turunda tekrar dependency cozumleme maliyeti kaldirildi.
+- Son tamamlanan smoke artifact isi: Android paket test sonunda uninstall olsa bile runner host tarafta stub artifact yaziyor; `integration_smoke_report_latest.json` artik artefactsiz kalmiyor ve `artifactExported/artifactReason` alanlariyla gercek export ile host fallback ayrisiyor.
+- Son tamamlanan release gate isi: `scripts/run_release_gate_checks.sh` artik opsiyonel smoke adimindan sonra `export_integration_smoke_report.sh` cagiriyor; `INTEGRATION_SMOKE_FAIL_ON_BLOCKING` ve `TELEMETRY_FAIL_ON_BLOCKING` ile smoke/telemetry blocking signal'lari gate kararina baglanabiliyor.
+- Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
    dirty worktree ayiklama + bu master planin guncel tutulmasi
@@ -595,7 +600,7 @@ Aktif faz:
 4. Runtime guard:
    invariant ihlallerini debug/profile modda gorunur hale getirmek
 5. Integration smoke:
-   5 kritik rota donusu / refresh / optimistic mutation senaryosunu otomatiklestirmek
+   auth/route/helper kodu tamam; kalan is tam 5'li smoke turunu stabil yesil ve artefact raporlu tamamlamak
 6. Telemetry threshold + alerting:
    KPI'lari sadece log degil karar ureten release signal haline getirmek
 7. Release gate:
@@ -606,17 +611,19 @@ Aktif faz:
 1. `git status` ile dirty worktree'yi dikkatli incele.
 2. Bu notu ve `docs/architecture/cache_first_audit_2026_03_19.md` dosyasini ac.
 3. `Master Plan Durum Kontrolu` kismini referans alip aciklari `KISMEN / ACIK / BILINCLI / EKSIK ALTYAPI` diye ayir.
-4. Ilk manuel odak:
-   `Feed autoplay tuning` + `Short playback churn olcumu`
+4. Ilk teknik odak:
+   tam 5'li `integration smoke` turunu yeni auth + short + host-stub artifact hattiyla yesil tamamla
 5. Sonra:
+   `Feed autoplay tuning` + `Short playback churn olcumu`
+6. Sonra:
    `Notifications`, `SavedPosts`, `MyProfile`, `SocialProfile`, `cached_user_avatar`, `Explore/SearchedUser` smoke/dogrulama
-6. Sonraki teknik odak:
+7. Sonraki teknik odak:
    dirty kalan raw/form ekranlarini tek tek ayirip sadece gerekli olanlari raw belgede birak
-7. Sonraki kalite odagi:
-   `runtime invariant guard + integration smoke tests + telemetry alarms + release gate`
-8. Sonraki Android runtime odagi:
+8. Sonraki kalite odagi:
+   `telemetry alarms + release gate + dashboard/backend alert baglantisi`
+9. Sonraki Android runtime odagi:
    `AdmobKare` pool reuse icin daha guvenli lease/refcount tasarimi veya kalici pool iptali karari
-9. Sonraki backend operasyon odagi:
+10. Sonraki backend operasyon odagi:
    `firestore.indexes.json` icindeki `offers` indexlerini deploy edip market offer warning'lerini temiz run ile tekrar okumak
 
 ## Teknik Notlar
@@ -636,10 +643,18 @@ Bugun:
 - Ana cache-first / snapshot-first iskelet kuruldu.
 - Feed / Short / Profile / SocialProfile playback-restore davranisi buyuk olcude toparlandi.
 - User-summary resolver hatlari gorunur UI yuzeylerinde buyuk olcude tekillesti.
-- Kalan isler artik refactor degil, kalite, gercek cihaz dogrulama ve tuning.
+- Passage omurgasi ve smoke auth/helper kodu fiilen kapandi.
+- Kalan isler artik refactor degil; smoke dogrulamasi, quality gate, telemetry alarm entegrasyonu ve saha tuning.
 
 Pratik kalan oran:
 
 - `%2-4`
+
+Kisa hukum:
+
+- Hayir, sadece test kalmadi.
+- Kod tarafinda ana omurga buyuk olcude bitti.
+- Kalanlarin buyuk kismi dogrulama/test olsa da, hala bitmemis operasyonel kod isi var:
+  smoke artifact/export fallback, dashboard/backend alert baglantisi, release gate sertlestirmesi ve son telemetry alarm baglari.
 
 Bu dosya, bundan sonra limit acildiginda dogrudan devam noktasi ve kanonik master plan olarak kullanilsin.
