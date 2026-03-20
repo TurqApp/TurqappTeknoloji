@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class FollowingFollowersController extends GetxController {
   static const Duration _nicknameCacheTtl = Duration(minutes: 5);
@@ -83,7 +84,7 @@ class FollowingFollowersController extends GetxController {
     }
   }
 
-  bool get isSelf => FirebaseAuth.instance.currentUser?.uid == userId;
+  bool get isSelf => isCurrentUserId(userId);
 
   int _resolveLimit({required bool initial}) {
     if (isSelf) {
@@ -399,7 +400,7 @@ class FollowingFollowersController extends GetxController {
   }
 
   Future<void> searchTakipci() async {
-    final q = searchTakipciController.text.toLowerCase();
+    final q = normalizeSearchText(searchTakipciController.text);
     if (q.length < 3) return;
     _pruneSearchResultCache();
 
@@ -420,7 +421,7 @@ class FollowingFollowersController extends GetxController {
   }
 
   Future<void> searchTakipEdilenler() async {
-    final q = searchTakipEdilenController.text.toLowerCase();
+    final q = normalizeSearchText(searchTakipEdilenController.text);
     if (q.length < 3) return;
     _pruneSearchResultCache();
 
@@ -469,7 +470,7 @@ class FollowingFollowersController extends GetxController {
   Future<List<String>> _filterRelationIdsByQuery(
       Set<String> relationIds, String q) async {
     if (relationIds.isEmpty) return const <String>[];
-    final normalizedQuery = q.trim().toLowerCase();
+    final normalizedQuery = normalizeSearchText(q);
     if (normalizedQuery.isEmpty) return relationIds.toList(growable: false);
     final users = await _userSummaryResolver.resolveMany(
       relationIds.toList(growable: false),
@@ -477,8 +478,8 @@ class FollowingFollowersController extends GetxController {
     final results = <String>[];
     for (final id in relationIds) {
       final data = users[id];
-      final nickname = data?.nickname.toLowerCase() ?? '';
-      final displayName = data?.displayName.toLowerCase() ?? '';
+      final nickname = normalizeSearchText(data?.nickname ?? '');
+      final displayName = normalizeSearchText(data?.displayName ?? '');
       if (nickname.contains(normalizedQuery) ||
           displayName.contains(normalizedQuery)) {
         results.add(id);

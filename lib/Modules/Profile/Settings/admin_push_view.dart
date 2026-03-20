@@ -22,7 +22,7 @@ class _AdminPushViewState extends State<AdminPushView> {
   final _genderController = TextEditingController();
   final _minAgeController = TextEditingController();
   final _maxAgeController = TextEditingController();
-  final _titleController = TextEditingController(text: "TurqApp");
+  late final TextEditingController _titleController;
   final _bodyController = TextEditingController();
   final List<String> _pushTypes = const [
     "posts",
@@ -43,6 +43,7 @@ class _AdminPushViewState extends State<AdminPushView> {
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: 'app.name'.tr);
     _checkAdminAccess();
   }
 
@@ -71,7 +72,7 @@ class _AdminPushViewState extends State<AdminPushView> {
     await Get.bottomSheet(
       ListBottomSheet(
         list: allJobs,
-        title: "Meslek Seç",
+        title: 'admin.push.select_job'.tr,
         startSelection: _selectedMeslek,
         onBackData: (v) {
           if (v is String) {
@@ -112,8 +113,8 @@ class _AdminPushViewState extends State<AdminPushView> {
   Future<void> _sendPush() async {
     if (!_canManagePush) {
       AppSnackbar(
-        "Yetki",
-        "Bildirim göndermek için yönetici yetkisi gereklidir.",
+        'admin.push.permission_title'.tr,
+        'admin.push.permission_body'.tr,
       );
       return;
     }
@@ -129,12 +130,17 @@ class _AdminPushViewState extends State<AdminPushView> {
     final type = _selectedType;
 
     if (title.isEmpty || body.isEmpty) {
-      AppSnackbar("Eksik Bilgi", "Başlık ve mesaj alanları zorunludur.");
+      AppSnackbar(
+        'admin.tasks.missing_info'.tr,
+        'admin.push.required_title_body'.tr,
+      );
       return;
     }
     if (minAge != null && maxAge != null && minAge > maxAge) {
       AppSnackbar(
-          "Hatalı Aralık", "Minimum yaş, maksimum yaştan büyük olamaz.");
+        'admin.push.invalid_range_title'.tr,
+        'admin.push.invalid_range_body'.tr,
+      );
       return;
     }
 
@@ -155,8 +161,8 @@ class _AdminPushViewState extends State<AdminPushView> {
 
       if (targetUids.isEmpty) {
         AppSnackbar(
-          "Sonuç Bulunamadı",
-          "Seçilen filtrelere uygun kullanıcı bulunamadı.",
+          'admin.push.no_results_title'.tr,
+          'admin.push.no_results_body'.tr,
         );
         return;
       }
@@ -173,13 +179,13 @@ class _AdminPushViewState extends State<AdminPushView> {
         final now = DateTime.now();
         _lastReport =
             "Saat ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}\n"
-            "Hedef: ${targetUids.length} kullanıcı\n"
-            "Tür: $type\n"
+            "${'admin.push.target'.tr}: ${targetUids.length} ${'admin.push.user_count'.tr}\n"
+            "${'admin.push.type'.tr}: $type\n"
             "UID: ${uid.isEmpty ? '-' : uid}\n"
-            "Meslek: ${meslek.isEmpty ? '-' : meslek}\n"
-            "Konum: ${konum.isEmpty ? '-' : konum}\n"
-            "Cinsiyet: ${gender.isEmpty ? '-' : gender}\n"
-            "Yaş: ${minAge?.toString() ?? '-'} - ${maxAge?.toString() ?? '-'}";
+            "${'admin.push.job'.tr}: ${meslek.isEmpty ? '-' : meslek}\n"
+            "${'admin.push.location'.tr}: ${konum.isEmpty ? '-' : konum}\n"
+            "${'admin.push.gender'.tr}: ${gender.isEmpty ? '-' : gender}\n"
+            "${'admin.push.age'.tr}: ${minAge?.toString() ?? '-'} - ${maxAge?.toString() ?? '-'}";
       });
       try {
         await _adminPushRepository.addReport(
@@ -201,13 +207,17 @@ class _AdminPushViewState extends State<AdminPushView> {
         if (e.code != 'permission-denied') rethrow;
       }
       AppSnackbar(
-        "Gönderim Başlatıldı",
-        "${targetUids.length} kullanıcı için bildirim kuyruğa alındı.",
+        'admin.push.started_title'.tr,
+        'admin.push.started_body'
+            .trParams(<String, String>{'count': '${targetUids.length}'}),
       );
       _bodyController.clear();
     } catch (e) {
       if (!mounted) return;
-      AppSnackbar("Hata", "Bildirim gönderimi tamamlanamadı: $e");
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.push.send_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -240,8 +250,8 @@ class _AdminPushViewState extends State<AdminPushView> {
     if (!_canManagePush) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            "Push Gonder",
+          title: Text(
+            'admin.push.title'.tr,
             style: TextStyle(
               color: Colors.black,
               fontFamily: "MontserratSemiBold",
@@ -249,14 +259,14 @@ class _AdminPushViewState extends State<AdminPushView> {
             ),
           ),
         ),
-        body: const SafeArea(
+        body: SafeArea(
           child: Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Text(
-                "Bu ekran sadece admin yetkisine sahip hesaplarda kullanilabilir.",
+                'admin.no_access'.tr,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: "MontserratMedium",
                   fontSize: 14,
                   color: Colors.black87,
@@ -270,8 +280,8 @@ class _AdminPushViewState extends State<AdminPushView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Push Gonder",
+        title: Text(
+          'admin.push.title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontFamily: "MontserratSemiBold",
@@ -283,9 +293,9 @@ class _AdminPushViewState extends State<AdminPushView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text(
-              "Başlık ve mesaj zorunlu. Filtreleri boş bırakırsan herkese gider.",
-              style: TextStyle(
+            Text(
+              'admin.push.help'.tr,
+              style: const TextStyle(
                 fontFamily: "MontserratMedium",
                 fontSize: 13,
                 color: Colors.black54,
@@ -295,20 +305,20 @@ class _AdminPushViewState extends State<AdminPushView> {
             const SizedBox(height: 12),
             TextField(
               controller: _titleController,
-              decoration: _input("Başlık"),
+              decoration: _input('admin.push.title_field'.tr),
               style: const TextStyle(fontFamily: "MontserratMedium"),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _bodyController,
               maxLines: 4,
-              decoration: _input("Mesaj"),
+              decoration: _input('admin.push.message_field'.tr),
               style: const TextStyle(fontFamily: "MontserratMedium"),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _selectedType,
-              decoration: _input("Tür"),
+              decoration: _input('admin.push.type'.tr),
               items: _pushTypes
                   .map(
                     (e) => DropdownMenuItem<String>(
@@ -330,9 +340,9 @@ class _AdminPushViewState extends State<AdminPushView> {
             const SizedBox(height: 8),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: const Text(
-                "Opsiyonel Filtreler",
-                style: TextStyle(
+              title: Text(
+                'admin.push.optional_filters'.tr,
+                style: const TextStyle(
                   fontFamily: "MontserratSemiBold",
                   color: Colors.black,
                   fontSize: 14,
@@ -342,7 +352,7 @@ class _AdminPushViewState extends State<AdminPushView> {
               children: [
                 TextField(
                   controller: _uidController,
-                  decoration: _input("Hedef UID (tek kullanıcı)"),
+                  decoration: _input("admin.push.target_uid".tr),
                   style: const TextStyle(fontFamily: "MontserratMedium"),
                 ),
                 const SizedBox(height: 10),
@@ -350,7 +360,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                   onTap: _showMeslekSelector,
                   child: AbsorbPointer(
                     child: TextField(
-                      decoration: _input("Meslek"),
+                      decoration: _input('admin.push.job'.tr),
                       controller: TextEditingController(
                         text: _selectedMeslek,
                       ),
@@ -361,13 +371,13 @@ class _AdminPushViewState extends State<AdminPushView> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _konumController,
-                  decoration: _input("Konum (city / il / ilce)"),
+                  decoration: _input('admin.push.location_hint'.tr),
                   style: const TextStyle(fontFamily: "MontserratMedium"),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _genderController,
-                  decoration: _input("Cinsiyet"),
+                  decoration: _input('admin.push.gender'.tr),
                   style: const TextStyle(fontFamily: "MontserratMedium"),
                 ),
                 const SizedBox(height: 10),
@@ -377,7 +387,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                       child: TextField(
                         controller: _minAgeController,
                         keyboardType: TextInputType.number,
-                        decoration: _input("Min Yaş"),
+                        decoration: _input('admin.push.min_age'.tr),
                         style: const TextStyle(fontFamily: "MontserratMedium"),
                       ),
                     ),
@@ -386,7 +396,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                       child: TextField(
                         controller: _maxAgeController,
                         keyboardType: TextInputType.number,
-                        decoration: _input("Max Yaş"),
+                        decoration: _input('admin.push.max_age'.tr),
                         style: const TextStyle(fontFamily: "MontserratMedium"),
                       ),
                     ),
@@ -416,9 +426,9 @@ class _AdminPushViewState extends State<AdminPushView> {
             const SizedBox(height: 14),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: const Text(
-                "Kalıcı Raporlar",
-                style: TextStyle(
+              title: Text(
+                'admin.push.saved_reports'.tr,
+                style: const TextStyle(
                   fontFamily: "MontserratSemiBold",
                   color: Colors.black,
                   fontSize: 14,
@@ -444,8 +454,8 @@ class _AdminPushViewState extends State<AdminPushView> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.black12),
                         ),
-                        child: const Text(
-                          "Henüz rapor yok.",
+                        child: Text(
+                          'admin.push.no_reports'.tr,
                           style: TextStyle(
                             fontFamily: "MontserratMedium",
                             fontSize: 12,
@@ -481,12 +491,12 @@ class _AdminPushViewState extends State<AdminPushView> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  "$timeText | ${data["type"] ?? "-"} | ${data["targetCount"] ?? 0} kişi\n"
-                                  "Başlık: ${data["title"] ?? "-"}\n"
-                                  "Mesaj: ${(data["body"] ?? "-").toString()}\n"
-                                  "Filtre: meslek=${(filters["meslek"] ?? "-").toString().isEmpty ? "-" : filters["meslek"]}, "
-                                  "konum=${(filters["konum"] ?? "-").toString().isEmpty ? "-" : filters["konum"]}, "
-                                  "cinsiyet=${(filters["cinsiyet"] ?? "-").toString().isEmpty ? "-" : filters["cinsiyet"]}",
+                                  "$timeText | ${data["type"] ?? "-"} | ${data["targetCount"] ?? 0} ${'admin.push.people'.tr}\n"
+                                  "${'admin.push.report_title'.tr}: ${data["title"] ?? "-"}\n"
+                                  "${'admin.push.report_message'.tr}: ${(data["body"] ?? "-").toString()}\n"
+                                  "${'admin.push.report_filters'.tr}: ${'admin.push.job'.tr}=${(filters["meslek"] ?? "-").toString().isEmpty ? "-" : filters["meslek"]}, "
+                                  "${'admin.push.location'.tr}=${(filters["konum"] ?? "-").toString().isEmpty ? "-" : filters["konum"]}, "
+                                  "${'admin.push.gender'.tr}=${(filters["cinsiyet"] ?? "-").toString().isEmpty ? "-" : filters["cinsiyet"]}",
                                   style: const TextStyle(
                                     fontFamily: "MontserratMedium",
                                     fontSize: 12,
@@ -504,7 +514,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                                   color: Colors.black54,
                                   size: 20,
                                 ),
-                                tooltip: "Raporu Sil",
+                                tooltip: 'admin.push.delete_report'.tr,
                               ),
                             ],
                           ),
@@ -536,8 +546,8 @@ class _AdminPushViewState extends State<AdminPushView> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        "Gönder",
+                    : Text(
+                        'admin.push.send'.tr,
                         style: TextStyle(fontFamily: "MontserratSemiBold"),
                       ),
               ),

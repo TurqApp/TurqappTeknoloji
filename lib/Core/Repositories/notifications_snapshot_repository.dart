@@ -312,7 +312,8 @@ class NotificationsSnapshotRepository extends GetxService {
           isRead: (data['isRead'] ?? data['read'] ?? false) == true,
           type: (data['type'] ?? '').toString(),
           postID: (data['postID'] ?? '').toString(),
-          postType: _postTypeFromType((data['type'] ?? '').toString()),
+          postType:
+              notificationPostTypeFromEventType((data['type'] ?? '').toString()),
           thumbnail: (data['thumbnail'] ?? '').toString(),
           timeStamp: _asInt(data['timeStamp']),
           title: (data['title'] ?? '').toString(),
@@ -328,32 +329,6 @@ class NotificationsSnapshotRepository extends GetxService {
     if (value is int) return value;
     if (value is num) return value.toInt();
     return int.tryParse('$value') ?? 0;
-  }
-
-  String _postTypeFromType(String type) {
-    switch (type) {
-      case 'follow':
-      case kNotificationPostTypeUser:
-        return kNotificationPostTypeUser;
-      case 'comment':
-      case kNotificationPostTypeComment:
-        return kNotificationPostTypeComment;
-      case 'message':
-      case kNotificationPostTypeChat:
-        return kNotificationPostTypeChat;
-      case 'job_application':
-        return kNotificationPostTypeJobApplication;
-      case 'tutoring_application':
-      case 'tutoring_status':
-        return kNotificationPostTypeTutoringApplication;
-      case 'like':
-      case 'reshared_posts':
-      case 'shared_as_posts':
-      case 'reshare':
-      case kNotificationPostTypePosts:
-      default:
-        return kNotificationPostTypePosts;
-    }
   }
 
   Map<String, dynamic> _encodeItems(List<NotificationModel> items) {

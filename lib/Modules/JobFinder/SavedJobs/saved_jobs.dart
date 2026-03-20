@@ -19,7 +19,7 @@ class SavedJobs extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
-                children: [BackButtons(text: "Kaydedilenler")],
+                children: [BackButtons(text: "pasaj.job_finder.saved_jobs".tr)],
               ),
             ),
             Obx(() {
@@ -30,7 +30,7 @@ class SavedJobs extends StatelessWidget {
               }
 
               if (controller.list.isEmpty) {
-                return EmptyRow(text: "Kaydedilen ilan yok.");
+                return EmptyRow(text: "pasaj.job_finder.no_saved_jobs".tr);
               }
 
               return Expanded(

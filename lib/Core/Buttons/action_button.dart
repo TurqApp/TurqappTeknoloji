@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 
 enum ActionButtonPermissionScope {
@@ -17,12 +18,20 @@ class ActionButton extends StatefulWidget {
   final BuildContext context;
   final List<PullDownMenuItem> menuItems;
   final ActionButtonPermissionScope permissionScope;
+  final double size;
+  final double lift;
+  final Color backgroundColor;
+  final Color iconColor;
 
   const ActionButton({
     super.key,
     required this.context,
     required this.menuItems,
     this.permissionScope = ActionButtonPermissionScope.none,
+    this.size = 60,
+    this.lift = 60,
+    this.backgroundColor = Colors.white,
+    this.iconColor = Colors.black,
   });
 
   @override
@@ -31,6 +40,71 @@ class ActionButton extends StatefulWidget {
 
 class _ActionButtonState extends State<ActionButton> {
   late final Future<Map<String, bool>> _permissionsFuture;
+  static const String _yellowBadgeTier = 'sari';
+  static const Map<String, Set<String>> _menuTitleVariantsByKey = {
+    'scholarship.create_title': {
+      'scholarship.create_title',
+      'burs oluştur',
+      'create scholarship',
+      'stipendium erstellen',
+      'creer une bourse',
+      'créer une bourse',
+      'crea borsa di studio',
+      'создать стипендию',
+    },
+    'scholarship.my_listings': {
+      'scholarship.my_listings',
+      'burs ilanlarım',
+      'my scholarship listings',
+      'meine stipendienanzeigen',
+      'mes annonces de bourse',
+      'i miei annunci di borsa',
+      'мои объявления о стипендии',
+    },
+    'common.create': {
+      'common.create',
+      'oluştur',
+      'create',
+      'erstellen',
+      'creer',
+      'créer',
+      'crea',
+      'создать',
+    },
+    'pasaj.common.published': {
+      'pasaj.common.published',
+      'yayınladıklarım',
+      'published',
+      'veröffentlichte',
+      'publiées',
+      'pubblicati',
+      'опубликованные',
+    },
+    'pasaj.common.post_listing': {
+      'pasaj.common.post_listing',
+      'ilan ver',
+      'post listing',
+      'inserat erstellen',
+      'publier une annonce',
+      'pubblica annuncio',
+      'разместить объявление',
+    },
+    'pasaj.market.my_listings': {
+      'pasaj.market.my_listings',
+      'ilanlarım',
+      'my listings',
+      'meine anzeigen',
+      'mes annonces',
+      'i miei annunci',
+      'мои объявления',
+    },
+    'pasaj.common.slider_admin': {
+      'pasaj.common.slider_admin',
+      'slider yönetimi',
+      'slider management',
+      'slider-verwaltung',
+    },
+  };
 
   @override
   void initState() {
@@ -43,7 +117,9 @@ class _ActionButtonState extends State<ActionButton> {
   }
 
   Future<Map<String, bool>> _loadPermissions() async {
-    final canUseYellowTier = await currentUserHasRozetPermission('Sarı');
+    final canUseYellowTier = await currentUserHasRozetPermission(
+      _yellowBadgeTier,
+    );
     final canManageSliders = await _canManageSliders();
     return {
       'canUseYellowTier': canUseYellowTier,
@@ -51,16 +127,36 @@ class _ActionButtonState extends State<ActionButton> {
     };
   }
 
+  bool _matchesLocalizedTitle(PullDownMenuItem item, List<String> titleKeys) {
+    final title = normalizeSearchText(item.title);
+    for (final key in titleKeys) {
+      final variants = _menuTitleVariantsByKey[key] ?? {key};
+      if (variants.contains(title)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   bool _shouldHideForScope(PullDownMenuItem item, bool canUseYellowTier) {
     if (canUseYellowTier) return false;
 
     switch (widget.permissionScope) {
       case ActionButtonPermissionScope.scholarships:
-        return item.title == 'Burs Oluştur' || item.title == 'İlanlarım';
+        return _matchesLocalizedTitle(item, [
+          'scholarship.create_title',
+          'scholarship.my_listings',
+        ]);
       case ActionButtonPermissionScope.practiceExams:
-        return item.title == 'Oluştur' || item.title == 'Yayınladıklarım';
+        return _matchesLocalizedTitle(item, [
+          'common.create',
+          'pasaj.common.published',
+        ]);
       case ActionButtonPermissionScope.jobFinder:
-        return item.title == 'İlan Ver' || item.title == 'İlanlarım';
+        return _matchesLocalizedTitle(item, [
+          'pasaj.common.post_listing',
+          'pasaj.market.my_listings',
+        ]);
       case ActionButtonPermissionScope.none:
         return false;
     }
@@ -69,8 +165,11 @@ class _ActionButtonState extends State<ActionButton> {
   @override
   Widget build(BuildContext context) {
     final isPressed = false.obs;
+    final effectiveBackgroundColor = widget.backgroundColor == Colors.white
+        ? Colors.white.withValues(alpha: 0.88)
+        : widget.backgroundColor;
     return Transform.translate(
-      offset: const Offset(0, -60),
+      offset: Offset(0, -widget.lift),
       child: GestureDetector(
         onTapDown: (_) => isPressed.value = true,
         onTapUp: (_) => isPressed.value = false,
@@ -79,8 +178,8 @@ class _ActionButtonState extends State<ActionButton> {
           () => Opacity(
             opacity: isPressed.value ? 0.5 : 1.0,
             child: SizedBox(
-              width: 60,
-              height: 60,
+              width: widget.size,
+              height: widget.size,
               child: FutureBuilder<Map<String, bool>>(
                 future: _permissionsFuture,
                 builder: (context, snapshot) {
@@ -94,7 +193,9 @@ class _ActionButtonState extends State<ActionButton> {
                           if (_shouldHideForScope(item, canUseYellowTier)) {
                             return null;
                           }
-                          if (item.title == 'Slider Yönetimi' &&
+                          if (_matchesLocalizedTitle(item, [
+                                'pasaj.common.slider_admin',
+                              ]) &&
                               !canManageSliders) {
                             return null;
                           }
@@ -106,13 +207,16 @@ class _ActionButtonState extends State<ActionButton> {
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                         child: Container(
-                          width: 60,
-                          height: 60,
+                          width: widget.size,
+                          height: widget.size,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.88),
+                            color: effectiveBackgroundColor,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.black.withValues(alpha: 0.06),
+                              color: widget.backgroundColor == Colors.white
+                                  ? Colors.black.withValues(alpha: 0.06)
+                                  : widget.backgroundColor
+                                      .withValues(alpha: 0.24),
                             ),
                             boxShadow: const [
                               BoxShadow(
@@ -126,8 +230,8 @@ class _ActionButtonState extends State<ActionButton> {
                           child: IconButton(
                             icon: Icon(
                               Icons.grid_view_outlined,
-                              color: Colors.black,
-                              size: Theme.of(context).iconTheme.size ?? 25,
+                              color: widget.iconColor,
+                              size: widget.size <= 56 ? 23 : 25,
                             ),
                             onPressed: showMenu,
                           ),

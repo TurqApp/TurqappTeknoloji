@@ -13,6 +13,12 @@ import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 
 class ScholarshipDetailController extends GetxController {
+  static const String _selectValue = 'Seçiniz';
+  static const String _selectActionValue = 'Seçim Yap';
+  static const String _selectJobValue = 'Meslek Seç';
+  static const String _yesValue = 'Evet';
+  static const String _middleSchool = 'Ortaokul';
+  static const String _highSchool = 'Lise';
   final UserRepository _userRepository = UserRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
@@ -107,21 +113,21 @@ class ScholarshipDetailController extends GetxController {
             userString(data, key: 'dogumTarihi', scope: 'profile').isNotEmpty &&
             userString(data, key: 'medeniHal', scope: 'profile').isNotEmpty &&
             userString(data, key: 'cinsiyet', scope: 'profile') !=
-                "Seçim Yap" &&
+                _selectActionValue &&
             userString(data, key: 'engelliRaporu', scope: 'family')
                 .isNotEmpty &&
             userString(data, key: 'calismaDurumu', scope: 'profile').isNotEmpty;
 
         bool isEducationInfoComplete = educationLevel.isNotEmpty &&
             userString(data, key: 'ulke', scope: 'profile').isNotEmpty &&
-            (educationLevel == 'Ortaokul'
+            (educationLevel == _middleSchool
                 ? (userString(data, key: 'ortaOkul', scope: 'education')
                         .isNotEmpty &&
                     userString(data, key: 'sinif', scope: 'education')
                         .isNotEmpty &&
                     userString(data, key: 'il', scope: 'profile').isNotEmpty &&
                     userString(data, key: 'ilce', scope: 'profile').isNotEmpty)
-                : educationLevel == 'Lise'
+                : educationLevel == _highSchool
                     ? (userString(data, key: 'lise', scope: 'education')
                             .isNotEmpty &&
                         userString(data, key: 'sinif', scope: 'education')
@@ -140,33 +146,33 @@ class ScholarshipDetailController extends GetxController {
                         userString(data, key: 'il', scope: 'profile')
                             .isNotEmpty));
 
-        bool isFamilyInfoComplete = fatherLiving != "Seçiniz" &&
-            motherLiving != "Seçiniz" &&
+        bool isFamilyInfoComplete = fatherLiving != _selectValue &&
+            motherLiving != _selectValue &&
             userInt(data, key: 'totalLiving', scope: 'family') > 0 &&
             userString(data, key: 'evMulkiyeti', scope: 'family') !=
-                "Seçim Yap" &&
+                _selectActionValue &&
             userString(data, key: 'ikametSehir', scope: 'profile').isNotEmpty &&
             userString(data, key: 'ikametIlce', scope: 'profile').isNotEmpty;
 
-        if (fatherLiving == "Evet") {
+        if (fatherLiving == _yesValue) {
           isFamilyInfoComplete = isFamilyInfoComplete &&
               userString(data, key: 'fatherName', scope: 'family').isNotEmpty &&
               userString(data, key: 'fatherSurname', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'fatherJob', scope: 'family') !=
-                  "Meslek Seç" &&
+                  _selectJobValue &&
               userString(data, key: 'fatherSalary', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'fatherPhone', scope: 'family').isNotEmpty;
         }
 
-        if (motherLiving == "Evet") {
+        if (motherLiving == _yesValue) {
           isFamilyInfoComplete = isFamilyInfoComplete &&
               userString(data, key: 'motherName', scope: 'family').isNotEmpty &&
               userString(data, key: 'motherSurname', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'motherJob', scope: 'family') !=
-                  "Meslek Seç" &&
+                  _selectJobValue &&
               userString(data, key: 'motherSalary', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'motherPhone', scope: 'family').isNotEmpty;

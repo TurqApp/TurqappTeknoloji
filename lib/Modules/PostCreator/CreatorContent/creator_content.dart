@@ -47,12 +47,6 @@ class CreatorContent extends StatelessWidget {
   CreatorContent({super.key, required this.model, required this.isSelected});
   late final CreatorContentController controller;
   final mainController = Get.find<PostCreatorController>();
-  static const Map<String, String> _videoLookLabels = <String, String>{
-    'original': 'Orijinal',
-    'clear': 'Temiz',
-    'cinema': 'Sinematik',
-    'vibe': 'Canlı',
-  };
 
   double get _singleImagePreviewAspect {
     final reused = controller.reusedImageAspectRatio.value;
@@ -263,7 +257,8 @@ class CreatorContent extends StatelessWidget {
                                                   ),
                                                 ),
                                                 Text(
-                                                  "Video İşleniyor",
+                                                  'post_creator.video_processing'
+                                                      .tr,
                                                   style: TextStyle(
                                                       color: Colors.black,
                                                       fontSize: 15,
@@ -353,8 +348,8 @@ class CreatorContent extends StatelessWidget {
                       textAlignVertical: TextAlignVertical.center,
                       decoration: InputDecoration(
                         hintText: controller.waitingVideo.value
-                            ? "Lütfen bekle. Video işleniyor..."
-                            : "Ne var ne yok ?",
+                            ? 'post_creator.processing_wait'.tr
+                            : 'post_creator.placeholder'.tr,
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontSize: 16,

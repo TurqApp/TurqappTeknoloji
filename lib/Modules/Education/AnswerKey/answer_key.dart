@@ -23,6 +23,21 @@ import 'package:turqappv2/Themes/app_assets.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
+String _answerKeyExamLabel(String raw) {
+  switch (raw) {
+    case 'Dil':
+      return 'common.language'.tr;
+    case 'Yazılım':
+      return 'tutoring.branch.software'.tr;
+    case 'Spor':
+      return 'tutoring.branch.sports'.tr;
+    case 'Tasarım':
+      return 'common.design'.tr;
+    default:
+      return raw;
+  }
+}
+
 class AnswerKey extends StatelessWidget {
   AnswerKey({
     super.key,
@@ -138,8 +153,10 @@ class AnswerKey extends StatelessWidget {
                                               const SizedBox(height: 7),
                                               Text(
                                                 controller.hasActiveSearch
-                                                    ? "Aramana uygun cevap anahtarı yok."
-                                                    : "Herhangi bir optik form yok.",
+                                                    ? "answer_key.search_empty"
+                                                        .tr
+                                                    : "answer_key.no_optical_forms"
+                                                        .tr,
                                                 style: const TextStyle(
                                                   color: Colors.black,
                                                   fontSize: 15,
@@ -233,7 +250,7 @@ class AnswerKey extends StatelessWidget {
                     icon:
                         Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
                   ),
-                  TypewriterText(text: "Cevap Anahtarları"),
+                  TypewriterText(text: "answer_key.answer_keys".tr),
                 ],
               ),
               bodyContent,
@@ -260,7 +277,7 @@ class AnswerKey extends StatelessWidget {
             color: Colors.grey.withValues(alpha: 0.1),
             borderRadius: const BorderRadius.all(Radius.circular(12)),
           ),
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
@@ -268,8 +285,8 @@ class AnswerKey extends StatelessWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "Ara",
-                    style: TextStyle(
+                    "common.search".tr,
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontFamily: "Montserrat",
                       fontSize: 15,
@@ -317,7 +334,7 @@ class AnswerKey extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    controller.lessons[index],
+                    _answerKeyExamLabel(controller.lessons[index]),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 13,

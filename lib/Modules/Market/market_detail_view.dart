@@ -104,8 +104,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'İlan Detayı',
+        title: Text(
+          'pasaj.market.detail_title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -137,7 +137,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 if (!_isOwner)
                   PullDownMenuItem(
                     onTap: _showReportSheet,
-                    title: 'İlanı Bildir',
+                    title: 'pasaj.market.report_listing'.tr,
                     icon: CupertinoIcons.exclamationmark_circle,
                   ),
               ],
@@ -191,8 +191,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Açıklama',
+            Text(
+              'common.description'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
@@ -202,7 +202,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             const SizedBox(height: 8),
             Text(
               item.description.isEmpty
-                  ? 'Bu ilan için açıklama eklenmemiş.'
+                  ? 'pasaj.market.no_description'.tr
                   : item.description,
               style: const TextStyle(
                 color: Colors.black87,
@@ -215,7 +215,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             if (item.attributes.isNotEmpty) ...[
               const SizedBox(height: 18),
               _infoCard(
-                title: 'Özellikler',
+                title: 'common.features'.tr,
                 children: item.attributes.entries
                     .map(
                       (entry) => _infoRow(
@@ -230,17 +230,19 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             ],
             const SizedBox(height: 18),
             _infoCard(
-              title: 'İlan Bilgileri',
+              title: 'pasaj.market.listing_info'.tr,
               children: [
-                _infoRow('Kategori', item.categoryPath.join(' > ')),
-                _infoRow('Durum', _statusLabel(item.status)),
+                _infoRow('common.category'.tr, item.categoryPath.join(' > ')),
+                _infoRow('common.status'.tr, _statusLabel(item.status)),
                 _infoRow(
-                  'İletişim',
-                  item.canShowPhone ? 'Telefon + Mesaj' : 'Sadece Mesaj',
+                  'common.contact'.tr,
+                  item.canShowPhone
+                      ? 'pasaj.market.phone_and_message'.tr
+                      : 'pasaj.market.message_only'.tr,
                 ),
-                _infoRow('Görüntülenme', item.viewCount.toString()),
-                _infoRow('Kaydeden', item.favoriteCount.toString()),
-                _infoRow('Teklif', item.offerCount.toString()),
+                _infoRow('common.views'.tr, item.viewCount.toString()),
+                _infoRow('pasaj.market.saved_count'.tr, item.favoriteCount.toString()),
+                _infoRow('pasaj.market.offer_count'.tr, item.offerCount.toString()),
               ],
             ),
             const SizedBox(height: 18),
@@ -283,7 +285,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                                   Flexible(
                                     child: Text(
                                       item.sellerName.isEmpty
-                                          ? 'Turq Kullanıcı'
+                                          ? 'pasaj.market.default_seller'.tr
                                           : item.sellerName,
                                       style: const TextStyle(
                                         color: Colors.black87,
@@ -342,7 +344,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   color: const Color(0xFFF6F7FB),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
                     Icon(
                       CupertinoIcons.checkmark_seal_fill,
@@ -352,7 +354,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Bu ilan sana ait. Buradan duzenleyebilir veya paylasabilirsin.',
+                        'pasaj.market.owner_hint'.tr,
                         style: TextStyle(
                           color: Colors.black87,
                           fontSize: 13,
@@ -370,21 +372,21 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 children: [
                   Expanded(
                     child: _primaryButton(
-                      label: 'Düzenle',
+                      label: 'common.edit'.tr,
                       onTap: _openEdit,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _secondaryButton(
-                      label: 'Mesajlar',
+                      label: 'pasaj.market.messages'.tr,
                       onTap: () => Get.to(() => ChatListing()),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _secondaryButton(
-                      label: 'Teklifler',
+                      label: 'pasaj.market.offers'.tr,
                       onTap: () => Get.to(() => const MarketOffersView()),
                     ),
                   ),
@@ -395,14 +397,14 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 children: [
                   Expanded(
                     child: _primaryButton(
-                      label: 'Mesaj',
+                      label: 'common.message'.tr,
                       onTap: () => _contactService.openChat(item),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _secondaryButton(
-                      label: 'Teklif Ver',
+                      label: 'pasaj.market.custom_offer'.tr,
                       onTap: () => _showOfferSheet(context),
                     ),
                   ),
@@ -410,7 +412,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _secondaryButton(
-                        label: 'Ara',
+                        label: 'common.phone'.tr,
                         onTap: () =>
                             _contactService.showPhoneSheet(context, item),
                       ),
@@ -419,8 +421,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 ],
               ),
             const SizedBox(height: 18),
-            const Text(
-              'Benzer İlanlar',
+            Text(
+              'pasaj.market.related_listings'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
@@ -463,8 +465,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                       borderRadius: BorderRadius.circular(14),
                       color: const Color(0xFFF6F7FB),
                     ),
-                    child: const Text(
-                      'Bu kategori için başka ilan bulunamadı.',
+                    child: Text(
+                      'pasaj.market.no_related'.tr,
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 13,
@@ -502,8 +504,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     final selected = await showCupertinoModalPopup<ReportModel>(
       context: context,
       builder: (sheetContext) => CupertinoActionSheet(
-        title: const Text('İlanı Bildir'),
-        message: const Text('Lütfen bir neden seç.'),
+        title: Text('pasaj.market.report_listing'.tr),
+        message: Text('pasaj.market.report_reason'.tr),
         actions: selections
             .map(
               (selection) => CupertinoActionSheetAction(
@@ -515,7 +517,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(sheetContext).pop(),
           isDefaultAction: true,
-          child: const Text('Vazgeç'),
+          child: Text('common.cancel'.tr),
         ),
       ),
     );
@@ -539,12 +541,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       );
       if (!mounted) return;
       AppSnackbar(
-        'Talebiniz Bize Ulaştı!',
-        'İlan inceleme altına alındı. Teşekkür ederiz.',
+        'pasaj.market.report_received_title'.tr,
+        'pasaj.market.report_received_body'.tr,
       );
     } catch (_) {
       if (!mounted) return;
-      AppSnackbar('Hata', 'İlan bildirimi gönderilemedi.');
+      AppSnackbar('common.error'.tr, 'pasaj.market.report_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -647,7 +649,10 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   ? double.tryParse(rawText.replaceAll(',', '.'))
                   : selectedOffer;
               if (offerPrice == null || offerPrice <= 0) {
-                AppSnackbar('Eksik Bilgi', 'Geçerli bir teklif seç.');
+                AppSnackbar(
+                  'support.empty_title'.tr,
+                  'pasaj.market.invalid_offer'.tr,
+                );
                 return;
               }
               try {
@@ -664,15 +669,15 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   });
                 }
                 if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                AppSnackbar('Tamam', 'Teklif gönderildi.');
+                AppSnackbar('common.success'.tr, 'pasaj.market.offer_sent'.tr);
               } catch (e) {
                 final message =
                     e.toString().contains('own_item_offer_not_allowed')
-                        ? 'Kendi ilanına teklif veremezsin.'
+                        ? 'pasaj.market.offer_own_forbidden'.tr
                         : e.toString().contains('daily_offer_limit_reached')
-                        ? 'Bir günde en fazla 20 teklif yapabilirsin.'
-                        : 'Teklif gönderilemedi.';
-                AppSnackbar('Hata', message);
+                        ? 'pasaj.market.offer_daily_limit'.tr
+                        : 'pasaj.market.offer_failed'.tr;
+                AppSnackbar('common.error'.tr, message);
               }
             }
 
@@ -695,9 +700,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Teklif Ver',
+                      'pasaj.market.custom_offer'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -783,7 +788,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    '%$discount indirim',
+                                    'pasaj.market.discount'
+                                        .trParams({'value': '$discount'}),
                                     style: TextStyle(
                                       color: selected
                                           ? Colors.white
@@ -807,7 +813,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: _inputDecoration('Teklifini Kendin Belirle'),
+                      decoration:
+                          _inputDecoration('pasaj.market.custom_offer'.tr),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -823,8 +830,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      child: const Text(
-                        'Teklif Ver',
+                      child: Text(
+                        'pasaj.market.custom_offer'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -845,8 +852,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                         }
                       });
                     },
-                    child: const Text(
-                      'Teklifini Kendin Belirle',
+                    child: Text(
+                      'pasaj.market.custom_offer'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 16,
@@ -884,9 +891,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'Değerlendirmeler',
+                'pasaj.market.reviews'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -907,7 +914,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    existingReview == null ? 'Değerlendir' : 'Düzenle',
+                    existingReview == null
+                        ? 'pasaj.market.rate'.tr
+                        : 'pasaj.market.review_edit'.tr,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -942,8 +951,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Henüz değerlendirme yok.',
+              Text(
+                'pasaj.market.no_reviews'.tr,
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 13,
@@ -1164,7 +1173,10 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   Future<void> _showReviewSheet({MarketReviewModel? existingReview}) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (currentUserId.isEmpty) {
-      AppSnackbar('Bilgi', 'Değerlendirme yapmak için giriş yapmalısın.');
+      AppSnackbar(
+        'common.info'.tr,
+        'pasaj.market.sign_in_to_review'.tr,
+      );
       return;
     }
     final selectedRating = ValueNotifier<int>(existingReview?.rating ?? 5);
@@ -1193,8 +1205,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Değerlendir',
+                  Text(
+                    'pasaj.market.rate'.tr,
                     style: TextStyle(
                       fontFamily: 'MontserratBold',
                       fontSize: 18,
@@ -1231,7 +1243,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   TextField(
                     controller: commentController,
                     maxLines: 3,
-                    decoration: _inputDecoration('Yorumunuzu yazın'),
+                    decoration:
+                        _inputDecoration('pasaj.market.review_comment_hint'.tr),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -1242,7 +1255,10 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                           ? null
                           : () async {
                               if (selectedRating.value == 0) {
-                                AppSnackbar('Hata', 'Lütfen bir puan seçin.');
+                                AppSnackbar(
+                                  'common.error'.tr,
+                                  'pasaj.market.select_rating'.tr,
+                                );
                                 return;
                               }
                               isSubmitting.value = true;
@@ -1258,18 +1274,18 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                                 }
                                 await _loadReviews();
                                 AppSnackbar(
-                                  'Başarılı',
+                                  'common.success'.tr,
                                   existingReview == null
-                                      ? 'Değerlendirmeniz kaydedildi.'
-                                      : 'Değerlendirmeniz güncellendi.',
+                                      ? 'pasaj.market.review_saved'.tr
+                                      : 'pasaj.market.review_updated'.tr,
                                 );
                               } catch (e) {
                                 final message = e.toString().contains(
                                       'own_item_review_not_allowed',
                                     )
-                                    ? 'Kendi ilanını değerlendiremezsin.'
-                                    : 'Değerlendirme gönderilemedi.';
-                                AppSnackbar('Hata', message);
+                                    ? 'pasaj.market.review_own_forbidden'.tr
+                                    : 'pasaj.market.review_failed'.tr;
+                                AppSnackbar('common.error'.tr, message);
                               } finally {
                                 isSubmitting.value = false;
                               }
@@ -1290,8 +1306,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Kaydet',
+                          : Text(
+                              'common.save'.tr,
                               style: TextStyle(
                                 fontFamily: 'MontserratBold',
                                 fontSize: 15,
@@ -1313,9 +1329,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     try {
       await _reviewService.deleteReview(itemId: item.id, reviewId: reviewId);
       await _loadReviews();
-      AppSnackbar('Başarılı', 'Değerlendirmeniz kaldırıldı.');
+      AppSnackbar('common.success'.tr, 'pasaj.market.review_deleted'.tr);
     } catch (_) {
-      AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
+      AppSnackbar('common.error'.tr, 'pasaj.market.review_delete_failed'.tr);
     }
   }
 
@@ -1498,7 +1514,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             const SizedBox(height: 4),
             Text(
               related.locationText.isEmpty
-                  ? 'Konum belirtilmedi'
+                  ? 'pasaj.market.location_missing'.tr
                   : related.locationText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1544,15 +1560,15 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   String _statusLabel(String status) {
     switch (status) {
       case 'sold':
-        return 'Satildi';
+        return 'pasaj.market.status.sold'.tr;
       case 'draft':
-        return 'Taslak';
+        return 'pasaj.market.status.draft'.tr;
       case 'archived':
-        return 'Arsiv';
+        return 'pasaj.market.status.archived'.tr;
       case 'reserved':
-        return 'Rezerve';
+        return 'pasaj.market.status.reserved'.tr;
       default:
-        return 'Aktif';
+        return 'pasaj.market.status.active'.tr;
     }
   }
 

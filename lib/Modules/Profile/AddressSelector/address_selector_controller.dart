@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AddressSelectorController extends GetxController {
@@ -17,8 +18,7 @@ class AddressSelectorController extends GetxController {
     });
 
     final current = CurrentUserService.instance.currentUser;
-    if (current != null &&
-        current.userID == FirebaseAuth.instance.currentUser?.uid) {
+    if (current != null && isCurrentUserId(current.userID)) {
       addressController.text = current.adres;
     }
 

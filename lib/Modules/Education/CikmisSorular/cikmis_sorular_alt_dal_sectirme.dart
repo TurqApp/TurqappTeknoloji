@@ -23,16 +23,22 @@ class _CikmisSorularAltDalSectirmeState
     extends State<CikmisSorularAltDalSectirme> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> dallar = [];
+  static const _fieldKnowledge = 'Alan Bilgisi';
+  static const _educationSciences = 'Eğitim Bilimleri';
+  static const _aGroup = 'A Grubu';
+  static const _generalAbilityCulture = 'GK - GY';
+  static const _undergraduate = 'Lisans';
+  static const _associate = 'Ön Lisans';
 
   String _localizedBranch(String raw) {
     switch (raw) {
-      case 'Alan Bilgisi':
+      case _fieldKnowledge:
         return 'past_questions.branch.field_knowledge'.tr;
-      case 'Eğitim Bilimleri':
+      case _educationSciences:
         return 'past_questions.branch.education_sciences'.tr;
-      case 'A Grubu':
+      case _aGroup:
         return 'past_questions.branch.group_a'.tr;
-      case 'GK - GY':
+      case _generalAbilityCulture:
         return 'past_questions.branch.general_ability_culture'.tr;
       default:
         return raw;
@@ -52,11 +58,11 @@ class _CikmisSorularAltDalSectirmeState
         .then((dallarList) {
 
       // Özel sıralama: GK - GY, A Grubu, Eğitim Bilimleri, Alan Bilgisi
-      List<String> baslik2Order = [
-        "GK - GY",
-        "A Grubu",
-        "Eğitim Bilimleri",
-        "Alan Bilgisi",
+      const baslik2Order = [
+        _generalAbilityCulture,
+        _aGroup,
+        _educationSciences,
+        _fieldKnowledge,
       ];
 
       // Sıralama işlemi
@@ -108,7 +114,7 @@ class _CikmisSorularAltDalSectirmeState
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (dallar[index] == "Alan Bilgisi") {
+                              if (dallar[index] == _fieldKnowledge) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -121,7 +127,7 @@ class _CikmisSorularAltDalSectirmeState
                                     ),
                                   ),
                                 );
-                              } else if (dallar[index] == "Eğitim Bilimleri") {
+                              } else if (dallar[index] == _educationSciences) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -203,7 +209,7 @@ class _CikmisSorularAltDalSectirmeState
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                dallar[index] == "Alan Bilgisi"
+                                                dallar[index] == _fieldKnowledge
                                                     ? 'past_questions.oabt_short'
                                                         .tr
                                                     : _localizedBranch(
@@ -222,10 +228,10 @@ class _CikmisSorularAltDalSectirmeState
                                         Spacer(),
                                         SizedBox(height: 4),
                                         Text(
-                                          widget.sinavTuru == 'Lisans'
+                                          widget.sinavTuru == _undergraduate
                                               ? 'past_questions.exam_type.undergraduate'
                                                   .tr
-                                              : widget.sinavTuru == 'Ön Lisans'
+                                              : widget.sinavTuru == _associate
                                                   ? 'past_questions.exam_type.associate'
                                                       .tr
                                                   : widget.sinavTuru,

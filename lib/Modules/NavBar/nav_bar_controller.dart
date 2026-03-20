@@ -67,9 +67,8 @@ class NavBarController extends GetxController
   bool _ratingSheetShownThisSession = false;
   String _androidMinVersion = '';
   String _iosMinVersion = '';
-  String _updateTitle = 'Yeni Güncelleme Mevcut';
-  String _updateBody =
-      "TurqApp'in yeni versiyonu mevcut. Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyin.";
+  String _updateTitle = 'app_update.title'.tr;
+  String _updateBody = 'app_update.body'.tr;
   String? _androidStoreUrlOverride;
   String? _iosStoreUrlOverride;
   bool _ratingPromptEnabled = true;
@@ -355,10 +354,8 @@ class NavBarController extends GetxController
 
     final updateTitle = (doc['updateTitle'] ?? '').toString().trim();
     final updateBody = (doc['updateBody'] ?? '').toString().trim();
-    _updateTitle = updateTitle.isEmpty ? 'Yeni Güncelleme Mevcut' : updateTitle;
-    _updateBody = updateBody.isEmpty
-        ? "TurqApp'in yeni versiyonu mevcut. Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyin."
-        : updateBody;
+    _updateTitle = updateTitle.isEmpty ? 'app_update.title'.tr : updateTitle;
+    _updateBody = updateBody.isEmpty ? 'app_update.body'.tr : updateBody;
 
     final androidStoreUrl = (doc['androidStoreUrl'] ?? '').toString().trim();
     final iosStoreUrl = (doc['iosStoreUrl'] ?? '').toString().trim();
@@ -519,8 +516,8 @@ class NavBarController extends GetxController
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    "Şimdi Güncelle",
+                  child: Text(
+                    'app_update.cta'.tr,
                     style: TextStyle(
                         fontSize: 15,
                         fontFamily: "MontserratMedium",
@@ -653,8 +650,8 @@ class NavBarController extends GetxController
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'TurqApp’i Değerlendir',
+              Text(
+                'nav.rating_prompt_title'.tr,
                 style: TextStyle(
                   fontSize: 24,
                   color: Colors.black,
@@ -663,8 +660,8 @@ class NavBarController extends GetxController
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Deneyimin iyiyse mağazada puan ve kısa bir değerlendirme bırakman TurqApp’in büyümesine ciddi katkı sağlar.',
+              Text(
+                'nav.rating_prompt_body'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.black54,
@@ -692,8 +689,8 @@ class NavBarController extends GetxController
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Mağazada Değerlendir',
+                  child: Text(
+                    'nav.rating_prompt_cta'.tr,
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.white,
@@ -708,8 +705,8 @@ class NavBarController extends GetxController
                 height: 50,
                 child: TextButton(
                   onPressed: () => Get.back(),
-                  child: const Text(
-                    'Daha Sonra',
+                  child: Text(
+                    'nav.rating_prompt_later'.tr,
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.black54,
@@ -742,8 +739,8 @@ class NavBarController extends GetxController
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } catch (_) {
         AppSnackbar(
-          "Hata",
-          "Mağaza açılırken bir hata oluştu",
+          'common.error'.tr,
+          'nav.store_open_failed'.tr,
           backgroundColor: Colors.red.withValues(alpha: 0.7),
         );
       }

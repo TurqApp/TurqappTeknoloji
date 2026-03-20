@@ -129,19 +129,19 @@ class _ChatTextFieldState extends State<_ChatTextField> {
     await showPullDownMenu(
       context: context,
       position: position,
-      items: [
+        items: [
         PullDownMenuItem(
-          title: "Fotoğraflar",
+          title: 'chat.attach_photos'.tr,
           icon: CupertinoIcons.photo_on_rectangle,
           onTap: widget.controller.pickImage,
         ),
         PullDownMenuItem(
-          title: "Videolar",
+          title: 'chat.attach_videos'.tr,
           icon: AppIcons.playFilled,
           onTap: widget.controller.pickVideo,
         ),
         PullDownMenuItem(
-          title: "Konum",
+          title: 'chat.attach_location'.tr,
           icon: AppIcons.locationSolid,
           onTap: () {
             Get.to(
@@ -197,15 +197,16 @@ class _ChatTextFieldState extends State<_ChatTextField> {
                       minLines: 1,
                       maxLines: 4,
                       keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: "Mesaj",
-                        hintStyle: TextStyle(
+                        hintText: 'chat.message_hint'.tr,
+                        hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontSize: 15,
                           fontFamily: "Montserrat",
                         ),
-                        contentPadding: EdgeInsets.symmetric(vertical: 9),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 9),
                         isDense: true,
                       ),
                       style: const TextStyle(

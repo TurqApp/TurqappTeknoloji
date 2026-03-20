@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class PersonalizedController extends GetxController {
@@ -243,31 +244,12 @@ class PersonalizedController extends GetxController {
     return score;
   }
 
-  String _normalizeCity(String input) {
-    var s = input.toLowerCase().trim();
-    s = s
-        .replaceAll('ç', 'c')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ı', 'i')
-        .replaceAll('i̇', 'i')
-        .replaceAll('ö', 'o')
-        .replaceAll('ş', 's')
-        .replaceAll('ü', 'u');
-    s = s.replaceAll(' province', '');
-    s = s.replaceAll(' ili', '');
-    s = s.replaceAll(' il', '');
-    s = s.replaceAll(' sehri', '');
-    s = s.replaceAll(' şehir', '');
-    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return s;
-  }
-
   bool _matchesTargetCity(IndividualScholarshipsModel item, String city) {
-    final normalizedTarget = _normalizeCity(city);
+    final normalizedTarget = normalizeCityText(city);
 
     bool cityMatch(List<String> list) {
       for (final raw in list) {
-        final normalized = _normalizeCity(raw);
+        final normalized = normalizeCityText(raw);
         if (normalized == normalizedTarget) return true;
         if (normalized.contains(normalizedTarget) ||
             normalizedTarget.contains(normalized)) {
@@ -284,15 +266,15 @@ class PersonalizedController extends GetxController {
     final level = educationLevel.value.trim();
     if (level.isEmpty) return false;
 
-    final normLevel = _normalizeCity(level);
-    final hedef = _normalizeCity(item.hedefKitle);
+    final normLevel = normalizeCityText(level);
+    final hedef = normalizeCityText(item.hedefKitle);
     if (hedef.contains(normLevel) || normLevel.contains(hedef)) return true;
 
-    final egitim = _normalizeCity(item.egitimKitlesi);
+    final egitim = normalizeCityText(item.egitimKitlesi);
     if (egitim.contains(normLevel) || normLevel.contains(egitim)) return true;
 
     for (final alt in item.altEgitimKitlesi) {
-      final n = _normalizeCity(alt);
+      final n = normalizeCityText(alt);
       if (n.contains(normLevel) || normLevel.contains(n)) return true;
     }
 

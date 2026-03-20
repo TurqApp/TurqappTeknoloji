@@ -18,7 +18,7 @@ class Interests extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "İlgi Alanları"),
+            BackButtons(text: "settings.interests".tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -40,8 +40,8 @@ class Interests extends StatelessWidget {
                           () => Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Akışını kişiselleştir",
+                              Text(
+                                "interests.personalize_feed".tr,
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Color(0xFF111827),
@@ -50,7 +50,14 @@ class Interests extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "En az ${InterestsController.minSelection}, en fazla ${InterestsController.maxSelection} ilgi alanı seç.",
+                                "interests.selection_range".trParams(
+                                  <String, String>{
+                                    'min':
+                                        '${InterestsController.minSelection}',
+                                    'max':
+                                        '${InterestsController.maxSelection}',
+                                  },
+                                ),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey.shade700,
@@ -61,7 +68,14 @@ class Interests extends StatelessWidget {
                               Row(
                                 children: [
                                   Text(
-                                    "${controller.selecteds.length}/${InterestsController.maxSelection} seçildi",
+                                    "interests.selected_count".trParams(
+                                      <String, String>{
+                                        'selected':
+                                            '${controller.selecteds.length}',
+                                        'max':
+                                            '${InterestsController.maxSelection}',
+                                      },
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Color(0xFF111827),
@@ -78,8 +92,8 @@ class Interests extends StatelessWidget {
                                         color: const Color(0xFFDCFCE7),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
-                                      child: const Text(
-                                        "Hazır",
+                                      child: Text(
+                                        "interests.ready".tr,
                                         style: TextStyle(
                                           color: Color(0xFF166534),
                                           fontSize: 11,
@@ -113,7 +127,7 @@ class Interests extends StatelessWidget {
                             fontSize: 14,
                           ),
                           decoration: InputDecoration(
-                            hintText: "İlgi alanı ara",
+                            hintText: "interests.search_hint".tr,
                             hintStyle: TextStyle(
                               color: Colors.grey.shade500,
                               fontFamily: "Montserrat",

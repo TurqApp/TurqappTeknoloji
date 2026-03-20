@@ -35,8 +35,8 @@ class OpticalFormContentController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Cevapların gönderildi",
+            Text(
+              "answer_key.answers_sent_title".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -45,8 +45,8 @@ class OpticalFormContentController extends GetxController {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Yanıtınız optik form sahibine iletildi!",
+            Text(
+              "answer_key.answers_sent_body".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -64,8 +64,8 @@ class OpticalFormContentController extends GetxController {
                   color: Colors.black,
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                child: const Text(
-                  "Tamam",
+                child: Text(
+                  "common.ok".tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -93,8 +93,8 @@ class OpticalFormContentController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Sınavınız Geçersiz Sayılmıştır!",
+            Text(
+              "answer_key.invalid_exam_title".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -103,8 +103,8 @@ class OpticalFormContentController extends GetxController {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Sizi uyardık! Kural ihlali yaptığınız için sınavınız geçersiz sayılmıştır!",
+            Text(
+              "answer_key.invalid_exam_body".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -122,8 +122,8 @@ class OpticalFormContentController extends GetxController {
                   color: Colors.black,
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                child: const Text(
-                  "Tamam",
+                child: Text(
+                  "common.ok".tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,

@@ -18,7 +18,7 @@ class AddressSelector extends StatelessWidget {
             child: Column(
               children: [
                 Row(
-                  children: [BackButtons(text: "Adres")],
+                  children: [BackButtons(text: 'address.title'.tr)],
                 ),
                 SizedBox(
                   height: 12,
@@ -38,10 +38,10 @@ class AddressSelector extends StatelessWidget {
                     maxLength: 100,
                     maxLines: null,
                     keyboardType: TextInputType.multiline,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: "İşletme & Ofis Adresi",
-                      hintStyle: TextStyle(
+                      hintText: 'address.hint'.tr,
+                      hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
                           fontSize: 15),

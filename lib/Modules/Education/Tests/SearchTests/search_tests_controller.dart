@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class SearchTestsController extends GetxController {
@@ -66,16 +67,17 @@ class SearchTestsController extends GetxController {
   }
 
   void filterSearchResults(String query) {
-    if (query.isEmpty) {
+    final normalizedQuery = normalizeSearchText(query);
+    if (normalizedQuery.isEmpty) {
       filteredList.assignAll(list);
     } else {
       filteredList.assignAll(
         list.where(
           (test) =>
-              test.aciklama.toLowerCase().contains(query.toLowerCase()) ||
-              test.testTuru.toLowerCase().contains(query.toLowerCase()) ||
+              normalizeSearchText(test.aciklama).contains(normalizedQuery) ||
+              normalizeSearchText(test.testTuru).contains(normalizedQuery) ||
               test.dersler.any(
-                (ders) => ders.toLowerCase().contains(query.toLowerCase()),
+                (ders) => normalizeSearchText(ders).contains(normalizedQuery),
               ),
         ),
       );

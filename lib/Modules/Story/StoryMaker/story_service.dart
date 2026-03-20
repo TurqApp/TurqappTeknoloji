@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'story_model.dart';
 
@@ -9,7 +10,7 @@ class StoryService {
   Future<List<StoryModel>> fetchStoriesByCurrentUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      throw Exception('Kullanıcı oturumu yok');
+      throw Exception('story.fetch_session_missing'.tr);
     }
 
     return _storyRepository.getStoriesForUser(
@@ -26,7 +27,7 @@ class StoryService {
       preferCache: true,
     );
     if (story == null) {
-      throw Exception('Hikâye bulunamadı: $storyId');
+      throw Exception('story.fetch_not_found'.trParams({'id': storyId}));
     }
     return story;
   }

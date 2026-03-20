@@ -1,19 +1,21 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../upload_constants.dart';
 
 enum CompressionQuality {
-  ultra(95, 'Ultra'),
-  high(85, 'Yüksek'),
-  medium(70, 'Orta'),
-  low(50, 'Düşük');
+  ultra(95, 'compression_quality.ultra'),
+  high(85, 'compression_quality.high'),
+  medium(70, 'compression_quality.medium'),
+  low(50, 'compression_quality.low');
 
-  const CompressionQuality(this.value, this.label);
+  const CompressionQuality(this.value, this.labelKey);
   final int value;
-  final String label;
+  final String labelKey;
+  String get label => labelKey.tr;
 }
 
 class CompressionResult {

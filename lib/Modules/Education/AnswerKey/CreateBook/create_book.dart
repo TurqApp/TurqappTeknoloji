@@ -9,6 +9,21 @@ import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book_controller.dart';
 
+String _answerKeyExamLabel(String raw) {
+  switch (raw) {
+    case 'Dil':
+      return 'common.language'.tr;
+    case 'Yazılım':
+      return 'tutoring.branch.software'.tr;
+    case 'Spor':
+      return 'tutoring.branch.sports'.tr;
+    case 'Tasarım':
+      return 'common.design'.tr;
+    default:
+      return raw;
+  }
+}
+
 class CevapAnahtariHazirlikModel {
   String baslik;
   List<String> dogruCevaplar;
@@ -268,7 +283,7 @@ class CreateBook extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  dersler1[index],
+                                  _answerKeyExamLabel(dersler1[index]),
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 13,
@@ -588,8 +603,8 @@ class CreateBookAnswerKey extends StatelessWidget {
                                 decoration: const BoxDecoration(
                                   color: Colors.indigo,
                                 ),
-                                child: const Text(
-                                  "Önizle",
+                                child: Text(
+                                  "common.preview".tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 15,
@@ -679,8 +694,8 @@ class CreateBookAnswerKey extends StatelessWidget {
                               Radius.circular(50),
                             ),
                           ),
-                          child: const Text(
-                            "Tamam",
+                          child: Text(
+                            "common.ok".tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,

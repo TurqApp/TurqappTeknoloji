@@ -1,3 +1,5 @@
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
+
 class ModerationConfigModel {
   final bool enabled;
   final int blackBadgeFlagThreshold;
@@ -97,14 +99,7 @@ class ModerationConfigModel {
   }
 
   static bool _asBool(dynamic raw, bool fallback) {
-    if (raw is bool) return raw;
-    if (raw is num) return raw != 0;
-    if (raw is String) {
-      final v = raw.trim().toLowerCase();
-      if (v == 'true' || v == '1') return true;
-      if (v == 'false' || v == '0') return false;
-    }
-    return fallback;
+    return parseFlexibleBool(raw, fallback: fallback);
   }
 
   static int _asInt(dynamic raw, int fallback) {

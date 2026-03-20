@@ -1,6 +1,38 @@
 part of 'post_creator_controller.dart';
 
 extension PostCreatorControllerSourcePart on PostCreatorController {
+  Future<String> resolveQuoteCounterTargetPostId() async {
+    final sourcePostId = _sharedSourcePostID.trim();
+    final originalPostId = _sharedOriginalPostID.trim();
+    final candidate = sourcePostId.isNotEmpty ? sourcePostId : originalPostId;
+    if (candidate.isEmpty) return '';
+
+    final raw = await _postRepository.fetchPostRawById(
+          candidate,
+          preferCache: true,
+        ) ??
+        const <String, dynamic>{};
+    if (raw.isEmpty) {
+      return candidate;
+    }
+
+    final floodCount = raw['floodCount'];
+    final isSeries = floodCount is num
+        ? floodCount.toInt() > 1
+        : int.tryParse('$floodCount') != null &&
+            int.parse('$floodCount') > 1;
+    if (!isSeries) {
+      return candidate;
+    }
+
+    final mainFlood = (raw['mainFlood'] ?? '').toString().trim();
+    final isFlood = raw['flood'] == true;
+    if (isFlood && mainFlood.isNotEmpty) {
+      return mainFlood;
+    }
+    return candidate;
+  }
+
   Future<void> applySharedSourceIfNeeded({
     required String videoUrl,
     required List<String> imageUrls,
@@ -118,13 +150,19 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     if (isSavingEdit.value) return false;
     final docID = editingPostID.value.trim();
     if (docID.isEmpty) {
-      AppSnackbar('Hata', 'Düzenlenecek gönderi bulunamadı');
+      AppSnackbar(
+        'common.error'.tr,
+        'post_creator.edit_target_missing'.tr,
+      );
       return false;
     }
 
     const tag = '0';
     if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-      AppSnackbar('Hata', 'Düzenleme içeriği bulunamadı');
+      AppSnackbar(
+        'common.error'.tr,
+        'post_creator.edit_content_missing'.tr,
+      );
       return false;
     }
 
@@ -191,16 +229,19 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
         }
       } catch (_) {}
 
-      AppSnackbar('Başarılı', 'Gönderi güncellendi');
+      AppSnackbar(
+        'common.success'.tr,
+        'post_creator.edit_updated'.tr,
+      );
       return true;
     } catch (e) {
-      String msg = 'Gönderi güncellenemedi';
+      String msg = 'post_creator.edit_update_failed'.tr;
       if (e is FirebaseException &&
           e.message != null &&
           e.message!.trim().isNotEmpty) {
         msg = e.message!.trim();
       }
-      AppSnackbar('Hata', msg);
+      AppSnackbar('common.error'.tr, msg);
       return false;
     } finally {
       isSavingEdit.value = false;

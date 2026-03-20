@@ -37,7 +37,7 @@ class RecommendedUserContentController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       isFollowing.value = outcome.nowFollowing; // reconcile
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
     } catch (e) {
       isFollowing.value = wasFollowing; // revert

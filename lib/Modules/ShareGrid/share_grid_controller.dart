@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 
@@ -20,6 +21,7 @@ class ShareGridController extends GetxController {
   Rx<FocusNode> searchFocus = FocusNode().obs;
   final chatListingController = Get.put(ChatListingController());
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
@@ -35,21 +37,17 @@ class ShareGridController extends GetxController {
     final currentUid = FirebaseAuth.instance.currentUser!.uid;
     final ids = await _followRepository.getFollowingIds(currentUid);
     final limitedIds = ids.take(20).toList();
-    final profiles = await _userRepository.getUsersRaw(limitedIds);
+    final profiles = await _userSummaryResolver.resolveMany(limitedIds);
     final items = <OgrenciModel>[];
     for (final userId in limitedIds) {
       final data = profiles[userId];
       if (data == null) continue;
       items.add(OgrenciModel(
         userID: userId,
-        firstName: (data["firstName"] ?? "").toString(),
-        avatarUrl: (data["avatarUrl"] ?? "").toString(),
-        lastName: (data["lastName"] ?? "").toString(),
-        nickname: (data["nickname"] ??
-                data["username"] ??
-                data["displayName"] ??
-                "")
-            .toString(),
+        firstName: data.displayName,
+        avatarUrl: data.avatarUrl,
+        lastName: '',
+        nickname: data.nickname,
       ));
     }
     followings.assignAll(items);
@@ -58,7 +56,7 @@ class ShareGridController extends GetxController {
   Future<void> sendIt() async {
     final selected = selectedUser.value;
     if (selected == null) {
-      AppSnackbar("Uyarı", "Önce bir kullanıcı seç");
+      AppSnackbar('common.warning'.tr, 'share_grid.select_user_first'.tr);
       return;
     }
     final userID = selected.userID;
@@ -88,10 +86,13 @@ class ShareGridController extends GetxController {
       searchFocus.value.unfocus();
       selectedUser.value = null;
       Get.back();
-      AppSnackbar("Gönderildi", "Gönderi iletildi");
+      AppSnackbar('common.success'.tr, 'share_grid.post_forwarded'.tr);
       chatListingController.getList();
     } catch (e) {
-      AppSnackbar("Hata", "Gönderilemedi: $e");
+      AppSnackbar(
+        'common.error'.tr,
+        'share_grid.forward_failed'.trParams({'error': '$e'}),
+      );
     }
   }
 

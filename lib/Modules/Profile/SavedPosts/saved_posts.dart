@@ -54,14 +54,15 @@ class _SavedPostsState extends State<SavedPosts> {
                   "saved_posts.posts_tab".tr,
                   "saved_posts.series_tab".tr,
                 ],
-                pageName: 'SavedPosts',
+                pageName: kSavedPostsPageLineBarTag,
                 pageController: controller.pageController),
             Expanded(
               child: Obx(() {
                 return PageView(
                   controller: controller.pageController,
                   onPageChanged: (v) {
-                    Get.find<PageLineBarController>(tag: 'SavedPosts')
+                    Get.find<PageLineBarController>(
+                            tag: kSavedPostsPageLineBarTag)
                         .selection
                         .value = v;
                   },

@@ -24,6 +24,7 @@ import '../../../Services/post_interaction_service.dart';
 import '../../../Core/Services/admin_access_service.dart';
 import '../../../Core/Repositories/post_repository.dart';
 import '../../../Core/Services/user_summary_resolver.dart';
+import '../../../Core/Utils/current_user_utils.dart';
 import '../../../Core/Utils/avatar_url.dart';
 import '../../../Core/Repositories/admin_push_repository.dart';
 
@@ -83,7 +84,7 @@ class PostContentController extends GetxController {
     final senderName = fullName.value.trim().isNotEmpty
         ? fullName.value.trim()
         : nickname.value.trim();
-    final safeSender = senderName.isNotEmpty ? senderName : 'TurqApp';
+    final safeSender = senderName.isNotEmpty ? senderName : 'app.name'.tr;
     final hasVideo = model.video.trim().isNotEmpty;
     final hasImage = model.img.isNotEmpty;
     final text = model.metin.trim();
@@ -254,7 +255,7 @@ class PostContentController extends GetxController {
   }
 
   void _bindFollowingState() {
-    if (model.userID == FirebaseAuth.instance.currentUser?.uid) {
+    if (isCurrentUserId(model.userID)) {
       isFollowing.value = true;
       return;
     }

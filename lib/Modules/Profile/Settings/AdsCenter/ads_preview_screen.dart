@@ -40,29 +40,33 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        const Text(
-          'Delivery Simulation',
+        Text(
+          'ads_center.delivery_simulation'.tr,
           style: TextStyle(fontFamily: 'MontserratBold', fontSize: 16),
         ),
         const SizedBox(height: 8),
-        TextField(controller: _userId, decoration: _d('User ID')),
+        TextField(controller: _userId, decoration: _d('ads_center.user_id'.tr)),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-                child:
-                    TextField(controller: _country, decoration: _d('Country'))),
+                child: TextField(
+                    controller: _country,
+                    decoration: _d('ads_center.country'.tr))),
             const SizedBox(width: 8),
             Expanded(
-                child: TextField(controller: _city, decoration: _d('City'))),
+                child: TextField(
+                    controller: _city, decoration: _d('ads_center.city'.tr))),
             const SizedBox(width: 8),
-            Expanded(child: TextField(controller: _age, decoration: _d('Age'))),
+            Expanded(
+                child: TextField(
+                    controller: _age, decoration: _d('ads_center.age'.tr))),
           ],
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<AdPlacementType>(
           initialValue: _placement,
-          decoration: _d('Placement'),
+          decoration: _d('ads_center.placement'.tr),
           items: AdPlacementType.values
               .map((e) => DropdownMenuItem(value: e, child: Text(e.name)))
               .toList(growable: false),
@@ -95,7 +99,7 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.play_arrow),
-            label: const Text('Simülasyonu Çalıştır'),
+            label: Text('ads_center.run_simulation'.tr),
           );
         }),
         const SizedBox(height: 16),
@@ -112,8 +116,8 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
               children: [
                 Text(
                   result.hasAd
-                      ? 'Uygun reklam bulundu'
-                      : 'Uygun reklam bulunamadı',
+                      ? 'ads_center.eligible_ad_found'.tr
+                      : 'ads_center.no_eligible_ad'.tr,
                   style: const TextStyle(
                       fontFamily: 'MontserratBold', fontSize: 14),
                 ),
@@ -127,28 +131,28 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
                 if (result.campaign != null) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Campaign: ${result.campaign!.name} (${result.campaign!.id})',
+                    '${'ads_center.campaign'.tr}: ${result.campaign!.name} (${result.campaign!.id})',
                     style: const TextStyle(
                         fontFamily: 'MontserratMedium', fontSize: 12),
                   ),
                 ],
                 if (result.creative != null)
                   Text(
-                    'Creative: ${result.creative!.headline} (${result.creative!.id})',
+                    '${'ads_center.creative'.tr}: ${result.creative!.headline} (${result.creative!.id})',
                     style: const TextStyle(
                         fontFamily: 'MontserratMedium', fontSize: 12),
                   ),
                 if (result.decisions.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  const Text(
-                    'Nedenler',
+                  Text(
+                    'ads_center.reasons'.tr,
                     style:
                         TextStyle(fontFamily: 'MontserratBold', fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   ...result.decisions.map((d) {
                     final reasons = d.reasons.isEmpty
-                        ? 'ok'
+                        ? 'common.ok'.tr
                         : d.reasons.map((e) => e.name).join(', ');
                     return Text(
                       '${d.campaignId}: $reasons',

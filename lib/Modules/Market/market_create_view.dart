@@ -23,6 +23,10 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   final PageController _imagePreviewController = PageController();
   int _imagePreviewIndex = 0;
 
+  String _categoryLabel(Map<String, dynamic> category) {
+    return (category['localizedLabel'] ?? category['label'] ?? '').toString();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,7 +60,9 @@ class _MarketCreateViewState extends State<MarketCreateView> {
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
         title: Text(
-          controller.pageTitle,
+          widget.initialItem == null
+              ? 'pasaj.market.add_listing'.tr
+              : 'common.edit'.tr,
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -72,36 +78,37 @@ class _MarketCreateViewState extends State<MarketCreateView> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
           children: [
-            _sectionTitle('Görseller'),
+            _sectionTitle('pasaj.market.create.images'.tr),
             const SizedBox(height: 8),
             _buildImagePicker(),
             const SizedBox(height: 18),
-            _sectionTitle('Temel Bilgiler'),
+            _sectionTitle('pasaj.market.create.basic_info'.tr),
             const SizedBox(height: 8),
             TextField(
               controller: controller.titleController,
-              decoration: _inputDecoration('Başlık'),
+              decoration: _inputDecoration('pasaj.market.create.title_hint'.tr),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: controller.descriptionController,
               minLines: 4,
               maxLines: 6,
-              decoration: _inputDecoration('Açıklama'),
+              decoration:
+                  _inputDecoration('pasaj.market.create.description_hint'.tr),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: controller.priceController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: _inputDecoration('Fiyat (TL)'),
+              decoration: _inputDecoration('pasaj.market.create.price_hint'.tr),
             ),
             const SizedBox(height: 18),
-            _sectionTitle('Konum'),
+            _sectionTitle('pasaj.market.create.location'.tr),
             const SizedBox(height: 8),
             _buildLocationSelectors(),
             const SizedBox(height: 18),
-            _sectionTitle('Kategori'),
+            _sectionTitle('pasaj.market.create.category'.tr),
             const SizedBox(height: 8),
             _buildTopCategories(),
             const SizedBox(height: 12),
@@ -127,29 +134,29 @@ class _MarketCreateViewState extends State<MarketCreateView> {
               ),
             ],
             const SizedBox(height: 18),
-            _sectionTitle('İlan Özellikleri'),
+            _sectionTitle('pasaj.market.create.features'.tr),
             const SizedBox(height: 8),
             if (leaf == null)
-              _infoBox('Kategori seçimlerini tamamlayınca bu alanlar açılır.')
+              _infoBox('pasaj.market.create.fields_after_category'.tr)
             else if (leaf.fields.isEmpty)
-              _infoBox('Bu kategori için ek alan tanımlı değil.')
+              _infoBox('pasaj.market.create.no_extra_fields'.tr)
             else
               ..._visibleDynamicFields(leaf.fields).map(_buildDynamicField),
             const SizedBox(height: 18),
-            _sectionTitle('İletişim Tercihi'),
+            _sectionTitle('pasaj.market.create.contact_preference'.tr),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: _contactChip(
-                    label: 'Mesaj',
+                    label: 'common.message'.tr,
                     value: 'message_only',
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _contactChip(
-                    label: 'Telefon',
+                    label: 'common.phone'.tr,
                     value: 'phone',
                   ),
                 ),
@@ -171,7 +178,9 @@ class _MarketCreateViewState extends State<MarketCreateView> {
                   ),
                 ),
                 child: Text(
-                  controller.isSubmitting.value ? 'Yükleniyor...' : 'Yayınla',
+                  controller.isSubmitting.value
+                      ? 'common.loading'.tr
+                      : 'common.publish'.tr,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -191,7 +200,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     for (final category in controller.topCategories) {
       final key = (category['key'] ?? '').toString();
       if (key == controller.selectedTopKey.value) {
-        selectedLabel = (category['label'] ?? '').toString();
+        selectedLabel = _categoryLabel(category);
         break;
       }
     }
@@ -210,7 +219,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
           children: [
             Expanded(
               child: Text(
-                selectedLabel ?? 'Ana kategori',
+                selectedLabel ?? 'pasaj.market.create.main_category'.tr,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -237,7 +246,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   Future<void> _openTopCategorySheet() async {
     final displayToKey = <String, String>{
       for (final category in controller.topCategories)
-        (category['label'] ?? '').toString():
+        _categoryLabel(category):
             (category['key'] ?? '').toString(),
     };
     String? selectedDisplay;
@@ -251,8 +260,8 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     await ListBottomSheet.show(
       context: context,
       items: displayToKey.keys.toList(growable: false),
-      title: 'Ana kategori',
-      searchHintText: 'Ana kategori, alt kategori, marka ara',
+      title: 'pasaj.market.create.main_category'.tr,
+      searchHintText: 'pasaj.market.create.main_category_search'.tr,
       searchTextBuilder: (item) =>
           _topCategorySearchText(displayToKey[item.toString()] ?? ''),
       selectedItem: selectedDisplay,
@@ -277,7 +286,8 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     final parts = <String>[];
     void walk(dynamic node) {
       if (node is Map) {
-        final label = (node['label'] ?? '').toString().trim();
+        final label =
+            (node['localizedLabel'] ?? node['label'] ?? '').toString().trim();
         final key = (node['key'] ?? '').toString().trim();
         if (label.isNotEmpty) parts.add(label);
         if (key.isNotEmpty) parts.add(key.replaceAll('-', ' '));
@@ -314,7 +324,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   Widget _buildCategoryLevels() {
     if (controller.categoryLevels.isEmpty) {
       return _infoBox(
-        'Bu ana kategori altında seçim yapılabilir alt kategori yok.',
+        'pasaj.market.create.no_subcategory'.tr,
       );
     }
 
@@ -332,13 +342,13 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   String _levelLabel(int level) {
     switch (level) {
       case 0:
-        return 'Alt kategori';
+        return 'pasaj.market.create.subcategory'.tr;
       case 1:
-        return 'Alt grup';
+        return 'pasaj.market.create.subgroup'.tr;
       case 2:
-        return 'Ürün tipi';
+        return 'pasaj.market.create.product_type'.tr;
       default:
-        return '${level + 1}. kademe';
+        return 'pasaj.market.create.level'.trParams({'value': '${level + 1}'});
     }
   }
 
@@ -518,14 +528,14 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     return Column(
       children: [
         _buildLocationSelector(
-          label: 'Şehir',
+          label: 'common.city'.tr,
           value: controller.selectedCity.value,
           isLoading: controller.isResolvingLocation.value,
           onTap: _openCitySheet,
         ),
         const SizedBox(height: 8),
         _buildLocationSelector(
-          label: 'İlçe',
+          label: 'common.district'.tr,
           value: controller.selectedDistrict.value,
           onTap: controller.selectedCity.value.isEmpty ? null : _openDistrictSheet,
         ),
@@ -586,7 +596,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     await ListBottomSheet.show(
       context: context,
       items: controller.cities,
-      title: 'Şehir',
+      title: 'common.city'.tr,
       selectedItem:
           controller.selectedCity.value.isEmpty ? null : controller.selectedCity.value,
       onSelect: (selectedCity) {
@@ -602,7 +612,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     await ListBottomSheet.show(
       context: context,
       items: districts,
-      title: 'İlçe',
+      title: 'common.district'.tr,
       selectedItem: controller.selectedDistrict.value.isEmpty
           ? null
           : controller.selectedDistrict.value,
@@ -704,7 +714,10 @@ class _MarketCreateViewState extends State<MarketCreateView> {
               ),
             ),
             child: Text(
-              'Görsel Seç (${controller.totalImageCount}/${MarketCreateController.maxImages})',
+              'pasaj.market.create.select_image'.trParams({
+                'current': '${controller.totalImageCount}',
+                'max': '${MarketCreateController.maxImages}',
+              }),
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 13,
@@ -791,7 +804,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
                               ),
                               child: Text(
                                 index == 0
-                                    ? 'Kapak'
+                                    ? 'pasaj.market.create.cover'.tr
                                     : '${index + 1}/${controller.totalImageCount}',
                                 style: const TextStyle(
                                   color: Colors.white,

@@ -21,7 +21,7 @@ class AboutProfile extends StatelessWidget {
         child: Obx(() {
           return Column(
             children: [
-              BackButtons(text: "Bu Hesap Hakkında"),
+              BackButtons(text: "about_profile.title".tr),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -69,7 +69,7 @@ class AboutProfile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Text(
-                  "Topluluğumuzun güvenilirliğini artırmak için TurqApp'taki hesaplarla ilgili bilgileri şeffaf bir şekilde paylaşıyoruz.",
+                  "about_profile.description".tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.black,
@@ -98,7 +98,13 @@ class AboutProfile extends StatelessWidget {
                         children: [
                           if (controller.createdDate.value != "")
                             Text(
-                              "${formatTimeStampAyYil(controller.createdDate.value)} tarihinde katıldı",
+                              "about_profile.joined_on".trParams(
+                                <String, String>{
+                                  'date': formatTimeStampAyYil(
+                                    controller.createdDate.value,
+                                  ),
+                                },
+                              ),
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,

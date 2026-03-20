@@ -106,7 +106,7 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "İptal",
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -133,7 +133,7 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "Tamam",
+                        'common.ok'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,

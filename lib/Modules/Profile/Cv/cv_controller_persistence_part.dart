@@ -20,7 +20,7 @@ extension CvControllerPersistencePart on CvController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Yeni Referans Ekle",
+                Text('cv.add_reference_title'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -28,7 +28,8 @@ extension CvControllerPersistencePart on CvController {
                 TextButton(
                   onPressed: () {
                     if (adsoyad.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan", "Ad soyad boş bırakılamaz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_name_surname'.tr);
                       return;
                     }
                     String raw = telefon.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -37,14 +38,14 @@ extension CvControllerPersistencePart on CvController {
                         nameSurname: adsoyad.text.trim(), phone: formatted));
                     Get.back();
                   },
-                  child: Text("Ekle",
+                  child: Text('social_links.add'.tr,
                       style: TextStyle(
                           color: Colors.blueAccent,
                           fontFamily: "MontserratBold")),
                 ),
               ],
             ),
-            _textFieldBox(adsoyad, "Ad Soyad"),
+            _textFieldBox(adsoyad, 'cv.name_surname'.tr),
             SizedBox(height: 15),
             Container(
               height: 50,
@@ -62,7 +63,7 @@ extension CvControllerPersistencePart on CvController {
                   LengthLimitingTextInputFormatter(11),
                 ],
                 decoration: InputDecoration(
-                  hintText: "Telefon (ör, 05xx..)",
+                  hintText: 'cv.phone_example'.tr,
                   hintStyle: TextStyle(
                       color: Colors.grey, fontFamily: "MontserratMedium"),
                   border: InputBorder.none,
@@ -103,7 +104,7 @@ extension CvControllerPersistencePart on CvController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Referans Düzenle",
+                Text('cv.edit_reference_title'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -111,7 +112,8 @@ extension CvControllerPersistencePart on CvController {
                 TextButton(
                   onPressed: () {
                     if (adsoyad.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan", "Ad soyad boş bırakılamaz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_name_surname'.tr);
                       return;
                     }
                     String raw = telefon.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -121,14 +123,14 @@ extension CvControllerPersistencePart on CvController {
                     referanslar.refresh();
                     Get.back();
                   },
-                  child: Text("Kaydet",
+                  child: Text('cv.save'.tr,
                       style: TextStyle(
                           color: Colors.blueAccent,
                           fontFamily: "MontserratBold")),
                 ),
               ],
             ),
-            _textFieldBox(adsoyad, "Ad Soyad"),
+            _textFieldBox(adsoyad, 'cv.name_surname'.tr),
             SizedBox(height: 15),
             Container(
               height: 50,
@@ -146,7 +148,7 @@ extension CvControllerPersistencePart on CvController {
                   LengthLimitingTextInputFormatter(11),
                 ],
                 decoration: InputDecoration(
-                  hintText: "Telefon (ör, 05xx..)",
+                  hintText: 'cv.phone_example'.tr,
                   hintStyle: TextStyle(
                       color: Colors.grey, fontFamily: "MontserratMedium"),
                   border: InputBorder.none,
@@ -185,7 +187,7 @@ extension CvControllerPersistencePart on CvController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Yeni Beceri Ekle",
+                Text('cv.add_skill_title'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -194,24 +196,26 @@ extension CvControllerPersistencePart on CvController {
                   onPressed: () {
                     final text = beceri.text.trim();
                     if (text.isEmpty) {
-                      AppSnackbar("Eksik Alan", "Beceri adı boş bırakılamaz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.skill_name_empty'.tr);
                       return;
                     }
                     if (skills.contains(text)) {
-                      AppSnackbar("Uyarı", "Bu beceri zaten eklenmiş");
+                      AppSnackbar('delete_account.no_email_title'.tr,
+                          'cv.skill_exists'.tr);
                       return;
                     }
                     skills.add(text);
                     Get.back();
                   },
-                  child: Text("Ekle",
+                  child: Text('social_links.add'.tr,
                       style: TextStyle(
                           color: Colors.blueAccent,
                           fontFamily: "MontserratBold")),
                 ),
               ],
             ),
-            _textFieldBox(beceri, "Beceri (ör. Flutter, Photoshop)"),
+            _textFieldBox(beceri, 'cv.skill_hint'.tr),
             SizedBox(height: 15),
             Obx(() => Wrap(
                   spacing: 8,
@@ -281,7 +285,7 @@ extension CvControllerPersistencePart on CvController {
   Future<void> setData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      AppSnackbar("Hata", "Oturum açık değil.");
+      AppSnackbar('common.error'.tr, 'cv.not_signed_in'.tr);
       return;
     }
     if (isSaving.value) return;
@@ -304,10 +308,9 @@ extension CvControllerPersistencePart on CvController {
       await FirebaseFirestore.instance.collection("CV").doc(uid).set(payload);
       await _cvRepository.setCv(uid, payload);
       Get.back();
-      AppSnackbar("CV Oluşturuldu!",
-          "Şimdi iş başvurusu yaparken daha hızlı bir şekilde başvurabilirsin");
+      AppSnackbar('cv.created_title'.tr, 'cv.created_body'.tr);
     } catch (e) {
-      AppSnackbar("Hata", "CV kaydedilemedi. Tekrar deneyin.");
+      AppSnackbar('common.error'.tr, 'cv.save_failed'.tr);
     } finally {
       isSaving.value = false;
     }

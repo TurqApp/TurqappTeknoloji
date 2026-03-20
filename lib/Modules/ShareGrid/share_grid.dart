@@ -41,7 +41,7 @@ class ShareGrid extends StatelessWidget {
               child: TextField(
                 controller: controller.search,
                 decoration: InputDecoration(
-                  hintText: "Ara",
+                  hintText: 'common.search'.tr,
                   icon: Icon(
                     CupertinoIcons.search,
                     color: Colors.black,
@@ -145,7 +145,7 @@ class ShareGrid extends StatelessWidget {
               onTap: () {
                 controller.sendIt();
               },
-              text: "Gönder",
+              text: 'common.send'.tr,
             );
           }),
         )

@@ -87,6 +87,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     List<String>? imgs,
     List<String>? videos,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
+      return null;
+    }
     final userId = currentUserID;
     if (userId == null) return null;
     final safeImgs = imgs ?? const <String>[];
@@ -161,6 +164,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     List<String>? imgs,
     List<String>? videos,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
+      return null;
+    }
     final userId = currentUserID;
     if (userId == null) return null;
     final safeImgs = imgs ?? const <String>[];
@@ -374,6 +380,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   // ---------------------------------------------------------------------------
 
   Future<bool> toggleSave(String postId) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.savePost)) {
+      return false;
+    }
     final userId = currentUserID;
     if (userId == null) return false;
 
@@ -557,6 +566,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   }
 
   Future<bool> reportPost(String postId) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.comment)) {
+      return false;
+    }
     final userId = currentUserID;
     if (userId == null) return false;
 
@@ -605,7 +617,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     }
 
     final postRef = _postRef(postId);
-    final normalizedReason = _normalizeModerationReason(reason);
+    final normalizedReason = normalizeModerationReason(reason);
 
     bool alreadyFlagged = false;
     bool accepted = false;

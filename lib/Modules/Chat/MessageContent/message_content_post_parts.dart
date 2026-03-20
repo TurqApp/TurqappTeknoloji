@@ -106,7 +106,9 @@ extension MessageContentPostParts on MessageContent {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
-                            "@$senderNick'in gönderisini gönderdi",
+                            'chat.shared_post_from'.trParams({
+                              'nickname': '@$senderNick',
+                            }),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -214,12 +216,12 @@ extension MessageContentPostParts on MessageContent {
           onSendReply: (text, mediaUrl) async {
             await chatController.sendExternalReplyText(
               text,
-              replyText: "Video",
+                replyText: 'chat.video'.tr,
               replyType: "video",
               replyTarget: mediaUrl,
             );
           },
-          replyPreviewLabel: "Video",
+          replyPreviewLabel: 'chat.video'.tr,
         ),
       );
       return;
@@ -250,12 +252,12 @@ extension MessageContentPostParts on MessageContent {
             onSendReply: (text, mediaUrl) async {
               await chatController.sendExternalReplyText(
                 text,
-                replyText: "Fotoğraf",
+                replyText: 'chat.photo'.tr,
                 replyType: "media",
                 replyTarget: mediaUrl,
               );
             },
-            replyPreviewLabel: "Fotoğraf",
+            replyPreviewLabel: 'chat.photo'.tr,
           ));
     }
   }

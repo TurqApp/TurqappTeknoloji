@@ -232,165 +232,186 @@ class NavBarView extends StatelessWidget {
                               children: List.generate(icons.length, (i) {
                                 final isSelected =
                                     controller.selectedIndex.value == i;
+                                final navKey = _navKeyForIndex(
+                                  index: i,
+                                  hasEducation: settingController
+                                      .educationScreenIsOn.value,
+                                );
                                 return Expanded(
                                   child: Center(
-                                    child: TextButton(
-                                      key: ValueKey(_navKeyForIndex(
-                                        index: i,
-                                        hasEducation: settingController
-                                            .educationScreenIsOn.value,
-                                      )),
-                                      style: ButtonStyle(
-                                        overlayColor: WidgetStateProperty.all(
-                                            Colors.transparent),
-                                        padding: WidgetStateProperty.all(
-                                            EdgeInsets.zero),
-                                      ),
-                                      onPressed: () async {
-                                        if (i == 0 &&
-                                            controller.selectedIndex.value ==
-                                                0) {
-                                          if (Get.isRegistered<
-                                              AgendaController>()) {
-                                            final agendaCtrl =
-                                                Get.find<AgendaController>();
-                                            if (agendaCtrl
-                                                .scrollController.hasClients) {
-                                              agendaCtrl.scrollController
-                                                  .animateTo(
-                                                0,
-                                                duration: const Duration(
-                                                    milliseconds: 500),
-                                                curve: Curves.easeOut,
-                                              );
-                                              return;
-                                            }
-                                          }
-                                        }
-                                        if (i == 1 &&
-                                            controller.selectedIndex.value ==
-                                                1) {
-                                          if (Get.isRegistered<
-                                              ExploreController>()) {
-                                            final explore =
-                                                Get.find<ExploreController>();
-                                            int tab = 0;
-                                            try {
-                                              tab = Get.find<
-                                                          PageLineBarController>(
-                                                      tag:
-                                                          kExplorePageLineBarTag)
-                                                  .selection
-                                                  .value;
-                                            } catch (_) {}
-                                            ScrollController? sc;
-                                            switch (tab) {
-                                              case 0:
-                                                sc = explore.exploreScroll;
-                                                break;
-                                              case 1:
-                                                sc = explore.floodsScroll;
-                                                break;
-                                              case 2:
-                                                sc = explore.videoScroll;
-                                                break;
-                                              case 3:
-                                                sc = explore.photoScroll;
-                                                break;
-                                              default:
-                                                sc = explore.exploreScroll;
-                                            }
-                                            if (sc.hasClients) {
-                                              sc.animateTo(0,
-                                                  duration: const Duration(
-                                                      milliseconds: 500),
-                                                  curve: Curves.easeOut);
-                                              return;
-                                            }
-                                          }
-                                        }
-                                        if (i != 2) {
-                                          if (i ==
-                                              (settingController
-                                                      .educationScreenIsOn.value
-                                                  ? 3
-                                                  : 2)) {
-                                            FocusScope.of(context).unfocus();
-                                            controller.changeIndex(i);
-                                          } else {
-                                            controller.changeIndex(i);
-                                          }
-                                        } else {
-                                          final shortController =
-                                              Get.isRegistered<
-                                                      ShortController>()
-                                                  ? Get.find<ShortController>()
-                                                  : Get.put(ShortController());
-
-                                          if (shortController.shorts.isEmpty) {
-                                            shortController
-                                                .backgroundPreload()
-                                                .catchError((_) {});
-                                          }
-
-                                          await Get.to(() => const ShortView());
-                                        }
-                                      },
-                                      child: Builder(builder: (_) {
-                                        if (icons[i] == 'profile_dynamic') {
-                                          return Obx(() {
-                                            CurrentUserService
-                                                .instance.currentUserRx.value;
-                                            final authUid = FirebaseAuth
-                                                    .instance
-                                                    .currentUser
-                                                    ?.uid ??
-                                                '';
-                                            final userId = CurrentUserService
-                                                    .instance.userId.isNotEmpty
-                                                ? CurrentUserService
-                                                    .instance.userId
-                                                : authUid;
-                                            final img = CurrentUserService
-                                                .instance.avatarUrl;
-                                            final uploading =
-                                                controller.uploadingPosts.value;
-                                            const double size = 28;
-                                            return AnimatedBuilder(
-                                              animation: controller
-                                                  .animationController.value,
-                                              builder: (_, __) {
-                                                final angle = controller
-                                                        .animationController
-                                                        .value
-                                                        .value *
-                                                    2 *
-                                                    math.pi *
-                                                    3;
-                                                return _AvatarWithRing(
-                                                  userId: userId,
-                                                  imageUrl: img,
-                                                  size: size,
-                                                  isSelected: isSelected,
-                                                  uploading: uploading,
-                                                  angle: angle,
-                                                );
-                                              },
-                                            );
-                                          });
-                                        }
-                                        return SvgPicture.asset(
-                                          '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
-                                          height: i <= 1 ? 25 : 28,
-                                          colorFilter: ColorFilter.mode(
-                                            isSelected
-                                                ? Colors.black
-                                                : Colors.black
-                                                    .withValues(alpha: 0.5),
-                                            BlendMode.srcIn,
+                                    child: Semantics(
+                                      label: navKey,
+                                      button: true,
+                                      selected: isSelected,
+                                      child: TextButton(
+                                        key: ValueKey(navKey),
+                                        style: ButtonStyle(
+                                          overlayColor: WidgetStateProperty.all(
+                                            Colors.transparent,
                                           ),
-                                        );
-                                      }),
+                                          padding: WidgetStateProperty.all(
+                                            EdgeInsets.zero,
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          if (i == 0 &&
+                                              controller.selectedIndex.value ==
+                                                  0) {
+                                            if (Get.isRegistered<
+                                                AgendaController>()) {
+                                              final agendaCtrl =
+                                                  Get.find<AgendaController>();
+                                              if (agendaCtrl.scrollController
+                                                  .hasClients) {
+                                                agendaCtrl.scrollController
+                                                    .animateTo(
+                                                  0,
+                                                  duration: const Duration(
+                                                    milliseconds: 500,
+                                                  ),
+                                                  curve: Curves.easeOut,
+                                                );
+                                                return;
+                                              }
+                                            }
+                                          }
+                                          if (i == 1 &&
+                                              controller.selectedIndex.value ==
+                                                  1) {
+                                            if (Get.isRegistered<
+                                                ExploreController>()) {
+                                              final explore =
+                                                  Get.find<ExploreController>();
+                                              int tab = 0;
+                                              try {
+                                                tab = Get.find<
+                                                            PageLineBarController>(
+                                                        tag:
+                                                            kExplorePageLineBarTag)
+                                                    .selection
+                                                    .value;
+                                              } catch (_) {}
+                                              ScrollController? sc;
+                                              switch (tab) {
+                                                case 0:
+                                                  sc = explore.exploreScroll;
+                                                  break;
+                                                case 1:
+                                                  sc = explore.floodsScroll;
+                                                  break;
+                                                case 2:
+                                                  sc = explore.videoScroll;
+                                                  break;
+                                                case 3:
+                                                  sc = explore.photoScroll;
+                                                  break;
+                                                default:
+                                                  sc = explore.exploreScroll;
+                                              }
+                                              if (sc.hasClients) {
+                                                sc.animateTo(
+                                                  0,
+                                                  duration: const Duration(
+                                                    milliseconds: 500,
+                                                  ),
+                                                  curve: Curves.easeOut,
+                                                );
+                                                return;
+                                              }
+                                            }
+                                          }
+                                          if (i != 2) {
+                                            if (i ==
+                                                (settingController
+                                                        .educationScreenIsOn
+                                                        .value
+                                                    ? 3
+                                                    : 2)) {
+                                              FocusScope.of(context).unfocus();
+                                              controller.changeIndex(i);
+                                            } else {
+                                              controller.changeIndex(i);
+                                            }
+                                          } else {
+                                            final shortController = Get
+                                                    .isRegistered<
+                                                        ShortController>()
+                                                ? Get.find<ShortController>()
+                                                : Get.put(
+                                                    ShortController(),
+                                                  );
+
+                                            if (shortController
+                                                .shorts.isEmpty) {
+                                              shortController
+                                                  .backgroundPreload()
+                                                  .catchError((_) {});
+                                            }
+
+                                            await Get.to(
+                                              () => const ShortView(),
+                                            );
+                                          }
+                                        },
+                                        child: Builder(builder: (_) {
+                                          if (icons[i] == 'profile_dynamic') {
+                                            return Obx(() {
+                                              CurrentUserService
+                                                  .instance.currentUserRx.value;
+                                              final authUid = FirebaseAuth
+                                                      .instance
+                                                      .currentUser
+                                                      ?.uid ??
+                                                  '';
+                                              final userId = CurrentUserService
+                                                      .instance
+                                                      .userId
+                                                      .isNotEmpty
+                                                  ? CurrentUserService
+                                                      .instance.userId
+                                                  : authUid;
+                                              final img = CurrentUserService
+                                                  .instance.avatarUrl;
+                                              final uploading = controller
+                                                  .uploadingPosts.value;
+                                              const double size = 28;
+                                              return AnimatedBuilder(
+                                                animation: controller
+                                                    .animationController.value,
+                                                builder: (_, __) {
+                                                  final angle = controller
+                                                          .animationController
+                                                          .value
+                                                          .value *
+                                                      2 *
+                                                      math.pi *
+                                                      3;
+                                                  return _AvatarWithRing(
+                                                    userId: userId,
+                                                    imageUrl: img,
+                                                    size: size,
+                                                    isSelected: isSelected,
+                                                    uploading: uploading,
+                                                    angle: angle,
+                                                  );
+                                                },
+                                              );
+                                            });
+                                          }
+                                          return SvgPicture.asset(
+                                            '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
+                                            height: i <= 1 ? 25 : 28,
+                                            colorFilter: ColorFilter.mode(
+                                              isSelected
+                                                  ? Colors.black
+                                                  : Colors.black.withValues(
+                                                      alpha: 0.5,
+                                                    ),
+                                              BlendMode.srcIn,
+                                            ),
+                                          );
+                                        }),
+                                      ),
                                     ),
                                   ),
                                 );

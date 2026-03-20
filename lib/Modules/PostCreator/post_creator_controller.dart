@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -33,6 +34,7 @@ import '../../Core/Services/upload_validation_service.dart';
 import '../../Core/Services/error_handling_service.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/upload_queue_service.dart';
+import '../../Core/Services/user_moderation_guard.dart';
 import '../../Core/Services/draft_service.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
@@ -129,6 +131,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   Timer? _autoSaveTimer;
   Timer? _queueRingTimer;
+  String _preparedRouteId = '';
 
   bool get isQuotedPost => _isQuotedPost;
   String get quotedOriginalText => _quotedOriginalText;
@@ -217,6 +220,52 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     _queueRingTimer?.cancel();
     _saveCurrentDraft();
     super.onClose();
+  }
+
+  Future<void> prepareForRoute({
+    required String routeId,
+    required bool sharedAsPost,
+    required bool editMode,
+  }) async {
+    if (_preparedRouteId == routeId) return;
+    _preparedRouteId = routeId;
+    await resetComposerState();
+    if (sharedAsPost || editMode) return;
+  }
+
+  Future<void> resetComposerState() async {
+    for (final post in postList) {
+      final tag = post.index.toString();
+      if (Get.isRegistered<CreatorContentController>(tag: tag)) {
+        await Get.find<CreatorContentController>(tag: tag).resetComposerState();
+        Get.delete<CreatorContentController>(tag: tag, force: true);
+      }
+    }
+    postList.assignAll([PostCreatorModel(index: 0, text: "")]);
+    postList.refresh();
+    resetComposerItemIndexSeed(1);
+    selectedIndex.value = 0;
+    comment.value = true;
+    commentVisibility.value = 0;
+    paylasimSelection.value = 0;
+    publishMode.value = 0;
+    izBirakDateTime.value = null;
+    _sharedSourceApplied = false;
+    _sharedSourceFingerprint = "";
+    _isSharedAsPost = false;
+    _sharedOriginalUserID = "";
+    _sharedOriginalPostID = "";
+    _sharedSourcePostID = "";
+    _isQuotedPost = false;
+    _quotedOriginalText = "";
+    _quotedSourceUserID = "";
+    _quotedSourceDisplayName = "";
+    _quotedSourceUsername = "";
+    _quotedSourceAvatarUrl = "";
+    _editSourceApplied = false;
+    isEditMode.value = false;
+    editingPostID.value = '';
+    isSavingEdit.value = false;
   }
 
   @override
@@ -368,7 +417,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     final totalPosts = postList.length;
     progressController.startProgress(
       total: totalPosts,
-      initialStatus: 'Gönderiler hazırlanıyor...',
+      initialStatus: 'post_creator.preparing_posts'.tr,
     );
 
     // NavBar profil ikonunda yükleme göstergisi
@@ -396,9 +445,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         Get.find<ProfileController>().getLastPostAndAddToAllPosts();
 
         // Complete progress
-        progressController.complete('Gönderiler başarıyla yayınlandı!');
+        progressController.complete('post_creator.upload_success'.tr);
       } else {
-        progressController.setError('Gönderi yüklenirken hata oluştu.');
+        progressController.setError('post_creator.upload_error'.tr);
       }
 
       nav?.uploadingPosts.value = false;
@@ -491,8 +540,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   ),
                 ),
               ),
-              const Text(
-                "Kimler yanıtlayabilir?",
+              Text(
+                'post_creator.comments.title'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -500,8 +549,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                "Bu gönderiyi kimlerin yanıtlayabileceğini seç.",
+              Text(
+                'post_creator.comments.subtitle'.tr,
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 13,
@@ -510,7 +559,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               ),
               const SizedBox(height: 14),
               optionTile(
-                title: "Herkes",
+                title: 'post_creator.comments.everyone'.tr,
                 icon: CupertinoIcons.globe,
                 selected: commentVisibility.value == 0,
                 onTap: () {
@@ -519,7 +568,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 },
               ),
               optionTile(
-                title: "Onaylı hesaplar",
+                title: 'post_creator.comments.verified'.tr,
                 icon: CupertinoIcons.checkmark_seal,
                 selected: commentVisibility.value == 1,
                 onTap: () {
@@ -528,7 +577,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 },
               ),
               optionTile(
-                title: "Takip ettiğin hesaplar",
+                title: 'post_creator.comments.following'.tr,
                 icon: CupertinoIcons.person_2,
                 selected: commentVisibility.value == 2,
                 onTap: () {
@@ -537,7 +586,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 },
               ),
               optionTile(
-                title: "Yoruma kapalı",
+                title: 'post_creator.comments.closed'.tr,
                 icon: CupertinoIcons.chat_bubble_text,
                 selected: commentVisibility.value == 3,
                 onTap: () {

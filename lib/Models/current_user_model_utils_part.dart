@@ -18,6 +18,12 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
     int? counterOfFollowings,
     int? counterOfPosts,
     int? counterOfLikes,
+    int? moderationStrikeCount,
+    int? moderationLevel,
+    int? moderationRestrictedUntil,
+    bool? moderationPermanentBan,
+    String? moderationBanReason,
+    int? moderationUpdatedAt,
     List<String>? blockedUsers,
     List<String>? readStories,
     Map<String, int>? readStoriesTimes,
@@ -108,6 +114,15 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
       bank: bank,
       iban: iban,
       ban: ban,
+      moderationStrikeCount:
+          moderationStrikeCount ?? this.moderationStrikeCount,
+      moderationLevel: moderationLevel ?? this.moderationLevel,
+      moderationRestrictedUntil:
+          moderationRestrictedUntil ?? this.moderationRestrictedUntil,
+      moderationPermanentBan:
+          moderationPermanentBan ?? this.moderationPermanentBan,
+      moderationBanReason: moderationBanReason ?? this.moderationBanReason,
+      moderationUpdatedAt: moderationUpdatedAt ?? this.moderationUpdatedAt,
       deletedAccount: deletedAccount,
       bot: bot,
       signInMethod: signInMethod,
@@ -139,5 +154,10 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
   bool get isVerified => hesapOnayi;
   bool get isPrivate => gizliHesap;
   bool get isBanned => ban;
+  bool get isPermanentAppBan => ban || moderationPermanentBan;
+  bool get hasActiveInteractionRestriction =>
+      !isPermanentAppBan &&
+      moderationLevel > 0 &&
+      moderationRestrictedUntil > DateTime.now().millisecondsSinceEpoch;
   bool get hasBio => bio.isNotEmpty;
 }

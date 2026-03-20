@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding.dart';
 
 class SocialMediaModel {
   String docID;
@@ -43,27 +44,7 @@ class SocialMediaModel {
   bool get isAssetLogo => logo.startsWith('assets/');
 
   static String _embeddedLogoByTitle(String title) {
-    switch (title.trim().toLowerCase()) {
-      case 'instagram':
-        return 'assets/icons/instagram_s.webp';
-      case 'facebook':
-        return 'assets/icons/facebook_s.webp';
-      case 'whatsapp':
-        return 'assets/icons/whatsApp_s.webp';
-      case 'x':
-        return 'assets/icons/x_s.webp';
-      case 'youtube':
-        return 'assets/icons/youtube_s.webp';
-      case 'linkedin':
-        return 'assets/icons/linkedin_s.webp';
-      case 'tiktok':
-        return 'assets/icons/tiktok_s.webp';
-      case 'pinterest':
-        return 'assets/icons/pinterest_s.webp';
-      case 'turqapp':
-        return 'assets/icons/TurqApp_s.webp';
-      default:
-        return '';
-    }
+    final key = normalizeSocialMediaEmbeddedKey(title);
+    return key.isEmpty ? '' : socialMediaEmbeddedLogoAsset(key);
   }
 }

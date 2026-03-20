@@ -3,9 +3,9 @@ part of 'create_scholarship_view.dart';
 extension CreateScholarshipExtraPart on CreateScholarshipView {
   String _duplicateStatusLabel(String value) {
     switch (value) {
-      case 'Alabilir':
+      case CreateScholarshipController.duplicateStatusCanReceiveValue:
         return 'scholarship.duplicate_status.can_receive'.tr;
-      case 'Alamaz (KYK Hariç)':
+      case CreateScholarshipController.duplicateStatusCannotReceiveExceptKykValue:
         return 'scholarship.duplicate_status.cannot_receive_except_kyk'.tr;
       default:
         return value;
@@ -14,9 +14,9 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
 
   String _repayableLabel(String value) {
     switch (value) {
-      case 'Evet':
+      case CreateScholarshipController.repayableYesValue:
         return 'common.yes'.tr;
-      case 'Hayır':
+      case CreateScholarshipController.repayableNoValue:
         return 'common.no'.tr;
       default:
         return value;
@@ -25,11 +25,11 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
 
   String _targetAudienceLabel(String value) {
     switch (value) {
-      case 'Nüfusa Göre':
+      case CreateScholarshipController.targetAudiencePopulationValue:
         return 'scholarship.target.population'.tr;
-      case 'İkamete Göre':
+      case CreateScholarshipController.targetAudienceResidenceValue:
         return 'scholarship.target.residence'.tr;
-      case 'Tüm Türkiye':
+      case CreateScholarshipController.targetAudienceAllTurkeyValue:
         return 'scholarship.target.all_turkiye'.tr;
       default:
         return value;
@@ -38,13 +38,13 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
 
   String _educationAudienceLabel(String value) {
     switch (value) {
-      case 'Hepsi':
+      case CreateScholarshipController.educationAudienceAllValue:
         return 'scholarship.education.all'.tr;
-      case 'Ortaokul':
+      case CreateScholarshipController.educationAudienceMiddleSchoolValue:
         return 'scholarship.education.middle_school'.tr;
-      case 'Lise':
+      case CreateScholarshipController.educationAudienceHighSchoolValue:
         return 'scholarship.education.high_school'.tr;
-      case 'Lisans':
+      case CreateScholarshipController.educationAudienceUndergraduateValue:
         return 'scholarship.education.undergraduate'.tr;
       default:
         return value;
@@ -53,13 +53,13 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
 
   String _degreeTypeLabel(String value) {
     switch (value) {
-      case 'Ön Lisans':
+      case CreateScholarshipController.degreeAssociateValue:
         return 'scholarship.degree.associate'.tr;
-      case 'Lisans':
+      case CreateScholarshipController.degreeBachelorValue:
         return 'scholarship.degree.bachelor'.tr;
-      case 'Yüksek Lisans':
+      case CreateScholarshipController.degreeMasterValue:
         return 'scholarship.degree.master'.tr;
-      case 'Doktora':
+      case CreateScholarshipController.degreePhdValue:
         return 'scholarship.degree.phd'.tr;
       default:
         return value;
@@ -197,7 +197,12 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: const ["Alabilir", "Alamaz (KYK Hariç)"],
+                        items: const [
+                          CreateScholarshipController
+                              .duplicateStatusCanReceiveValue,
+                          CreateScholarshipController
+                              .duplicateStatusCannotReceiveExceptKykValue,
+                        ],
                         title: "scholarship.duplicate_status_label".tr,
                         selectedItem: controller.mukerrerDurumu.value,
                         itemLabelBuilder: (item) =>
@@ -248,7 +253,10 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: const ["Evet", "Hayır"],
+                        items: const [
+                          CreateScholarshipController.repayableYesValue,
+                          CreateScholarshipController.repayableNoValue,
+                        ],
                         title: "scholarship.repayable_label".tr,
                         selectedItem: controller.geriOdemeli.value,
                         itemLabelBuilder: (item) =>
@@ -302,9 +310,12 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                       AppBottomSheet.show(
                         context: Get.context!,
                         items: const [
-                          "Nüfusa Göre",
-                          "İkamete Göre",
-                          "Tüm Türkiye",
+                          CreateScholarshipController
+                              .targetAudiencePopulationValue,
+                          CreateScholarshipController
+                              .targetAudienceResidenceValue,
+                          CreateScholarshipController
+                              .targetAudienceAllTurkeyValue,
                         ],
                         title: "scholarship.target_audience_label".tr,
                         selectedItem: controller.hedefKitle.value,
@@ -312,11 +323,15 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                             _targetAudienceLabel(item.toString()),
                         onSelect: (value) {
                           controller.hedefKitle.value = value;
-                          if (value == "Tüm Türkiye") {
+                          if (value ==
+                              CreateScholarshipController
+                                  .targetAudienceAllTurkeyValue) {
                             controller.sehirler.clear();
                             controller.ilceler.clear();
                           }
-                          if (value != "Lisans") {
+                          if (value !=
+                              CreateScholarshipController
+                                  .educationAudienceUndergraduateValue) {
                             controller.universiteler.clear();
                           }
                         },
@@ -370,10 +385,13 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                       AppBottomSheet.show(
                         context: Get.context!,
                         items: const [
-                          "Hepsi",
-                          "Ortaokul",
-                          "Lise",
-                          "Lisans",
+                          CreateScholarshipController.educationAudienceAllValue,
+                          CreateScholarshipController
+                              .educationAudienceMiddleSchoolValue,
+                          CreateScholarshipController
+                              .educationAudienceHighSchoolValue,
+                          CreateScholarshipController
+                              .educationAudienceUndergraduateValue,
                         ],
                         title: "scholarship.education_audience_label".tr,
                         selectedItem: controller.egitimKitlesi.value,
@@ -381,7 +399,9 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                             _educationAudienceLabel(item.toString()),
                         onSelect: (value) {
                           controller.egitimKitlesi.value = value;
-                          if (value != "Lisans") {
+                          if (value !=
+                              CreateScholarshipController
+                                  .educationAudienceUndergraduateValue) {
                             controller.lisansTuru.clear();
                             controller.universiteler.clear();
                           }
@@ -419,14 +439,22 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               ),
             ),
             Obx(
-              () => controller.egitimKitlesi.value == "Hepsi" ||
-                      controller.egitimKitlesi.value == "Ortaokul" ||
-                      controller.egitimKitlesi.value == "Lise"
+              () =>
+                  controller.egitimKitlesi.value ==
+                      CreateScholarshipController.educationAudienceAllValue ||
+                  controller.egitimKitlesi.value ==
+                      CreateScholarshipController
+                          .educationAudienceMiddleSchoolValue ||
+                  controller.egitimKitlesi.value ==
+                      CreateScholarshipController
+                          .educationAudienceHighSchoolValue
                   ? const SizedBox.shrink()
                   : 8.pw,
             ),
             Obx(() {
-              if (controller.egitimKitlesi.value == "Lisans") {
+              if (controller.egitimKitlesi.value ==
+                  CreateScholarshipController
+                      .educationAudienceUndergraduateValue) {
                 return Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -449,10 +477,10 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                             builder: (context) => MultiSelectBottomSheet2(
                               title: "scholarship.degree_type_select".tr,
                               items: const [
-                                "Ön Lisans",
-                                "Lisans",
-                                "Yüksek Lisans",
-                                "Doktora",
+                                CreateScholarshipController.degreeAssociateValue,
+                                CreateScholarshipController.degreeBachelorValue,
+                                CreateScholarshipController.degreeMasterValue,
+                                CreateScholarshipController.degreePhdValue,
                               ],
                               selectedItems: controller.lisansTuru,
                               itemLabelBuilder: _degreeTypeLabel,
@@ -509,8 +537,10 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
         ),
         16.ph,
         Obx(() {
-          if (controller.hedefKitle.value == "Nüfusa Göre" ||
-              controller.hedefKitle.value == "İkamete Göre") {
+          if (controller.hedefKitle.value ==
+                  CreateScholarshipController.targetAudiencePopulationValue ||
+              controller.hedefKitle.value ==
+                  CreateScholarshipController.targetAudienceResidenceValue) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -523,11 +553,25 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                   onTap: () {
                     ListBottomSheet.show(
                       context: context,
-                      items: ["Türkiye"], // Add more countries if needed
+                      items: [controller.turkeyValue],
                       title: "scholarship.select_country".tr,
                       selectedItem: controller.ulke.value.isEmpty
                           ? null
                           : controller.ulke.value,
+                      itemLabelBuilder: (item) {
+                        final value = item.toString();
+                        if (value == controller.turkeyValue) {
+                          return 'common.country_turkey'.tr;
+                        }
+                        return value;
+                      },
+                      searchTextBuilder: (item) {
+                        final value = item.toString();
+                        if (value == controller.turkeyValue) {
+                          return 'common.country_turkey'.tr;
+                        }
+                        return value;
+                      },
                       onSelect: (value) {
                         controller.ulke.value = value;
                         // Clear cities and districts if country changes
@@ -603,7 +647,9 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                                   final validUniversiteler = controller
                                       .universiteler
                                       .where((uni) =>
-                                          uni == 'Tüm Üniversiteler' ||
+                                          uni ==
+                                              CreateScholarshipController
+                                                  .allUniversitiesValue ||
                                           controller
                                               .getUniversitiesForSelectedCities()
                                               .contains(uni))
@@ -645,7 +691,9 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         ],
                       ),
                     ),
-                    if (controller.egitimKitlesi.value != "Lisans") ...[
+                    if (controller.egitimKitlesi.value !=
+                        CreateScholarshipController
+                            .educationAudienceUndergraduateValue) ...[
                       8.pw,
                       Expanded(
                         child: Column(
@@ -718,13 +766,17 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
           return const SizedBox.shrink();
         }),
         Obx(
-          () => controller.hedefKitle.value == "Nüfusa Göre" ||
-                  controller.hedefKitle.value == "İkamete Göre"
+          () => controller.hedefKitle.value ==
+                      CreateScholarshipController
+                          .targetAudiencePopulationValue ||
+                  controller.hedefKitle.value ==
+                      CreateScholarshipController.targetAudienceResidenceValue
               ? const SizedBox(height: 16)
               : const SizedBox.shrink(),
         ),
         Obx(() {
-          if (controller.egitimKitlesi.value == "Lisans") {
+          if (controller.egitimKitlesi.value ==
+              CreateScholarshipController.educationAudienceUndergraduateValue) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -734,7 +786,9 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                 ),
                 GestureDetector(
                   onTap: () {
-                    if (controller.hedefKitle.value != "Tüm Türkiye" &&
+                    if (controller.hedefKitle.value !=
+                            CreateScholarshipController
+                                .targetAudienceAllTurkeyValue &&
                         controller.sehirler.isEmpty) {
                       AppSnackbar(
                         'common.error'.tr,
@@ -755,6 +809,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                         title: "scholarship.select_university".tr,
                         items: controller.getUniversitiesForSelectedCities(),
                         selectedItems: controller.universiteler,
+                        itemLabelBuilder: controller.universityLabel,
                         onConfirm: (selected) {
                           controller.universiteler.assignAll(selected);
                         },
@@ -778,9 +833,13 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                             controller.universiteler.isEmpty
                                 ? "scholarship.select_university".tr
                                 : controller.universiteler.contains(
-                                    "Tüm Üniversiteler",
+                                    CreateScholarshipController
+                                        .allUniversitiesValue,
                                   )
-                                    ? controller.universiteler.join(", ")
+                                    ? controller.universityLabel(
+                                        CreateScholarshipController
+                                            .allUniversitiesValue,
+                                      )
                                     : 'common.selected_count'.trParams({
                                         'count': controller.universiteler.length
                                             .toString(),
@@ -812,9 +871,11 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                           children: controller.universiteler.map((uni) {
                             return Chip(
                               backgroundColor: Colors.grey.shade200,
-                              label: Text(uni),
+                              label: Text(controller.universityLabel(uni)),
                               onDeleted: () {
-                                if (uni == 'Tüm Üniversiteler') {
+                                if (uni ==
+                                    CreateScholarshipController
+                                        .allUniversitiesValue) {
                                   controller.universiteler.clear();
                                 } else {
                                   controller.universiteler.remove(uni);
@@ -861,17 +922,31 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                     controller.geriOdemeli.value.isEmpty ||
                     controller.hedefKitle.value.isEmpty ||
                     controller.egitimKitlesi.value.isEmpty ||
-                    (controller.egitimKitlesi.value == "Lisans" &&
+                    (controller.egitimKitlesi.value ==
+                            CreateScholarshipController
+                                .educationAudienceUndergraduateValue &&
                         controller.lisansTuru.isEmpty) ||
-                    ((controller.hedefKitle.value == "Nüfusa Göre" ||
-                            controller.hedefKitle.value == "İkamete Göre") &&
+                    ((controller.hedefKitle.value ==
+                                CreateScholarshipController
+                                    .targetAudiencePopulationValue ||
+                            controller.hedefKitle.value ==
+                                CreateScholarshipController
+                                    .targetAudienceResidenceValue) &&
                         controller
                             .ulke.value.isEmpty) || // Add country validation
-                    ((controller.hedefKitle.value == "Nüfusa Göre" ||
-                            controller.hedefKitle.value == "İkamete Göre") &&
+                    ((controller.hedefKitle.value ==
+                                CreateScholarshipController
+                                    .targetAudiencePopulationValue ||
+                            controller.hedefKitle.value ==
+                                CreateScholarshipController
+                                    .targetAudienceResidenceValue) &&
                         controller.sehirler.isEmpty) ||
-                    (controller.egitimKitlesi.value == "Lisans" &&
-                        controller.hedefKitle.value != "Tüm Türkiye" &&
+                    (controller.egitimKitlesi.value ==
+                            CreateScholarshipController
+                                .educationAudienceUndergraduateValue &&
+                        controller.hedefKitle.value !=
+                            CreateScholarshipController
+                                .targetAudienceAllTurkeyValue &&
                         controller.sehirler.isEmpty &&
                         controller.universiteler.isEmpty)) {
                   AppSnackbar(

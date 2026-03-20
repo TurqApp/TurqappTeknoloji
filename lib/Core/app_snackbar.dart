@@ -150,19 +150,28 @@ String _normalizeSnackbarText(String value) {
   var text = value.replaceAll(RegExp(r'\s+'), ' ').trim();
   if (text.isEmpty) return '';
 
-  const phraseReplacements = <String, String>{
+  final phraseReplacements = <String, String>{
     'Yükleme Başarısız': 'Yükleme Başarısız',
-    'Talebiniz Bize Ulaştı': 'Talebiniz Alındı',
-    'Tamam': 'İşlem Tamamlandı',
-    'Bilgi': 'Bilgilendirme',
-    'Kopyalandı': 'Panoya Kopyalandı',
-    'İletildi': 'İleti Gönderildi',
-    'Gizli hesap': 'Gizli Hesap',
-    'Boş Alanları Doldurunuz': 'Eksik Bilgi',
-    'Kod Gönderilemedi': 'Kod Gönderilemedi',
-    'Doğrulama Başarısız': 'Doğrulama Başarısız',
-    'Giriş Başarısız': 'Giriş Başarısız',
-    'Başarılı': 'İşlem Başarılı',
+    'Yukleme Basarisiz': 'Yükleme Başarısız',
+    'Talebiniz Bize Ulaştı': 'support.sent_title'.tr,
+    'Tamam': 'common.done'.tr,
+    'Bilgi': 'common.info'.tr,
+    'Basarili': 'common.success'.tr,
+    'Basarisiz': 'common.error'.tr,
+    'Kopyalandi': 'common.copied'.tr,
+    'Iletildi': 'chat.forwarded_title'.tr,
+    'Kopyalandı': 'common.copied'.tr,
+    'İletildi': 'chat.forwarded_title'.tr,
+    'Gizli hesap': 'profile.private_account_title'.tr,
+    'Boş Alanları Doldurunuz': 'signup.missing_info_title'.tr,
+    'Bos Alanlari Doldurunuz': 'signup.missing_info_title'.tr,
+    'Kod Gönderilemedi': 'signup.code_send_failed'.tr,
+    'Kod Gonderilemedi': 'signup.code_send_failed'.tr,
+    'Doğrulama Başarısız': 'signup.verify_failed_title'.tr,
+    'Dogrulama Basarisiz': 'signup.verify_failed_title'.tr,
+    'Giriş Başarısız': 'sign_in.sign_in_failed_title'.tr,
+    'Giris Basarisiz': 'sign_in.sign_in_failed_title'.tr,
+    'Başarılı': 'common.success'.tr,
   };
 
   const wordReplacements = <String, String>{
@@ -261,11 +270,60 @@ _AppSnackbarPalette _resolvePalette({
   }
 
   final haystack = '${title.toLowerCase()} ${message.toLowerCase()}';
-  if (haystack.contains('hata') ||
-      haystack.contains('başarısız') ||
-      haystack.contains('bulunamadı') ||
-      haystack.contains('kaydedilemedi') ||
-      haystack.contains('güncellenemedi')) {
+  final errorKeywords = <String>[
+    'common.error'.tr,
+    'error',
+    'failed',
+    'could not',
+    'not found',
+    'fehler',
+    'fehl',
+    'erreur',
+    'impossible',
+    'errore',
+    'erro',
+    'ошибка',
+    'не удалось',
+  ].map((e) => e.toLowerCase()).toList();
+  final warningKeywords = <String>[
+    'common.warning'.tr,
+    'warning',
+    'warnung',
+    'avertissement',
+    'avviso',
+    'предупреждение',
+    'limit',
+    'yetki',
+    'permission',
+    'berechtigung',
+    'autorisation',
+    'permesso',
+    'разрешение',
+    'eksik',
+    'missing',
+  ].map((e) => e.toLowerCase()).toList();
+  final successKeywords = <String>[
+    'common.success'.tr,
+    'common.done'.tr,
+    'common.copied'.tr,
+    'chat.forwarded_title'.tr,
+    'success',
+    'successful',
+    'erfolgreich',
+    'succes',
+    'riuscita',
+    'успешно',
+    'copied',
+    'sent',
+    'saved',
+    'updated',
+    'kopyalandı',
+    'gönderildi',
+    'kaydedildi',
+    'güncellendi',
+  ].map((e) => e.toLowerCase()).toList();
+
+  if (errorKeywords.any(haystack.contains)) {
     return const _AppSnackbarPalette(
       background: Color(0xFFB42318),
       border: Color(0xFFD92D20),
@@ -274,10 +332,7 @@ _AppSnackbarPalette _resolvePalette({
       icon: CupertinoIcons.exclamationmark_circle,
     );
   }
-  if (haystack.contains('uyarı') ||
-      haystack.contains('eksik') ||
-      haystack.contains('limit') ||
-      haystack.contains('yetki')) {
+  if (warningKeywords.any(haystack.contains)) {
     return const _AppSnackbarPalette(
       background: Color(0xFF9A6700),
       border: Color(0xFFB54708),
@@ -286,11 +341,7 @@ _AppSnackbarPalette _resolvePalette({
       icon: CupertinoIcons.exclamationmark_triangle,
     );
   }
-  if (haystack.contains('başar') ||
-      haystack.contains('gönderildi') ||
-      haystack.contains('güncellendi') ||
-      haystack.contains('kaydedildi') ||
-      haystack.contains('kopyalandı')) {
+  if (successKeywords.any(haystack.contains)) {
     return const _AppSnackbarPalette(
       background: Color(0xFF027A48),
       border: Color(0xFF039855),

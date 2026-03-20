@@ -69,13 +69,7 @@ class SettingsController extends GetxController {
 
     final storedHidden = prefs.getStringList(_pasajVisibilityKey) ?? const [];
     final normalizedHidden = storedHidden
-        .map((title) => switch (title) {
-              "Market" => "Mabil Pazar",
-              "İş Bul" => "İş Veren",
-              "Deneme Sınavı" => "Denemeler",
-              "Deneme Sınavları" => "Denemeler",
-              _ => title,
-            })
+        .map(pasajLegacyTitleToId)
         .where(pasajTabs.contains)
         .toSet();
     pasajVisibility.assignAll({

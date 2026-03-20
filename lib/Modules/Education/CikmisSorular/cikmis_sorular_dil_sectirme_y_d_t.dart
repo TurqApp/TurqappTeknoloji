@@ -21,6 +21,8 @@ class CikmisSorularDilSectirmeYDT extends StatefulWidget {
 
 class _CikmisSorularDilSectirmeYDTState
     extends State<CikmisSorularDilSectirmeYDT> {
+  static const _ydt = 'YDT';
+
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> diller = [];
 
@@ -100,7 +102,7 @@ class _CikmisSorularDilSectirmeYDTState
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (widget.sinavTuru == "YDT") {
+                              if (widget.sinavTuru == _ydt) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -109,7 +111,7 @@ class _CikmisSorularDilSectirmeYDTState
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       baslik2: diller[index],
-                                      baslik3: "YDT",
+                                      baslik3: _ydt,
                                     ),
                                   ),
                                 );

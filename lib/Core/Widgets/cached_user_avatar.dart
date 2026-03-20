@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -380,7 +381,7 @@ class CachedUserAvatarWithName extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        user?.nickname ?? 'User',
+                        user?.nickname ?? 'common.user'.tr,
                         style: nameStyle,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -412,7 +413,7 @@ class CachedUserAvatarWithName extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            nickname ?? 'User',
+            nickname ?? 'common.user'.tr,
             style: nameStyle,
             overflow: TextOverflow.ellipsis,
           ),

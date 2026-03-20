@@ -137,8 +137,8 @@ class FollowerContent extends StatelessWidget {
                                         Colors.white),
                                   ),
                                 )
-                              : const Text(
-                                  "Takip Et",
+                              : Text(
+                                  "following.follow".tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -155,11 +155,12 @@ class FollowerContent extends StatelessWidget {
                           ? null
                           : () {
                               noYesAlert(
-                                title: "Takipten Çık",
-                                message:
-                                    "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz?",
-                                cancelText: "Vazgeç",
-                                yesText: "Takipten Çık",
+                                title: "following.unfollow_title".tr,
+                                message: "following.unfollow_body".trParams({
+                                  'nickname': controller.nickname.value,
+                                }),
+                                cancelText: "common.cancel".tr,
+                                yesText: "following.unfollow_title".tr,
                                 onYesPressed: () {
                                   controller.follow(userID);
                                 },
@@ -185,8 +186,8 @@ class FollowerContent extends StatelessWidget {
                                         Colors.black),
                                   ),
                                 )
-                              : const Text(
-                                  "Takip Ediyorsun",
+                              : Text(
+                                  "following.following".tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 13,

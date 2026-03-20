@@ -44,75 +44,65 @@ class _PermissionsViewState extends State<PermissionsView> {
   static const List<int> _quotaOptions = [3, 4, 5, 6];
   static const int _minDisplayQuotaGb = 3;
   static const int _maxDisplayQuotaGb = 6;
-  static const List<_PermissionItem> _items = [
-    _PermissionItem(
-      title: 'Kamera',
-      permission: Permission.camera,
-      accessText: 'kamerasına',
-      helpText: 'Cihazınızın kamerasını nasıl kullanırız?',
-      helpSheetTitle: 'Cihazının kamerasını nasıl kullanırız?',
-      helpSheetBody:
-          'TurqApp, fotoğraf çekmek, video kaydetmek ve görsel/işitsel efektleri önizlemek gibi özellikleri kullanman için kamera erişimini kullanır.',
-      helpSheetBody2:
-          'Kameranı nasıl kullandığımız hakkında daha fazla bilgiyi Gizlilik Merkezi\'nden alabilirsin.',
-      helpSheetLinkText: 'Gizlilik Merkezi',
-    ),
-    _PermissionItem(
-      title: 'Kişiler',
-      permission: Permission.contacts,
-      accessText: 'kişilerine',
-      helpText: 'Cihazınızın kişilerini nasıl kullanırız?',
-      helpSheetTitle: 'Cihazının kişilerini nasıl kullanırız?',
-      helpSheetBody:
-          'TurqApp, tanıdığın kişilerle daha kolay bağlantı kurmana yardımcı olmak ve kişi önerilerini iyileştirmek için bu bilgileri kullanır.',
-      helpSheetLinkText: 'Daha fazla bilgi al',
-    ),
-    _PermissionItem(
-      title: 'Konum Servisleri',
-      permission: Permission.locationWhenInUse,
-      accessText: 'konumuna',
-      helpText: 'Cihazınızın konumunu nasıl kullanırız?',
-      helpSheetTitle: 'Cihazının konumunu nasıl kullanırız?',
-      helpSheetBody:
-          'TurqApp, yakınındaki yerleri keşfetmek, gönderi/hikayelerde konum etiketlemek ve güvenlik özelliklerini iyileştirmek için konum bilgisini kullanır.',
-      helpSheetBody2:
-          'Konum bilgilerini nasıl kullandığımız hakkında daha fazla bilgiyi Gizlilik Merkezi\'nden alabilirsin.',
-      helpSheetLinkText: 'Gizlilik Merkezi',
-    ),
-    _PermissionItem(
-      title: 'Mikrofon',
-      permission: Permission.microphone,
-      accessText: 'mikrofonuna',
-      helpText: 'Cihazınızın mikrofonunu nasıl kullanırız?',
-      helpSheetTitle: 'Cihazının mikrofonunu nasıl kullanırız?',
-      helpSheetBody:
-          'TurqApp, video kaydında ses almak ve efektleri önizlemek gibi özellikler için mikrofon erişimini kullanır.',
-      helpSheetBody2:
-          'Mikrofonu nasıl kullandığımız hakkında daha fazla bilgiyi Gizlilik Merkezi\'nden alabilirsin.',
-      helpSheetLinkText: 'Gizlilik Merkezi',
-    ),
-    _PermissionItem(
-      title: 'Bildirimler',
-      permission: Permission.notification,
-      accessText: 'anlık bildirim göndermesine',
-      helpText: 'Cihazınızın bildirimlerini nasıl kullanırız?',
-      helpSheetTitle: 'Cihazının bildirimlerini nasıl kullanırız?',
-      helpSheetBody:
-          'TurqApp, hesabında yeni hareketler olduğunda anlık bildirim göndermek için bildirim iznini kullanır.',
-      helpSheetBody2:
-          'Bildirimleri nasıl kullandığımız hakkında daha fazla bilgiyi Şeffaflık Merkezi\'nden alabilirsin.',
-      helpSheetLinkText: 'Şeffaflık Merkezi',
-    ),
-    _PermissionItem(
-      title: 'Fotoğraflar',
-      permission: Permission.photos,
-      accessText: 'fotoğraf ve videolarına erişmesine',
-      helpText: 'Cihazınızın fotoğraflarını nasıl kullanırız?',
-      helpSheetTitle: 'Cihazının fotoğraflarını nasıl kullanırız?',
-      helpSheetBody:
-          'TurqApp, galerinden fotoğraf/video seçip paylaşabilmen ve düzenleme araçlarını kullanabilmen için fotoğraf erişimini kullanır.',
-    ),
-  ];
+  List<_PermissionItem> get _items => [
+        _PermissionItem(
+          title: 'permissions.item.camera.title'.tr,
+          permission: Permission.camera,
+          accessText: 'permissions.item.camera.access'.tr,
+          helpText: 'permissions.item.camera.help_text'.tr,
+          helpSheetTitle: 'permissions.item.camera.help_sheet_title'.tr,
+          helpSheetBody: 'permissions.item.camera.help_sheet_body'.tr,
+          helpSheetBody2: 'permissions.item.camera.help_sheet_body2'.tr,
+          helpSheetLinkText: 'permissions.item.camera.help_sheet_link'.tr,
+        ),
+        _PermissionItem(
+          title: 'permissions.item.contacts.title'.tr,
+          permission: Permission.contacts,
+          accessText: 'permissions.item.contacts.access'.tr,
+          helpText: 'permissions.item.contacts.help_text'.tr,
+          helpSheetTitle: 'permissions.item.contacts.help_sheet_title'.tr,
+          helpSheetBody: 'permissions.item.contacts.help_sheet_body'.tr,
+          helpSheetLinkText: 'permissions.item.contacts.help_sheet_link'.tr,
+        ),
+        _PermissionItem(
+          title: 'permissions.item.location.title'.tr,
+          permission: Permission.locationWhenInUse,
+          accessText: 'permissions.item.location.access'.tr,
+          helpText: 'permissions.item.location.help_text'.tr,
+          helpSheetTitle: 'permissions.item.location.help_sheet_title'.tr,
+          helpSheetBody: 'permissions.item.location.help_sheet_body'.tr,
+          helpSheetBody2: 'permissions.item.location.help_sheet_body2'.tr,
+          helpSheetLinkText: 'permissions.item.location.help_sheet_link'.tr,
+        ),
+        _PermissionItem(
+          title: 'permissions.item.microphone.title'.tr,
+          permission: Permission.microphone,
+          accessText: 'permissions.item.microphone.access'.tr,
+          helpText: 'permissions.item.microphone.help_text'.tr,
+          helpSheetTitle: 'permissions.item.microphone.help_sheet_title'.tr,
+          helpSheetBody: 'permissions.item.microphone.help_sheet_body'.tr,
+          helpSheetBody2: 'permissions.item.microphone.help_sheet_body2'.tr,
+          helpSheetLinkText: 'permissions.item.microphone.help_sheet_link'.tr,
+        ),
+        _PermissionItem(
+          title: 'permissions.item.notifications.title'.tr,
+          permission: Permission.notification,
+          accessText: 'permissions.item.notifications.access'.tr,
+          helpText: 'permissions.item.notifications.help_text'.tr,
+          helpSheetTitle: 'permissions.item.notifications.help_sheet_title'.tr,
+          helpSheetBody: 'permissions.item.notifications.help_sheet_body'.tr,
+          helpSheetBody2: 'permissions.item.notifications.help_sheet_body2'.tr,
+          helpSheetLinkText: 'permissions.item.notifications.help_sheet_link'.tr,
+        ),
+        _PermissionItem(
+          title: 'permissions.item.photos.title'.tr,
+          permission: Permission.photos,
+          accessText: 'permissions.item.photos.access'.tr,
+          helpText: 'permissions.item.photos.help_text'.tr,
+          helpSheetTitle: 'permissions.item.photos.help_sheet_title'.tr,
+          helpSheetBody: 'permissions.item.photos.help_sheet_body'.tr,
+        ),
+      ];
 
   final Map<String, PermissionStatus> _statuses = {};
   bool _loading = true;
@@ -228,8 +218,8 @@ class _PermissionsViewState extends State<PermissionsView> {
   }
 
   String _statusLabel(PermissionStatus status) {
-    if (status.isGranted || status.isLimited) return 'İzin verildi';
-    return 'İzin verilmedi';
+    if (status.isGranted || status.isLimited) return 'permissions.allowed'.tr;
+    return 'permissions.denied'.tr;
   }
 
   Widget _buildQuotaButton(int gb) {
@@ -285,11 +275,11 @@ class _PermissionsViewState extends State<PermissionsView> {
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );
     final rows = <MapEntry<String, int>>[
-      MapEntry('Medya cache', profile.mediaQuotaBytes),
-      MapEntry('Gorsel cache', profile.imageQuotaBytes),
-      MapEntry('Metadata', profile.metadataQuotaBytes),
-      MapEntry('Yedek alan', profile.reserveQuotaBytes),
-      MapEntry('OS guvenlik payi', profile.osSafetyMarginBytes),
+      MapEntry('permissions.quota.media_cache'.tr, profile.mediaQuotaBytes),
+      MapEntry('permissions.quota.image_cache'.tr, profile.imageQuotaBytes),
+      MapEntry('permissions.quota.metadata'.tr, profile.metadataQuotaBytes),
+      MapEntry('permissions.quota.reserve'.tr, profile.reserveQuotaBytes),
+      MapEntry('permissions.quota.os_safety'.tr, profile.osSafetyMarginBytes),
     ];
 
     return Container(
@@ -304,7 +294,8 @@ class _PermissionsViewState extends State<PermissionsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$_selectedQuota GB plan dagilimi',
+            'permissions.quota.plan_distribution'
+                .trParams(<String, String>{'gb': '$_selectedQuota'}),
             style: const TextStyle(
               color: Colors.black,
               fontSize: 14,
@@ -341,7 +332,7 @@ class _PermissionsViewState extends State<PermissionsView> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Stream cache soft stop: ${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)}',
+            '${'permissions.quota.soft_stop'.tr}: ${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)}',
             style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,
@@ -349,7 +340,7 @@ class _PermissionsViewState extends State<PermissionsView> {
             ),
           ),
           Text(
-            'Stream cache hard stop: ${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
+            '${'permissions.quota.hard_stop'.tr}: ${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
             style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,
@@ -357,7 +348,8 @@ class _PermissionsViewState extends State<PermissionsView> {
             ),
           ),
           Text(
-            'Yakin video koruma penceresi: $recentProtectionWindow icerik',
+            'permissions.quota.recent_window'
+                .trParams(<String, String>{'count': '$recentProtectionWindow'}),
             style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,
@@ -367,7 +359,7 @@ class _PermissionsViewState extends State<PermissionsView> {
           if (usage != null) ...[
             const SizedBox(height: 10),
             Text(
-              'Aktif stream kullanim: ${CacheMetrics.formatBytes(usage.streamUsageBytes)}',
+              '${'permissions.quota.active_stream'.tr}: ${CacheMetrics.formatBytes(usage.streamUsageBytes)}',
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 12,
@@ -375,7 +367,7 @@ class _PermissionsViewState extends State<PermissionsView> {
               ),
             ),
             Text(
-              'Soft stop kalan: ${CacheMetrics.formatBytes(usage.remainingBeforeSoftStopBytes)}',
+              '${'permissions.quota.soft_remaining'.tr}: ${CacheMetrics.formatBytes(usage.remainingBeforeSoftStopBytes)}',
               style: const TextStyle(
                 color: Colors.black45,
                 fontSize: 12,
@@ -383,7 +375,7 @@ class _PermissionsViewState extends State<PermissionsView> {
               ),
             ),
             Text(
-              'Hard stop kalan: ${CacheMetrics.formatBytes(usage.remainingBeforeHardStopBytes)}',
+              '${'permissions.quota.hard_remaining'.tr}: ${CacheMetrics.formatBytes(usage.remainingBeforeHardStopBytes)}',
               style: const TextStyle(
                 color: Colors.black45,
                 fontSize: 12,
@@ -498,8 +490,8 @@ class _PermissionsViewState extends State<PermissionsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Veri ve Playback Tercihleri',
+          Text(
+            'permissions.playback.title'.tr,
             style: TextStyle(
               color: Colors.black,
               fontSize: 16,
@@ -507,9 +499,9 @@ class _PermissionsViewState extends State<PermissionsView> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Sistem cache planina gore calisir; burada sadece Wi-Fi ve mobil veri davranisinin ne kadar korumaci olacagini secersin.',
-            style: TextStyle(
+          Text(
+            'permissions.playback.help'.tr,
+            style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,
               fontFamily: 'MontserratMedium',
@@ -519,12 +511,12 @@ class _PermissionsViewState extends State<PermissionsView> {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mobil veride cache ile sinirla',
+                      'permissions.playback.limit_cellular'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 14,
@@ -533,7 +525,7 @@ class _PermissionsViewState extends State<PermissionsView> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Aciksa mobil veride yeni segment cekmek yerine once eldeki cache kullanilir.',
+                      'permissions.playback.limit_cellular_desc'.tr,
                       style: TextStyle(
                         color: Colors.black45,
                         fontSize: 12,
@@ -553,17 +545,15 @@ class _PermissionsViewState extends State<PermissionsView> {
             ],
           ),
           _buildDataModeSelector(
-            title: 'Mobil veri playback modu',
-            description:
-                'Cellular guard altinda ne kadar agresif prefetch ve kalite kullanilacagini belirler.',
+            title: 'permissions.playback.cellular_mode'.tr,
+            description: 'permissions.playback.cellular_mode_desc'.tr,
             value: _networkSettings.cellularDataMode,
             onChanged: (value) =>
                 _updateNetworkSettings(cellularDataMode: value),
           ),
           _buildDataModeSelector(
-            title: 'Wi-Fi playback modu',
-            description:
-                'Wi-Fi fill sirasinda startup ve ahead window davranisinin ne kadar genis olacagini belirler.',
+            title: 'permissions.playback.wifi_mode'.tr,
+            description: 'permissions.playback.wifi_mode_desc'.tr,
             value: _networkSettings.wifiDataMode,
             onChanged: (value) => _updateNetworkSettings(wifiDataMode: value),
           ),
@@ -579,7 +569,7 @@ class _PermissionsViewState extends State<PermissionsView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Cihaz İzinleri'),
+            BackButtons(text: 'permissions.title'.tr),
             Expanded(
               child: _loading
                   ? const Center(child: CupertinoActivityIndicator())
@@ -588,8 +578,8 @@ class _PermissionsViewState extends State<PermissionsView> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         children: [
-                          const Text(
-                            'Tercihlerin',
+                          Text(
+                            'permissions.preferences'.tr,
                             style: TextStyle(
                               color: Colors.black45,
                               fontSize: 13,
@@ -640,8 +630,8 @@ class _PermissionsViewState extends State<PermissionsView> {
                           const SizedBox(height: 10),
                           const Divider(height: 1),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Çevrimdışı İzleme Alanı',
+                          Text(
+                            'permissions.offline_space'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 18,
@@ -663,9 +653,9 @@ class _PermissionsViewState extends State<PermissionsView> {
                             ],
                           ),
                           const SizedBox(height: 10),
-                          const Text(
-                            'Seçtiğiniz plana göre içerik cihazınıza indirilir ve internet bağlantısı olmadan izlenebilir. Alan doldukça eski videolar otomatik olarak silinir.',
-                            style: TextStyle(
+                          Text(
+                            'permissions.offline_space_desc'.tr,
+                            style: const TextStyle(
                               color: Colors.black45,
                               fontSize: 13,
                               fontFamily: 'Montserrat',
@@ -713,9 +703,9 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
   bool get _enabled => _status.isGranted || _status.isLimited;
 
   bool get _usesDeviceSettingStyle =>
-      widget.item.title == 'Kamera' ||
-      widget.item.title == 'Mikrofon' ||
-      widget.item.title == 'Bildirimler';
+      widget.item.permission == Permission.camera ||
+      widget.item.permission == Permission.microphone ||
+      widget.item.permission == Permission.notification;
 
   Future<void> _onActionPressed() async {
     if (_busy) return;
@@ -742,22 +732,24 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
       context: context,
       builder: (ctx) {
         return CupertinoAlertDialog(
-          title: const Text('Cihaz ayarlarını güncelle'),
+          title: Text('permissions.dialog.update_device_settings'.tr),
           content: Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Cihaz ayarlarını aç, "${widget.item.title}" seçeneğine dokun ve bu izne nasıl erişim vermek istediğini seç.',
+              'permissions.dialog.update_body'.trParams(
+                <String, String>{'title': widget.item.title},
+              ),
             ),
           ),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(ctx).pop(true),
               isDefaultAction: true,
-              child: const Text('Cihaz ayarlarını aç'),
+              child: Text('permissions.dialog.open_settings'.tr),
             ),
             CupertinoDialogAction(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Şimdi değil'),
+              child: Text('permissions.dialog.not_now'.tr),
             ),
           ],
         );
@@ -767,20 +759,22 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
   }
 
   String get _buttonText {
-    if (_usesDeviceSettingStyle) return 'Cihaz ayarlarını güncelle';
+    if (_usesDeviceSettingStyle) {
+      return 'permissions.dialog.update_device_settings'.tr;
+    }
     final canDirectRequest =
         _status.isDenied || _status.isLimited || _status.isProvisional;
-    if (!_enabled && canDirectRequest) return 'İzinleri aç';
-    if (widget.item.title == 'Konum Servisleri' && !_enabled) {
-      return "Konum Servisleri'ni Aç";
+    if (!_enabled && canDirectRequest) return 'permissions.enable'.tr;
+    if (widget.item.permission == Permission.locationWhenInUse && !_enabled) {
+      return 'permissions.enable_location'.tr;
     }
-    return 'Cihaz ayarlarını güncelle';
+    return 'permissions.dialog.update_device_settings'.tr;
   }
 
   List<Widget> _buildPreferenceBlock() {
     return [
-      const Text(
-        'Tercihlerini belirle',
+      Text(
+        'permissions.detail.set_preferences'.tr,
         style: TextStyle(
           color: Colors.black45,
           fontSize: 15,
@@ -789,7 +783,10 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
       ),
       const SizedBox(height: 12),
       Text(
-        "TurqApp'ın ${widget.item.accessText} izin vermek için ${widget.item.title} izinlerini aç.",
+        'permissions.detail.preference_body'.trParams(<String, String>{
+          'access': widget.item.accessText,
+          'title': widget.item.title,
+        }),
         style: const TextStyle(
           color: Colors.black45,
           fontSize: 14,
@@ -801,18 +798,24 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
   }
 
   List<Widget> _buildDeviceSettingBlocks() {
-    final currentStateTitle = _enabled ? 'İzin verildi' : 'İzin verilmedi';
-    final otherStateTitle = _enabled ? 'İzin verilmedi' : 'İzin verildi';
+    final currentStateTitle =
+        _enabled ? 'permissions.allowed'.tr : 'permissions.denied'.tr;
+    final otherStateTitle =
+        _enabled ? 'permissions.denied'.tr : 'permissions.allowed'.tr;
     final currentStateDesc = _enabled
-        ? "TurqApp'ın bu cihazın ${widget.item.accessText} izin veriliyor."
-        : "TurqApp'ın bu cihazın ${widget.item.accessText} izin verilmiyor.";
+        ? 'permissions.detail.allowed_desc'
+            .trParams(<String, String>{'access': widget.item.accessText})
+        : 'permissions.detail.denied_desc'
+            .trParams(<String, String>{'access': widget.item.accessText});
     final otherStateDesc = _enabled
-        ? "TurqApp'ın bu cihazın ${widget.item.accessText} izin verilmiyor."
-        : "TurqApp'ın bu cihazın ${widget.item.accessText} izin veriliyor.";
+        ? 'permissions.detail.denied_desc'
+            .trParams(<String, String>{'access': widget.item.accessText})
+        : 'permissions.detail.allowed_desc'
+            .trParams(<String, String>{'access': widget.item.accessText});
 
     return [
-      const Text(
-        'Cihaz ayarın:',
+      Text(
+        'permissions.detail.device_setting'.tr,
         style: TextStyle(
           color: Colors.black45,
           fontSize: 15,
@@ -840,8 +843,8 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
         ),
       ),
       const SizedBox(height: 26),
-      const Text(
-        'Diğer seçenek',
+      Text(
+        'permissions.detail.other_option'.tr,
         style: TextStyle(
           color: Colors.black45,
           fontSize: 15,
@@ -869,8 +872,8 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
         ),
       ),
       const SizedBox(height: 14),
-      const Text(
-        'İzinlerini güncellemek için cihaz ayarlarına git.',
+      Text(
+        'permissions.detail.go_device_settings'.tr,
         style: TextStyle(
           color: Colors.black26,
           fontSize: 13,
@@ -922,7 +925,7 @@ class _PermissionDetailViewState extends State<_PermissionDetailView> {
                           disabledBackgroundColor: Colors.black38,
                         ),
                         child: Text(
-                          _busy ? 'Kontrol ediliyor...' : _buttonText,
+                          _busy ? 'permissions.checking'.tr : _buttonText,
                           style: Theme.of(context)
                               .textTheme
                               .labelLarge

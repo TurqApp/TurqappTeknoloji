@@ -9,7 +9,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
-import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
@@ -62,8 +62,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
         shortUrl = fallbackUrl;
       }
 
-      if (shortUrl.trim().isEmpty ||
-          shortUrl.trim() == 'https://turqapp.com') {
+      if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
         shortUrl = fallbackUrl;
       }
 
@@ -99,6 +98,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
           horizontalSpacing: 8,
           rowSpacing: 8,
           itemBuilder: (tutoring, index) {
+            const metrics = PasajListCardMetrics.regular;
             final lessonPlace = _lessonPlaceText(tutoring);
             final imageUrl = _imageUrl(tutoring);
             final teacherName = _teacherName(tutoring);
@@ -225,29 +225,32 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          SizedBox(
-                            width: double.infinity,
-                            child: GestureDetector(
-                              onTap: () => Get.to(
-                                () => TutoringDetail(),
-                                arguments: tutoring,
-                              ),
-                              child: Container(
-                                height: 30,
-                                alignment: Alignment.center,
-                                decoration: const BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(8)),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: SizedBox(
+                              width: metrics.railWidth,
+                              child: GestureDetector(
+                                onTap: () => Get.to(
+                                  () => TutoringDetail(),
+                                  arguments: tutoring,
                                 ),
-                                child: Text(
-                                  allowReactivate && tutoring.ended == true
-                                      ? 'Yayına Al'
-                                      : 'İncele',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontFamily: 'MontserratMedium',
+                                child: Container(
+                                  height: metrics.ctaHeight,
+                                  alignment: Alignment.center,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(8)),
+                                  ),
+                                  child: Text(
+                                    allowReactivate && tutoring.ended == true
+                                        ? 'admin.reports.restore'.tr
+                                        : 'common.view'.tr,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: metrics.ctaFontSize,
+                                      fontFamily: 'MontserratMedium',
+                                    ),
                                   ),
                                 ),
                               ),
@@ -272,50 +275,52 @@ class TutoringWidgetBuilder extends StatelessWidget {
       children: PasajListingAdLayout.buildListChildren(
         items: tutoringList,
         itemBuilder: (tutoring, index) {
-        final lessonPlace = _lessonPlaceText(tutoring);
-        final imageUrl = _imageUrl(tutoring);
-        return Padding(
-          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 6, top: 6),
-          child: GestureDetector(
-            onTap: () async {
-              if (allowReactivate &&
-                  tutoring.ended == true &&
-                  myTutoringsController != null) {
-                await myTutoringsController.reactivateEndedTutoring(tutoring);
-                return;
-              }
-              await Get.to(() => TutoringDetail(), arguments: tutoring);
-            },
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
-                color: Colors.white,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    child: SizedBox(
-                      width: 96,
-                      height: 96,
-                      child: imageUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => _fallbackImage(),
-                            )
-                          : _fallbackImage(),
+          final lessonPlace = _lessonPlaceText(tutoring);
+          final imageUrl = _imageUrl(tutoring);
+          const metrics = PasajListCardMetrics.regular;
+          return Padding(
+            padding:
+                const EdgeInsets.only(left: 15, right: 15, bottom: 6, top: 6),
+            child: GestureDetector(
+              onTap: () async {
+                if (allowReactivate &&
+                    tutoring.ended == true &&
+                    myTutoringsController != null) {
+                  await myTutoringsController.reactivateEndedTutoring(tutoring);
+                  return;
+                }
+                await Get.to(() => TutoringDetail(), arguments: tutoring);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+                  color: Colors.white,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
+                      child: SizedBox(
+                        width: metrics.mediaSize,
+                        height: metrics.mediaSize,
+                        child: imageUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: imageUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => _fallbackImage(),
+                              )
+                            : _fallbackImage(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SizedBox(
-                      height: 96,
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             tutoring.baslik,
@@ -323,11 +328,11 @@ class TutoringWidgetBuilder extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.black,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontFamily: "MontserratBold",
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: metrics.contentGap / 2),
                           Text(
                             tutoring.brans,
                             maxLines: 1,
@@ -338,7 +343,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                               fontFamily: "MontserratBold",
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: metrics.contentGap),
                           Text(
                             lessonPlace,
                             maxLines: 1,
@@ -349,7 +354,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                               fontFamily: "MontserratMedium",
                             ),
                           ),
-                          const Spacer(),
+                          SizedBox(height: metrics.contentGap),
                           Row(
                             children: [
                               Icon(
@@ -375,94 +380,94 @@ class TutoringWidgetBuilder extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  SizedBox(
-                    width: 108,
-                    height: 96,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AppHeaderActionButton(
-                              onTap: () => _shareExternally(tutoring),
-                              child: Icon(
-                                AppIcons.share,
-                                size: AppIconSurface.kIconSize,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Obx(() {
-                              final isSaved = savedController.savedTutoringIds
-                                  .contains(tutoring.docID);
-                              return AppHeaderActionButton(
-                                onTap: () => _toggleSave(
-                                  tutoring: tutoring,
-                                  currentUserId: currentUserId,
-                                  controller: tutoringController,
-                                  savedController: savedController,
-                                ),
+                    const SizedBox(width: 6),
+                    SizedBox(
+                      width: metrics.railWidth,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppHeaderActionButton(
+                                onTap: () => _shareExternally(tutoring),
+                                size: metrics.actionButtonSize,
                                 child: Icon(
-                                  isSaved ? AppIcons.saved : AppIcons.save,
-                                  size: AppIconSurface.kIconSize,
-                                  color: isSaved
-                                      ? Colors.orange
-                                      : Colors.black87,
+                                  AppIcons.share,
+                                  size: metrics.actionIconSize,
+                                  color: Colors.black87,
                                 ),
-                              );
-                            }),
-                          ],
-                        ),
-                        const Spacer(),
-                        SizedBox(
-                          width: 108,
-                          child: GestureDetector(
-                            onTap: () async {
-                              if (allowReactivate &&
-                                  tutoring.ended == true &&
-                                  myTutoringsController != null) {
-                                await myTutoringsController
-                                    .reactivateEndedTutoring(tutoring);
-                                return;
-                              }
-                              await Get.to(
-                                () => TutoringDetail(),
-                                arguments: tutoring,
-                              );
-                            },
-                            child: Container(
-                              height: 30,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: Colors.black,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(8)),
                               ),
-                              child: Text(
-                                allowReactivate && tutoring.ended == true
-                                    ? 'Yayına Al'
-                                    : 'İncele',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontFamily: 'MontserratMedium',
+                              SizedBox(width: metrics.railActionGap),
+                              Obx(() {
+                                final isSaved = savedController.savedTutoringIds
+                                    .contains(tutoring.docID);
+                                return AppHeaderActionButton(
+                                  onTap: () => _toggleSave(
+                                    tutoring: tutoring,
+                                    currentUserId: currentUserId,
+                                    controller: tutoringController,
+                                    savedController: savedController,
+                                  ),
+                                  size: metrics.actionButtonSize,
+                                  child: Icon(
+                                    isSaved ? AppIcons.saved : AppIcons.save,
+                                    size: metrics.actionIconSize,
+                                    color: isSaved
+                                        ? Colors.orange
+                                        : Colors.black87,
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                          SizedBox(height: metrics.railSectionGap),
+                          SizedBox(
+                            width: metrics.railWidth,
+                            child: GestureDetector(
+                              onTap: () async {
+                                if (allowReactivate &&
+                                    tutoring.ended == true &&
+                                    myTutoringsController != null) {
+                                  await myTutoringsController
+                                      .reactivateEndedTutoring(tutoring);
+                                  return;
+                                }
+                                await Get.to(
+                                  () => TutoringDetail(),
+                                  arguments: tutoring,
+                                );
+                              },
+                              child: Container(
+                                height: metrics.ctaHeight,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(8)),
+                                ),
+                                child: Text(
+                                  allowReactivate && tutoring.ended == true
+                                      ? 'admin.reports.restore'.tr
+                                      : 'common.view'.tr,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: metrics.ctaFontSize,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
+          );
         },
         adBuilder: (slot) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),

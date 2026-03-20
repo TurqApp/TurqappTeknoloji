@@ -232,111 +232,146 @@ class ExploreView extends StatelessWidget {
                                     onRefresh: () async {
                                       await controller.fetchTrendingTags();
                                     },
-                                    child: ListView.builder(
-                                      key: const PageStorageKey(
-                                          'Explore_Gundemdekiler'),
-                                      itemCount: items.length,
-                                      itemBuilder: (context, i) {
-                                        final item = items[i];
-                                        final title = item.hasHashtag
-                                            ? "#${item.hashtag}"
-                                            : item.hashtag;
-                                        return Column(
-                                          children: [
-                                            GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: () {
-                                                controller
-                                                    .suspendExplorePreview();
-                                                Get.to(() => TagPosts(
-                                                        tag: item.hashtag))
-                                                    ?.then((_) {
-                                                  controller
-                                                      .resumeExplorePreview();
-                                                });
-                                              },
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
+                                    child: items.isEmpty
+                                        ? ListView(
+                                            key: const PageStorageKey(
+                                              'Explore_Gundemdekiler_Empty',
+                                            ),
+                                            physics:
+                                                const AlwaysScrollableScrollPhysics(),
+                                            children: [
+                                              SizedBox(
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height *
+                                                    0.3,
+                                              ),
+                                              Center(
+                                                child: EmptyRow(
+                                                  text: 'explore.no_results'.tr,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : ListView.builder(
+                                            key: const PageStorageKey(
+                                              'Explore_Gundemdekiler',
+                                            ),
+                                            itemCount: items.length,
+                                            itemBuilder: (context, i) {
+                                              final item = items[i];
+                                              final title = item.hasHashtag
+                                                  ? "#${item.hashtag}"
+                                                  : item.hashtag;
+                                              return Column(
+                                                children: [
+                                                  GestureDetector(
+                                                    behavior:
+                                                        HitTestBehavior.opaque,
+                                                    onTap: () {
+                                                      controller
+                                                          .suspendExplorePreview();
+                                                      Get.to(() => TagPosts(
+                                                              tag:
+                                                                  item.hashtag))
+                                                          ?.then((_) {
+                                                        controller
+                                                            .resumeExplorePreview();
+                                                      });
+                                                    },
+                                                    child: Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
                                                         horizontal: 15,
-                                                        vertical: 10),
-                                                child: SizedBox(
-                                                  width: double.infinity,
-                                                  child: Row(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Expanded(
-                                                        child: Column(
+                                                        vertical: 10,
+                                                      ),
+                                                      child: SizedBox(
+                                                        width: double.infinity,
+                                                        child: Row(
                                                           crossAxisAlignment:
                                                               CrossAxisAlignment
                                                                   .start,
                                                           children: [
-                                                            Text(
-                                                              'explore.trending_rank'
-                                                                  .trParams({
-                                                                'index':
-                                                                    '${i + 1}',
-                                                              }),
-                                                              style:
-                                                                  const TextStyle(
-                                                                color: Colors
-                                                                    .black54,
-                                                                fontSize: 14,
-                                                                fontFamily:
-                                                                    "Montserrat",
+                                                            Expanded(
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Text(
+                                                                    'explore.trending_rank'
+                                                                        .trParams(
+                                                                      {
+                                                                        'index':
+                                                                            '${i + 1}',
+                                                                      },
+                                                                    ),
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      color: Colors
+                                                                          .black54,
+                                                                      fontSize:
+                                                                          14,
+                                                                      fontFamily:
+                                                                          "Montserrat",
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    height: 2,
+                                                                  ),
+                                                                  Text(
+                                                                    title,
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      color: Colors
+                                                                          .black,
+                                                                      fontSize:
+                                                                          18,
+                                                                      fontFamily:
+                                                                          "MontserratBold",
+                                                                      height:
+                                                                          1.1,
+                                                                    ),
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ),
-                                                            const SizedBox(
-                                                                height: 2),
-                                                            Text(
-                                                              title,
-                                                              style:
-                                                                  const TextStyle(
+                                                            const Padding(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .only(
+                                                                top: 8,
+                                                              ),
+                                                              child: Icon(
+                                                                CupertinoIcons
+                                                                    .chevron_right,
                                                                 color: Colors
-                                                                    .black,
-                                                                fontSize: 18,
-                                                                fontFamily:
-                                                                    "MontserratBold",
-                                                                height: 1.1,
+                                                                    .black38,
+                                                                size: 16,
                                                               ),
                                                             ),
                                                           ],
                                                         ),
                                                       ),
-                                                      const Padding(
-                                                        padding:
-                                                            EdgeInsets.only(
-                                                                top: 8),
-                                                        child: Icon(
-                                                          CupertinoIcons
-                                                              .chevron_right,
-                                                          color: Colors.black38,
-                                                          size: 16,
-                                                        ),
-                                                      )
-                                                    ],
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 15),
-                                              child: SizedBox(
-                                                height: 1,
-                                                child: Divider(
-                                                  color:
-                                                      Colors.grey.withAlpha(50),
-                                                ),
-                                              ),
-                                            )
-                                          ],
-                                        );
-                                      },
-                                    ),
+                                                  Padding(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                      horizontal: 15,
+                                                    ),
+                                                    child: SizedBox(
+                                                      height: 1,
+                                                      child: Divider(
+                                                        color: Colors.grey
+                                                            .withAlpha(50),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
                                   );
                                 }),
 

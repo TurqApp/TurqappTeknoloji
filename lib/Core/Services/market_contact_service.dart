@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Core/Utils/phone_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
@@ -22,11 +23,11 @@ class MarketContactService {
   Future<void> openChat(MarketItemModel item) async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (currentUid.isEmpty) {
-      AppSnackbar('Giriş Gerekli', 'Mesaj göndermek için giriş yapmalısın.');
+      AppSnackbar('login.sign_in'.tr, 'market_contact.sign_in_required'.tr);
       return;
     }
     if (currentUid == item.userId) {
-      AppSnackbar('Bilgi', 'Kendi ilanın için mesaj gönderemezsin.');
+      AppSnackbar('common.info'.tr, 'market_contact.cannot_message_own_listing'.tr);
       return;
     }
 
@@ -71,7 +72,7 @@ class MarketContactService {
   ) async {
     final phone = await _resolvePhone(item);
     if (phone.isEmpty) {
-      AppSnackbar('Bilgi Yok', 'Satıcının telefon bilgisi bulunamadı.');
+      AppSnackbar('common.info'.tr, 'market_contact.phone_missing'.tr);
       return;
     }
 
@@ -94,7 +95,7 @@ class MarketContactService {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const AppSheetHeader(title: 'Telefon'),
+                AppSheetHeader(title: 'common.phone'.tr),
                 const SizedBox(height: 14),
                 Container(
                   height: 50,
@@ -120,7 +121,7 @@ class MarketContactService {
                       final dialUri = Uri.parse('tel:${_dialValue(phone)}');
                       final opened = await launchUrl(dialUri);
                       if (!opened) {
-                        AppSnackbar('Hata', 'Telefon uygulaması açılamadı.');
+                        AppSnackbar('common.error'.tr, 'market_contact.phone_app_failed'.tr);
                       }
                       if (context.mounted) Navigator.of(context).pop();
                     },
@@ -131,8 +132,8 @@ class MarketContactService {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
-                      'Ara',
+                    child: Text(
+                      'common.call'.tr,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -152,14 +153,14 @@ class MarketContactService {
   Future<void> callPhone(MarketItemModel item) async {
     final phone = await _resolvePhone(item);
     if (phone.isEmpty) {
-      AppSnackbar('Bilgi Yok', 'Satıcının telefon bilgisi bulunamadı.');
+      AppSnackbar('common.info'.tr, 'market_contact.phone_missing'.tr);
       return;
     }
 
     final dialUri = Uri.parse('tel:${_dialValue(phone)}');
     final opened = await launchUrl(dialUri);
     if (!opened) {
-      AppSnackbar('Hata', 'Telefon uygulaması açılamadı.');
+      AppSnackbar('common.error'.tr, 'market_contact.phone_app_failed'.tr);
     }
   }
 
@@ -180,7 +181,7 @@ class MarketContactService {
   }
 
   String _dialValue(String rawPhone) {
-    final digits = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(rawPhone);
     if (digits.startsWith('90') && digits.length == 12) {
       return '+$digits';
     }
@@ -194,7 +195,7 @@ class MarketContactService {
   }
 
   String _formatDisplayPhone(String rawPhone) {
-    final digits = _dialValue(rawPhone).replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(_dialValue(rawPhone));
     if (digits.startsWith('90') && digits.length == 12) {
       return '+${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 8)} ${digits.substring(8, 10)} ${digits.substring(10)}';
     }

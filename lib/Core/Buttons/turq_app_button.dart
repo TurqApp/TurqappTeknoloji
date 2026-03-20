@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 
 class TurqAppButton extends StatelessWidget {
@@ -14,7 +15,7 @@ class TurqAppButton extends StatelessWidget {
   const TurqAppButton({
     super.key,
     this.padding = const EdgeInsets.only(left: 0, right: 0),
-    this.text = "Kaydet",
+    this.text = "",
     this.borderRadiusAll = TurqButtonTokens.radius,
     this.bgColor = Colors.black,
     this.textColor = Colors.white,
@@ -25,6 +26,7 @@ class TurqAppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedText = text.isEmpty ? 'common.save'.tr : text;
     return Padding(
       padding: padding,
       child: GestureDetector(
@@ -37,7 +39,7 @@ class TurqAppButton extends StatelessWidget {
             borderRadius: BorderRadius.all(Radius.circular(borderRadiusAll)),
           ),
           child: Text(
-            text,
+            resolvedText,
             style: TextStyle(
               color: textColor,
               fontSize: fontSize,

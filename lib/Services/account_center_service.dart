@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
@@ -100,7 +102,7 @@ class AccountCenterService extends GetxService {
       var resolvedEmail = '';
       final storedCredential = await AccountSessionVault.instance.read(account.uid);
       if (storedCredential != null) {
-        resolvedEmail = storedCredential.email.trim().toLowerCase();
+        resolvedEmail = normalizeEmailAddress(storedCredential.email);
       }
 
       if (resolvedEmail.isEmpty) {
@@ -108,13 +110,11 @@ class AccountCenterService extends GetxService {
           account.uid,
           preferCache: true,
         );
-        resolvedEmail = (raw?['email'] ?? '').toString().trim().toLowerCase();
+        resolvedEmail = normalizeEmailAddress((raw?['email'] ?? '').toString());
       }
 
-      if (resolvedEmail.isEmpty &&
-          FirebaseAuth.instance.currentUser?.uid == account.uid) {
-        resolvedEmail =
-            (FirebaseAuth.instance.currentUser?.email ?? '').trim().toLowerCase();
+      if (resolvedEmail.isEmpty && isCurrentUserId(account.uid)) {
+        resolvedEmail = normalizeEmailAddress(FirebaseAuth.instance.currentUser?.email);
       }
 
       if (resolvedEmail.isEmpty) continue;
@@ -133,7 +133,7 @@ class AccountCenterService extends GetxService {
   List<StoredAccount> _dedupeAccounts(List<StoredAccount> source) {
     final byIdentity = <String, StoredAccount>{};
     for (final account in source) {
-      final email = account.email.trim().toLowerCase();
+      final email = normalizeEmailAddress(account.email);
       final key = email.isNotEmpty ? 'email:$email' : 'uid:${account.uid.trim()}';
       final existing = byIdentity[key];
       if (existing == null) {

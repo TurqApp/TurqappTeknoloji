@@ -20,7 +20,7 @@ class AccountCenterView extends StatelessWidget {
 
   final AccountCenterService accountCenter = AccountCenterService.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
-  final SignInController _signInController = Get.put(SignInController());
+  final SignInController _signInController = SignInController();
   final Future<void> _initFuture = AccountCenterService.ensure().init();
 
   bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
@@ -30,7 +30,11 @@ class AccountCenterView extends StatelessWidget {
   Future<void> _continueWithAccount(StoredAccount account) async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (currentUid == account.uid) {
-      AppSnackbar('Aktif Hesap', '@${account.username} zaten aktif.');
+      AppSnackbar(
+        'account_center.active_account_title'.tr,
+        'account_center.active_account_body'
+            .trParams(<String, String>{'username': account.username}),
+      );
       return;
     }
 
@@ -45,8 +49,9 @@ class AccountCenterView extends StatelessWidget {
           ),
         );
         AppSnackbar(
-          'Tekrar Giriş Gerekli',
-          '@${account.username} hesabı için şifrenle yeniden giriş yapman gerekiyor.',
+          'account_center.reauth_title'.tr,
+          'account_center.reauth_body'
+              .trParams(<String, String>{'username': account.username}),
         );
         return;
       }
@@ -60,8 +65,8 @@ class AccountCenterView extends StatelessWidget {
       }
       if (switched) return;
       AppSnackbar(
-        'Geçiş yapılamadı',
-        'Bu hesap için önce bir kez normal giriş yapılması gerekiyor.',
+        'account_center.switch_failed_title'.tr,
+        'account_center.switch_failed_body'.tr,
       );
       return;
     }
@@ -96,28 +101,29 @@ class AccountCenterView extends StatelessWidget {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (currentUid == account.uid) {
       AppSnackbar(
-        'Aktif Hesap',
-        'Aktif hesabı burada silemezsin. Önce başka hesaba geç.',
+        'account_center.active_account_title'.tr,
+        'account_center.remove_active_forbidden'.tr,
       );
       return;
     }
 
     final shouldRemove = await showCupertinoDialog<bool>(
           context: context,
-          builder: (dialogContext) => CupertinoAlertDialog(
-            title: const Text('Hesabı Kaldır'),
+        builder: (dialogContext) => CupertinoAlertDialog(
+            title: Text('account_center.remove_account_title'.tr),
             content: Text(
-              '@${account.username} hesabını bu cihazdaki kayıtlı hesaplardan kaldırmak istiyor musun?',
+              'account_center.remove_account_body'
+                  .trParams(<String, String>{'username': account.username}),
             ),
             actions: [
               CupertinoDialogAction(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Vazgeç'),
+                child: Text('common.cancel'.tr),
               ),
               CupertinoDialogAction(
                 isDestructiveAction: true,
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('Sil'),
+                child: Text('common.delete'.tr),
               ),
             ],
           ),
@@ -126,7 +132,11 @@ class AccountCenterView extends StatelessWidget {
 
     if (!shouldRemove) return;
     await accountCenter.removeAccount(account.uid);
-    AppSnackbar('Başarılı', '@${account.username} kaldırıldı.');
+    AppSnackbar(
+      'common.success'.tr,
+      'account_center.account_removed'
+          .trParams(<String, String>{'username': account.username}),
+    );
   }
 
   Widget _avatar(StoredAccount account) {
@@ -161,7 +171,7 @@ class AccountCenterView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Hesap Merkezi'),
+            BackButtons(text: 'settings.account_center'.tr),
             Expanded(
               child: FutureBuilder<void>(
                 future: _initFuture,
@@ -176,13 +186,13 @@ class AccountCenterView extends StatelessWidget {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.fromLTRB(4, 4, 4, 14),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Profiller ve giriş bilgileri',
+                                  'account_center.header_title'.tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 26,
@@ -191,7 +201,7 @@ class AccountCenterView extends StatelessWidget {
                                 ),
                                 SizedBox(height: 18),
                                 Text(
-                                  'Hesaplar',
+                                  'account_center.accounts'.tr,
                                   style: TextStyle(
                                     color: Colors.black87,
                                     fontSize: 14,
@@ -208,13 +218,13 @@ class AccountCenterView extends StatelessWidget {
                               border: Border.all(color: Colors.black12),
                             ),
                             child: items.isEmpty
-                                ? const Padding(
+                                ? Padding(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 18,
                                       vertical: 22,
                                     ),
                                     child: Text(
-                                      'Henüz bu cihaza eklenmiş bir hesap yok.',
+                                      'account_center.no_accounts'.tr,
                                       style: TextStyle(
                                         color: Colors.black54,
                                         fontSize: 14,
@@ -248,13 +258,13 @@ class AccountCenterView extends StatelessWidget {
                                               bottom: Radius.circular(18),
                                             ),
                                         onTap: () => Get.to(() => SignIn()),
-                                        child: const Padding(
+                                        child: Padding(
                                           padding: EdgeInsets.symmetric(
                                             horizontal: 18,
                                             vertical: 18,
                                           ),
                                           child: Text(
-                                            'Hesap ekle',
+                                            'account_center.add_account'.tr,
                                             style: TextStyle(
                                               color: Color(0xFF3797EF),
                                               fontSize: 15,
@@ -271,10 +281,10 @@ class AccountCenterView extends StatelessWidget {
                             accountCenter: accountCenter,
                           ),
                           const SizedBox(height: 18),
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
                             child: Text(
-                              'Kişisel detaylar',
+                              'account_center.personal_details'.tr,
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontSize: 14,
@@ -318,10 +328,10 @@ class _SessionSecuritySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
           child: Text(
-            'Güvenlik',
+            'account_center.security'.tr,
             style: TextStyle(
               color: Colors.black87,
               fontSize: 14,
@@ -345,22 +355,22 @@ class _SessionSecuritySection extends StatelessWidget {
                 onChanged: (value) async {
                   await accountCenter.setSingleDeviceSessionEnabled(value);
                   AppSnackbar(
-                    'Hesap Merkezi',
+                    'settings.account_center'.tr,
                     value
-                        ? 'Yeni cihazdan girişte diğer telefonlardan çıkış yapılacak.'
-                        : 'Hesap aynı anda birden fazla telefonda açık kalabilir.',
+                        ? 'account_center.single_device_enabled'.tr
+                        : 'account_center.single_device_disabled'.tr,
                   );
                 },
-                title: const Text(
-                  'Yeni girişte diğer telefonlardan çıkış yap',
+                title: Text(
+                  'account_center.single_device_title'.tr,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 14,
                     fontFamily: 'MontserratBold',
                   ),
                 ),
-                subtitle: const Text(
-                  'Bu ayar açıksa başka bir telefondan giriş yapıldığında bu cihazdaki oturum kapanır. Yeniden giriş için şifre gerekir.',
+                subtitle: Text(
+                  'account_center.single_device_desc'.tr,
                   style: TextStyle(
                     color: Colors.black54,
                     fontSize: 12,
@@ -393,7 +403,7 @@ class _PersonalDetailsCard extends StatelessWidget {
     final rows = <Widget>[
       if (contactDetails != null)
         _PersonalDetailRow(
-          title: 'İletişim bilgileri',
+          title: 'account_center.contact_info'.tr,
           value: contactDetails!,
           onTap: onContactTap,
         ),
@@ -407,8 +417,8 @@ class _PersonalDetailsCard extends StatelessWidget {
           border: Border.all(color: Colors.black12),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-        child: const Text(
-          'Henüz gösterilecek bir kişisel detay yok.',
+        child: Text(
+          'account_center.no_personal_detail'.tr,
           style: TextStyle(
             color: Colors.black54,
             fontSize: 14,
@@ -586,7 +596,8 @@ class _ContactDetailsView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'İletişim Bilgileri'),
+            BackButtons(text: 'account_center.contact_details'.tr),
+            
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -605,21 +616,25 @@ class _ContactDetailsView extends StatelessWidget {
                       children: [
                         _ContactStatusRow(
                           icon: CupertinoIcons.mail,
-                          title: 'E-posta',
-                          value: email.isNotEmpty ? email : 'E-posta eklenmedi',
+                          title: 'account_center.email'.tr,
+                          value: email.isNotEmpty
+                              ? email
+                              : 'account_center.email_missing'.tr,
                           isVerified: emailVerified,
-                          verifiedLabel: 'Onaylı',
-                          pendingLabel: 'Onayla',
+                          verifiedLabel: 'account_center.verified'.tr,
+                          pendingLabel: 'account_center.verify'.tr,
                           onTap: () => Get.to(() => EditorEmail()),
                         ),
                         const Divider(height: 1, indent: 18, endIndent: 18),
                         _ContactStatusRow(
                           icon: CupertinoIcons.phone,
-                          title: 'Telefon',
-                          value: phone.isNotEmpty ? phone : 'Telefon eklenmedi',
+                          title: 'account_center.phone'.tr,
+                          value: phone.isNotEmpty
+                              ? phone
+                              : 'account_center.phone_missing'.tr,
                           isVerified: phoneVerified,
-                          verifiedLabel: 'Onaylı',
-                          pendingLabel: 'Onaysız',
+                          verifiedLabel: 'account_center.verified'.tr,
+                          pendingLabel: 'account_center.unverified'.tr,
                           onTap: () => Get.to(() => EditorPhoneNumber()),
                         ),
                       ],

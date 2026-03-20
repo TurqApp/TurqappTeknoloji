@@ -13,10 +13,10 @@ import 'text_editor_sheet.dart';
 
 class StoryMaker extends StatelessWidget {
   static const Map<String, String> _mediaLookLabels = <String, String>{
-    'original': 'Orijinal',
-    'clear': 'Temiz',
-    'cinema': 'Sinematik',
-    'vibe': 'Canlı',
+    'original': 'story.media_look.original',
+    'clear': 'story.media_look.clear',
+    'cinema': 'story.media_look.cinema',
+    'vibe': 'story.media_look.vibe',
   };
   static const Map<String, IconData> _mediaLookIcons = <String, IconData>{
     'original': CupertinoIcons.circle,
@@ -85,7 +85,8 @@ class StoryMaker extends StatelessWidget {
               final index = entry.key;
               final preset = entry.value;
               final isSelected = media.mediaLookPreset == preset;
-              final label = _mediaLookLabels[preset] ?? preset;
+              final labelKey = _mediaLookLabels[preset];
+              final label = labelKey != null ? labelKey.tr : preset;
               final icon = _mediaLookIcons[preset] ?? CupertinoIcons.circle;
               return Expanded(
                 child: Padding(

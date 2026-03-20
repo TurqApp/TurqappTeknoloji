@@ -60,7 +60,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   PullDownMenuItem(
                     onTap: () async {
                       final nick =
-                          controller.nickname.value.trim().toLowerCase();
+                          normalizeNicknameInput(controller.nickname.value);
                       final safeSlug = nick.isEmpty ? widget.userID : nick;
                       final result = await _shortLinkService.upsertUser(
                         userId: widget.userID,
@@ -75,7 +75,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       final link =
                           (result['url'] ?? '').toString().trim().isNotEmpty
                               ? (result['url'] ?? '').toString().trim()
-                              : 'https://turqapp.com/u/$safeSlug';
+                              : buildTurqAppProfileUrl(safeSlug);
                       await Clipboard.setData(ClipboardData(text: link));
                       AppSnackbar('common.copied'.tr, 'common.link_copied'.tr);
                     },
@@ -86,7 +86,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     onTap: () async {
                       await ShareActionGuard.run(() async {
                         final nick =
-                            controller.nickname.value.trim().toLowerCase();
+                            normalizeNicknameInput(controller.nickname.value);
                         final safeSlug = nick.isEmpty ? widget.userID : nick;
                         final result = await _shortLinkService.upsertUser(
                           userId: widget.userID,
@@ -101,7 +101,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                         final link =
                             (result['url'] ?? '').toString().trim().isNotEmpty
                                 ? (result['url'] ?? '').toString().trim()
-                                : 'https://turqapp.com/u/$safeSlug';
+                                : buildTurqAppProfileUrl(safeSlug);
                         await ShareLinkService.shareUrl(
                           url: link,
                           title: 'profile.profile_link_title'.trParams({

@@ -11,16 +11,16 @@ String getRemainingTimeText(int millis) {
 
   if (remaining.inDays > 0) {
     final dayStr = days.toString().padLeft(2, '0');
-    return '$dayStr Gün Kaldı';
+    return 'common.remaining_days'.trParams({'count': dayStr});
   } else if (remaining.inHours > 0) {
     final hourStr = hours.toString().padLeft(2, '0');
-    return '$hourStr Saat Kaldı';
+    return 'common.remaining_hours'.trParams({'count': hourStr});
   } else if (remaining.inMinutes > 0) {
     final minuteStr = minutes.toString().padLeft(2, '0');
-    return '$minuteStr Dakika Kaldı';
+    return 'common.remaining_minutes'.trParams({'count': minuteStr});
   } else {
     final secondStr = seconds.toString().padLeft(2, '0');
-    return '$secondStr Saniye Kaldı';
+    return 'common.remaining_seconds'.trParams({'count': secondStr});
   }
 }
 
@@ -29,7 +29,7 @@ String zamanFarkiniHesapla(int targetMillis) {
   var difference = targetMillis - currentMillis;
 
   if (difference < 0) {
-    return "Zaman geçmiş";
+    return 'common.time_passed'.tr;
   }
 
   final years = difference ~/ (365 * 24 * 60 * 60 * 1000);
@@ -41,16 +41,16 @@ String zamanFarkiniHesapla(int targetMillis) {
   var result = "";
 
   if (years > 0) {
-    result += "$years Yıl ";
+    result += 'common.remaining_years'.trParams({'count': '$years'});
   }
   if (months > 0) {
-    result += "$months Ay ";
+    result += 'common.remaining_months'.trParams({'count': '$months'});
   }
   if (days > 0) {
-    result += "$days Gün";
+    result += 'common.remaining_days_short'.trParams({'count': '$days'});
   }
 
-  return result.isEmpty ? "Zamanı Gelmiş" : result;
+  return result.isEmpty ? 'common.time_ready'.tr : result.trim();
 }
 
 class KilometerInputFormatter extends TextInputFormatter {
@@ -96,22 +96,22 @@ String capitalize(String s) {
 String formatTimestampToTurkish(String timestamp) {
   final date = DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp));
 
-  const turkishMonths = [
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
+  const monthKeys = [
+    'common.month_full.january',
+    'common.month_full.february',
+    'common.month_full.march',
+    'common.month_full.april',
+    'common.month_full.may',
+    'common.month_full.june',
+    'common.month_full.july',
+    'common.month_full.august',
+    'common.month_full.september',
+    'common.month_full.october',
+    'common.month_full.november',
+    'common.month_full.december',
   ];
 
-  final month = turkishMonths[date.month - 1];
+  final month = monthKeys[date.month - 1].tr;
   final year = date.year.toString();
 
   return "$month $year";
@@ -121,22 +121,22 @@ String formatTimestampToTurkish2(String dateStr) {
   try {
     final date = DateFormat('dd.MM.yyyy').parseStrict(dateStr);
 
-    const turkishMonths = [
-      "Ocak",
-      "Şubat",
-      "Mart",
-      "Nisan",
-      "Mayıs",
-      "Haziran",
-      "Temmuz",
-      "Ağustos",
-      "Eylül",
-      "Ekim",
-      "Kasım",
-      "Aralık",
+    const monthKeys = [
+      'common.month_full.january',
+      'common.month_full.february',
+      'common.month_full.march',
+      'common.month_full.april',
+      'common.month_full.may',
+      'common.month_full.june',
+      'common.month_full.july',
+      'common.month_full.august',
+      'common.month_full.september',
+      'common.month_full.october',
+      'common.month_full.november',
+      'common.month_full.december',
     ];
 
-    return "${date.day} ${turkishMonths[date.month - 1]} ${date.year}";
+    return "${date.day} ${monthKeys[date.month - 1].tr} ${date.year}";
   } catch (_) {
     return dateStr;
   }
@@ -170,9 +170,9 @@ String timeAgo2(num timestamp) {
   final difference = now.difference(dateTime);
 
   if (difference.inDays > 15) {
-    return "15+ gün önce";
+    return 'common.more_than_fifteen_days_ago'.tr;
   }
-  return "Yeni";
+  return 'common.new'.tr;
 }
 
 String timeAgo(num timestamp) {
@@ -181,13 +181,13 @@ String timeAgo(num timestamp) {
   final difference = now.difference(dateTime);
 
   if (difference.inSeconds < 60) {
-    return "${difference.inSeconds} saniye önce";
+    return 'common.seconds_ago'.trParams({'count': '${difference.inSeconds}'});
   } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes} dakika önce";
+    return 'common.minutes_ago'.trParams({'count': '${difference.inMinutes}'});
   } else if (difference.inHours < 24) {
-    return "${difference.inHours} saat önce";
+    return 'common.hours_ago'.trParams({'count': '${difference.inHours}'});
   } else {
-    return "${difference.inDays} gün önce";
+    return 'common.days_ago'.trParams({'count': '${difference.inDays}'});
   }
 }
 
@@ -197,13 +197,13 @@ String timeAgo3(num timestamp) {
   final difference = now.difference(dateTime);
 
   if (difference.inSeconds < 60) {
-    return "${difference.inSeconds}sn";
+    return '${difference.inSeconds}${'common.second_short'.tr}';
   } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk";
+    return '${difference.inMinutes}${'common.minute_short'.tr}';
   } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa";
+    return '${difference.inHours}${'common.hour_short'.tr}';
   } else {
-    return "${difference.inDays}g";
+    return '${difference.inDays}${'common.day_short'.tr}';
   }
 }
 
@@ -216,13 +216,14 @@ String timeAgoMesaj(num timestamp) {
   final difference = now.difference(dateTime);
 
   if (difference.inSeconds < 60) {
-    return "1dk önce";
+    return 'common.minute_ago_short'.trParams({'count': '1'});
   } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk önce";
+    return 'common.minute_ago_short'
+        .trParams({'count': '${difference.inMinutes}'});
   } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa önce";
+    return 'common.hour_ago_short'.trParams({'count': '${difference.inHours}'});
   } else if (difference.inDays < 15) {
-    return "${difference.inDays}g önce";
+    return 'common.day_ago_short'.trParams({'count': '${difference.inDays}'});
   } else {
     return "${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} - ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
   }
@@ -230,7 +231,7 @@ String timeAgoMesaj(num timestamp) {
 
 String timeAgoMetin(num? timestamp) {
   if (timestamp == null || timestamp < 0) {
-    return "Tarih bilinmiyor";
+    return 'common.time_unknown'.tr;
   }
 
   final now = DateTime.now();
@@ -239,13 +240,14 @@ String timeAgoMetin(num? timestamp) {
   final difference = now.difference(dateTime);
 
   if (difference.inSeconds < 60) {
-    return "1dk önce";
+    return 'common.minute_ago_short'.trParams({'count': '1'});
   } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk önce";
+    return 'common.minute_ago_short'
+        .trParams({'count': '${difference.inMinutes}'});
   } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa önce";
+    return 'common.hour_ago_short'.trParams({'count': '${difference.inHours}'});
   } else if (difference.inDays < 5) {
-    return "${difference.inDays}g önce";
+    return 'common.day_ago_short'.trParams({'count': '${difference.inDays}'});
   } else {
     final day = dateTime.day.toString().padLeft(2, '0');
     final month = dateTime.month.toString().padLeft(2, '0');
@@ -301,7 +303,7 @@ String? remainingDaysText(String? bitisTarihi) {
 
     final remainingDays = difference.inDays + 1;
     if (remainingDays >= 1 && remainingDays <= 7) {
-      return "Son $remainingDays gün";
+      return 'common.last_x_days'.trParams({'count': '$remainingDays'});
     }
     return null;
   } catch (e) {
@@ -387,19 +389,19 @@ class CapitalizeInputFormatter2 extends TextInputFormatter {
 }
 
 String turkceAyBilgisi() {
-  const aylar = [
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
+  final aylar = [
+    'common.month_january'.tr,
+    'common.month_february'.tr,
+    'common.month_march'.tr,
+    'common.month_april'.tr,
+    'common.month_may'.tr,
+    'common.month_june'.tr,
+    'common.month_july'.tr,
+    'common.month_august'.tr,
+    'common.month_september'.tr,
+    'common.month_october'.tr,
+    'common.month_november'.tr,
+    'common.month_december'.tr,
   ];
 
   final now = DateTime.now();
@@ -444,7 +446,7 @@ Future<String> calculateDistanceToTarget(
 
     return '${distance.toStringAsFixed(2)} km';
   } catch (e) {
-    return 'Konum alınamadı: $e';
+    return 'common.location_unavailable'.trParams({'error': '$e'});
   }
 }
 

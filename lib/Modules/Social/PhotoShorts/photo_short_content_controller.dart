@@ -39,7 +39,7 @@ class PhotoShortsContentController extends GetxController {
     final senderName = fullName.value.trim().isNotEmpty
         ? fullName.value.trim()
         : nickname.value.trim();
-    final safeSender = senderName.isNotEmpty ? senderName : 'TurqApp';
+    final safeSender = senderName.isNotEmpty ? senderName : 'app.name'.tr;
     final hasVideo = model.video.trim().isNotEmpty;
     final hasImage = model.img.isNotEmpty;
     final text = model.metin.trim();

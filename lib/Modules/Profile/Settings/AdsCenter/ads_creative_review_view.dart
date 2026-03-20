@@ -13,9 +13,9 @@ class AdsCreativeReviewView extends StatelessWidget {
     return Obx(() {
       final list = controller.creatives;
       if (list.isEmpty) {
-        return const Center(
+        return Center(
           child: Text(
-            'Kreatif bulunamadı.',
+            'ads_center.no_creatives'.tr,
             style: TextStyle(fontFamily: 'MontserratMedium'),
           ),
         );
@@ -38,7 +38,9 @@ class AdsCreativeReviewView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    c.headline.isEmpty ? '(başlıksız kreatif)' : c.headline,
+                    c.headline.isEmpty
+                        ? 'ads_center.untitled_creative'.tr
+                        : c.headline,
                     style: const TextStyle(
                       fontFamily: 'MontserratBold',
                       fontSize: 14,
@@ -46,18 +48,18 @@ class AdsCreativeReviewView extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Type: ${c.type.name} • Moderation: ${c.moderationStatus.name}',
+                    '${'ads_center.type'.tr}: ${c.type.name} • ${'ads_center.moderation'.tr}: ${c.moderationStatus.name}',
                     style: const TextStyle(
                         fontFamily: 'MontserratMedium', fontSize: 12),
                   ),
                   Text(
-                    'Campaign: ${c.campaignId} • Duration: ${c.durationSec}s',
+                    '${'ads_center.campaign'.tr}: ${c.campaignId} • ${'ads_center.duration'.tr}: ${c.durationSec}s',
                     style: const TextStyle(
                         fontFamily: 'MontserratMedium', fontSize: 12),
                   ),
                   if (c.mediaURL.isNotEmpty)
                     Text(
-                      'Media: ${c.mediaURL}',
+                      '${'ads_center.media'.tr}: ${c.mediaURL}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12),
                     ),
@@ -74,7 +76,10 @@ class AdsCreativeReviewView extends StatelessWidget {
                         child: OutlinedButton(
                           onPressed: () async {
                             final note =
-                                await _askNote(context, title: 'Reject Notu');
+                                await _askNote(
+                                  context,
+                                  title: 'ads_center.reject_note'.tr,
+                                );
                             if (note == null) return;
                             await controller.reviewCreative(
                               creativeId: c.id,
@@ -82,7 +87,7 @@ class AdsCreativeReviewView extends StatelessWidget {
                               note: note,
                             );
                           },
-                          child: const Text('Reject'),
+                          child: Text('common.reject'.tr),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -90,7 +95,10 @@ class AdsCreativeReviewView extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: () async {
                             final note =
-                                await _askNote(context, title: 'Approve Notu');
+                                await _askNote(
+                                  context,
+                                  title: 'ads_center.approve_note'.tr,
+                                );
                             if (note == null) return;
                             await controller.reviewCreative(
                               creativeId: c.id,
@@ -98,7 +106,7 @@ class AdsCreativeReviewView extends StatelessWidget {
                               note: note,
                             );
                           },
-                          child: const Text('Approve'),
+                          child: Text('common.approve'.tr),
                         ),
                       ),
                     ],
@@ -123,15 +131,17 @@ class AdsCreativeReviewView extends StatelessWidget {
           content: TextField(
             controller: c,
             maxLines: 3,
-            decoration: const InputDecoration(hintText: 'Review notu'),
+            decoration: InputDecoration(
+              hintText: 'ads_center.review_note_hint'.tr,
+            ),
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('İptal')),
+                child: Text('common.cancel'.tr)),
             TextButton(
                 onPressed: () => Navigator.pop(context, c.text.trim()),
-                child: const Text('Kaydet')),
+                child: Text('common.save'.tr)),
           ],
         );
       },

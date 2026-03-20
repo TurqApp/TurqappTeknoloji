@@ -74,8 +74,8 @@ class OpticalPreviewController extends GetxController {
       setData();
     } else {
       showAlertDialog(
-        "İnternet bağlantınızı açın!",
-        "Sınavı bitirmek istiyor iseniz internet bağlantınızı açınız",
+        "answer_key.turn_on_internet_title".tr,
+        "answer_key.turn_on_internet_body".tr,
       );
     }
   }

@@ -77,8 +77,7 @@ class CityDirectoryService extends GetxService {
   }) {
     final items = List<String>.from(source);
     if (includeAllTurkey) {
-      items.insert(0, 'Tum Turkiye');
-      items[0] = 'Tüm Türkiye';
+      items.insert(0, 'pasaj.common.all_turkiye'.tr);
     }
     return items;
   }

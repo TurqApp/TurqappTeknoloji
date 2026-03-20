@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -43,7 +44,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
     super.initState();
     final current = CurrentUserService.instance.currentUser;
     _phoneNumber = (current?.phoneNumber ?? '').trim();
-    _email = (current?.email ?? '').trim().toLowerCase();
+    _email = normalizeEmailAddress(current?.email);
   }
 
   @override
@@ -400,14 +401,15 @@ class _DeleteAccountState extends State<DeleteAccount> {
       );
 
       AppSnackbar(
-        'Talep Alındı',
-        'Hesabınız $_deletionGraceDays gün sonunda kalıcı olarak silinecektir.',
+        'delete_account.request_received_title'.tr,
+        'delete_account.request_received_body'
+            .trParams({'days': '$_deletionGraceDays'}),
       );
     } catch (_) {
       if (!mounted) return;
       AppSnackbar(
-        'Hata',
-        'Hesabınız silinirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.',
+        'common.error'.tr,
+        'delete_account.request_failed'.tr,
       );
     }
   }

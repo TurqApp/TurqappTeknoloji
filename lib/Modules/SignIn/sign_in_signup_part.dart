@@ -604,7 +604,7 @@ extension SignInSignupPart on SignIn {
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             decoration: InputDecoration(
-                              hintText: "(555)xxxxxxx",
+                              hintText: 'signup.phone_hint'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
@@ -680,8 +680,8 @@ extension SignInSignupPart on SignIn {
                                 phone.length == 10 && phone.startsWith('5');
                             if (!nameOk || !phoneOk) {
                               AppSnackbar(
-                                'Eksik Bilgi',
-                                'Ad en az 3 karakter olmalı ve telefon 5 ile başlayan 10 hane olmalı.',
+                                'signup.missing_info_title'.tr,
+                                'signup.phone_name_rule'.tr,
                               );
                               return;
                             }

@@ -411,7 +411,9 @@ class _SwipeActionTileState extends State<_SwipeActionTile> {
                             color: Colors.white, size: 20),
                         const SizedBox(height: 4),
                         Text(
-                          widget.isArchiveTab ? "Arşivden çıkart" : "Arşivle",
+                          widget.isArchiveTab
+                              ? 'common.unarchive'.tr
+                              : 'common.archive'.tr,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -434,16 +436,16 @@ class _SwipeActionTileState extends State<_SwipeActionTile> {
                 color: const Color(0xFFE53935),
                 child: InkWell(
                   onTap: _handleDelete,
-                  child: const Center(
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(CupertinoIcons.delete,
+                        const Icon(CupertinoIcons.delete,
                             color: Colors.white, size: 20),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          "Sil",
-                          style: TextStyle(
+                          'common.delete'.tr,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
                             fontFamily: "MontserratSemiBold",

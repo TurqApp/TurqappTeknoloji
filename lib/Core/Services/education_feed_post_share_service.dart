@@ -25,7 +25,7 @@ class EducationFeedPostShareService {
   ) async {
     final burs = scholarshipData['model'];
     if (burs is! IndividualScholarshipsModel) {
-      AppSnackbar('Hata', 'Burs verisi bulunamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.share_scholarship_data_missing'.tr);
       return;
     }
 
@@ -34,7 +34,7 @@ class EducationFeedPostShareService {
             .toString()
             .trim();
     if (docId.isEmpty) {
-      AppSnackbar('Hata', 'Burs paylaşımı başlatılamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.share_scholarship_start_failed'.tr);
       return;
     }
 
@@ -55,15 +55,21 @@ class EducationFeedPostShareService {
             ? burs.shortDescription
             : burs.aciklama,
       ),
-      burs.bursVeren.isNotEmpty ? 'Burs Veren: ${burs.bursVeren}' : '',
-      burs.bitisTarihi.isNotEmpty ? 'Son Başvuru: ${burs.bitisTarihi}' : '',
+      burs.bursVeren.isNotEmpty
+          ? 'education_feed.scholarship_provider'
+              .trParams({'provider': burs.bursVeren})
+          : '',
+      burs.bitisTarihi.isNotEmpty
+          ? 'education_feed.application_deadline'
+              .trParams({'date': burs.bitisTarihi})
+          : '',
     ]);
 
     await _shareDirectly(
       text: text,
       imageUrl: imageUrl,
       aspectRatio: 4 / 3,
-      ctaLabel: 'Bursu İncele',
+      ctaLabel: 'education_feed.cta_scholarship'.tr,
       ctaUrl: internalUrl,
       ctaType: 'scholarship',
       ctaDocId: docId,
@@ -79,14 +85,17 @@ class EducationFeedPostShareService {
     final text = _lines([
       '"${model.sinavAdi}"',
       _shorten(model.sinavAciklama),
-      model.sinavTuru.isNotEmpty ? '${model.sinavTuru} Online Sınavı' : '',
+      model.sinavTuru.isNotEmpty
+          ? 'education_feed.online_exam_type'
+              .trParams({'type': model.sinavTuru})
+          : '',
     ]);
 
     await _shareDirectly(
       text: text,
       imageUrl: model.cover,
       aspectRatio: 1,
-      ctaLabel: 'Sınavı İncele',
+      ctaLabel: 'education_feed.cta_exam'.tr,
       ctaUrl: internalUrl,
       ctaType: 'practice-exam',
       ctaDocId: model.docID,
@@ -103,7 +112,9 @@ class EducationFeedPostShareService {
     final text = _lines([
       '"${model.baslik}"',
       _shorten(model.aciklama),
-      model.brans.isNotEmpty ? 'Branş: ${model.brans}' : '',
+      model.brans.isNotEmpty
+          ? 'education_feed.branch_label'.trParams({'branch': model.brans})
+          : '',
       '${model.sehir}/${model.ilce}',
     ]);
 
@@ -111,7 +122,7 @@ class EducationFeedPostShareService {
       text: text,
       imageUrl: imageUrl,
       aspectRatio: 1,
-      ctaLabel: 'İlanı İncele',
+      ctaLabel: 'education_feed.cta_listing'.tr,
       ctaUrl: internalUrl,
       ctaType: 'tutoring',
       ctaDocId: model.docID,
@@ -129,7 +140,9 @@ class EducationFeedPostShareService {
     final text = _lines([
       '"$title"',
       _shorten(model.about.isNotEmpty ? model.about : model.isTanimi),
-      model.brand.isNotEmpty ? 'Şirket: ${model.brand}' : '',
+      model.brand.isNotEmpty
+          ? 'education_feed.company_label'.trParams({'company': model.brand})
+          : '',
       '${model.city}/${model.town}',
     ]);
 
@@ -137,7 +150,7 @@ class EducationFeedPostShareService {
       text: text,
       imageUrl: model.logo,
       aspectRatio: 1,
-      ctaLabel: 'İlanı İncele',
+      ctaLabel: 'education_feed.cta_listing'.tr,
       ctaUrl: internalUrl,
       ctaType: 'job',
       ctaDocId: model.docID,
@@ -155,11 +168,11 @@ class EducationFeedPostShareService {
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      AppSnackbar('Hata', 'Paylaşım için giriş yapmalısınız.');
+      AppSnackbar('login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
       return;
     }
     if (imageUrl.trim().isEmpty) {
-      AppSnackbar('Hata', 'Paylaşılacak görsel bulunamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.share_image_missing'.tr);
       return;
     }
 
@@ -298,9 +311,12 @@ class EducationFeedPostShareService {
           Get.find<ProfileController>().getLastPostAndAddToAllPosts();
         }
 
-        AppSnackbar('Başarılı', 'Ana sayfada paylaşıldı.');
+        AppSnackbar(
+          'common.success'.tr,
+          'education_feed.shared_home'.tr,
+        );
       } catch (_) {
-        AppSnackbar('Hata', 'Paylaşım tamamlanamadı.');
+        AppSnackbar('common.error'.tr, 'education_feed.share_failed'.tr);
       } finally {
         loader.isOn.value = false;
       }

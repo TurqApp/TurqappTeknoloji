@@ -7,6 +7,8 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
 class SocialQrCodeController extends GetxController {
@@ -36,28 +38,32 @@ class SocialQrCodeController extends GetxController {
   }
 
   Future<String> _buildProfileLink() async {
-    final slug = nickname.value.trim().toLowerCase();
+    final slug = normalizeProfileSlug(nickname.value);
     final safeSlug = slug.isEmpty ? userID : slug;
     final result = await _shortLinkService.upsertUser(
       userId: userID,
       slug: safeSlug,
-      title: '@${nickname.value} - TurqApp',
+      title: 'profile.profile_link_title'.trParams({
+        'nickname': nickname.value,
+        'app': 'app.name'.tr,
+      }),
       desc: 'qr.profile_desc'.tr,
       imageUrl: profileImage.value.trim().isNotEmpty
           ? profileImage.value.trim()
           : null,
     );
     final url = (result['url'] ?? '').toString().trim();
-    return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
+    return url.isNotEmpty ? url : buildTurqAppProfileUrl(safeSlug);
   }
 
   Future<void> _prepareProfileLink() async {
     try {
       profileLink.value = await _buildProfileLink();
     } catch (_) {
-      final slug = nickname.value.trim().toLowerCase();
-      profileLink.value =
-          'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
+      final slug = normalizeProfileSlug(nickname.value);
+      profileLink.value = buildTurqAppProfileUrl(
+        slug.isEmpty ? userID : slug,
+      );
     }
   }
 
@@ -79,7 +85,10 @@ class SocialQrCodeController extends GetxController {
       profileLink.value = link;
       await ShareLinkService.shareUrl(
         url: link,
-        title: '@${nickname.value} - TurqApp',
+        title: 'profile.profile_link_title'.trParams({
+          'nickname': nickname.value,
+          'app': 'app.name'.tr,
+        }),
         subject: 'profile.profile_share_title'.tr,
       );
     });

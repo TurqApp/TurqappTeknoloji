@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdminApprovalRepository extends GetxService {
+  static const String _adminConfigDocId = 'admin';
+
   static AdminApprovalRepository ensure() {
     if (Get.isRegistered<AdminApprovalRepository>()) {
       return Get.find<AdminApprovalRepository>();
@@ -12,10 +14,23 @@ class AdminApprovalRepository extends GetxService {
   }
 
   CollectionReference<Map<String, dynamic>> get _ref =>
-      FirebaseFirestore.instance.collection('adminApprovals');
+      FirebaseFirestore.instance
+          .collection('adminConfig')
+          .doc(_adminConfigDocId)
+          .collection('adminApprovals');
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchApprovals() {
     return _ref.orderBy('createdAt', descending: true).snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchOwnApprovals(String uid) {
+    if (uid.trim().isEmpty) {
+      return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
+    return _ref
+        .where('createdBy', isEqualTo: uid.trim())
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 
   Future<void> createApproval({

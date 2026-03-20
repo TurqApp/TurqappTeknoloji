@@ -102,7 +102,7 @@ class OpticalFormEntry extends StatelessWidget {
                                           ),
                                         ),
                                         child: Text(
-                                          "Optik Form Ara",
+                                          "answer_key.search_optical_form".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -156,7 +156,15 @@ class OpticalFormEntry extends StatelessWidget {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Toplam ${controller.model.value!.cevaplar.length.toString()} Soru",
+                                                      "answer_key.total_questions"
+                                                          .trParams({
+                                                        "count": controller
+                                                            .model
+                                                            .value!
+                                                            .cevaplar
+                                                            .length
+                                                            .toString(),
+                                                      }),
                                                       style: const TextStyle(
                                                         color: Colors.indigo,
                                                         fontSize: 15,
@@ -217,8 +225,9 @@ class OpticalFormEntry extends StatelessWidget {
                                                             .toInt() <
                                                         DateTime.now()
                                                             .millisecondsSinceEpoch)
-                                                      const Text(
-                                                        "Hemen Başla!",
+                                                      Text(
+                                                        "answer_key.start_now"
+                                                            .tr,
                                                         style: TextStyle(
                                                           color: Colors.green,
                                                           fontSize: 15,
@@ -296,8 +305,9 @@ class OpticalFormEntry extends StatelessWidget {
                                                             "MontserratBold",
                                                       ),
                                                     ),
-                                                    const Text(
-                                                      "Öğretmeniniz tarafından oluşturulan optik formdur. ",
+                                                    Text(
+                                                      "answer_key.teacher_created_info"
+                                                          .tr,
                                                       style: TextStyle(
                                                         color: Colors.pink,
                                                         fontSize: 15,
@@ -314,11 +324,11 @@ class OpticalFormEntry extends StatelessWidget {
                                       ),
                                     ],
                                   )
-                                : const Padding(
+                                : Padding(
                                     padding: EdgeInsets.all(20),
                                     child: Text(
-                                      "Sonucunuz burada listelenecektir",
-                                      style: TextStyle(
+                                      "answer_key.result_placeholder".tr,
+                                      style: const TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
                                         fontFamily: "MontserratBold",

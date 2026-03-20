@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_review_model.dart';
@@ -177,7 +178,7 @@ class TutoringRepository extends GetxService {
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
-    final normalizedCity = city.trim().toLowerCase();
+    final normalizedCity = normalizeCityText(city);
     if (normalizedCity.isEmpty) return const <TutoringModel>[];
     final cacheKey = 'city:$normalizedCity';
     if (!forceRefresh && preferCache) {

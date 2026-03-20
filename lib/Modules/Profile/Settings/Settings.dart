@@ -12,7 +12,6 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives.dart';
@@ -40,6 +39,7 @@ import 'package:turqappv2/Modules/Profile/Settings/reports_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/story_music_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/support_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/support_contact_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/language_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -59,6 +59,7 @@ import 'package:turqappv2/Services/offline_mode_service.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
+import 'package:turqappv2/Core/Localization/app_language_service.dart';
 
 class SettingsView extends StatelessWidget {
   SettingsView({super.key});
@@ -71,6 +72,7 @@ class SettingsView extends StatelessWidget {
       AdminTaskAssignmentRepository.ensure();
   final AdminApprovalRepository _adminApprovalRepository =
       AdminApprovalRepository.ensure();
+  final AppLanguageService _languageService = Get.find<AppLanguageService>();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
@@ -82,15 +84,15 @@ class SettingsView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Ayarlar"),
+            BackButtons(text: 'settings.title'.tr),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      buildSectionTitle("Hesap"),
-                      buildRow("Profili Düzenle", CupertinoIcons.pencil_outline,
+                      buildSectionTitle('settings.account'.tr),
+                      buildRow('settings.edit_profile'.tr, CupertinoIcons.pencil_outline,
                           () {
                         Get.to(() => EditProfile());
                       }),
@@ -109,7 +111,7 @@ class SettingsView extends StatelessWidget {
                               (userService.currentUser?.rozet ?? "").isNotEmpty;
                           if (hasPendingApplication) {
                             return buildRow(
-                              "Rozet Başvurum",
+                              'settings.badge_application'.tr,
                               CupertinoIcons.doc_text_search,
                               () {
                                 Get.to(() => BecomeVerifiedAccount());
@@ -118,7 +120,7 @@ class SettingsView extends StatelessWidget {
                           }
                           if (canRenew) {
                             return buildRow(
-                              "Rozeti Yenile",
+                              'settings.badge_renew'.tr,
                               CupertinoIcons.arrow_clockwise_circle,
                               () {
                                 Get.to(() => BecomeVerifiedAccount());
@@ -127,7 +129,7 @@ class SettingsView extends StatelessWidget {
                           }
                           if (!hasBadge) {
                             return buildRow(
-                              "Onaylı Hesap Ol",
+                              'settings.become_verified'.tr,
                               CupertinoIcons.checkmark_seal,
                               () {
                                 Get.to(() => BecomeVerifiedAccount());
@@ -138,58 +140,61 @@ class SettingsView extends StatelessWidget {
                         },
                       ),
                       buildRow(
-                        "Engellenenler",
+                        'settings.blocked_users'.tr,
                         CupertinoIcons.exclamationmark_circle,
                         () {
                           Get.to(() => BlockedUsers());
                         },
                       ),
-                      buildRow("İlgi Alanları", CupertinoIcons.sparkles, () {
+                      buildRow('settings.interests'.tr, CupertinoIcons.sparkles, () {
                         Get.to(() => Interests());
                       }),
                       buildRow(
-                        "Hesap Merkezi",
+                        'settings.account_center'.tr,
                         CupertinoIcons.person_2_square_stack,
                         () {
                           Get.to(() => AccountCenterView());
                         },
                       ),
-                      buildRow("Kariyer Profili", CupertinoIcons.paperclip, () {
+                      buildRow('settings.career_profile'.tr, CupertinoIcons.paperclip, () {
                         Get.to(() => Cv());
                       }),
-                      buildSectionTitle("İçerik"),
-                      buildRow("Kaydedilenler", CupertinoIcons.bookmark, () {
+                      buildSectionTitle('settings.content'.tr),
+                      buildRow('settings.saved_posts'.tr, CupertinoIcons.bookmark, () {
                         Get.to(() => SavedPosts());
                       }),
-                      buildRow("Arşiv", CupertinoIcons.refresh_thick, () {
+                      buildRow('settings.archive'.tr, CupertinoIcons.refresh_thick, () {
                         Get.to(() => Archives());
                       }),
-                      buildRow("Beğenilenler", CupertinoIcons.hand_thumbsup,
+                      buildRow('settings.liked_posts'.tr, CupertinoIcons.hand_thumbsup,
                           () {
                         Get.to(() => LikedPosts());
                       }),
-                      buildSectionTitle("Uygulama"),
-                      buildRow("Bildirimler", CupertinoIcons.bell, () {
+                      buildSectionTitle('settings.app'.tr),
+                      buildRow('settings.language'.tr, CupertinoIcons.globe, () {
+                        Get.to(() => const LanguageSettingsView());
+                      }, showLanguageLabel: true),
+                      buildRow('settings.notifications'.tr, CupertinoIcons.bell, () {
                         Get.to(() => const NotificationSettingsView());
                       }),
-                      buildRow("İzinler", CupertinoIcons.lock_shield, () {
+                      buildRow('settings.permissions'.tr, CupertinoIcons.lock_shield, () {
                         Get.to(() => const PermissionsView());
                       }),
-                      buildRow("Pasaj", CupertinoIcons.nosign, () {
+                      buildRow('settings.pasaj'.tr, CupertinoIcons.nosign, () {
                         Get.to(() => PasajSettingsView());
-                      }),
-                      buildSectionTitle("Güvenlik ve Destek"),
-                      buildRow("Hakkında", CupertinoIcons.info, () {
+                      }, usePasajIcon: true),
+                      buildSectionTitle('settings.security_support'.tr),
+                      buildRow('settings.about'.tr, CupertinoIcons.info, () {
                         Get.to(
                           () => AboutProfile(
                             userID: FirebaseAuth.instance.currentUser!.uid,
                           ),
                         );
                       }),
-                      buildRow("Politikalar", CupertinoIcons.shield, () {
+                      buildRow('settings.policies'.tr, CupertinoIcons.shield, () {
                         Get.to(() => Policies());
                       }),
-                      buildRow("Bize Yazın", CupertinoIcons.pencil_circle, () {
+                      buildRow('settings.contact_us'.tr, CupertinoIcons.pencil_circle, () {
                         Get.to(() => const SupportContactView());
                       }),
                       StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -208,7 +213,7 @@ class SettingsView extends StatelessWidget {
                           }
                           return Column(
                             children: [
-                              buildSectionTitle("Görevlerim"),
+                              buildSectionTitle('settings.my_tasks'.tr),
                               ..._buildAssignedTaskRows(taskIds),
                               StreamBuilder<
                                   QuerySnapshot<Map<String, dynamic>>>(
@@ -223,7 +228,7 @@ class SettingsView extends StatelessWidget {
                                     return const SizedBox.shrink();
                                   }
                                   return buildRow(
-                                    "Onay Sonuçlarım",
+                                    'settings.my_approval_results'.tr,
                                     CupertinoIcons.checkmark_alt_circle,
                                     () => Get.to(
                                       () => const MyAdminApprovalResultsView(),
@@ -247,51 +252,51 @@ class SettingsView extends StatelessWidget {
                           }
                           return Column(
                             children: [
-                              buildSectionTitle("Sistem ve Tanı"),
+                              buildSectionTitle('settings.system_diagnostics'.tr),
                               buildRow(
-                                "Yönetim / Reklam Merkezi",
+                                'settings.admin_ads'.tr,
                                 CupertinoIcons.volume_up,
                                 () => Get.to(() => const AdsCenterHomeView()),
                               ),
                               buildRow(
-                                "Yönetim / Moderasyon",
+                                'settings.admin_moderation'.tr,
                                 CupertinoIcons.flag_fill,
                                 () => Get.to(
                                     () => const ModerationSettingsView()),
                               ),
                               buildRow(
-                                "Yönetim / Reports",
+                                'settings.admin_reports'.tr,
                                 CupertinoIcons.exclamationmark_bubble_fill,
                                 () => Get.to(() => const ReportsAdminView()),
                               ),
                               buildRow(
-                                "Yönetim / Rozet Yönetimi",
+                                'settings.admin_badges'.tr,
                                 CupertinoIcons.checkmark_seal_fill,
                                 () => Get.to(() => const BadgeAdminView()),
                               ),
                               buildRow(
-                                "Yönetim / Admin Görevleri",
+                                'settings.admin_tasks'.tr,
                                 CupertinoIcons.checkmark_rectangle_fill,
                                 () => Get.to(
                                     () => const AdminTaskAssignmentsView()),
                               ),
                               buildRow(
-                                "Yönetim / Admin Onayları",
+                                'settings.admin_approvals'.tr,
                                 CupertinoIcons.checkmark_alt_circle_fill,
                                 () => Get.to(() => const AdminApprovalsView()),
                               ),
                               buildRow(
-                                "Yönetim / Hikaye Müzikleri",
+                                'settings.admin_story_music'.tr,
                                 CupertinoIcons.music_note_list,
                                 () => Get.to(() => const StoryMusicAdminView()),
                               ),
                               buildRow(
-                                "Yönetim / Kullanıcı Destek",
+                                'settings.admin_support'.tr,
                                 CupertinoIcons.chat_bubble_2_fill,
                                 () => Get.to(() => const SupportAdminView()),
                               ),
                               buildRow(
-                                "Sistem ve Tanı Menüsü",
+                                'settings.system_diag_menu'.tr,
                                 CupertinoIcons.antenna_radiowaves_left_right,
                                 () {
                                   _showSystemDiagnosticsMenu();
@@ -302,13 +307,13 @@ class SettingsView extends StatelessWidget {
                           );
                         },
                       ),
-                      buildSectionTitle("Oturum"),
+                      buildSectionTitle('settings.session'.tr),
                       buildRow(
-                          "Oturumu Kapat", CupertinoIcons.square_arrow_right,
+                          'settings.sign_out'.tr, CupertinoIcons.square_arrow_right,
                           () {
                         noYesAlert(
-                          title: "Çıkış Yap",
-                          message: "Çıkış yapmak istediğinizden emin misiniz?",
+                          title: 'settings.sign_out_title'.tr,
+                          message: 'settings.sign_out_message'.tr,
                           onYesPressed: () async {
                             final currentUser =
                                 FirebaseAuth.instance.currentUser?.uid;
@@ -329,11 +334,11 @@ class SettingsView extends StatelessWidget {
                               await FirebaseAuth.instance.signOut();
                               await Get.offAll(() => SignIn());
                             } catch (e) {
-                              print("Çıkış yapılamadı: $e");
+                              print("Sign out failed: $e");
                             }
                           },
-                          yesText: "Çıkış Yap",
-                          cancelText: "Vazgeç",
+                          yesText: "settings.sign_out_title".tr,
+                          cancelText: "common.cancel".tr,
                         );
                       }),
                       15.ph,
@@ -349,7 +354,9 @@ class SettingsView extends StatelessWidget {
   }
 
   Widget buildRow(String text, IconData icon, VoidCallback onTap,
-      {bool isNew = false}) {
+      {bool isNew = false,
+      bool usePasajIcon = false,
+      bool showLanguageLabel = false}) {
     return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
@@ -365,7 +372,7 @@ class SettingsView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            text == "Pasaj"
+            usePasajIcon
                 ? SvgPicture.asset(
                     "assets/icons/sinav.svg",
                     height: 25,
@@ -386,22 +393,15 @@ class SettingsView extends StatelessWidget {
             ),
 
             // Sağ taraf
-            if (text == "Dil")
+            if (showLanguageLabel)
               Text(
-                "Türkçe",
+                _languageService.currentLanguageLabel,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
                   fontFamily: "MontserratMedium",
                 ),
               )
-            else if (text == "Hesap Gizliliği")
-              // 🎯 Using CurrentUserService reactive
-              Obx(() {
-                return TurqAppToggle(
-                  isOn: userService.currentUserRx.value?.isPrivate ?? false,
-                );
-              })
             else ...[
               if (isNew) ...[
                 SizedBox(width: 6),
@@ -455,7 +455,7 @@ class SettingsView extends StatelessWidget {
       final task = adminTaskCatalogById[taskId];
       if (task == null) continue;
       rows.add(
-        buildRow(task.title, task.icon, () => _openAssignedTask(taskId)),
+        buildRow(task.titleKey.tr, task.icon, () => _openAssignedTask(taskId)),
       );
     }
     return rows;
@@ -514,22 +514,22 @@ class SettingsView extends StatelessWidget {
     final cacheSizeText = hasCache
         ? CacheMetrics.formatBytes(
             Get.find<SegmentCacheManager>().totalSizeBytes)
-        : "Bilinmiyor";
+        : "settings.diagnostics.unknown".tr;
     final offline = Get.isRegistered<OfflineModeService>()
         ? Get.find<OfflineModeService>()
         : Get.put(OfflineModeService.instance);
     final queueStats = offline.getQueueStats();
     final queueLastSyncMs = (queueStats['lastSyncAt'] as int?) ?? 0;
     final queueLastSyncText = queueLastSyncMs <= 0
-        ? 'Henüz yok'
+        ? "common.no_results".tr
         : DateTime.fromMillisecondsSinceEpoch(queueLastSyncMs).toString();
     final lastSignIn =
         FirebaseAuth.instance.currentUser?.metadata.lastSignInTime;
     final loginDate = lastSignIn == null
-        ? "Bilinmiyor"
+        ? "settings.diagnostics.unknown".tr
         : "${lastSignIn.day.toString().padLeft(2, '0')}.${lastSignIn.month.toString().padLeft(2, '0')}.${lastSignIn.year}";
     final loginTime = lastSignIn == null
-        ? "Bilinmiyor"
+        ? "settings.diagnostics.unknown".tr
         : "${lastSignIn.hour.toString().padLeft(2, '0')}:${lastSignIn.minute.toString().padLeft(2, '0')}";
     final loginHours = lastSignIn == null
         ? 0.0
@@ -543,75 +543,75 @@ class SettingsView extends StatelessWidget {
 
     Get.dialog(
       AlertDialog(
-        title: const Text("Veri Tüketimi"),
+        title: Text("settings.diagnostics.data_usage".tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Ağ: ${stats['currentNetwork']}"),
-            Text("Bağlı: ${stats['isConnected']}"),
+            Text("${'settings.diagnostics.network'.tr}: ${stats['currentNetwork']}"),
+            Text("${'settings.diagnostics.connected'.tr}: ${stats['isConnected']}"),
             Text(
-              "Aylık Toplam: ${stats['monthlyUsageMB']} MB",
+              "${'settings.diagnostics.monthly_total'.tr}: ${stats['monthlyUsageMB']} MB",
             ),
-            Text("Aylık Limit: ${stats['monthlyLimitMB']} MB"),
-            Text("Kalan: ${stats['remainingMB']} MB"),
+            Text("${'settings.diagnostics.monthly_limit'.tr}: ${stats['monthlyLimitMB']} MB"),
+            Text("${'settings.diagnostics.remaining'.tr}: ${stats['remainingMB']} MB"),
             Text(
-              "Limit Kullanımı: ${stats['dataUsagePercentage'].toStringAsFixed(1)}%",
+              "${'settings.diagnostics.limit_usage'.tr}: ${stats['dataUsagePercentage'].toStringAsFixed(1)}%",
             ),
-            Text("Wi-Fi Tüketimi: ${stats['wifiUsageMB']} MB"),
-            Text("Mobil Tüketim: ${stats['cellularUsageMB']} MB"),
+            Text("${'settings.diagnostics.wifi_usage'.tr}: ${stats['wifiUsageMB']} MB"),
+            Text("${'settings.diagnostics.cellular_usage'.tr}: ${stats['cellularUsageMB']} MB"),
             const SizedBox(height: 8),
-            const Text(
-              "Zaman Aralıkları",
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              "settings.diagnostics.time_ranges".tr,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              "1) Bu Ay (Gerçek): ${monthlyTotalMB.toStringAsFixed(1)} MB",
+              "1) ${'settings.diagnostics.this_month_actual'.tr}: ${monthlyTotalMB.toStringAsFixed(1)} MB",
             ),
             Text(
-              "Ortalama Saatlik: ${monthlyAvgPerHour.toStringAsFixed(2)} MB/saat",
+              "${'settings.diagnostics.hourly_average'.tr}: ${monthlyAvgPerHour.toStringAsFixed(2)} MB/saat",
             ),
             Text(
-              "2) Son Girişten Beri (Yaklaşık): ${sinceLoginEstimatedTotal.toStringAsFixed(1)} MB",
+              "2) ${'settings.diagnostics.since_login_estimated'.tr}: ${sinceLoginEstimatedTotal.toStringAsFixed(1)} MB",
             ),
             Text(
-              "Ortalama Saatlik: ${sinceLoginAvgPerHour.toStringAsFixed(2)} MB/saat",
+              "${'settings.diagnostics.hourly_average'.tr}: ${sinceLoginAvgPerHour.toStringAsFixed(2)} MB/saat",
             ),
             const SizedBox(height: 8),
-            const Text(
-              "Detay",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text("Upload: ${usage.uploadedMB} MB"),
-            Text("Download: ${usage.downloadedMB} MB"),
-            const SizedBox(height: 8),
-            const Text(
-              "Cache",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text("Kayıtlı Medya Sayısı: $cacheEntryCount"),
-            Text("Kaplanan Alan: $cacheSizeText"),
-            const SizedBox(height: 8),
-            const Text(
-              "Offline Kuyruk",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text("Bekleyen: ${queueStats['pending'] ?? 0}"),
-            Text("Dead-letter: ${queueStats['deadLetter'] ?? 0}"),
             Text(
-                "Durum: ${(queueStats['isSyncing'] ?? false) ? 'Senkronize ediliyor' : 'Boşta'}"),
-            Text("İşlenen (toplam): ${queueStats['processedCount'] ?? 0}"),
-            Text("Hata (toplam): ${queueStats['failedCount'] ?? 0}"),
-            Text("Son Senkron: $queueLastSyncText"),
+              "settings.diagnostics.details".tr,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text("${'settings.diagnostics.upload'.tr}: ${usage.uploadedMB} MB"),
+            Text("${'settings.diagnostics.download'.tr}: ${usage.downloadedMB} MB"),
             const SizedBox(height: 8),
-            Text("Giriş Tarihi: $loginDate"),
-            Text("Giriş Saati: $loginTime"),
+            Text(
+              "settings.diagnostics.cache".tr,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text("${'settings.diagnostics.saved_media_count'.tr}: $cacheEntryCount"),
+            Text("${'settings.diagnostics.occupied_space'.tr}: $cacheSizeText"),
+            const SizedBox(height: 8),
+            Text(
+              "settings.diagnostics.offline_queue".tr,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text("${'settings.diagnostics.pending'.tr}: ${queueStats['pending'] ?? 0}"),
+            Text("${'settings.diagnostics.dead_letter'.tr}: ${queueStats['deadLetter'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.status'.tr}: ${(queueStats['isSyncing'] ?? false) ? 'settings.diagnostics.syncing'.tr : 'settings.diagnostics.idle'.tr}"),
+            Text("${'settings.diagnostics.processed_total'.tr}: ${queueStats['processedCount'] ?? 0}"),
+            Text("${'settings.diagnostics.failed_total'.tr}: ${queueStats['failedCount'] ?? 0}"),
+            Text("${'settings.diagnostics.last_sync'.tr}: $queueLastSyncText"),
+            const SizedBox(height: 8),
+            Text("${'settings.diagnostics.login_date'.tr}: $loginDate"),
+            Text("${'settings.diagnostics.login_time'.tr}: $loginTime"),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text("Kapat"),
+            child: Text("common.close".tr),
           ),
         ],
       ),
@@ -659,16 +659,16 @@ class SettingsView extends StatelessWidget {
           top: false,
           child: Wrap(
             children: [
-              const ListTile(
+              ListTile(
                 title: Text(
-                  "Sistem ve Tanı Menüsü",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  "settings.system_diag_menu".tr,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               ListTile(
                 leading:
                     const Icon(CupertinoIcons.antenna_radiowaves_left_right),
-                title: const Text("Veri Tüketimi"),
+                title: Text("settings.diagnostics.data_usage".tr),
                 onTap: () {
                   Get.back();
                   _showDataUsageDialog();
@@ -676,7 +676,7 @@ class SettingsView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.chart_bar),
-                title: const Text("Uygulama Sağlık Paneli"),
+                title: Text("settings.diagnostics.app_health_panel".tr),
                 onTap: () {
                   Get.back();
                   Get.to(() => const AppHealthDashboard());
@@ -684,7 +684,7 @@ class SettingsView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.play_rectangle),
-                title: const Text("Video Cache Detayı"),
+                title: Text("settings.diagnostics.video_cache_detail".tr),
                 onTap: () {
                   Get.back();
                   _showVideoCacheDetails();
@@ -692,7 +692,7 @@ class SettingsView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.bolt_horizontal_circle),
-                title: const Text("Hızlı Aksiyonlar"),
+                title: Text("settings.diagnostics.quick_actions".tr),
                 onTap: () {
                   Get.back();
                   _showQuickActions();
@@ -700,7 +700,7 @@ class SettingsView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.tray_2),
-                title: const Text("Offline Kuyruk Detayı"),
+                title: Text("settings.diagnostics.offline_queue_detail".tr),
                 onTap: () {
                   Get.back();
                   _showOfflineQueueDetails();
@@ -708,7 +708,7 @@ class SettingsView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.exclamationmark_bubble),
-                title: const Text("Son Hata Özeti"),
+                title: Text("settings.diagnostics.last_error_summary".tr),
                 onTap: () {
                   Get.back();
                   _showLastErrorSummary();
@@ -716,7 +716,7 @@ class SettingsView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.exclamationmark_triangle),
-                title: const Text("Hata Raporu"),
+                title: Text("settings.diagnostics.error_report".tr),
                 onTap: () {
                   Get.back();
                   Get.to(() => const ErrorReportWidget());
@@ -740,37 +740,37 @@ class SettingsView extends StatelessWidget {
 
     Get.dialog(
       AlertDialog(
-        title: const Text("Video Cache Detayı"),
+        title: Text("settings.diagnostics.video_cache_detail".tr),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Kayıtlı Video: ${cache?.entryCount ?? 0}"),
-            Text("Kayıtlı Segment: ${cache?.totalSegmentCount ?? 0}"),
+            Text("${'settings.diagnostics.saved_videos'.tr}: ${cache?.entryCount ?? 0}"),
+            Text("${'settings.diagnostics.saved_segments'.tr}: ${cache?.totalSegmentCount ?? 0}"),
             Text(
-              "Disk Kullanımı: ${cache == null ? 'Bilinmiyor' : CacheMetrics.formatBytes(cache.totalSizeBytes)}",
+              "${'settings.diagnostics.disk_usage'.tr}: ${cache == null ? 'settings.diagnostics.unknown'.tr : CacheMetrics.formatBytes(cache.totalSizeBytes)}",
             ),
             const SizedBox(height: 8),
-            const Text("Cache Trafiği",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Hit Oranı: $hitRate"),
-            Text("Hit: ${metrics['cacheHits'] ?? 0}"),
-            Text("Miss: ${metrics['cacheMisses'] ?? 0}"),
-            Text("Cache Servis: ${metrics['bytesServedFromCache'] ?? '0B'}"),
-            Text("Ağdan İndirilen: ${metrics['bytesDownloaded'] ?? '0B'}"),
+            Text("settings.diagnostics.cache_traffic".tr,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text("${'settings.diagnostics.hit_rate'.tr}: $hitRate"),
+            Text("${'settings.diagnostics.hit'.tr}: ${metrics['cacheHits'] ?? 0}"),
+            Text("${'settings.diagnostics.miss'.tr}: ${metrics['cacheMisses'] ?? 0}"),
+            Text("${'settings.diagnostics.cache_served'.tr}: ${metrics['bytesServedFromCache'] ?? '0B'}"),
+            Text("${'settings.diagnostics.downloaded_from_network'.tr}: ${metrics['bytesDownloaded'] ?? '0B'}"),
             const SizedBox(height: 8),
-            const Text("Prefetch",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Kuyruk: ${prefetch?.queueSize ?? 0}"),
-            Text("Aktif İndirme: ${prefetch?.activeDownloads ?? 0}"),
+            Text("settings.diagnostics.prefetch".tr,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text("${'settings.diagnostics.queue'.tr}: ${prefetch?.queueSize ?? 0}"),
+            Text("${'settings.diagnostics.active_downloads'.tr}: ${prefetch?.activeDownloads ?? 0}"),
             Text(
-                "Durum: ${(prefetch?.isPaused ?? true) ? 'Duraklatılmış' : 'Aktif'}"),
+                "${'settings.diagnostics.status'.tr}: ${(prefetch?.isPaused ?? true) ? 'settings.diagnostics.paused'.tr : 'settings.diagnostics.active'.tr}"),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text("Kapat"),
+            child: Text("common.close".tr),
           ),
         ],
       ),
@@ -788,73 +788,81 @@ class SettingsView extends StatelessWidget {
           top: false,
           child: Wrap(
             children: [
-              const ListTile(
+              ListTile(
                 title: Text(
-                  "Hızlı Aksiyonlar",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  "settings.diagnostics.quick_actions".tr,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.arrow_counterclockwise),
-                title: const Text("Veri Sayaçlarını Sıfırla"),
+                title: Text("settings.diagnostics.reset_data_counters".tr),
                 onTap: () async {
                   Get.back();
                   await Get.find<NetworkAwarenessService>().resetDataUsage();
-                  AppSnackbar("Tamam", "Veri sayaçları sıfırlandı");
+                  AppSnackbar("common.success".tr,
+                      "settings.diagnostics.data_counters_reset".tr);
                 },
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.refresh_circled),
-                title: const Text("Offline Kuyruğu Şimdi Senkronla"),
+                title: Text("settings.diagnostics.sync_offline_queue_now".tr),
                 onTap: () async {
                   Get.back();
                   await OfflineModeService.instance.processPendingNow(
                     ignoreBackoff: true,
                   );
-                  AppSnackbar("Tamam", "Offline kuyruk senkron tetiklendi");
+                  AppSnackbar("common.success".tr,
+                      "settings.diagnostics.offline_queue_sync_triggered".tr);
                 },
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.arrow_2_circlepath_circle),
-                title: const Text("Dead-letter Yeniden Dene"),
+                title: Text("settings.diagnostics.retry_dead_letter".tr),
                 onTap: () async {
                   Get.back();
                   await OfflineModeService.instance.retryDeadLetter();
-                  AppSnackbar("Tamam", "Dead-letter işlemleri kuyruğa alındı");
+                  AppSnackbar("common.success".tr,
+                      "settings.diagnostics.dead_letter_queued".tr);
                 },
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.clear_circled),
-                title: const Text("Dead-letter Temizle"),
+                title: Text("settings.diagnostics.clear_dead_letter".tr),
                 onTap: () async {
                   Get.back();
                   await OfflineModeService.instance.clearDeadLetter();
-                  AppSnackbar("Tamam", "Dead-letter kuyruğu temizlendi");
+                  AppSnackbar("common.success".tr,
+                      "settings.diagnostics.dead_letter_cleared".tr);
                 },
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.pause_circle),
-                title: const Text("Prefetch Duraklat"),
+                title: Text("settings.diagnostics.pause_prefetch".tr),
                 onTap: () {
                   Get.back();
                   if (Get.isRegistered<PrefetchScheduler>()) {
                     Get.find<PrefetchScheduler>().pause();
-                    AppSnackbar("Tamam", "Prefetch duraklatıldı");
+                    AppSnackbar("common.success".tr,
+                        "settings.diagnostics.prefetch_paused".tr);
                   } else {
-                    AppSnackbar("Bilgi", "Prefetch servisi hazır değil");
+                    AppSnackbar("common.info".tr,
+                        "settings.diagnostics.service_not_ready".tr);
                   }
                 },
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.play_circle),
-                title: const Text("Prefetch Devam Et"),
+                title: Text("settings.diagnostics.resume_prefetch".tr),
                 onTap: () {
                   Get.back();
                   if (Get.isRegistered<PrefetchScheduler>()) {
                     Get.find<PrefetchScheduler>().resume();
-                    AppSnackbar("Tamam", "Prefetch devam ediyor");
+                    AppSnackbar("common.success".tr,
+                        "settings.diagnostics.prefetch_resumed".tr);
                   } else {
-                    AppSnackbar("Bilgi", "Prefetch servisi hazır değil");
+                    AppSnackbar("common.info".tr,
+                        "settings.diagnostics.service_not_ready".tr);
                   }
                 },
               ),
@@ -872,7 +880,7 @@ class SettingsView extends StatelessWidget {
 
     Get.dialog(
       AlertDialog(
-        title: const Text("Offline Kuyruk Detayı"),
+        title: Text("settings.diagnostics.offline_queue_detail".tr),
         content: SizedBox(
           width: double.maxFinite,
           child: Obx(() {
@@ -934,25 +942,25 @@ class SettingsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Online: ${stats['isOnline']}'),
-                  Text('Sync: ${stats['isSyncing']}'),
-                  Text('Pending: ${pending.length}'),
-                  Text('Dead-letter: ${dead.length}'),
-                  Text('Processed: ${stats['processedCount'] ?? 0}'),
-                  Text('Failed: ${stats['failedCount'] ?? 0}'),
+                  Text("${'settings.diagnostics.online'.tr}: ${stats['isOnline']}"),
+                  Text("${'settings.diagnostics.sync'.tr}: ${stats['isSyncing']}"),
+                  Text("${'settings.diagnostics.pending'.tr}: ${pending.length}"),
+                  Text("${'settings.diagnostics.dead_letter'.tr}: ${dead.length}"),
+                  Text("${'settings.diagnostics.processed'.tr}: ${stats['processedCount'] ?? 0}"),
+                  Text("${'settings.diagnostics.failed'.tr}: ${stats['failedCount'] ?? 0}"),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Pending (ilk 8)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Text(
+                    'settings.diagnostics.pending_first8'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   if (pending.isEmpty)
                     const Text('-', style: TextStyle(color: Colors.black54)),
                   ...pending.take(8).map(buildItem),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Dead-letter (ilk 8)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Text(
+                    'settings.diagnostics.dead_letter_first8'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   if (dead.isEmpty)
@@ -969,23 +977,23 @@ class SettingsView extends StatelessWidget {
               await OfflineModeService.instance
                   .processPendingNow(ignoreBackoff: true);
             },
-            child: const Text('Şimdi Senkronla'),
+            child: Text('settings.diagnostics.sync_now'.tr),
           ),
           TextButton(
             onPressed: () async {
               await OfflineModeService.instance.retryDeadLetter(limit: 100);
             },
-            child: const Text('Dead-letter Retry'),
+            child: Text('settings.diagnostics.dead_letter_retry'.tr),
           ),
           TextButton(
             onPressed: () async {
               await OfflineModeService.instance.clearDeadLetter();
             },
-            child: const Text('Dead-letter Clear'),
+            child: Text('settings.diagnostics.dead_letter_clear'.tr),
           ),
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text("Kapat"),
+            child: Text("common.close".tr),
           ),
         ],
       ),
@@ -998,25 +1006,25 @@ class SettingsView extends StatelessWidget {
 
     Get.dialog(
       AlertDialog(
-        title: const Text("Son Hata Özeti"),
+        title: Text("settings.diagnostics.last_error_summary".tr),
         content: last == null
-            ? const Text("Kayıtlı hata bulunmuyor.")
+            ? Text("settings.diagnostics.no_recorded_error".tr)
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Kod: ${last['code']}"),
-                  Text("Kategori: ${last['category']}"),
-                  Text("Seviye: ${last['severity']}"),
-                  Text("Tekrar Denenebilir: ${last['retryable']}"),
-                  Text("Mesaj: ${last['userFriendlyMessage']}"),
-                  Text("Zaman: ${last['timestamp']}"),
+                  Text("${'settings.diagnostics.error_code'.tr}: ${last['code']}"),
+                  Text("${'settings.diagnostics.error_category'.tr}: ${last['category']}"),
+                  Text("${'settings.diagnostics.error_severity'.tr}: ${last['severity']}"),
+                  Text("${'settings.diagnostics.error_retryable'.tr}: ${last['retryable']}"),
+                  Text("${'settings.diagnostics.error_message'.tr}: ${last['userFriendlyMessage']}"),
+                  Text("${'settings.diagnostics.error_time'.tr}: ${last['timestamp']}"),
                 ],
               ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text("Kapat"),
+            child: Text("common.close".tr),
           ),
         ],
       ),
@@ -1066,7 +1074,7 @@ class _AdminPushMenuTileState extends State<_AdminPushMenuTile> {
           return const SizedBox.shrink();
         }
         return widget.buildRow(
-          "Yönetim / Push Gönder",
+          "settings.admin_push".tr,
           CupertinoIcons.paperplane,
           () => Get.to(() => const AdminPushView()),
         );

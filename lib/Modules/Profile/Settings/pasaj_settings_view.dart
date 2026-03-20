@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg_flutter.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
 class PasajSettingsView extends StatelessWidget {
@@ -18,16 +19,16 @@ class PasajSettingsView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Pasaj"),
+            BackButtons(text: 'settings.pasaj'.tr),
             Expanded(
               child: Obx(() {
                 final tabs = controller.pasajOrder.toList(growable: true);
-                if (!tabs.contains('Denemeler')) {
-                  final onlineIndex = tabs.indexOf('Online Sınav');
+                if (!tabs.contains(PasajTabIds.practiceExams)) {
+                  final onlineIndex = tabs.indexOf(PasajTabIds.onlineExam);
                   if (onlineIndex >= 0) {
-                    tabs.insert(onlineIndex, 'Denemeler');
+                    tabs.insert(onlineIndex, PasajTabIds.practiceExams);
                   } else {
-                    tabs.add('Denemeler');
+                    tabs.add(PasajTabIds.practiceExams);
                   }
                 }
                 return ListView(
@@ -62,12 +63,9 @@ class _PasajToggleTile extends StatelessWidget {
   final String title;
 
   String get _displayTitle {
-    switch (title) {
-      case 'Denemeler':
-        return 'Deneme Sınavı';
-      default:
-        return title;
-    }
+    final translationKey = pasajTitleTranslationKey(title);
+    if (translationKey.isNotEmpty) return translationKey.tr;
+    return title;
   }
 
   @override

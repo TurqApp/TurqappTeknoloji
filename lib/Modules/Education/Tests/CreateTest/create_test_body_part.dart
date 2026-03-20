@@ -389,14 +389,14 @@ extension CreateTestBodyPart on CreateTest {
               ),
             ),
             Obx(
-              () => controller.testTuru.value == "Ortaokul" ||
-                      controller.testTuru.value == "Lise"
+              () => controller.testTuru.value == createTestTypeMiddleSchool ||
+                      controller.testTuru.value == createTestTypeHighSchool
                   ? buildOrtaOkulLise(context, controller)
-                  : controller.testTuru.value == "Hazırlık"
+                  : controller.testTuru.value == createTestTypePrep
                       ? buildHazirlik(context, controller)
-                      : controller.testTuru.value == "Dil"
+                      : controller.testTuru.value == createTestTypeLanguage
                           ? buildDil(context, controller)
-                          : controller.testTuru.value == "Branş"
+                          : controller.testTuru.value == createTestTypeBranch
                               ? buildBransh(context, controller)
                               : const SizedBox.shrink(),
             ),

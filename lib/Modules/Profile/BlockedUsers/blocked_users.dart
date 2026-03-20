@@ -17,7 +17,7 @@ class BlockedUsers extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Engellenenler"),
+            BackButtons(text: "settings.blocked_users".tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -38,7 +38,7 @@ class BlockedUsers extends StatelessWidget {
                         }
 
                         if (controller.blockedUserDetails.isEmpty) {
-                          return EmptyRow(text: "Hiç kimseyi engellemedin");
+                          return EmptyRow(text: "blocked_users.empty".tr);
                         }
 
                         return ListView.builder(
@@ -133,8 +133,8 @@ class BlockedUsers extends StatelessWidget {
                                       ),
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 4),
-                                      child: const Text(
-                                        "Engeli Kaldır",
+                                      child: Text(
+                                        "blocked_users.unblock".tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,

@@ -53,6 +53,13 @@ class EducationInfoController extends GetxController
   final Map<String, AnimationController> _animationControllers = {};
   final Map<String, RxDouble> _animationTurns = {};
 
+  String get middleSchoolValue => _middleSchool;
+  String get highSchoolValue => _highSchool;
+  String get associateValue => _associate;
+  String get bachelorValue => _bachelor;
+  String get mastersValue => _masters;
+  String get doctorateValue => _doctorate;
+
   @override
   void onInit() {
     super.onInit();
@@ -109,6 +116,14 @@ class EducationInfoController extends GetxController
       case '10. Sınıf':
       case '11. Sınıf':
       case '12. Sınıf':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '10':
+      case '11':
+      case '12':
         return 'education_info.class_grade'.trParams({
           'grade': value.split('.').first,
         });

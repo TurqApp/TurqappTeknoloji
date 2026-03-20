@@ -35,7 +35,15 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                           size: 15,
                           userID: _myUserId,
                           leftSpacing: 6,
-                          rozetValue: _myRozet,
+                          rozetValue:
+                              normalizeRozetValue(controller.headerRozet.value)
+                                  .isNotEmpty
+                              ? normalizeRozetValue(
+                                  controller.headerRozet.value,
+                                )
+                              : normalizeRozetValue(
+                                  userService.currentUserRx.value?.rozet ?? '',
+                                ),
                         ),
                       ],
                     ],

@@ -32,7 +32,9 @@ extension ChatComposerPart on ChatView {
                     ),
                     const Spacer(),
                     Text(
-                      "${controller.selectedMessageIds.length} Mesaj Seçildi",
+                      'chat.selected_messages'.trParams({
+                        'count': '${controller.selectedMessageIds.length}',
+                      }),
                       style: const TextStyle(
                         color: Colors.black87,
                         fontSize: 14,
@@ -84,8 +86,8 @@ extension ChatComposerPart on ChatView {
                 previewIsContact = false;
                 previewIsGif = true;
                 previewThumb = selectedGifUrl;
-                previewLabel = "GIF";
-                previewText = "Gönderilmeye hazır";
+                previewLabel = 'chat.gif'.tr;
+                previewText = 'chat.ready_to_send'.tr;
               } else if (editing != null) {
                 previewIsVideo = false;
                 previewIsImage = false;
@@ -95,7 +97,7 @@ extension ChatComposerPart on ChatView {
                 previewIsContact = false;
                 previewIsGif = false;
                 previewThumb = "";
-                previewLabel = "Mesaj düzenleniyor";
+                previewLabel = 'chat.editing_message'.tr;
                 previewText = editing.metin;
               } else {
                 final replyModel = replying!;
@@ -111,18 +113,18 @@ extension ChatComposerPart on ChatView {
                     ? replyModel.imgs.first
                     : (previewIsVideo ? replyModel.videoThumbnail : "");
                 previewLabel = previewIsVideo
-                    ? "Video"
+                    ? 'chat.video'.tr
                     : previewIsImage
-                        ? "Fotoğraf"
+                        ? 'chat.photo'.tr
                         : previewIsAudio
-                            ? "Ses"
+                            ? 'chat.audio'.tr
                             : previewIsLocation
-                                ? "Konum"
+                                ? 'chat.location'.tr
                                 : previewIsPost
-                                    ? "Gönderi"
+                                    ? 'chat.post'.tr
                                     : previewIsContact
-                                        ? "Kişi"
-                                        : "Yanıt";
+                                        ? 'chat.person'.tr
+                                        : 'chat.reply'.tr;
                 previewText = replyModel.metin.trim().isNotEmpty
                     ? replyModel.metin
                     : previewLabel;
@@ -301,7 +303,7 @@ extension ChatComposerPart on ChatView {
             final m = (secs ~/ 60).toString().padLeft(1, '0');
             final s = (secs % 60).toString().padLeft(2, '0');
             return Text(
-              "Kayıt yapılıyor... $m:$s",
+              'chat.recording_timer'.trParams({'time': '$m:$s'}),
               style: const TextStyle(
                 color: Colors.red,
                 fontSize: 14,

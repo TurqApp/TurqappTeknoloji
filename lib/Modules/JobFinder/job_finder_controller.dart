@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
@@ -66,12 +67,10 @@ class JobFinderController extends GetxController {
   Timer? _deferredLocationTimer;
 
   String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
-  bool _isAllTurkey(String value) =>
+  bool isAllTurkeySelection(String value) =>
       value.trim().isEmpty ||
       value == _allTurkeyRaw ||
       value == _allTurkeyLabel;
-  String _displayCity(String value) =>
-      _isAllTurkey(value) ? _allTurkeyLabel : value;
 
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
@@ -444,7 +443,7 @@ class JobFinderController extends GetxController {
                   ),
                   const SizedBox(height: 8),
                   ...types.map((type) => buildFilterRow(
-                        _workTypeLabel(type),
+                        localizeJobWorkType(type),
                         selectedType.value == type,
                         () {
                           selectedType.value =
@@ -457,7 +456,7 @@ class JobFinderController extends GetxController {
                       filtre.value = true;
 
                       final filtered = allJobs.where((job) {
-                        final matchCity = _isAllTurkey(sehir.value) ||
+                        final matchCity = isAllTurkeySelection(sehir.value) ||
                             job.city == sehir.value;
                         final matchType = selectedType.value.isEmpty ||
                             job.calismaTuru
@@ -591,22 +590,6 @@ class JobFinderController extends GetxController {
     );
   }
 
-  String _workTypeLabel(String value) {
-    switch (value.trim().toLowerCase()) {
-      case 'tam zamanlı':
-        return 'pasaj.job_finder.work_type.full_time'.tr;
-      case 'yarı zamanlı':
-      case 'part-time':
-        return 'pasaj.job_finder.work_type.part_time'.tr;
-      case 'uzaktan':
-        return 'pasaj.job_finder.work_type.remote'.tr;
-      case 'hibrit':
-        return 'pasaj.job_finder.work_type.hybrid'.tr;
-      default:
-        return value;
-    }
-  }
-
   Widget buildRow(int selection, String text, VoidCallback onSelected) {
     return Padding(
       padding: EdgeInsets.only(bottom: 15),
@@ -678,14 +661,16 @@ class JobFinderController extends GetxController {
       }
     }
     final others = uniqueCities
-        .where((city) => !pinned.contains(city) && !_isAllTurkey(city))
+        .where((city) => !pinned.contains(city) && !isAllTurkeySelection(city))
         .toList();
     sortTurkishStrings(others);
     final visibleCities = <String>[
-      if (uniqueCities.any(_isAllTurkey)) _allTurkeyLabel,
+      if (uniqueCities.any(isAllTurkeySelection)) _allTurkeyLabel,
       ...pinned
-          .where((city) => city.isNotEmpty && !_isAllTurkey(city))
-          .map(_displayCity),
+          .where(
+            (city) => city.isNotEmpty && !isAllTurkeySelection(city),
+          )
+          .map((city) => city),
       ...others,
     ];
     Get.bottomSheet(
@@ -701,7 +686,7 @@ class JobFinderController extends GetxController {
             filtre.value = false;
             short.value = 0;
 
-            if (_isAllTurkey(v)) {
+            if (isAllTurkeySelection(v)) {
               list.value = allJobs.where((job) => !job.ended).toList();
             } else {
               list.value =

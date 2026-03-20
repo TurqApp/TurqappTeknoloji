@@ -96,7 +96,7 @@ extension CreatorContentQuotedPart on CreatorContent {
                                     ),
                                   ),
                                   Text(
-                                    "Video İşleniyor",
+                                    'post_creator.video_processing'.tr,
                                     style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 15,
@@ -202,7 +202,7 @@ extension CreatorContentQuotedPart on CreatorContent {
                 sourcePostData['authorNickname'] ??
                 sourcePostData['nickname'] ??
                 profile['username'] ??
-                'Kullanıcı')
+                'common.user'.tr)
             .toString()
             .trim();
         final username =
@@ -236,7 +236,7 @@ extension CreatorContentQuotedPart on CreatorContent {
                 children: [
                   Flexible(
                     child: Text(
-                      displayName.isEmpty ? 'Kullanıcı' : displayName,
+                      displayName.isEmpty ? 'common.user'.tr : displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

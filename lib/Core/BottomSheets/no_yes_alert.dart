@@ -6,7 +6,7 @@ import 'package:turqappv2/Core/text_styles.dart';
 Future<void> infoAlert({
   required String title,
   required String message,
-  String buttonText = "Tamam",
+  String buttonText = "",
   VoidCallback? onPressed,
 }) {
   return Get.dialog(
@@ -31,7 +31,7 @@ Future<void> infoAlert({
             onPressed?.call();
           },
           child: Text(
-            buttonText,
+            buttonText.isEmpty ? 'common.ok'.tr : buttonText,
             style: const TextStyle(
               fontSize: 15,
               fontFamily: "Montserrat",
@@ -49,8 +49,8 @@ Future<void> noYesAlert({
   required String title,
   required String message,
   required VoidCallback onYesPressed,
-  String yesText = "Evet",
-  String cancelText = "Vazgeç",
+  String yesText = "",
+  String cancelText = "",
   Color yesButtonColor = CupertinoColors.destructiveRed,
 }) {
   return Get.dialog(
@@ -72,7 +72,7 @@ Future<void> noYesAlert({
         CupertinoDialogAction(
           onPressed: () => Get.back(),
           child: Text(
-            cancelText,
+            cancelText.isEmpty ? 'common.cancel'.tr : cancelText,
             style: const TextStyle(
               fontSize: 15,
               fontFamily: "Montserrat",
@@ -87,7 +87,7 @@ Future<void> noYesAlert({
           },
           isDestructiveAction: yesButtonColor == CupertinoColors.destructiveRed,
           child: Text(
-            yesText,
+            yesText.isEmpty ? 'common.yes'.tr : yesText,
             style: const TextStyle(
               fontSize: 15,
               fontFamily: "Montserrat",

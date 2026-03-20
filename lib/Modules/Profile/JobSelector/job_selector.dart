@@ -22,11 +22,11 @@ class JobSelector extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  children: [BackButtons(text: "Meslek & Kategori")],
+                  children: [BackButtons(text: 'job_selector.title'.tr)],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Kategorin, profilinin keşfedilmesini kolaylaştırır.",
+                  'job_selector.subtitle'.tr,
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 14,
@@ -46,10 +46,10 @@ class JobSelector extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: TextField(
                       onChanged: controller.filterJobs,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         icon: Icon(Icons.search, color: Colors.grey),
-                        hintText: "Ara",
-                        hintStyle: TextStyle(
+                        hintText: 'job_selector.search_hint'.tr,
+                        hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: "Montserrat",
                           fontSize: 14,
@@ -149,7 +149,7 @@ class JobSelector extends StatelessWidget {
                 }),
                 const SizedBox(height: 14),
                 TurqAppButton(
-                  text: "Kaydet",
+                  text: 'common.save'.tr,
                   onTap: () {
                     controller.setData();
                   },

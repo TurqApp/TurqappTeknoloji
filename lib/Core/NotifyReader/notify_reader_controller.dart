@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
 import '../../Modules/Agenda/FloodListing/flood_listing.dart';
 import '../../Modules/Agenda/SinglePost/single_post.dart';
@@ -15,14 +16,19 @@ import '../../Models/notification_model.dart';
 class NotifyReaderController extends GetxController {
   final NotifyLookupRepository _lookupRepository =
       NotifyLookupRepository.ensure();
-
+  static const _commentType = kNotificationPostTypeCommentLower;
+  static const _profileTypes = {'follow', 'user'};
+  static const _tutoringTypes = {'tutoring_application', 'tutoring_status'};
+  static const _chatTypes = {'message', 'chat'};
+  static const _marketTypes = {'market_offer', 'market_offer_status'};
   Future<void> openNotification(NotificationModel model) async {
-    final normalizedType = _normalizedType(model.type, model.postType);
+    final normalizedType =
+        normalizeNotificationType(model.type, model.postType);
     final targetId = model.postID.trim();
 
-    if (normalizedType == "follow" || normalizedType == "user") {
+    if (_profileTypes.contains(normalizedType)) {
       if (model.userID.trim().isEmpty) {
-        AppSnackbar('Bilgi', 'Profil açılamadı.');
+        AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
         return;
       }
       await goToProfile(model.userID);
@@ -31,54 +37,52 @@ class NotifyReaderController extends GetxController {
 
     if (normalizedType == "job_application") {
       if (targetId.isEmpty) {
-        AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+        AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
         return;
       }
       await goToJob(targetId);
       return;
     }
 
-    if (normalizedType == "tutoring_application" ||
-        normalizedType == "tutoring_status") {
+    if (_tutoringTypes.contains(normalizedType)) {
       if (targetId.isEmpty) {
-        AppSnackbar('Bilgi', 'Özel ders ilanı bulunamadı veya kaldırılmış.');
+        AppSnackbar('common.info'.tr, 'notify_reader.tutoring_missing'.tr);
         return;
       }
       await goToTutoring(targetId);
       return;
     }
 
-    if (normalizedType == "message" || normalizedType == "chat") {
+    if (_chatTypes.contains(normalizedType)) {
       if (targetId.isEmpty) {
-        AppSnackbar('Bilgi', 'Sohbet bulunamadı.');
+        AppSnackbar('common.info'.tr, 'notify_reader.chat_missing'.tr);
         return;
       }
       await goToChat(targetId);
       return;
     }
 
-    if (normalizedType == "market_offer" ||
-        normalizedType == "market_offer_status") {
+    if (_marketTypes.contains(normalizedType)) {
       if (targetId.isEmpty) {
-        AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+        AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
         return;
       }
       await goToMarket(targetId);
       return;
     }
 
-    if (normalizedType == "comment") {
+    if (normalizedType == _commentType) {
       if (targetId.isEmpty) {
-        AppSnackbar('Bilgi', 'Gönderi bulunamadı veya silinmiş.');
+        AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
         return;
       }
       await goToPostComments(targetId);
       return;
     }
 
-    if (_isPostType(normalizedType)) {
+    if (isNotificationPostType(normalizedType)) {
       if (targetId.isEmpty) {
-        AppSnackbar('Bilgi', 'Gönderi bulunamadı veya silinmiş.');
+        AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
         return;
       }
       await goToPost(targetId);
@@ -90,19 +94,19 @@ class NotifyReaderController extends GetxController {
       return;
     }
 
-    AppSnackbar('Bilgi', 'Bu bildirim için yönlendirme bulunamadı.');
+    AppSnackbar('common.info'.tr, 'notify_reader.route_missing'.tr);
   }
 
   /// Post detay sayfasına git, geri dönülürse NavBarView'e atla
   Future<void> goToPost(String postID) async {
     final lookup = await _lookupRepository.getPostLookup(postID);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Bilgi', 'Gönderi bulunamadı veya silinmiş.');
+      AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
       return toNavbar();
     }
     final model = lookup.model!;
     if (model.deletedPost == true) {
-      AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'notify_reader.post_removed'.tr);
       return toNavbar();
     }
 
@@ -118,12 +122,12 @@ class NotifyReaderController extends GetxController {
   Future<void> goToPostComments(String postID) async {
     final lookup = await _lookupRepository.getPostLookup(postID);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Bilgi', 'Gönderi bulunamadı veya silinmiş.');
+      AppSnackbar('common.info'.tr, 'notify_reader.post_missing'.tr);
       return toNavbar();
     }
     final model = lookup.model!;
     if (model.deletedPost == true) {
-      AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'notify_reader.post_removed'.tr);
       return toNavbar();
     }
 
@@ -143,7 +147,7 @@ class NotifyReaderController extends GetxController {
     final otherUser = lookup.otherUser;
 
     if (otherUser.isEmpty) {
-      AppSnackbar('Bilgi', 'Sohbet bulunamadı.');
+      AppSnackbar('common.info'.tr, 'notify_reader.chat_missing'.tr);
       return toNavbar();
     }
 
@@ -154,7 +158,7 @@ class NotifyReaderController extends GetxController {
   Future<void> goToJob(String jobID) async {
     final lookup = await _lookupRepository.getJobLookup(jobID);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
       return toNavbar();
     }
     final model = lookup.model!;
@@ -164,7 +168,7 @@ class NotifyReaderController extends GetxController {
   Future<void> goToTutoring(String tutoringID) async {
     final lookup = await _lookupRepository.getTutoringLookup(tutoringID);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Bilgi', 'Özel ders ilanı bulunamadı veya kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'notify_reader.tutoring_missing'.tr);
       return toNavbar();
     }
     final model = lookup.model!;
@@ -175,7 +179,7 @@ class NotifyReaderController extends GetxController {
   Future<void> goToMarket(String itemId) async {
     final lookup = await _lookupRepository.getMarketLookup(itemId);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+      AppSnackbar('common.info'.tr, 'notify_reader.listing_missing'.tr);
       return toNavbar();
     }
     final model = lookup.model!;
@@ -185,20 +189,5 @@ class NotifyReaderController extends GetxController {
   /// NavBarView'e geç ve önceki sayfaları stack'ten at
   void toNavbar() {
     Get.offAll<NavBarView>(() => NavBarView());
-  }
-
-  String _normalizedType(String type, String postType) {
-    final normalized = type.trim().toLowerCase();
-    if (normalized.isNotEmpty) return normalized;
-    return postType.trim().toLowerCase();
-  }
-
-  bool _isPostType(String normalizedType) {
-    return normalizedType == "posts" ||
-        normalizedType == "like" ||
-        normalizedType == "reshared_posts" ||
-        normalizedType == "shared_as_posts" ||
-        normalizedType == "reshare" ||
-        normalizedType == "post";
   }
 }

@@ -7,7 +7,7 @@ extension StoryRepositoryHelpersPart on StoryRepository {
     final nickname = (data['nickname'] ?? '').toString().trim();
     final username = (data['username'] ?? '').toString().trim();
     final usernameLower = (data['usernameLower'] ?? '').toString().trim();
-    final hasSpace = nickname.contains(RegExp(r'\s'));
+    final hasSpace = hasNicknameWhitespace(nickname);
     if (nickname.isNotEmpty && !hasSpace) return nickname;
     if (username.isNotEmpty) return username;
     if (usernameLower.isNotEmpty) return usernameLower;

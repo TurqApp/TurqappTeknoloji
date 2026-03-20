@@ -24,7 +24,7 @@ class EditorEmail extends StatelessWidget {
 
               return Column(
                 children: [
-                  Row(children: [BackButtons(text: "E-posta Onayı")]),
+                  Row(children: [BackButtons(text: 'editor_email.title'.tr)]),
                   const SizedBox(height: 12),
                   Container(
                     height: 50,
@@ -38,9 +38,9 @@ class EditorEmail extends StatelessWidget {
                       child: TextField(
                         controller: controller.emailController,
                         readOnly: true,
-                        decoration: const InputDecoration(
-                          hintText: "Hesap e-posta adresiniz",
-                          hintStyle: TextStyle(
+                        decoration: InputDecoration(
+                          hintText: 'editor_email.email_hint'.tr,
+                          hintStyle: const TextStyle(
                               color: Colors.grey,
                               fontFamily: "MontserratMedium"),
                           border: InputBorder.none,
@@ -62,12 +62,13 @@ class EditorEmail extends StatelessWidget {
                     },
                     bgColor: canSend ? Colors.black : Colors.grey,
                     text: controller.countdown.value > 0
-                        ? "Yeniden gönderim için ${controller.countdown.value}s"
-                        : "Onay Kodu Gönder",
+                        ? 'editor_email.resend_in'
+                            .trParams({'seconds': '${controller.countdown.value}'})
+                        : 'editor_email.send_code'.tr,
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    "Bu onay güvenlik amaçlıdır. Onaylamasanız da uygulamayı kullanmaya devam edebilirsiniz.",
+                  Text(
+                    'editor_email.note'.tr,
                     style: TextStyle(
                       color: Colors.black54,
                       fontSize: 13,
@@ -90,10 +91,10 @@ class EditorEmail extends StatelessWidget {
                           controller: controller.codeController,
                           keyboardType: TextInputType.number,
                           maxLength: 6,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             counterText: "",
-                            hintText: "6 haneli onay kodu",
-                            hintStyle: TextStyle(
+                            hintText: 'editor_email.code_hint'.tr,
+                            hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium"),
                             border: InputBorder.none,
@@ -114,7 +115,7 @@ class EditorEmail extends StatelessWidget {
                         }
                       },
                       bgColor: canUpdate ? Colors.black : Colors.grey,
-                      text: "Kodu Doğrula ve Onayla",
+                      text: 'editor_email.verify_confirm'.tr,
                     ),
                   ],
                 ],

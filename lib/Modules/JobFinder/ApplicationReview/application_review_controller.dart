@@ -5,12 +5,12 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 
 class ApplicationReviewController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final CvRepository _cvRepository = CvRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();
   final String jobDocID;
@@ -90,7 +90,11 @@ class ApplicationReviewController extends GetxController {
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
-      return await _userRepository.getUserRaw(userID);
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      return summary?.toMap();
     } catch (_) {}
     return null;
   }
@@ -99,7 +103,10 @@ class ApplicationReviewController extends GetxController {
     try {
       final actorUid = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (actorUid.isEmpty) {
-        AppSnackbar('Hata', 'İşlem için tekrar giriş yapın.');
+        AppSnackbar(
+          'common.error'.tr,
+          'pasaj.job_finder.relogin_required'.tr,
+        );
         return;
       }
       await _jobRepository.updateApplicationStatus(
@@ -129,10 +136,16 @@ class ApplicationReviewController extends GetxController {
         );
         applicants.refresh();
       }
-      AppSnackbar('Başarılı', 'Başvuru durumu güncellendi.');
+      AppSnackbar(
+        'common.success'.tr,
+        'pasaj.job_finder.status_updated'.tr,
+      );
       await loadApplicants(silent: true, forceRefresh: true);
     } catch (_) {
-      AppSnackbar('Hata', 'Başvuru durumu güncellenemedi.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.status_update_failed'.tr,
+      );
     }
   }
 }

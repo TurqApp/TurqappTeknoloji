@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -220,7 +221,7 @@ class PersonalizedView extends StatelessWidget {
     final docId = controller.docIdByTimestamp[item.timeStamp] ?? '';
     final scholarshipData = {
       'model': item,
-      'type': 'bireysel',
+      'type': kIndividualScholarshipType,
       'userData': null,
       'docId': docId,
       'scholarshipId': docId,

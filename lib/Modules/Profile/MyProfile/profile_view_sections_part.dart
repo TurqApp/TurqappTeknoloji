@@ -103,10 +103,10 @@ extension _ProfileViewSectionsPart on _ProfileViewState {
     StoryHighlightModel hl,
   ) async {
     await noYesAlert(
-      title: "Öne Çıkartılanı Kaldır",
-      message: "Bu öne çıkartılanı kaldırmak istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Kaldır",
+      title: "profile.highlight_remove_title".tr,
+      message: "profile.highlight_remove_body".tr,
+      cancelText: "common.cancel".tr,
+      yesText: "common.remove".tr,
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
         await hlController.deleteHighlight(hl.id);

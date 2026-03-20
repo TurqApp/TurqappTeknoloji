@@ -10,7 +10,9 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
+import 'package:turqappv2/Modules/Chat/chat_constants.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
@@ -20,6 +22,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'chat_listing_content_controller.dart';
 
 class ChatListingContent extends StatelessWidget {
+  static const Set<String> _postMessageMarkers = {
+    'gönderi',
+    kConversationPostMessageMarker,
+    'chat.post',
+    'post',
+    'beitrag',
+    'publication',
+    'pubblicazione',
+    'пост',
+  };
+
   final ChatListingModel model;
   final bool isSearchResult;
   final bool isArchiveTab;
@@ -35,7 +48,14 @@ class ChatListingContent extends StatelessWidget {
   final GlobalKey _timeAnchorKey = GlobalKey();
 
   String _buildSubtitle() {
-    if (model.lastMessage.trim().isNotEmpty) return model.lastMessage.trim();
+    if (model.lastMessage.trim().isNotEmpty) {
+      if (_postMessageMarkers.contains(
+        normalizeSearchText(model.lastMessage),
+      )) {
+        return 'chat.post'.tr;
+      }
+      return model.lastMessage.trim();
+    }
     if (controller.lastMessage.isEmpty) return 'chat.tap_to_chat'.tr;
     final last = controller.lastMessage.last;
     if (last.metin.trim().isNotEmpty) return last.metin.trim();

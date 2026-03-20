@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Models/notification_model.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
 class InAppNotificationsController extends GetxController {
   var selection = 0.obs;
@@ -159,7 +160,7 @@ class InAppNotificationsController extends GetxController {
 
       if (data.containsKey("type") || data.containsKey("fromUserID")) {
         final type = (data["type"] ?? "").toString();
-        final postType = _postTypeFromType(type);
+        final postType = notificationPostTypeFromEventType(type);
         final title = (data["title"] ?? "").toString();
         final body = (data["body"] ?? "").toString();
 
@@ -461,36 +462,10 @@ class InAppNotificationsController extends GetxController {
     await _notificationsRepository.deleteAll(uid);
   }
 
-  String _postTypeFromType(String type) {
-    switch (type) {
-      case "follow":
-      case "User":
-        return "User";
-      case "comment":
-      case "Comment":
-        return "Comment";
-      case "message":
-      case "Chat":
-        return "Chat";
-      case "job_application":
-        return "JobApplication";
-      case "tutoring_application":
-      case "tutoring_status":
-        return "TutoringApplication";
-      case "like":
-      case "reshared_posts":
-      case "shared_as_posts":
-      case "reshare":
-      case "Posts":
-      default:
-        return "Posts";
-    }
-  }
-
   bool isMentionNotification(NotificationModel model) {
     final desc = model.desc.toLowerCase();
     final title = model.title.toLowerCase();
-    final isComment = model.postType == "Comment";
+    final isComment = model.postType == kNotificationPostTypeComment;
     return desc.contains("@") ||
         title.contains("@") ||
         desc.contains("etiket") ||
@@ -499,31 +474,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   String _descFromType(String type, {String title = ""}) {
-    switch (type) {
-      case "like":
-        return "notification.desc.like".tr;
-      case "comment":
-        return "notification.desc.comment".tr;
-      case "reshared_posts":
-        return "notification.desc.reshare".tr;
-      case "shared_as_posts":
-      case "reshare":
-        return "notification.desc.share".tr;
-      case "follow":
-      case "User":
-        return "notification.desc.follow".tr;
-      case "message":
-      case "Chat":
-        return "notification.desc.message".tr;
-      case "job_application":
-        return "notification.desc.job_application".tr;
-      case "tutoring_application":
-        return "notification.desc.tutoring_application".tr;
-      case "tutoring_status":
-        return "notification.desc.tutoring_status".tr;
-      default:
-        return "";
-    }
+    final key = notificationDescriptionKeyForType(type);
+    return key.isEmpty ? "" : key.tr;
   }
 
   @override

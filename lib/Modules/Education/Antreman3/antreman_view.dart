@@ -169,7 +169,10 @@ class AntremanView2 extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(
-                        'Soru ${item.soruNo} • ${item.yil}',
+                        'training.question_meta'.trParams({
+                          'number': item.soruNo,
+                          'year': item.yil,
+                        }),
                         style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 13,
@@ -571,14 +574,14 @@ class AntremanView2 extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Column(
+                          child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CupertinoActivityIndicator(radius: 14),
-                              SizedBox(height: 12),
+                              const CupertinoActivityIndicator(radius: 14),
+                              const SizedBox(height: 12),
                               Text(
-                                'Sorular hazirlaniyor',
-                                style: TextStyle(
+                                'training.questions_loading'.tr,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF151821),

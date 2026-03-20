@@ -40,7 +40,7 @@ class Archives extends StatelessWidget {
                             if (index == 0) {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
-                                child: BackButtons(text: "Arşiv"),
+                                child: BackButtons(text: "settings.archive".tr),
                               );
                             }
 
@@ -73,8 +73,8 @@ class Archives extends StatelessWidget {
                         ))
                     : Column(
                         children: [
-                          BackButtons(text: "Arşiv"),
-                          EmptyRow(text: "Sonuç Bulunamadı"),
+                          BackButtons(text: "settings.archive".tr),
+                          EmptyRow(text: "common.no_results".tr),
                         ],
                       );
               }),

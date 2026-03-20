@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
@@ -33,7 +34,7 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Admin Onayları"),
+            BackButtons(text: 'admin.approvals.title'.tr),
             Expanded(
               child: FutureBuilder<bool>(
                 future: _canAccessFuture,
@@ -42,13 +43,13 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (accessSnap.data != true) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'Bu alan sadece admin erişimine açıktır.',
+                          'admin.no_access'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 14,
                           ),
@@ -70,10 +71,10 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
                           }
                           final docs = snap.data?.docs ?? const [];
                           if (docs.isEmpty) {
-                            return const Center(
+                            return Center(
                               child: Text(
-                                'Bekleyen admin onayı yok.',
-                                style: TextStyle(
+                                'admin.approvals.empty'.tr,
+                                style: const TextStyle(
                                   fontFamily: 'MontserratMedium',
                                   fontSize: 13,
                                 ),
@@ -152,7 +153,7 @@ class _ApprovalCardState extends State<_ApprovalCard> {
             children: [
               Expanded(
                 child: Text(
-                  title.isEmpty ? 'Admin Onayı' : title,
+                  title.isEmpty ? 'admin.approvals.default_title'.tr : title,
                   style: const TextStyle(
                     fontFamily: 'MontserratBold',
                     fontSize: 15,
@@ -175,7 +176,7 @@ class _ApprovalCardState extends State<_ApprovalCard> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Oluşturan: ${createdByNickname.isEmpty ? '-' : '@$createdByNickname'}${createdAt == null ? '' : ' • $createdAt'}',
+            '${'admin.approvals.created_by'.tr}: ${createdByNickname.isEmpty ? '-' : '@$createdByNickname'}${createdAt == null ? '' : ' • $createdAt'}',
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 11,
@@ -185,7 +186,7 @@ class _ApprovalCardState extends State<_ApprovalCard> {
           if (rejectionReason.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              'Red nedeni: $rejectionReason',
+              '${'admin.approvals.rejection_reason'.tr}: $rejectionReason',
               style: const TextStyle(
                 fontFamily: 'MontserratMedium',
                 fontSize: 11,
@@ -216,8 +217,8 @@ class _ApprovalCardState extends State<_ApprovalCard> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Onayla',
+                        : Text(
+                            'admin.approvals.approve'.tr,
                             style: TextStyle(fontFamily: 'MontserratBold'),
                           ),
                   ),
@@ -233,8 +234,8 @@ class _ApprovalCardState extends State<_ApprovalCard> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Reddet',
+                    child: Text(
+                      'admin.approvals.reject'.tr,
                       style: TextStyle(fontFamily: 'MontserratBold'),
                     ),
                   ),
@@ -268,9 +269,9 @@ class _ApprovalCardState extends State<_ApprovalCard> {
         throw Exception('unsupported_approval_type');
       }
       await _approvalRepository.approve(widget.doc.id);
-      AppSnackbar('Admin Onayları', 'İşlem onaylandı.');
+      AppSnackbar('admin.approvals.title'.tr, 'admin.approvals.approved_body'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Onay işlemi tamamlanamadı: $e');
+      AppSnackbar('support.error_title'.tr, '${'admin.approvals.approve_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() => _processing = false);
@@ -283,9 +284,9 @@ class _ApprovalCardState extends State<_ApprovalCard> {
     setState(() => _processing = true);
     try {
       await _approvalRepository.reject(widget.doc.id);
-      AppSnackbar('Admin Onayları', 'İşlem reddedildi.');
+      AppSnackbar('admin.approvals.title'.tr, 'admin.approvals.rejected_body'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'İşlem reddedilemedi: $e');
+      AppSnackbar('support.error_title'.tr, '${'admin.approvals.reject_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() => _processing = false);
@@ -319,9 +320,9 @@ class _StatusChip extends StatelessWidget {
       _ => Colors.orange,
     };
     final String label = switch (status) {
-      'approved' => 'Onaylandı',
-      'rejected' => 'Reddedildi',
-      _ => 'Bekliyor',
+      'approved' => 'admin.approvals.approved'.tr,
+      'rejected' => 'admin.approvals.rejected'.tr,
+      _ => 'admin.approvals.pending'.tr,
     };
 
     return Container(

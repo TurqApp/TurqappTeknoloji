@@ -83,7 +83,7 @@ class CreateAnswerKeyController extends GetxController {
       "cevaplar": selections.toList(),
       "name": nameController.text.isNotEmpty
           ? nameController.text
-          : "İsimsiz Optik Form",
+          : "answer_key.untitled_optical_form".tr,
       "userID": FirebaseAuth.instance.currentUser!.uid,
       "baslangic": selectedDateTime.value.millisecondsSinceEpoch,
       "bitis": selectedDateTime.value.millisecondsSinceEpoch +

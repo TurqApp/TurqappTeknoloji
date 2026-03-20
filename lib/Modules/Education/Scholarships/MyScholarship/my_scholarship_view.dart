@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class MyScholarshipView extends StatelessWidget {
@@ -113,7 +114,7 @@ class MyScholarshipView extends StatelessWidget {
                                           children: [
                                             10.ph,
                                             Text(
-                                              type == 'bireysel'
+                                              isIndividualScholarshipType(type)
                                                   ? 'scholarship.applications_suffix'
                                                       .trParams({
                                                       'title': burs.baslik,
@@ -130,7 +131,8 @@ class MyScholarshipView extends StatelessWidget {
                                             Row(
                                               children: [
                                                 Text(
-                                                  type == 'bireysel'
+                                                  isIndividualScholarshipType(
+                                                          type)
                                                       ? (userData?['nickname']
                                                                   ?.isNotEmpty ??
                                                               false

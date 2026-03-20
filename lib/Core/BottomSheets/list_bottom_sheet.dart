@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 class ListBottomSheet extends StatefulWidget {
@@ -11,15 +12,17 @@ class ListBottomSheet extends StatefulWidget {
   final String searchHintText;
   final dynamic startSelection;
   final String Function(dynamic item)? searchTextBuilder;
+  final String Function(dynamic item)? itemLabelBuilder;
 
   const ListBottomSheet({
     required this.list,
     required this.onBackData,
     required this.title,
-    this.searchHintText = "Ara",
+    this.searchHintText = "common.search",
     required this.startSelection,
     this.onBackUpdatedList,
     this.searchTextBuilder,
+    this.itemLabelBuilder,
     super.key,
   });
 
@@ -30,8 +33,9 @@ class ListBottomSheet extends StatefulWidget {
     required Function(dynamic) onSelect,
     dynamic selectedItem,
     bool isSearchable = false,
-    String searchHintText = "Ara",
+    String searchHintText = "common.search",
     String Function(dynamic item)? searchTextBuilder,
+    String Function(dynamic item)? itemLabelBuilder,
   }) async {
     await showModalBottomSheet(
       context: context,
@@ -56,6 +60,7 @@ class ListBottomSheet extends StatefulWidget {
               startSelection: selectedItem,
               onBackData: onSelect,
               searchTextBuilder: searchTextBuilder,
+              itemLabelBuilder: itemLabelBuilder,
             ),
           ),
         );
@@ -140,7 +145,7 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
                   controller: searchController,
                   focusNode: searchFocusNode,
                   decoration: InputDecoration(
-                    hintText: widget.searchHintText,
+                    hintText: widget.searchHintText.tr,
                     hintStyle: const TextStyle(
                       color: Colors.grey,
                       fontFamily: "MontserratMedium",
@@ -188,10 +193,10 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
           Expanded(
             child: Obx(
               () => controller.list.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        "Sonuç bulunamadı",
-                        style: TextStyle(
+                        'explore.no_results'.tr,
+                        style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 16,
                           fontFamily: "MontserratMedium",
@@ -221,7 +226,8 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        item.toString(),
+                                        widget.itemLabelBuilder?.call(item) ??
+                                            item.toString(),
                                         style: TextStyle(
                                           color:
                                               controller.startSelection.value ==
@@ -324,12 +330,12 @@ class ListBottomSheetController extends GetxController {
     if (query.isEmpty) {
       list.value = originalList;
     } else {
-      final normalizedQuery = query.toLowerCase();
+      final normalizedQuery = normalizeSearchText(query);
       list.value = originalList
           .where(
-            (item) => (searchTextBuilder?.call(item) ?? item.toString())
-                .toLowerCase()
-                .contains(normalizedQuery),
+            (item) => normalizeSearchText(
+              searchTextBuilder?.call(item) ?? item.toString(),
+            ).contains(normalizedQuery),
           )
           .toList();
     }

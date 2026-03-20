@@ -9,6 +9,8 @@ import '../Services/media_enhancement_service.dart';
 import '../Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../Services/PlaybackIntelligence/playback_policy_engine.dart';
 import '../Services/PlaybackIntelligence/storage_budget_manager.dart';
+import '../Services/PlaybackIntelligence/telemetry_threshold_policy.dart';
+import '../Services/PlaybackIntelligence/telemetry_threshold_policy_adapter.dart';
 import '../Services/SegmentCache/cache_manager.dart';
 import '../Services/SegmentCache/cache_metrics.dart';
 import '../Services/SegmentCache/prefetch_scheduler.dart';
@@ -107,11 +109,11 @@ class AppHealthDashboard extends StatelessWidget {
         : null;
     final recentEvents = kpiService?.recentEvents ?? const <PlaybackKpiEvent>[];
     final feedCacheSummary = kpiService?.summarizeCacheFirst(
-          surfaceKeyPrefix: 'feed_',
-        );
+      surfaceKeyPrefix: 'feed_',
+    );
     final shortCacheSummary = kpiService?.summarizeCacheFirst(
-          surfaceKeyPrefix: 'short_',
-        );
+      surfaceKeyPrefix: 'short_',
+    );
     final feedRenderSummary = kpiService?.summarizeRenderDiff(surface: 'feed');
     final shortRenderSummary =
         kpiService?.summarizeRenderDiff(surface: 'short');
@@ -161,32 +163,35 @@ class AppHealthDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Playback Intelligence',
+            Text(
+              'app_health.playback_intelligence'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            Text('Plan: ${profile.planGb} GB'),
-            Text('Medya: ${CacheMetrics.formatBytes(profile.mediaQuotaBytes)}'),
-            Text(
-                'Gorsel: ${CacheMetrics.formatBytes(profile.imageQuotaBytes)}'),
-            Text(
-              'Metadata: ${CacheMetrics.formatBytes(profile.metadataQuotaBytes)}',
-            ),
-            Text(
-              'Soft/Hard stop: '
-              '${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)} / '
-              '${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
-            ),
-            Text('Recent protect window: $recentProtectionWindow video'),
+            Text('app_health.plan_gb'
+                .trParams({'gb': profile.planGb.toString()})),
+            Text('app_health.media_quota'.trParams(
+                {'value': CacheMetrics.formatBytes(profile.mediaQuotaBytes)})),
+            Text('app_health.image_quota'.trParams(
+                {'value': CacheMetrics.formatBytes(profile.imageQuotaBytes)})),
+            Text('app_health.metadata_quota'.trParams({
+              'value': CacheMetrics.formatBytes(profile.metadataQuotaBytes)
+            })),
+            Text('app_health.soft_hard_stop'.trParams({
+              'soft':
+                  CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes),
+              'hard':
+                  CacheMetrics.formatBytes(profile.streamCacheHardStopBytes),
+            })),
+            Text('app_health.recent_protect_window'
+                .trParams({'count': recentProtectionWindow.toString()})),
             if (usage != null) ...[
               const SizedBox(height: 10),
-              Text(
-                'Aktif stream kullanim: ${CacheMetrics.formatBytes(usage.streamUsageBytes)}',
-              ),
+              Text('app_health.active_stream_usage'.trParams(
+                  {'value': CacheMetrics.formatBytes(usage.streamUsageBytes)})),
               Text(
                 'Soft oran: ${(usage.softUsageRatio * 100).toStringAsFixed(1)}%  •  Hard oran: ${(usage.hardUsageRatio * 100).toStringAsFixed(1)}%',
                 style: TextStyle(
@@ -313,7 +318,8 @@ class AppHealthDashboard extends StatelessWidget {
                   ),
                 ),
             ],
-            if (feedPlaybackSummary != null || shortPlaybackSummary != null) ...[
+            if (feedPlaybackSummary != null ||
+                shortPlaybackSummary != null) ...[
               const SizedBox(height: 10),
               const Text(
                 'Playback window ozeti',
@@ -431,26 +437,26 @@ class AppHealthDashboard extends StatelessWidget {
           case 'good':
             statusColor = Colors.green;
             statusIcon = Icons.check_circle;
-            statusText = 'Mükemmel';
-            statusDescription = 'Tüm sistemler stabil çalışıyor';
+            statusText = 'app_health.status_excellent'.tr;
+            statusDescription = 'app_health.status_excellent_desc'.tr;
             break;
           case 'fair':
             statusColor = Colors.orange;
             statusIcon = Icons.warning;
-            statusText = 'İyi';
-            statusDescription = 'Küçük sorunlar tespit edildi';
+            statusText = 'app_health.status_good'.tr;
+            statusDescription = 'app_health.status_good_desc'.tr;
             break;
           case 'poor':
             statusColor = Colors.red;
             statusIcon = Icons.error;
-            statusText = 'Dikkat Gerekli';
-            statusDescription = 'Birden fazla sorun müdahale bekliyor';
+            statusText = 'app_health.status_attention'.tr;
+            statusDescription = 'app_health.status_attention_desc'.tr;
             break;
           default:
             statusColor = Colors.grey;
             statusIcon = Icons.help;
-            statusText = 'Bilinmiyor';
-            statusDescription = 'Sistem durumu okunamadı';
+            statusText = 'common.unknown'.tr;
+            statusDescription = 'app_health.status_unknown_desc'.tr;
         }
 
         return Card(
@@ -503,7 +509,7 @@ class AppHealthDashboard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildMetric(
-                      'Son 30dk Hata',
+                      'app_health.recent_errors_30m'.tr,
                       '${health['recentErrors']}',
                       Icons.bug_report,
                       (health['recentErrors'] as int) > 5
@@ -511,13 +517,15 @@ class AppHealthDashboard extends StatelessWidget {
                           : Colors.green,
                     ),
                     _buildMetric(
-                      'Bağlantı',
-                      (health['isOnline'] as bool) ? 'Çevrimiçi' : 'Çevrimdışı',
+                      'app_health.connection'.tr,
+                      (health['isOnline'] as bool)
+                          ? 'app_health.online_status'.tr
+                          : 'app_health.offline_status'.tr,
                       Icons.wifi,
                       (health['isOnline'] as bool) ? Colors.blue : Colors.red,
                     ),
                     _buildMetric(
-                      'Kritik',
+                      'app_health.critical_short'.tr,
                       '${health['criticalErrors']}',
                       Icons.error_outline,
                       health['criticalErrors'] > 0 ? Colors.red : Colors.green,
@@ -549,8 +557,8 @@ class AppHealthDashboard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Servis Durumu',
+        Text(
+          'app_health.service_status'.tr,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -565,15 +573,17 @@ class AppHealthDashboard extends StatelessWidget {
           mainAxisSpacing: 10,
           children: [
             _buildServiceCard(
-              'Hata Yönetimi',
+              'app_health.error_management'.tr,
               _errorStatusLabel(errorStatus),
               Icons.security,
               _errorStatusColor(errorStatus),
               () => _showErrorStats(),
             ),
             _buildServiceCard(
-              'Ağ Farkındalığı',
-              (networkStats['currentNetwork'] ?? 'Bilinmiyor').toString(),
+              'app_health.network_awareness'.tr,
+              (networkStats['currentNetwork'] ??
+                      'app_health.unknown_network'.tr)
+                  .toString(),
               Icons.network_check,
               (networkStats['isConnected'] as bool? ?? false)
                   ? Colors.blue
@@ -581,29 +591,34 @@ class AppHealthDashboard extends StatelessWidget {
               () => _showNetworkStats(),
             ),
             _buildServiceCard(
-              'Yükleme Kuyruğu',
-              uploadBekliyor > 0 ? '$uploadBekliyor Bekliyor' : 'Boşta',
+              'app_health.upload_queue'.tr,
+              uploadBekliyor > 0
+                  ? 'app_health.pending_count'
+                      .trParams({'count': '$uploadBekliyor'})
+                  : 'app_health.idle'.tr,
               Icons.cloud_upload,
               uploadBekliyor > 0 ? Colors.orange : Colors.green,
               () => _showUploadStats(),
             ),
             _buildServiceCard(
-              'Otomatik Kayıt',
-              '$draftTotal Taslak',
+              'app_health.autosave'.tr,
+              'app_health.draft_count'.trParams({'count': '$draftTotal'}),
               Icons.save,
               Colors.teal,
               () => _showDraftStats(),
             ),
             _buildServiceCard(
-              'Akıllı Düzenleme',
-              canUndo ? 'Geri Al Hazır' : 'Beklemede',
+              'app_health.smart_editing'.tr,
+              canUndo ? 'app_health.undo_ready'.tr : 'app_health.standby'.tr,
               Icons.edit_note,
               Colors.purple,
               () => _showEditingStats(),
             ),
             _buildServiceCard(
-              'Medya İyileştirme',
-              mediaProcessing ? 'İşleniyor' : 'Boşta',
+              'app_health.media_enhancement'.tr,
+              mediaProcessing
+                  ? 'app_health.processing'.tr
+                  : 'app_health.idle'.tr,
               Icons.photo_filter,
               mediaProcessing ? Colors.indigo : Colors.green,
               () => _showMediaStats(),
@@ -629,11 +644,31 @@ class AppHealthDashboard extends StatelessWidget {
       cacheHitRate = Get.find<SegmentCacheManager>().metrics.cacheHitRate;
     }
 
+    final kpiReport = Get.isRegistered<PlaybackKpiService>()
+        ? TelemetryThresholdPolicyAdapter.evaluateKpiService(
+            Get.find<PlaybackKpiService>(),
+          )
+        : const TelemetryThresholdReport(issues: <TelemetryThresholdIssue>[]);
+
     final alerts = <String>[];
-    if (dataUsagePercent >= 85) alerts.add('Veri kullanımı kritik eşikte');
-    if (criticalErrors > 0) alerts.add('Kritik hata kaydı var');
-    if (pendingUploads >= 5) alerts.add('Yükleme kuyruğu yoğun');
-    if (cacheHitRate < 0.60) alerts.add('Cache hit oranı düşük');
+    if (dataUsagePercent >= 85) {
+      alerts.add('app_health.alert_data_usage_critical'.tr);
+    }
+    if (criticalErrors > 0) {
+      alerts.add('app_health.alert_critical_error'.tr);
+    }
+    if (pendingUploads >= 5) {
+      alerts.add('app_health.alert_upload_queue_busy'.tr);
+    }
+    if (cacheHitRate < 0.60) {
+      alerts.add('app_health.alert_cache_hit_low'.tr);
+    }
+    for (final issue in kpiReport.issues.take(3)) {
+      final prefix = issue.severity == TelemetryThresholdSeverity.blocking
+          ? 'BLOCK'
+          : 'WARN';
+      alerts.add('$prefix ${issue.surface}: ${issue.code}');
+    }
 
     final hasAlert = alerts.isNotEmpty;
 
@@ -654,7 +689,9 @@ class AppHealthDashboard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              hasAlert ? 'KPI Alarm Durumu: Uyarı' : 'KPI Alarm Durumu: Normal',
+              hasAlert
+                  ? 'app_health.kpi_status_alert'.tr
+                  : 'app_health.kpi_status_normal'.tr,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -662,13 +699,17 @@ class AppHealthDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Text('Cache Hit: ${(cacheHitRate * 100).toStringAsFixed(1)}%'),
-            Text('Veri Kullanımı: ${dataUsagePercent.toStringAsFixed(1)}%'),
-            Text('Kritik Hata: $criticalErrors'),
-            Text('Bekleyen Upload: $pendingUploads'),
+            Text('app_health.cache_hit'.trParams(
+                {'value': '${(cacheHitRate * 100).toStringAsFixed(1)}%'})),
+            Text('app_health.data_usage'.trParams(
+                {'value': '${dataUsagePercent.toStringAsFixed(1)}%'})),
+            Text('app_health.critical_error_count'
+                .trParams({'count': criticalErrors.toString()})),
+            Text('app_health.pending_uploads'
+                .trParams({'count': pendingUploads.toString()})),
             const SizedBox(height: 8),
             Text(
-              hasAlert ? alerts.join(' • ') : 'Tüm KPI değerleri eşik içinde.',
+              hasAlert ? alerts.join(' • ') : 'app_health.kpi_all_normal'.tr,
               style: const TextStyle(fontSize: 13),
             ),
           ],
@@ -750,22 +791,22 @@ class AppHealthDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Performans Metrikleri',
+            Text(
+              'app_health.performance_metrics'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 15),
+            _buildProgressIndicator('app_health.network_data_usage'.tr,
+                dataUsagePercent, Colors.blue),
+            _buildProgressIndicator('app_health.upload_queue_pressure'.tr,
+                queuePressure, Colors.orange),
             _buildProgressIndicator(
-                'Ağ Veri Kullanımı', dataUsagePercent, Colors.blue),
+                'app_health.critical_error_ratio'.tr, errorRatio, Colors.red),
             _buildProgressIndicator(
-                'Yükleme Kuyruk Yükü', queuePressure, Colors.orange),
-            _buildProgressIndicator(
-                'Kritik Hata Oranı', errorRatio, Colors.red),
-            _buildProgressIndicator(
-              'Medya İşleme İlerlemesi',
+              'app_health.media_processing_progress'.tr,
               processingProgress.clamp(0.0, 1.0),
               Colors.purple,
             ),
@@ -813,8 +854,8 @@ class AppHealthDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Kullanım İstatistikleri',
+            Text(
+              'app_health.usage_statistics'.tr,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -825,14 +866,14 @@ class AppHealthDashboard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildStatItem(
-                    'Tamamlanan Yükleme',
+                    'app_health.completed_uploads'.tr,
                     '${uploadStats['completed'] ?? 0}',
                     Icons.cloud_done,
                   ),
                 ),
                 Expanded(
                   child: _buildStatItem(
-                    'Medya Düzenleme',
+                    'app_health.media_edits'.tr,
                     '${mediaStats['totalEdits'] ?? 0}',
                     Icons.image,
                   ),
@@ -844,14 +885,14 @@ class AppHealthDashboard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildStatItem(
-                    'Kaydedilen Taslak',
+                    'app_health.saved_drafts'.tr,
                     '${draftStats['total'] ?? 0}',
                     Icons.drafts,
                   ),
                 ),
                 Expanded(
                   child: _buildStatItem(
-                    'İşlenen Hata',
+                    'app_health.processed_errors'.tr,
                     '${errorStats['total'] ?? 0}',
                     Icons.healing,
                   ),
@@ -863,7 +904,7 @@ class AppHealthDashboard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildStatItem(
-                    'Son Düzenleme İşlemi',
+                    'app_health.last_edit_action'.tr,
                     '${editStats['recentActions'] ?? 0}',
                     Icons.history,
                   ),
@@ -1030,13 +1071,13 @@ class AppHealthDashboard extends StatelessWidget {
   String _errorStatusLabel(String status) {
     switch (status) {
       case 'good':
-        return 'Sağlıklı';
+        return 'app_health.error_status_healthy'.tr;
       case 'fair':
-        return 'Orta';
+        return 'app_health.error_status_medium'.tr;
       case 'poor':
-        return 'Riskli';
+        return 'app_health.error_status_risky'.tr;
       default:
-        return 'Bilinmiyor';
+        return 'common.unknown'.tr;
     }
   }
 
@@ -1065,11 +1106,16 @@ class AppHealthDashboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Toplam Hata: ${stats['total']}'),
-              Text('Kritik: ${stats['critical']}'),
-              Text('Son 24 Saat: ${stats['last24Hours']}'),
-              Text('Son 1 Hafta: ${stats['lastWeek']}'),
-              Text('Tekrar Denenebilir: ${stats['retryableErrors']}'),
+              Text('app_health.error_total'
+                  .trParams({'count': '${stats['total']}'})),
+              Text('app_health.error_critical'
+                  .trParams({'count': '${stats['critical']}'})),
+              Text('app_health.error_last_24h'
+                  .trParams({'count': '${stats['last24Hours']}'})),
+              Text('app_health.error_last_week'
+                  .trParams({'count': '${stats['lastWeek']}'})),
+              Text('app_health.error_retryable'
+                  .trParams({'count': '${stats['retryableErrors']}'})),
             ],
           ),
           actions: [
@@ -1095,12 +1141,17 @@ class AppHealthDashboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Ağ: ${stats['currentNetwork']}'),
-              Text('Bağlı: ${stats['isConnected']}'),
-              Text(
-                  'Veri Kullanımı: ${stats['dataUsagePercentage'].toStringAsFixed(1)}%'),
-              Text('Aylık Kullanım: ${stats['monthlyUsageMB']} MB'),
-              Text('Kalan: ${stats['remainingMB']} MB'),
+              Text('app_health.network_label'
+                  .trParams({'value': '${stats['currentNetwork']}'})),
+              Text('app_health.connected_label'
+                  .trParams({'value': '${stats['isConnected']}'})),
+              Text('app_health.data_usage'.trParams({
+                'value': '${stats['dataUsagePercentage'].toStringAsFixed(1)}%'
+              })),
+              Text('app_health.monthly_usage_mb'
+                  .trParams({'value': '${stats['monthlyUsageMB']} MB'})),
+              Text('app_health.remaining_mb'
+                  .trParams({'value': '${stats['remainingMB']} MB'})),
             ],
           ),
           actions: [
@@ -1126,12 +1177,18 @@ class AppHealthDashboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Toplam: ${stats['total']}'),
-              Text('Bekliyor: ${stats['pending']}'),
-              Text('Tamamlanan: ${stats['completed']}'),
-              Text('Başarısız: ${stats['failed']}'),
-              Text('İşleniyor: ${stats['processing']}'),
-              Text('Duraklatıldı: ${stats['paused']}'),
+              Text('app_health.total_label'
+                  .trParams({'count': '${stats['total']}'})),
+              Text('app_health.pending_label'
+                  .trParams({'count': '${stats['pending']}'})),
+              Text('app_health.completed_label'
+                  .trParams({'count': '${stats['completed']}'})),
+              Text('app_health.failed_label'
+                  .trParams({'count': '${stats['failed']}'})),
+              Text('app_health.processing_label'
+                  .trParams({'count': '${stats['processing']}'})),
+              Text('app_health.paused_label'
+                  .trParams({'count': '${stats['paused']}'})),
             ],
           ),
           actions: [
@@ -1157,11 +1214,16 @@ class AppHealthDashboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Toplam Taslak: ${stats['total']}'),
-              Text('Bugün: ${stats['today']}'),
-              Text('Bu Hafta: ${stats['thisWeek']}'),
-              Text('Medyalı: ${stats['withMedia']}'),
-              Text('Sadece Metin: ${stats['textOnly']}'),
+              Text('app_health.total_drafts'
+                  .trParams({'count': '${stats['total']}'})),
+              Text('app_health.today_label'
+                  .trParams({'count': '${stats['today']}'})),
+              Text('app_health.this_week_label'
+                  .trParams({'count': '${stats['thisWeek']}'})),
+              Text('app_health.with_media_label'
+                  .trParams({'count': '${stats['withMedia']}'})),
+              Text('app_health.text_only_label'
+                  .trParams({'count': '${stats['textOnly']}'})),
             ],
           ),
           actions: [
@@ -1187,12 +1249,18 @@ class AppHealthDashboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Toplam İşlem: ${stats['totalActions']}'),
-              Text('Son İşlem: ${stats['recentActions']}'),
-              Text('Geri Alınabilir: ${stats['canUndo']}'),
-              Text('İleri Alınabilir: ${stats['canRedo']}'),
-              Text('Öneri Sayısı: ${stats['suggestionsGenerated']}'),
-              Text('Akıllı Öneri: ${stats['smartSuggestionsEnabled']}'),
+              Text('app_health.total_actions'
+                  .trParams({'count': '${stats['totalActions']}'})),
+              Text('app_health.recent_actions'
+                  .trParams({'count': '${stats['recentActions']}'})),
+              Text('app_health.can_undo_label'
+                  .trParams({'value': '${stats['canUndo']}'})),
+              Text('app_health.can_redo_label'
+                  .trParams({'value': '${stats['canRedo']}'})),
+              Text('app_health.suggestions_count'
+                  .trParams({'count': '${stats['suggestionsGenerated']}'})),
+              Text('app_health.smart_suggestions_label'
+                  .trParams({'value': '${stats['smartSuggestionsEnabled']}'})),
             ],
           ),
           actions: [
@@ -1218,12 +1286,18 @@ class AppHealthDashboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Toplam Düzenleme: ${stats['totalEdits']}'),
-              Text('Görsel Düzenleme: ${stats['imageEdits']}'),
-              Text('Video Düzenleme: ${stats['videoEdits']}'),
-              Text('İşleniyor: ${stats['isProcessing']}'),
-              Text('Seçili Filtre: ${stats['selectedFilter']}'),
-              Text('Düzenleme Var: ${stats['hasAdjustments']}'),
+              Text('app_health.total_edits'
+                  .trParams({'count': '${stats['totalEdits']}'})),
+              Text('app_health.image_edits'
+                  .trParams({'count': '${stats['imageEdits']}'})),
+              Text('app_health.video_edits'
+                  .trParams({'count': '${stats['videoEdits']}'})),
+              Text('app_health.processing_label'
+                  .trParams({'count': '${stats['isProcessing']}'})),
+              Text('app_health.selected_filter'
+                  .trParams({'value': '${stats['selectedFilter']}'})),
+              Text('app_health.has_adjustments'
+                  .trParams({'value': '${stats['hasAdjustments']}'})),
             ],
           ),
           actions: [

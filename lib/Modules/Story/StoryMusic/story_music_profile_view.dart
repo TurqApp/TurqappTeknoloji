@@ -131,7 +131,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
     if (nickname.isNotEmpty) return nickname;
     final displayName = data?.displayName.trim() ?? '';
     if (displayName.isNotEmpty) return displayName;
-    return '@kullanici';
+    return 'story.placeholder_nickname'.tr;
   }
 
   String _resolveFullName(UserSummary? data) {

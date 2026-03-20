@@ -13,10 +13,10 @@ class SpotifySelector extends StatelessWidget {
   final controller = Get.put(SpotifySelectorController());
 
   static const List<String> _tabs = <String>[
-    'Senin için',
-    'Popüler',
-    'Tümü',
-    'Kaydedildi',
+    'spotify.tab.for_you',
+    'spotify.tab.popular',
+    'spotify.tab.all',
+    'common.saved',
   ];
 
   @override
@@ -27,7 +27,7 @@ class SpotifySelector extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Müzik'),
+            BackButtons(text: 'spotify.title'.tr),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
               child: _searchBar(),
@@ -44,9 +44,9 @@ class SpotifySelector extends StatelessWidget {
 
                 final tracks = controller.currentTabTracks();
                 if (tracks.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
-                      'Henüz müzik yok',
+                      'spotify.empty'.tr,
                       style: TextStyle(
                         color: Color(0xFF7A828C),
                         fontSize: 14,
@@ -89,7 +89,7 @@ class SpotifySelector extends StatelessWidget {
                             Text(
                               currentTrack.title.isNotEmpty
                                   ? currentTrack.title
-                                  : 'İsimsiz Parça',
+                                  : 'spotify.untitled_track'.tr,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -223,7 +223,7 @@ class SpotifySelector extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    _tabs[index],
+                    _tabs[index].tr,
                     style: TextStyle(
                       color: selected ? Colors.white : const Color(0xFF5B6572),
                       fontSize: 12,
@@ -274,7 +274,9 @@ class SpotifySelector extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          track.title.isNotEmpty ? track.title : 'İsimsiz Parça',
+                          track.title.isNotEmpty
+                              ? track.title
+                              : 'spotify.untitled_track'.tr,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -297,7 +299,10 @@ class SpotifySelector extends StatelessWidget {
                           ),
                         const SizedBox(height: 6),
                         Text(
-                          '${track.storyCount} hikaye • ${track.useCount} kullanım',
+                          'spotify.usage_summary'.trParams({
+                            'storyCount': '${track.storyCount}',
+                            'useCount': '${track.useCount}',
+                          }),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

@@ -69,7 +69,7 @@ class LocationShareViewChat extends StatelessWidget {
                 ),
                 child: Obx(() => Text(
                       controller.currentAddress.value.isEmpty
-                          ? "Adres alınıyor..."
+                          ? 'chat.fetching_address'.tr
                           : controller.currentAddress.value,
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -133,7 +133,7 @@ class LocationShareViewChat extends StatelessWidget {
               right: 20,
               child: TurqAppButton(
                 onTap: controller.shareLocation,
-                text: "Paylaş",
+                text: 'common.share'.tr,
               ),
             )
           ],

@@ -56,8 +56,8 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'İlanlarım',
+        title: Text(
+          'pasaj.market.my_listings'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -83,11 +83,11 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
               padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
               children: [
                 if (visible.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 60),
                     child: Center(
                       child: Text(
-                        'Bu durumda ilan bulunamadi.',
+                        'pasaj.market.empty_my_listings'.tr,
                         style: TextStyle(
                           color: Colors.black54,
                           fontSize: 14,
@@ -169,24 +169,24 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
                       itemBuilder: (context) => [
                         PullDownMenuItem(
                           onTap: () => _onMenuAction(item, 'edit'),
-                          title: 'Düzenle',
+                          title: 'common.edit'.tr,
                           icon: CupertinoIcons.pencil,
                         ),
                         PullDownMenuItem(
                           onTap: () => _onMenuAction(item, 'share'),
-                          title: 'Paylaş',
+                          title: 'common.share'.tr,
                           icon: CupertinoIcons.share,
                         ),
                         if (item.status != 'active')
                           PullDownMenuItem(
                             onTap: () => _onMenuAction(item, 'active'),
-                            title: 'Aktif Yap',
+                            title: 'pasaj.market.status.active'.tr,
                             icon: CupertinoIcons.check_mark_circled,
                           ),
                         if (item.status != 'sold')
                           PullDownMenuItem(
                             onTap: () => _onMenuAction(item, 'sold'),
-                            title: 'Satıldı Yap',
+                            title: 'pasaj.market.status.sold'.tr,
                             icon: CupertinoIcons.check_mark,
                           ),
                       ],
@@ -250,22 +250,25 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
         _busyIds.remove(item.id);
         _reload(force: true);
       });
-      AppSnackbar('Tamam', _actionSuccessText(action));
+      AppSnackbar('common.success'.tr, _actionSuccessText(action));
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _busyIds.remove(item.id);
       });
-      AppSnackbar('Hata', 'İlan durumu güncellenemedi.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.market.status_update_failed'.tr,
+      );
     }
   }
 
   String _actionSuccessText(String action) {
     switch (action) {
       case 'sold':
-        return 'İlan satıldı olarak işaretlendi.';
+        return 'pasaj.market.marked_sold'.tr;
       default:
-        return 'İlan aktif duruma alındı.';
+        return 'pasaj.market.marked_active'.tr;
     }
   }
 
@@ -295,15 +298,15 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
   String _statusLabel(String status) {
     switch (status) {
       case 'sold':
-        return 'Satıldı';
+        return 'pasaj.market.status.sold'.tr;
       case 'reserved':
-        return 'Rezerve';
+        return 'pasaj.market.status.reserved'.tr;
       case 'draft':
-        return 'Taslak';
+        return 'pasaj.market.status.draft'.tr;
       case 'archived':
-        return 'Arşiv';
+        return 'pasaj.market.status.archived'.tr;
       default:
-        return 'Aktif';
+        return 'pasaj.market.status.active'.tr;
     }
   }
 

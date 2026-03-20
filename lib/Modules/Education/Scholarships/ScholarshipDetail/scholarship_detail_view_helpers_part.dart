@@ -36,15 +36,13 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
     String urlString = website.trim();
     if (urlString.isEmpty) {
       AppSnackbar(
-        "Uyarı!",
-        "Bu burs için bir başvuru bağlantısı bulunmamaktadır.",
+        "common.warning".tr,
+        "scholarship.application_link_missing".tr,
       );
       return;
     }
 
-    if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
-      urlString = 'https://$urlString';
-    }
+    urlString = ensureUrlHasScheme(urlString);
 
     final url = Uri.parse(urlString);
     if (await canLaunchUrl(url)) {

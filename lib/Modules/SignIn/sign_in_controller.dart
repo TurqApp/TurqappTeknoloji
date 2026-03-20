@@ -12,6 +12,8 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/notification_service.dart';
@@ -35,9 +37,11 @@ class SignInController extends GetxController
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSubdocRepository _userSubdocRepository =
       UserSubdocRepository.ensure();
-  late AnimationController animationController;
+  static const String _loginWord = 'TurqApp';
 
   var selection = 0.obs;
+  final typedBrandLength = 0.obs;
+  final showBrandCursor = true.obs;
 
   TextEditingController emailcontroller = TextEditingController();
   TextEditingController passwordcontroller = TextEditingController();
@@ -91,6 +95,9 @@ class SignInController extends GetxController
   Timer? _timer;
   Timer? _emailAvailabilityDebounce;
   Timer? _nicknameAvailabilityDebounce;
+  Timer? _typewriterTimer;
+  Timer? _cursorBlinkTimer;
+  Worker? _selectionWorker;
   var signupCodeRequested = false.obs;
   var otpRequestInFlight = false.obs;
 
@@ -139,11 +146,6 @@ class SignInController extends GetxController
   Future<void> _clearSessionCachesAfterAccountSwitch() async {
     // User switch should preserve global content caches.
     // Warmup methods refresh user-scoped overlays and controllers afterward.
-  }
-
-  Future<void> _restoreAccountIfPendingDeletion() async {
-    await CurrentUserService.instance
-        .restorePendingDeletionIfNeededForCurrentUser();
   }
 
   Future<void> _trackCurrentAccountForDevice() async {
@@ -205,8 +207,8 @@ class SignInController extends GetxController
 
   String _resolvedSignInEmail() {
     final raw = emailcontroller.text.trim();
-    if (raw.contains('@')) return raw.toLowerCase();
-    return signInEmail.value.trim().toLowerCase();
+    if (raw.contains('@')) return normalizeEmailAddress(raw);
+    return normalizeEmailAddress(signInEmail.value);
   }
 
   Future<void> _persistStoredSessionCredential({
@@ -214,7 +216,7 @@ class SignInController extends GetxController
     String? password,
   }) async {
     final authUser = FirebaseAuth.instance.currentUser;
-    final resolvedEmail = (email ?? authUser?.email ?? '').trim().toLowerCase();
+    final resolvedEmail = normalizeEmailAddress(email ?? authUser?.email);
     final resolvedPassword = (password ?? '').trim();
     if (authUser == null || resolvedEmail.isEmpty || resolvedPassword.isEmpty) {
       return;
@@ -228,11 +230,11 @@ class SignInController extends GetxController
 
   Future<String> preferredIdentifierForStoredAccount(
       StoredAccount account) async {
-    final emailFromAccount = account.email.trim().toLowerCase();
+    final emailFromAccount = normalizeEmailAddress(account.email);
     if (emailFromAccount.isNotEmpty) return emailFromAccount;
     if (account.hasPasswordProvider) {
       final credential = await AccountSessionVault.instance.read(account.uid);
-      final email = credential?.email.trim() ?? '';
+      final email = normalizeEmailAddress(credential?.email);
       if (email.isNotEmpty) return email;
     }
     return account.username;
@@ -283,8 +285,8 @@ class SignInController extends GetxController
   void maybeClearStoredAccountContextForIdentifier(String identifier) {
     final selected = selectedStoredAccount.value;
     if (selected == null) return;
-    final normalized = identifier.trim().toLowerCase();
-    final selectedUsername = selected.username.trim().toLowerCase();
+    final normalized = normalizeNicknameInput(identifier);
+    final selectedUsername = normalizeNicknameInput(selected.username);
     if (normalized.isEmpty || normalized != selectedUsername) {
       selectedStoredAccount.value = null;
     }
@@ -293,11 +295,12 @@ class SignInController extends GetxController
   @override
   void onInit() {
     super.onInit();
-
-    animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
+    _startBrandTypewriter();
+    _selectionWorker = ever<int>(selection, (value) {
+      if (value == 0 || value == 1) {
+        _startBrandTypewriter();
+      }
+    });
 
     emailFocus.value.addListener(() => emailFocus.refresh());
     passwordFocus.value.addListener(() => passwordFocus.refresh());
@@ -374,12 +377,62 @@ class SignInController extends GetxController
     resetOtpController.dispose();
     newPasswordController.dispose();
     newPasswordRepeatController.dispose();
-    animationController.dispose();
     _timer?.cancel();
     _timerReset?.cancel();
     _emailAvailabilityDebounce?.cancel();
     _nicknameAvailabilityDebounce?.cancel();
+    _typewriterTimer?.cancel();
+    _cursorBlinkTimer?.cancel();
+    _selectionWorker?.dispose();
     super.onClose();
+  }
+
+  String get typedBrandText =>
+      _loginWord.substring(0, typedBrandLength.value.clamp(0, _loginWord.length));
+
+  void _startBrandTypewriter() {
+    _typewriterTimer?.cancel();
+    _cursorBlinkTimer?.cancel();
+    typedBrandLength.value = 1;
+    showBrandCursor.value = true;
+
+    final remainingChars = (_loginWord.length - 1).clamp(0, _loginWord.length);
+    if (remainingChars == 0) {
+      showBrandCursor.value = false;
+      return;
+    }
+
+    _typewriterTimer = Timer.periodic(
+      const Duration(milliseconds: 110),
+      (timer) {
+        if (isClosed) {
+          timer.cancel();
+          return;
+        }
+        if (typedBrandLength.value >= _loginWord.length) {
+          showBrandCursor.value = false;
+          timer.cancel();
+          return;
+        }
+        typedBrandLength.value += 1;
+      },
+    );
+
+    _cursorBlinkTimer = Timer.periodic(
+      const Duration(milliseconds: 220),
+      (timer) {
+        if (isClosed) {
+          timer.cancel();
+          return;
+        }
+        if (typedBrandLength.value >= _loginWord.length) {
+          showBrandCursor.value = false;
+          timer.cancel();
+          return;
+        }
+        showBrandCursor.value = !showBrandCursor.value;
+      },
+    );
   }
 
   void _validateForm() {

@@ -109,7 +109,7 @@ extension ChatControllerActionsPart on ChatController {
       isSelectionMode.value = false;
       _refreshMergedMessages();
     } catch (e) {
-      AppSnackbar("Hata", "Mesajlar silinemedi");
+      AppSnackbar('common.error'.tr, 'chat.messages_delete_failed'.tr);
     }
   }
 
@@ -545,13 +545,16 @@ extension ChatControllerActionsPart on ChatController {
     String? replySenderIdOverride,
     String? replyMessageIdOverride,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.sendMessage)) {
+      return;
+    }
     final text = (textOverride ?? textEditingController.text).trim();
 
     // 1. Küfür kontrolü
     if (text.isNotEmpty && kufurKontrolEt(text)) {
       AppSnackbar(
-        "Topluluk Kurallarına Aykırı",
-        "Göndermeye çalıştığınız mesaj uygunsuz içerik içeriyor. Lütfen saygılı bir dil kullanın.",
+        'comments.community_violation_title'.tr,
+        'comments.community_violation_body'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
       return;
@@ -579,19 +582,21 @@ extension ChatControllerActionsPart on ChatController {
       // Notif body
       String notifBody;
       if (videoUrl != null && videoUrl.isNotEmpty) {
-        notifBody = "Bir video gönderdi";
+        notifBody = 'chat.notif_video'.tr;
       } else if (audioUrl != null && audioUrl.isNotEmpty) {
-        notifBody = "Sesli mesaj gönderdi";
+        notifBody = 'chat.notif_audio'.tr;
       } else if (imageUrls != null && imageUrls.isNotEmpty) {
-        notifBody = "${imageUrls.length} adet resim gönderdi";
+        notifBody = 'chat.notif_images'.trParams({
+          'count': imageUrls.length.toString(),
+        });
       } else if (postID != null && postID.isNotEmpty) {
-        notifBody = "Bir gönderi paylaştı";
+        notifBody = 'chat.notif_post'.tr;
       } else if (latLng != null) {
-        notifBody = "Bir konum gönderdi";
+        notifBody = 'chat.notif_location'.tr;
       } else if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty) {
-        notifBody = "Bir rehber bilgisi paylaştı";
+        notifBody = 'chat.notif_contact'.tr;
       } else if (gif != null && gif.isNotEmpty) {
-        notifBody = "Bir GIF gönderdi";
+        notifBody = 'chat.notif_gif'.tr;
       } else {
         notifBody = text;
       }
@@ -615,30 +620,30 @@ extension ChatControllerActionsPart on ChatController {
         inferredReplyTarget = repliedModel.rawDocID;
         if (repliedModel.video.isNotEmpty) {
           inferredReplyType = "video";
-          inferredReplyText = "🎥 Video";
+          inferredReplyText = "🎥 ${'chat.video'.tr}";
           inferredReplyTarget = repliedModel.video;
         } else if (repliedModel.imgs.isNotEmpty) {
           inferredReplyType = "media";
-          inferredReplyText = "📷 Fotoğraf";
+          inferredReplyText = "📷 ${'chat.photo'.tr}";
           inferredReplyTarget = repliedModel.imgs.first;
         } else if (repliedModel.sesliMesaj.isNotEmpty) {
           inferredReplyType = "audio";
-          inferredReplyText = "🎤 Ses";
+          inferredReplyText = "🎤 ${'chat.audio'.tr}";
         } else if (repliedModel.lat != 0 || repliedModel.long != 0) {
           inferredReplyType = "location";
-          inferredReplyText = "📍 Konum";
+          inferredReplyText = "📍 ${'chat.location'.tr}";
         } else if (repliedModel.postID.trim().isNotEmpty) {
           inferredReplyType = "post";
-          inferredReplyText = "🔗 Gönderi";
+          inferredReplyText = "🔗 ${'chat.post'.tr}";
           inferredReplyTarget = repliedModel.postID.trim();
         } else if (repliedModel.kisiAdSoyad.trim().isNotEmpty) {
           inferredReplyType = "contact";
-          inferredReplyText = "👤 Kişi";
+          inferredReplyText = "👤 ${'chat.person'.tr}";
         } else {
           inferredReplyType = "text";
           inferredReplyText = repliedModel.metin.trim().isNotEmpty
               ? repliedModel.metin
-              : "Mesaj";
+              : 'chat.message_hint'.tr;
         }
       }
 
@@ -765,7 +770,7 @@ extension ChatControllerActionsPart on ChatController {
               final authName =
                   FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
               if (authName.isNotEmpty) return authName;
-              return 'TurqApp';
+              return 'app.name'.tr;
             })();
             final marketItemId = (marketContext['itemId'] ?? '').toString();
             if (marketItemId.isNotEmpty) {
@@ -784,14 +789,14 @@ extension ChatControllerActionsPart on ChatController {
                 title: senderLabel,
                 body: notifBody,
                 docID: chatID,
-                type: "Chat",
+                type: kNotificationPostTypeChat,
                 targetUserID: resolvedTargetUid,
               );
             }
           } catch (_) {}
         }
       } catch (_) {
-        AppSnackbar("Hata", "Mesaj gönderilemedi. Lütfen tekrar dene.");
+        AppSnackbar('common.error'.tr, 'chat.message_send_failed'.tr);
       }
 
       if (textOverride == null) {

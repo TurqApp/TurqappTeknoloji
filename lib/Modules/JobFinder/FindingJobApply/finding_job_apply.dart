@@ -24,7 +24,9 @@ class FindingJobApply extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.all(15),
                   child: Row(
-                    children: [BackButtons(text: "İş Arıyorum Platformu")],
+                    children: [
+                      BackButtons(text: "pasaj.job_finder.finding_platform".tr)
+                    ],
                   ),
                 ),
                 Padding(
@@ -33,7 +35,7 @@ class FindingJobApply extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "İş Arıyorum Platformu Nasıl Çalışır ?",
+                        "pasaj.job_finder.finding_how".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -43,7 +45,7 @@ class FindingJobApply extends StatelessWidget {
                         height: 12,
                       ),
                       Text(
-                        "Özgeçmişiniz, onayınız doğrultusunda işverenlerle paylaşılacaktır. İşverenler, ilan yayınlamadan önce ihtiyaç duydukları pozisyonlara uygun adayları sistemimiz üzerinden inceleyebilir. Böylece hem işverenler aradıkları çalışanlara daha hızlı ulaşabilir hem de siz iş arayanlar daha kısa sürede iş fırsatlarına erişebilirsiniz. Amacımız, işe alım sürecini her iki taraf için de daha hızlı ve etkili hale getirmektir.",
+                        "pasaj.job_finder.finding_body".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -73,7 +75,8 @@ class FindingJobApply extends StatelessWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "İş Arıyorum",
+                                            "pasaj.job_finder.looking_for_job"
+                                                .tr,
                                             style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -106,7 +109,7 @@ class FindingJobApply extends StatelessWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "CV Oluştur",
+                                            "pasaj.job_finder.create_cv".tr,
                                             style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,

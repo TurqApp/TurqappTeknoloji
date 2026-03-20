@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -25,7 +26,8 @@ class AntremanScore extends StatelessWidget {
           Column(
             children: [
               BackButtons(
-                text: "${controller.monthName} Ayı Puan Tablosu",
+                text: 'training.monthly_scoreboard'
+                    .trParams({'month': controller.monthName}),
               ),
               Expanded(
                 child: Obx(() {
@@ -402,29 +404,8 @@ class AntremanScore extends StatelessWidget {
   }
 
   Widget _buildRozetIcon(String rozet, double size) {
-    Color? color;
-    switch (rozet) {
-      case 'Kirmizi':
-        color = Colors.red;
-        break;
-      case 'Mavi':
-        color = Colors.blue;
-        break;
-      case 'Sari':
-        color = Colors.orange;
-        break;
-      case 'Siyah':
-        color = Colors.black;
-        break;
-      case 'Gri':
-        color = Colors.grey;
-        break;
-      case 'Turkuaz':
-        color = const Color(0xFF40E0D0);
-        break;
-    }
-
-    if (color == null) {
+    final color = mapRozetToColor(rozet);
+    if (color == Colors.transparent) {
       return const SizedBox.shrink();
     }
 

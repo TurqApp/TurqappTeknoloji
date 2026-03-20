@@ -74,7 +74,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Önerilen Kişiler",
+                  'recommended_users.title'.tr,
                   style: TextStyles.bold16Black,
                 ),
                 12.pw,
@@ -136,7 +136,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Önerilen Kişiler",
+                'recommended_users.title'.tr,
                 style: TextStyles.bold16Black,
               ),
               12.pw,

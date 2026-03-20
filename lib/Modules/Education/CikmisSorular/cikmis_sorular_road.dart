@@ -17,27 +17,62 @@ class CikmisSorularRoad extends StatefulWidget {
 class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> sinavTurleri = [];
+  static const _english = 'İngilizce';
+  static const _german = 'Almanca';
+  static const _arabic = 'Arapça';
+  static const _french = 'Fransızca';
+  static const _russian = 'Rusça';
+  static const _associate = 'Ön Lisans';
+  static const _undergraduate = 'Lisans';
+  static const _legacyMiddleSchool = 'Orta Öğretim';
+  static const _middleSchool = 'Ortaöğretim';
+  static const _tyt = 'TYT';
+  static const _ayt = 'AYT';
+  static const _ydt = 'YDT';
+  static const _ktbt = 'KTBT';
+  static const _ttbt = 'TTBT';
+  static const _ales = 'ALES';
+  static const _yks = 'YKS';
+  static const _kpss = 'KPSS';
 
   String _localizedExamType(String raw) {
-    switch (raw) {
-      case 'İngilizce':
+    switch (_normalizedExamType(raw)) {
+      case _english:
         return 'tests.language.english'.tr;
-      case 'Almanca':
+      case _german:
         return 'tests.language.german'.tr;
-      case 'Arapça':
+      case _arabic:
         return 'tests.language.arabic'.tr;
-      case 'Fransızca':
+      case _french:
         return 'tests.language.french'.tr;
-      case 'Rusça':
+      case _russian:
         return 'tests.language.russian'.tr;
-      case 'Ön Lisans':
+      case _associate:
         return 'past_questions.exam_type.associate'.tr;
-      case 'Lisans':
+      case _undergraduate:
         return 'past_questions.exam_type.undergraduate'.tr;
-      case 'Orta Öğretim':
+      case _middleSchool:
         return 'past_questions.exam_type.middle_school'.tr;
       default:
         return raw;
+    }
+  }
+
+  String _normalizedExamType(String raw) {
+    if (raw == _legacyMiddleSchool) return _middleSchool;
+    return raw;
+  }
+
+  bool _isLanguageExam(String raw) {
+    switch (_normalizedExamType(raw)) {
+      case _english:
+      case _german:
+      case _arabic:
+      case _french:
+      case _russian:
+        return true;
+      default:
+        return false;
     }
   }
 
@@ -54,7 +89,7 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
       final normalized = <String>[];
       for (final sinavTuru in sinavTurleriList) {
         if (normalized.contains(sinavTuru)) continue;
-        if (sinavTuru != "İngilizce") {
+        if (_normalizedExamType(sinavTuru) != _english) {
           normalized.add(sinavTuru);
         } else {
           normalized.insert(0, sinavTuru);
@@ -62,17 +97,19 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
       }
 
       // Eğer widget.anaBaslik YKS ise, özel sıralama yap
-      if (widget.anaBaslik == "YKS") {
+      if (widget.anaBaslik == _yks) {
         normalized.sort((a, b) {
-          // Özel sıralama için TYT, AYT, YDT sırasını kullan
-          List<String> tytAytdytOrder = ["TYT", "AYT", "YDT"];
-          return tytAytdytOrder.indexOf(a).compareTo(tytAytdytOrder.indexOf(b));
+          const tytAytdytOrder = [_tyt, _ayt, _ydt];
+          return tytAytdytOrder
+              .indexOf(_normalizedExamType(a))
+              .compareTo(tytAytdytOrder.indexOf(_normalizedExamType(b)));
         });
-      } else if (widget.anaBaslik == "KPSS") {
-        // KPSS için özel sıralama: Lisans, Ön Lisans, Orta Öğretim
+      } else if (widget.anaBaslik == _kpss) {
         normalized.sort((a, b) {
-          List<String> kpssOrder = ["Lisans", "Ön Lisans", "Orta Öğretim"];
-          return kpssOrder.indexOf(a).compareTo(kpssOrder.indexOf(b));
+          const kpssOrder = [_undergraduate, _associate, _middleSchool];
+          return kpssOrder
+              .indexOf(_normalizedExamType(a))
+              .compareTo(kpssOrder.indexOf(_normalizedExamType(b)));
         });
       } else {}
 
@@ -114,15 +151,12 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (sinavTurleri[index] == "TYT" ||
-                                  sinavTurleri[index] == "AYT" ||
-                                  (sinavTurleri[index] == "İngilizce" ||
-                                      sinavTurleri[index] == "Almanca" ||
-                                      sinavTurleri[index] == "Arapça" ||
-                                      sinavTurleri[index] == "Fransızca" ||
-                                      sinavTurleri[index] == "Rusça") ||
-                                  sinavTurleri[index] == "Ön Lisans") {
-                                // diger dilleri eklemeyi unutma yds
+                              final selectedExamType =
+                                  _normalizedExamType(sinavTurleri[index]);
+                              if (selectedExamType == _tyt ||
+                                  selectedExamType == _ayt ||
+                                  _isLanguageExam(selectedExamType) ||
+                                  selectedExamType == _associate) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -135,9 +169,9 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                                     ),
                                   ),
                                 );
-                              } else if (sinavTurleri[index] == "KTBT" ||
-                                  sinavTurleri[index] == "TTBT" ||
-                                  sinavTurleri[index] == "ALES") {
+                              } else if (selectedExamType == _ktbt ||
+                                  selectedExamType == _ttbt ||
+                                  selectedExamType == _ales) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -150,8 +184,7 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                                     ),
                                   ),
                                 );
-                              } else if (sinavTurleri[index] ==
-                                  "Orta Öğretim") {
+                              } else if (selectedExamType == _middleSchool) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -164,7 +197,7 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                                     ),
                                   ),
                                 );
-                              } else if (sinavTurleri[index] == "YDT") {
+                              } else if (selectedExamType == _ydt) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -179,7 +212,7 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                               // else if (sinavTurleri[index] == "DGS" || sinavTurleri[index] == "LGS" || sinavTurleri[index] == "ALES"){
                               //   ///DIREKT YONLENDIRME //Navigator.push(context, MaterialPageRoute(builder: (context) => CikmisSorularYilSectirme(anaBaslik: widget.anaBaslik, sinavTuru: sinavTurleri[index])));
                               // }
-                              else if (sinavTurleri[index] == "Lisans") {
+                              else if (selectedExamType == _undergraduate) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 
 class MaintenanceView extends StatefulWidget {
@@ -56,8 +57,8 @@ class _MaintenanceViewState extends State<MaintenanceView>
                       ),
                     ),
                     const SizedBox(height: 30),
-                    const Text(
-                      "Kısa Bir Ara Veriyoruz",
+                    Text(
+                      'maintenance.title'.tr,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 25,
@@ -66,8 +67,8 @@ class _MaintenanceViewState extends State<MaintenanceView>
                       ),
                     ),
                     const SizedBox(height: 30),
-                    const Text(
-                      "Daha hızlı, daha güvenli ve daha keyifli bir deneyim için altyapımızı geliştiriyoruz.",
+                    Text(
+                      'maintenance.body'.tr,
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -78,8 +79,8 @@ class _MaintenanceViewState extends State<MaintenanceView>
                     ),
                   ],
                 ),
-                const Text(
-                  "© 2025 TurqApp A.Ş.",
+                Text(
+                  'maintenance.footer'.tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),

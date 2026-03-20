@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
@@ -17,8 +17,6 @@ class BookletPreview extends StatelessWidget {
   const BookletPreview({required this.model, super.key});
 
   final BookletModel model;
-
-  bool _isOwner(String userId) => userId == FirebaseAuth.instance.currentUser?.uid;
 
   Widget _infoRow(String label, String value) {
     return Padding(
@@ -142,7 +140,7 @@ class BookletPreview extends StatelessWidget {
         color: const Color(0xFFF6F7FB),
       ),
       child: GestureDetector(
-        onTap: _isOwner(controller.model.userID)
+        onTap: isCurrentUserId(controller.model.userID)
             ? null
             : () => Get.to(() => SocialProfile(userID: controller.model.userID)),
         child: Row(
@@ -172,7 +170,7 @@ class BookletPreview extends StatelessWidget {
                       Flexible(
                         child: Text(
                           controller.nickname.value.isEmpty
-                              ? 'Turq Kullanıcı'
+                              ? 'answer_key.default_user'.tr
                               : controller.nickname.value,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -188,9 +186,9 @@ class BookletPreview extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _isOwner(controller.model.userID)
-                        ? 'Kitap sahibi'
-                        : 'Profili görüntüle',
+                    isCurrentUserId(controller.model.userID)
+                        ? 'answer_key.book_owner'.tr
+                        : 'answer_key.view_profile'.tr,
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 13,
@@ -200,7 +198,7 @@ class BookletPreview extends StatelessWidget {
                 ],
               ),
             ),
-            if (!_isOwner(controller.model.userID))
+            if (!isCurrentUserId(controller.model.userID))
               const Icon(
                 CupertinoIcons.chevron_right,
                 color: Colors.black45,

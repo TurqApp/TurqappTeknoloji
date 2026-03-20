@@ -601,7 +601,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
       AppSnackbar('common.info'.tr, 'tutoring.phone_missing'.tr);
       return;
     }
-    final digits = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(rawPhone);
     String dialValue = rawPhone;
     if (digits.startsWith('90') && digits.length == 12) {
       dialValue = '+$digits';

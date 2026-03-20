@@ -77,7 +77,7 @@ class LocationFinderView extends StatelessWidget {
                 ),
                 child: Obx(() => Text(
                       controller.currentAddress.value.isEmpty
-                          ? "Adres alınıyor..."
+                          ? 'location.address_fetching'.tr
                           : controller.currentAddress.value,
                       textAlign: TextAlign.center,
                       style: TextStyle(

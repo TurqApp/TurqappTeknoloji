@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -14,11 +15,29 @@ class ReshareHelper {
   // Cache temizleme için zaman damgası
   static DateTime? _lastCacheCleanup;
 
+  static String get _unknownUser => 'common.unknown_user'.tr;
+  static const Set<String> _unknownUserVariants = <String>{
+    '',
+    'common.unknown_user',
+    'bilinmeyen kullanıcı',
+    'unknown user',
+    'unbekannter benutzer',
+    'utilisateur inconnu',
+    'utente sconosciuto',
+    'неизвестный пользователь',
+  };
+
+  static bool isUnknownUserLabel(String? value) {
+    final normalized = normalizeSearchText(value ?? '');
+    return _unknownUserVariants.contains(normalized) ||
+        normalized == normalizeSearchText(_unknownUser);
+  }
+
   /// Kullanıcının nickname'ini userID'den alır (cache ile)
   static Future<String> getUserNickname(String userID) async {
     try {
       final safeUserID = userID.trim();
-      if (safeUserID.isEmpty) return 'Bilinmeyen Kullanıcı';
+      if (safeUserID.isEmpty) return _unknownUser;
 
       final me = FirebaseAuth.instance.currentUser?.uid;
       if (me != null &&
@@ -37,7 +56,7 @@ class ReshareHelper {
         return _nicknameCache[safeUserID]!;
       }
 
-      String nickname = 'Bilinmeyen Kullanıcı';
+      String nickname = _unknownUser;
       final summary = await _userSummaryResolver.resolve(
         safeUserID,
         preferCache: true,
@@ -62,7 +81,7 @@ class ReshareHelper {
       return nickname;
     } catch (e) {
       debugPrint('ReshareHelper nickname lookup error: $e');
-      return 'Bilinmeyen Kullanıcı';
+      return _unknownUser;
     }
   }
 
@@ -70,7 +89,7 @@ class ReshareHelper {
   static Future<String> getUserDisplayName(String userID) async {
     try {
       final safeUserID = userID.trim();
-      if (safeUserID.isEmpty) return 'Bilinmeyen Kullanıcı';
+      if (safeUserID.isEmpty) return _unknownUser;
 
       final me = FirebaseAuth.instance.currentUser?.uid;
       if (me != null &&
@@ -92,7 +111,7 @@ class ReshareHelper {
         return _displayNameCache[safeUserID]!;
       }
 
-      String displayName = 'Bilinmeyen Kullanıcı';
+      String displayName = _unknownUser;
       final summary = await _userSummaryResolver.resolve(
         safeUserID,
         preferCache: true,
@@ -109,7 +128,7 @@ class ReshareHelper {
       return displayName;
     } catch (e) {
       debugPrint('ReshareHelper displayName lookup error: $e');
-      return 'Bilinmeyen Kullanıcı';
+      return _unknownUser;
     }
   }
 

@@ -7,14 +7,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
-import 'package:turqappv2/Core/Services/typesense_market_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
+import 'package:turqappv2/Modules/Market/market_category_utils.dart';
 import 'package:turqappv2/Modules/Market/market_category_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
@@ -44,6 +48,8 @@ class MarketController extends GetxController {
   ];
 
   final MarketSchemaService _schemaService = MarketSchemaService.ensure();
+  final MarketSnapshotRepository _marketSnapshotRepository =
+      MarketSnapshotRepository.ensure();
   final MarketRepository _repository = MarketRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
@@ -52,6 +58,7 @@ class MarketController extends GetxController {
   final TextEditingController search = TextEditingController();
 
   final RxDouble scrollOffset = 0.0.obs;
+  final RxBool listingSelectionReady = false.obs;
   final RxInt listingSelection = 0.obs;
   final RxBool isLoading = false.obs;
   final RxBool isSearchLoading = false.obs;
@@ -73,6 +80,7 @@ class MarketController extends GetxController {
   final RxList<String> savedItemIds = <String>[].obs;
   final RxMap<String, int> roundMenuBadges = <String, int>{}.obs;
   final RxList<String> recentSearches = <String>[].obs;
+  StreamSubscription<CachedResource<List<MarketItemModel>>>? _homeSnapshotSub;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
 
@@ -83,6 +91,7 @@ class MarketController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
       listingSelection.value = 0;
+      listingSelectionReady.value = true;
       return;
     }
     try {
@@ -91,6 +100,8 @@ class MarketController extends GetxController {
       listingSelection.value = stored == 1 ? 1 : 0;
     } catch (_) {
       listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
     }
   }
 
@@ -117,6 +128,7 @@ class MarketController extends GetxController {
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
     _searchDebounce?.cancel();
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
@@ -137,28 +149,17 @@ class MarketController extends GetxController {
             );
       categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
-
-      final cached = await TypesenseMarketSearchService.instance.searchItems(
-        query: '*',
-        limit: 120,
-        cacheOnly: true,
-      );
-      final activeCached = cached
-          .where((item) => item.status == 'active')
-          .toList(growable: false);
-      if (activeCached.isNotEmpty) {
-        items.assignAll(_mergePendingCreatedItems(activeCached));
-        await _loadAllCityOptions();
-        await _loadSavedItems();
-        await _loadRoundMenuBadges(forceRefresh: false);
-        _applyFilters();
-        isLoading.value = false;
-        await loadHomeData(silent: true);
-        return;
-      }
     } catch (_) {}
-
-    await loadHomeData();
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _marketSnapshotRepository
+        .openHome(
+          userId: userId,
+          limit: 120,
+        )
+        .listen((resource) {
+      unawaited(_applyHomeSnapshotResource(resource));
+    });
   }
 
   Future<void> loadHomeData({
@@ -181,7 +182,7 @@ class MarketController extends GetxController {
             );
       categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
-      await _loadListingFromTypesense(forceRefresh: forceRefresh);
+      await _loadListingFromSnapshot(forceRefresh: forceRefresh);
       await _loadAllCityOptions();
       await _loadSavedItems();
       await _loadRoundMenuBadges(forceRefresh: forceRefresh);
@@ -251,27 +252,13 @@ class MarketController extends GetxController {
   }
 
   String _categoryOrderKey(String value) {
-    final normalized = _normalizeCategoryLabel(value);
+    final normalized = normalizeMarketCategoryLabel(value);
     switch (normalized) {
       case 'kozmetik':
-        return _normalizeCategoryLabel('Kişisel Bakım');
+        return normalizeMarketCategoryLabel('Kişisel Bakım');
       default:
         return normalized;
     }
-  }
-
-  String _normalizeCategoryLabel(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll('&', 've')
-        .replaceAll('ı', 'i')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('ş', 's')
-        .replaceAll('ö', 'o')
-        .replaceAll('ç', 'c')
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
   void toggleListingSelection() {
@@ -342,9 +329,15 @@ class MarketController extends GetxController {
     MarketItemModel item, {
     bool showSnackbar = true,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveMarket)) {
+      return;
+    }
     final uid = _currentUid;
     if (uid.isEmpty) {
-      AppSnackbar('Giriş Gerekli', 'Kaydetmek için giriş yapmalısın.');
+      AppSnackbar(
+        'pasaj.market.sign_in_required_title'.tr,
+        'pasaj.market.sign_in_to_save'.tr,
+      );
       return;
     }
     final currentlySaved = isSaved(item.id);
@@ -363,8 +356,10 @@ class MarketController extends GetxController {
       }
       if (showSnackbar) {
         AppSnackbar(
-          'Tamam',
-          currentlySaved ? 'Kayıt kaldırıldı.' : 'İlan kaydedildi.',
+          'common.success'.tr,
+          currentlySaved
+              ? 'pasaj.market.unsaved'.tr
+              : 'pasaj.market.saved_success'.tr,
         );
       }
     } catch (e) {
@@ -376,7 +371,10 @@ class MarketController extends GetxController {
         _applyLocalFavoriteDelta(item.id, -1);
       }
       if (showSnackbar) {
-        AppSnackbar('Hata', 'Kaydetme işlemi tamamlanamadı.');
+        AppSnackbar(
+          'common.error'.tr,
+          'pasaj.market.save_failed'.tr,
+        );
       }
     }
   }
@@ -431,7 +429,10 @@ class MarketController extends GetxController {
   }
 
   void showComingSoon(String title) {
-    AppSnackbar('Yakında', '$title yakında eklenecek.');
+    AppSnackbar(
+      'pasaj.market.coming_soon_title'.tr,
+      'pasaj.market.coming_soon_body'.trParams({'title': title}),
+    );
   }
 
   void applyAdvancedFilters({
@@ -479,7 +480,9 @@ class MarketController extends GetxController {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         AppSnackbar(
-            'İzin Gerekli', 'Yakınındaki ilanlar için konum izni gerekli.');
+          'pasaj.market.permission_required_title'.tr,
+          'pasaj.market.nearby_permission_required'.tr,
+        );
         return;
       }
 
@@ -499,20 +502,32 @@ class MarketController extends GetxController {
               .trim()
           : '';
       if (city.isEmpty) {
-        AppSnackbar('Konum Bulunamadı', 'Şehir bilgisi alınamadı.');
+        AppSnackbar(
+          'pasaj.market.location_not_found_title'.tr,
+          'pasaj.market.city_not_found'.tr,
+        );
         return;
       }
 
       if (!availableCities.contains(city)) {
-        AppSnackbar('Sınırlı Sonuç', '$city için ilan bulunamadı.');
+        AppSnackbar(
+          'pasaj.market.limited_results_title'.tr,
+          'pasaj.market.no_city_results'.trParams({'city': city}),
+        );
         return;
       }
 
       selectedCityFilter.value = city;
       refreshFilters();
-      AppSnackbar('Hazır', '$city için yakınındaki ilanlar gösteriliyor.');
+      AppSnackbar(
+        'common.success'.tr,
+        'pasaj.market.nearby_ready'.trParams({'city': city}),
+      );
     } catch (_) {
-      AppSnackbar('Hata', 'Yakınındaki ilanlar yüklenemedi.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.market.nearby_failed'.tr,
+      );
     }
   }
 
@@ -522,9 +537,9 @@ class MarketController extends GetxController {
   }
 
   void _applyFilters() {
-    final query = searchQuery.value.trim().toLowerCase();
+    final query = normalizeSearchText(searchQuery.value);
     final categoryKey = selectedCategoryKey.value.trim();
-    final cityFilter = selectedCityFilter.value.trim().toLowerCase();
+    final cityFilter = normalizeSearchText(selectedCityFilter.value);
     final contactFilter = selectedContactFilter.value.trim();
     final minPrice = double.tryParse(
           minPriceFilter.value.trim().replaceAll(',', '.'),
@@ -538,7 +553,8 @@ class MarketController extends GetxController {
       if (item.status != 'active') return false;
       final matchesCategory = _matchesCategory(item, categoryKey);
       if (!matchesCategory) return false;
-      if (cityFilter.isNotEmpty && item.city.toLowerCase() != cityFilter) {
+      if (cityFilter.isNotEmpty &&
+          normalizeSearchText(item.city) != cityFilter) {
         return false;
       }
       if (contactFilter.isNotEmpty && item.contactPreference != contactFilter) {
@@ -565,29 +581,35 @@ class MarketController extends GetxController {
     final selectedCategory = categories.firstWhereOrNull(
       (category) => (category['key'] ?? '').toString() == categoryKey,
     );
-    final selectedLabel =
-        (selectedCategory?['label'] ?? '').toString().trim().toLowerCase();
+    final selectedLabel = normalizeSearchText(
+      (selectedCategory?['label'] ?? '').toString(),
+    );
     if (selectedLabel.isEmpty) return false;
 
     final topLabel = item.categoryPath.isEmpty
         ? ''
-        : item.categoryPath.first.trim().toLowerCase();
+        : normalizeSearchText(item.categoryPath.first);
     if (topLabel == selectedLabel) return true;
 
-    final fullPath = item.categoryPath.join(' ').toLowerCase();
-    final keyWords = categoryKey.replaceAll('-', ' ').toLowerCase();
+    final fullPath = normalizeSearchText(item.categoryPath.join(' '));
+    final keyWords = normalizeSearchText(categoryKey.replaceAll('-', ' '));
     return fullPath.contains(selectedLabel) || fullPath.contains(keyWords);
   }
 
   Future<void> _searchFromTypesense(String query, int requestId) async {
     try {
-      final fetched = await TypesenseMarketSearchService.instance.searchItems(
+      final fetched = await _marketSnapshotRepository.search(
         query: query,
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 40,
+        forceSync: true,
       );
       if (!_isLatestSearch(requestId, query)) return;
 
-      final results = fetched.where((item) => item.status == 'active').toList(
+      final results =
+          (fetched.data ?? const <MarketItemModel>[])
+              .where((item) => item.status == 'active')
+              .toList(
             growable: false,
           );
       searchedItems.assignAll(results);
@@ -619,10 +641,11 @@ class MarketController extends GetxController {
   Future<void> _storeRecentSearch(String query) async {
     final normalized = query.trim();
     if (normalized.isEmpty) return;
+    final normalizedSearchKey = normalizeSearchText(normalized);
     final next = <String>[
       normalized,
       ...recentSearches.where(
-        (item) => item.toLowerCase() != normalized.toLowerCase(),
+        (item) => normalizeSearchText(item) != normalizedSearchKey,
       ),
     ];
     if (next.length > 12) {
@@ -633,16 +656,16 @@ class MarketController extends GetxController {
     await prefs.setStringList(_recentSearchesKey, next);
   }
 
-  Future<void> _loadListingFromTypesense({
+  Future<void> _loadListingFromSnapshot({
     bool forceRefresh = false,
   }) async {
     try {
-      final fetched = await TypesenseMarketSearchService.instance.searchItems(
-        query: '*',
+      final fetched = await _marketSnapshotRepository.loadHome(
+        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
         limit: 120,
-        forceRefresh: forceRefresh,
+        forceSync: forceRefresh,
       );
-      final activeFetched = fetched
+      final activeFetched = (fetched.data ?? const <MarketItemModel>[])
           .where((item) => item.status == 'active')
           .toList(growable: false);
       items.assignAll(_mergePendingCreatedItems(activeFetched));
@@ -654,11 +677,34 @@ class MarketController extends GetxController {
   Future<void> _reloadListingForCurrentFilters() async {
     isSearchLoading.value = true;
     try {
-      await _loadListingFromTypesense();
+      await _loadListingFromSnapshot();
       await _loadAllCityOptions();
       _applyFilters();
     } finally {
       isSearchLoading.value = false;
+    }
+  }
+
+  Future<void> _applyHomeSnapshotResource(
+    CachedResource<List<MarketItemModel>> resource,
+  ) async {
+    final activeItems = (resource.data ?? const <MarketItemModel>[])
+        .where((item) => item.status == 'active')
+        .toList(growable: false);
+    if (activeItems.isNotEmpty) {
+      items.assignAll(_mergePendingCreatedItems(activeItems));
+      await _loadAllCityOptions();
+      await _loadSavedItems();
+      await _loadRoundMenuBadges(forceRefresh: false);
+      _applyFilters();
+    }
+
+    if (!resource.isRefreshing || activeItems.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (items.isEmpty && visibleItems.isEmpty) {
+      isLoading.value = true;
     }
   }
 

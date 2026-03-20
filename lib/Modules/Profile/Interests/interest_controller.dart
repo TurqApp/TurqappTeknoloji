@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/interests_list.dart';
@@ -17,16 +19,7 @@ class InterestsController extends GetxController {
   bool _selectionLimitShown = false;
 
   String _norm(String value) {
-    final lower = value.trim().toLowerCase();
-    return lower
-        .replaceAll('ı', 'i')
-        .replaceAll('İ', 'i')
-        .replaceAll('ş', 's')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('ö', 'o')
-        .replaceAll('ç', 'c')
-        .replaceAll(RegExp(r'\s+'), ' ');
+    return normalizeSearchText(value).replaceAll(RegExp(r'\s+'), ' ');
   }
 
   String _canonicalize(String value) {
@@ -52,7 +45,7 @@ class InterestsController extends GetxController {
     final currentUser = CurrentUserService.instance.currentUser;
     if (!_userInteracted &&
         currentUser != null &&
-        currentUser.userID == FirebaseAuth.instance.currentUser?.uid &&
+        isCurrentUserId(currentUser.userID) &&
         currentUser.ilgialanlari.isNotEmpty) {
       selecteds.value = currentUser.ilgialanlari
           .map((e) => _canonicalize(e.toString()))
@@ -101,12 +94,12 @@ class InterestsController extends GetxController {
   }
 
   List<String> filterItems(List<String> allItems) {
-    final query = searchText.value.trim().toLowerCase();
+    final query = normalizeSearchText(searchText.value);
     if (query.isEmpty) {
       return allItems;
     }
     return allItems
-        .where((item) => item.toLowerCase().contains(query))
+        .where((item) => normalizeSearchText(item).contains(query))
         .toList(growable: false);
   }
 

@@ -14,6 +14,11 @@ class FamilyInfoController extends GetxController {
   static const String _selectHomeOwnership = "Seçim Yap";
   static const String _selectJob = "Meslek Seç";
   static const String _yesValue = "Evet";
+  static const String _noValue = "Hayır";
+  static const String _ownedHome = "Kendinize Ait Ev";
+  static const String _relativeHome = "Yakınınıza Ait Ev";
+  static const String _lodgingHome = "Lojman";
+  static const String _rentHome = "Kira";
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
@@ -39,17 +44,58 @@ class FamilyInfoController extends GetxController {
   final ScrollController scrollController = ScrollController();
 
   final evevMulkiyeti =
-      ["Kendinize Ait Ev", "Yakınınıza Ait Ev", "Lojman", "Kira"].obs;
-  final living = [_yesValue, "Hayır"].obs;
+      [_ownedHome, _relativeHome, _lodgingHome, _rentHome].obs;
+  final living = [_yesValue, _noValue].obs;
   final sehirler = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
 
-  bool get isFatherUnselected => fatherLiving.value == _selectValue;
-  bool get isMotherUnselected => motherLiving.value == _selectValue;
-  bool get isFatherAlive => fatherLiving.value == _yesValue;
-  bool get isMotherAlive => motherLiving.value == _yesValue;
+  bool _matchesValue(String value, Set<String> variants) =>
+      variants.contains(value.trim());
+
+  bool _isSelectValue(String value) =>
+      _matchesValue(value, const <String>{
+        _selectValue,
+        'Select',
+        'Auswählen',
+        'Sélectionner',
+        'Seleziona',
+        'Выбрать',
+      });
+  bool _isSelectJobValue(String value) =>
+      _matchesValue(value, const <String>{
+        _selectJob,
+        'Select Job',
+        'Beruf wählen',
+        'Choisir une profession',
+        'Seleziona professione',
+        'Выберите профессию',
+      });
+  bool _isSelectHomeOwnershipValue(String value) =>
+      _matchesValue(value, const <String>{
+        _selectHomeOwnership,
+        'Select',
+        'Auswählen',
+        'Sélectionner',
+        'Seleziona',
+        'Выбрать',
+      });
+  bool _isYesValue(String value) =>
+      _matchesValue(value, const <String>{
+        _yesValue,
+        'Yes',
+        'Ja',
+        'Oui',
+        'Sì',
+        'Si',
+        'Да',
+      });
+
+  bool get isFatherUnselected => _isSelectValue(fatherLiving.value);
+  bool get isMotherUnselected => _isSelectValue(motherLiving.value);
+  bool get isFatherAlive => _isYesValue(fatherLiving.value);
+  bool get isMotherAlive => _isYesValue(motherLiving.value);
   bool get isHomeOwnershipUnselected =>
-      evMulkiyeti.value == _selectHomeOwnership;
+      _isSelectHomeOwnershipValue(evMulkiyeti.value);
 
   String get defaultSelection => _selectValue;
   String get defaultHomeOwnershipSelection => _selectHomeOwnership;
@@ -66,13 +112,13 @@ class FamilyInfoController extends GetxController {
 
     // Hayatta mı sorusu değiştiğinde ilgili alanları temizle
     ever(fatherLiving, (value) {
-      if (value != _yesValue) {
+      if (!_isYesValue(value)) {
         _clearFatherFields();
       }
     });
 
     ever(motherLiving, (value) {
-      if (value != _yesValue) {
+      if (!_isYesValue(value)) {
         _clearMotherFields();
       }
     });
@@ -80,17 +126,22 @@ class FamilyInfoController extends GetxController {
 
   String localizedSelection(String value) {
     switch (value) {
+      case _selectValue:
+      case _selectHomeOwnership:
+        return 'common.select'.tr;
+      case _selectJob:
+        return 'family_info.select_job'.tr;
       case _yesValue:
         return 'common.yes'.tr;
-      case 'Hayır':
+      case _noValue:
         return 'common.no'.tr;
-      case 'Kendinize Ait Ev':
+      case _ownedHome:
         return 'family_info.home_owned'.tr;
-      case 'Yakınınıza Ait Ev':
+      case _relativeHome:
         return 'family_info.home_relative'.tr;
-      case 'Lojman':
+      case _lodgingHome:
         return 'family_info.home_lodging'.tr;
-      case 'Kira':
+      case _rentHome:
         return 'family_info.home_rent'.tr;
       default:
         return value;
@@ -127,13 +178,13 @@ class FamilyInfoController extends GetxController {
           data,
           key: 'fatherLiving',
           scope: 'family',
-          fallback: "Seçiniz",
+          fallback: _selectValue,
         );
         fatherJob.value = userString(
           data,
           key: 'fatherJob',
           scope: 'family',
-          fallback: "Meslek Seç",
+          fallback: _selectJob,
         );
         motherName.value.text =
             userString(data, key: 'motherName', scope: 'family');
@@ -147,13 +198,13 @@ class FamilyInfoController extends GetxController {
           data,
           key: 'motherLiving',
           scope: 'family',
-          fallback: "Seçiniz",
+          fallback: _selectValue,
         );
         motherJob.value = userString(
           data,
           key: 'motherJob',
           scope: 'family',
-          fallback: "Meslek Seç",
+          fallback: _selectJob,
         );
         totalLiving.value.text = userInt(
           data,
@@ -167,7 +218,7 @@ class FamilyInfoController extends GetxController {
           data,
           key: 'evMulkiyeti',
           scope: 'family',
-          fallback: "Seçim Yap",
+          fallback: _selectHomeOwnership,
         );
         city.value = userString(data, key: 'ikametSehir', scope: 'profile');
         town.value = userString(data, key: 'ikametIlce', scope: 'profile');
@@ -253,6 +304,7 @@ class FamilyInfoController extends GetxController {
         list: list,
         title: title,
         startSelection: selectedValue.value,
+        itemLabelBuilder: (item) => localizedSelection(item.toString()),
         onBackData: (v) {
           selectedValue.value = v;
         },
@@ -294,7 +346,7 @@ class FamilyInfoController extends GetxController {
 
   void setData() async {
     // Temel validasyonlar
-    if (fatherLiving.value == _selectValue) {
+    if (_isSelectValue(fatherLiving.value)) {
       AppSnackbar(
         'common.warning'.tr,
         'family_info.select_father_alive'.tr,
@@ -302,7 +354,7 @@ class FamilyInfoController extends GetxController {
       return;
     }
 
-    if (motherLiving.value == _selectValue) {
+    if (_isSelectValue(motherLiving.value)) {
       AppSnackbar(
         'common.warning'.tr,
         'family_info.select_mother_alive'.tr,
@@ -311,7 +363,7 @@ class FamilyInfoController extends GetxController {
     }
 
     // Baba hayatta ise validasyon
-    if (fatherLiving.value == _yesValue) {
+    if (_isYesValue(fatherLiving.value)) {
       if (fatherName.value.text.isEmpty) {
         AppSnackbar('common.warning'.tr, 'scholarship.applicant.father_name'.tr);
         return;
@@ -323,7 +375,7 @@ class FamilyInfoController extends GetxController {
         );
         return;
       }
-      if (fatherJob.value == _selectJob) {
+      if (_isSelectJobValue(fatherJob.value)) {
         AppSnackbar('common.warning'.tr, 'scholarship.applicant.father_job'.tr);
         return;
       }
@@ -348,7 +400,7 @@ class FamilyInfoController extends GetxController {
     }
 
     // Anne hayatta ise validasyon
-    if (motherLiving.value == _yesValue) {
+    if (_isYesValue(motherLiving.value)) {
       if (motherName.value.text.isEmpty) {
         AppSnackbar('common.warning'.tr, 'scholarship.applicant.mother_name'.tr);
         return;
@@ -360,7 +412,7 @@ class FamilyInfoController extends GetxController {
         );
         return;
       }
-      if (motherJob.value == _selectJob) {
+      if (_isSelectJobValue(motherJob.value)) {
         AppSnackbar('common.warning'.tr, 'scholarship.applicant.mother_job'.tr);
         return;
       }
@@ -389,7 +441,7 @@ class FamilyInfoController extends GetxController {
       AppSnackbar('common.warning'.tr, 'family_info.family_size'.tr);
       return;
     }
-    if (evMulkiyeti.value == _selectHomeOwnership) {
+    if (_isSelectHomeOwnershipValue(evMulkiyeti.value)) {
       AppSnackbar('common.warning'.tr, 'scholarship.applicant.home_ownership'.tr);
       return;
     }
@@ -418,27 +470,37 @@ class FamilyInfoController extends GetxController {
             values: {
               "familyInfo": familyInfo.value,
               "fatherName":
-                  fatherLiving.value == _yesValue ? fatherName.value.text : "",
+                  _isYesValue(fatherLiving.value) ? fatherName.value.text : "",
               "fatherSurname":
-                  fatherLiving.value == _yesValue ? fatherSurname.value.text : "",
-              "fatherJob": fatherLiving.value == _yesValue ? fatherJob.value : "",
-              "fatherPhone": fatherLiving.value == _yesValue
+                  _isYesValue(fatherLiving.value)
+                      ? fatherSurname.value.text
+                      : "",
+              "fatherJob":
+                  _isYesValue(fatherLiving.value) ? fatherJob.value : "",
+              "fatherPhone": _isYesValue(fatherLiving.value)
                   ? fatherPhoneNumber.value.text
                   : "",
               "fatherLiving": fatherLiving.value,
               "fatherSalary":
-                  fatherLiving.value == _yesValue ? fatherSalary.value.text : "",
+                  _isYesValue(fatherLiving.value)
+                      ? fatherSalary.value.text
+                      : "",
               "motherName":
-                  motherLiving.value == _yesValue ? motherName.value.text : "",
+                  _isYesValue(motherLiving.value) ? motherName.value.text : "",
               "motherSurname":
-                  motherLiving.value == _yesValue ? motherSurname.value.text : "",
-              "motherJob": motherLiving.value == _yesValue ? motherJob.value : "",
-              "motherPhone": motherLiving.value == _yesValue
+                  _isYesValue(motherLiving.value)
+                      ? motherSurname.value.text
+                      : "",
+              "motherJob":
+                  _isYesValue(motherLiving.value) ? motherJob.value : "",
+              "motherPhone": _isYesValue(motherLiving.value)
                   ? motherPhoneNumber.value.text
                   : "",
               "motherLiving": motherLiving.value,
               "motherSalary":
-                  motherLiving.value == _yesValue ? motherSalary.value.text : "",
+                  _isYesValue(motherLiving.value)
+                      ? motherSalary.value.text
+                      : "",
               "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
               "evMulkiyeti": evMulkiyeti.value,
             },

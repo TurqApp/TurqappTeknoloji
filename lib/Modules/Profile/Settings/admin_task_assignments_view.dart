@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -49,7 +51,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Admin Görevleri"),
+            BackButtons(text: 'admin.tasks.title'.tr),
             Expanded(
               child: FutureBuilder<bool>(
                 future: _canAccessFuture,
@@ -58,13 +60,13 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (accessSnap.data != true) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'Bu alan sadece admin erişimine açıktır.',
+                          'admin.no_access'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 14,
                           ),
@@ -110,8 +112,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Kullanıcı adına göre görev ata',
+          Text(
+            'admin.tasks.editor_title'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 15,
@@ -119,8 +121,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Kullanıcı adını yaz, kişiyi yükle ve görev kutularını işaretleyip kaydet. Bu ekran görev dağıtımını tek yerden takip etmek için kullanılır.',
+          Text(
+            'admin.tasks.editor_help'.tr,
             style: TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 12,
@@ -141,8 +143,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                     color: Colors.black,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'Kullanıcı adı',
-                    hintText: '@kullaniciadi',
+                    labelText: 'admin.tasks.username'.tr,
+                    hintText: 'admin.tasks.username_hint'.tr,
                     labelStyle: const TextStyle(
                       fontFamily: 'MontserratMedium',
                     ),
@@ -177,8 +179,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Yükle',
+                      : Text(
+                          'admin.tasks.load'.tr,
                           style: TextStyle(fontFamily: 'MontserratBold'),
                         ),
                 ),
@@ -272,8 +274,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Görevler',
+            Text(
+              'admin.tasks.task_list'.tr,
               style: TextStyle(
                 fontFamily: 'MontserratBold',
                 fontSize: 13,
@@ -308,7 +310,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                             )
                           : const Icon(Icons.task_alt),
                       label: Text(
-                        _saving ? 'Kaydediliyor' : 'Görevleri Kaydet',
+                        _saving ? 'admin.tasks.saving'.tr : 'admin.tasks.save'.tr,
                         style: const TextStyle(
                           fontFamily: 'MontserratBold',
                         ),
@@ -334,8 +336,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
-                            'Temizle',
+                        : Text(
+                            'admin.tasks.clear'.tr,
                             style: TextStyle(fontFamily: 'MontserratBold'),
                           ),
                   ),
@@ -382,7 +384,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                task.title,
+                task.titleKey.tr,
                 style: const TextStyle(
                   fontFamily: 'MontserratBold',
                   fontSize: 13,
@@ -393,7 +395,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
           ],
         ),
         subtitle: Text(
-          task.description,
+          task.descriptionKey.tr,
           style: const TextStyle(
             fontFamily: 'MontserratMedium',
             fontSize: 11,
@@ -416,8 +418,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Görev Atamaları',
+          Text(
+            'admin.tasks.assignments'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 15,
@@ -425,8 +427,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Burada tüm admin görev dağılımını tek listede görürüz. Bir karta dokununca üstte düzenlemeye gelir.',
+          Text(
+            'admin.tasks.assignments_help'.tr,
             style: TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 12,
@@ -448,11 +450,11 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
               }
               final docs = snap.data?.docs ?? const [];
               if (docs.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Text(
-                    'Henüz görev ataması yok.',
-                    style: TextStyle(
+                    'admin.tasks.no_assignments'.tr,
+                    style: const TextStyle(
                       fontFamily: 'MontserratMedium',
                       fontSize: 13,
                       color: Colors.black54,
@@ -482,9 +484,9 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
 
   Future<void> _loadUser() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    final nickname = _normalizeNickname(_nicknameController.text);
+    final nickname = normalizeNicknameInput(_nicknameController.text);
     if (nickname.isEmpty) {
-      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı zorunludur.');
+      AppSnackbar('admin.tasks.missing_info'.tr, 'admin.tasks.username_required'.tr);
       return;
     }
     setState(() {
@@ -494,7 +496,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       final data = await _userRepository.findUserByNickname(nickname);
       if (!mounted) return;
       if (data == null) {
-        AppSnackbar('Bulunamadı', 'Bu kullanıcı adı ile kullanıcı bulunamadı.');
+        AppSnackbar('admin.tasks.not_found'.tr, 'admin.tasks.user_not_found'.tr);
         setState(() {
           _selectedUser = null;
           _selectedTaskIds = <String>[];
@@ -511,7 +513,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         );
       });
     } catch (e) {
-      AppSnackbar('Hata', 'Kullanıcı yüklenemedi: $e');
+      AppSnackbar('support.error_title'.tr, '${'admin.tasks.load_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -524,7 +526,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   Future<void> _saveTasks() async {
     final user = _selectedUser;
     if (user == null) {
-      AppSnackbar('Eksik Bilgi', 'Önce kullanıcıyı yükle.');
+      AppSnackbar('admin.tasks.missing_info'.tr, 'admin.tasks.load_user_first'.tr);
       return;
     }
     setState(() {
@@ -541,8 +543,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
           _selectedTaskIds = <String>[];
         });
         AppSnackbar(
-          'Admin Görevleri',
-          '@$nickname için görev ataması kaldırıldı.',
+          'admin.tasks.title'.tr,
+          'admin.tasks.assignment_removed'.trParams({'nickname': nickname}),
         );
         return;
       }
@@ -556,11 +558,11 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         updatedBy: FirebaseAuth.instance.currentUser?.uid ?? '',
       );
       AppSnackbar(
-        'Admin Görevleri',
-        '@$nickname için görevler kaydedildi.',
+        'admin.tasks.title'.tr,
+        'admin.tasks.saved'.trParams({'nickname': nickname}),
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Görevler kaydedilemedi: $e');
+      AppSnackbar('support.error_title'.tr, '${'admin.tasks.save_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -573,7 +575,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   Future<void> _clearTasks() async {
     final user = _selectedUser;
     if (user == null) {
-      AppSnackbar('Eksik Bilgi', 'Önce kullanıcıyı yükle.');
+      AppSnackbar('admin.tasks.missing_info'.tr, 'admin.tasks.load_user_first'.tr);
       return;
     }
     setState(() {
@@ -588,11 +590,13 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         _selectedTaskIds = <String>[];
       });
       AppSnackbar(
-        'Admin Görevleri',
-        '@${(user['nickname'] ?? '').toString()} için görevler temizlendi.',
+        'admin.tasks.title'.tr,
+        'admin.tasks.cleared'.trParams({
+          'nickname': (user['nickname'] ?? '').toString(),
+        }),
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Görevler temizlenemedi: $e');
+      AppSnackbar('support.error_title'.tr, '${'admin.tasks.clear_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -619,13 +623,6 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
     });
   }
 
-  String _normalizeNickname(String raw) {
-    return raw
-        .trim()
-        .replaceFirst(RegExp(r'^@+'), '')
-        .replaceAll(RegExp(r'\s+'), '')
-        .toLowerCase();
-  }
 }
 
 class _AssignmentCard extends StatelessWidget {
@@ -717,7 +714,7 @@ class _AssignmentCard extends StatelessWidget {
                   if (updatedAt != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Güncelleme: $updatedAt',
+                      '${'admin.tasks.updated_at'.tr}: $updatedAt',
                       style: const TextStyle(
                         fontFamily: 'MontserratMedium',
                         fontSize: 11,
@@ -741,7 +738,9 @@ class _AssignmentCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              adminTaskCatalogById[id]?.title ?? id,
+                              ((adminTaskCatalogById[id]?.titleKey ?? '').isNotEmpty)
+                                  ? adminTaskCatalogById[id]!.titleKey.tr
+                                  : id,
                               style: const TextStyle(
                                 fontFamily: 'MontserratBold',
                                 fontSize: 11,

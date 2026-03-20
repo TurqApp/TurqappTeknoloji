@@ -32,12 +32,15 @@ class PostController extends GetxController {
 
       // Başarılı mesajı göster
       AppSnackbar(
-        isLiked ? 'Beğenildi' : 'Beğeni Kaldırıldı',
-        isLiked ? 'Post beğendiniz!' : 'Post beğenisi kaldırıldı',
-        duration: Duration(seconds: 1),
+        'common.success'.tr,
+        isLiked
+            ? 'post_controller.like_added'.tr
+            : 'post_controller.like_removed'.tr,
+        duration: const Duration(seconds: 1),
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Beğeni işlemi yapılamadı: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.like_failed'.trParams({'error': '$e'}));
     }
   }
 
@@ -53,7 +56,7 @@ class PostController extends GetxController {
       {List<String>? imgs, List<String>? videos}) async {
     try {
       if (text.trim().isEmpty) {
-        AppSnackbar('Hata', 'Yorum boş olamaz');
+        AppSnackbar('common.error'.tr, 'post_controller.comment_empty'.tr);
         return;
       }
 
@@ -67,12 +70,13 @@ class PostController extends GetxController {
         // UI'ı güncelle
         update(['post_$postId', 'comment_$postId']);
 
-        AppSnackbar('Başarılı', 'Yorum eklendi!');
+        AppSnackbar('common.success'.tr, 'post_controller.comment_added'.tr);
       } else {
-        AppSnackbar('Hata', 'Yorum eklenemedi');
+        AppSnackbar('common.error'.tr, 'post_controller.comment_add_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Yorum ekleme hatası: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.comment_add_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -90,12 +94,13 @@ class PostController extends GetxController {
         // UI'ı güncelle
         update(['post_$postId', 'comment_$postId']);
 
-        AppSnackbar('Başarılı', 'Yorum silindi!');
+        AppSnackbar('common.success'.tr, 'post_controller.comment_deleted'.tr);
       } else {
-        AppSnackbar('Hata', 'Yorum silinemedi');
+        AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Yorum silme hatası: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.comment_delete_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -104,7 +109,7 @@ class PostController extends GetxController {
       {List<String>? imgs, List<String>? videos}) async {
     try {
       if (text.trim().isEmpty) {
-        AppSnackbar('Hata', 'Yorum boş olamaz');
+        AppSnackbar('common.error'.tr, 'post_controller.comment_empty'.tr);
         return;
       }
 
@@ -115,12 +120,13 @@ class PostController extends GetxController {
         // UI'ı güncelle
         update(['comment_$postId', 'subcomment_$commentId']);
 
-        AppSnackbar('Başarılı', 'Alt yorum eklendi!');
+        AppSnackbar('common.success'.tr, 'post_controller.reply_added'.tr);
       } else {
-        AppSnackbar('Hata', 'Alt yorum eklenemedi');
+        AppSnackbar('common.error'.tr, 'post_controller.reply_add_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Alt yorum ekleme hatası: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.reply_add_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -143,12 +149,15 @@ class PostController extends GetxController {
 
       // Başarılı mesajı göster
       AppSnackbar(
-        isSaved ? 'Kaydedildi' : 'Kayıt Kaldırıldı',
-        isSaved ? 'Post kaydedildi!' : 'Post kayıdı kaldırıldı',
-        duration: Duration(seconds: 1),
+        'common.success'.tr,
+        isSaved
+            ? 'post_controller.saved'.tr
+            : 'post_controller.unsaved'.tr,
+        duration: const Duration(seconds: 1),
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Kaydetme işlemi yapılamadı: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.save_failed'.trParams({'error': '$e'}));
     }
   }
 
@@ -167,16 +176,17 @@ class PostController extends GetxController {
       // UI güncellemesi için retry count güncelle
       if (isReshared) {
         post.stats.retryCount++;
-        AppSnackbar('Başarılı', 'Post yeniden paylaşıldı!');
+        AppSnackbar('common.success'.tr, 'post_controller.reshared'.tr);
       } else {
         if (post.stats.retryCount > 0) post.stats.retryCount--;
-        AppSnackbar('Bilgi', 'Yeniden paylaşım kaldırıldı');
+        AppSnackbar('common.info'.tr, 'post_controller.reshare_removed'.tr);
       }
 
       // UI'ı güncelle
       update(['post_$postId', 'reshare_$postId']);
     } catch (e) {
-      AppSnackbar('Hata', 'Paylaşım hatası: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.reshare_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -210,12 +220,13 @@ class PostController extends GetxController {
       if (success) {
         post.stats.reportedCount++;
         update(['post_$postId']);
-        AppSnackbar('Başarılı', 'Post şikayet edildi');
+        AppSnackbar('common.success'.tr, 'post.report_success'.tr);
       } else {
-        AppSnackbar('Bilgi', 'Bu post daha önce şikayet edilmiş');
+        AppSnackbar('common.info'.tr, 'post_controller.report_exists'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Şikayet işlemi başarısız: $e');
+      AppSnackbar(
+          'common.error'.tr, 'post_controller.report_error'.trParams({'error': '$e'}));
     }
   }
 

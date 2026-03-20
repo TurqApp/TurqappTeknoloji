@@ -2,14 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Core/verified_account_data_list.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -23,12 +25,12 @@ class BadgeAdminView extends StatefulWidget {
 class _BadgeAdminViewState extends State<BadgeAdminView> {
   static const List<String> _badgeOptions = <String>[
     '',
-    'Gri',
-    'Turkuaz',
-    'Sarı',
-    'Mavi',
-    'Siyah',
-    'Kırmızı',
+    'gray',
+    'turquoise',
+    'yellow',
+    'blue',
+    'black',
+    'red',
   ];
 
   final TextEditingController _nicknameController = TextEditingController();
@@ -41,6 +43,85 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
   String _selectedBadge = '';
   bool _saving = false;
   _BadgeChangeResult? _lastResult;
+
+  String _badgeTitleKey(String badgeKey) {
+    switch (badgeKey) {
+      case 'blue':
+        return 'become_verified.badge_blue';
+      case 'red':
+        return 'become_verified.badge_red';
+      case 'yellow':
+        return 'become_verified.badge_yellow';
+      case 'turquoise':
+        return 'become_verified.badge_turquoise';
+      case 'gray':
+        return 'become_verified.badge_gray';
+      case 'black':
+        return 'become_verified.badge_black';
+      default:
+        return badgeKey;
+      }
+  }
+
+  String _badgeDescKey(String badgeKey) {
+    switch (badgeKey) {
+      case 'blue':
+        return 'become_verified.badge_blue_desc';
+      case 'red':
+        return 'become_verified.badge_red_desc';
+      case 'yellow':
+        return 'become_verified.badge_yellow_desc';
+      case 'turquoise':
+        return 'become_verified.badge_turquoise_desc';
+      case 'gray':
+        return 'become_verified.badge_gray_desc';
+      case 'black':
+        return 'become_verified.badge_black_desc';
+      default:
+        return badgeKey;
+      }
+  }
+
+  String _localizedBadgeTitle(String badgeKey) => _badgeTitleKey(badgeKey).tr;
+  String _localizedBadgeDesc(String badgeKey) => _badgeDescKey(badgeKey).tr;
+
+  String _badgeStorageValue(String badgeKey) {
+    switch (badgeKey) {
+      case 'gray':
+        return 'Gri';
+      case 'turquoise':
+        return 'Turkuaz';
+      case 'yellow':
+        return 'Sarı';
+      case 'blue':
+        return 'Mavi';
+      case 'black':
+        return 'Siyah';
+      case 'red':
+        return 'Kırmızı';
+      default:
+        return '';
+    }
+  }
+
+  String _badgeKeyFromStorageValue(String rawValue) {
+    switch (normalizeRozetValue(rawValue)) {
+      case 'gri':
+        return 'gray';
+      case 'turkuaz':
+        return 'turquoise';
+      case 'sari':
+        return 'yellow';
+      case 'mavi':
+        return 'blue';
+      case 'siyah':
+        return 'black';
+      case 'kirmizi':
+        return 'red';
+      default:
+        return '';
+    }
+  }
 
   @override
   void initState() {
@@ -62,7 +143,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Rozet Yönetimi"),
+            BackButtons(text: 'admin.badges.title'.tr),
             Expanded(
               child: FutureBuilder<bool>(
                 future: _canAccessFuture,
@@ -71,13 +152,13 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (accessSnap.data != true) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'Bu alan sadece admin erişimine açıktır.',
+                          'admin.no_access'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 14,
                           ),
@@ -99,8 +180,8 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Kullanıcı adı ile rozet yönet',
+                              Text(
+                                'admin.badges.manage_by_username'.tr,
                                 style: TextStyle(
                                   fontFamily: 'MontserratBold',
                                   fontSize: 15,
@@ -109,7 +190,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Kullanıcı adını gir, rozeti seç ve kaydet. `Rozetsiz` seçimi mevcut rozeti kaldırır.',
+                                'admin.badges.manage_help'.tr,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontFamily: 'MontserratMedium',
                                   color: Colors.black54,
@@ -125,8 +206,8 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                                   color: Colors.black,
                                 ),
                                 decoration: InputDecoration(
-                                  labelText: 'Kullanıcı adı',
-                                  hintText: '@kullaniciadi',
+                                  labelText: 'admin.tasks.username'.tr,
+                                  hintText: 'admin.tasks.username_hint'.tr,
                                   labelStyle: const TextStyle(
                                     fontFamily: 'MontserratMedium',
                                   ),
@@ -149,8 +230,8 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                                         child: _BadgeMenuRow(
                                           badge: badge,
                                           label: badge.isEmpty
-                                              ? 'Rozetsiz'
-                                              : badge,
+                                              ? 'admin.badges.no_badge'.tr
+                                              : _localizedBadgeTitle(badge),
                                         ),
                                       ),
                                     )
@@ -163,7 +244,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                                         });
                                       },
                                 decoration: InputDecoration(
-                                  labelText: 'Rozet',
+                                  labelText: 'admin.badges.badge_label'.tr,
                                   labelStyle: const TextStyle(
                                     fontFamily: 'MontserratMedium',
                                   ),
@@ -210,7 +291,9 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                                         )
                                       : const Icon(Icons.save_outlined),
                                   label: Text(
-                                    _saving ? 'Kaydediliyor' : 'Rozeti Kaydet',
+                                    _saving
+                                        ? 'admin.tasks.saving'.tr
+                                        : 'admin.badges.save_badge'.tr,
                                     style: const TextStyle(
                                       fontFamily: 'MontserratBold',
                                     ),
@@ -254,21 +337,19 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
 
   String? get _selectedDescription {
     if (_selectedBadge.isEmpty) {
-      return 'Seçilen kullanıcının mevcut rozeti kaldırılır.';
+      return 'admin.badges.remove_selected_desc'.tr;
     }
-    for (final item in verifiedAccountData) {
-      if (item.title == _selectedBadge) {
-        return item.desc;
-      }
-    }
-    return null;
+    return _localizedBadgeDesc(_selectedBadge);
   }
 
   Future<void> _saveBadge() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    final nickname = _normalizeNickname(_nicknameController.text);
+    final nickname = normalizeNicknameInput(_nicknameController.text);
     if (nickname.isEmpty) {
-      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı zorunludur.');
+      AppSnackbar(
+        'admin.tasks.missing_info'.tr,
+        'admin.tasks.username_required'.tr,
+      );
       return;
     }
 
@@ -281,22 +362,35 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
       if (!isPrimaryAdmin) {
         final user = await _userRepository.findUserByNickname(nickname);
         if (user == null) {
-          AppSnackbar('Hata', 'Bu kullanıcı adı ile kullanıcı bulunamadı.');
+          AppSnackbar(
+            'support.error_title'.tr,
+            'admin.tasks.user_not_found'.tr,
+          );
           return;
         }
         await _approvalRepository.createApproval(
           type: 'badge_change',
-          title: 'Rozet değişikliği onayı',
-          summary:
-              '@$nickname için ${_selectedBadge.isEmpty ? 'rozet kaldırma' : '$_selectedBadge rozeti verme'} talebi oluşturuldu.',
+          title: 'admin.badges.change_approval_title'.tr,
+          summary: _selectedBadge.isEmpty
+              ? 'admin.badges.remove_badge_summary'
+                  .trParams(<String, String>{'nickname': nickname})
+              : 'admin.badges.give_badge_summary'.trParams(
+                  <String, String>{
+                    'nickname': nickname,
+                    'badge': _localizedBadgeTitle(_selectedBadge),
+                  },
+                ),
           targetUserId: (user['id'] ?? '').toString(),
           targetNickname: (user['nickname'] ?? '').toString(),
           payload: <String, dynamic>{
             'userId': (user['id'] ?? '').toString(),
-            'rozet': _selectedBadge,
+            'rozet': _badgeStorageValue(_selectedBadge),
           },
         );
-        AppSnackbar('Rozet', 'İşlem admin onay kuyruğuna gönderildi.');
+        AppSnackbar(
+          'admin.badges.title'.tr,
+          'admin.badges.sent_for_approval'.tr,
+        );
         return;
       }
 
@@ -304,7 +398,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
           .httpsCallable('setUserBadgeByNickname');
       final response = await callable.call<Map<String, dynamic>>({
         'nickname': nickname,
-        'rozet': _selectedBadge,
+        'rozet': _badgeStorageValue(_selectedBadge),
       });
 
       final result = _BadgeChangeResult.fromMap(
@@ -315,15 +409,24 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
         _lastResult = result;
       });
       AppSnackbar(
-        'Rozet',
+        'admin.badges.title'.tr,
         result.badge.isEmpty
-            ? '@${result.nickname} için rozet kaldırıldı.'
-            : '@${result.nickname} için ${result.badge} rozeti kaydedildi.',
+            ? 'admin.badges.badge_removed'.trParams(
+                <String, String>{'nickname': result.nickname},
+              )
+            : 'admin.badges.badge_saved'.trParams(<String, String>{
+                'nickname': result.nickname,
+                'badge':
+                    _localizedBadgeTitle(_badgeKeyFromStorageValue(result.badge)),
+              }),
       );
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar('Hata', _errorMessage(e));
+      AppSnackbar('support.error_title'.tr, _errorMessage(e));
     } catch (e) {
-      AppSnackbar('Hata', 'Rozet kaydedilemedi: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.badges.save_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -333,26 +436,18 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
     }
   }
 
-  String _normalizeNickname(String raw) {
-    return raw
-        .trim()
-        .replaceFirst(RegExp(r'^@+'), '')
-        .replaceAll(RegExp(r'\s+'), '')
-        .toLowerCase();
-  }
-
   String _errorMessage(FirebaseFunctionsException error) {
     switch (error.code) {
       case 'not-found':
-        return 'Bu kullanıcı adı ile kullanıcı bulunamadı.';
+        return 'admin.tasks.user_not_found'.tr;
       case 'permission-denied':
-        return 'Bu işlem için admin yetkisi gerekli.';
+        return 'admin.badges.permission_required'.tr;
       case 'invalid-argument':
-        return error.message ?? 'Girilen bilgi geçersiz.';
+        return error.message ?? 'admin.badges.invalid_input'.tr;
       case 'failed-precondition':
-        return 'Bu kullanıcı adı için birden fazla kullanıcı bulundu.';
+        return 'admin.badges.multiple_users'.tr;
       default:
-        return error.message ?? 'Rozet kaydedilemedi.';
+        return error.message ?? 'admin.badges.save_failed'.tr;
     }
   }
 }
@@ -375,8 +470,8 @@ class _ApplicationsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Rozet Başvuruları',
+          Text(
+            'admin.badges.applications_title'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 15,
@@ -384,9 +479,9 @@ class _ApplicationsSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Başvurular ayarlardan gelir. Sosyal medya ve TurqApp profil linkleri aşağıda açılır.',
-            style: TextStyle(
+          Text(
+            'admin.badges.applications_help'.tr,
+            style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 12,
               color: Colors.black54,
@@ -395,11 +490,11 @@ class _ApplicationsSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (docs.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'Henüz başvuru yok.',
-                style: TextStyle(
+                'admin.badges.no_applications'.tr,
+                style: const TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 13,
                   color: Colors.black54,
@@ -553,7 +648,9 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  selected.isEmpty ? 'Rozet seçilmedi' : selected,
+                  selected.isEmpty
+                      ? 'admin.badges.no_badge_selected'.tr
+                      : selected,
                   style: const TextStyle(
                     fontFamily: 'MontserratBold',
                     fontSize: 11,
@@ -565,7 +662,8 @@ class _ApplicationCardState extends State<_ApplicationCard> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Durum: $status',
+            'admin.badges.status'
+                .trParams(<String, String>{'status': status}),
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 12,
@@ -616,9 +714,9 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                         ),
                       )
                     : const Icon(Icons.verified_outlined, size: 18),
-                label: const Text(
-                  'Onayla ve Rozet Ver',
-                  style: TextStyle(
+                label: Text(
+                  'admin.badges.approve_and_assign'.tr,
+                  style: const TextStyle(
                     fontFamily: 'MontserratBold',
                     fontSize: 13,
                   ),
@@ -640,9 +738,14 @@ class _ApplicationCardState extends State<_ApplicationCard> {
       if (!isPrimaryAdmin) {
         await _approvalRepository.createApproval(
           type: 'badge_change',
-          title: 'Rozet başvurusu onayı',
-          summary:
-              '@${(widget.data['talepNickname'] ?? '').toString().trim()} için $rozet rozeti onaya gönderildi.',
+          title: 'admin.badges.application_approval_title'.tr,
+          summary: 'admin.badges.application_approval_summary'.trParams(
+            <String, String>{
+              'nickname':
+                  (widget.data['talepNickname'] ?? '').toString().trim(),
+              'badge': rozet,
+            },
+          ),
           targetUserId: userId,
           targetNickname:
               (widget.data['currentNickname'] ?? '').toString().trim(),
@@ -651,7 +754,10 @@ class _ApplicationCardState extends State<_ApplicationCard> {
             'rozet': rozet,
           },
         );
-        AppSnackbar('Rozet', 'Başvuru admin onay kuyruğuna gönderildi.');
+        AppSnackbar(
+          'admin.badges.title'.tr,
+          'admin.badges.application_sent_for_approval'.tr,
+        );
         return;
       }
 
@@ -661,12 +767,18 @@ class _ApplicationCardState extends State<_ApplicationCard> {
         'userId': userId,
         'rozet': rozet,
       });
-      AppSnackbar('Rozet', 'Rozet verildi ve başvuru onaylandı.');
+      AppSnackbar(
+        'admin.badges.title'.tr,
+        'admin.badges.application_approved'.tr,
+      );
     } on FirebaseFunctionsException catch (e) {
-      final message = e.message ?? 'Başvuru onaylanamadı.';
-      AppSnackbar('Hata', message);
+      final message = e.message ?? 'admin.badges.application_approve_failed'.tr;
+      AppSnackbar('support.error_title'.tr, message);
     } catch (e) {
-      AppSnackbar('Hata', 'Başvuru onaylanamadı: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.badges.application_approve_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -689,22 +801,15 @@ class _ApplicationCardState extends State<_ApplicationCard> {
       {required String prefix}) {
     final url = (urlValue ?? '').toString().trim();
     if (url.isNotEmpty) return url;
-    final raw = (rawValue ?? '')
-        .toString()
-        .trim()
-        .replaceFirst(RegExp(r'^@+'), '')
-        .replaceAll(RegExp(r'\s+'), '');
+    final raw = normalizeHandleInput((rawValue ?? '').toString());
     if (raw.isEmpty) return '';
     return '$prefix$raw';
   }
 
   String _pickWebsiteUrl(Object? urlValue, Object? rawValue) {
-    final url = (urlValue ?? '').toString().trim();
+    final url = normalizeWebsiteUrl((urlValue ?? '').toString());
     if (url.isNotEmpty) return url;
-    final raw = (rawValue ?? '').toString().trim();
-    if (raw.isEmpty || raw == 'https://' || raw == 'http://') return '';
-    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-    return 'https://$raw';
+    return normalizeWebsiteUrl((rawValue ?? '').toString());
   }
 }
 
@@ -792,7 +897,8 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appliedBadge = result.badge.isEmpty ? 'Rozetsiz' : result.badge;
+    final appliedBadge =
+        result.badge.isEmpty ? 'admin.badges.no_badge'.tr : result.badge;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -803,8 +909,8 @@ class _ResultCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Son işlem',
+          Text(
+            'admin.badges.last_action'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 14,

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class AntremanScoreController extends GetxController {
@@ -18,11 +19,11 @@ class AntremanScoreController extends GetxController {
   final userPoint = 0.obs;
   final userRank = 0.obs;
   final now = DateTime.now();
-  final monthName = RxString(monthNames[DateTime.now().month]);
-  static const _excludedRozet = {'Turkuaz'};
+  static const _excludedRozet = {'turkuaz'};
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  String get monthName => _monthKeyFor(DateTime.now().month).tr;
 
   String get _monthKey {
     final now = DateTime.now();
@@ -30,21 +31,36 @@ class AntremanScoreController extends GetxController {
     return '${now.year}-$month';
   }
 
-  static const monthNames = [
-    '',
-    'Ocak',
-    'Şubat',
-    'Mart',
-    'Nisan',
-    'Mayıs',
-    'Haziran',
-    'Temmuz',
-    'Ağustos',
-    'Eylül',
-    'Ekim',
-    'Kasım',
-    'Aralık'
-  ];
+  String _monthKeyFor(int month) {
+    switch (month) {
+      case 1:
+        return 'common.month.january';
+      case 2:
+        return 'common.month.february';
+      case 3:
+        return 'common.month.march';
+      case 4:
+        return 'common.month.april';
+      case 5:
+        return 'common.month.may';
+      case 6:
+        return 'common.month.june';
+      case 7:
+        return 'common.month.july';
+      case 8:
+        return 'common.month.august';
+      case 9:
+        return 'common.month.september';
+      case 10:
+        return 'common.month.october';
+      case 11:
+        return 'common.month.november';
+      case 12:
+        return 'common.month.december';
+      default:
+        return 'common.month.january';
+    }
+  }
 
   @override
   void onInit() {
@@ -71,7 +87,7 @@ class AntremanScoreController extends GetxController {
   }
 
   bool _isEligibleEntry(Map<String, dynamic> data) {
-    final rozet = (data['rozet'] ?? '').toString();
+    final rozet = normalizeRozetValue((data['rozet'] ?? '').toString());
     if (_excludedRozet.contains(rozet)) return false;
     final nickname =
         (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')

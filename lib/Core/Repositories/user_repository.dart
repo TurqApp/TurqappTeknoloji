@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
 class UserSummary {
@@ -251,6 +253,8 @@ class UserRepository extends GetxService {
 
   Future<void> invalidateUser(String uid) async {
     await _cache.invalidateUser(uid);
+    _existsCache.clear();
+    _queryCache.clear();
   }
 
   Future<void> clearAll() async {
@@ -263,7 +267,7 @@ class UserRepository extends GetxService {
     String email, {
     bool preferCache = true,
   }) async {
-    final normalized = email.trim().toLowerCase();
+    final normalized = normalizeEmailAddress(email);
     if (normalized.isEmpty) return false;
     final key = 'email::$normalized';
     final cached = _existsCache[key];
@@ -290,7 +294,7 @@ class UserRepository extends GetxService {
     String usernameLower, {
     bool preferCache = true,
   }) async {
-    final normalized = usernameLower.trim().toLowerCase();
+    final normalized = normalizeNicknameInput(usernameLower);
     if (normalized.isEmpty) return false;
     final key = 'usernameLower::$normalized';
     final cached = _existsCache[key];
@@ -317,7 +321,7 @@ class UserRepository extends GetxService {
     String email, {
     bool preferCache = true,
   }) async {
-    final normalized = email.trim().toLowerCase();
+    final normalized = normalizeEmailAddress(email);
     if (normalized.isEmpty) return null;
     final key = 'findEmail::$normalized';
     final cached = _queryCache[key];
@@ -417,7 +421,7 @@ class UserRepository extends GetxService {
     String prefix, {
     bool preferCache = true,
   }) async {
-    final normalized = prefix.trim().toLowerCase();
+    final normalized = normalizeNicknameInput(prefix);
     if (normalized.length < 2) return null;
     final key = 'nicknamePrefix::$normalized';
     final cached = _queryCache[key];
@@ -453,7 +457,7 @@ class UserRepository extends GetxService {
     int limit = 20,
     bool preferCache = true,
   }) async {
-    final normalized = prefix.trim().toLowerCase();
+    final normalized = normalizeNicknameInput(prefix);
     if (normalized.length < 2) return const <Map<String, dynamic>>[];
     final key = 'nicknamePrefixList::$normalized::$limit';
     final cached = _queryCache[key];

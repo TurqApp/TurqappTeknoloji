@@ -12,6 +12,8 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/konu_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
+const _practiceQuestionLgsType = 'LGS';
+
 class SoruContent extends StatefulWidget {
   final SoruModel model;
   final String sinavTuru;
@@ -230,12 +232,12 @@ class _SoruContentState extends State<SoruContent> {
                     vertical: 10,
                   ),
                   child: Row(
-                    mainAxisAlignment: widget.sinavTuru == "LGS"
+                    mainAxisAlignment: widget.sinavTuru == _practiceQuestionLgsType
                         ? MainAxisAlignment.spaceAround
                         : MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (var item in widget.sinavTuru == "LGS"
+                      for (var item in widget.sinavTuru == _practiceQuestionLgsType
                           ? ['A', 'B', 'C', 'D']
                           : ['A', 'B', 'C', 'D', 'E'])
                         GestureDetector(

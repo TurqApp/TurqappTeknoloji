@@ -22,6 +22,54 @@ class ApplicationReview extends StatelessWidget {
     tag: jobDocID,
   );
 
+  String _localizedCvLanguage(dynamic rawValue) {
+    final raw = (rawValue ?? '').toString().trim();
+    switch (raw.toLowerCase()) {
+      case 'cv.language.english':
+      case 'english':
+      case 'ingilizce':
+        return 'cv.language.english'.tr;
+      case 'cv.language.german':
+      case 'german':
+      case 'almanca':
+        return 'cv.language.german'.tr;
+      case 'cv.language.french':
+      case 'french':
+      case 'fransızca':
+      case 'fransizca':
+        return 'cv.language.french'.tr;
+      case 'cv.language.spanish':
+      case 'spanish':
+      case 'ispanyolca':
+        return 'cv.language.spanish'.tr;
+      case 'cv.language.arabic':
+      case 'arabic':
+      case 'arapça':
+      case 'arapca':
+        return 'cv.language.arabic'.tr;
+      case 'cv.language.turkish':
+      case 'turkish':
+      case 'türkçe':
+      case 'turkce':
+        return 'cv.language.turkish'.tr;
+      case 'cv.language.russian':
+      case 'russian':
+      case 'rusça':
+      case 'rusca':
+        return 'cv.language.russian'.tr;
+      case 'cv.language.italian':
+      case 'italian':
+      case 'italyanca':
+        return 'cv.language.italian'.tr;
+      case 'cv.language.korean':
+      case 'korean':
+      case 'korece':
+        return 'cv.language.korean'.tr;
+      default:
+        return raw;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,8 +82,8 @@ class ApplicationReview extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          "Başvuranlar",
+        title: Text(
+          "pasaj.job_finder.applicants".tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -51,9 +99,9 @@ class ApplicationReview extends StatelessWidget {
             return const Center(child: CupertinoActivityIndicator());
           }
           if (controller.applicants.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                "Henüz başvuru yok",
+                "pasaj.job_finder.no_applicants".tr,
                 style: TextStyle(
                   fontFamily: "MontserratMedium",
                   fontSize: 15,
@@ -97,7 +145,7 @@ class ApplicationReview extends StatelessWidget {
                     ? app.applicantNickname
                     : fetchedNickname.isNotEmpty
                         ? fetchedNickname
-                        : 'Bilinmeyen Kullanıcı';
+                        : 'pasaj.job_finder.unknown_user'.tr;
         final avatarUrl = ((profile?['avatarUrl'] ??
                     profile?['avatarUrl'] ??
                     profile?['avatarUrl'] ??
@@ -189,8 +237,8 @@ class ApplicationReview extends StatelessWidget {
                       size: 16,
                       color: Colors.black,
                     ),
-                    label: const Text(
-                      "CV Görüntüle",
+                    label: Text(
+                      "pasaj.job_finder.view_cv".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontFamily: "MontserratBold",
@@ -218,8 +266,8 @@ class ApplicationReview extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Reddet',
+                            child: Text(
+                              'pasaj.job_finder.reject'.tr,
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 13,
@@ -247,8 +295,8 @@ class ApplicationReview extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'İncele',
+                              child: Text(
+                                'pasaj.job_finder.review'.tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 13,
@@ -274,8 +322,8 @@ class ApplicationReview extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Kabul Et',
+                            child: Text(
+                              'pasaj.job_finder.accept'.tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
@@ -324,7 +372,7 @@ class ApplicationReview extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        JobApplicationModel.statusText(status),
+        _statusLabel(status),
         style: TextStyle(
           color: textColor,
           fontSize: 12,
@@ -338,7 +386,9 @@ class ApplicationReview extends StatelessWidget {
     final cv = await controller.getApplicantCV(userID);
     if (cv == null) {
       AppSnackbar(
-          "CV Bulunamadı", "Bu kullanıcı için kayıtlı bir CV bulunamadı.");
+        "pasaj.job_finder.cv_not_found_title".tr,
+        "pasaj.job_finder.cv_not_found_body".tr,
+      );
       return;
     }
 
@@ -375,13 +425,13 @@ class ApplicationReview extends StatelessWidget {
               ],
               if (cv['mail'] != null && cv['mail'].toString().isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text("E-posta: ${cv['mail']}",
+                Text("${'account_center.email'.tr}: ${cv['mail']}",
                     style: const TextStyle(
                         fontFamily: "MontserratMedium", fontSize: 13)),
               ],
               if (cv['phone'] != null && cv['phone'].toString().isNotEmpty) ...[
                 const SizedBox(height: 4),
-                Text("Telefon: ${cv['phone']}",
+                Text("${'common.phone'.tr}: ${cv['phone']}",
                     style: const TextStyle(
                         fontFamily: "MontserratMedium", fontSize: 13)),
               ],
@@ -389,7 +439,7 @@ class ApplicationReview extends StatelessWidget {
               if (cv['okullar'] != null &&
                   (cv['okullar'] as List).isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text("Eğitim",
+                Text("pasaj.job_finder.education".tr,
                     style: TextStyle(
                         fontFamily: "MontserratBold",
                         fontSize: 15,
@@ -410,7 +460,7 @@ class ApplicationReview extends StatelessWidget {
               if (cv['deneyim'] != null &&
                   (cv['deneyim'] as List).isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text("İş Deneyimi",
+                Text("pasaj.job_finder.experience".tr,
                     style: TextStyle(
                         fontFamily: "MontserratBold",
                         fontSize: 15,
@@ -447,7 +497,7 @@ class ApplicationReview extends StatelessWidget {
               if (cv['skills'] != null &&
                   (cv['skills'] as List).isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text("Beceriler",
+                Text("pasaj.job_finder.skills".tr,
                     style: TextStyle(
                         fontFamily: "MontserratBold",
                         fontSize: 15,
@@ -477,7 +527,7 @@ class ApplicationReview extends StatelessWidget {
               if (cv['diller'] != null &&
                   (cv['diller'] as List).isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text("Diller",
+                Text("pasaj.job_finder.languages".tr,
                     style: TextStyle(
                         fontFamily: "MontserratBold",
                         fontSize: 15,
@@ -488,7 +538,7 @@ class ApplicationReview extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
-                        Text("${e['languege']} ",
+                        Text("${_localizedCvLanguage(e['languege'])} ",
                             style: const TextStyle(
                                 fontFamily: "MontserratMedium", fontSize: 13)),
                         ...List.generate(
@@ -520,5 +570,18 @@ class ApplicationReview extends StatelessWidget {
     if (timestamp == 0) return '';
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     return "${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}";
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'reviewing':
+        return 'pasaj.job_finder.status.reviewing'.tr;
+      case 'accepted':
+        return 'pasaj.job_finder.status.accepted'.tr;
+      case 'rejected':
+        return 'pasaj.job_finder.status.rejected'.tr;
+      default:
+        return 'pasaj.job_finder.status.pending'.tr;
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
@@ -38,6 +39,11 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   late final TextEditingController _creativeStoragePath;
 
   AdCampaignStatus _status = AdCampaignStatus.draft;
+
+  String _formatDate(DateTime date) {
+    final localeTag = Get.locale?.toLanguageTag();
+    return DateFormat.yMd(localeTag).format(date);
+  }
   AdBudgetType _budgetType = AdBudgetType.daily;
   AdBidType _bidType = AdBidType.cpm;
   AdCreativeType _creativeType = AdCreativeType.image;
@@ -129,13 +135,13 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
         return ListView(
           padding: const EdgeInsets.all(14),
           children: [
-            _section('Kampanya Bilgisi'),
-            _txt(_name, 'Campaign Name'),
+            _section('ads_center.campaign_info'.tr),
+            _txt(_name, 'ads_center.campaign_name'.tr),
             const SizedBox(height: 8),
             _advertiserDropdown(),
             const SizedBox(height: 8),
             _enumDropdown<AdCampaignStatus>(
-              label: 'Status',
+              label: 'ads_center.status'.tr,
               value: _status,
               values: AdCampaignStatus.values,
               onChanged: (v) => setState(() => _status = v),
@@ -147,7 +153,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
               children: [
                 Expanded(
                   child: _enumDropdown<AdBudgetType>(
-                    label: 'Budget Type',
+                    label: 'ads_center.budget_type'.tr,
                     value: _budgetType,
                     values: AdBudgetType.values,
                     onChanged: (v) => setState(() => _budgetType = v),
@@ -156,7 +162,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _enumDropdown<AdBidType>(
-                    label: 'Bid Type',
+                    label: 'ads_center.bid_type'.tr,
                     value: _bidType,
                     values: AdBidType.values,
                     onChanged: (v) => setState(() => _bidType = v),
@@ -168,54 +174,74 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
             Row(
               children: [
                 Expanded(
-                    child: _txt(_totalBudget, 'Total Budget', numOnly: true)),
+                    child: _txt(
+                      _totalBudget,
+                      'ads_center.total_budget'.tr,
+                      numOnly: true,
+                    )),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: _txt(_dailyBudget, 'Daily Budget', numOnly: true)),
+                    child: _txt(
+                      _dailyBudget,
+                      'ads_center.daily_budget'.tr,
+                      numOnly: true,
+                    )),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _txt(_bidAmount, 'Bid Amount', numOnly: true)),
+                Expanded(
+                    child: _txt(
+                      _bidAmount,
+                      'ads_center.bid_amount'.tr,
+                      numOnly: true,
+                    )),
                 const SizedBox(width: 8),
-                Expanded(child: _txt(_priority, 'Priority', numOnly: true)),
+                Expanded(
+                    child: _txt(
+                      _priority,
+                      'ads_center.priority'.tr,
+                      numOnly: true,
+                    )),
               ],
             ),
             const SizedBox(height: 10),
             _dateRow(),
             const SizedBox(height: 10),
-            _switch('Test Campaign', _isTestCampaign,
+            _switch('ads_center.test_campaign'.tr, _isTestCampaign,
                 (v) => setState(() => _isTestCampaign = v)),
-            _switch('Delivery Enabled', _deliveryEnabled,
+            _switch('ads_center.delivery_enabled'.tr, _deliveryEnabled,
                 (v) => setState(() => _deliveryEnabled = v)),
             const SizedBox(height: 8),
-            _section('Targeting'),
-            _txt(_countries, 'Countries (TR,US,...)'),
+            _section('ads_center.targeting'.tr),
+            _txt(_countries, 'ads_center.countries'.tr),
             const SizedBox(height: 8),
-            _txt(_cities, 'Cities (Istanbul,Konya,...)'),
+            _txt(_cities, 'ads_center.cities'.tr),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _txt(_minAge, 'Min Age', numOnly: true)),
+                Expanded(
+                    child: _txt(_minAge, 'ads_center.min_age'.tr, numOnly: true)),
                 const SizedBox(width: 8),
-                Expanded(child: _txt(_maxAge, 'Max Age', numOnly: true)),
+                Expanded(
+                    child: _txt(_maxAge, 'ads_center.max_age'.tr, numOnly: true)),
               ],
             ),
             const SizedBox(height: 8),
-            _txt(_appVersions, 'App Versions (1.1.4,...)'),
+            _txt(_appVersions, 'ads_center.app_versions'.tr),
             const SizedBox(height: 8),
-            const Text(
-              'Device Platform: iOS (ilk faz sabit)',
+            Text(
+              'ads_center.device_platform_ios'.tr,
               style: TextStyle(fontFamily: 'MontserratMedium', fontSize: 12),
             ),
             const SizedBox(height: 14),
-            _section('Creative Attachment'),
+            _section('ads_center.creative_attachment'.tr),
             Row(
               children: [
                 Expanded(
                   child: _enumDropdown<AdCreativeType>(
-                    label: 'Creative Type',
+                    label: 'ads_center.creative_type'.tr,
                     value: _creativeType,
                     values: AdCreativeType.values,
                     onChanged: (v) => setState(() => _creativeType = v),
@@ -223,34 +249,37 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                    child:
-                        _txt(_creativeDuration, 'Duration Sec', numOnly: true)),
+                    child: _txt(
+                      _creativeDuration,
+                      'ads_center.duration_seconds'.tr,
+                      numOnly: true,
+                    )),
               ],
             ),
             const SizedBox(height: 8),
-            _txt(_creativeStoragePath, 'Storage Path'),
+            _txt(_creativeStoragePath, 'ads_center.storage_path'.tr),
             const SizedBox(height: 8),
-            _txt(_creativeMediaUrl, 'Media URL'),
+            _txt(_creativeMediaUrl, 'ads_center.media_url'.tr),
             const SizedBox(height: 8),
-            _txt(_creativeHlsUrl, 'HLS Master URL'),
+            _txt(_creativeHlsUrl, 'ads_center.hls_master_url'.tr),
             const SizedBox(height: 8),
-            _txt(_creativeThumbUrl, 'Thumbnail URL'),
+            _txt(_creativeThumbUrl, 'ads_center.thumbnail_url'.tr),
             const SizedBox(height: 8),
-            _txt(_creativeHeadline, 'Headline'),
+            _txt(_creativeHeadline, 'ads_center.headline'.tr),
             const SizedBox(height: 8),
-            _txt(_creativeBody, 'Body Text'),
+            _txt(_creativeBody, 'ads_center.body_text'.tr),
             const SizedBox(height: 8),
-            _txt(_ctaText, 'CTA Text'),
+            _txt(_ctaText, 'ads_center.cta_text'.tr),
             const SizedBox(height: 8),
-            _txt(_destinationUrl, 'Destination URL'),
+            _txt(_destinationUrl, 'ads_center.destination_url'.tr),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.save),
               label: Text(
                 widget.initialCampaign == null
-                    ? 'Kampanya Oluştur'
-                    : 'Kampanyayı Güncelle',
+                    ? 'ads_center.create_campaign'.tr
+                    : 'ads_center.update_campaign'.tr,
                 style: const TextStyle(fontFamily: 'MontserratBold'),
               ),
             ),
@@ -258,8 +287,8 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
             OutlinedButton.icon(
               onPressed: _saveCreativeOnly,
               icon: const Icon(Icons.video_collection_outlined),
-              label: const Text(
-                'Kreatif Kaydet',
+              label: Text(
+                'ads_center.save_creative'.tr,
                 style: TextStyle(fontFamily: 'MontserratMedium'),
               ),
             ),
@@ -323,7 +352,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
       final items = _controller.advertisers;
       return DropdownButtonFormField<String>(
         initialValue: _advertiserId.isEmpty ? null : _advertiserId,
-        decoration: _d('Advertiser'),
+        decoration: _d('ads_center.advertiser'.tr),
         items: items
             .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
             .toList(growable: false),
@@ -347,8 +376,8 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
               if (picked != null) setState(() => _startAt = picked);
             },
             child: InputDecorator(
-              decoration: _d('Start Date'),
-              child: Text('${_startAt.year}-${_startAt.month}-${_startAt.day}'),
+              decoration: _d('ads_center.start_date'.tr),
+              child: Text(_formatDate(_startAt)),
             ),
           ),
         ),
@@ -365,8 +394,8 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
               if (picked != null) setState(() => _endAt = picked);
             },
             child: InputDecorator(
-              decoration: _d('End Date'),
-              child: Text('${_endAt.year}-${_endAt.month}-${_endAt.day}'),
+              decoration: _d('ads_center.end_date'.tr),
+              child: Text(_formatDate(_endAt)),
             ),
           ),
         ),
@@ -455,17 +484,26 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
     await _attachCreativeIfFilled(id);
 
     if (!mounted) return;
-    AppSnackbar('Kampanya Kaydedildi', 'Kampanya kimliği: $id');
+    AppSnackbar(
+      'ads_center.campaign_saved_title'.tr,
+      'ads_center.campaign_saved_body'.trParams({'id': id}),
+    );
   }
 
   Future<void> _saveCreativeOnly() async {
     final campaignId = widget.initialCampaign?.id ?? '';
     if (campaignId.isEmpty) {
-      AppSnackbar('Bilgilendirme', 'Lütfen önce kampanyayı kaydedin.');
+      AppSnackbar(
+        'common.info'.tr,
+        'ads_center.save_campaign_first'.tr,
+      );
       return;
     }
     await _attachCreativeIfFilled(campaignId);
-    AppSnackbar('Kreatif Kaydedildi', 'Reklam kreatifi başarıyla kaydedildi.');
+    AppSnackbar(
+      'ads_center.creative_saved_title'.tr,
+      'ads_center.creative_saved_body'.tr,
+    );
   }
 
   Future<void> _attachCreativeIfFilled(String campaignId) async {

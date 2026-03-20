@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/music_model.dart';
 
 class SpotifySelectorController extends GetxController {
@@ -163,14 +164,14 @@ class SpotifySelectorController extends GetxController {
   }
 
   List<MusicModel> _applyQuery(List<MusicModel> source) {
-    final q = query.value.trim().toLowerCase();
+    final q = normalizeSearchText(query.value);
     if (q.isEmpty) return source;
     return source.where((track) {
-      final haystack = [
+      final haystack = normalizeSearchText([
         track.title,
         track.artist,
         track.category,
-      ].join(' ').toLowerCase();
+      ].join(' '));
       return haystack.contains(q);
     }).toList(growable: false);
   }

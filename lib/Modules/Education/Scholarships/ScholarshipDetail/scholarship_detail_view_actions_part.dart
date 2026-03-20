@@ -165,11 +165,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                       ? null
                       : () async {
                           if (model.basvuruURL.isNotEmpty) {
-                            String urlString = model.basvuruURL;
-                            if (!urlString.startsWith('http://') &&
-                                !urlString.startsWith('https://')) {
-                              urlString = 'https://$urlString';
-                            }
+                            final urlString =
+                                ensureUrlHasScheme(model.basvuruURL);
                             final url = Uri.parse(urlString);
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url);

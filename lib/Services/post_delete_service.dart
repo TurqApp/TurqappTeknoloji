@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../Models/posts_model.dart';
 import '../Core/Repositories/post_repository.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
+import '../Core/Services/agenda_shuffle_cache_service.dart';
 import '../Core/Services/typesense_post_service.dart';
 import '../Core/Repositories/profile_repository.dart';
 import '../Modules/Agenda/agenda_controller.dart';
@@ -180,14 +181,15 @@ class PostDeleteService {
     // Agenda akışı
     if (Get.isRegistered<AgendaController>()) {
       final agenda = Get.find<AgendaController>();
-      final i = agenda.agendaList.indexWhere((e) => e.docID == docID);
-      if (i != -1) {
-        agenda.agendaList[i] = agenda.agendaList[i].copyWith(
-          deletedPost: true,
-          deletedPostTime: now,
-        );
-        agenda.agendaList.refresh();
-      }
+      agenda.agendaList.removeWhere((e) => e.docID == docID);
+      agenda.mergedFeedEntries
+          .removeWhere((entry) => (entry['postId'] ?? entry['docID']) == docID);
+      agenda.filteredFeedEntries
+          .removeWhere((entry) => (entry['postId'] ?? entry['docID']) == docID);
+      agenda.highlightDocIDs.remove(docID);
+      agenda.agendaList.refresh();
+      agenda.mergedFeedEntries.refresh();
+      agenda.filteredFeedEntries.refresh();
     }
 
     // Explore listeleri
@@ -238,12 +240,8 @@ class PostDeleteService {
     // Shorts listesi
     if (Get.isRegistered<ShortController>()) {
       final shorts = Get.find<ShortController>();
-      final idx = shorts.shorts.indexWhere((e) => e.docID == docID);
-      if (idx != -1) {
-        shorts.shorts[idx] = shorts.shorts[idx]
-            .copyWith(deletedPost: true, deletedPostTime: now);
-        shorts.shorts.refresh();
-      }
+      shorts.shorts.removeWhere((e) => e.docID == docID);
+      shorts.shorts.refresh();
     }
   }
 
@@ -261,6 +259,12 @@ class PostDeleteService {
         ]) {
           await pool.removePosts(kind, ids.toList(growable: false));
         }
+      }
+    } catch (_) {}
+
+    try {
+      if (Get.isRegistered<AgendaShuffleCacheService>()) {
+        Get.find<AgendaShuffleCacheService>().removePosts(ids);
       }
     } catch (_) {}
 

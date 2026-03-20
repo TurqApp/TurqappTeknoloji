@@ -6,7 +6,6 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/PostCreator/CreatorContent/creator_content_controller.dart';
 import 'package:turqappv2/Modules/PostCreator/CreatorContent/post_creator_model.dart';
-import 'package:turqappv2/Themes/app_colors.dart';
 import 'CreatorContent/creator_content.dart';
 import 'post_creator_controller.dart';
 import '../../Core/BottomSheets/no_yes_alert.dart';
@@ -14,6 +13,7 @@ import '../../Core/Widgets/app_icon_surface.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 
 class PostCreator extends StatelessWidget {
+  final String routeInstanceId = UniqueKey().toString();
   final String sharedVideoUrl;
   final List<String> sharedImageUrls;
   final double sharedAspectRatio;
@@ -55,27 +55,43 @@ class PostCreator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller.applySharedSourceIfNeeded(
-      videoUrl: sharedVideoUrl,
-      imageUrls: sharedImageUrls,
-      aspectRatio: sharedAspectRatio,
-      thumbnail: sharedThumbnail,
-      sharedAsPost: sharedAsPost,
-      originalUserID: originalUserID,
-      originalPostID: originalPostID,
-      sourcePostID: sourcePostID,
-      quotedPost: quotedPost,
-      quotedOriginalText: quotedOriginalText,
-      quotedSourceUserID: quotedSourceUserID,
-      quotedSourceDisplayName: quotedSourceDisplayName,
-      quotedSourceUsername: quotedSourceUsername,
-      quotedSourceAvatarUrl: quotedSourceAvatarUrl,
-    );
-    controller.applyEditSourceIfNeeded(
-      editMode: editMode,
-      editPost: editPost,
-    );
-    return Scaffold(
+    return FutureBuilder<void>(
+      future: controller.prepareForRoute(
+        routeId: routeInstanceId,
+        sharedAsPost: sharedAsPost,
+        editMode: editMode,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: CupertinoActivityIndicator(),
+              ),
+            ),
+          );
+        }
+        controller.applySharedSourceIfNeeded(
+          videoUrl: sharedVideoUrl,
+          imageUrls: sharedImageUrls,
+          aspectRatio: sharedAspectRatio,
+          thumbnail: sharedThumbnail,
+          sharedAsPost: sharedAsPost,
+          originalUserID: originalUserID,
+          originalPostID: originalPostID,
+          sourcePostID: sourcePostID,
+          quotedPost: quotedPost,
+          quotedOriginalText: quotedOriginalText,
+          quotedSourceUserID: quotedSourceUserID,
+          quotedSourceDisplayName: quotedSourceDisplayName,
+          quotedSourceUsername: quotedSourceUsername,
+          quotedSourceAvatarUrl: quotedSourceAvatarUrl,
+        );
+        controller.applyEditSourceIfNeeded(
+          editMode: editMode,
+          editPost: editPost,
+        );
+        return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Obx(() {
@@ -99,6 +115,8 @@ class PostCreator extends StatelessWidget {
           );
         }),
       ),
+        );
+      },
     );
   }
 
@@ -119,42 +137,41 @@ class PostCreator extends StatelessWidget {
                 onTap: controller.isPublishing.value
                     ? null
                     : () async {
-                  if (controller.isSavingEdit.value) return;
-                  if (controller.isEditMode.value) {
-                    final ok = await controller.savePostEdit();
-                    if (ok) {
-                      final popped = await Navigator.of(context).maybePop();
-                      if (!popped) {
-                        if (Navigator.of(context, rootNavigator: true)
-                            .canPop()) {
-                          Navigator.of(context, rootNavigator: true).pop();
-                        } else {
-                          Get.back();
+                        if (controller.isSavingEdit.value) return;
+                        if (controller.isEditMode.value) {
+                          final ok = await controller.savePostEdit();
+                          if (ok) {
+                            final popped =
+                                await Navigator.of(context).maybePop();
+                            if (!popped) {
+                              if (Navigator.of(context, rootNavigator: true)
+                                  .canPop()) {
+                                Navigator.of(context, rootNavigator: true)
+                                    .pop();
+                              } else {
+                                Get.back();
+                              }
+                            }
+                          }
+                          return;
                         }
-                      }
-                    }
-                    return;
-                  }
-                  controller.uploadAllPostsInBackgroundWithErrorHandling();
-                },
+                        controller
+                            .uploadAllPostsInBackgroundWithErrorHandling();
+                      },
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primaryColor, AppColors.secondColor],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: Colors.green,
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
                     controller.isEditMode.value
                         ? (controller.isSavingEdit.value
-                            ? "Kaydediliyor..."
-                            : "Kaydet")
+                            ? 'post_creator.saving'.tr
+                            : 'common.save'.tr)
                         : (controller.isPublishing.value
-                            ? "Yükleniyor..."
-                            : "Yayınla"),
+                            ? 'post_creator.uploading'.tr
+                            : 'post_creator.publish'.tr),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -167,8 +184,8 @@ class PostCreator extends StatelessWidget {
           ),
           Text(
             controller.isEditMode.value
-                ? "Gönderi Düzenle"
-                : "Gönderi Hazırla",
+                ? 'post_creator.title_edit'.tr
+                : 'post_creator.title_new'.tr,
             style: const TextStyle(
               color: Colors.black,
               fontSize: 16,
@@ -246,8 +263,7 @@ class PostCreator extends StatelessWidget {
           selectedController.selectedImages.isNotEmpty ||
           selectedController.reusedImageUrls.isNotEmpty;
       final hasVideo = selectedController.selectedVideo.value != null;
-      final hasCaption =
-          selectedController.textChanged.value ||
+      final hasCaption = selectedController.textChanged.value ||
           selectedController.textEdit.text.trim().isNotEmpty;
       final commentActive = controller.commentVisibility.value != 0;
       final reshareActive = controller.paylasimSelection.value != 0;
@@ -255,8 +271,7 @@ class PostCreator extends StatelessWidget {
           (selectedController.pollData.value?['options'] is List) &&
           (selectedController.pollData.value!['options'] as List).isNotEmpty;
       final disableFirstThree = controller.isEditMode.value;
-      final disableFlood =
-          controller.isEditMode.value ||
+      final disableFlood = controller.isEditMode.value ||
           !(hasCaption || hasImages || hasVideo || pollActive);
       final iconGap = AppIconSurface.kGap - 1;
       final toolbarIconSize = AppIconSurface.kIconSize;
@@ -289,9 +304,7 @@ class PostCreator extends StatelessWidget {
                           size: toolbarIconSize,
                           color: disableFirstThree
                               ? Colors.black38
-                              : (hasImages
-                                  ? Colors.blueAccent
-                                  : Colors.black),
+                              : (hasImages ? Colors.blueAccent : Colors.black),
                         ),
                       ),
                     ),
@@ -310,9 +323,7 @@ class PostCreator extends StatelessWidget {
                           size: toolbarIconSize,
                           color: disableFirstThree
                               ? Colors.black38
-                              : (hasVideo
-                                  ? Colors.blueAccent
-                                  : Colors.black),
+                              : (hasVideo ? Colors.blueAccent : Colors.black),
                         ),
                       ),
                     ),
@@ -325,9 +336,8 @@ class PostCreator extends StatelessWidget {
                         icon: Icon(
                           CupertinoIcons.camera,
                           size: toolbarIconSize,
-                          color: disableFirstThree
-                              ? Colors.black38
-                              : Colors.black,
+                          color:
+                              disableFirstThree ? Colors.black38 : Colors.black,
                         ),
                       ),
                     ),
@@ -338,55 +348,54 @@ class PostCreator extends StatelessWidget {
                         icon: Icon(
                           CupertinoIcons.chart_bar,
                           size: toolbarIconSize,
-                          color:
-                              pollActive ? Colors.blueAccent : Colors.black,
+                          color: pollActive ? Colors.blueAccent : Colors.black,
                         ),
                       ),
                     ),
                     _toolbarSlot(
                       child: PullDownButton(
                         itemBuilder: (context) => [
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.commentVisibility.value = 0;
-                                    controller.comment.value = true;
-                                  },
-                                  title: 'Herkes',
-                                  icon: controller.commentVisibility.value == 0
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.commentVisibility.value = 1;
-                                    controller.comment.value = true;
-                                  },
-                                  title: 'Onaylı hesaplar',
-                                  icon: controller.commentVisibility.value == 1
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.commentVisibility.value = 2;
-                                    controller.comment.value = true;
-                                  },
-                                  title: 'Takip ettiğin hesaplar',
-                                  icon: controller.commentVisibility.value == 2
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.commentVisibility.value = 3;
-                                    controller.comment.value = false;
-                                  },
-                                  title: 'Yoruma kapalı',
-                                  icon: controller.commentVisibility.value == 3
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                              ],
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.commentVisibility.value = 0;
+                              controller.comment.value = true;
+                            },
+                            title: 'post_creator.comments.everyone'.tr,
+                            icon: controller.commentVisibility.value == 0
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.commentVisibility.value = 1;
+                              controller.comment.value = true;
+                            },
+                            title: 'post_creator.comments.verified'.tr,
+                            icon: controller.commentVisibility.value == 1
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.commentVisibility.value = 2;
+                              controller.comment.value = true;
+                            },
+                            title: 'post_creator.comments.following'.tr,
+                            icon: controller.commentVisibility.value == 2
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.commentVisibility.value = 3;
+                              controller.comment.value = false;
+                            },
+                            title: 'post_creator.comments.closed'.tr,
+                            icon: controller.commentVisibility.value == 3
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                        ],
                         buttonBuilder: (context, showMenu) =>
                             _toolbarSurfaceButton(
                           onPressed: showMenu,
@@ -404,43 +413,43 @@ class PostCreator extends StatelessWidget {
                     _toolbarSlot(
                       child: PullDownButton(
                         itemBuilder: (context) => [
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.paylasimSelection.value = 0;
-                                  },
-                                  title: 'Herkes',
-                                  icon: controller.paylasimSelection.value == 0
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.paylasimSelection.value = 1;
-                                  },
-                                  title: 'Onaylı hesaplar',
-                                  icon: controller.paylasimSelection.value == 1
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.paylasimSelection.value = 2;
-                                  },
-                                  title: 'Takip ettiğin hesaplar',
-                                  icon: controller.paylasimSelection.value == 2
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                                PullDownMenuItem(
-                                  onTap: () {
-                                    controller.paylasimSelection.value = 3;
-                                  },
-                                  title: 'Yeniden paylaş kapalı',
-                                  icon: controller.paylasimSelection.value == 3
-                                      ? CupertinoIcons.checkmark_circle_fill
-                                      : CupertinoIcons.circle,
-                                ),
-                              ],
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.paylasimSelection.value = 0;
+                            },
+                            title: 'post_creator.reshare.everyone'.tr,
+                            icon: controller.paylasimSelection.value == 0
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.paylasimSelection.value = 1;
+                            },
+                            title: 'post_creator.reshare.verified'.tr,
+                            icon: controller.paylasimSelection.value == 1
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.paylasimSelection.value = 2;
+                            },
+                            title: 'post_creator.reshare.following'.tr,
+                            icon: controller.paylasimSelection.value == 2
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                          PullDownMenuItem(
+                            onTap: () {
+                              controller.paylasimSelection.value = 3;
+                            },
+                            title: 'post_creator.reshare.closed'.tr,
+                            icon: controller.paylasimSelection.value == 3
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                          ),
+                        ],
                         buttonBuilder: (context, showMenu) =>
                             _toolbarSurfaceButton(
                           onPressed: showMenu,
@@ -462,10 +471,10 @@ class PostCreator extends StatelessWidget {
                           onPressed: () {
                             if (scheduled) {
                               noYesAlert(
-                                title: 'Planlamayı Kaldır',
+                                title: 'post_creator.schedule.remove_title'.tr,
                                 message:
-                                    'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
-                                yesText: 'Kaldır',
+                                    'post_creator.schedule.remove_message'.tr,
+                                yesText: 'common.remove'.tr,
                                 onYesPressed: () {
                                   controller.publishMode.value = 0;
                                   controller.izBirakDateTime.value = null;
@@ -481,8 +490,7 @@ class PostCreator extends StatelessWidget {
                                 ? CupertinoIcons.clock_fill
                                 : CupertinoIcons.clock,
                             size: toolbarIconSize,
-                            color:
-                                scheduled ? Colors.blueAccent : Colors.black,
+                            color: scheduled ? Colors.blueAccent : Colors.black,
                           ),
                         );
                       }),
@@ -504,8 +512,8 @@ class PostCreator extends StatelessWidget {
                             controller.postList.length - 1;
                         final nextController =
                             Get.isRegistered<CreatorContentController>(
-                              tag: newTag,
-                            )
+                          tag: newTag,
+                        )
                                 ? Get.find<CreatorContentController>(
                                     tag: newTag,
                                   )

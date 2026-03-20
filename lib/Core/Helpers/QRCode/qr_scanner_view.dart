@@ -32,7 +32,7 @@ class QrScannerView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "QR Kodu Tara",
+                'qr.scan_title'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: FontSizes.size20,
@@ -63,7 +63,7 @@ class QrScannerView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(25),
           child: Text(
-            "Yeni tanıştığınız insanların profilinde bulunan qr kodunu okutarak, onun profiline\nanına gidebilirsin",
+            'qr.scan_body'.tr,
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: AppColors.textBlack,

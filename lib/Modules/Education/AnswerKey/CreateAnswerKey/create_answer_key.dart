@@ -80,8 +80,8 @@ class CreateAnswerKey extends StatelessWidget {
                       () => Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Sınav Tarih Saat",
+                          Text(
+                            "answer_key.exam_datetime".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontFamily: "MontserratBold",
@@ -121,8 +121,8 @@ class CreateAnswerKey extends StatelessWidget {
                       () => Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Sınav Süresi",
+                          Text(
+                            "tests.duration".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontFamily: "MontserratBold",
@@ -153,7 +153,8 @@ class CreateAnswerKey extends StatelessWidget {
             Expanded(
               child: Obx(
                 () => PasajSelectionChip(
-                  label: "5 Cevap",
+                  label: "answer_key.option_answers"
+                      .trParams({"count": "5"}),
                   selected: controller.selection.value == 5,
                   onTap: () => controller.setSelection(5),
                   height: 50,
@@ -165,7 +166,8 @@ class CreateAnswerKey extends StatelessWidget {
             Expanded(
               child: Obx(
                 () => PasajSelectionChip(
-                  label: "4 Cevap",
+                  label: "answer_key.option_answers"
+                      .trParams({"count": "4"}),
                   selected: controller.selection.value == 4,
                   onTap: () => controller.setSelection(4),
                   height: 50,
@@ -213,8 +215,8 @@ class CreateAnswerKey extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            const Text(
-                              "Sınavınızın, doğru cevap şıklarını giriniz",
+                            Text(
+                              "answer_key.enter_correct_answers".tr,
                               style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
@@ -237,8 +239,8 @@ class CreateAnswerKey extends StatelessWidget {
                                     ),
                                   ),
                                   alignment: Alignment.center,
-                                  child: const Text(
-                                    "Kaydet",
+                                  child: Text(
+                                    "common.save".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -434,8 +436,8 @@ class CreateAnswerKey extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Text(
-                                "Sınav Süresi Seç",
+                              Text(
+                                "answer_key.select_exam_duration".tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,

@@ -7,8 +7,17 @@ import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
 class NotificationContentController extends GetxController {
+  static const String _userType = kNotificationPostTypeUserLower;
+  static const String _commentType = kNotificationPostTypeCommentLower;
+  static const String _chatType = kNotificationPostTypeChatLower;
+  static const String _jobApplicationType =
+      kNotificationPostTypeJobApplicationLower;
+  static const String _tutoringApplicationType =
+      kNotificationPostTypeTutoringApplicationLower;
+
   String userID;
   final NotificationModel notification;
 
@@ -50,7 +59,8 @@ class NotificationContentController extends GetxController {
   }
 
   Future<void> _loadTargetHint() async {
-    final normalizedType = _normalizedType(notification.type, notification.postType);
+    final normalizedType =
+        normalizeNotificationType(notification.type, notification.postType);
     final postId = notification.postID.trim();
 
     if (normalizedType == "follow" || normalizedType == "user") {
@@ -68,7 +78,7 @@ class NotificationContentController extends GetxController {
       return;
     }
 
-    if (_isPostType(normalizedType)) {
+    if (isNotificationPostType(normalizedType)) {
       await getPostData(postId);
       if (targetHint.value.isEmpty) {
         targetHint.value = _fallbackHint(normalizedType);
@@ -76,7 +86,7 @@ class NotificationContentController extends GetxController {
       return;
     }
 
-    if (normalizedType == "job_application") {
+    if (isJobNotificationType(normalizedType)) {
       final lookup = await _notifyLookupRepository.getJobLookup(postId);
       final label = lookup.model?.ilanBasligi.trim().isNotEmpty == true
           ? lookup.model!.ilanBasligi.trim()
@@ -87,8 +97,7 @@ class NotificationContentController extends GetxController {
       return;
     }
 
-    if (normalizedType == "tutoring_application" ||
-        normalizedType == "tutoring_status") {
+    if (isTutoringNotificationType(normalizedType)) {
       final lookup = await _notifyLookupRepository.getTutoringLookup(postId);
       final label = lookup.model?.baslik.trim() ?? "";
       targetHint.value = label.isNotEmpty
@@ -102,7 +111,7 @@ class NotificationContentController extends GetxController {
 
   String _buildPostHint(PostsModel post) {
     final normalizedType =
-        _normalizedType(notification.type, notification.postType);
+        normalizeNotificationType(notification.type, notification.postType);
     final rawTitle = notification.title.trim();
     final preview = rawTitle.isNotEmpty
         ? rawTitle
@@ -110,46 +119,32 @@ class NotificationContentController extends GetxController {
             ? post.metin.trim()
             : post.konum.trim();
     final normalizedPreview = preview.replaceAll(RegExp(r'\s+'), ' ').trim();
-    final prefix = normalizedType == "comment"
+    final prefix = normalizedType == _commentType
         ? "notification.hint.comments".tr
         : "notification.hint.post".tr;
     if (normalizedPreview.isEmpty) return prefix;
     return "$prefix: $normalizedPreview";
   }
 
-  bool _isPostType(String normalizedType) {
-    return normalizedType == "posts" ||
-        normalizedType == "like" ||
-        normalizedType == "comment" ||
-        normalizedType == "reshared_posts" ||
-        normalizedType == "shared_as_posts" ||
-        normalizedType == "reshare";
-  }
-
-  String _normalizedType(String type, String postType) {
-    final normalizedType = type.trim().toLowerCase();
-    if (normalizedType.isNotEmpty) return normalizedType;
-    return postType.trim().toLowerCase();
-  }
-
   String _fallbackHint(String normalizedType) {
-    switch (normalizedType) {
-      case "comment":
-        return "notification.hint.comments".tr;
-      case "job_application":
-        return "notification.hint.listing".tr;
-      case "tutoring_application":
-      case "tutoring_status":
-        return "notification.hint.tutoring".tr;
-      case "message":
-      case "chat":
-        return "notification.hint.chat".tr;
-      case "follow":
-      case "user":
-        return "notification.hint.profile".tr;
-      default:
-        return "notification.hint.post".tr;
+    if (normalizedType == _commentType) {
+      return "notification.hint.comments".tr;
     }
+    if (isJobNotificationType(normalizedType) ||
+        normalizedType == _jobApplicationType) {
+      return "notification.hint.listing".tr;
+    }
+    if (isTutoringNotificationType(normalizedType) ||
+        normalizedType == _tutoringApplicationType) {
+      return "notification.hint.tutoring".tr;
+    }
+    if (normalizedType == "message" || normalizedType == _chatType) {
+      return "notification.hint.chat".tr;
+    }
+    if (normalizedType == "follow" || normalizedType == _userType) {
+      return "notification.hint.profile".tr;
+    }
+    return "notification.hint.post".tr;
   }
 
   Future<void> toggleFollowStatus(String userID) async {
@@ -180,7 +175,7 @@ class NotificationContentController extends GetxController {
     );
     if (user == null) {
       avatarUrl.value = "";
-      nickname.value = "TurqApp";
+      nickname.value = 'app.name'.tr;
       return;
     }
     avatarUrl.value = user.avatarUrl;

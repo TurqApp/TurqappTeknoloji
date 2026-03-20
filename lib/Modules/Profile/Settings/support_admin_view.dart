@@ -36,24 +36,26 @@ class _SupportAdminViewState extends State<SupportAdminView> {
     final bool? confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: Text(status == 'closed' ? 'Mesajı Kapat' : 'Mesajı Yanıtla'),
+        title: Text(status == 'closed'
+            ? 'admin.support.close_message'.tr
+            : 'admin.support.answer_message'.tr),
         content: Padding(
           padding: const EdgeInsets.only(top: 12),
           child: CupertinoTextField(
             controller: noteController,
             maxLines: 4,
-            placeholder: 'Admin notu',
+            placeholder: 'admin.support.note'.tr,
           ),
         ),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Vazgeç'),
+            child: Text('common.cancel'.tr),
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Kaydet'),
+            child: Text('common.save'.tr),
           ),
         ],
       ),
@@ -68,9 +70,9 @@ class _SupportAdminViewState extends State<SupportAdminView> {
         status: status,
         adminNote: noteController.text,
       );
-      AppSnackbar('Güncellendi', 'Destek mesajı güncellendi.');
+      AppSnackbar('admin.support.updated_title'.tr, 'admin.support.updated_body'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'İşlem tamamlanamadı: $e');
+      AppSnackbar('support.error_title'.tr, '${'support.error_body'.tr} $e');
     } finally {
       noteController.dispose();
     }
@@ -79,11 +81,11 @@ class _SupportAdminViewState extends State<SupportAdminView> {
   String _statusLabel(String status) {
     switch (status.trim()) {
       case 'answered':
-        return 'Yanıtlandı';
+        return 'admin.support.answered'.tr;
       case 'closed':
-        return 'Kapatıldı';
+        return 'admin.support.closed'.tr;
       default:
-        return 'Açık';
+        return 'admin.support.open'.tr;
     }
   }
 
@@ -126,12 +128,12 @@ class _SupportAdminViewState extends State<SupportAdminView> {
             body: SafeArea(
               child: Column(
                 children: [
-                  BackButtons(text: 'Kullanıcı Destek'),
-                  const Expanded(
+                  BackButtons(text: 'admin.support.title'.tr),
+                  Expanded(
                     child: Center(
                       child: Text(
-                        'Bu ekrana erişim iznin yok.',
-                        style: TextStyle(
+                        'admin.no_access'.tr,
+                        style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 15,
                           fontFamily: 'MontserratMedium',
@@ -149,7 +151,7 @@ class _SupportAdminViewState extends State<SupportAdminView> {
             bottom: false,
             child: Column(
               children: [
-                BackButtons(text: 'Kullanıcı Destek'),
+                BackButtons(text: 'admin.support.title'.tr),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                     stream: _repository.watchInbox(),
@@ -161,10 +163,10 @@ class _SupportAdminViewState extends State<SupportAdminView> {
                       }
                       final docs = snapshot.data?.docs ?? const [];
                       if (docs.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
-                            'Henüz destek mesajı yok.',
-                            style: TextStyle(
+                            'admin.support.empty'.tr,
+                            style: const TextStyle(
                               color: Colors.black54,
                               fontSize: 15,
                               fontFamily: 'MontserratMedium',
@@ -181,6 +183,7 @@ class _SupportAdminViewState extends State<SupportAdminView> {
                           final status = (data['status'] ?? 'open').toString();
                           final adminNote =
                               (data['adminNote'] ?? '').toString();
+                          final topic = (data['topic'] ?? '').toString();
                           final nickname = (data['nickname'] ?? '').toString();
                           final displayName =
                               (data['displayName'] ?? '').toString();
@@ -267,6 +270,27 @@ class _SupportAdminViewState extends State<SupportAdminView> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
+                                if (topic.trim().isNotEmpty)
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(color: Colors.black12),
+                                    ),
+                                    child: Text(
+                                      topic,
+                                      style: const TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratSemiBold',
+                                      ),
+                                    ),
+                                  ),
                                 if (email.trim().isNotEmpty)
                                   Text(
                                     email,
@@ -328,7 +352,7 @@ class _SupportAdminViewState extends State<SupportAdminView> {
                                           status: 'answered',
                                           currentNote: adminNote,
                                         ),
-                                        child: const Text('Yanıtlandı'),
+                                        child: Text('admin.support.mark_answered'.tr),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -343,7 +367,7 @@ class _SupportAdminViewState extends State<SupportAdminView> {
                                           backgroundColor: Colors.black,
                                           foregroundColor: Colors.white,
                                         ),
-                                        child: const Text('Kapat'),
+                                        child: Text('admin.support.close'.tr),
                                       ),
                                     ),
                                   ],

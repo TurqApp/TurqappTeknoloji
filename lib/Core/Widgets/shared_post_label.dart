@@ -82,7 +82,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
           if (mounted) {
             setState(() {
               _displayName = displayName.trim().isNotEmpty &&
-                      displayName != 'Bilinmeyen Kullanıcı'
+                      !ReshareHelper.isUnknownUserLabel(displayName)
                   ? displayName
                   : null;
               _isLoading = false;

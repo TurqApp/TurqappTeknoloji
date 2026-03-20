@@ -11,6 +11,15 @@ class NotifyReader extends StatelessWidget {
   final String type;
   NotifyReader({super.key, required this.docID, required this.type});
   final controller = Get.put(NotifyReaderController());
+  static const _profileTypes = {'user', 'follow'};
+  static const _postTypes = {
+    'posts',
+    'like',
+    'reshared_posts',
+    'shared_as_posts',
+  };
+  static const _chatTypes = {'chat', 'message'};
+  static const _marketTypes = {'market_offer', 'market_offer_status'};
 
   void _routeByType() {
     final rawType = type.trim();
@@ -21,14 +30,11 @@ class NotifyReader extends StatelessWidget {
       return;
     }
 
-    if (normalized == "user" || normalized == "follow") {
+    if (_profileTypes.contains(normalized)) {
       controller.goToProfile(docID);
       return;
     }
-    if (normalized == "posts" ||
-        normalized == "like" ||
-        normalized == "reshared_posts" ||
-        normalized == "shared_as_posts") {
+    if (_postTypes.contains(normalized)) {
       controller.goToPost(docID);
       return;
     }
@@ -36,11 +42,11 @@ class NotifyReader extends StatelessWidget {
       controller.goToPostComments(docID);
       return;
     }
-    if (normalized == "chat" || normalized == "message") {
+    if (_chatTypes.contains(normalized)) {
       controller.goToChat(docID);
       return;
     }
-    if (normalized == "market_offer" || normalized == "market_offer_status") {
+    if (_marketTypes.contains(normalized)) {
       controller.goToMarket(docID);
       return;
     }

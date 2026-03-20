@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
@@ -192,7 +193,7 @@ class JobRepository extends GetxService {
     bool preferCache = true,
     bool forceRefresh = false,
   }) async {
-    final normalized = meslek.trim().toLowerCase();
+    final normalized = normalizeSearchText(meslek);
     final cacheKey = 'profession:$normalized:$limit';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);

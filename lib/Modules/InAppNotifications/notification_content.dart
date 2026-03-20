@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
 import 'package:turqappv2/Models/notification_model.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 import 'notification_content_controller.dart';
@@ -34,14 +35,14 @@ class NotificationContent extends StatelessWidget {
 
   String _buildPrimaryText() {
     final base = model.desc.trim().isEmpty
-        ? "senin gönderinle etkileşime geçti."
+        ? "notification.item.default_interaction".tr
         : model.desc.trim();
     return base.endsWith(".") ? base : "$base.";
   }
 
   @override
   Widget build(BuildContext context) {
-    if (model.postType == "Posts" &&
+    if (model.postType == kNotificationPostTypePosts &&
         controller.model.value.docID != model.postID) {
       controller.getPostData(model.postID);
     }
@@ -245,18 +246,19 @@ class NotificationContent extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (model.postType == "User")
+                if (model.postType == kNotificationPostTypeUser)
                   TextButton(
                     onPressed: controller.followLoading.value
                         ? null
                         : () {
                             if (controller.following.value) {
                               noYesAlert(
-                                title: "Takibi Bırak",
-                                message:
-                                    "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz?",
-                                cancelText: "Vazgeç",
-                                yesText: "Takibi Bırak",
+                                title: "following.unfollow_title".tr,
+                                message: "following.unfollow_body".trParams({
+                                  'nickname': controller.nickname.value,
+                                }),
+                                cancelText: "common.cancel".tr,
+                                yesText: "following.following".tr,
                                 onYesPressed: () {
                                   controller.toggleFollowStatus(model.userID);
                                 },
@@ -297,8 +299,8 @@ class NotificationContent extends StatelessWidget {
                           }
                           return Text(
                             controller.following.value
-                                ? "Takibi Bırak"
-                                : "Takip Et",
+                                ? "following.following".tr
+                                : "following.follow".tr,
                             style: TextStyle(
                               color: controller.following.value
                                   ? Colors.black

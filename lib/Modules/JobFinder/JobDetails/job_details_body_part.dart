@@ -1,30 +1,6 @@
 part of 'job_details.dart';
 
 extension JobDetailsBodyPart on JobDetails {
-  String _displayTurkishText(String value) {
-    var text = value.trim();
-    if (text.isEmpty) return text;
-    const replacements = <String, String>{
-      'Yari': 'Yarı',
-      'Zamanli': 'Zamanlı',
-      'Calisma': 'Çalışma',
-      'Sirket': 'Şirket',
-      'Goruntulenme': 'Görüntülenme',
-      'Basvuru': 'Başvuru',
-      'Ilan': 'İlan',
-      'Ogrenim': 'Öğrenim',
-      'Ogretim': 'Öğretim',
-      'Pozisyon Sayisi': 'Pozisyon Sayısı',
-    };
-    replacements.forEach((source, target) {
-      text = text.replaceAll(source, target);
-    });
-    return text;
-  }
-
-  String _displayTurkishList(List<String> values) =>
-      values.map(_displayTurkishText).join(', ');
-
   Widget buildContent(BuildContext context) {
     final controller =
         Get.put(JobDetailsController(model: model), tag: model.docID);
@@ -39,8 +15,8 @@ extension JobDetailsBodyPart on JobDetails {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'İş Detayı',
+        title: Text(
+          'pasaj.job_finder.detail_title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -105,8 +81,8 @@ extension JobDetailsBodyPart on JobDetails {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Açıklama',
+              Text(
+                'common.description'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,
@@ -116,7 +92,7 @@ extension JobDetailsBodyPart on JobDetails {
               const SizedBox(height: 8),
               ClickableTextContent(
                 text: current.isTanimi.trim().isEmpty
-                    ? 'Bu ilan için açıklama eklenmemiş.'
+                    ? 'pasaj.job_finder.no_description'.tr
                     : current.isTanimi,
                 startWith7line: true,
                 fontSize: 14,
@@ -138,26 +114,26 @@ extension JobDetailsBodyPart on JobDetails {
               ),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'İş Tanımı',
+                title: 'pasaj.job_finder.job_info'.tr,
                 children: [
-                  _infoRow('Ücret', _salaryText(current)),
+                  _infoRow('common.salary'.tr, _salaryText(current)),
                   _infoRow(
-                    'Başvuru Sayısı',
+                    'pasaj.job_finder.application_count'.tr,
                     current.applicationCount.toString(),
                   ),
-                  _infoRow(
-                    'Çalışma',
-                    _displayTurkishList(current.calismaTuru),
-                  ),
+                    _infoRow(
+                      'pasaj.job_finder.work_type'.tr,
+                      localizeJobDisplayList(current.calismaTuru),
+                    ),
                   if (current.calismaGunleri.isNotEmpty)
                     _infoRow(
-                      'Çalışma Günleri',
-                      _displayTurkishList(current.calismaGunleri),
+                      'pasaj.job_finder.work_days'.tr,
+                      localizeJobDisplayList(current.calismaGunleri),
                     ),
                   if (current.calismaSaatiBaslangic.isNotEmpty ||
                       current.calismaSaatiBitis.isNotEmpty)
                     _infoRow(
-                      'Çalışma Saatleri',
+                      'pasaj.job_finder.work_hours'.tr,
                       [
                         current.calismaSaatiBaslangic,
                         current.calismaSaatiBitis,
@@ -165,32 +141,34 @@ extension JobDetailsBodyPart on JobDetails {
                     ),
                   if (current.pozisyonSayisi > 0)
                     _infoRow(
-                      'Alınacak Personel Sayısı',
+                      'pasaj.job_finder.personnel_count'.tr,
                       '${current.pozisyonSayisi}',
                     ),
                   if (current.yanHaklar.isNotEmpty)
                     _infoRow(
-                      'Ek İmkanlar',
-                      _displayTurkishList(current.yanHaklar),
+                      'pasaj.job_finder.benefits'.tr,
+                      localizeJobDisplayList(current.yanHaklar),
                     ),
                 ],
               ),
               const SizedBox(height: 18),
               _infoCard(
-                title: 'İlan Bilgileri',
+                title: 'pasaj.job_finder.listing_info'.tr,
                 children: [
-                  _infoRow('Şirket', current.brand),
-                  _infoRow('Şehir', '${current.city}, ${current.town}'),
-                  _infoRow('Görüntülenme', current.viewCount.toString()),
+                  _infoRow('common.company'.tr, current.brand),
+                  _infoRow('common.city'.tr, '${current.city}, ${current.town}'),
+                  _infoRow('common.views'.tr, current.viewCount.toString()),
                   _infoRow(
-                    'Durum',
-                    current.ended ? 'Pasif' : 'Aktif',
+                    'common.status'.tr,
+                    current.ended
+                        ? 'pasaj.job_finder.passive'.tr
+                        : 'pasaj.market.status.active'.tr,
                   ),
                 ],
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Konum',
+              Text(
+                'common.location'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 16,
@@ -392,7 +370,9 @@ extension JobDetailsBodyPart on JobDetails {
   }
 
   String _salaryText(JobModel job) {
-    if (job.maas1 <= 0 && job.maas2 <= 0) return 'Belirtilmedi';
+    if (job.maas1 <= 0 && job.maas2 <= 0) {
+      return 'pasaj.job_finder.salary_not_specified'.tr;
+    }
     if (job.maas1 > 0 && job.maas2 > 0 && job.maas2 != job.maas1) {
       return '${NumberFormat.decimalPattern('tr_TR').format(job.maas1)} TL - ${NumberFormat.decimalPattern('tr_TR').format(job.maas2)} TL';
     }

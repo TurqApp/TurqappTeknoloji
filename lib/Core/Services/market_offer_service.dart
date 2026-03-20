@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MarketOfferService {
@@ -70,7 +71,7 @@ class MarketOfferService {
       'offerPrice': offerPrice,
       'currency': item.currency,
       'message': message.trim(),
-      'status': 'pending',
+      'status': kMarketOfferStatusPending,
       'createdAt': now,
       'updatedAt': now,
     };
@@ -152,7 +153,8 @@ class MarketOfferService {
     if (sellerId != offer.sellerId) {
       throw Exception('not_offer_owner');
     }
-    if (status != 'accepted' && status != 'rejected') {
+    if (status != kMarketOfferStatusAccepted &&
+        status != kMarketOfferStatusRejected) {
       throw Exception('invalid_offer_status');
     }
 
@@ -192,8 +194,10 @@ class MarketOfferService {
         throw Exception('offer_not_found');
       }
       final currentStatus =
-          (offerSnap.data()?['status'] ?? 'pending').toString().trim();
-      if (currentStatus != 'pending') {
+          (offerSnap.data()?['status'] ?? kMarketOfferStatusPending)
+              .toString()
+              .trim();
+      if (currentStatus != kMarketOfferStatusPending) {
         throw Exception('offer_already_processed');
       }
 
@@ -210,8 +214,9 @@ class MarketOfferService {
       tx.set(
         itemRef,
         {
-          'status': status == 'accepted' ? 'reserved' : 'active',
-          'acceptedOfferId': status == 'accepted' ? offer.id : '',
+          'status': status == kMarketOfferStatusAccepted ? 'reserved' : 'active',
+          'acceptedOfferId':
+              status == kMarketOfferStatusAccepted ? offer.id : '',
           'updatedAt': now,
         },
         SetOptions(merge: true),
@@ -234,10 +239,10 @@ class MarketOfferService {
       );
     } catch (_) {}
 
-    if (status == 'accepted') {
+    if (status == kMarketOfferStatusAccepted) {
       final pendingOffers = await itemRef
           .collection('offers')
-          .where('status', isEqualTo: 'pending')
+          .where('status', isEqualTo: kMarketOfferStatusPending)
           .get();
       final batch = _firestore.batch();
       for (final doc in pendingOffers.docs) {

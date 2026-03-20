@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
 class FollowToggleOutcome {
@@ -21,6 +22,12 @@ class FollowService {
   }
 
   static Future<FollowToggleOutcome> toggleFollow(String otherUserID) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.follow)) {
+      return const FollowToggleOutcome(
+        nowFollowing: false,
+        limitReached: false,
+      );
+    }
     final currentUserID = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserID == null || currentUserID == otherUserID) {
       return const FollowToggleOutcome(
@@ -119,6 +126,12 @@ class FollowService {
     String otherUserID, {
     bool bypassDailyLimit = true,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(
+      RestrictedAction.follow,
+      showMessage: false,
+    )) {
+      return false;
+    }
     final currentUserID = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserID == null || currentUserID == otherUserID) return false;
 

@@ -20,6 +20,8 @@ import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_
 import 'package:turqappv2/Modules/Education/Scholarships/Applications/applications_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';

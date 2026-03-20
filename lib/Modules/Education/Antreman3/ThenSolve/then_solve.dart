@@ -17,6 +17,8 @@ import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
+const _thenSolveLgsType = 'LGS';
+
 class ThenSolve extends StatelessWidget {
   ThenSolve({super.key});
 
@@ -221,7 +223,7 @@ class ThenSolve extends StatelessWidget {
                                   initialAnswer.isNotEmpty &&
                                       initialAnswer == question.dogruCevap;
                               final int optionCount =
-                                  question.sinavTuru == "LGS"
+                                  question.sinavTuru == _thenSolveLgsType
                                       ? 4
                                       : question.kacCevap.toInt();
 
@@ -338,8 +340,8 @@ class ThenSolve extends StatelessWidget {
                                           );
                                         } else {
                                           AppSnackbar(
-                                            "Bilgi",
-                                            "Önce soruyu cevaplayın!",
+                                            "common.info".tr,
+                                            "training.answer_first".tr,
                                           );
                                         }
                                       },

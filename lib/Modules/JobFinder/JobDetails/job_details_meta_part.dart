@@ -52,9 +52,9 @@ extension JobDetailsMetaPart on JobDetails {
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFFF3F5F7),
                         alignment: Alignment.center,
-                        child: const Text(
-                          'Harita yüklenemedi',
-                          style: TextStyle(
+                        child: Text(
+                          'pasaj.job_finder.map_load_failed'.tr,
+                          style: const TextStyle(
                             color: Colors.black54,
                             fontSize: 14,
                             fontFamily: "MontserratMedium",
@@ -78,8 +78,8 @@ extension JobDetailsMetaPart on JobDetails {
                           const SizedBox(height: 10),
                           Text(
                             hasLocation
-                                ? 'Haritada Aç'
-                                : 'Konum bilgisi bulunamadı',
+                                ? 'pasaj.job_finder.open_in_maps'.tr
+                                : 'pasaj.market.location_missing'.tr,
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -87,12 +87,12 @@ extension JobDetailsMetaPart on JobDetails {
                             ),
                           ),
                           if (hasLocation)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 6),
                               child: Text(
-                                'Apple Haritalar veya diğer uygulamalarda aç',
+                                'pasaj.job_finder.open_maps_help'.tr,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.black54,
                                   fontSize: 13,
                                   fontFamily: "MontserratMedium",
@@ -126,7 +126,7 @@ extension JobDetailsMetaPart on JobDetails {
                   commentID: "",
                 ));
           },
-          title: 'İlanı Bildir',
+          title: 'pasaj.market.report_listing'.tr,
           icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],

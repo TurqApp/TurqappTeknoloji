@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/recommended_users_repository.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/recommended_user_model.dart';
 
 class RecommendedUserListController extends GetxController {
@@ -142,8 +143,10 @@ class RecommendedUserListController extends GetxController {
       final filtered = candidates.where((user) {
         if (user.userID == currentUserId) return false;
         if (takipEdilenler.contains(user.userID)) return false;
-        final r = user.rozet.trim();
-        return r.isNotEmpty && r != 'Kirmizi' && r != 'Gri';
+        final normalizedRozet = normalizeRozetValue(user.rozet);
+        return normalizedRozet.isNotEmpty &&
+            normalizedRozet != 'kirmizi' &&
+            normalizedRozet != 'gri';
       }).toList()
         ..shuffle();
 

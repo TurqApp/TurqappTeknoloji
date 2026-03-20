@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
@@ -31,7 +32,7 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Reports"),
+            BackButtons(text: 'admin.reports.title'.tr),
             Expanded(
               child: FutureBuilder<bool>(
                 future: _canAccessFuture,
@@ -40,13 +41,13 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (accessSnap.data != true) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'Bu alan sadece admin erişimine açıktır.',
+                          'admin.no_access'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 14,
                           ),
@@ -70,10 +71,10 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
                                     child: CircularProgressIndicator());
                               }
                               if (snap.hasError) {
-                                return const Center(
+                                return Center(
                                   child: Text(
-                                    'Reports verisi alınamadı.',
-                                    style: TextStyle(
+                                    'admin.reports.data_failed'.tr,
+                                    style: const TextStyle(
                                       fontFamily: 'MontserratMedium',
                                     ),
                                   ),
@@ -82,10 +83,10 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
                               final items =
                                   snap.data ?? const <ReportAggregateItem>[];
                               if (items.isEmpty) {
-                                return const Center(
+                                return Center(
                                   child: Text(
-                                    'Henüz report aggregate oluşmadı.',
-                                    style: TextStyle(
+                                    'admin.reports.empty'.tr,
+                                    style: const TextStyle(
                                       fontFamily: 'MontserratMedium',
                                     ),
                                   ),
@@ -140,9 +141,9 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Varsayılan kategori eşiği: 5\nEşik aşımı: içerik otomatik yayından kaldırılır\nAdmin aksiyonu: tekrar yayınla veya kapalı tut',
-            style: TextStyle(
+          Text(
+            'admin.reports.config_help'.tr,
+            style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 11,
             ),
@@ -165,7 +166,9 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
                     )
                   : const Icon(CupertinoIcons.gear, size: 15),
               label: Text(
-                _provisioning ? 'Kuruluyor...' : 'Config Kur/Yenile',
+                _provisioning
+                    ? 'admin.moderation.provisioning'.tr
+                    : 'admin.moderation.ensure_config'.tr,
                 style: const TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 12,
@@ -184,9 +187,12 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
     setState(() => _provisioning = true);
     try {
       await _reportRepository.ensureConfigWithCallable();
-      AppSnackbar('Reports', 'adminConfig/reports güncellendi.');
+      AppSnackbar('admin.reports.title'.tr, 'admin.reports.config_updated'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Reports config güncellenemedi: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.reports.config_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _provisioning = false);
@@ -203,11 +209,16 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
         restore: restore,
       );
       AppSnackbar(
-        'Reports',
-        restore ? 'İçerik tekrar yayına alındı.' : 'İçerik kapalı tutuldu.',
+        'admin.reports.title'.tr,
+        restore
+            ? 'admin.reports.restored'.tr
+            : 'admin.reports.kept_hidden'.tr,
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Admin işlemi başarısız: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.reports.action_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _busyAggregateId = '');
@@ -265,7 +276,12 @@ class _ReportAggregateCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Toplam: $totalCount • Durum: $status',
+                      'admin.reports.total_status'.trParams(
+                        <String, String>{
+                          'count': '$totalCount',
+                          'status': status,
+                        },
+                      ),
                       style: const TextStyle(
                         fontFamily: 'MontserratMedium',
                         fontSize: 11,
@@ -284,8 +300,8 @@ class _ReportAggregateCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Kategori Sayaçları',
+          Text(
+            'admin.reports.category_counts'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 12,
@@ -297,9 +313,9 @@ class _ReportAggregateCard extends StatelessWidget {
             builder: (context, snap) {
               final reasons = snap.data ?? const <ReportReasonItem>[];
               if (reasons.isEmpty) {
-                return const Text(
-                  'Kategori verisi yok.',
-                  style: TextStyle(
+                return Text(
+                  'admin.reports.no_category_data'.tr,
+                  style: const TextStyle(
                     fontFamily: 'MontserratMedium',
                     fontSize: 11,
                     color: Colors.black54,
@@ -337,8 +353,8 @@ class _ReportAggregateCard extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Neden Şikayet Edildi',
+          Text(
+            'admin.reports.report_reasons'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 12,
@@ -350,9 +366,9 @@ class _ReportAggregateCard extends StatelessWidget {
             builder: (context, snap) {
               final reasons = snap.data ?? const <ReportReasonItem>[];
               if (reasons.isEmpty) {
-                return const Text(
-                  'Henüz detay report kaydı yok.',
-                  style: TextStyle(
+                return Text(
+                  'admin.reports.no_detail_reports'.tr,
+                  style: const TextStyle(
                     fontFamily: 'MontserratMedium',
                     fontSize: 11,
                     color: Colors.black54,
@@ -362,7 +378,9 @@ class _ReportAggregateCard extends StatelessWidget {
               return Column(
                 children: reasons.map((reason) {
                   final reasonData = reason.data;
-                  final title = (reasonData['title'] ?? 'Sebep yok').toString();
+                  final title =
+                      (reasonData['title'] ?? 'admin.reports.no_reason'.tr)
+                          .toString();
                   final desc = (reasonData['description'] ?? '').toString();
                   final createdAt = _asInt(reasonData['updatedAt']);
                   final count = _asInt(reasonData['count']);
@@ -418,8 +436,8 @@ class _ReportAggregateCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: busy ? null : () => onReview(item.id, true),
-                    child: const Text(
-                      'Yayına Al',
+                    child: Text(
+                      'admin.reports.restore'.tr,
                       style: TextStyle(
                         fontFamily: 'MontserratMedium',
                         color: Colors.black,
@@ -435,7 +453,9 @@ class _ReportAggregateCard extends StatelessWidget {
                       backgroundColor: Colors.black,
                     ),
                     child: Text(
-                      busy ? 'İşleniyor...' : 'Kapalı Tut',
+                      busy
+                          ? 'admin.reports.processing'.tr
+                          : 'admin.reports.keep_hidden'.tr,
                       style: const TextStyle(
                         fontFamily: 'MontserratMedium',
                         color: Colors.white,

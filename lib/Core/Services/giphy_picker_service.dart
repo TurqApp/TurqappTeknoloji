@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 
 import 'gif_library_service.dart';
@@ -77,15 +78,15 @@ class GiphyPickerService {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 28),
                         child: Column(
-                          children: const [
-                            Icon(
+                          children: [
+                            const Icon(
                               Icons.gif_box_outlined,
                               color: Colors.black38,
                               size: 34,
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text(
-                              'Henüz kayıtlı GIF yok',
+                              'giphy_picker.empty'.tr,
                               style: TextStyle(
                                 color: Colors.black54,
                                 fontSize: 14,

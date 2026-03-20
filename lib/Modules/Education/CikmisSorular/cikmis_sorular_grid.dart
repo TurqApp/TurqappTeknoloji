@@ -15,14 +15,23 @@ class CikmisSorularGrid extends StatefulWidget {
 }
 
 class _CikmisSorularGridState extends State<CikmisSorularGrid> {
+  static const _yks = 'YKS';
+  static const _tus = 'TUS';
+  static const _yds = 'YDS';
+  static const _kpss = 'KPSS';
+  static const _dgs = 'DGS';
+  static const _lgs = 'LGS';
+  static const _dus = 'DUS';
+  static const _ales = 'ALES';
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (widget.anaBaslik == "YKS" ||
-            widget.anaBaslik == "TUS" ||
-            widget.anaBaslik == "YDS" ||
-            widget.anaBaslik == "KPSS") {
+        if (widget.anaBaslik == _yks ||
+            widget.anaBaslik == _tus ||
+            widget.anaBaslik == _yds ||
+            widget.anaBaslik == _kpss) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -30,9 +39,9 @@ class _CikmisSorularGridState extends State<CikmisSorularGrid> {
                   CikmisSorularRoad(anaBaslik: widget.anaBaslik),
             ),
           );
-        } else if (widget.anaBaslik == "DGS" ||
-            widget.anaBaslik == "LGS" ||
-            widget.anaBaslik == "DUS") {
+        } else if (widget.anaBaslik == _dgs ||
+            widget.anaBaslik == _lgs ||
+            widget.anaBaslik == _dus) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -44,15 +53,15 @@ class _CikmisSorularGridState extends State<CikmisSorularGrid> {
               ),
             ),
           );
-        } else if (widget.anaBaslik == "ALES") {
+        } else if (widget.anaBaslik == _ales) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => CikmisSorularYilSectirme(
                 anaBaslik: widget.anaBaslik,
                 sinavTuru: widget.anaBaslik,
-                baslik2: "ALES",
-                baslik3: "ALES",
+                baslik2: _ales,
+                baslik3: _ales,
               ),
             ),
           );

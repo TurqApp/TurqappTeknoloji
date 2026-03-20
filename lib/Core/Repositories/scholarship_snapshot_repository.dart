@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 
 class ScholarshipListingSnapshot {
   const ScholarshipListingSnapshot({
@@ -184,7 +185,7 @@ class ScholarshipSnapshotRepository extends GetxService {
     }
     return <String, dynamic>{
       'model': model,
-      'type': 'bireysel',
+      'type': kIndividualScholarshipType,
       'userData': userData,
       'docId': docId,
       'likesCount': (hit['likeCount'] as num?)?.toInt() ?? 0,
@@ -302,7 +303,7 @@ class ScholarshipSnapshotRepository extends GetxService {
     final model = item['model'] as IndividualScholarshipsModel;
     return <String, dynamic>{
       'docId': item['docId'] ?? '',
-      'type': item['type'] ?? 'bireysel',
+      'type': item['type'] ?? kIndividualScholarshipType,
       'model': model.toJson(),
       'userData': Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
       'likesCount': item['likesCount'] ?? 0,
@@ -316,7 +317,7 @@ class ScholarshipSnapshotRepository extends GetxService {
     final modelMap = Map<String, dynamic>.from(item['model'] as Map? ?? const {});
     return <String, dynamic>{
       'model': IndividualScholarshipsModel.fromJson(modelMap),
-      'type': (item['type'] ?? 'bireysel').toString(),
+      'type': (item['type'] ?? kIndividualScholarshipType).toString(),
       'userData': Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
       'docId': (item['docId'] ?? '').toString(),
       'likesCount': (item['likesCount'] as num?)?.toInt() ?? 0,

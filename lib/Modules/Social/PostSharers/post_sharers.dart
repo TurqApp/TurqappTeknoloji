@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/functions.dart';
+import 'package:turqappv2/Services/reshare_helper.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_controller.dart';
 import 'package:turqappv2/Modules/Social/PostSharers/post_sharers_controller.dart';
 import 'package:turqappv2/Models/post_sharers_model.dart';
@@ -182,7 +183,7 @@ class _PostSharerTileState extends State<_PostSharerTile> {
     final nickname = (widget.userData?['nickname'] ?? '').toString().trim();
     final fullName = (widget.userData?['fullName'] ?? '').toString().trim();
     final displayName =
-        fullName.isNotEmpty && fullName != 'common.unknown_user'.tr
+        fullName.isNotEmpty && !ReshareHelper.isUnknownUserLabel(fullName)
             ? fullName
             : (nickname.isNotEmpty ? nickname : 'common.unknown_user'.tr);
     final subtitle =
@@ -300,8 +301,8 @@ class _PostSharerTileState extends State<_PostSharerTile> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 )
-              : const Text(
-                  "Takip Et",
+              : Text(
+                  'following.follow'.tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,

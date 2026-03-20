@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
@@ -306,7 +307,7 @@ class TestRepository extends GetxService {
     bool forceRefresh = false,
     bool cacheOnly = false,
   }) async {
-    final cacheKey = 'type:${testTuru.trim().toLowerCase()}';
+    final cacheKey = 'type:${normalizeSearchText(testTuru)}';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;

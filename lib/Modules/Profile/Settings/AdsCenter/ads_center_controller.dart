@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_repository_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_targeting_service.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
+import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.dart';
 
 class AdsCenterController extends GetxController {
   final AdsRepositoryService repository;
@@ -87,7 +88,7 @@ class AdsCenterController extends GetxController {
 
       await refreshDashboard();
     } catch (e) {
-      errorText.value = _normalizeError(e);
+      errorText.value = normalizeAdsCenterError(e);
     } finally {
       loading.value = false;
     }
@@ -114,7 +115,7 @@ class AdsCenterController extends GetxController {
       dashboard.assignAll(metrics);
       errorText.value = null;
     } catch (e) {
-      errorText.value = _normalizeError(e);
+      errorText.value = normalizeAdsCenterError(e);
     }
   }
 
@@ -126,15 +127,7 @@ class AdsCenterController extends GetxController {
   }
 
   void _onStreamError(Object error) {
-    errorText.value = _normalizeError(error);
-  }
-
-  String _normalizeError(Object error) {
-    final text = error.toString();
-    if (text.contains('permission-denied')) {
-      return 'Ads Center verilerine erişim reddedildi (permission-denied).';
-    }
-    return text;
+    errorText.value = normalizeAdsCenterError(error);
   }
 
   void applyFilters({

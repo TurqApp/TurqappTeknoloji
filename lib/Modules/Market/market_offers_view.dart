@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MarketOffersView extends StatefulWidget {
@@ -51,21 +52,21 @@ class _MarketOffersViewState extends State<MarketOffersView> {
             onPressed: Get.back,
             icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
           ),
-          title: const Text(
-            'Tekliflerim',
+          title: Text(
+            'pasaj.market.offers_title'.tr,
             style: TextStyle(
               color: Colors.black,
               fontSize: 20,
               fontFamily: 'MontserratBold',
             ),
           ),
-          bottom: const TabBar(
+          bottom: TabBar(
             indicatorColor: Colors.black,
             labelColor: Colors.black,
             unselectedLabelColor: Colors.black54,
             tabs: [
-              Tab(text: 'Verdiğim'),
-              Tab(text: 'Aldığım'),
+              Tab(text: 'pasaj.market.sent_tab'.tr),
+              Tab(text: 'pasaj.market.received_tab'.tr),
             ],
           ),
         ),
@@ -73,12 +74,12 @@ class _MarketOffersViewState extends State<MarketOffersView> {
           children: [
             _buildOfferFuture(
               future: sentFuture,
-              subtitle: 'Verdiğim teklif',
+              subtitle: 'pasaj.market.sent_offer'.tr,
               showActions: false,
             ),
             _buildOfferFuture(
               future: receivedFuture,
-              subtitle: 'Aldığım teklif',
+              subtitle: 'pasaj.market.received_offer'.tr,
               showActions: true,
             ),
           ],
@@ -102,7 +103,9 @@ class _MarketOffersViewState extends State<MarketOffersView> {
         if (offers.isEmpty) {
           return Center(
             child: Text(
-              '$subtitle bulunamadı.',
+              'pasaj.market.offer_empty'.trParams({
+                'subtitle': subtitle.toLowerCase(),
+              }),
               style: const TextStyle(
                 color: Colors.black54,
                 fontSize: 14,
@@ -233,7 +236,9 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                           _statusChip(_statusLabel(offer.status)),
                         ],
                       ),
-                      if (showActions && offer.status == 'pending') ...[
+                      if (showActions &&
+                          normalizeMarketOfferStatus(offer.status) ==
+                              kMarketOfferStatusPending) ...[
                         const SizedBox(height: 10),
                         Row(
                           children: [
@@ -245,7 +250,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                                       ? null
                                       : () => _respondToOffer(
                                             offer: offer,
-                                            status: 'rejected',
+                                            status: kMarketOfferStatusRejected,
                                           ),
                                   style: OutlinedButton.styleFrom(
                                     side: BorderSide(
@@ -263,8 +268,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text(
-                                          'Reddet',
+                                      : Text(
+                                          'pasaj.job_finder.reject'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 13,
@@ -283,7 +288,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                                       ? null
                                       : () => _respondToOffer(
                                             offer: offer,
-                                            status: 'accepted',
+                                            status: kMarketOfferStatusAccepted,
                                           ),
                                   style: ElevatedButton.styleFrom(
                                     elevation: 0,
@@ -292,8 +297,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Kabul Et',
+                                  child: Text(
+                                    'pasaj.job_finder.accept'.tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
@@ -332,8 +337,10 @@ class _MarketOffersViewState extends State<MarketOffersView> {
         _reload();
       });
       AppSnackbar(
-        'Tamam',
-        status == 'accepted' ? 'Teklif kabul edildi.' : 'Teklif reddedildi.',
+        'common.info'.tr,
+        status == kMarketOfferStatusAccepted
+            ? 'pasaj.market.offer_accepted'.tr
+            : 'pasaj.market.offer_rejected'.tr,
       );
     } catch (e) {
       if (!mounted) return;
@@ -341,28 +348,29 @@ class _MarketOffersViewState extends State<MarketOffersView> {
         _processingIds.remove(offer.id);
       });
       final text = e.toString().contains('offer_already_processed')
-          ? 'Bu teklif daha önce işleme alınmış.'
-          : 'Teklif güncellenemedi.';
-      AppSnackbar('Hata', text);
+          ? 'pasaj.market.offer_already_processed'.tr
+          : 'pasaj.market.offer_update_failed'.tr;
+      AppSnackbar('common.error'.tr, text);
     }
   }
 
   String _statusLabel(String status) {
-    switch (status) {
-      case 'accepted':
-        return 'Kabul Edildi';
-      case 'rejected':
-        return 'Reddedildi';
-      case 'cancelled':
-        return 'İptal Edildi';
+    switch (normalizeMarketOfferStatus(status)) {
+      case kMarketOfferStatusAccepted:
+        return 'pasaj.market.status.accepted'.tr;
+      case kMarketOfferStatusRejected:
+        return 'pasaj.market.status.rejected'.tr;
+      case kMarketOfferStatusCancelled:
+        return 'pasaj.market.status.cancelled'.tr;
       default:
-        return 'Bekliyor';
+        return 'pasaj.market.status.pending'.tr;
     }
   }
 
   Widget _statusChip(String status) {
-    final bool accepted = status == 'Kabul Edildi';
-    final bool rejected = status == 'Reddedildi';
+    final normalizedStatus = normalizeMarketOfferStatus(status);
+    final bool accepted = normalizedStatus == kMarketOfferStatusAccepted;
+    final bool rejected = normalizedStatus == kMarketOfferStatusRejected;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -394,7 +402,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
       forceRefresh: true,
     );
     if (item == null) {
-      AppSnackbar('Bulunamadı', 'Bu ilana şu anda erişilemiyor.');
+      AppSnackbar('common.error'.tr, 'pasaj.market.listing_unavailable'.tr);
       return;
     }
     await Get.to(() => MarketDetailView(item: item));

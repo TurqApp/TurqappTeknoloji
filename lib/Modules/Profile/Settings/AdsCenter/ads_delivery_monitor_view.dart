@@ -12,9 +12,9 @@ class AdsDeliveryMonitorView extends StatelessWidget {
     return Obx(() {
       final logs = controller.deliveryLogs;
       if (logs.isEmpty) {
-        return const Center(
+        return Center(
           child: Text(
-            'Delivery log bulunamadı.',
+            'ads_center.no_delivery_logs'.tr,
             style: TextStyle(fontFamily: 'MontserratMedium'),
           ),
         );
@@ -43,30 +43,32 @@ class AdsDeliveryMonitorView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    hasAd ? 'Eligible Ad Found' : 'No Eligible Ad',
+                    hasAd
+                        ? 'ads_center.eligible_ad_found'.tr
+                        : 'ads_center.no_eligible_ad'.tr,
                     style: const TextStyle(
                         fontFamily: 'MontserratBold', fontSize: 14),
                   ),
                   const SizedBox(height: 6),
-                  Text('User: ${l['userId'] ?? ''}',
+                  Text('${'ads_center.user_id'.tr}: ${l['userId'] ?? ''}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
-                  Text('Placement: ${l['placement'] ?? ''}',
+                  Text('${'ads_center.placement'.tr}: ${l['placement'] ?? ''}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
                   Text(
-                      'Geo: ${(l['country'] ?? '')}/${(l['city'] ?? '')} age:${l['age'] ?? '-'}',
+                      '${'ads_center.geo'.tr}: ${(l['country'] ?? '')}/${(l['city'] ?? '')} ${'ads_center.age_short'.tr}:${l['age'] ?? '-'}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
-                  Text('Campaign: ${l['selectedCampaignId'] ?? '-'}',
+                  Text('${'ads_center.campaign'.tr}: ${l['selectedCampaignId'] ?? '-'}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
-                  Text('Creative: ${l['selectedCreativeId'] ?? '-'}',
+                  Text('${'ads_center.creative'.tr}: ${l['selectedCreativeId'] ?? '-'}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
                   if (decisions.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    const Text('Karar Detayı',
+                    Text('ads_center.decision_detail'.tr,
                         style: TextStyle(
                             fontFamily: 'MontserratBold', fontSize: 12)),
                     const SizedBox(height: 4),
@@ -78,7 +80,7 @@ class AdsDeliveryMonitorView extends StatelessWidget {
                           ? (row['reasons'] as List).join(', ')
                           : '-';
                       return Text(
-                        '$campaignId • ${eligible ? 'ok' : 'reject'} • $reasons',
+                        '$campaignId • ${eligible ? 'common.ok'.tr : 'common.reject'.tr.toLowerCase()} • $reasons',
                         style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 11,

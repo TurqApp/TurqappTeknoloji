@@ -1,34 +1,23 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 Color mapRozetToColor(String rozetRaw) {
-  final key = rozetRaw.trim().toLowerCase();
+  final key = normalizeRozetValue(rozetRaw);
   switch (key) {
     case "kirmizi":
-    case "kırmızı":
-    case "red":
       return Colors.red;
     case "mavi":
-    case "açık mavi":
-    case "acik mavi":
-    case "blue":
       return Colors.blue;
     case "sari":
-    case "sarı":
-    case "yellow":
       return Colors.orange;
     case "siyah":
-    case "black":
       return Colors.black;
     case "gri":
-    case "gray":
-    case "grey":
       return Colors.grey;
     case "turkuaz":
-    case "turquoise":
-    case "cyan":
       return const Color(0xFF40E0D0);
     default:
       return Colors.transparent;

@@ -25,6 +25,28 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 
 class CreateScholarshipController extends GetxController {
+  static const String allUniversitiesValue = 'Tüm Üniversiteler';
+  static const String turkeyCountryValue = 'Türkiye';
+  static const String applicationPlaceTurqAppValue = 'TurqApp';
+  static const String applicationPlaceWebsiteValue = 'Web Site';
+  static const String targetAudiencePopulationValue = 'Nüfusa Göre';
+  static const String targetAudienceResidenceValue = 'İkamete Göre';
+  static const String targetAudienceAllTurkeyValue = 'Tüm Türkiye';
+  static const String repayableYesValue = 'Evet';
+  static const String repayableNoValue = 'Hayır';
+  static const String duplicateStatusCanReceiveValue = 'Alabilir';
+  static const String duplicateStatusCannotReceiveExceptKykValue =
+      'Alamaz (KYK Hariç)';
+  static const String educationAudienceAllValue = 'Hepsi';
+  static const String educationAudienceMiddleSchoolValue = 'Ortaokul';
+  static const String educationAudienceHighSchoolValue = 'Lise';
+  static const String educationAudienceUndergraduateValue = 'Lisans';
+  static const String degreeAssociateValue = 'Ön Lisans';
+  static const String degreeBachelorValue = 'Lisans';
+  static const String degreeMasterValue = 'Yüksek Lisans';
+  static const String degreePhdValue = 'Doktora';
+  static const String educationAudienceAllExpandedValue =
+      'Ortaokul, Lise, Lisans';
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
@@ -51,8 +73,8 @@ class CreateScholarshipController extends GetxController {
   final ogrenciSayisiController = TextEditingController();
   final egitimKitlesi = ''.obs;
   final lisansTuru = <String>[].obs;
-  final geriOdemeli = 'Hayır'.obs;
-  final mukerrerDurumu = 'Alabilir'.obs;
+  final geriOdemeli = repayableNoValue.obs;
+  final mukerrerDurumu = duplicateStatusCanReceiveValue.obs;
   final hedefKitle = ''.obs;
   final sehirler = <String>[].obs;
   final ilceler = <String>[].obs;
@@ -64,8 +86,11 @@ class CreateScholarshipController extends GetxController {
   final customImagePath = ''.obs;
   final selectedTemplateIndex = (-1).obs;
   final formKey = GlobalKey<FormState>();
-  final applicationOption = ["TurqApp", "Web Site"].obs;
-  final applicationOptionValue = "TurqApp".obs;
+  final applicationOption = [
+    applicationPlaceTurqAppValue,
+    applicationPlaceWebsiteValue,
+  ].obs;
+  final applicationOptionValue = applicationPlaceTurqAppValue.obs;
   final basvuruKosullari = ''.obs;
   final basvuruKosullariController = TextEditingController();
   final aylar = <String>[].obs;
@@ -198,15 +223,20 @@ class CreateScholarshipController extends GetxController {
 
   String applicationPlaceDisplayLabel(String value) {
     switch (value) {
-      case 'TurqApp':
+      case applicationPlaceTurqAppValue:
         return 'scholarship.application_place_turqapp'.tr;
       case 'Burs Web Site':
-      case 'Web Site':
+      case applicationPlaceWebsiteValue:
         return 'scholarship.application_place_website'.tr;
       default:
         return value;
     }
   }
+
+  bool isWebsiteApplicationPlace(String value) =>
+      value == applicationPlaceWebsiteValue || value == 'Burs Web Site';
+
+  String get turkeyValue => turkeyCountryValue;
 
   @override
   void onInit() {
@@ -240,11 +270,14 @@ class CreateScholarshipController extends GetxController {
     // Diğer başlangıç ayarları
     currentSection.value = 1;
     basvuruYapilacakYer.value =
-        isEditing.value ? basvuruYapilacakYer.value : "TurqApp";
+        isEditing.value
+            ? basvuruYapilacakYer.value
+            : applicationPlaceTurqAppValue;
     basvuruYapilacakYerController.text =
         applicationPlaceDisplayLabel(basvuruYapilacakYer.value);
-    basvuruKosullariController.text = basvuruKosullari.value;
-    belgelerController.text = belgeler.join('\n');
+    basvuruKosullariController.text =
+        localizedConditionsText(basvuruKosullari.value);
+    belgelerController.text = localizedDocumentsText(belgeler);
     updateAylarText();
     aylar.listen((_) => updateAylarText());
     loadCityDistrictData();
@@ -282,10 +315,11 @@ class CreateScholarshipController extends GetxController {
     logoPath.value = model.logo;
     customImagePath.value = model.img2;
     basvuruKosullari.value = model.basvuruKosullari;
-    basvuruKosullariController.text = basvuruKosullari.value;
+    basvuruKosullariController.text =
+        localizedConditionsText(basvuruKosullari.value);
     aylar.assignAll(model.aylar);
     belgeler.assignAll(model.belgeler);
-    belgelerController.text = belgeler.join('\n');
+    belgelerController.text = localizedDocumentsText(belgeler);
     logo.value = model.logo;
     templateUrl.value = model.img;
     template.value = model.template;
@@ -298,8 +332,191 @@ class CreateScholarshipController extends GetxController {
   }
 
   void updateAylarText() {
-    aylarText.value = aylar.isEmpty ? "" : "${aylar.length} ay seçildi";
+    aylarText.value = aylar.isEmpty
+        ? ""
+        : 'scholarship.month_count_selected'
+            .trParams({'count': aylar.length.toString()});
     aylarController.text = aylarText.value;
+  }
+
+  String awardMonthLabel(String value) {
+    switch (value) {
+      case 'Ocak':
+        return 'common.month.january'.tr;
+      case 'Şubat':
+        return 'common.month.february'.tr;
+      case 'Mart':
+        return 'common.month.march'.tr;
+      case 'Nisan':
+        return 'common.month.april'.tr;
+      case 'Mayıs':
+        return 'common.month.may'.tr;
+      case 'Haziran':
+        return 'common.month.june'.tr;
+      case 'Temmuz':
+        return 'common.month.july'.tr;
+      case 'Ağustos':
+        return 'common.month.august'.tr;
+      case 'Eylül':
+        return 'common.month.september'.tr;
+      case 'Ekim':
+        return 'common.month.october'.tr;
+      case 'Kasım':
+        return 'common.month.november'.tr;
+      case 'Aralık':
+        return 'common.month.december'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipRepayableLabel(String value) {
+    switch (value) {
+      case repayableYesValue:
+        return 'common.yes'.tr;
+      case repayableNoValue:
+        return 'common.no'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipDuplicateStatusLabel(String value) {
+    switch (value) {
+      case duplicateStatusCanReceiveValue:
+        return 'scholarship.duplicate_status.can_receive'.tr;
+      case duplicateStatusCannotReceiveExceptKykValue:
+        return 'scholarship.duplicate_status.cannot_receive_except_kyk'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipTargetAudienceLabel(String value) {
+    switch (value) {
+      case targetAudiencePopulationValue:
+        return 'scholarship.target.population'.tr;
+      case targetAudienceResidenceValue:
+        return 'scholarship.target.residence'.tr;
+      case targetAudienceAllTurkeyValue:
+        return 'scholarship.target.all_turkiye'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipEducationAudienceLabel(String value) {
+    switch (value) {
+      case educationAudienceAllValue:
+        return 'scholarship.education.all'.tr;
+      case educationAudienceMiddleSchoolValue:
+        return 'scholarship.education.middle_school'.tr;
+      case educationAudienceHighSchoolValue:
+        return 'scholarship.education.high_school'.tr;
+      case educationAudienceUndergraduateValue:
+        return 'scholarship.education.undergraduate'.tr;
+      case educationAudienceAllExpandedValue:
+        return [
+          'scholarship.education.middle_school'.tr,
+          'scholarship.education.high_school'.tr,
+          'scholarship.education.undergraduate'.tr,
+        ].join(', ');
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipCountryLabel(String value) {
+    switch (value) {
+      case turkeyCountryValue:
+        return 'common.country_turkey'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipConditionLabel(String value) {
+    switch (value) {
+      case 'T.C. vatandaşı olmak.':
+        return 'scholarship.condition.citizen'.tr;
+      case 'En az lise düzeyinde öğrenim görüyor olmak.':
+        return 'scholarship.condition.min_high_school'.tr;
+      case 'Herhangi bir disiplin cezası almamış olmak.':
+        return 'scholarship.condition.no_discipline'.tr;
+      case 'Ailesinin aylık toplam gelirinin belirli bir seviyenin altında olması.':
+        return 'scholarship.condition.family_income'.tr;
+      case 'Başka bir kurumdan karşılıksız burs almıyor olmak.':
+        return 'scholarship.condition.no_other_grant'.tr;
+      case 'Örgün öğretim programında kayıtlı öğrenci olmak.':
+        return 'scholarship.condition.formal_education'.tr;
+      case 'Akademik not ortalamasının en az 2.50/4.00 olması.':
+        return 'scholarship.condition.gpa'.tr;
+      case 'Adli sicil kaydının temiz olması.':
+        return 'scholarship.condition.clean_record'.tr;
+      case 'İlan edilen son başvuru tarihine kadar başvuru yapılmış olması.':
+        return 'scholarship.condition.apply_before_deadline'.tr;
+      case 'Belirtilen belgelerin eksiksiz şekilde teslim edilmiş olması.':
+        return 'scholarship.condition.documents_complete'.tr;
+      case 'Burs başvuru formunun eksiksiz doldurulması.':
+        return 'scholarship.condition.form_complete'.tr;
+      case 'Burs verilen il/ilçede ikamet ediyor olmak (gerekiyorsa).':
+        return 'scholarship.condition.residence'.tr;
+      case 'Eğitim süresi boyunca düzenli olarak başarı göstereceğini taahhüt etmek.':
+        return 'scholarship.condition.success_commitment'.tr;
+      case 'Başvuru sırasında gerçeğe aykırı beyanda bulunmamak.':
+        return 'scholarship.condition.truthful_declaration'.tr;
+      case 'Bursu sağlayan kurumun düzenlediği mülakat veya değerlendirme süreçlerine katılmak.':
+        return 'scholarship.condition.attend_evaluation'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String scholarshipDocumentLabel(String value) {
+    switch (value) {
+      case 'Kimlik Kart Fotoğrafı':
+        return 'scholarship.document.id_card_photo'.tr;
+      case 'Öğrenci Belgesi (E Devlet)':
+        return 'scholarship.document.student_certificate'.tr;
+      case 'Transkript Belgesi':
+        return 'scholarship.document.transcript'.tr;
+      case 'Adli Sicil Kaydı (E Devlet)':
+        return 'scholarship.document.criminal_record'.tr;
+      case 'Aile Nüfus Kayıt Belgesi (E Devlet)':
+        return 'scholarship.document.family_registry'.tr;
+      case 'YKS - AYT Sonuç Belgesi (ÖSYM)':
+        return 'scholarship.document.exam_results'.tr;
+      case 'SGK Hizmet Dökümü (E Devlet Kendisi)':
+        return 'scholarship.document.sgk_self'.tr;
+      case 'SGK Hizmet Dökümü (E Devlet Anne Ve Baba)':
+        return 'scholarship.document.sgk_parents'.tr;
+      case 'Tapu Tescil Belgesi (E Devlet Kendisi)':
+        return 'scholarship.document.title_deed'.tr;
+      case 'Engelli Sağlık Kurulu Raporu':
+        return 'scholarship.document.disability_report'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String localizedConditionsText(String value) {
+    return value
+        .split('\n')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .map(scholarshipConditionLabel)
+        .join('\n');
+  }
+
+  String localizedDocumentsText(
+    Iterable<String> items, {
+    String separator = '\n',
+  }) {
+    return items
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .map(scholarshipDocumentLabel)
+        .join(separator);
   }
 
   @override
@@ -375,10 +592,10 @@ class CreateScholarshipController extends GetxController {
   }
 
   List<String> getUniversitiesForSelectedCities() {
-    final List<String> universities = ['Tüm Üniversiteler'];
+    final List<String> universities = [allUniversitiesValue];
 
     if (lisansTuru.isEmpty) {
-      if (hedefKitle.value == "Tüm Türkiye") {
+      if (hedefKitle.value == targetAudienceAllTurkeyValue) {
         universities.addAll(tumUniversiteler);
       } else {
         for (var il in sehirler) {
@@ -387,25 +604,26 @@ class CreateScholarshipController extends GetxController {
       }
       return universities.toSet().toList()
         ..sort(
-          (a, b) => a == 'Tüm Üniversiteler'
+          (a, b) => a == allUniversitiesValue
               ? -1
-              : b == 'Tüm Üniversiteler'
+              : b == allUniversitiesValue
                   ? 1
                   : a.compareTo(b),
         );
     }
 
-    if (hedefKitle.value == "Tüm Türkiye") {
+    if (hedefKitle.value == targetAudienceAllTurkeyValue) {
       for (var uni in tumUniversiteler) {
         bool shouldAdd = false;
         for (var item in higherEducationData) {
           if (item['universite'] == uni) {
             String tip = item['tip'];
-            if (lisansTuru.contains('Ön Lisans') && tip == 'ÖN LİSANS') {
+            if (lisansTuru.contains(degreeAssociateValue) &&
+                tip == 'ÖN LİSANS') {
               shouldAdd = true;
-            } else if ((lisansTuru.contains('Lisans') ||
-                    lisansTuru.contains('Yüksek Lisans') ||
-                    lisansTuru.contains('Doktora')) &&
+            } else if ((lisansTuru.contains(degreeBachelorValue) ||
+                    lisansTuru.contains(degreeMasterValue) ||
+                    lisansTuru.contains(degreePhdValue)) &&
                 tip == 'LİSANS') {
               shouldAdd = true;
             }
@@ -422,11 +640,12 @@ class CreateScholarshipController extends GetxController {
           for (var item in higherEducationData) {
             if (item['universite'] == uni && item['il'] == il) {
               String tip = item['tip'];
-              if (lisansTuru.contains('Ön Lisans') && tip == 'ÖN LİSANS') {
+              if (lisansTuru.contains(degreeAssociateValue) &&
+                  tip == 'ÖN LİSANS') {
                 shouldAdd = true;
-              } else if ((lisansTuru.contains('Lisans') ||
-                      lisansTuru.contains('Yüksek Lisans') ||
-                      lisansTuru.contains('Doktora')) &&
+              } else if ((lisansTuru.contains(degreeBachelorValue) ||
+                      lisansTuru.contains(degreeMasterValue) ||
+                      lisansTuru.contains(degreePhdValue)) &&
                   tip == 'LİSANS') {
                 shouldAdd = true;
               }
@@ -441,12 +660,18 @@ class CreateScholarshipController extends GetxController {
 
     return universities.toSet().toList()
       ..sort(
-        (a, b) => a == 'Tüm Üniversiteler'
+        (a, b) => a == allUniversitiesValue
             ? -1
-            : b == 'Tüm Üniversiteler'
+            : b == allUniversitiesValue
                 ? 1
                 : compareTurkishStrings(a, b),
       );
+  }
+
+  String universityLabel(String value) {
+    return value == allUniversitiesValue
+        ? 'scholarship.all_universities'.tr
+        : value;
   }
 
   Future<String?> _uploadImage(String localPath, {bool isLogo = false}) async {
@@ -581,7 +806,7 @@ class CreateScholarshipController extends GetxController {
     aciklama.value = '';
     aciklamaController.text = '';
     basvuruURL.value = '';
-    basvuruYapilacakYer.value = 'TurqApp';
+    basvuruYapilacakYer.value = applicationPlaceTurqAppValue;
     baslangicTarihi.value = DateFormat('dd.MM.yyyy').format(DateTime.now());
     bitisTarihi.value =
         DateFormat('dd.MM.yyyy').format(DateTime.now().add(Duration(days: 1)));
@@ -591,8 +816,8 @@ class CreateScholarshipController extends GetxController {
     ogrenciSayisiController.text = '';
     egitimKitlesi.value = '';
     lisansTuru.clear();
-    geriOdemeli.value = 'Hayır';
-    mukerrerDurumu.value = 'Alabilir';
+    geriOdemeli.value = repayableNoValue;
+    mukerrerDurumu.value = duplicateStatusCanReceiveValue;
     hedefKitle.value = '';
     sehirler.clear();
     ilceler.clear();
@@ -612,7 +837,7 @@ class CreateScholarshipController extends GetxController {
 
     basvuruURLController.text = 'https://';
     basvuruYapilacakYerController.text =
-        applicationPlaceDisplayLabel('TurqApp');
+        applicationPlaceDisplayLabel(applicationPlaceTurqAppValue);
     websiteController.text = 'https://';
     basvuruKosullariController.text = '';
     aylarController.text = '';
@@ -649,19 +874,24 @@ class CreateScholarshipController extends GetxController {
                   : logoPath.value;
 
           final List<String> altEgitimKitlesi = [];
-          if (egitimKitlesi.value == "Ortaokul") {
-            altEgitimKitlesi.add("Ortaokul");
-          } else if (egitimKitlesi.value == "Lise") {
-            altEgitimKitlesi.add("Lise");
-          } else if (egitimKitlesi.value == "Lisans") {
+          if (egitimKitlesi.value == educationAudienceMiddleSchoolValue) {
+            altEgitimKitlesi.add(educationAudienceMiddleSchoolValue);
+          } else if (egitimKitlesi.value == educationAudienceHighSchoolValue) {
+            altEgitimKitlesi.add(educationAudienceHighSchoolValue);
+          } else if (egitimKitlesi.value ==
+              educationAudienceUndergraduateValue) {
             altEgitimKitlesi.addAll(lisansTuru);
-          } else if (egitimKitlesi.value == "Hepsi") {
-            altEgitimKitlesi.addAll(["Ortaokul", "Lise"]);
+          } else if (egitimKitlesi.value == educationAudienceAllValue) {
+            altEgitimKitlesi.addAll([
+              educationAudienceMiddleSchoolValue,
+              educationAudienceHighSchoolValue,
+            ]);
             altEgitimKitlesi.addAll(lisansTuru);
           }
 
-          final String egitimKitlesiValue = egitimKitlesi.value == "Hepsi"
-              ? "Ortaokul, Lise, Lisans"
+          final String egitimKitlesiValue =
+              egitimKitlesi.value == educationAudienceAllValue
+              ? educationAudienceAllExpandedValue
               : egitimKitlesi.value;
 
           final scholarship = IndividualScholarshipsModel(
@@ -782,19 +1012,24 @@ class CreateScholarshipController extends GetxController {
                   : logoPath.value;
 
           final List<String> altEgitimKitlesi = [];
-          if (egitimKitlesi.value == "Ortaokul") {
-            altEgitimKitlesi.add("Ortaokul");
-          } else if (egitimKitlesi.value == "Lise") {
-            altEgitimKitlesi.add("Lise");
-          } else if (egitimKitlesi.value == "Lisans") {
+          if (egitimKitlesi.value == educationAudienceMiddleSchoolValue) {
+            altEgitimKitlesi.add(educationAudienceMiddleSchoolValue);
+          } else if (egitimKitlesi.value == educationAudienceHighSchoolValue) {
+            altEgitimKitlesi.add(educationAudienceHighSchoolValue);
+          } else if (egitimKitlesi.value ==
+              educationAudienceUndergraduateValue) {
             altEgitimKitlesi.addAll(lisansTuru);
-          } else if (egitimKitlesi.value == "Hepsi") {
-            altEgitimKitlesi.addAll(["Ortaokul", "Lise"]);
+          } else if (egitimKitlesi.value == educationAudienceAllValue) {
+            altEgitimKitlesi.addAll([
+              educationAudienceMiddleSchoolValue,
+              educationAudienceHighSchoolValue,
+            ]);
             altEgitimKitlesi.addAll(lisansTuru);
           }
 
-          final String egitimKitlesiValue = egitimKitlesi.value == "Hepsi"
-              ? "Ortaokul, Lise, Lisans"
+          final String egitimKitlesiValue =
+              egitimKitlesi.value == educationAudienceAllValue
+              ? educationAudienceAllExpandedValue
               : egitimKitlesi.value;
 
           final scholarship = IndividualScholarshipsModel(

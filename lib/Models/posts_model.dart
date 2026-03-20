@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 
 // Alt koleksiyonlar için model sınıfları
 class PostStats {
@@ -214,7 +215,7 @@ class PostsModel {
       return resolved;
     }
     final v = video.trim();
-    if (hlsStatus == 'ready' && v.toLowerCase().contains('.m3u8')) {
+    if (hlsStatus == 'ready' && isHlsPlaylistUrl(v)) {
       final resolved = CdnUrlBuilder.toCdnUrl(v);
       if (kDebugMode) {
         debugPrint(

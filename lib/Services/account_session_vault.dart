@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
 
 class AccountSessionCredential {
   const AccountSessionCredential({
@@ -18,7 +19,7 @@ class AccountSessionCredential {
 
   factory AccountSessionCredential.fromJson(Map<String, dynamic> json) {
     return AccountSessionCredential(
-      email: (json['email'] ?? '').toString().trim(),
+      email: normalizeEmailAddress((json['email'] ?? '').toString()),
       password: (json['password'] ?? '').toString(),
     );
   }
@@ -44,7 +45,7 @@ class AccountSessionVault {
     required String password,
   }) async {
     final normalizedUid = uid.trim();
-    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedEmail = normalizeEmailAddress(email);
     if (normalizedUid.isEmpty ||
         normalizedEmail.isEmpty ||
         password.isEmpty) {

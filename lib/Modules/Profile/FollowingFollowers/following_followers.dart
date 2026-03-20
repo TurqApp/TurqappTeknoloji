@@ -42,10 +42,17 @@ class FollowingFollowers extends StatelessWidget {
                 Obx(() {
                   return PageLineBar(
                     barList: [
-                      'Takip Edenler ${NumberFormatter.format(controller.takipciCounter.value)}',
-                      'Takip Edilenler ${NumberFormatter.format(controller.takipedilenCounter.value)}',
+                      'following.followers_tab'.trParams({
+                        'count':
+                            NumberFormatter.format(controller.takipciCounter.value),
+                      }),
+                      'following.following_tab'.trParams({
+                        'count': NumberFormatter.format(
+                          controller.takipedilenCounter.value,
+                        ),
+                      }),
                     ],
-                    pageName: 'Followers',
+                    pageName: kFollowersPageLineBarTag,
                     initialIndex: selection,
                     pageController: controller.pageController,
                   );
@@ -54,7 +61,8 @@ class FollowingFollowers extends StatelessWidget {
                   child: PageView(
                     controller: controller.pageController,
                     onPageChanged: (idx) {
-                      Get.find<PageLineBarController>(tag: 'Followers')
+                      Get.find<PageLineBarController>(
+                              tag: kFollowersPageLineBarTag)
                           .selection
                           .value = idx;
                     },
@@ -120,11 +128,11 @@ class FollowingFollowers extends StatelessWidget {
           itemCount: list.isEmpty ? 1 : list.length + 1,
           itemBuilder: (ctx, i) {
             if (list.isEmpty) {
-              return const Padding(
+              return Padding(
                 padding: EdgeInsets.only(top: 30),
                 child: Center(
                   child: Text(
-                    'Henüz kullanıcı yok',
+                    'following.none'.tr,
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: 15,

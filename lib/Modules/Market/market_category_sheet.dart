@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
+import 'package:turqappv2/Modules/Market/market_category_utils.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
 
 class _MarketCategoryNode {
@@ -41,6 +43,10 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
   List<_MarketCategoryNode> _selectedNodes = <_MarketCategoryNode>[];
   String _selectedTopKey = '';
 
+  String _categoryLabel(Map<String, dynamic> category) {
+    return (category['localizedLabel'] ?? category['label'] ?? '').toString();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,7 +57,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
         .map(
           (item) => _buildNode(
             item,
-            [(item['label'] ?? '').toString()],
+            [_categoryLabel(item)],
           ),
         )
         .toList(growable: false);
@@ -81,10 +87,10 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppSheetHeader(title: 'Kategoriler'),
+            AppSheetHeader(title: 'pasaj.market.categories'.tr),
             const SizedBox(height: 12),
             _selectorTile(
-              label: _selectedTopLabel ?? 'Ana kategori',
+              label: _selectedTopLabel ?? 'pasaj.market.create.main_category'.tr,
               onTap: _openTopCategorySheet,
             ),
             const SizedBox(height: 8),
@@ -132,9 +138,9 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
-                      'Tüm Kategoriler',
-                      style: TextStyle(
+                    child: Text(
+                      'pasaj.market.all_categories'.tr,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 14,
                         fontFamily: 'MontserratBold',
@@ -161,9 +167,9 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
-                      'Uygula',
-                      style: TextStyle(
+                    child: Text(
+                      'pasaj.market.filter.apply'.tr,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontFamily: 'MontserratBold',
                       ),
@@ -182,7 +188,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
     if (_selectedTopKey.isEmpty) return null;
     for (final item in _topCategories) {
       if ((item['key'] ?? '').toString() == _selectedTopKey) {
-        return (item['label'] ?? '').toString();
+        return _categoryLabel(item);
       }
     }
     return null;
@@ -223,7 +229,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
   Future<void> _openTopCategorySheet() async {
     final displayToKey = <String, String>{
       for (final category in _topCategories)
-        (category['label'] ?? '').toString():
+        _categoryLabel(category):
             (category['key'] ?? '').toString(),
     };
     String? selectedDisplay;
@@ -237,8 +243,8 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
     await ListBottomSheet.show(
       context: context,
       items: displayToKey.keys.toList(growable: false),
-      title: 'Ana kategori',
-      searchHintText: 'Ana kategori, alt kategori, marka ara',
+      title: 'pasaj.market.create.main_category'.tr,
+      searchHintText: 'pasaj.market.category_search_hint'.tr,
       selectedItem: selectedDisplay,
       onSelect: (selectedLabel) {
         final key = displayToKey[selectedLabel.toString()];
@@ -258,7 +264,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
   Future<void> openTopLevelOnlyPicker() async {
     final displayToKey = <String, String>{
       for (final category in _topCategories)
-        (category['label'] ?? '').toString():
+        _categoryLabel(category):
             (category['key'] ?? '').toString(),
     };
 
@@ -273,8 +279,8 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
     await ListBottomSheet.show(
       context: context,
       items: displayToKey.keys.toList(growable: false),
-      title: 'Ana kategoriler',
-      searchHintText: 'Ana kategori, alt kategori, marka ara',
+      title: 'pasaj.market.main_categories'.tr,
+      searchHintText: 'pasaj.market.category_search_hint'.tr,
       selectedItem: selectedDisplay,
       onSelect: (selectedLabel) {
         final key = displayToKey[selectedLabel.toString()];
@@ -321,7 +327,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
       context: context,
       items: displayToKey.keys.toList(growable: false),
       title: _levelLabel(level),
-      searchHintText: 'Ana kategori, alt kategori, marka ara',
+      searchHintText: 'pasaj.market.category_search_hint'.tr,
       selectedItem: selectedDisplay,
       onSelect: (selectedDisplayValue) {
         final key = displayToKey[selectedDisplayValue.toString()];
@@ -411,13 +417,13 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
   String _levelLabel(int level) {
     switch (level) {
       case 0:
-        return 'Alt kategori';
+        return 'pasaj.market.create.subcategory'.tr;
       case 1:
-        return 'Alt grup';
+        return 'pasaj.market.create.subgroup'.tr;
       case 2:
-        return 'Ürün tipi';
+        return 'pasaj.market.create.product_type'.tr;
       default:
-        return '${level + 1}. kademe';
+        return 'pasaj.market.create.level'.trParams({'value': '${level + 1}'});
     }
   }
 
@@ -468,10 +474,11 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
     final children = <_MarketCategoryNode>[];
     final seen = <String>{};
     for (final child in rawChildren) {
-      final label = (child['label'] ?? '').toString().trim();
+      final label =
+          (child['localizedLabel'] ?? child['label'] ?? '').toString().trim();
       if (label.isEmpty) continue;
       final dedupeKey =
-          '${_normalizeNodeKey(label)}|${(child['key'] ?? '').toString().trim()}';
+          '${normalizeMarketNodeKey(label)}|${(child['key'] ?? '').toString().trim()}';
       if (!seen.add(dedupeKey)) continue;
       children.add(_buildNode(child, _appendPath(path, label)));
     }
@@ -479,7 +486,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
 
     return _MarketCategoryNode(
       key: (node['key'] ?? '').toString(),
-      label: (node['label'] ?? '').toString(),
+      label: (node['localizedLabel'] ?? node['label'] ?? '').toString(),
       pathLabels: path,
       children: children,
     );
@@ -510,11 +517,9 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
 
   List<String> _appendPath(List<String> path, String label) {
     if (path.isNotEmpty &&
-        _normalizeNodeKey(path.last) == _normalizeNodeKey(label)) {
+        normalizeMarketNodeKey(path.last) == normalizeMarketNodeKey(label)) {
       return path;
     }
     return [...path, label];
   }
-
-  String _normalizeNodeKey(String value) => value.trim().toLowerCase();
 }

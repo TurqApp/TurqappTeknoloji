@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/tutoring_category.dart';
 
 import 'create_tutoring_controller.dart';
 
@@ -91,8 +92,8 @@ class CreateTutoringView extends StatelessWidget {
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedBranch.value.isEmpty
-                    ? 'Branş'
-                    : controller.selectedBranch.value,
+                    ? 'tutoring.branch'.tr
+                    : tutoringBranchLabel(controller.selectedBranch.value),
                 onTap: () => _showBranchSelector(context, controller),
               ),
               const SizedBox(height: 8),
@@ -113,7 +114,7 @@ class CreateTutoringView extends StatelessWidget {
                   Expanded(
                     child: _selectionField(
                       label: controller.city.value.isEmpty
-                          ? 'Şehir'
+                          ? 'common.city'.tr
                           : controller.city.value,
                       onTap: controller.showIlSec,
                     ),
@@ -121,7 +122,9 @@ class CreateTutoringView extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _selectionField(
-                      label: controller.town.isEmpty ? 'İlçe' : controller.town,
+                      label: controller.town.isEmpty
+                          ? 'common.district'.tr
+                          : controller.town,
                       onTap: controller.city.value.isEmpty
                           ? null
                           : controller.showIlcelerSec,
@@ -135,33 +138,39 @@ class CreateTutoringView extends StatelessWidget {
               _selectionField(
                 label: controller.selectedLessonPlace.value.isEmpty
                     ? 'tutoring.lesson_place_title'.tr
-                    : controller.selectedLessonPlace.value,
+                    : _lessonPlaceLabel(controller.selectedLessonPlace.value),
                 onTap: () => _showListSelector(
                   context: context,
                   title: 'tutoring.lesson_place_title'.tr,
                   items: const [
-                    'Öğrencinin Evi',
-                    'Öğretmenin Evi',
-                    'Öğrencinin veya Öğretmenin Evi',
-                    'Uzaktan Eğitim',
-                    'Ders Verme Alanı',
+                    'tutoring.lesson_place.student_home',
+                    'tutoring.lesson_place.teacher_home',
+                    'tutoring.lesson_place.either_home',
+                    'tutoring.lesson_place.remote',
+                    'tutoring.lesson_place.lesson_area',
                   ],
                   selected: controller.selectedLessonPlace.value,
                   onSelect: (value) =>
                       controller.selectedLessonPlace.value = value,
+                  itemLabelBuilder: (value) => value.tr,
                 ),
               ),
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedGender.value.isEmpty
                     ? 'tutoring.gender_title'.tr
-                    : controller.selectedGender.value,
+                    : _genderLabel(controller.selectedGender.value),
                 onTap: () => _showListSelector(
                   context: context,
                   title: 'tutoring.gender_title'.tr,
-                  items: const ['Erkek', 'Kadın', 'Farketmez'],
+                  items: const [
+                    'tutoring.gender.male',
+                    'tutoring.gender.female',
+                    'tutoring.gender.any',
+                  ],
                   selected: controller.selectedGender.value,
                   onSelect: (value) => controller.selectedGender.value = value,
+                  itemLabelBuilder: (value) => value.tr,
                 ),
               ),
               const SizedBox(height: 8),
@@ -460,12 +469,14 @@ class CreateTutoringView extends StatelessWidget {
     required List<String> items,
     required String selected,
     required ValueChanged<String> onSelect,
+    String Function(dynamic)? itemLabelBuilder,
   }) {
     AppBottomSheet.show(
       context: context,
       title: title,
       items: items,
       selectedItem: selected,
+      itemLabelBuilder: itemLabelBuilder,
       onSelect: (value) => onSelect(value.toString()),
     );
   }
@@ -479,6 +490,7 @@ class CreateTutoringView extends StatelessWidget {
       title: 'tutoring.branch'.tr,
       items: controller.branchIconMap.keys.toList(),
       selectedItem: controller.selectedBranch.value,
+      itemLabelBuilder: (value) => tutoringBranchLabel(value.toString()),
       onSelect: (value) {
         controller.selectedBranch.value = value;
         controller.branchController.text = value;
@@ -538,5 +550,43 @@ class CreateTutoringView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _lessonPlaceLabel(String value) {
+    switch (value) {
+      case 'tutoring.lesson_place.student_home':
+      case 'Öğrencinin Evi':
+        return 'tutoring.lesson_place.student_home'.tr;
+      case 'tutoring.lesson_place.teacher_home':
+      case 'Öğretmenin Evi':
+        return 'tutoring.lesson_place.teacher_home'.tr;
+      case 'tutoring.lesson_place.either_home':
+      case 'Öğrencinin veya Öğretmenin Evi':
+        return 'tutoring.lesson_place.either_home'.tr;
+      case 'tutoring.lesson_place.remote':
+      case 'Uzaktan Eğitim':
+        return 'tutoring.lesson_place.remote'.tr;
+      case 'tutoring.lesson_place.lesson_area':
+      case 'Ders Verme Alanı':
+        return 'tutoring.lesson_place.lesson_area'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String _genderLabel(String value) {
+    switch (value) {
+      case 'tutoring.gender.male':
+      case 'Erkek':
+        return 'tutoring.gender.male'.tr;
+      case 'tutoring.gender.female':
+      case 'Kadın':
+        return 'tutoring.gender.female'.tr;
+      case 'tutoring.gender.any':
+      case 'Farketmez':
+        return 'tutoring.gender.any'.tr;
+      default:
+        return value;
+    }
   }
 }

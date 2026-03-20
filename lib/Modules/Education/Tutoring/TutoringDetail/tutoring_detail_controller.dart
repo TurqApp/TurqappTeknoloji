@@ -121,7 +121,7 @@ class TutoringDetailController extends GetxController {
       );
       final applicantName = currentUserSummary?.displayName.trim() ?? '';
       final applicantLabel =
-          applicantName.isNotEmpty ? applicantName : 'Bir kullanıcı';
+          applicantName.isNotEmpty ? applicantName : 'common.some_user'.tr;
       final applicantImage = currentUserSummary?.avatarUrl.trim() ?? '';
 
       final isApplied = await _tutoringRepository.toggleApplication(

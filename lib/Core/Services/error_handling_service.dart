@@ -9,27 +9,29 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum ErrorSeverity {
-  low('Düşük'),
-  medium('Orta'),
-  high('Yüksek'),
-  critical('Kritik');
+  low('error_handling.severity_low'),
+  medium('error_handling.severity_medium'),
+  high('error_handling.severity_high'),
+  critical('error_handling.severity_critical');
 
-  const ErrorSeverity(this.label);
-  final String label;
+  const ErrorSeverity(this._labelKey);
+  final String _labelKey;
+  String get label => _labelKey.tr;
 }
 
 enum ErrorCategory {
-  network('Ağ Hatası'),
-  upload('Yükleme Hatası'),
-  storage('Depolama Hatası'),
-  authentication('Kimlik Doğrulama'),
-  validation('Doğrulama Hatası'),
-  permission('İzin Hatası'),
-  system('Sistem Hatası'),
-  unknown('Bilinmeyen Hata');
+  network('error_handling.category_network'),
+  upload('error_handling.category_upload'),
+  storage('error_handling.category_storage'),
+  authentication('error_handling.category_authentication'),
+  validation('error_handling.category_validation'),
+  permission('error_handling.category_permission'),
+  system('error_handling.category_system'),
+  unknown('error_handling.category_unknown');
 
-  const ErrorCategory(this.label);
-  final String label;
+  const ErrorCategory(this._labelKey);
+  final String _labelKey;
+  String get label => _labelKey.tr;
 }
 
 class AppError {
@@ -298,11 +300,11 @@ Retry Count: ${appError.retryCount}
   /// Show retry option for retryable errors
   void _showRetryOption(AppError appError) {
     Get.defaultDialog(
-      title: 'Tekrar Dene',
+      title: 'common.retry'.tr,
       middleText:
-          '${appError.userFriendlyMessage}\n\nTekrar denemek ister misiniz?',
-      textConfirm: 'Tekrar Dene',
-      textCancel: 'İptal',
+          'error_handling.retry_prompt'.trParams({'message': appError.userFriendlyMessage}),
+      textConfirm: 'common.retry'.tr,
+      textCancel: 'common.cancel'.tr,
       onConfirm: () {
         Get.back();
         _retryFailedOperation(appError);
@@ -327,8 +329,8 @@ Retry Count: ${appError.retryCount}
         break;
       default:
         AppSnackbar(
-          'Tekrar Deneme',
-          'Bu işlem için tekrar deneme desteklenmiyor',
+          'common.info'.tr,
+          'error_handling.retry_unsupported'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
@@ -340,8 +342,8 @@ Retry Count: ${appError.retryCount}
   Future<void> _retryNetworkOperation(AppError error) async {
     if (!_isOnline.value) {
       AppSnackbar(
-        'Bağlantı Hatası',
-        'İnternet bağlantısı bulunamadı',
+        'error_handling.network_title'.tr,
+        'error_handling.network_missing'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -351,8 +353,8 @@ Retry Count: ${appError.retryCount}
 
     // Implement specific network retry logic
     AppSnackbar(
-      'Tekrar Deneniyor',
-      'İşlem tekrar deneniyor...',
+      'error_handling.retrying_title'.tr,
+      'error_handling.retrying_body'.tr,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,
@@ -363,8 +365,8 @@ Retry Count: ${appError.retryCount}
   Future<void> _retryUploadOperation(AppError error) async {
     // This would integrate with UploadQueueService
     AppSnackbar(
-      'Yükleme Tekrarı',
-      'Yükleme işlemi tekrar başlatılıyor...',
+      'error_handling.upload_retry_title'.tr,
+      'error_handling.upload_retry_body'.tr,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,

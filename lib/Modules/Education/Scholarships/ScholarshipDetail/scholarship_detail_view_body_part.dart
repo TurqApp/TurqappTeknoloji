@@ -21,7 +21,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
 
     final IndividualScholarshipsModel baseModel =
         scholarshipData['model'] as IndividualScholarshipsModel;
-    final String type = 'bireysel';
+    final String type = kIndividualScholarshipType;
     final String scholarshipDocId =
         (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
             .toString();
@@ -65,8 +65,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                       size: AppIconSurface.kSize,
                       iconSize: AppIconSurface.kIconSize,
                     ),
-                    if (userData['userID']?.toString() ==
-                        FirebaseAuth.instance.currentUser?.uid)
+                    if (isCurrentUserId(userData['userID']?.toString() ?? ''))
                       Padding(
                         padding: const EdgeInsets.only(left: 4, right: 10),
                         child: AppHeaderActionButton(
@@ -372,7 +371,9 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                 appDivider(),
                                 _buildDetail(
                                     "scholarship.application_how".tr,
-                                    model.basvuruYapilacakYer == 'TurqApp'
+                                    model.basvuruYapilacakYer ==
+                                            CreateScholarshipController
+                                                .applicationPlaceTurqAppValue
                                         ? Text.rich(
                                             TextSpan(
                                               children: [

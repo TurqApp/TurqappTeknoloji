@@ -1,13 +1,6 @@
 part of 'post_creator_controller.dart';
 
 extension PostCreatorControllerFlowPart on PostCreatorController {
-  String _normalizeHandleValue(dynamic raw) {
-    final value = raw?.toString().trim() ?? '';
-    if (value.isEmpty) return '';
-    if (value.contains(RegExp(r'\s'))) return '';
-    return value.replaceFirst(RegExp(r'^@+'), '');
-  }
-
   String _firstNonEmptyValue(Iterable<dynamic> candidates) {
     for (final candidate in candidates) {
       final value = candidate?.toString().trim() ?? '';
@@ -30,13 +23,13 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         : const <String, dynamic>{};
 
     final nickname = _firstNonEmptyValue([
-      _normalizeHandleValue(userRaw['nickname']),
-      _normalizeHandleValue(current.nickname),
+      normalizeHandleInput(userRaw['nickname']?.toString() ?? ''),
+      normalizeHandleInput(current.nickname),
     ]);
 
     final username = _firstNonEmptyValue([
-      _normalizeHandleValue(userRaw['username']),
-      _normalizeHandleValue(userRaw['usernameLower']),
+      normalizeHandleInput(userRaw['username']?.toString() ?? ''),
+      normalizeHandleInput(userRaw['usernameLower']?.toString() ?? ''),
     ]);
 
     final displayName = _firstNonEmptyValue([
@@ -133,8 +126,8 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           controller.selectedVideo.value != null;
       if (!hasCaption && !hasMedia) {
         AppSnackbar(
-          'Anket',
-          'Anket için açıklama veya görsel/video gerekli.',
+          'post_creator.poll_title'.tr,
+          'post_creator.poll_requirement'.tr,
         );
         return false;
       }
@@ -159,15 +152,15 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final nsfwImage = await OptimizedNSFWService.checkImage(image);
         if (nsfwImage.errorMessage != null) {
           _showModerationSnackbarOnce(
-            'Yükleme Başarısız',
-            'İçerik güvenlik kontrolü tamamlanamadı.',
+            'post_creator.upload_failed_title'.tr,
+            'post_creator.upload_failed_message'.tr,
           );
           return false;
         }
         if (nsfwImage.isNSFW) {
           _showModerationSnackbarOnce(
-            'Yükleme Başarısız',
-            'Bu görsel yüklenemiyor.',
+            'post_creator.upload_failed_title'.tr,
+            'post_creator.image_rejected'.tr,
           );
           return false;
         }
@@ -178,15 +171,15 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final nsfwVideo = await OptimizedNSFWService.checkVideo(video);
         if (nsfwVideo.errorMessage != null) {
           _showModerationSnackbarOnce(
-            'Yükleme Başarısız',
-            'İçerik güvenlik kontrolü tamamlanamadı.',
+            'post_creator.upload_failed_title'.tr,
+            'post_creator.upload_failed_message'.tr,
           );
           return false;
         }
         if (nsfwVideo.isNSFW) {
           _showModerationSnackbarOnce(
-            'Yükleme Başarısız',
-            'Bu video yüklenemiyor.',
+            'post_creator.upload_failed_title'.tr,
+            'post_creator.video_rejected'.tr,
           );
           return false;
         }
@@ -232,7 +225,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         e,
         category: ErrorCategory.storage,
         severity: ErrorSeverity.low,
-        userMessage: 'Taslak kaydetme başarısız',
+        userMessage: 'post_creator.draft_save_failed'.tr,
         showToUser: false,
       );
     }
@@ -247,7 +240,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           'No internet connection',
           category: ErrorCategory.network,
           severity: ErrorSeverity.high,
-          userMessage: 'İnternet bağlantısı bulunamadı',
+          userMessage: 'post_creator.no_internet'.tr,
           isRetryable: true,
           metadata: {'userInitiated': true},
         );
@@ -282,7 +275,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
             category: ErrorCategory.validation,
             severity: ErrorSeverity.medium,
             userMessage: perPostValidation.errorMessage ??
-                'Gönderi doğrulaması başarısız',
+                'post_creator.validation_failed'.tr,
           );
           return;
         }
@@ -319,7 +312,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           category: ErrorCategory.validation,
           severity: ErrorSeverity.medium,
           userMessage: totalSizeValidation.errorMessage ??
-              'Gönderi doğrulaması başarısız',
+              'post_creator.validation_failed'.tr,
         );
         return;
       }
@@ -333,7 +326,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       final totalPosts = postList.length;
       progressController.startProgress(
         total: totalPosts,
-        initialStatus: 'Gönderiler hazırlanıyor...',
+        initialStatus: 'post_creator.uploading_media'.tr,
       );
 
       if (_networkService.isOnCellular &&
@@ -347,7 +340,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         e,
         category: ErrorCategory.upload,
         severity: ErrorSeverity.high,
-        userMessage: 'Gönderi yükleme başarısız',
+        userMessage: 'post_creator.upload_failed_generic'.tr,
         stackTrace: stackTrace,
         isRetryable: true,
         metadata: {
@@ -484,17 +477,16 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       }
 
       if (addedCount == 0) {
-        progressController.complete('Bu medya zaten yükleme kuyruğunda.');
+        progressController.complete('post_creator.queue_already_added'.tr);
         return;
       }
 
       _uploadQueueService.processPendingQueue();
 
-      progressController
-          .complete('Gönderiler kuyruğa eklendi! Arka planda yüklenecek.');
+      progressController.complete('post_creator.queue_added_complete'.tr);
       AppSnackbar(
-        'Yükleme Kuyruğu',
-        'Gönderiler arka plan kuyruğuna eklendi',
+        'post_creator.queue_title'.tr,
+        'post_creator.queue_added_body'.tr,
         backgroundColor: Colors.green.withValues(alpha: 0.7),
       );
     } catch (e) {
@@ -502,7 +494,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         e,
         category: ErrorCategory.upload,
         severity: ErrorSeverity.high,
-        userMessage: 'Kuyruk ekleme başarısız',
+        userMessage: 'post_creator.queue_add_failed'.tr,
         isRetryable: true,
       );
     }

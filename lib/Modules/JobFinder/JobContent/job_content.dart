@@ -1,8 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
-import 'package:turqappv2/Core/Widgets/optimized_image.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
@@ -23,14 +23,14 @@ class JobContent extends StatelessWidget {
 
   String get _workTypeText {
     if (model.calismaTuru.isEmpty) {
-      return 'Belirtilmedi';
+      return 'pasaj.job_finder.salary_not_specified'.tr;
     }
     return model.calismaTuru.join(', ');
   }
 
   String get _gridWorkTypeText {
     if (model.calismaTuru.isEmpty) {
-      return 'Belirtilmedi';
+      return 'pasaj.job_finder.salary_not_specified'.tr;
     }
     if (model.calismaTuru.length == 1) {
       return model.calismaTuru.first;
@@ -54,7 +54,9 @@ class JobContent extends StatelessWidget {
       parts.add(town);
     }
 
-    return parts.isEmpty ? 'Konum belirtilmedi' : parts.join('\n');
+    return parts.isEmpty
+        ? 'pasaj.market.location_missing'.tr
+        : parts.join('\n');
   }
 
   Widget _buildLogo({
@@ -83,12 +85,11 @@ class JobContent extends StatelessWidget {
           : ClipRRect(borderRadius: borderRadius, child: fallback);
     }
 
-    final image = OptimizedImage(
+    final image = CachedNetworkImage(
       imageUrl: normalizedUrl,
       width: width,
       height: height,
       fit: BoxFit.cover,
-      useThumbnail: false,
       placeholder: (_, __) => fallback,
       errorWidget: (_, __, ___) => fallback,
     );
@@ -107,7 +108,8 @@ class JobContent extends StatelessWidget {
       future: controller.resolveFreshJob(model),
       initialData: model,
       builder: (context, snapshot) {
-        final imageUrl = (snapshot.data?.logo ?? model.logo).trim();
+        final freshLogo = snapshot.data?.logo.trim() ?? '';
+        final imageUrl = freshLogo.isNotEmpty ? freshLogo : model.logo.trim();
         return _buildLogo(
           imageUrl: imageUrl,
           width: width,
@@ -120,9 +122,10 @@ class JobContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.isRegistered<JobContentController>(tag: _controllerTag)
-        ? Get.find<JobContentController>(tag: _controllerTag)
-        : Get.put(JobContentController(), tag: _controllerTag);
+    final controller =
+        Get.isRegistered<JobContentController>(tag: _controllerTag)
+            ? Get.find<JobContentController>(tag: _controllerTag)
+            : Get.put(JobContentController(), tag: _controllerTag);
     if (model.docID.trim().isNotEmpty) {
       controller.checkSaved(model.docID);
     }
@@ -130,6 +133,7 @@ class JobContent extends StatelessWidget {
   }
 
   Widget listingView(JobContentController controller) {
+    const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
       onLongPress: () => controller.reactivateEndedJob(model),
       child: Padding(
@@ -153,93 +157,91 @@ class JobContent extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(10)),
                   child: SizedBox(
-                    width: 96,
-                    height: 96,
+                    width: metrics.mediaSize,
+                    height: metrics.mediaSize,
                     child: _buildResolvedLogo(
                       controller: controller,
-                      width: 96,
-                      height: 96,
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(10)),
+                      width: metrics.mediaSize,
+                      height: metrics.mediaSize,
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: SizedBox(
-                    height: 96,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          model.ilanBasligi.isNotEmpty
-                              ? model.ilanBasligi
-                              : model.meslek,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontFamily: "MontserratBold",
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        model.ilanBasligi.isNotEmpty
+                            ? model.ilanBasligi
+                            : model.meslek,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontFamily: "MontserratBold",
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          model.ilanBasligi.isNotEmpty
-                              ? model.meslek
-                              : model.brand,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 12,
-                            fontFamily: "MontserratBold",
-                          ),
+                      ),
+                      SizedBox(height: metrics.contentGap / 2),
+                      Text(
+                        model.ilanBasligi.isNotEmpty
+                            ? model.meslek
+                            : model.brand,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 12,
+                          fontFamily: "MontserratBold",
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _workTypeText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
-                          ),
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      Text(
+                        _workTypeText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 12,
+                          fontFamily: "MontserratMedium",
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.grey.shade500,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                "${model.city}, ${model.town}",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.grey.shade700,
-                                  fontSize: 12,
-                                  fontFamily: "MontserratMedium",
-                                ),
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              "${model.city}, ${model.town}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 12,
+                                fontFamily: "MontserratMedium",
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: metrics.contentGap),
+                      SizedBox(height: metrics.detailRowHeight),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 6),
                 SizedBox(
-                  width: 108,
-                  height: 96,
+                  width: metrics.railWidth,
+                  height: metrics.railHeight,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Row(
@@ -247,23 +249,25 @@ class JobContent extends StatelessWidget {
                         children: [
                           AppHeaderActionButton(
                             onTap: () => controller.shareJob(model),
+                            size: metrics.actionButtonSize,
                             child: Icon(
                               AppIcons.share,
-                              size: AppIconSurface.kIconSize,
+                              size: metrics.actionIconSize,
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: metrics.railActionGap),
                           Obx(() {
                             return AppHeaderActionButton(
                               onTap: model.docID.trim().isEmpty
                                   ? null
                                   : () => controller.toggleSave(model.docID),
+                              size: metrics.actionButtonSize,
                               child: Icon(
                                 controller.saved.value
                                     ? AppIcons.saved
                                     : AppIcons.save,
-                                size: AppIconSurface.kIconSize,
+                                size: metrics.actionIconSize,
                                 color: controller.saved.value
                                     ? Colors.orange
                                     : Colors.black87,
@@ -272,9 +276,11 @@ class JobContent extends StatelessWidget {
                           }),
                         ],
                       ),
+                      SizedBox(height: metrics.railSectionGap),
+                      SizedBox(height: metrics.middleSlotHeight),
                       const Spacer(),
                       SizedBox(
-                        width: 108,
+                        width: metrics.railWidth,
                         child: GestureDetector(
                           onTap: () async {
                             await Get.to(() => JobDetails(model: model));
@@ -283,18 +289,18 @@ class JobContent extends StatelessWidget {
                             await finderController.refreshJob(model.docID);
                           },
                           child: Container(
-                            height: 30,
+                            height: metrics.ctaHeight,
                             alignment: Alignment.center,
                             decoration: const BoxDecoration(
                               color: Colors.black,
                               borderRadius:
                                   BorderRadius.all(Radius.circular(8)),
                             ),
-                            child: const Text(
-                              'İncele',
+                            child: Text(
+                              'pasaj.market.inspect'.tr,
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: metrics.ctaFontSize,
                                 fontFamily: 'MontserratMedium',
                               ),
                             ),
@@ -313,6 +319,7 @@ class JobContent extends StatelessWidget {
   }
 
   Widget gridView(JobContentController controller) {
+    const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
       onTap: () => Get.to(JobDetails(model: model)),
       onLongPress: () => controller.reactivateEndedJob(model),
@@ -418,23 +425,26 @@ class JobContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  SizedBox(
-                    width: double.infinity,
-                    child: GestureDetector(
-                      onTap: () => Get.to(JobDetails(model: model)),
-                      child: Container(
-                        height: 30,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                        ),
-                        child: const Text(
-                          'İncele',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontFamily: 'MontserratMedium',
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: metrics.railWidth,
+                      child: GestureDetector(
+                        onTap: () => Get.to(JobDetails(model: model)),
+                        child: Container(
+                          height: metrics.ctaHeight,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                          ),
+                          child: Text(
+                            'pasaj.market.inspect'.tr,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: metrics.ctaFontSize,
+                              fontFamily: 'MontserratMedium',
+                            ),
                           ),
                         ),
                       ),

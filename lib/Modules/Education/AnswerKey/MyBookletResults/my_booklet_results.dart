@@ -29,7 +29,7 @@ class _MyBookletResultsState extends State<MyBookletResults> {
   Widget _buildBooksEmpty() {
     return Container(
       color: Colors.white,
-      child: const Padding(
+      child: Padding(
         padding: EdgeInsets.only(top: 15),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -43,8 +43,8 @@ class _MyBookletResultsState extends State<MyBookletResults> {
                 ),
                 SizedBox(height: 7),
                 Text(
-                  "Her hangi kitapçık çözmedin",
-                  style: TextStyle(
+                  "answer_key.books_empty".tr,
+                  style: const TextStyle(
                     color: Colors.black,
                     fontSize: 15,
                     fontFamily: "Montserrat",
@@ -142,7 +142,7 @@ class _MyBookletResultsState extends State<MyBookletResults> {
     }
     return Container(
       color: Colors.white,
-      child: const Padding(
+      child: Padding(
         padding: EdgeInsets.only(top: 15),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -156,8 +156,8 @@ class _MyBookletResultsState extends State<MyBookletResults> {
                 ),
                 SizedBox(height: 7),
                 Text(
-                  "Her hangi optik form çözmedin",
-                  style: TextStyle(
+                  "answer_key.optical_empty".tr,
+                  style: const TextStyle(
                     color: Colors.black,
                     fontSize: 15,
                     fontFamily: "Montserrat",

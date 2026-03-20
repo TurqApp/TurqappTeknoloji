@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
@@ -261,22 +262,20 @@ class JobDetailsController extends GetxController {
       return false;
     }
 
-    final currentMeslek = current.meslek.trim().toLowerCase();
-    final otherMeslek = other.meslek.trim().toLowerCase();
+    final currentMeslek = normalizeSearchText(current.meslek);
+    final otherMeslek = normalizeSearchText(other.meslek);
     if (currentMeslek.isNotEmpty && currentMeslek == otherMeslek) {
       return true;
     }
 
-    final currentBrand = current.brand.trim().toLowerCase();
-    final otherBrand = other.brand.trim().toLowerCase();
+    final currentBrand = normalizeSearchText(current.brand);
+    final otherBrand = normalizeSearchText(other.brand);
     if (currentBrand.isNotEmpty && currentBrand == otherBrand) {
       return true;
     }
 
-    final currentTypes =
-        current.calismaTuru.map((e) => e.trim().toLowerCase()).toSet();
-    final otherTypes =
-        other.calismaTuru.map((e) => e.trim().toLowerCase()).toSet();
+    final currentTypes = current.calismaTuru.map(normalizeSearchText).toSet();
+    final otherTypes = other.calismaTuru.map(normalizeSearchText).toSet();
     return currentTypes.intersection(otherTypes).isNotEmpty;
   }
 

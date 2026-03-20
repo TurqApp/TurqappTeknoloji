@@ -67,6 +67,8 @@ class BankInfoController extends GetxController {
 
   String localizedFastType(String value) {
     switch (value) {
+      case _selectBank:
+        return 'bank_info.select_bank'.tr;
       case _email:
         return 'bank_info.fast_email'.tr;
       case _phone:

@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
@@ -30,7 +31,7 @@ class AnswerKeyContentController extends GetxController {
       UserSubcollectionRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
-  bool get isOwner => model.userID == FirebaseAuth.instance.currentUser?.uid;
+  bool get isOwner => isCurrentUserId(model.userID);
 
   void syncModel(BookletModel nextModel) {
     model = nextModel;

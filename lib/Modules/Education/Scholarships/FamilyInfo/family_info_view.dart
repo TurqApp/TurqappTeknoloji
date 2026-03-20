@@ -150,10 +150,12 @@ class FamilyInfoView extends StatelessWidget {
                                         title:
                                             'scholarship.applicant.father_job'
                                                 .tr,
-                                        value:
-                                            controller.fatherJob.value.isEmpty
-                                                ? 'family_info.select_job'.tr
-                                                : controller.fatherJob.value,
+                                        value: controller
+                                                .fatherJob.value.isEmpty
+                                            ? 'family_info.select_job'.tr
+                                            : controller.localizedSelection(
+                                                controller.fatherJob.value,
+                                              ),
                                         hintText: 'family_info.select_job'.tr,
                                         onTap: () => controller.showBottomSheet(
                                           'scholarship.applicant.father_job'.tr,
@@ -283,10 +285,12 @@ class FamilyInfoView extends StatelessWidget {
                                         title:
                                             'scholarship.applicant.mother_job'
                                                 .tr,
-                                        value:
-                                            controller.motherJob.value.isEmpty
-                                                ? 'family_info.select_job'.tr
-                                                : controller.motherJob.value,
+                                        value: controller
+                                                .motherJob.value.isEmpty
+                                            ? 'family_info.select_job'.tr
+                                            : controller.localizedSelection(
+                                                controller.motherJob.value,
+                                              ),
                                         hintText: 'family_info.select_job'.tr,
                                         onTap: () => controller.showBottomSheet(
                                           'scholarship.applicant.mother_job'.tr,

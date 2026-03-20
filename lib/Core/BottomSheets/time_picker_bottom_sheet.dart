@@ -71,7 +71,7 @@ class FutureTimePickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "İptal",
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -95,7 +95,7 @@ class FutureTimePickerBottomSheet extends StatelessWidget {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text("Tamam", style: TextStyles.medium15white),
+                      child: Text('common.ok'.tr, style: TextStyles.medium15white),
                     ),
                   ),
                 ),

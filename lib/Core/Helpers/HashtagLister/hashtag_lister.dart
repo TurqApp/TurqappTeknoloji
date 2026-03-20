@@ -50,7 +50,7 @@ class Hashtaglister extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        "${model.count} görüntüleme",
+                        "${model.count} ${'common.views'.tr}",
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,

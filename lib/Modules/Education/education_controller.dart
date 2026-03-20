@@ -86,11 +86,7 @@ class EducationController extends GetxController {
         _adminPasajVisibility.clear();
         for (var i = 0; i < titles.length; i++) {
           final title = titles[i];
-          final raw = data[title] ?? switch (title) {
-            "Mabil Pazar" => data["Market"],
-            "İş Veren" => data["İş Bul"],
-            _ => null,
-          };
+          final raw = data[pasajAdminConfigKey(title)];
           final isVisible = raw is bool ? raw : true;
           _adminPasajVisibility[title] = isVisible;
         }
@@ -277,43 +273,43 @@ class EducationController extends GetxController {
   void _forwardSearch() {
     final query = searchText.value;
     switch (titles[selectedTab.value]) {
-      case "Burslar":
+      case PasajTabIds.scholarships:
         if (Get.isRegistered<ScholarshipsController>()) {
           Get.find<ScholarshipsController>().setSearchQuery(query);
         }
         break;
-      case "İş Veren":
+      case PasajTabIds.jobFinder:
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.text = query;
         }
         break;
-      case "Mabil Pazar":
+      case PasajTabIds.market:
         if (Get.isRegistered<MarketController>()) {
           Get.find<MarketController>().setSearchQuery(query);
         }
         break;
-      case "Soru Bankası":
+      case PasajTabIds.questionBank:
         if (Get.isRegistered<AntremanController>()) {
           Get.find<AntremanController>().setSearchQuery(query);
         }
         break;
-      case "Denemeler":
+      case PasajTabIds.practiceExams:
         if (Get.isRegistered<CikmisSorularController>()) {
           Get.find<CikmisSorularController>().setSearchQuery(query);
         }
         break;
-      case "Online Sınav":
+      case PasajTabIds.onlineExam:
         if (Get.isRegistered<DenemeSinavlariController>()) {
           Get.find<DenemeSinavlariController>().setSearchQuery(query);
         }
         break;
-      case "Cevap Anahtarı":
+      case PasajTabIds.answerKey:
         if (Get.isRegistered<AnswerKeyController>()) {
           Get.find<AnswerKeyController>().setSearchQuery(query);
         }
         break;
-      case "Özel Ders":
+      case PasajTabIds.tutoring:
         if (Get.isRegistered<TutoringController>()) {
           Get.find<TutoringController>().setSearchQuery(query);
         }
@@ -324,43 +320,43 @@ class EducationController extends GetxController {
   /// Sekme değiştiğinde önceki sekmenin aramasını sıfırla
   void _clearModuleSearch(int tabIndex) {
     switch (titles[tabIndex]) {
-      case "Burslar":
+      case PasajTabIds.scholarships:
         if (Get.isRegistered<ScholarshipsController>()) {
           Get.find<ScholarshipsController>().setSearchQuery('');
         }
         break;
-      case "İş Veren":
+      case PasajTabIds.jobFinder:
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.clear();
         }
         break;
-      case "Mabil Pazar":
+      case PasajTabIds.market:
         if (Get.isRegistered<MarketController>()) {
           Get.find<MarketController>().setSearchQuery('');
         }
         break;
-      case "Soru Bankası":
+      case PasajTabIds.questionBank:
         if (Get.isRegistered<AntremanController>()) {
           Get.find<AntremanController>().setSearchQuery('');
         }
         break;
-      case "Denemeler":
+      case PasajTabIds.practiceExams:
         if (Get.isRegistered<CikmisSorularController>()) {
           Get.find<CikmisSorularController>().setSearchQuery('');
         }
         break;
-      case "Online Sınav":
+      case PasajTabIds.onlineExam:
         if (Get.isRegistered<DenemeSinavlariController>()) {
           Get.find<DenemeSinavlariController>().setSearchQuery('');
         }
         break;
-      case "Cevap Anahtarı":
+      case PasajTabIds.answerKey:
         if (Get.isRegistered<AnswerKeyController>()) {
           Get.find<AnswerKeyController>().setSearchQuery('');
         }
         break;
-      case "Özel Ders":
+      case PasajTabIds.tutoring:
         if (Get.isRegistered<TutoringController>()) {
           Get.find<TutoringController>().setSearchQuery('');
         }

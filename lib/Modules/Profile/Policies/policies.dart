@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Profile/Policies/policy_content.dart';
 
@@ -15,10 +16,13 @@ class _PoliciesState extends State<Policies>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
+  List<PolicyDocument> get _policies =>
+      localizedTurqAppPolicies(Get.locale?.languageCode);
+
   int get _initialIndex {
     final targetId = widget.initialPolicyId?.trim() ?? '';
     if (targetId.isEmpty) return 0;
-    final index = turqAppPolicies.indexWhere((item) => item.id == targetId);
+    final index = _policies.indexWhere((item) => item.id == targetId);
     return index < 0 ? 0 : index;
   }
 
@@ -26,7 +30,7 @@ class _PoliciesState extends State<Policies>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: turqAppPolicies.length,
+      length: _policies.length,
       vsync: this,
       initialIndex: _initialIndex,
     );
@@ -41,63 +45,64 @@ class _PoliciesState extends State<Policies>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F1EA),
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
-              child: BackButtons(text: 'Politikalar'),
+              child: SizedBox.shrink(),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Politika Merkezi',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontFamily: 'MontserratBold',
-                      ),
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: BackButtons(text: 'settings.policies'.tr),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'policies.center_title'.tr,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 28,
+                      fontFamily: 'MontserratBold',
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Uyelik, gizlilik, topluluk, telif ve guvenlik metinleri tek yerde ve uygulama ici okumaya uygun sekilde sunulur.',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        height: 1.5,
-                        fontFamily: 'Montserrat',
-                      ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'policies.center_desc'.tr,
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                      height: 1.45,
+                      fontFamily: 'Montserrat',
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(15, 14, 15, 0),
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: TabBar(
                   controller: _tabController,
                   isScrollable: true,
                   dividerColor: Colors.transparent,
+                  tabAlignment: TabAlignment.start,
+                  indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
-                    color: Colors.black,
+                    color: const Color(0xFFF1F1F1),
                     borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0x11000000)),
                   ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.black54,
+                  indicatorPadding: const EdgeInsets.symmetric(vertical: 4),
+                  splashBorderRadius: BorderRadius.circular(999),
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.black45,
                   labelStyle: const TextStyle(
                     fontSize: 13,
                     fontFamily: 'MontserratBold',
@@ -106,8 +111,16 @@ class _PoliciesState extends State<Policies>
                     fontSize: 13,
                     fontFamily: 'MontserratMedium',
                   ),
-                  tabs: turqAppPolicies
-                      .map((policy) => Tab(text: policy.title))
+                  tabs: _policies
+                      .map(
+                        (policy) => Tab(
+                          iconMargin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Text(policy.title),
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -115,7 +128,7 @@ class _PoliciesState extends State<Policies>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: turqAppPolicies
+                children: _policies
                     .map((policy) => _PolicyTab(policy: policy))
                     .toList(),
               ),
@@ -135,34 +148,43 @@ class _PolicyTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(15, 12, 15, 28),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
       children: [
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.black12),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x12000000),
-                blurRadius: 14,
-                offset: Offset(0, 8),
-              ),
-            ],
+            color: const Color(0xFFF8F8F6),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0x12000000)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                policy.title,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 21,
-                  fontFamily: 'MontserratBold',
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(policy.icon, color: Colors.black, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      policy.title,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 21,
+                        fontFamily: 'MontserratBold',
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 9),
+              const SizedBox(height: 12),
               Text(
                 policy.summary,
                 style: const TextStyle(
@@ -174,7 +196,8 @@ class _PolicyTab extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Son guncelleme: ${policy.updatedAt}',
+                'policies.last_updated'
+                    .trParams(<String, String>{'date': policy.updatedAt}),
                 style: const TextStyle(
                   color: Colors.black45,
                   fontSize: 12,
@@ -212,7 +235,7 @@ class _PolicyAccordionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(18),
       child: Material(
         color: Colors.white,
         child: Theme(
@@ -220,16 +243,16 @@ class _PolicyAccordionTile extends StatelessWidget {
           child: ExpansionTile(
             initiallyExpanded: initiallyExpanded,
             tilePadding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-            childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
             backgroundColor: Colors.white,
             collapsedBackgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(18),
               side: const BorderSide(color: Color(0x14000000)),
             ),
             collapsedShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(18),
               side: const BorderSide(color: Color(0x14000000)),
             ),
             iconColor: Colors.black,

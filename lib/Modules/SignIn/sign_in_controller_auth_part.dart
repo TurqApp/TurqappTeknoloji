@@ -116,15 +116,15 @@ extension SignInControllerAuthPart on SignInController {
 
   Future<void> sendOtpCodeForReset() async {
     if (resetOtpRequestInFlight.value) return;
-    final targetEmail = resetMailController.text.trim().toLowerCase();
+    final targetEmail = normalizeEmailAddress(resetMailController.text);
     if (!isValidEmail(targetEmail)) {
-      AppSnackbar("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
+      AppSnackbar('signup.phone_invalid_title'.tr, 'signup.invalid_email'.tr);
       return;
     }
     if (resetCodeRequested.value && otpTimerReset.value > 0) {
       AppSnackbar(
-        "Bekleyin",
-        "Yeni kod için ${otpTimerReset.value} saniye bekleyin.",
+        'common.info'.tr,
+        'editor_email.wait'.trParams({'seconds': '${otpTimerReset.value}'}),
       );
       return;
     }
@@ -140,36 +140,38 @@ extension SignInControllerAuthPart on SignInController {
       startOtpTimerForTimer();
       resetCodeRequested.value = true;
       AppSnackbar(
-        "Kod Gönderildi",
-        "SMS gönderildi. Kod 60 saniye geçerli.",
+        'common.success'.tr,
+        'sign_in.reset_code_sent'.tr,
       );
     } on FirebaseFunctionsException catch (e) {
       String message;
       switch (e.code) {
         case 'invalid-argument':
-          message = "Geçerli bir e-posta ve 6 haneli kod gerekli.";
+          message = 'sign_in.reset_invalid_email_or_code'.tr;
           break;
         case 'not-found':
-          message = "Bu e-posta ile kayıtlı hesap bulunamadı.";
+          message = 'sign_in.reset_account_not_found'.tr;
           break;
         case 'failed-precondition':
           final raw = (e.message ?? "").toLowerCase();
           if (raw.contains("yeni sms için")) {
-            message =
-                "Kod zaten gönderildi. Tekrar göndermek için ${_formatSeconds(otpTimerReset.value)} bekleyin.";
+            message = 'sign_in.reset_code_already_sent'.trParams(
+              {'time': _formatSeconds(otpTimerReset.value)},
+            );
           } else {
-            message = e.message ?? "Bu hesap için kayıtlı telefon bulunamadı.";
+            message = e.message ?? 'sign_in.reset_phone_missing'.tr;
           }
           break;
         case 'unavailable':
-          message = "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.";
+          message = 'signup.sms_unavailable'.tr;
           break;
         default:
-          message = "Kod gönderilemedi. Lütfen tekrar deneyin.";
+          message = 'signup.code_send_failed'.tr;
       }
-      AppSnackbar("Kod Gönderilemedi", message);
+      AppSnackbar('sign_in.code_send_failed_title'.tr, message);
     } catch (_) {
-      AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
+      AppSnackbar(
+          'sign_in.code_send_failed_title'.tr, 'sign_in.sms_send_failed'.tr);
     } finally {
       wait.value = false;
       resetOtpRequestInFlight.value = false;
@@ -221,15 +223,16 @@ extension SignInControllerAuthPart on SignInController {
   }
 
   Future<void> verifyResetSmsCode() async {
-    final targetEmail = resetMailController.text.trim().toLowerCase();
+    final targetEmail = normalizeEmailAddress(resetMailController.text);
     final code = resetOtpController.text.trim();
 
     if (!isValidEmail(targetEmail)) {
-      AppSnackbar("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
+      AppSnackbar('signup.phone_invalid_title'.tr, 'signup.invalid_email'.tr);
       return;
     }
     if (code.length != 6 || int.tryParse(code) == null) {
-      AppSnackbar("Geçersiz Kod", "Lütfen 6 haneli doğrulama kodunu girin.");
+      AppSnackbar(
+          'signup.code_invalid_title'.tr, 'signup.code_invalid_body'.tr);
       return;
     }
 
@@ -248,25 +251,25 @@ extension SignInControllerAuthPart on SignInController {
       String message;
       switch (e.code) {
         case 'deadline-exceeded':
-          message = "Kodun süresi doldu (60 sn). Lütfen yeni kod isteyin.";
+          message = 'sign_in.reset_code_expired'.tr;
           break;
         case 'not-found':
-          message = "Doğrulama kodu bulunamadı. Yeniden kod alın.";
+          message = 'signup.code_not_found'.tr;
           break;
         case 'invalid-argument':
-          message = "Doğrulama kodu hatalı.";
+          message = 'signup.code_wrong'.tr;
           break;
         case 'failed-precondition':
-          message = e.message ?? "Kod artık geçerli değil. Yeni kod alın.";
+          message = e.message ?? 'signup.code_no_longer_valid'.tr;
           break;
         default:
-          message = "Kod doğrulanamadı. Lütfen tekrar deneyin.";
+          message = 'signup.verify_retry'.tr;
       }
-      AppSnackbar("Doğrulama Başarısız", message);
+      AppSnackbar('signup.verify_failed_title'.tr, message);
     } catch (_) {
       AppSnackbar(
-        "Doğrulama Başarısız",
-        "Kod doğrulanırken bir hata oluştu.",
+        'signup.verify_failed_title'.tr,
+        'sign_in.verify_code_failed'.tr,
       );
     } finally {
       wait.value = false;
@@ -288,7 +291,6 @@ extension SignInControllerAuthPart on SignInController {
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      await _restoreAccountIfPendingDeletion();
       await MandatoryFollowService.instance.enforceForCurrentUser();
 
       await userCredential.user!.updatePassword(newPassword);
@@ -301,7 +303,8 @@ extension SignInControllerAuthPart on SignInController {
       await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
       await _trackCurrentAccountForDevice();
-      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+      await AccountCenterService.ensure()
+          .registerCurrentDeviceSessionIfEnabled();
       await _persistStoredSessionCredential(
         email: resetMail.value,
         password: newPassword,
@@ -355,13 +358,13 @@ extension SignInControllerAuthPart on SignInController {
       _ensureFeedTabSelected();
       Get.offAll(() => const SplashView());
       AppSnackbar(
-        "Şifreniz Değiştirildi",
-        "Şifreniz başarılı bir şekilde değiştirildi ve giriş yapıldı",
+        'sign_in.password_changed_title'.tr,
+        'sign_in.password_changed_body'.tr,
       );
     } on FirebaseAuthException catch (_) {
       AppSnackbar(
-        "Bir şeyler ters gitti",
-        "Bilinmeyen bir hata oluştu. Hata devam ederse bize ulaşın.",
+        'common.error'.tr,
+        'sign_in.unknown_error_contact'.tr,
       );
     } catch (_) {}
   }
@@ -394,26 +397,25 @@ extension SignInControllerAuthPart on SignInController {
         case 'invalid-credential':
         case 'wrong-password':
         case 'user-not-found':
-          message = "E-posta veya şifre hatalı. (${e.code})";
+          message = "${'sign_in.auth_invalid_credential'.tr} (${e.code})";
           break;
         case 'invalid-email':
-          message = "E-posta formatı geçersiz. (${e.code})";
+          message = "${'sign_in.auth_invalid_email'.tr} (${e.code})";
           break;
         case 'too-many-requests':
-          message =
-              "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin. (${e.code})";
+          message = "${'sign_in.auth_too_many_requests'.tr} (${e.code})";
           break;
         case 'network-request-failed':
-          message = "İnternet bağlantısı hatası. (${e.code})";
+          message = "${'sign_in.auth_network_failed'.tr} (${e.code})";
           break;
         case 'user-disabled':
-          message = "Bu kullanıcı hesabı devre dışı bırakılmış. (${e.code})";
+          message = "${'sign_in.auth_user_disabled'.tr} (${e.code})";
           break;
         default:
           message =
-              "${e.message ?? 'Giriş sırasında hata oluştu.'} (${e.code})";
+              "${e.message ?? 'sign_in.auth_generic_error'.tr} (${e.code})";
       }
-      AppSnackbar("Giriş yapılamadı", message);
+      AppSnackbar('sign_in.sign_in_failed_title'.tr, message);
       return false;
     } catch (_) {
       wait.value = false;
@@ -426,8 +428,8 @@ extension SignInControllerAuthPart on SignInController {
         return true;
       }
       AppSnackbar(
-        "Giriş Başarısız",
-        "Giriş sırasında beklenmeyen bir hata oluştu. Lütfen tekrar deneyin. (-2)",
+        'sign_in.sign_in_failed_title'.tr,
+        'sign_in.sign_in_failed_body'.tr,
       );
       return false;
     }

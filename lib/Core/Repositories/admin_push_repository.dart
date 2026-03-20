@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class AdminPushReport {
   final String id;
@@ -130,9 +131,9 @@ class AdminPushRepository extends GetxService {
       return _isEligiblePushTarget(uid, data) ? <String>[uid] : <String>[];
     }
 
-    final meslekLc = filters.meslek.trim().toLowerCase();
-    final konumLc = filters.konum.trim().toLowerCase();
-    final genderLc = filters.gender.trim().toLowerCase();
+    final meslekLc = normalizeSearchText(filters.meslek);
+    final konumLc = normalizeSearchText(filters.konum);
+    final genderLc = normalizeSearchText(filters.gender);
     final minAge = filters.minAge;
     final maxAge = filters.maxAge;
 
@@ -142,10 +143,12 @@ class AdminPushRepository extends GetxService {
     bool matchesFilters(String userId, Map<String, dynamic> data) {
       if (seen.contains(userId)) return false;
       if (!_isEligiblePushTarget(userId, data)) return false;
-      final userMeslek =
-          (data['meslekKategori'] ?? '').toString().trim().toLowerCase();
-      final userGender =
-          (data['cinsiyet'] ?? '').toString().trim().toLowerCase();
+      final userMeslek = normalizeSearchText(
+        (data['meslekKategori'] ?? '').toString(),
+      );
+      final userGender = normalizeSearchText(
+        (data['cinsiyet'] ?? '').toString(),
+      );
       final locations = _collectLocationValues(data);
       final age = _extractAge(data);
       final meslekOk = meslekLc.isEmpty || userMeslek == meslekLc;
@@ -284,7 +287,7 @@ class AdminPushRepository extends GetxService {
       'locationSehir',
       'ikametSehir',
     ]) {
-      final value = (data[key] ?? '').toString().trim().toLowerCase();
+      final value = normalizeSearchText((data[key] ?? '').toString());
       if (value.isNotEmpty) values.add(value);
     }
     return values;

@@ -2,26 +2,29 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
 import 'media_compression_service.dart';
 import 'SegmentCache/prefetch_scheduler.dart';
 
 enum NetworkType {
-  wifi('Wi-Fi'),
-  cellular('Mobil Veri'),
-  none('Bağlantı Yok');
+  wifi('network_awareness.type_wifi'),
+  cellular('network_awareness.type_cellular'),
+  none('network_awareness.type_none');
 
-  const NetworkType(this.label);
-  final String label;
+  const NetworkType(this.labelKey);
+  final String labelKey;
+  String get label => labelKey.tr;
 }
 
 enum DataUsageMode {
-  low('Düşük Kalite', 50),
-  normal('Normal Kalite', 75),
-  high('Yüksek Kalite', 90);
+  low('network_awareness.mode_low', 50),
+  normal('network_awareness.mode_normal', 75),
+  high('network_awareness.mode_high', 90);
 
-  const DataUsageMode(this.label, this.quality);
-  final String label;
+  const DataUsageMode(this.labelKey, this.quality);
+  final String labelKey;
   final int quality;
+  String get label => labelKey.tr;
 }
 
 class NetworkSettings {
@@ -71,14 +74,7 @@ class NetworkSettings {
       );
 
   static bool _asBool(dynamic value, {bool fallback = false}) {
-    if (value is bool) return value;
-    if (value is num) return value != 0;
-    if (value is String) {
-      final normalized = value.trim().toLowerCase();
-      if (normalized == 'true' || normalized == '1') return true;
-      if (normalized == 'false' || normalized == '0') return false;
-    }
-    return fallback;
+    return parseFlexibleBool(value, fallback: fallback);
   }
 
   static int _asInt(dynamic value, {int fallback = 0}) {
@@ -267,16 +263,16 @@ class NetworkAwarenessService extends GetxController {
     if (!isConnected) {
       return {
         'allowed': false,
-        'reason': 'İnternet bağlantısı yok',
-        'suggestion': 'Bağlantı kurulduktan sonra tekrar deneyin',
+        'reason': 'network_awareness.no_internet_reason'.tr,
+        'suggestion': 'network_awareness.no_internet_suggestion'.tr,
       };
     }
 
     if (isOnCellular && settings.pauseOnCellular) {
       return {
         'allowed': false,
-        'reason': 'Mobil veri üzerinden yükleme kapalı',
-        'suggestion': 'Wi-Fi bağlantısı kurun veya ayarları değiştirin',
+        'reason': 'network_awareness.cellular_paused_reason'.tr,
+        'suggestion': 'network_awareness.cellular_paused_suggestion'.tr,
       };
     }
 
@@ -287,8 +283,8 @@ class NetworkAwarenessService extends GetxController {
     if (isOnCellular && fileSizeMB > remaining) {
       return {
         'allowed': false,
-        'reason': 'Aylık veri limitini aşacak',
-        'suggestion': 'Wi-Fi bekleyin veya dosya boyutunu küçültün',
+        'reason': 'network_awareness.limit_exceeded_reason'.tr,
+        'suggestion': 'network_awareness.limit_exceeded_suggestion'.tr,
         'dataInfo': {
           'current': currentUsage,
           'limit': limit,
@@ -304,9 +300,11 @@ class NetworkAwarenessService extends GetxController {
 
     return {
       'allowed': true,
-      'reason': 'Yükleme önerilir',
+      'reason': 'network_awareness.upload_recommended'.tr,
       'suggestion':
-          isOnWiFi ? 'Wi-Fi bağlantısı optimal' : 'Mobil veri kullanılacak',
+          isOnWiFi
+              ? 'network_awareness.wifi_optimal'.tr
+              : 'network_awareness.cellular_in_use'.tr,
       'optimization': {
         'originalSize': fileSizeMB,
         'optimizedSize': estimatedSizeMB,

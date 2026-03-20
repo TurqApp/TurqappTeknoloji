@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -46,22 +47,23 @@ class UserModerationGuard {
 
     if (isPermanentlyBanned) {
       AppSnackbar(
-        'Hesap Engellendi',
-        'Bu hesap uygulamaya erişimden kalıcı olarak uzaklaştırıldı.',
+        'moderation_guard.banned_title'.tr,
+        'moderation_guard.banned_body'.tr,
       );
       return false;
     }
 
     final user = _currentUser;
     final untilMs = user?.moderationRestrictedUntil ?? 0;
+    final localeTag = Get.locale?.toLanguageTag().replaceAll('-', '_') ?? 'tr_TR';
     final untilText = untilMs > 0
-        ? DateFormat('dd.MM.yyyy HH:mm', 'tr_TR')
+        ? DateFormat('dd.MM.yyyy HH:mm', localeTag)
             .format(DateTime.fromMillisecondsSinceEpoch(untilMs))
-        : 'bildirilen süre sonuna';
+        : 'moderation_guard.until_notice'.tr;
 
     AppSnackbar(
-      'Geçici Kısıtlama',
-      'Bu hesap $untilText tarihine kadar yalnızca gezebilir, beğeni bırakabilir ve yeniden paylaşım yapabilir.',
+      'moderation_guard.restricted_title'.tr,
+      'moderation_guard.restricted_body'.trParams({'until': untilText}),
     );
     return false;
   }

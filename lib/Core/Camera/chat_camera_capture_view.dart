@@ -188,10 +188,11 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                         ),
                         child: Text(
                           _mode == ChatCameraMode.photo
-                              ? "Yakala"
+                              ? 'chat.camera.capture'.tr
                               : (_isRecording
-                                  ? "Kayıt: ${_recordSec}s / 60s"
-                                  : "Video (Maks. 1 dk)"),
+                                  ? 'chat.camera.recording'
+                                      .trParams({'seconds': '$_recordSec'})
+                                  : 'chat.camera.video_max'.tr),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -208,7 +209,8 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _modeButton("YAKALA", ChatCameraMode.photo),
+                        _modeButton('chat.camera.capture'.tr,
+                            ChatCameraMode.photo),
                         const SizedBox(width: 18),
                         GestureDetector(
                           onTap: () async {
@@ -238,7 +240,7 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                           ),
                         ),
                         const SizedBox(width: 18),
-                        _modeButton("VIDEO", ChatCameraMode.video),
+                        _modeButton('common.video'.tr, ChatCameraMode.video),
                       ],
                     ),
                   ),

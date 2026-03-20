@@ -4,6 +4,9 @@ import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/education_cta_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
@@ -40,7 +43,7 @@ class EducationFeedCtaNavigationService {
     Map<String, dynamic> meta,
   ) {
     final rawLabel = (meta['ctaLabel'] ?? '').toString().trim();
-    var type = _normalizeType((meta['ctaType'] ?? '').toString());
+    var type = normalizeEducationCtaType((meta['ctaType'] ?? '').toString());
     var docId = (meta['ctaDocId'] ?? '').toString().trim();
     final ctaUrl = (meta['ctaUrl'] ?? '').toString().trim();
 
@@ -69,7 +72,7 @@ class EducationFeedCtaNavigationService {
 
     final resolved = resolveMeta(meta ?? const <String, dynamic>{});
     final hasEducationCta = resolved.type.isNotEmpty ||
-        normalized.toLowerCase().contains('turqapp://education/');
+        isTurqAppEducationLink(normalized);
     if (!hasEducationCta) {
       return normalized;
     }
@@ -80,7 +83,7 @@ class EducationFeedCtaNavigationService {
       'sinavı incele',
       'ilanı incele',
       'ilani incele',
-      if (resolved.label.isNotEmpty) resolved.label.trim().toLowerCase(),
+      if (resolved.label.isNotEmpty) normalizeSearchText(resolved.label),
     };
 
     final cleanedLines =
@@ -88,8 +91,8 @@ class EducationFeedCtaNavigationService {
       if (line.isEmpty) {
         return false;
       }
-      final lower = line.toLowerCase();
-      if (lower.contains('turqapp://education/')) {
+      final lower = normalizeSearchText(line);
+      if (isTurqAppEducationLink(lower)) {
         return false;
       }
       if (blockedLabels.contains(lower)) {
@@ -107,7 +110,7 @@ class EducationFeedCtaNavigationService {
     final docId = resolved.docId;
 
     if (type.isEmpty || docId.isEmpty) {
-      AppSnackbar('Hata', 'İçerik açılamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.content_open_failed'.tr);
       return;
     }
 
@@ -128,52 +131,21 @@ class EducationFeedCtaNavigationService {
         await _openMarket(docId);
         return;
       default:
-        AppSnackbar('Hata', 'İçerik tipi desteklenmiyor.');
-    }
-  }
-
-  String _normalizeType(String raw) {
-    final value = raw.trim().toLowerCase();
-    switch (value) {
-      case 'scholarship':
-      case 'burs':
-        return 'scholarship';
-      case 'practice-exam':
-      case 'practiceexam':
-      case 'sinav':
-      case 'online-sinav':
-      case 'online_sinav':
-        return 'practice-exam';
-      case 'tutoring':
-      case 'ozel-ders':
-      case 'ozelders':
-        return 'tutoring';
-      case 'job':
-      case 'is':
-      case 'is-bul':
-      case 'isbul':
-        return 'job';
-      case 'market':
-      case 'pasaj':
-      case 'product':
-      case 'urun':
-        return 'market';
-      default:
-        return '';
+        AppSnackbar('common.error'.tr, 'education_feed.content_type_unsupported'.tr);
     }
   }
 
   String _defaultLabelForType(String type) {
     switch (type) {
-      case 'scholarship':
-        return 'Bursu İncele';
-      case 'practice-exam':
-        return 'Sınavı İncele';
-      case 'tutoring':
-      case 'job':
-        return 'İlanı İncele';
-      case 'market':
-        return 'Ilani Incele';
+      case kEducationCtaScholarship:
+        return 'education_feed.cta_scholarship'.tr;
+      case kEducationCtaPracticeExam:
+        return 'education_feed.cta_exam'.tr;
+      case kEducationCtaTutoring:
+      case kEducationCtaJob:
+        return 'education_feed.cta_listing'.tr;
+      case kEducationCtaMarket:
+        return 'education_feed.cta_listing'.tr;
       default:
         return '';
     }
@@ -181,11 +153,11 @@ class EducationFeedCtaNavigationService {
 
   ({String type, String docId})? _parseInternalEducationTarget(String url) {
     final uri = Uri.tryParse(url.trim());
-    if (uri == null || uri.scheme.toLowerCase() != 'turqapp') {
+    if (uri == null || !isTurqAppUriScheme(uri.scheme)) {
       return null;
     }
 
-    final host = uri.host.toLowerCase().trim();
+    final host = normalizeSearchText(uri.host);
     final segments =
         uri.pathSegments.where((e) => e.trim().isNotEmpty).toList();
     if (segments.isEmpty ||
@@ -196,7 +168,7 @@ class EducationFeedCtaNavigationService {
     String type = '';
     String docId = '';
     if (host == 'market') {
-      type = 'market';
+      type = kEducationCtaMarket;
       docId = segments.first;
     } else if (segments.length >= 2) {
       type = segments[0];
@@ -209,7 +181,7 @@ class EducationFeedCtaNavigationService {
       }
     }
 
-    final normalizedType = _normalizeType(type);
+    final normalizedType = normalizeEducationCtaType(type);
     final normalizedDocId = docId.trim();
     if (normalizedType.isEmpty || normalizedDocId.isEmpty) {
       return null;
@@ -224,7 +196,7 @@ class EducationFeedCtaNavigationService {
       preferCache: true,
     );
     if (data == null) {
-      AppSnackbar('Hata', 'Burs bulunamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.scholarship_not_found'.tr);
       return;
     }
 
@@ -262,7 +234,7 @@ class EducationFeedCtaNavigationService {
       preferCache: true,
     );
     if (model == null) {
-      AppSnackbar('Hata', 'Sınav bulunamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.exam_not_found'.tr);
       return;
     }
 
@@ -272,7 +244,7 @@ class EducationFeedCtaNavigationService {
   Future<void> _openTutoring(String docId) async {
     final lookup = await _notifyLookupRepository.getTutoringLookup(docId);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Hata', 'İlan bulunamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.listing_not_found'.tr);
       return;
     }
     await Get.to(() => TutoringDetail(), arguments: lookup.model);
@@ -281,7 +253,7 @@ class EducationFeedCtaNavigationService {
   Future<void> _openJob(String docId) async {
     final lookup = await _notifyLookupRepository.getJobLookup(docId);
     if (!lookup.exists || lookup.model == null) {
-      AppSnackbar('Hata', 'İlan bulunamadı.');
+      AppSnackbar('common.error'.tr, 'education_feed.listing_not_found'.tr);
       return;
     }
     await Get.to(() => JobDetails(model: lookup.model!));
@@ -293,7 +265,7 @@ class EducationFeedCtaNavigationService {
       preferCache: true,
     );
     if (item == null) {
-      AppSnackbar('Hata', 'Ilan bulunamadi.');
+      AppSnackbar('common.error'.tr, 'education_feed.listing_not_found'.tr);
       return;
     }
     await Get.to(() => MarketDetailView(item: item));

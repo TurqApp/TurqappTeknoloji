@@ -146,24 +146,29 @@ extension SignInAuthPart on SignIn {
               ],
             );
           }),
-          GestureDetector(
-            onTap: () {
-              controller.clearStoredAccountContext();
-              controller.selection.value = 1;
-            },
-            child: Container(
-              height: 50,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
-              child: Text(
-                'login.sign_in'.tr,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontFamily: "MontserratBold",
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                controller.clearStoredAccountContext();
+                controller.selection.value = 1;
+              },
+              child: Ink(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                child: Center(
+                  child: Text(
+                    'login.sign_in'.tr,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontFamily: "MontserratBold",
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -366,107 +371,119 @@ extension SignInAuthPart on SignIn {
                           ),
                         ),
                         SizedBox(height: 7),
-                        Container(
-                          height: 50,
-                          alignment: Alignment.centerLeft,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withAlpha(20),
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(12),
+                        Obx(() {
+                          final hasPassword =
+                              controller.password.value.trim().isNotEmpty;
+                          return Container(
+                            height: 50,
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withAlpha(20),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
+                              border: Border.all(
+                                color: controller.passwordFocus.value.hasFocus
+                                    ? Colors.blueAccent
+                                    : Colors.transparent,
+                              ),
                             ),
-                            border: Border.all(
-                              color: controller.passwordFocus.value.hasFocus
-                                  ? Colors.blueAccent
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 20,
-                                  child: Icon(
-                                    CupertinoIcons.lock,
-                                    color: Colors.black,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 15),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    child: Icon(
+                                      CupertinoIcons.lock,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Transform.translate(
-                                    offset: Offset(0, 1),
-                                    child: TextField(
-                                      controller: controller.passwordcontroller,
-                                      focusNode: controller.passwordFocus.value,
-                                      textInputAction: TextInputAction.done,
-                                      autofillHints: const [
-                                        AutofillHints.password,
-                                      ],
-                                      onTap: () {
-                                        controller.passwordFocus.value
-                                            .requestFocus();
-                                      },
-                                      onChanged: (v) {
-                                        if (v.length >= 6) {
-                                          controller.verifyPassword();
-                                        } else {
-                                          controller.passwordAvilable.value =
-                                              false;
-                                        }
-                                      },
-                                      decoration: InputDecoration(
-                                        hintText: 'login.password_hint'.tr,
-                                        hintStyle: TextStyle(
-                                          color: Colors.grey,
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Transform.translate(
+                                      offset: Offset(0, 1),
+                                      child: TextField(
+                                        controller:
+                                            controller.passwordcontroller,
+                                        focusNode:
+                                            controller.passwordFocus.value,
+                                        textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.password,
+                                        ],
+                                        onTap: () {
+                                          controller.passwordFocus.value
+                                              .requestFocus();
+                                        },
+                                        onChanged: (v) {
+                                          controller.password.value = v;
+                                          if (v.isEmpty) {
+                                            controller.showPassword.value =
+                                                false;
+                                          }
+                                          if (v.length >= 6) {
+                                            controller.verifyPassword();
+                                          } else {
+                                            controller.passwordAvilable.value =
+                                                false;
+                                          }
+                                        },
+                                        decoration: InputDecoration(
+                                          hintText: 'login.password_hint'.tr,
+                                          hintStyle: TextStyle(
+                                            color: Colors.grey,
+                                            fontFamily: "MontserratMedium",
+                                          ),
+                                          border: InputBorder.none,
+                                        ),
+                                        obscureText:
+                                            !controller.showPassword.value,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 15,
                                           fontFamily: "MontserratMedium",
                                         ),
-                                        border: InputBorder.none,
-                                      ),
-                                      obscureText:
-                                          !controller.showPassword.value,
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium",
                                       ),
                                     ),
                                   ),
-                                ),
-                                SizedBox(width: 12),
-                                if (controller.password.value.trim().isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      controller.showPassword.value =
-                                          !controller.showPassword.value;
-                                    },
-                                    child: Icon(
-                                      controller.showPassword.value
-                                          ? CupertinoIcons.eye
-                                          : CupertinoIcons.eye_slash,
-                                      color: Colors.blueAccent,
-                                    ),
-                                  )
-                                else
-                                  GestureDetector(
-                                    onTap: () {
-                                      controller.resetMailController.clear();
-                                      controller.resetOtpController.clear();
-                                      controller.clearStoredAccountContext();
-                                      controller.selection.value = 5;
-                                    },
-                                    child: Text(
-                                      'login.reset'.tr,
-                                      style: TextStyle(
+                                  SizedBox(width: 12),
+                                  if (hasPassword)
+                                    GestureDetector(
+                                      onTap: () {
+                                        controller.showPassword.value =
+                                            !controller.showPassword.value;
+                                      },
+                                      child: Icon(
+                                        controller.showPassword.value
+                                            ? CupertinoIcons.eye
+                                            : CupertinoIcons.eye_slash,
                                         color: Colors.blueAccent,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    )
+                                  else
+                                    GestureDetector(
+                                      onTap: () {
+                                        controller.resetMailController.clear();
+                                        controller.resetOtpController.clear();
+                                        controller.clearStoredAccountContext();
+                                        controller.selection.value = 5;
+                                      },
+                                      child: Text(
+                                        'login.reset'.tr,
+                                        style: TextStyle(
+                                          color: Colors.blueAccent,
+                                          fontSize: 15,
+                                          fontFamily: "MontserratMedium",
+                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -503,50 +520,56 @@ extension SignInAuthPart on SignIn {
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: controller.wait.value
-                            ? null
-                            : () async {
-                                final mailOrNick =
-                                    controller.emailcontroller.text.trim();
-                                final pass = controller.passwordcontroller.text;
-                                if (mailOrNick.isEmpty || pass.isEmpty) {
-                                  AppSnackbar(
-                                    'Eksik Bilgi',
-                                    'Kullanıcı adı/e-posta ve şifre girin.',
-                                  );
-                                  return;
-                                }
-                                if (pass.length < 6) {
-                                  AppSnackbar(
-                                    'Hatalı Şifre',
-                                    'Şifre en az 6 karakter olmalı.',
-                                  );
-                                  return;
-                                }
-                                controller.wait.value = true;
-                                await controller.signIn();
-                              },
-                        child: Container(
-                          width: 80,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(8),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: controller.wait.value
+                              ? null
+                              : () async {
+                                  final mailOrNick =
+                                      controller.emailcontroller.text.trim();
+                                  final pass =
+                                      controller.passwordcontroller.text;
+                                  if (mailOrNick.isEmpty || pass.isEmpty) {
+                                    AppSnackbar(
+                                      'common.warning'.tr,
+                                      'sign_in.enter_credentials'.tr,
+                                    );
+                                    return;
+                                  }
+                                  if (pass.length < 6) {
+                                    AppSnackbar(
+                                      'sign_in.invalid_password_title'.tr,
+                                      'sign_in.invalid_password_body'.tr,
+                                    );
+                                    return;
+                                  }
+                                  controller.wait.value = true;
+                                  await controller.signIn();
+                                },
+                          child: Ink(
+                            width: 80,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: controller.wait.value
+                                  ? const CupertinoActivityIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : Text(
+                                      'common.continue'.tr,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                            ),
                           ),
-                          child: controller.wait.value
-                              ? const CupertinoActivityIndicator(
-                                  color: Colors.white,
-                                )
-                              : Text(
-                                  'common.continue'.tr,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                ),
                         ),
                       ),
                     ],
@@ -820,7 +843,7 @@ extension SignInAuthPart on SignIn {
                 children: [
                   Expanded(
                     child: Text(
-                      "Şifreni Sıfırla",
+                      'login.reset_password_title'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 25,
@@ -832,7 +855,7 @@ extension SignInAuthPart on SignIn {
               ),
               SizedBox(height: 12),
               Text(
-                "En az bir karakteri büyük olmalı ve en az 6 karakterden oluşmalıdır.",
+                'login.password_reset_rule'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -843,7 +866,7 @@ extension SignInAuthPart on SignIn {
               Row(
                 children: [
                   Text(
-                    "Yeni Şifre",
+                    'login.new_password_label'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 13,
@@ -889,7 +912,7 @@ extension SignInAuthPart on SignIn {
                                     .requestFocus();
                               },
                               decoration: InputDecoration(
-                                hintText: "Yeni şifre oluşturun",
+                                hintText: 'login.new_password_hint'.tr,
                                 hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontFamily: "MontserratMedium",
@@ -927,7 +950,7 @@ extension SignInAuthPart on SignIn {
               Row(
                 children: [
                   Text(
-                    "Yeni Şifre (Tekrar)",
+                    'login.repeat_new_password'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 13,
@@ -976,7 +999,7 @@ extension SignInAuthPart on SignIn {
                                     .requestFocus();
                               },
                               decoration: InputDecoration(
-                                hintText: "Yeni şifrenizi tekrar edin",
+                                hintText: 'login.repeat_new_password_hint'.tr,
                                 hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontFamily: "MontserratMedium",
@@ -1032,8 +1055,8 @@ extension SignInAuthPart on SignIn {
                         borderRadius:
                             const BorderRadius.all(Radius.circular(8)),
                       ),
-                      child: const Text(
-                        "Geri",
+                      child: Text(
+                        'common.back'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -1062,8 +1085,8 @@ extension SignInAuthPart on SignIn {
                                   Radius.circular(8),
                                 ),
                               ),
-                              child: const Text(
-                                "Devam",
+                              child: Text(
+                                'common.continue'.tr,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,

@@ -22,8 +22,8 @@ class CareerProfile extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Kariyer Profili',
+        title: Text(
+          'pasaj.job_finder.career_profile'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -93,7 +93,7 @@ class CareerProfile extends StatelessWidget {
                                 Text(
                                   controller.fullName.value.isNotEmpty
                                       ? controller.fullName.value
-                                      : 'Kariyer Profili',
+                                      : 'pasaj.job_finder.career_profile'.tr,
                                   style: const TextStyle(
                                     color: Colors.black,
                                     fontSize: 20,
@@ -106,7 +106,8 @@ class CareerProfile extends StatelessWidget {
                                       ? controller.experiences.first.position
                                       : controller.schools.isNotEmpty
                                           ? controller.schools.first.branch
-                                          : 'Profesyonel Profil',
+                                          : 'pasaj.job_finder.professional_profile'
+                                              .tr,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -144,9 +145,9 @@ class CareerProfile extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'İş Arıyorum',
+                                'pasaj.job_finder.looking_for_job'.tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -170,7 +171,7 @@ class CareerProfile extends StatelessWidget {
                 if (controller.experiences.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _sectionCard(
-                    title: 'İş Deneyimi',
+                    title: 'pasaj.job_finder.experience'.tr,
                     children: controller.experiences
                         .map(
                           (exp) => _infoTile(
@@ -186,7 +187,7 @@ class CareerProfile extends StatelessWidget {
                 if (controller.schools.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _sectionCard(
-                    title: 'Eğitim',
+                    title: 'pasaj.job_finder.education'.tr,
                     children: controller.schools
                         .map(
                           (school) => _infoTile(
@@ -204,8 +205,8 @@ class CareerProfile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Diller',
+                        Text(
+                          'pasaj.job_finder.languages'.tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -265,8 +266,8 @@ class CareerProfile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Beceriler',
+                        Text(
+                          'pasaj.job_finder.skills'.tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 16,
@@ -313,7 +314,7 @@ class CareerProfile extends StatelessWidget {
                       await Get.to(() => Cv());
                       await controller.loadCvData();
                     },
-                    child: const Text('CV Düzenle'),
+                    child: Text('pasaj.job_finder.edit_cv'.tr),
                   ),
                 ),
               ],
@@ -337,8 +338,8 @@ class CareerProfile extends StatelessWidget {
               color: Colors.grey.shade400,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Henüz bir CV oluşturmadınız',
+            Text(
+              'pasaj.job_finder.no_cv_title'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -347,8 +348,8 @@ class CareerProfile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'CV oluşturarak iş başvurularınızı hızlandırın',
+            Text(
+              'pasaj.job_finder.no_cv_body'.tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black54,
@@ -365,7 +366,7 @@ class CareerProfile extends StatelessWidget {
                   await Get.to(() => Cv());
                   await Get.find<CareerProfileController>().loadCvData();
                 },
-                child: const Text('CV Oluştur'),
+                child: Text('pasaj.job_finder.create_cv'.tr),
               ),
             ),
           ],

@@ -23,8 +23,8 @@ extension JobDetailsActionsPart on JobDetails {
                             color: Colors.black,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Text(
-                            "Düzenle",
+                          child: Text(
+                            "pasaj.job_finder.edit_listing".tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,
@@ -48,8 +48,8 @@ extension JobDetailsActionsPart on JobDetails {
                               color: Colors.black12,
                             ),
                           ),
-                          child: const Text(
-                            "Başvurular",
+                          child: Text(
+                            "pasaj.job_finder.applications".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -64,22 +64,22 @@ extension JobDetailsActionsPart on JobDetails {
                       child: GestureDetector(
                         onTap: () {
                           noYesAlert(
-                            title: "İlanı Yayından Kaldır",
-                            message:
-                                "Bu ilanı yayından kaldırmak istediğinizden emin misiniz?",
-                            yesText: "Kaldır",
-                            cancelText: "Vazgeç",
+                            title: "pasaj.job_finder.unpublish_title".tr,
+                            message: "pasaj.job_finder.unpublish_body".tr,
+                            yesText: "common.remove".tr,
+                            cancelText: "common.cancel".tr,
                             onYesPressed: () async {
                               try {
                                 await controller.unpublishAd();
                                 AppSnackbar(
-                                  "Başarılı",
-                                  "İlan yayından kaldırıldı.",
+                                  "common.success".tr,
+                                  "pasaj.job_finder.unpublished".tr,
                                 );
                               } catch (e) {
                                 AppSnackbar(
-                                  "Hata",
-                                  "İlan kaldırılamadı: $e",
+                                  "common.error".tr,
+                                  "pasaj.job_finder.unpublish_failed"
+                                      .trParams({'error': '$e'}),
                                   backgroundColor: Colors.red.withAlpha(40),
                                 );
                               }
@@ -96,8 +96,8 @@ extension JobDetailsActionsPart on JobDetails {
                               color: const Color(0xFFE45858),
                             ),
                           ),
-                          child: const Text(
-                            "Kaldır",
+                          child: Text(
+                            "common.remove".tr,
                             style: TextStyle(
                               color: Color(0xFFE45858),
                               fontSize: 15,
@@ -121,8 +121,8 @@ extension JobDetailsActionsPart on JobDetails {
                           await controller.cvCheck();
                           if (controller.basvuruldu.value) {
                             AppSnackbar(
-                              "Bilgi",
-                              "Bu ilana zaten başvuru yaptınız.",
+                              "common.info".tr,
+                              "pasaj.job_finder.already_applied".tr,
                               snackPosition: SnackPosition.TOP,
                               backgroundColor: Colors.grey.withAlpha(50),
                               colorText: Colors.black,
@@ -142,8 +142,8 @@ extension JobDetailsActionsPart on JobDetails {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    const Text(
-                                      "Özgeçmiş Gerekli",
+                                    Text(
+                                      "pasaj.job_finder.cv_required".tr,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -153,7 +153,7 @@ extension JobDetailsActionsPart on JobDetails {
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      "İş başvurusu yapabilmek için özgeçmişinizi doldurmanız gerekiyor.",
+                                      "pasaj.job_finder.cv_required_body".tr,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -175,7 +175,7 @@ extension JobDetailsActionsPart on JobDetails {
                                               Radius.circular(12)),
                                         ),
                                         child: Text(
-                                          "Özgeçmiş Oluştur",
+                                          "pasaj.job_finder.create_cv".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -197,8 +197,8 @@ extension JobDetailsActionsPart on JobDetails {
                                           borderRadius:
                                               BorderRadius.circular(12),
                                         ),
-                                        child: const Text(
-                                          "Vazgeç",
+                                        child: Text(
+                                          "common.cancel".tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -232,8 +232,8 @@ extension JobDetailsActionsPart on JobDetails {
                           ),
                           child: Text(
                             controller.basvuruldu.value
-                                ? "Başvuru Yapıldı"
-                                : "Başvur",
+                                ? "pasaj.job_finder.applied".tr
+                                : "pasaj.job_finder.apply".tr,
                             style: TextStyle(
                               color: controller.basvuruldu.value
                                   ? Colors.black
@@ -251,15 +251,18 @@ extension JobDetailsActionsPart on JobDetails {
                         child: GestureDetector(
                           onTap: () {
                             noYesAlert(
-                              title: "Başvuru İptali",
+                              title:
+                                  "pasaj.job_finder.application_cancel_title".tr,
                               message:
-                                  "Başvurunuzu iptal etmek istediğinizden emin misiniz?",
-                              cancelText: "Vazgeç",
-                              yesText: "İptal Et",
+                                  "pasaj.job_finder.application_cancel_body".tr,
+                              cancelText: "common.cancel".tr,
+                              yesText: "common.remove".tr,
                               onYesPressed: () async {
                                 await controller.toggleBasvuru(model.docID);
                                 AppSnackbar(
-                                    "Bilgi", "Başvurunuz iptal edildi.");
+                                  "common.info".tr,
+                                  "pasaj.job_finder.application_cancelled".tr,
+                                );
                               },
                             );
                           },
@@ -273,7 +276,7 @@ extension JobDetailsActionsPart on JobDetails {
                               border: Border.all(color: Colors.red),
                             ),
                             child: Text(
-                              "Başvuru İptal",
+                              "pasaj.job_finder.cancel_application".tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,

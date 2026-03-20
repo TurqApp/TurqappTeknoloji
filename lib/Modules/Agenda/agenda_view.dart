@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../Models/posts_model.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
@@ -675,7 +676,9 @@ class AgendaView extends StatelessWidget {
                       showBadge: hasUnread,
                       onTap: () async {
                         final unreadChatIds = notificationsController.list
-                            .where((n) => n.postType == "Chat" && !n.isRead)
+                            .where((n) =>
+                                n.postType == kNotificationPostTypeChat &&
+                                !n.isRead)
                             .map((n) => n.docID)
                             .toList(growable: false);
                         if (unreadChatIds.isNotEmpty) {

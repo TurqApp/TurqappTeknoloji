@@ -8,12 +8,14 @@ class AppBottomSheet extends StatelessWidget {
   final Function(List<dynamic>)? onBackUpdatedList;
   final String title;
   final dynamic startSelection;
+  final String Function(dynamic)? itemLabelBuilder;
 
   const AppBottomSheet({
     required this.list,
     required this.onBackData,
     required this.title,
     required this.startSelection,
+    this.itemLabelBuilder,
     this.onBackUpdatedList,
     super.key,
   });
@@ -25,6 +27,7 @@ class AppBottomSheet extends StatelessWidget {
     required Function(dynamic) onSelect,
     dynamic selectedItem,
     bool isSearchable = false,
+    String Function(dynamic)? itemLabelBuilder,
   }) async {
     await showModalBottomSheet(
       context: context,
@@ -39,6 +42,7 @@ class AppBottomSheet extends StatelessWidget {
           title: title,
           startSelection: selectedItem,
           onBackData: onSelect,
+          itemLabelBuilder: itemLabelBuilder,
         );
       },
     );
@@ -82,7 +86,8 @@ class AppBottomSheet extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      item.toString(),
+                                      itemLabelBuilder?.call(item) ??
+                                          item.toString(),
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 16,

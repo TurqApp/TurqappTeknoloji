@@ -31,10 +31,8 @@ class SignIn extends StatelessWidget {
   final SignInController controller;
 
   static SignInController _createFreshController() {
-    if (Get.isRegistered<SignInController>()) {
-      Get.delete<SignInController>(force: true);
-    }
-    return Get.put(SignInController());
+    final tag = 'sign_in_${DateTime.now().microsecondsSinceEpoch}';
+    return Get.put(SignInController(), tag: tag);
   }
 
   @override
@@ -71,20 +69,6 @@ class SignIn extends StatelessWidget {
 
   void _openPolicyCenter({String? initialPolicyId}) {
     Get.to(() => Policies(initialPolicyId: initialPolicyId));
-  }
-
-  TextSpan _policyTextSpan(String label, String policyId) {
-    return TextSpan(
-      text: label,
-      style: const TextStyle(
-        color: Colors.black,
-        decoration: TextDecoration.underline,
-        fontSize: 12,
-        fontFamily: 'MontserratBold',
-      ),
-      recognizer: TapGestureRecognizer()
-        ..onTap = () => _openPolicyCenter(initialPolicyId: policyId),
-    );
   }
 
   TextSpan _policyCenterTextSpan(String label) {

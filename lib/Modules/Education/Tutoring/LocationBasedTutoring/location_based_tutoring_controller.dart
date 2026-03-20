@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class LocationBasedTutoringController extends GetxController {
@@ -91,7 +92,8 @@ class LocationBasedTutoringController extends GetxController {
       final tempList = (result.data ?? const <TutoringModel>[])
           .where((item) => item.docID.isNotEmpty)
           .where((item) =>
-              item.sehir.trim().toLowerCase() == currentCity.trim().toLowerCase())
+              normalizeLocationText(item.sehir) ==
+              normalizeLocationText(currentCity))
           .toList(growable: true);
 
       // Batch fetch users instead of N+1
@@ -125,11 +127,12 @@ class LocationBasedTutoringController extends GetxController {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
       if (placemarks.isNotEmpty) {
-        return placemarks.first.administrativeArea ?? 'Unknown';
+        return placemarks.first.administrativeArea ??
+            'settings.diagnostics.unknown'.tr;
       }
-      return 'Unknown';
+      return 'settings.diagnostics.unknown'.tr;
     } catch (_) {
-      return 'Unknown';
+      return 'settings.diagnostics.unknown'.tr;
     }
   }
 

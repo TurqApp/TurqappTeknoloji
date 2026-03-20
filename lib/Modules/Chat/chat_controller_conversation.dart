@@ -385,7 +385,7 @@ extension _ChatControllerConversationX on ChatController {
     }
 
     if (index < 0) {
-      AppSnackbar("Bilgi", "Yanıtlanan mesaj bulunamadı");
+      AppSnackbar('common.info'.tr, 'chat.reply_target_missing'.tr);
       return;
     }
 

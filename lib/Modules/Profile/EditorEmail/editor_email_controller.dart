@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -64,18 +65,21 @@ class EditorEmailController extends GetxController {
   Future<void> sendEmailCode() async {
     if (isBusy.value) return;
     if (countdown.value > 0) {
-      AppSnackbar("Uyarı", "Lütfen $countdown saniye bekleyin.");
+      AppSnackbar(
+        'common.info'.tr,
+        'editor_email.wait'.trParams({'seconds': '$countdown'}),
+      );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
-    final email = emailController.text.trim().toLowerCase();
+    final email = normalizeEmailAddress(emailController.text);
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      AppSnackbar('common.info'.tr, 'editor_email.session_missing'.tr);
       return;
     }
     if (email.isEmpty) {
-      AppSnackbar("Uyarı", "Hesabınızda e-posta bulunamadı.");
+      AppSnackbar('common.info'.tr, 'editor_email.email_missing'.tr);
       return;
     }
     isBusy.value = true;
@@ -100,11 +104,14 @@ class EditorEmailController extends GetxController {
         }
       });
 
-      AppSnackbar("Başarılı", "Onay kodu e-posta adresinize gönderildi.");
+      AppSnackbar('common.success'.tr, 'editor_email.code_sent'.tr);
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar("Uyarı", e.message ?? "Onay kodu gönderilemedi.");
+      AppSnackbar(
+        'common.info'.tr,
+        e.message ?? 'editor_email.code_send_failed'.tr,
+      );
     } catch (_) {
-      AppSnackbar("Hata", "Onay kodu gönderilemedi.");
+      AppSnackbar('common.error'.tr, 'editor_email.code_send_failed'.tr);
     } finally {
       isBusy.value = false;
     }
@@ -114,19 +121,19 @@ class EditorEmailController extends GetxController {
     if (isBusy.value) return;
 
     final user = FirebaseAuth.instance.currentUser;
-    final email = emailController.text.trim().toLowerCase();
+    final email = normalizeEmailAddress(emailController.text);
     final code = codeController.text.trim();
 
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      AppSnackbar('common.info'.tr, 'editor_email.session_missing'.tr);
       return;
     }
     if (email.isEmpty) {
-      AppSnackbar("Uyarı", "Hesabınızda e-posta bulunamadı.");
+      AppSnackbar('common.info'.tr, 'editor_email.email_missing'.tr);
       return;
     }
     if (code.length != 6) {
-      AppSnackbar("Uyarı", "Lütfen 6 haneli onay kodunu girin.");
+      AppSnackbar('common.info'.tr, 'editor_email.enter_code'.tr);
       return;
     }
 
@@ -156,11 +163,14 @@ class EditorEmailController extends GetxController {
       isEmailConfirmed.value = true;
 
       Get.back();
-      AppSnackbar("Başarılı", "E-posta adresiniz onaylandı.");
+      AppSnackbar('common.success'.tr, 'editor_email.verified'.tr);
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar("Uyarı", e.message ?? "E-posta onaylanamadı.");
+      AppSnackbar(
+        'common.info'.tr,
+        e.message ?? 'editor_email.verify_failed'.tr,
+      );
     } catch (_) {
-      AppSnackbar("Hata", "E-posta onaylanamadı.");
+      AppSnackbar('common.error'.tr, 'editor_email.verify_failed'.tr);
     } finally {
       isBusy.value = false;
     }

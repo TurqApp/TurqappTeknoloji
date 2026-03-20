@@ -80,7 +80,7 @@ extension ChatBodyPart on ChatView {
                                       child: Center(
                                         child: Text(
                                           displayMessages.isEmpty
-                                              ? "Yıldızlı mesaj yok"
+                                              ? 'chat.no_starred_messages'.tr
                                               : "",
                                           style: const TextStyle(
                                             color: Colors.grey,
@@ -356,31 +356,40 @@ extension ChatBodyPart on ChatView {
   }
 
   String _formatDateSeparator(int ms) {
-    const months = [
+    final months = [
       '',
-      'Oca',
-      'Şub',
-      'Mar',
-      'Nis',
-      'May',
-      'Haz',
-      'Tem',
-      'Ağu',
-      'Eyl',
-      'Eki',
-      'Kas',
-      'Ara',
+      'common.month_short.january'.tr,
+      'common.month_short.february'.tr,
+      'common.month_short.march'.tr,
+      'common.month_short.april'.tr,
+      'common.month_short.may'.tr,
+      'common.month_short.june'.tr,
+      'common.month_short.july'.tr,
+      'common.month_short.august'.tr,
+      'common.month_short.september'.tr,
+      'common.month_short.october'.tr,
+      'common.month_short.november'.tr,
+      'common.month_short.december'.tr,
     ];
-    const weekdaysShort = ['', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-    const weekdaysLong = [
+    final weekdaysShort = [
       '',
-      'Pazartesi',
-      'Salı',
-      'Çarşamba',
-      'Perşembe',
-      'Cuma',
-      'Cumartesi',
-      'Pazar',
+      'common.weekday_short.monday'.tr,
+      'common.weekday_short.tuesday'.tr,
+      'common.weekday_short.wednesday'.tr,
+      'common.weekday_short.thursday'.tr,
+      'common.weekday_short.friday'.tr,
+      'common.weekday_short.saturday'.tr,
+      'common.weekday_short.sunday'.tr,
+    ];
+    final weekdaysLong = [
+      '',
+      'common.weekday.monday'.tr,
+      'common.weekday.tuesday'.tr,
+      'common.weekday.wednesday'.tr,
+      'common.weekday.thursday'.tr,
+      'common.weekday.friday'.tr,
+      'common.weekday.saturday'.tr,
+      'common.weekday.sunday'.tr,
     ];
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
     final now = DateTime.now();
@@ -388,8 +397,8 @@ extension ChatBodyPart on ChatView {
     final target = DateTime(d.year, d.month, d.day);
     final diffDays = today.difference(target).inDays;
 
-    if (diffDays == 0) return 'Bugün';
-    if (diffDays == 1) return 'Dün';
+    if (diffDays == 0) return 'chat.today'.tr;
+    if (diffDays == 1) return 'chat.yesterday'.tr;
     if (diffDays > 1 && diffDays <= 6) return weekdaysLong[d.weekday];
 
     return '${d.day} ${months[d.month]} ${weekdaysShort[d.weekday]}';
@@ -444,7 +453,11 @@ extension ChatBodyPart on ChatView {
         const SizedBox(height: 8),
         Obx(
           () => Text(
-            "${controller.followersCount.value} takipçi · ${controller.followingCount.value} takip · ${controller.postCount.value} gönderi",
+            'chat.profile_stats'.trParams({
+              'followers': '${controller.followersCount.value}',
+              'following': '${controller.followingCount.value}',
+              'posts': '${controller.postCount.value}',
+            }),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.black87,
@@ -488,7 +501,9 @@ extension ChatBodyPart on ChatView {
               ),
               Expanded(
                 child: Text(
-                  "${controller.selectedMessageIds.length} Mesaj Seçildi",
+                  'chat.selected_messages'.trParams({
+                    'count': '${controller.selectedMessageIds.length}',
+                  }),
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 16,
@@ -560,9 +575,9 @@ extension ChatBodyPart on ChatView {
                             ),
                             Obx(
                               () => controller.isOtherTyping.value
-                                  ? const Text(
-                                      "yazıyor...",
-                                      style: TextStyle(
+                                  ? Text(
+                                      'chat.typing'.tr,
+                                      style: const TextStyle(
                                         color: Colors.green,
                                         fontSize: 11,
                                         fontFamily: "MontserratMedium",
@@ -635,7 +650,9 @@ extension ChatBodyPart on ChatView {
                 ],
               ),
               Text(
-                controller.pendingVideo.value != null ? "Video" : "Fotoğraflar",
+                controller.pendingVideo.value != null
+                    ? 'chat.video'.tr
+                    : 'common.photos'.tr,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Core/Utils/phone_utils.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -61,8 +63,7 @@ class EditorPhoneNumberController extends GetxController {
   }
 
   bool get isPhoneValid {
-    final newPhone =
-        phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
+    final newPhone = phoneDigitsOnly(phoneController.text.trim());
     return newPhone.length == 10 && newPhone.startsWith('5');
   }
 
@@ -70,41 +71,39 @@ class EditorPhoneNumberController extends GetxController {
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) return "";
 
-    final authEmail = (current.email ?? "").trim().toLowerCase();
+    final authEmail = normalizeEmailAddress(current.email);
     if (authEmail.isNotEmpty) return authEmail;
 
     final currentUserEmail =
-        CurrentUserService.instance.currentUser?.email.trim().toLowerCase() ??
-            "";
+        normalizeEmailAddress(CurrentUserService.instance.currentUser?.email);
     if (currentUserEmail.isNotEmpty) return currentUserEmail;
 
     final data = await _userRepository.getUserRaw(current.uid);
-    return (((data ?? const {})["email"]) ?? "")
-        .toString()
-        .trim()
-        .toLowerCase();
+    return normalizeEmailAddress((((data ?? const {})["email"]) ?? "").toString());
   }
 
   Future<void> sendEmailApproval() async {
     if (isBusy.value) return;
     if (countdown.value > 0) {
-      AppSnackbar("Uyarı", "Lütfen $countdown saniye bekleyin.");
+      AppSnackbar(
+        'common.info'.tr,
+        'editor_phone.wait'.trParams({'seconds': '$countdown'}),
+      );
       return;
     }
     if (!isPhoneValid) {
-      AppSnackbar(
-          "Uyarı", "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.");
+      AppSnackbar('common.info'.tr, 'editor_phone.invalid_phone'.tr);
       return;
     }
 
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      AppSnackbar('common.info'.tr, 'editor_phone.session_missing'.tr);
       return;
     }
     final email = await _resolveAccountEmail();
     if (email.isEmpty) {
-      AppSnackbar("Uyarı", "Hesabınızda doğrulanacak e-posta bulunamadı.");
+      AppSnackbar('common.info'.tr, 'editor_phone.email_missing'.tr);
       return;
     }
 
@@ -131,11 +130,14 @@ class EditorPhoneNumberController extends GetxController {
         }
       });
 
-      AppSnackbar("Başarılı", "Onay kodu e-posta adresinize gönderildi.");
+      AppSnackbar('common.success'.tr, 'editor_phone.code_sent'.tr);
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar("Uyarı", e.message ?? "Onay kodu gönderilemedi.");
+      AppSnackbar(
+        'common.info'.tr,
+        e.message ?? 'editor_phone.code_send_failed'.tr,
+      );
     } catch (_) {
-      AppSnackbar("Hata", "Onay kodu gönderilemedi.");
+      AppSnackbar('common.error'.tr, 'editor_phone.code_send_failed'.tr);
     } finally {
       isBusy.value = false;
     }
@@ -144,25 +146,24 @@ class EditorPhoneNumberController extends GetxController {
   Future<void> confirmAndUpdatePhone() async {
     if (isBusy.value) return;
     if (!isPhoneValid) {
-      AppSnackbar(
-          "Uyarı", "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.");
+      AppSnackbar('common.info'.tr, 'editor_phone.invalid_phone'.tr);
       return;
     }
 
     final code = codeController.text.trim();
     if (code.length != 6) {
-      AppSnackbar("Uyarı", "Lütfen 6 haneli onay kodunu girin.");
+      AppSnackbar('common.info'.tr, 'editor_phone.enter_code'.tr);
       return;
     }
 
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      AppSnackbar('common.info'.tr, 'editor_phone.session_missing'.tr);
       return;
     }
     final email = await _resolveAccountEmail();
     if (email.isEmpty) {
-      AppSnackbar("Uyarı", "Hesabınızda doğrulanacak e-posta bulunamadı.");
+      AppSnackbar('common.info'.tr, 'editor_phone.email_missing'.tr);
       return;
     }
 
@@ -189,17 +190,20 @@ class EditorPhoneNumberController extends GetxController {
 
       final ok = (result.data is Map && (result.data["success"] == true));
       if (!ok) {
-        AppSnackbar("Hata", "Telefon numarası güncellenemedi.");
+        AppSnackbar('common.error'.tr, 'editor_phone.update_failed'.tr);
         return;
       }
 
       await AccountCenterService.ensure().refreshCurrentAccountMetadata();
       Get.back();
-      AppSnackbar("Başarılı", "Telefon numaranız güncellendi.");
+      AppSnackbar('common.success'.tr, 'editor_phone.updated'.tr);
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar("Uyarı", e.message ?? "Telefon numarası güncellenemedi.");
+      AppSnackbar(
+        'common.info'.tr,
+        e.message ?? 'editor_phone.update_failed'.tr,
+      );
     } catch (_) {
-      AppSnackbar("Hata", "Telefon numarası güncellenemedi.");
+      AppSnackbar('common.error'.tr, 'editor_phone.update_failed'.tr);
     } finally {
       isBusy.value = false;
     }

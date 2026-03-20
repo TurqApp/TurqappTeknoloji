@@ -10,11 +10,14 @@ import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+import 'package:turqappv2/Modules/Market/market_category_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'market_schema_service.dart';
@@ -108,9 +111,15 @@ class MarketCreateController extends GetxController {
 
   bool get isEditing => initialItem != null;
   int get totalImageCount => existingImageUrls.length + selectedImages.length;
-  String get pageTitle => isEditing ? 'İlan Düzenle' : 'İlan Ekle';
-  String get draftActionLabel => isEditing ? 'Taslak Güncelle' : 'Taslak';
-  String get publishActionLabel => isEditing ? 'Güncelle' : 'Yayınla';
+  String get pageTitle => isEditing
+      ? 'pasaj.market.create.edit_title'.tr
+      : 'pasaj.market.create.add_title'.tr;
+  String get draftActionLabel => isEditing
+      ? 'pasaj.market.create.update_draft'.tr
+      : 'pasaj.market.status.draft'.tr;
+  String get publishActionLabel => isEditing
+      ? 'common.update'.tr
+      : 'common.publish'.tr;
   String get selectedCategoryPathText =>
       selectedLeaf.value?.pathTextWithoutTop ?? '';
 
@@ -356,7 +365,10 @@ class MarketCreateController extends GetxController {
     if (ctx == null) return;
     final remaining = maxImages - totalImageCount;
     if (remaining <= 0) {
-      AppSnackbar('Sınır', 'En fazla $maxImages görsel ekleyebilirsin.');
+      AppSnackbar(
+        'pasaj.market.limit_title'.tr,
+        'pasaj.market.image_limit'.trParams({'max': '$maxImages'}),
+      );
       return;
     }
     final files = await AppImagePickerService.pickImages(
@@ -379,7 +391,7 @@ class MarketCreateController extends GetxController {
   Future<void> saveDraftPreview() async {
     final issue = _validateBase(requiredPrice: false);
     if (issue != null) {
-      AppSnackbar('Eksik Bilgi', issue);
+      AppSnackbar('common.info'.tr, issue);
       return;
     }
     await _submit(publish: false);
@@ -388,11 +400,14 @@ class MarketCreateController extends GetxController {
   Future<void> publishPreview() async {
     final issue = _validateBase(requiredPrice: true);
     if (issue != null) {
-      AppSnackbar('Eksik Bilgi', issue);
+      AppSnackbar('common.info'.tr, issue);
       return;
     }
     if (totalImageCount == 0) {
-      AppSnackbar('Eksik Bilgi', 'Yayınlamak için en az bir görsel ekle.');
+      AppSnackbar(
+        'common.info'.tr,
+        'pasaj.market.create.need_image'.tr,
+      );
       return;
     }
     await _submit(publish: true);
@@ -450,23 +465,27 @@ class MarketCreateController extends GetxController {
       'status': _nextStatus(publish),
       'seller': {
         'userId': userId,
-        'displayName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+        'displayName':
+            displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
         'nickname': nickname,
         'avatarUrl': avatarUrl,
         'rozet': current?.rozet ?? '',
         'phoneNumber': phoneNumber,
         'isApproved': current?.hesapOnayi == true,
         // Geriye uyumlu alanlar
-        'name': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+        'name':
+            displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
         'username': nickname,
         'photoUrl': avatarUrl,
         'verified': current?.hesapOnayi == true,
       },
-      'sellerDisplayName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+      'sellerDisplayName':
+          displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
       'sellerNickname': nickname,
       'sellerAvatarUrl': avatarUrl,
       'sellerRozet': current?.rozet ?? '',
-      'sellerName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+      'sellerName':
+          displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
       'sellerUsername': nickname,
       'sellerPhotoUrl': avatarUrl,
       'sellerPhoneNumber': phoneNumber,
@@ -499,21 +518,21 @@ class MarketCreateController extends GetxController {
 
   String? _validateBase({required bool requiredPrice}) {
     if (selectedLeaf.value == null) {
-      return 'Bir kategori secmelisin.';
+      return 'pasaj.market.create.pick_category'.tr;
     }
     if (titleController.text.trim().isEmpty) {
-      return 'Baslik gerekli.';
+      return 'pasaj.market.create.title_required'.tr;
     }
     if (requiredPrice) {
       final price = double.tryParse(
         priceController.text.trim().replaceAll(',', '.'),
       );
       if (price == null || price <= 0) {
-        return 'Geçerli bir fiyat gir.';
+        return 'pasaj.market.create.invalid_price'.tr;
       }
     }
     if (selectedCity.value.isEmpty || selectedDistrict.value.isEmpty) {
-      return 'Şehir ve ilçe seçimi gerekli.';
+      return 'pasaj.market.create.city_district_required_short'.tr;
     }
     final leaf = selectedLeaf.value;
     if (leaf != null) {
@@ -521,7 +540,8 @@ class MarketCreateController extends GetxController {
         if (field['required'] != true) continue;
         final key = (field['key'] ?? '').toString();
         if (fieldValue(key).isEmpty) {
-          return '${(field['label'] ?? key).toString()} alani gerekli.';
+          return 'pasaj.market.create.field_required'
+              .trParams({'field': (field['label'] ?? key).toString()});
         }
       }
     }
@@ -540,11 +560,17 @@ class MarketCreateController extends GetxController {
   }
 
   Future<void> _submit({required bool publish}) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishMarket)) {
+      return;
+    }
     final uid = CurrentUserService.instance.userId.isNotEmpty
         ? CurrentUserService.instance.userId
         : (FirebaseAuth.instance.currentUser?.uid ?? '');
     if (uid.isEmpty) {
-      AppSnackbar('Hata', 'Kullanıcı oturumu bulunamadı.');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.market.user_session_not_found'.tr,
+      );
       return;
     }
 
@@ -575,7 +601,10 @@ class MarketCreateController extends GetxController {
         Get.back(result: payload);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Ilan kaydedilemedi: $e');
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.market.create.save_failed'.trParams({'error': '$e'}),
+      );
     } finally {
       isSubmitting.value = false;
     }
@@ -592,10 +621,10 @@ class MarketCreateController extends GetxController {
       final file = selectedImages[i];
       final nsfw = await OptimizedNSFWService.checkImage(file);
       if (nsfw.errorMessage != null) {
-        throw Exception('Görsel güvenlik kontrolü tamamlanamadı');
+        throw Exception('pasaj.market.image_security_failed'.tr);
       }
       if (nsfw.isNSFW) {
-        throw Exception('Uygunsuz görsel tespit edildi');
+        throw Exception('pasaj.market.image_nsfw_detected'.tr);
       }
       final imageIndex = existingImageUrls.length + i;
       final path = imageIndex == 0
@@ -701,7 +730,7 @@ class MarketCreateController extends GetxController {
       final label = (child['label'] ?? '').toString().trim();
       if (label.isEmpty) continue;
       final dedupeKey =
-          '${_normalizeNodeKey(label)}|${(child['key'] ?? '').toString().trim()}';
+          '${normalizeMarketNodeKey(label)}|${(child['key'] ?? '').toString().trim()}';
       if (!seen.add(dedupeKey)) continue;
       children.add(_buildCategoryNode(child, _appendPath(path, label)));
     }
@@ -801,19 +830,17 @@ class MarketCreateController extends GetxController {
 
   List<String> _appendPath(List<String> path, String label) {
     if (path.isNotEmpty &&
-        _normalizeNodeKey(path.last) == _normalizeNodeKey(label)) {
+        normalizeMarketNodeKey(path.last) == normalizeMarketNodeKey(label)) {
       return path;
     }
     return [...path, label];
   }
 
-  String _normalizeNodeKey(String value) => value.trim().toLowerCase();
-
   String? _matchCity(List<String> candidates) {
     for (final candidate in candidates) {
       if (candidate.isEmpty) continue;
       for (final city in cities) {
-        if (_normalizeText(city) == _normalizeText(candidate)) {
+        if (normalizeSearchText(city) == normalizeSearchText(candidate)) {
           return city;
         }
       }
@@ -830,24 +857,12 @@ class MarketCreateController extends GetxController {
     for (final candidate in candidates) {
       if (candidate.isEmpty) continue;
       for (final district in districts) {
-        if (_normalizeText(district) == _normalizeText(candidate)) {
+        if (normalizeSearchText(district) == normalizeSearchText(candidate)) {
           return district;
         }
       }
     }
     return null;
-  }
-
-  String _normalizeText(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll('ı', 'i')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('ş', 's')
-        .replaceAll('ö', 'o')
-        .replaceAll('ç', 'c');
   }
 
   void _prepareDynamicFields(List<Map<String, dynamic>> fields) {

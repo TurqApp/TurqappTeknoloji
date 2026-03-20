@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 
 class CreateChatController extends GetxController {
@@ -12,7 +13,7 @@ class CreateChatController extends GetxController {
     super.onInit();
     // Debounce arama: 300ms sonra tetikle
     debounce<String>(query, (val) async {
-      final q = val.trim().toLowerCase();
+      final q = normalizeSearchText(val);
       if (!Get.isRegistered<FollowingFollowersController>()) return;
       final followers = Get.find<FollowingFollowersController>();
       followers.searchTakipEdilenController.text = q;

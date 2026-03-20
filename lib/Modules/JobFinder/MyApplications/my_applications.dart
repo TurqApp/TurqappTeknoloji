@@ -23,8 +23,8 @@ class MyApplications extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Başvurularım',
+        title: Text(
+          'pasaj.job_finder.my_applications'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -43,9 +43,9 @@ class MyApplications extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
             children: [
               if (controller.applications.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 60),
-                  child: EmptyRow(text: "Henüz başvuru yapmadınız"),
+                  child: EmptyRow(text: "pasaj.job_finder.no_applications".tr),
                 )
               else
                 ...controller.applications.map(
@@ -95,7 +95,9 @@ class MyApplications extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      app.jobTitle.isNotEmpty ? app.jobTitle : 'İş İlanı',
+                      app.jobTitle.isNotEmpty
+                          ? app.jobTitle
+                          : 'pasaj.job_finder.default_job_title'.tr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -106,7 +108,9 @@ class MyApplications extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      app.companyName.isNotEmpty ? app.companyName : 'Firma',
+                      app.companyName.isNotEmpty
+                          ? app.companyName
+                          : 'pasaj.job_finder.default_company'.tr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -248,15 +252,15 @@ class MyApplications extends StatelessWidget {
   void _showCancelDialog(String jobDocID, BuildContext context) {
     Get.dialog(
       AlertDialog(
-        title: const Text("Başvuruyu İptal Et",
+        title: Text("pasaj.job_finder.cancel_apply_title".tr,
             style: TextStyle(fontFamily: "MontserratBold", fontSize: 16)),
-        content: const Text(
-            "Bu başvuruyu iptal etmek istediğinize emin misiniz?",
+        content: Text(
+            "pasaj.job_finder.cancel_apply_body".tr,
             style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14)),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text("Vazgeç",
+            child: Text("common.cancel".tr,
                 style: TextStyle(fontFamily: "MontserratMedium")),
           ),
           TextButton(
@@ -264,7 +268,7 @@ class MyApplications extends StatelessWidget {
               Get.back();
               controller.cancelApplication(jobDocID);
             },
-            child: const Text("İptal Et",
+            child: Text("common.remove".tr,
                 style:
                     TextStyle(color: Colors.red, fontFamily: "MontserratBold")),
           ),

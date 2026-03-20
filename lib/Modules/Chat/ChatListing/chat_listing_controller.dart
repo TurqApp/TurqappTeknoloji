@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 import '../../../Models/chat_listing_model.dart';
 import '../../../Core/Services/network_awareness_service.dart';
@@ -116,7 +117,7 @@ class ChatListingController extends GetxController {
   }
 
   Future<void> _searchInChats(String query) async {
-    final q = query.trim().toLowerCase();
+    final q = normalizeSearchText(query);
     final base = _tabbedList();
     if (q.isEmpty) {
       filteredList.value = base;
@@ -127,9 +128,9 @@ class ChatListingController extends GetxController {
     try {
       // Cache-first arama: lokal listeden eşleşme (ek Firestore sorgusu yok)
       final direct = base.where((item) {
-        return item.nickname.toLowerCase().contains(q) ||
-            item.fullName.toLowerCase().contains(q) ||
-            item.lastMessage.toLowerCase().contains(q);
+        return normalizeSearchText(item.nickname).contains(q) ||
+            normalizeSearchText(item.fullName).contains(q) ||
+            normalizeSearchText(item.lastMessage).contains(q);
       }).toList();
 
       final byUser = <String, ChatListingModel>{};

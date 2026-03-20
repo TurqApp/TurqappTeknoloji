@@ -17,12 +17,14 @@ import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
@@ -109,7 +111,7 @@ class ChatController extends GetxController {
       Get.isRegistered<NetworkAwarenessService>()
           ? Get.find<NetworkAwarenessService>()
           : null;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;

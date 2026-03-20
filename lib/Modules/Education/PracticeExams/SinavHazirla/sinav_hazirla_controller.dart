@@ -12,6 +12,21 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sinav_sorusu_hazirla.dart';
 
+const _sinavTuruLgs = 'LGS';
+const _sinavTuruTyt = 'TYT';
+const _sinavTuruAyt = 'AYT';
+const _sinavTuruKpss = 'KPSS';
+const _sinavTuruAles = 'ALES';
+const _sinavTuruDgs = 'DGS';
+
+const _kpssLisansOrtaogretim = 'Ortaöğretim';
+const _kpssLisansLegacyOrtaOgretim = 'Orta Öğretim';
+const _kpssLisansOnLisans = 'Ön Lisans';
+const _kpssLisansLisans = 'Lisans';
+const _kpssLisansEgitimBirimleri = 'Eğitim Birimleri';
+const _kpssLisansAGrubu1 = 'A Grubu 1';
+const _kpssLisansAGrubu2 = 'A Grubu 2';
+
 class SinavHazirlaController extends GetxController {
   var sinavIsmi = TextEditingController().obs;
   var aciklama = TextEditingController().obs;
@@ -35,6 +50,13 @@ class SinavHazirlaController extends GetxController {
 
   SinavHazirlaController({this.sinavModel});
 
+  String _normalizeKpssLisans(String value) {
+    if (value == _kpssLisansLegacyOrtaOgretim) {
+      return _kpssLisansOrtaogretim;
+    }
+    return value;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -42,7 +64,8 @@ class SinavHazirlaController extends GetxController {
       sinavTuru.value = sinavModel!.sinavTuru;
       sinavIsmi.value.text = sinavModel!.sinavAdi;
       aciklama.value.text = sinavModel!.sinavAciklama;
-      kpssSecilenLisans.value = sinavModel!.kpssSecilenLisans;
+      kpssSecilenLisans.value =
+          _normalizeKpssLisans(sinavModel!.kpssSecilenLisans);
       yanlisDogruyuGotururMu.value = true;
       currentDersler.assignAll(sinavModel!.dersler);
       docID.value = sinavModel!.docID;
@@ -154,8 +177,8 @@ class SinavHazirlaController extends GetxController {
         "timeStamp": combinedDateTime.millisecondsSinceEpoch,
         "dersler": currentDersler,
         "sinavTuru": sinavTuru.value,
-        "kpssSecilenLisans": sinavTuru.value == "KPSS"
-            ? kpssSecilenLisans.value
+        "kpssSecilenLisans": sinavTuru.value == _sinavTuruKpss
+            ? _normalizeKpssLisans(kpssSecilenLisans.value)
             : sinavTuru.value,
         "soruSayilari":
             soruSayisiTextFields.map((controller) => controller.text).toList(),
@@ -193,16 +216,16 @@ class SinavHazirlaController extends GetxController {
     for (var controller in soruSayisiTextFields) {
       controller.dispose();
     }
-    if (newTuru == "LGS") {
+    if (newTuru == _sinavTuruLgs) {
       currentDersler.assignAll(lgsDersler);
-    } else if (newTuru == "TYT") {
+    } else if (newTuru == _sinavTuruTyt) {
       currentDersler.assignAll(tytDersler);
-    } else if (newTuru == "AYT") {
+    } else if (newTuru == _sinavTuruAyt) {
       currentDersler.assignAll(aytDersler);
-    } else if (newTuru == "KPSS") {
-      kpssSecilenLisans.value = "Ortaöğretim";
+    } else if (newTuru == _sinavTuruKpss) {
+      kpssSecilenLisans.value = _kpssLisansOrtaogretim;
       currentDersler.assignAll(kpssDerslerOrtaVeOnLisans);
-    } else if (newTuru == "ALES" || newTuru == "DGS") {
+    } else if (newTuru == _sinavTuruAles || newTuru == _sinavTuruDgs) {
       currentDersler.assignAll(alesVeDgsDersler);
     } else {
       currentDersler.assignAll(ydsDersler);
@@ -213,19 +236,20 @@ class SinavHazirlaController extends GetxController {
   }
 
   void updateKpssLisans(String newLisans) {
-    kpssSecilenLisans.value = newLisans;
+    kpssSecilenLisans.value = _normalizeKpssLisans(newLisans);
     for (var controller in soruSayisiTextFields) {
       controller.dispose();
     }
-    if (newLisans == "Ortaöğretim" ||
-        newLisans == "Lisans" ||
-        newLisans == "Ön Lisans") {
+    final normalizedLisans = _normalizeKpssLisans(newLisans);
+    if (normalizedLisans == _kpssLisansOrtaogretim ||
+        normalizedLisans == _kpssLisansLisans ||
+        normalizedLisans == _kpssLisansOnLisans) {
       currentDersler.assignAll(kpssDerslerOrtaVeOnLisans);
-    } else if (newLisans == "Eğitim Birimleri") {
+    } else if (normalizedLisans == _kpssLisansEgitimBirimleri) {
       currentDersler.assignAll(kpssDerslerEgitimbirimleri);
-    } else if (newLisans == "A Grubu 1") {
+    } else if (normalizedLisans == _kpssLisansAGrubu1) {
       currentDersler.assignAll(kpssDerslerAgrubu1);
-    } else if (newLisans == "A Grubu 2") {
+    } else if (normalizedLisans == _kpssLisansAGrubu2) {
       currentDersler.assignAll(kpssDerslerAgrubu2);
     }
     soruSayisiTextFields.assignAll(

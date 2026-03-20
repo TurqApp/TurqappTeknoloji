@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 
 import 'story_maker_controller.dart';
 
@@ -101,7 +102,7 @@ Future<void> showStoryStickerSheet(
                   _item('@️⃣ ${'story.sticker_mention'.tr}', () async {
                     final v = await _askText(
                       'story.sticker_user_label'.tr,
-                      '@kullanici',
+                      'story.placeholder_nickname'.tr,
                     );
                     if (v == null || v.trim().isEmpty) return;
                     final clean = v.trim().replaceFirst('@', '');
@@ -234,9 +235,9 @@ Future<_LinkData?> _askLinkData() async {
             autofocus: true,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'URL',
+              labelText: 'common.url'.tr,
               labelStyle: const TextStyle(color: Colors.white70),
-              hintText: 'https://example.com',
+              hintText: 'common.url_example'.tr,
               hintStyle: const TextStyle(color: Colors.white54),
               enabledBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white24),
@@ -280,9 +281,7 @@ Future<_LinkData?> _askLinkData() async {
           onPressed: () {
             String url = urlCtrl.text.trim();
             if (url.isEmpty) return;
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-              url = 'https://$url';
-            }
+            url = ensureUrlHasScheme(url);
             final uri = Uri.tryParse(url);
             if (uri == null || !uri.hasScheme || uri.host.isEmpty) return;
 

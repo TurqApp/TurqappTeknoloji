@@ -4,6 +4,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
 
 part 'current_user_model_utils_part.dart';
 
@@ -138,6 +139,12 @@ class CurrentUserModel {
   // 🔐 Account & Security
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   final bool ban;
+  final int moderationStrikeCount;
+  final int moderationLevel;
+  final int moderationRestrictedUntil;
+  final bool moderationPermanentBan;
+  final String moderationBanReason;
+  final int moderationUpdatedAt;
   final bool deletedAccount;
   final bool bot;
   final String signInMethod; // Email, Phone, Google, etc.
@@ -267,6 +274,12 @@ class CurrentUserModel {
     required this.bank,
     required this.iban,
     required this.ban,
+    required this.moderationStrikeCount,
+    required this.moderationLevel,
+    required this.moderationRestrictedUntil,
+    required this.moderationPermanentBan,
+    required this.moderationBanReason,
+    required this.moderationUpdatedAt,
     required this.deletedAccount,
     required this.bot,
     required this.signInMethod,
@@ -423,6 +436,12 @@ class CurrentUserModel {
       bank: data['bank'] ?? '',
       iban: data['iban'] ?? '',
       ban: (data['isBanned'] ?? false) == true,
+      moderationStrikeCount: _parseToInt(data['moderationStrikeCount']),
+      moderationLevel: _parseToInt(data['moderationLevel']),
+      moderationRestrictedUntil: _parseToInt(data['moderationRestrictedUntil']),
+      moderationPermanentBan: (data['moderationPermanentBan'] ?? false) == true,
+      moderationBanReason: (data['moderationBanReason'] ?? '').toString(),
+      moderationUpdatedAt: _parseToInt(data['moderationUpdatedAt']),
       deletedAccount: (data['isDeleted'] ?? false) == true,
       bot: (data['isBot'] ?? false) == true,
       signInMethod: data['signInMethod'] ?? '',
@@ -545,6 +564,12 @@ class CurrentUserModel {
       'bank': bank,
       'iban': iban,
       'isBanned': ban,
+      'moderationStrikeCount': moderationStrikeCount,
+      'moderationLevel': moderationLevel,
+      'moderationRestrictedUntil': moderationRestrictedUntil,
+      'moderationPermanentBan': moderationPermanentBan,
+      'moderationBanReason': moderationBanReason,
+      'moderationUpdatedAt': moderationUpdatedAt,
       'isDeleted': deletedAccount,
       'isBot': bot,
       'signInMethod': signInMethod,
@@ -713,6 +738,14 @@ class CurrentUserModel {
       bank: json['bank'] ?? '',
       iban: json['iban'] ?? '',
       ban: (json['isBanned'] ?? false) == true,
+      moderationStrikeCount: _parseToInt(json['moderationStrikeCount']),
+      moderationLevel: _parseToInt(json['moderationLevel']),
+      moderationRestrictedUntil:
+          _parseToInt(json['moderationRestrictedUntil']),
+      moderationPermanentBan:
+          (json['moderationPermanentBan'] ?? false) == true,
+      moderationBanReason: (json['moderationBanReason'] ?? '').toString(),
+      moderationUpdatedAt: _parseToInt(json['moderationUpdatedAt']),
       deletedAccount: (json['isDeleted'] ?? false) == true,
       bot: (json['isBot'] ?? false) == true,
       signInMethod: json['signInMethod'] ?? '',
@@ -801,18 +834,7 @@ class CurrentUserModel {
     bool fallback = false,
   }) {
     final value = _pickScoped(root, scoped, key);
-    if (value is bool) return value;
-    if (value is num) return value != 0;
-    if (value is String) {
-      final normalized = value.trim().toLowerCase();
-      if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
-        return true;
-      }
-      if (normalized == 'false' || normalized == '0' || normalized == 'no') {
-        return false;
-      }
-    }
-    return fallback;
+    return parseFlexibleBool(value, fallback: fallback);
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

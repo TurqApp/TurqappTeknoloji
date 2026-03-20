@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -29,7 +29,7 @@ class PostReshareContent extends StatelessWidget {
       controller.followControl(item.userID);
     }
 
-    final isMe = item.userID == FirebaseAuth.instance.currentUser?.uid;
+    final isMe = isCurrentUserId(item.userID);
     final displayNickname = item.nickname.trim().isEmpty
         ? item.fullName.trim()
         : item.nickname.trim();
@@ -158,7 +158,7 @@ class PostReshareContent extends StatelessWidget {
                 ),
               )
             : Text(
-                isFollowing ? 'Takiptesin' : 'Takip Et',
+                isFollowing ? 'following.following'.tr : 'following.follow'.tr,
                 style: TextStyle(
                   color: isFollowing ? Colors.black : Colors.white,
                   fontSize: 13,

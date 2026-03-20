@@ -361,8 +361,8 @@ class ClickableTextContent extends StatelessWidget {
                   onPressed: controller.toggleExpand,
                   child: Text(
                     controller.expanded.value
-                        ? 'Daha az göster'
-                        : 'Daha fazla göster',
+                        ? 'common.show_less'.tr
+                        : 'common.show_more'.tr,
                     style: TextStyle(
                       fontSize: expandButtonFontSize ?? ((fontSize ?? 15) - 1),
                       color: expandButtonColor ??

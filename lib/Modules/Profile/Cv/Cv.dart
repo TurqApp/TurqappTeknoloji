@@ -19,8 +19,8 @@ class Cv extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          "Kariyer Profili",
+        title: Text(
+          'cv.title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -37,15 +37,15 @@ class Cv extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionTitle("Kişisel Bilgiler"),
+                _sectionTitle('cv.personal_info'.tr),
                 const SizedBox(height: 12),
                 step1(),
                 const SizedBox(height: 24),
-                _sectionTitle("Eğitim Bilgileri"),
+                _sectionTitle('cv.education_info'.tr),
                 const SizedBox(height: 12),
                 step2(),
                 const SizedBox(height: 24),
-                _sectionTitle("Diğer Bilgiler"),
+                _sectionTitle('cv.other_info'.tr),
                 const SizedBox(height: 12),
                 step3(),
                 const SizedBox(height: 24),
@@ -53,30 +53,31 @@ class Cv extends StatelessWidget {
                   onTap: () {
                     if (controller.isSaving.value) return;
                     if (controller.firstName.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan", "İsim girmeden kaydedemezsiniz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_first_name'.tr);
                     } else if (controller.lastName.text.trim().isEmpty) {
                       AppSnackbar(
-                          "Eksik Alan", "Soyisim girmeden kaydedemezsiniz");
+                          'cv.missing_field'.tr, 'cv.missing_last_name'.tr);
                     } else if (controller.mail.text.trim().isEmpty) {
                       AppSnackbar(
-                          "Eksik Alan", "Mail adresi girmeden kaydedemezsiniz");
+                          'cv.missing_field'.tr, 'cv.missing_email'.tr);
                     } else if (!controller
                         .validateEmail(controller.mail.text.trim())) {
                       AppSnackbar(
-                          "Hatalı Format", "Geçerli bir e-posta adresi girin");
+                          'cv.invalid_format'.tr, 'cv.invalid_email'.tr);
                     } else if (controller.phoneNumber.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan",
-                          "Telefon numarası girmeden kaydedemezsiniz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_phone'.tr);
                     } else if (!controller
                         .validatePhone(controller.phoneNumber.text)) {
-                      AppSnackbar("Hatalı Format",
-                          "Geçerli bir telefon numarası girin");
+                      AppSnackbar(
+                          'cv.invalid_format'.tr, 'cv.invalid_phone'.tr);
                     } else if (controller.onYazi.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan",
-                          "Kendiniz hakkında kısa bilgi vermek zorundasınız");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_about'.tr);
                     } else if (controller.okullar.isEmpty) {
-                      AppSnackbar("Eksik Alan",
-                          "En az bir okul bilgisi girmeden kaydedemezsiniz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_school'.tr);
                     } else {
                       controller.setData();
                     }
@@ -98,8 +99,8 @@ class Cv extends StatelessWidget {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            "Kaydet",
+                        : Text(
+                            'cv.save'.tr,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,
@@ -232,12 +233,12 @@ class Cv extends StatelessWidget {
                 );
               }),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Kariyer Profili",
+                      'cv.profile_title'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -246,7 +247,7 @@ class Cv extends StatelessWidget {
                     ),
                     SizedBox(height: 6),
                     Text(
-                      "Profil fotoğrafı ve temel bilgilerle kariyer profilinizi daha güçlü gösterin.",
+                      'cv.profile_body'.tr,
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 13,
@@ -282,7 +283,7 @@ class Cv extends StatelessWidget {
                       ),
                     ],
                     decoration: InputDecoration(
-                      hintText: "Adınız",
+                      hintText: 'cv.first_name_hint'.tr,
                       hintStyle: TextStyle(
                           color: Colors.grey, fontFamily: "MontserratMedium"),
                       border: InputBorder.none,
@@ -315,7 +316,7 @@ class Cv extends StatelessWidget {
                       ),
                     ],
                     decoration: InputDecoration(
-                      hintText: "Soyadınız",
+                      hintText: 'cv.last_name_hint'.tr,
                       hintStyle: TextStyle(
                           color: Colors.grey, fontFamily: "MontserratMedium"),
                       border: InputBorder.none,
@@ -344,7 +345,7 @@ class Cv extends StatelessWidget {
               controller: controller.mail,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                hintText: "Mail Adresi",
+                hintText: 'cv.email_hint'.tr,
                 hintStyle: TextStyle(
                     color: Colors.grey, fontFamily: "MontserratMedium"),
                 border: InputBorder.none,
@@ -374,7 +375,7 @@ class Cv extends StatelessWidget {
                 LengthLimitingTextInputFormatter(11),
               ],
               decoration: InputDecoration(
-                hintText: "Telefon Numarası",
+                hintText: 'cv.phone_hint'.tr,
                 hintStyle: TextStyle(
                     color: Colors.grey, fontFamily: "MontserratMedium"),
                 border: InputBorder.none,
@@ -403,7 +404,7 @@ class Cv extends StatelessWidget {
             maxLength: 250,
             expands: true,
             decoration: InputDecoration(
-              hintText: "Kendiniz hakkında kısa bilgi verin",
+              hintText: 'cv.about_hint'.tr,
               hintStyle: TextStyle(
                 color: Colors.grey,
                 fontFamily: "MontserratMedium",
@@ -433,7 +434,7 @@ class Cv extends StatelessWidget {
           itemBuilder: (context, index) {
             if (index == controller.okullar.length) {
               return _buildAddRow(
-                text: "Yeni okul ekle",
+                text: 'cv.add_school'.tr,
                 onTap: () => controller.okulEkle(),
                 margin: const EdgeInsets.only(top: 12),
               );
@@ -477,7 +478,8 @@ class Cv extends StatelessWidget {
                                           horizontal: 3),
                                       child: Text("-"),
                                     ),
-                                  Text(model.lastYear,
+                                  Text(controller.localizedYearLabel(
+                                      model.lastYear),
                                       style: TextStyle(
                                           color: Colors.pinkAccent,
                                           fontSize: 15,
@@ -531,7 +533,7 @@ class Cv extends StatelessWidget {
         SizedBox(height: 12),
         Row(
           children: [
-            Text("Beceriler",
+            Text('cv.skills'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -591,7 +593,7 @@ class Cv extends StatelessWidget {
                             color: Colors.black,
                           ),
                           SizedBox(width: 4),
-                          Text("Ekle",
+                          Text('social_links.add'.tr,
                               style: const TextStyle(
                                   fontSize: 12.5,
                                   fontFamily: "MontserratMedium",
@@ -608,7 +610,7 @@ class Cv extends StatelessWidget {
         // ── Languages ──
         Row(
           children: [
-            Text("Dil Ekle",
+            Text('cv.add_language'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -627,7 +629,7 @@ class Cv extends StatelessWidget {
             if (index == controller.diler.length &&
                 controller.diler.length < 5) {
               return _buildAddRow(
-                text: "Yeni dil ekle",
+                text: 'cv.add_new_language'.tr,
                 onTap: () => controller.dilEkle(),
                 margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
               );
@@ -649,7 +651,7 @@ class Cv extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(model.languege,
+                          Text(controller.localizedLanguage(model.languege),
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -689,7 +691,7 @@ class Cv extends StatelessWidget {
         // ── Experience ──
         Row(
           children: [
-            Text("İş Deneyimi Ekle",
+            Text('cv.add_experience'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -709,7 +711,7 @@ class Cv extends StatelessWidget {
             if (index == controller.isDeneyimleri.length &&
                 controller.isDeneyimleri.length < 5) {
               return _buildAddRow(
-                text: "Yeni iş deneyimi ekle",
+                text: 'cv.add_new_experience'.tr,
                 onTap: () => controller.isDeneyimiEkle(),
                 margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
               );
@@ -753,7 +755,8 @@ class Cv extends StatelessWidget {
                                     fontFamily: "Montserrat")),
                           ],
                           SizedBox(height: 4),
-                          Text("${model.year1} - ${model.year2}",
+                          Text(
+                              "${controller.localizedYearLabel(model.year1)} - ${controller.localizedYearLabel(model.year2)}",
                               style: TextStyle(
                                   color: Colors.blueAccent,
                                   fontSize: 15,
@@ -779,7 +782,7 @@ class Cv extends StatelessWidget {
         // ── References ──
         Row(
           children: [
-            Text("Referans Ekle",
+            Text('cv.add_reference'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -799,7 +802,7 @@ class Cv extends StatelessWidget {
             if (index == controller.referanslar.length &&
                 controller.referanslar.length < 5) {
               return _buildAddRow(
-                text: "Yeni referans ekle",
+                text: 'cv.add_new_reference'.tr,
                 onTap: () => controller.referansEkle(),
                 margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
               );

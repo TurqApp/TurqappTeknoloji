@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
@@ -273,14 +274,6 @@ class StoryHighlightsController extends GetxController {
   }
 
   bool _isLikelyImageUrl(String url) {
-    final value = url.trim().toLowerCase();
-    if (value.isEmpty) return false;
-    return value.contains('.jpg') ||
-        value.contains('.jpeg') ||
-        value.contains('.png') ||
-        value.contains('.webp') ||
-        value.contains('.gif') ||
-        value.contains('thumbnail') ||
-        value.contains('thumb');
+    return looksLikeImageUrl(url);
   }
 }

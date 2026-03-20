@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/verified_account_data_list.dart';
 import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_account_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -81,8 +81,8 @@ class BecomeVerifiedAccount extends StatelessWidget {
                         color: HexColor.hex(controller.selectedColor.value),
                         size: 45,
                       ),
-                      const Text(
-                        "Onaylı Hesap Ol",
+                      Text(
+                        "settings.become_verified".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 20,
@@ -90,8 +90,8 @@ class BecomeVerifiedAccount extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        "Mobil uygulamamızda, farklı kullanıcı gruplarını tanımlamak ve güvenilirliklerini vurgulamak için onay rozetleri kullanılmaktadır.",
+                      Text(
+                        "become_verified.intro".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
@@ -108,6 +108,14 @@ class BecomeVerifiedAccount extends StatelessWidget {
                           final item = verifiedAccountData[index];
                           final isSelected =
                               controller.selected.value?.title == item.title;
+                          final localizedDesc = _localizedBadgeDesc(item.title);
+                          final detailLines = localizedDesc
+                              .split('\n')
+                              .map((line) => line.trim())
+                              .where((line) => line.isNotEmpty)
+                              .toList(growable: false);
+                          final secondaryDetail =
+                              detailLines.length > 1 ? detailLines[1] : '';
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 15),
@@ -141,7 +149,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            item.title,
+                                            _localizedBadgeTitle(item.title),
                                             style: const TextStyle(
                                               color: Colors.black,
                                               fontSize: 18,
@@ -172,21 +180,20 @@ class BecomeVerifiedAccount extends StatelessWidget {
                                       ],
                                     ),
                                     if (isSelected)
-                                      Text(
-                                        item.desc,
-                                        style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "Montserrat",
+                                      if (secondaryDetail.isNotEmpty)
+                                        Text(
+                                          secondaryDetail,
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 15,
+                                            fontFamily: "Montserrat",
+                                          ),
                                         ),
-                                      ),
                                     if (isSelected &&
-                                        controller.selected.value?.title !=
-                                            "Gri Onay Rozeti" &&
-                                        controller.selected.value?.title !=
-                                            "Turkuaz Onay Rozeti")
-                                      const Text(
-                                        "Her yıl yenilenmesi gerekmektedir.",
+                                        _requiresAnnualRenewal(
+                                            controller.selectedInt.value))
+                                      Text(
+                                        "become_verified.annual_renewal".tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 15,
@@ -200,10 +207,10 @@ class BecomeVerifiedAccount extends StatelessWidget {
                           );
                         },
                       ),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(bottom: 12),
                         child: Text(
-                          "Rozetlerimiz, topluluğumuzun güvenli ve şeffaf bir ortamda etkileşim kurmasını sağlamayı hedefler.\n\nProfil doğrulama hakkında daha fazla bilgi almak için TurqApp destek ekibimize ulaşabilirsiniz.",
+                          "become_verified.footer".tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -212,7 +219,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                         ),
                       ),
                       TurqAppButton(
-                        text: "Devam Et",
+                        text: "common.continue".tr,
                         onTap: () {
                           controller.bodySelection.value++;
                         },
@@ -242,7 +249,9 @@ class BecomeVerifiedAccount extends StatelessWidget {
               height: 15,
             ),
             Text(
-              verifiedAccountData[controller.selectedInt.value].title,
+              _localizedBadgeTitle(
+                verifiedAccountData[controller.selectedInt.value].title,
+              ),
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 20,
@@ -252,7 +261,9 @@ class BecomeVerifiedAccount extends StatelessWidget {
               height: 12,
             ),
             Text(
-              verifiedAccountData[controller.selectedInt.value].desc,
+              _localizedBadgeDesc(
+                verifiedAccountData[controller.selectedInt.value].title,
+              ),
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.black,
@@ -280,14 +291,14 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Reklamlar",
+                        "become_verified.feature_ads".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
                             fontFamily: "MontserratBold"),
                       ),
                       Text(
-                        "Sınırlı Reklam",
+                        "become_verified.feature_limited_ads".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -302,14 +313,14 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Gönderi Öne Çıkartma",
+                        "become_verified.feature_post_boost".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
                             fontFamily: "MontserratBold"),
                       ),
                       Text(
-                        "En Yüksek",
+                        "become_verified.feature_highest".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -325,7 +336,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Video İndirme",
+                        "become_verified.feature_video_download".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -346,7 +357,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Uzun Süreli Video Yayınlama",
+                        "become_verified.feature_long_video".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -367,7 +378,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "İstatistikler",
+                        "become_verified.feature_statistics".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -388,7 +399,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Kullanıcı Adı",
+                        "become_verified.feature_username".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -409,7 +420,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Onay İşareti",
+                        "become_verified.feature_verification_mark".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -430,7 +441,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Artırılmış Hesap Koruması",
+                        "become_verified.feature_account_protection".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -451,7 +462,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Kanal Oluşturma",
+                        "become_verified.feature_channel_creation".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -472,7 +483,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Gelişmiş Destek",
+                        "become_verified.feature_priority_support".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -493,7 +504,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Zamanlanmış Video",
+                        "become_verified.feature_scheduled_video".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -514,7 +525,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Sınırsız İlan Oluşturma",
+                        "become_verified.feature_unlimited_listings".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -535,7 +546,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Sınırsız Bağlantı Ekleme",
+                        "become_verified.feature_unlimited_links".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -556,7 +567,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Asistan Ol",
+                        "become_verified.feature_assistant".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -577,7 +588,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "Zamanlanmış İçerik Paylaşımı",
+                        "become_verified.feature_scheduled_content".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -596,14 +607,14 @@ class BecomeVerifiedAccount extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "Karakter Sınırı",
+                      "become_verified.feature_character_limit".tr,
                       style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
                           fontFamily: "MontserratBold"),
                     ),
                     Text(
-                      "1000 Karakter",
+                      "become_verified.feature_character_limit_value".tr,
                       style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -622,7 +633,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Onay Rozetinin Kaybedilmesi",
+              "become_verified.loss_title".tr,
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -632,7 +643,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
               height: 15,
             ),
             Text(
-              "Onay Rozetinin Kaybedilmesi: Ekibimiz, TurqApp’a abone olan hesabınızı inceledikten sonra, hesabın gereksinimlerimizi karşılamaya devam ettiğine karar verirse, onay işareti yeniden gösterilir. TurqApp ayrıca, TurqApp Kurallarını ihlal ettiği saptanan hesaplardan onay işaretini kaldırabilir.",
+              "become_verified.loss_body".tr,
               style: TextStyle(
                   color: Colors.black, fontSize: 15, fontFamily: "Montserrat"),
             ),
@@ -643,7 +654,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
         ),
         TurqAppButton(onTap: () {
           controller.bodySelection.value++;
-        }),
+        }, text: "common.continue".tr),
         SizedBox(
           height: 20,
         ),
@@ -655,16 +666,8 @@ class BecomeVerifiedAccount extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Kendinizi Tanıtın",
-          style: TextStyle(
-              color: Colors.black, fontSize: 20, fontFamily: "MontserratBold"),
-        ),
-        const SizedBox(
-          height: 8,
-        ),
-        const Text(
-          "1. Sosyal Medya Hesaplarınız",
+        Text(
+          "become_verified.step_social_accounts".tr,
           style: TextStyle(fontSize: 18, fontFamily: "MontserratBold"),
         ),
         const SizedBox(height: 12),
@@ -675,50 +678,17 @@ class BecomeVerifiedAccount extends StatelessWidget {
         ..._buildSocialField(controller.tiktok, "TikTok",
             "assets/icons/tiktokx.webp", controller.setTiktokDefault),
         const SizedBox(height: 25),
-        const Text("2. Talep Ettiğiniz Kullanıcı Adı",
-            style: TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
+        Text("become_verified.step_requested_username".tr,
+            style: const TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
         const SizedBox(height: 12),
-        _buildCustomInput(controller.nickname, "Talep ettiğiniz kullanıcı adı",
+        _buildCustomInput(controller.nickname, "become_verified.requested_username_hint".tr,
             controller.setNicknameDefault),
         const SizedBox(height: 25),
-        const Text("3. Kendinizi Tanıtın",
-            style: TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
+        Text("become_verified.step_social_confirmation".tr,
+            style: const TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
         const SizedBox(height: 12),
-        Column(
-          children: [
-            Container(
-              height: (Get.height * 0.26).clamp(150.0, 200.0),
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: controller.aciklama,
-                maxLines: null,
-                inputFormatters: [LengthLimitingTextInputFormatter(1000)],
-                onTap: controller.setShowTrue,
-                decoration: const InputDecoration(
-                  hintText: "Açıklama",
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text("${controller.aciklama.text.length}/1000",
-                  style:
-                      const TextStyle(fontSize: 12, fontFamily: "Montserrat")),
-            )
-          ],
-        ),
-        const SizedBox(height: 25),
-        const Text("4. Sosyal Medya Onayı",
-            style: TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
-        const SizedBox(height: 12),
-        const Text(
-          "Talep etmiş olduğunuz kullanıcı adı ile mevcut TurqApp kullanıcı adınızı, tarafınıza ait sosyal medya hesabınız üzerinden aşağıda belirtilen hesaplarımızdan birine mesaj yoluyla iletebilirsiniz.",
+        Text(
+          "become_verified.social_confirmation_body".tr,
           style: TextStyle(fontSize: 15, fontFamily: "Montserrat"),
         ),
         const SizedBox(height: 10),
@@ -765,33 +735,57 @@ class BecomeVerifiedAccount extends StatelessWidget {
           ],
         ),
         15.ph,
-        if (controller.selectedColor.value == Colors.red)
+        Obx(
+          () => GestureDetector(
+            onTap: () => controller
+                .toggleConsent(!controller.hasAcceptedConsent.value),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: controller.hasAcceptedConsent.value,
+                  onChanged: controller.toggleConsent,
+                  activeColor: Colors.black,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      "become_verified.consent".tr,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: "MontserratMedium",
+                        color: Colors.black,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (controller.selectedInt.value == 1)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 25),
-              const Text("5. E-Devlet Öğrenci Belgesi Barkod No",
-                  style: TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
+              Text("become_verified.step_barcode".tr,
+                  style: const TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
               const SizedBox(height: 12),
               _buildCustomInput(
-                  controller.eDevletBarcodeNo, "20 Haneli Barkod No"),
+                  controller.eDevletBarcodeNo, "become_verified.barcode_hint".tr),
             ],
           ),
-        controller.show.value
-            ? Padding(
-                padding: const EdgeInsets.only(top: 25),
-                child: Text(
-                  "\u2022 İlgi alanları, hobiler, uygulama kullanımı, sosyal yönler hakkında açıklayıcı bilgiler verin.",
-                  style:
-                      const TextStyle(fontSize: 14, fontFamily: "Montserrat"),
-                ),
-              )
-            : const SizedBox(),
-        if (controller.aciklamaText.isNotEmpty)
+        if (controller.canSubmitApplication.value)
           GestureDetector(
-            onTap: () {
-              controller.submitApplication();
-              controller.bodySelection++;
+            onTap: () async {
+              final ok = await controller.submitApplication();
+              if (ok) {
+                controller.bodySelection++;
+              }
             },
             child: Container(
               height: 50,
@@ -801,8 +795,8 @@ class BecomeVerifiedAccount extends StatelessWidget {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Başvur",
+              child: Text(
+                "become_verified.submit".tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: "MontserratBold",
@@ -816,33 +810,81 @@ class BecomeVerifiedAccount extends StatelessWidget {
   }
 
   Widget build4() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Bekleme Sırasına Aldık!",
-          style: TextStyle(
-              color: Colors.black, fontSize: 20, fontFamily: "MontserratBold"),
+    return SizedBox(
+      height: Get.height * 0.72,
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 24,
+                offset: Offset(0, 10),
+              ),
+            ],
+            border: Border.all(color: const Color(0x12000000)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF3F6F8),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  CupertinoIcons.check_mark_circled_solid,
+                  color: Colors.black,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                "become_verified.received_title".tr,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 22,
+                  fontFamily: "MontserratBold",
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "become_verified.received_body".tr,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 15,
+                  fontFamily: "MontserratMedium",
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "become_verified.received_note".tr,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontFamily: "Montserrat",
+                ),
+              ),
+              const SizedBox(height: 18),
+              TurqAppButton(
+                text: "common.ok".tr,
+                onTap: () {
+                  Get.back();
+                },
+              ),
+            ],
+          ),
         ),
-        const SizedBox(
-          height: 8,
-        ),
-        Text(
-          "Doğrulanmış rozet ile gelişmiş destek, kimlik koruması ve markanızı büyütme fırsatlarına hazır olun!\n\nBu özellik, aşamalı olarak kullanıma sunuluyor ve bölgenizde aktif olduğunda size haber vereceğiz.\n\nBekleme süresi, hesabınızın aktiflik durumu gibi faktörlere bağlı olarak değişebilir. Daha fazla bilgi için destek ekibimize ulaşabilirsiniz.\n\nBildirimler e-posta yoluyla veya uygulama üzerinden gönderilebilir.",
-          style: TextStyle(
-              color: Colors.black,
-              fontSize: 15,
-              fontFamily: "MontserratMedium"),
-        ),
-        SizedBox(
-          height: 12,
-        ),
-        TurqAppButton(
-            text: "Tamam",
-            onTap: () {
-              Get.back();
-            })
-      ],
+      ),
     );
   }
 
@@ -940,4 +982,56 @@ class BecomeVerifiedAccount extends StatelessWidget {
       ],
     );
   }
+
+  String _badgeTitleKey(String title) => _resolveBadgeKey(
+        title: title,
+        titleSuffix: '',
+      );
+
+  String _badgeDescKey(String title) => _resolveBadgeKey(
+        title: title,
+        titleSuffix: '_desc',
+      );
+
+  String _resolveBadgeKey({
+    required String title,
+    required String titleSuffix,
+  }) {
+    final normalized = title.trim();
+    final normalizedRozet = normalizeRozetValue(normalized);
+    final baseKey = switch (normalizedRozet) {
+      'mavi' => 'become_verified.badge_blue',
+      'kirmizi' => 'become_verified.badge_red',
+      'sari' => 'become_verified.badge_yellow',
+      'turkuaz' => 'become_verified.badge_turquoise',
+      'gri' => 'become_verified.badge_gray',
+      'siyah' => 'become_verified.badge_black',
+      _ => '',
+    };
+    if (baseKey.isNotEmpty) {
+      return '$baseKey$titleSuffix';
+    }
+
+    for (final baseKey in const <String>[
+      'become_verified.badge_blue',
+      'become_verified.badge_red',
+      'become_verified.badge_yellow',
+      'become_verified.badge_turquoise',
+      'become_verified.badge_gray',
+      'become_verified.badge_black',
+    ]) {
+      final key = '$baseKey$titleSuffix';
+      if (normalized == baseKey || normalized == key) {
+        return key;
+      }
+    }
+    return title;
+  }
+
+  String _localizedBadgeTitle(String title) => _badgeTitleKey(title).tr;
+
+  String _localizedBadgeDesc(String title) => _badgeDescKey(title).tr;
+
+  bool _requiresAnnualRenewal(int selectedIndex) =>
+      selectedIndex != 3 && selectedIndex != 4;
 }

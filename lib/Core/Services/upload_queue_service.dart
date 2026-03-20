@@ -13,6 +13,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -23,14 +24,16 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 enum UploadStatus {
-  pending('Bekliyor'),
-  uploading('Yükleniyor'),
-  completed('Tamamlandı'),
-  failed('Başarısız'),
-  paused('Duraklatıldı');
+  pending('upload_queue.status_pending'),
+  uploading('upload_queue.status_uploading'),
+  completed('upload_queue.status_completed'),
+  failed('upload_queue.status_failed'),
+  paused('upload_queue.status_paused');
 
-  const UploadStatus(this.label);
-  final String label;
+  const UploadStatus(this.labelKey);
+  final String labelKey;
+
+  String get label => labelKey.tr;
 }
 
 class QueuedUpload {
@@ -101,13 +104,6 @@ class UploadQueueService extends GetxController {
 
   static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
-
-  String _normalizeHandleValue(dynamic raw) {
-    final value = raw?.toString().trim() ?? '';
-    if (value.isEmpty) return '';
-    if (value.contains(RegExp(r'\s'))) return '';
-    return value.replaceFirst(RegExp(r'^@+'), '');
-  }
 
   String _firstNonEmptyValue(Iterable<dynamic> candidates) {
     for (final candidate in candidates) {
@@ -202,6 +198,37 @@ class UploadQueueService extends GetxController {
     return id.substring(0, splitAt);
   }
 
+  int _parseIntValue(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    return int.tryParse('${value ?? ''}') ?? fallback;
+  }
+
+  Future<String> _resolveQuoteCounterTargetPostId({
+    required String sourcePostId,
+    required String originalPostId,
+  }) async {
+    final candidate =
+        sourcePostId.trim().isNotEmpty ? sourcePostId.trim() : originalPostId.trim();
+    if (candidate.isEmpty) return '';
+
+    final raw = await PostRepository.ensure().fetchPostRawById(
+          candidate,
+          preferCache: true,
+        ) ??
+        const <String, dynamic>{};
+    if (raw.isEmpty) return candidate;
+
+    final floodCount = _parseIntValue(raw['floodCount']);
+    if (floodCount <= 1) return candidate;
+
+    final mainFlood = (raw['mainFlood'] ?? '').toString().trim();
+    final isFlood = raw['flood'] == true;
+    if (isFlood && mainFlood.isNotEmpty) {
+      return mainFlood;
+    }
+    return candidate;
+  }
+
   /// Add upload to queue
   Future<bool> addToQueue(
     QueuedUpload upload, {
@@ -216,7 +243,7 @@ class UploadQueueService extends GetxController {
             item.status != UploadStatus.failed &&
             _queueFingerprint(item) == fingerprint);
     if (duplicateActive) {
-      AppSnackbar('Bilgi', 'Bu medya zaten yükleniyor.');
+      AppSnackbar('common.info'.tr, 'upload_queue.already_uploading'.tr);
       return false;
     }
     final recentDuplicate = fingerprint.isNotEmpty &&
@@ -227,7 +254,7 @@ class UploadQueueService extends GetxController {
                 _recentDuplicateWindow &&
             _queueFingerprint(item) == fingerprint);
     if (recentDuplicate) {
-      AppSnackbar('Bilgi', 'Bu medya kısa süre önce zaten yüklendi.');
+      AppSnackbar('common.info'.tr, 'upload_queue.already_uploaded_recently'.tr);
       return false;
     }
     _queue.add(upload);
@@ -283,12 +310,12 @@ class UploadQueueService extends GetxController {
         (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
     final currentUser = CurrentUserService.instance;
     final String authorNickname = _firstNonEmptyValue([
-      _normalizeHandleValue(postDataMap['nickname']),
-      _normalizeHandleValue(postDataMap['authorNickname']),
-      _normalizeHandleValue(currentUser.nickname),
+      normalizeHandleInput(postDataMap['nickname']?.toString() ?? ''),
+      normalizeHandleInput(postDataMap['authorNickname']?.toString() ?? ''),
+      normalizeHandleInput(currentUser.nickname),
     ]);
     final String username = _firstNonEmptyValue([
-      _normalizeHandleValue(postDataMap['username']),
+      normalizeHandleInput(postDataMap['username']?.toString() ?? ''),
     ]);
     final String fullName = _firstNonEmptyValue([
       postDataMap['fullName'],
@@ -429,9 +456,9 @@ class UploadQueueService extends GetxController {
           connectivity.any((result) => result != ConnectivityResult.none);
       if (!hasNetwork) {
         upload.status = UploadStatus.failed;
-        upload.errorMessage = 'İnternet bağlantısı yok';
+        upload.errorMessage = 'upload_queue.no_internet'.tr;
         await _saveQueueToStorage();
-        AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+        AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
         return;
       }
 
@@ -479,12 +506,12 @@ class UploadQueueService extends GetxController {
           (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
       final currentUser = CurrentUserService.instance;
       final String authorNickname = _firstNonEmptyValue([
-        _normalizeHandleValue(postDataMap['nickname']),
-        _normalizeHandleValue(postDataMap['authorNickname']),
-        _normalizeHandleValue(currentUser.nickname),
+        normalizeHandleInput(postDataMap['nickname']?.toString() ?? ''),
+        normalizeHandleInput(postDataMap['authorNickname']?.toString() ?? ''),
+        normalizeHandleInput(currentUser.nickname),
       ]);
       final String username = _firstNonEmptyValue([
-        _normalizeHandleValue(postDataMap['username']),
+        normalizeHandleInput(postDataMap['username']?.toString() ?? ''),
       ]);
       final String fullName = _firstNonEmptyValue([
         postDataMap['fullName'],
@@ -548,26 +575,26 @@ class UploadQueueService extends GetxController {
         final nsfwImage = await OptimizedNSFWService.checkImage(file);
         if (nsfwImage.errorMessage != null) {
           upload.status = UploadStatus.failed;
-          upload.errorMessage = 'NSFW görsel kontrolü başarısız';
+          upload.errorMessage = 'upload_queue.nsfw_image_check_failed'.tr;
           await FirebaseFirestore.instance
               .collection('Posts')
               .doc(upload.id)
               .delete()
               .catchError((_) {});
           await _saveQueueToStorage();
-          AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+          AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
           return;
         }
         if (nsfwImage.isNSFW) {
           upload.status = UploadStatus.failed;
-          upload.errorMessage = 'Uygunsuz görsel tespit edildi';
+          upload.errorMessage = 'upload_queue.nsfw_image_detected'.tr;
           await FirebaseFirestore.instance
               .collection('Posts')
               .doc(upload.id)
               .delete()
               .catchError((_) {});
           await _saveQueueToStorage();
-          AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+          AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
           return;
         }
       }
@@ -588,15 +615,14 @@ class UploadQueueService extends GetxController {
           final videoSize = await effectiveVideoFile.length();
           if (videoSize > _maxVideoBytesForStorageRule) {
             upload.status = UploadStatus.failed;
-            upload.errorMessage =
-                'Video 35MB altına indirilemedi. 35MB altı direkt, 60MB üstü desteklenmez.';
+            upload.errorMessage = 'upload_queue.video_too_large'.tr;
             await FirebaseFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .delete()
                 .catchError((_) {});
             await _saveQueueToStorage();
-            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+            AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
             return;
           }
 
@@ -614,26 +640,26 @@ class UploadQueueService extends GetxController {
           }
           if (nsfwVideo.errorMessage != null) {
             upload.status = UploadStatus.failed;
-            upload.errorMessage = 'NSFW video kontrolü başarısız';
+            upload.errorMessage = 'upload_queue.nsfw_video_check_failed'.tr;
             await FirebaseFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .delete()
                 .catchError((_) {});
             await _saveQueueToStorage();
-            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+            AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
             return;
           }
           if (nsfwVideo.isNSFW) {
             upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Uygunsuz video tespit edildi';
+            upload.errorMessage = 'upload_queue.nsfw_video_detected'.tr;
             await FirebaseFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .delete()
                 .catchError((_) {});
             await _saveQueueToStorage();
-            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+            AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
             return;
           }
         }
@@ -713,16 +739,16 @@ class UploadQueueService extends GetxController {
           final nsfwImage = await OptimizedNSFWService.checkImage(file);
           if (nsfwImage.errorMessage != null) {
             upload.status = UploadStatus.failed;
-            upload.errorMessage = 'NSFW görsel kontrolü başarısız';
+            upload.errorMessage = 'upload_queue.nsfw_image_check_failed'.tr;
             await _saveQueueToStorage();
-            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+            AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
             return;
           }
           if (nsfwImage.isNSFW) {
             upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Uygunsuz görsel tespit edildi';
+            upload.errorMessage = 'upload_queue.nsfw_image_detected'.tr;
             await _saveQueueToStorage();
-            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+            AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
             return;
           }
           final localBytes = await file.readAsBytes();
@@ -966,6 +992,20 @@ class UploadQueueService extends GetxController {
             'timestamp': shareTimestamp,
             'sharedPostID': upload.id,
           }, SetOptions(merge: true));
+          if (quotedPost) {
+            final counterTargetPostId = await _resolveQuoteCounterTargetPostId(
+              sourcePostId: sourcePostID,
+              originalPostId: originalPostID,
+            );
+            await FirebaseFirestore.instance
+                .collection('Posts')
+                .doc(counterTargetPostId.isNotEmpty
+                    ? counterTargetPostId
+                    : originalPostID)
+                .update({
+              'stats.retryCount': FieldValue.increment(1),
+            });
+          }
         } catch (_) {}
       }
 
@@ -988,7 +1028,7 @@ class UploadQueueService extends GetxController {
             .doc(upload.id)
             .delete()
             .catchError((_) {});
-        AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
+        AppSnackbar('upload_queue.failed_title'.tr, upload.errorMessage!);
       } else {
         upload.status = UploadStatus.pending;
         upload.errorMessage =

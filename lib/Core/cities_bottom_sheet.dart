@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 class CitiesBottomSheet {
@@ -14,7 +15,10 @@ class CitiesBottomSheet {
     bool isSearchable = false,
   }) async {
     if (items.isEmpty) {
-      AppSnackbar("Hata", "$title yüklenemedi. Lütfen tekrar deneyin.");
+      AppSnackbar(
+        'common.error'.tr,
+        'common.load_failed_try_again'.trParams({'title': title}),
+      );
       return;
     }
 
@@ -22,8 +26,11 @@ class CitiesBottomSheet {
     final RxList<String> filteredItems = items.toList().obs;
 
     void filterItems(String query) {
+      final normalizedQuery = normalizeSearchText(query);
       filteredItems.value = items
-          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (item) => normalizeSearchText(item).contains(normalizedQuery),
+          )
           .toList();
     }
 
@@ -66,7 +73,7 @@ class CitiesBottomSheet {
                         cursorColor: Colors.grey,
                         controller: searchController,
                         decoration: InputDecoration(
-                          hintText: "Ara",
+                          hintText: 'common.search'.tr,
                           prefixIcon: const Icon(
                             CupertinoIcons.search,
                             color: Colors.grey,
@@ -97,9 +104,9 @@ class CitiesBottomSheet {
                       maxHeight: maxHeight.clamp(200, screenHeight * 0.8),
                     ),
                     child: filteredItems.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text("Sonuç bulunamadı"),
+                        ? Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text('common.no_results'.tr),
                           )
                         : ListView.builder(
                             shrinkWrap: true,

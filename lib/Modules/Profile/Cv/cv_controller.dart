@@ -14,7 +14,10 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Utils/phone_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Models/CVModels/school_model.dart';
+import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'cv_controller_sections_part.dart';
@@ -23,6 +26,17 @@ part 'cv_controller_persistence_part.dart';
 class CvController extends GetxController {
   final CvRepository _cvRepository = CvRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static const List<String> languageOptionKeys = <String>[
+    'cv.language.english',
+    'cv.language.german',
+    'cv.language.french',
+    'cv.language.spanish',
+    'cv.language.arabic',
+    'cv.language.turkish',
+    'cv.language.russian',
+    'cv.language.italian',
+    'cv.language.korean',
+  ];
   var selection = 0.obs;
   TextEditingController firstName = TextEditingController(text: "");
   TextEditingController lastName = TextEditingController(text: "");
@@ -67,21 +81,25 @@ class CvController extends GetxController {
   }
 
   bool validatePhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(phone);
     return digits.length == 10 || digits.length == 11;
   }
 
   bool validateLinkedIn(String url) {
-    final normalized = url.trim().toLowerCase();
-    if (normalized.isEmpty) return true;
-    return normalized.contains('linkedin.com/');
+    return isLinkedInProfileUrl(url);
   }
 
   bool _validateYear(String year) {
-    if (year == "Halen" || year.isEmpty) return true;
+    if (isPresentCvYear(year) || year.isEmpty) return true;
     final y = int.tryParse(year);
     if (y == null) return false;
     return y >= 1950 && y <= DateTime.now().year + 6;
+  }
+
+  String localizedYearLabel(String year) {
+    final normalized = year.trim();
+    if (normalized.isEmpty) return normalized;
+    return isPresentCvYear(normalized) ? 'cv.present'.tr : normalized;
   }
 
   // ── School ──
@@ -90,7 +108,7 @@ class CvController extends GetxController {
     if (isUploadingPhoto.value) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      AppSnackbar('Hata', 'Oturum açık değil.');
+      AppSnackbar('common.error'.tr, 'cv.not_signed_in'.tr);
       return;
     }
 
@@ -102,7 +120,9 @@ class CvController extends GetxController {
       final nsfwResult = await OptimizedNSFWService.checkImage(file);
       if (nsfwResult.isNSFW) {
         AppSnackbar(
-            'Uygun Değil', 'Profil fotoğrafı uygunsuz içerik içeriyor.');
+          'common.error'.tr,
+          'cv.photo_inappropriate'.tr,
+        );
         return;
       }
 
@@ -116,10 +136,19 @@ class CvController extends GetxController {
       );
       photoUrl.value = url;
     } catch (_) {
-      AppSnackbar('Hata', 'Profil fotoğrafı yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'cv.photo_upload_failed'.tr);
     } finally {
       isUploadingPhoto.value = false;
     }
+  }
+
+  String normalizeLanguageValue(String value) {
+    return normalizeCvLanguageValue(value);
+  }
+
+  String localizedLanguage(String value) {
+    final normalized = normalizeLanguageValue(value);
+    return normalized.startsWith('cv.language.') ? normalized.tr : value;
   }
 
   void ensureDefaultPhoto() {

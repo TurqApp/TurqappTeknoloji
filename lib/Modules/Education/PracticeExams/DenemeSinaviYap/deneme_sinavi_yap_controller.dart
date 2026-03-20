@@ -112,8 +112,8 @@ class DenemeSinaviYapController extends GetxController
       isConnected.value = results.any((r) => r != ConnectivityResult.none);
       print(
         isConnected.value
-            ? "İnternet bağlantısı var."
-            : "İnternet bağlantısı yok.",
+            ? 'Connectivity available.'
+            : 'No internet connection.',
       );
     });
   }

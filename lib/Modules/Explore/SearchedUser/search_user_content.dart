@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -31,7 +32,7 @@ class SearchUserContent extends StatelessWidget {
   Future<String> _resolveTargetUid() async {
     var targetUid = model.userID.trim();
     if (targetUid.isNotEmpty) return targetUid;
-    final handle = model.nickname.trim().toLowerCase();
+    final handle = normalizeNicknameInput(model.nickname);
     if (handle.isEmpty) return "";
     return await _usernameLookupRepository.findUidForHandle(handle) ?? "";
   }

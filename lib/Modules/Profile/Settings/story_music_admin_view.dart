@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
@@ -129,9 +130,12 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
         storagePathWithoutExt: 'storyMusic/$itemId/cover',
       );
       _coverUrlController.text = coverUrl;
-      AppSnackbar('Tamam', 'Kapak görseli yüklendi');
+      AppSnackbar('post_creator.success_title'.tr, 'admin.story_music.cover_uploaded'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Kapak görseli yüklenemedi: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.story_music.cover_upload_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -148,7 +152,10 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
     final category = _categoryController.text.trim();
 
     if (title.isEmpty || audioUrl.isEmpty) {
-      AppSnackbar('Hata', 'Başlık ve müzik URL zorunlu');
+      AppSnackbar(
+        'support.error_title'.tr,
+        'admin.story_music.title_url_required'.tr,
+      );
       return;
     }
 
@@ -187,12 +194,19 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
         'updatedAt': now,
       }, SetOptions(merge: true));
 
-      AppSnackbar('Tamam',
-          _editingDocId.isEmpty ? 'Parça eklendi' : 'Parça güncellendi');
+      AppSnackbar(
+        'post_creator.success_title'.tr,
+        _editingDocId.isEmpty
+            ? 'admin.story_music.track_added'.tr
+            : 'admin.story_music.track_updated'.tr,
+      );
       _resetForm();
       await _loadTracks(forceRemote: true);
     } catch (e) {
-      AppSnackbar('Hata', 'Parça kaydedilemedi: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.story_music.save_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -208,9 +222,12 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
         _resetForm();
       }
       await _loadTracks(forceRemote: true);
-      AppSnackbar('Tamam', 'Parça silindi');
+      AppSnackbar('post_creator.success_title'.tr, 'admin.story_music.track_deleted'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Parça silinemedi: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.story_music.delete_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -234,7 +251,10 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
       await _audioPlayer.play(UrlSource(url));
       setState(() => _currentPreviewUrl = url);
     } catch (e) {
-      AppSnackbar('Hata', 'Önizleme oynatılamadı: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.story_music.preview_failed'.tr}: $e',
+      );
     }
   }
 
@@ -245,7 +265,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Hikaye Müzikleri'),
+            BackButtons(text: 'admin.story_music.title'.tr),
             Expanded(
               child: FutureBuilder<bool>(
                 future: _canAccessFuture,
@@ -254,13 +274,13 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.data != true) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'Bu alan sadece admin erişimine açıktır.',
+                          'admin.no_access'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 14,
                           ),
@@ -302,7 +322,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
             children: [
               Expanded(
                 child: Text(
-                  _editingDocId.isEmpty ? 'Yeni Parça' : 'Parçayı Düzenle',
+                  _editingDocId.isEmpty
+                      ? 'admin.story_music.new_track'.tr
+                      : 'admin.story_music.edit_track'.tr,
                   style: const TextStyle(
                     fontFamily: 'MontserratBold',
                     fontSize: 15,
@@ -313,9 +335,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
               if (_editingDocId.isNotEmpty)
                 TextButton(
                   onPressed: _isBusy ? null : _resetForm,
-                  child: const Text(
-                    'Temizle',
-                    style: TextStyle(
+                  child: Text(
+                    'admin.tasks.clear'.tr,
+                    style: const TextStyle(
                       fontFamily: 'MontserratMedium',
                       color: Colors.black54,
                     ),
@@ -324,19 +346,19 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
             ],
           ),
           const SizedBox(height: 12),
-          _field(controller: _titleController, label: 'Başlık'),
+          _field(controller: _titleController, label: 'admin.push.title_field'.tr),
           const SizedBox(height: 10),
-          _field(controller: _artistController, label: 'Sanatçı'),
+          _field(controller: _artistController, label: 'admin.story_music.artist'.tr),
           const SizedBox(height: 10),
           _field(
             controller: _audioUrlController,
-            label: 'Müzik URL',
+            label: 'admin.story_music.audio_url'.tr,
             hint: 'https://...',
           ),
           const SizedBox(height: 10),
           _field(
             controller: _coverUrlController,
-            label: 'Kapak URL',
+            label: 'admin.story_music.cover_url'.tr,
             hint: 'https://...',
           ),
           const SizedBox(height: 10),
@@ -345,7 +367,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
               Expanded(
                 child: _field(
                   controller: _categoryController,
-                  label: 'Kategori',
+                  label: 'admin.story_music.category'.tr,
                 ),
               ),
               const SizedBox(width: 10),
@@ -353,7 +375,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                 width: 90,
                 child: _field(
                   controller: _orderController,
-                  label: 'Sıra',
+                  label: 'admin.story_music.order'.tr,
                   keyboardType: TextInputType.number,
                 ),
               ),
@@ -366,8 +388,8 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                 child: OutlinedButton.icon(
                   onPressed: _isBusy ? null : _pickCover,
                   icon: const Icon(Icons.image_outlined),
-                  label: const Text(
-                    'Kapak Yükle',
+                  label: Text(
+                    'admin.story_music.upload_cover'.tr,
                     style: TextStyle(fontFamily: 'MontserratMedium'),
                   ),
                 ),
@@ -383,8 +405,8 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                   child: Row(
                     children: [
                       const SizedBox(width: 12),
-                      const Text(
-                        'Aktif',
+                      Text(
+                        'admin.story_music.active'.tr,
                         style: TextStyle(
                           fontFamily: 'MontserratMedium',
                           color: Colors.black,
@@ -448,8 +470,8 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                   : const Icon(Icons.save_outlined),
               label: Text(
                 _editingDocId.isEmpty
-                    ? 'Parçayı Kaydet'
-                    : 'Güncellemeyi Kaydet',
+                    ? 'admin.story_music.save_track'.tr
+                    : 'admin.story_music.save_update'.tr,
                 style: const TextStyle(fontFamily: 'MontserratBold'),
               ),
             ),
@@ -464,11 +486,11 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_tracks.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
         child: Text(
-          'Henüz parça yok',
-          style: TextStyle(
+          'admin.story_music.no_tracks'.tr,
+          style: const TextStyle(
             color: Colors.grey,
             fontSize: 15,
             fontFamily: 'MontserratMedium',
@@ -496,7 +518,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      model.title.isNotEmpty ? model.title : 'İsimsiz Parça',
+                      model.title.isNotEmpty
+                          ? model.title
+                          : 'admin.story_music.untitled'.tr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -520,7 +544,12 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                     ],
                     const SizedBox(height: 4),
                     Text(
-                      'Sıra ${model.order} • Kullanım ${model.useCount}',
+                      'admin.story_music.order_usage'.trParams(
+                        <String, String>{
+                          'order': '${model.order}',
+                          'count': '${model.useCount}',
+                        },
+                      ),
                       style: const TextStyle(
                         fontFamily: 'MontserratMedium',
                         fontSize: 11,

@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 class SavedItemsView extends StatelessWidget {
@@ -241,7 +242,7 @@ class SavedItemsView extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        type == 'bireysel'
+                                        isIndividualScholarshipType(type)
                                             ? 'scholarship.applications_suffix'
                                                 .trParams({
                                                 'title': burs.baslik
@@ -321,7 +322,7 @@ class SavedItemsView extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  type == 'bireysel'
+                                  isIndividualScholarshipType(type)
                                       ? (((userData?['displayName'] ??
                                                       userData?['username'] ??
                                                       userData?['nickname'])

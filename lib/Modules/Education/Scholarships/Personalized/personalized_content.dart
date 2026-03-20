@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 
 class PersonalizedContent extends StatelessWidget {
@@ -70,7 +71,7 @@ class PersonalizedContent extends StatelessWidget {
     }
     return {
       'model': model,
-      'type': 'bireysel',
+      'type': kIndividualScholarshipType,
       'userData': null,
       'docId': docId,
       'scholarshipId': docId,

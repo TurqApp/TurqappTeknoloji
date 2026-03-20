@@ -122,8 +122,8 @@ class EditPostController extends GetxController {
     final nsfw = await OptimizedNSFWService.checkVideo(file);
     if (nsfw.isNSFW) {
       AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        'edit_profile.upload_failed_title'.tr,
+        'edit_profile.upload_failed_body'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
       waitingVideo.value = false;
@@ -193,8 +193,8 @@ class EditPostController extends GetxController {
       final r = await OptimizedNSFWService.checkImage(f);
       if (r.isNSFW) {
         AppSnackbar(
-          "Yükleme Başarısız!",
-          "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+          'edit_profile.upload_failed_title'.tr,
+          'edit_profile.upload_failed_body'.tr,
           backgroundColor: Colors.red.withValues(alpha: 0.7),
         );
         selectedImages.clear();
@@ -223,8 +223,8 @@ class EditPostController extends GetxController {
       final r = await OptimizedNSFWService.checkImage(file);
       if (r.isNSFW) {
         AppSnackbar(
-          "Yükleme Başarısız!",
-          "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+          'edit_profile.upload_failed_title'.tr,
+          'edit_profile.upload_failed_body'.tr,
           backgroundColor: Colors.red.withValues(alpha: 0.7),
         );
         selectedImages.clear();
@@ -270,7 +270,7 @@ class EditPostController extends GetxController {
                   Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
                   SizedBox(width: 12),
                   Text(
-                    "Yorumlar",
+                    'common.comments'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -292,7 +292,7 @@ class EditPostController extends GetxController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Herkes yorum yapabilir.",
+                          'edit_post.comments_everyone'.tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,
@@ -337,7 +337,7 @@ class EditPostController extends GetxController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Hiç kimse yorum yapamaz.",
+                          'post.comments_disabled_none'.tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,

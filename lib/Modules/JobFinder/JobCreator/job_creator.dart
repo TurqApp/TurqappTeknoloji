@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Utils/phone_utils.dart';
 import 'package:turqappv2/Models/job_model.dart';
 
 import 'job_creator_controller.dart';
@@ -29,7 +30,9 @@ class JobCreator extends StatelessWidget {
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
         title: Text(
-          existingJob == null ? 'İlan Ekle' : 'İlan Düzenle',
+          existingJob == null
+              ? 'pasaj.job_finder.create_add_title'.tr
+              : 'pasaj.job_finder.create_edit_title'.tr,
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -45,24 +48,25 @@ class JobCreator extends StatelessWidget {
             children: [
               _buildLogoPicker(),
               const SizedBox(height: 18),
-              _sectionTitle('Temel Bilgiler'),
+              _sectionTitle('pasaj.job_finder.create.basic_info'.tr),
               const SizedBox(height: 8),
               TextField(
                 controller: controller.brand,
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(150),
                 ],
-                decoration: _inputDecoration('Firma Adı'),
+                decoration:
+                    _inputDecoration('pasaj.job_finder.create.company_name'.tr),
               ),
               const SizedBox(height: 18),
-              _sectionTitle('Konum'),
+              _sectionTitle('pasaj.job_finder.create.location'.tr),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: _selectionField(
                       label: controller.sehir.value.isEmpty
-                          ? 'Şehir'
+                          ? 'common.city'.tr
                           : controller.sehir.value,
                       onTap: controller.showSehirSelect,
                     ),
@@ -71,7 +75,7 @@ class JobCreator extends StatelessWidget {
                   Expanded(
                     child: _selectionField(
                       label: controller.ilce.value.isEmpty
-                          ? 'İlçe'
+                          ? 'common.district'.tr
                           : controller.ilce.value,
                       onTap: controller.showIlceSelect,
                     ),
@@ -79,29 +83,34 @@ class JobCreator extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              _sectionTitle('İş Tanımı'),
+              _sectionTitle('pasaj.job_finder.create.job_desc'.tr),
               const SizedBox(height: 8),
               TextField(
                 controller: controller.ilanBasligi,
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(100),
                 ],
-                decoration: _inputDecoration('İlan Başlığı'),
+                decoration:
+                    _inputDecoration('pasaj.job_finder.create.listing_title'.tr),
               ),
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedCalismaTuruList.isEmpty
-                    ? 'Çalışma Türü'
-                    : controller.selectedCalismaTuruList.join(', '),
+                    ? 'pasaj.job_finder.create.work_type'.tr
+                    : controller
+                        .localizedWorkTypes(controller.selectedCalismaTuruList),
                 onTap: controller.selectCalismaTuru,
               ),
               const SizedBox(height: 8),
               _selectionField(
-                label: 'Çalışma Günleri',
+                label: controller.selectedCalismaGunleri.isEmpty
+                    ? 'pasaj.job_finder.create.work_days'.tr
+                    : controller
+                        .localizedWorkDays(controller.selectedCalismaGunleri),
                 onTap: controller.selectCalismaGunleri,
               ),
               const SizedBox(height: 8),
-              _fieldLabel('Çalışma Saatleri'),
+              _fieldLabel('pasaj.job_finder.create.work_hours'.tr),
               const SizedBox(height: 6),
               Row(
                 children: [
@@ -113,7 +122,8 @@ class JobCreator extends StatelessWidget {
                         FilteringTextInputFormatter.digitsOnly,
                         _TimeTextInputFormatter(),
                       ],
-                      decoration: _inputDecoration('Başlangıç'),
+                      decoration:
+                          _inputDecoration('pasaj.job_finder.create.start'.tr),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -125,7 +135,8 @@ class JobCreator extends StatelessWidget {
                         FilteringTextInputFormatter.digitsOnly,
                         _TimeTextInputFormatter(),
                       ],
-                      decoration: _inputDecoration('Bitiş'),
+                      decoration:
+                          _inputDecoration('pasaj.job_finder.create.end'.tr),
                     ),
                   ),
                 ],
@@ -133,7 +144,7 @@ class JobCreator extends StatelessWidget {
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.meslek.value.isEmpty
-                    ? 'Meslek'
+                    ? 'pasaj.job_finder.create.profession'.tr
                     : controller.meslek.value,
                 onTap: controller.showMeslekSelector,
               ),
@@ -145,21 +156,23 @@ class JobCreator extends StatelessWidget {
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(2000),
                 ],
-                decoration: _inputDecoration('İş Tanımı'),
+                decoration:
+                    _inputDecoration('pasaj.job_finder.create.job_desc'.tr),
               ),
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedYanHaklar.isEmpty
-                    ? 'Ek İmkanlar'
-                    : controller.selectedYanHaklar.join(', '),
+                    ? 'pasaj.job_finder.create.benefits'.tr
+                    : controller
+                        .localizedBenefits(controller.selectedYanHaklar),
                 onTap: () => controller.selectYanHaklar(context),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Alınacak Personel Sayısı',
+                      'pasaj.job_finder.create.personnel_count'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 15,
@@ -197,9 +210,9 @@ class JobCreator extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Maaş Aralığı',
+                          'pasaj.job_finder.create.salary_range'.tr,
                           style: TextStyle(
                             color: Colors.black87,
                             fontSize: 15,
@@ -239,7 +252,9 @@ class JobCreator extends StatelessWidget {
                           FilteringTextInputFormatter.digitsOnly,
                           _ThousandsTextInputFormatter(),
                         ],
-                        decoration: _inputDecoration('Min Ücret'),
+                        decoration: _inputDecoration(
+                          'pasaj.job_finder.create.min_salary'.tr,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -251,7 +266,9 @@ class JobCreator extends StatelessWidget {
                           FilteringTextInputFormatter.digitsOnly,
                           _ThousandsTextInputFormatter(),
                         ],
-                        decoration: _inputDecoration('Max Ücret'),
+                        decoration: _inputDecoration(
+                          'pasaj.job_finder.create.max_salary'.tr,
+                        ),
                       ),
                     ),
                   ],
@@ -282,7 +299,9 @@ class JobCreator extends StatelessWidget {
                           ),
                         )
                       : Text(
-                          existingJob == null ? 'Yayınla' : 'Güncelle',
+                          existingJob == null
+                              ? 'common.publish'.tr
+                              : 'common.update'.tr,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
@@ -304,53 +323,82 @@ class JobCreator extends StatelessWidget {
     try {
       if (controller.croppedImage.value == null &&
           (existingJob?.logo.isEmpty ?? true)) {
-        AppSnackbar('Eksik alan', 'Firma logosu seçmeden devam edemezsiniz');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.logo_required'.tr,
+        );
         return;
       }
       if (controller.brand.text.trim().isEmpty) {
-        AppSnackbar('Eksik alan', 'Firma ismini girmeden devam edemezsiniz');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.company_required'.tr,
+        );
         return;
       }
       if (controller.sehir.value.isEmpty || controller.ilce.value.isEmpty) {
-        AppSnackbar('Eksik alan', 'Şehir ve ilçe seçmeden devam edemezsiniz');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.city_district_required'.tr,
+        );
         return;
       }
       if (controller.adres.value.isEmpty && controller.lat.value == 0) {
         AppSnackbar(
-          'Eksik alan',
-          'Mevcut konumunuzu kullanarak firma adresinizi belirtiniz',
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.address_required'.tr,
         );
         return;
       }
       if (controller.selectedCalismaTuruList.isEmpty) {
-        AppSnackbar('Eksik alan', 'Çalışma türü seçmeden devam edemezsiniz');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.work_type_required'.tr,
+        );
         return;
       }
       if (controller.meslek.value.isEmpty) {
-        AppSnackbar('Eksik alan', 'Meslek seçmeden devam edemezsiniz');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.profession_required'.tr,
+        );
         return;
       }
       if (controller.isTanimi.text.trim().isEmpty) {
-        AppSnackbar('Eksik alan', 'İş tanımını açıklamak zorundasınız');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.description_required'.tr,
+        );
         return;
       }
       if (controller.selectedYanHaklar.isEmpty) {
-        AppSnackbar('Eksik alan', 'En az bir ek imkan seçmek zorundasın');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.benefits_required'.tr,
+        );
         return;
       }
       if (controller.maasOpen.value && controller.maas1.text.trim().isEmpty) {
-        AppSnackbar('Eksik alan', 'Minimum maaş alanını doldurmalısınız');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.min_salary_required'.tr,
+        );
         return;
       }
       if (controller.maasOpen.value && controller.maas2.text.trim().isEmpty) {
-        AppSnackbar('Eksik alan', 'Maksimum maaş alanını doldurmalısınız');
+        AppSnackbar(
+          'pasaj.job_finder.create.missing_field'.tr,
+          'pasaj.job_finder.create.max_salary_required'.tr,
+        );
         return;
       }
       if (controller.maasOpen.value &&
           controller.parseMoneyInput(controller.maas2.text) <
               controller.parseMoneyInput(controller.maas1.text)) {
         AppSnackbar(
-            'Hatalı Aralık', 'Maksimum maaş, minimum maaştan düşük olamaz');
+          'common.error'.tr,
+          'pasaj.job_finder.create.invalid_salary_range'.tr,
+        );
         return;
       }
       await controller.setData();
@@ -412,13 +460,13 @@ class JobCreator extends StatelessWidget {
           child: Column(
             children: [
               _imageActionButton(
-                label: 'Galeriden Seç',
+                label: 'pasaj.job_finder.create.pick_gallery'.tr,
                 primary: true,
                 onTap: () => controller.pickImage(source: ImageSource.gallery),
               ),
               const SizedBox(height: 8),
               _imageActionButton(
-                label: 'Kameradan Çek',
+                label: 'pasaj.job_finder.create.take_photo'.tr,
                 onTap: () => controller.pickImage(source: ImageSource.camera),
               ),
             ],
@@ -550,7 +598,7 @@ class _TimeTextInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(newValue.text);
     final clipped = digits.length > 4 ? digits.substring(0, 4) : digits;
 
     if (clipped.length >= 2) {
@@ -594,7 +642,7 @@ class _ThousandsTextInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(newValue.text);
     if (digits.isEmpty) {
       return const TextEditingValue(
         text: '',

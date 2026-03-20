@@ -99,16 +99,14 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
         return Text('post.reshared_you'.tr, style: _labelStyle);
       }
       final cached = ReshareHelper.getCachedNickname(targetId);
-      if (cached != null &&
-          cached.trim().isNotEmpty &&
-          cached != 'Bilinmeyen Kullanıcı') {
+      if (cached != null && !ReshareHelper.isUnknownUserLabel(cached)) {
         return Text(
           'post.reshared_by'.trParams({'name': cached}),
           style: _labelStyle,
         );
       }
       final name = _resolvedNickname?.trim() ?? '';
-      if (name.isEmpty || name == 'Bilinmeyen Kullanıcı') {
+      if (ReshareHelper.isUnknownUserLabel(name)) {
         return widget.placeholder;
       }
       return Text(
@@ -129,7 +127,7 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
         return Text('post.reshared_you'.tr, style: _labelStyle);
       }
       final name = widget.controller.reShareUserNickname.value.trim();
-      if (name.isEmpty || name == 'Bilinmeyen Kullanıcı') {
+      if (ReshareHelper.isUnknownUserLabel(name)) {
         return widget.placeholder;
       }
       return Text(

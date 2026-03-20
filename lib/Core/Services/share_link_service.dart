@@ -1,5 +1,6 @@
 import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 
 class ShareLinkService {
   static Future<void> shareUrl({
@@ -7,6 +8,9 @@ class ShareLinkService {
     String? subject,
     String? title,
   }) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.externalShare)) {
+      return;
+    }
     await ShareActionGuard.run(() async {
       final clean = url.trim();
       if (clean.isEmpty) return;

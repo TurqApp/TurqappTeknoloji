@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Repositories/notification_preferences_repository.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
 class NotificationPreferencesService {
   NotificationPreferencesService._();
@@ -70,7 +71,7 @@ class NotificationPreferencesService {
 
   static bool isTypeEnabled(String type, Map<String, dynamic>? rawPrefs) {
     final prefs = mergeWithDefaults(rawPrefs);
-    final normalized = type.trim().toLowerCase();
+    final normalized = normalizeNotificationType(type, '');
 
     if (_readBool(prefs, 'pauseAll')) {
       return false;

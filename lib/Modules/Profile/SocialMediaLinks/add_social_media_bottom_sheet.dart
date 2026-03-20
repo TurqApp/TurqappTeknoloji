@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
+import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding.dart';
 
 import 'social_media_links_controller.dart';
 
@@ -37,10 +38,11 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                   () => GestureDetector(
                     onTap: () {
                       controller.selected.value = item;
-                      controller.textController.text = item.capitalize!;
-                      controller.urlController.text = item == "whatsApp"
+                      controller.textController.text =
+                          socialMediaDisplayTitleForKey(item);
+                      controller.urlController.text = item == kSocialMediaWhatsApp
                           ? "https://wa.me/+90"
-                          : item != "TurqApp"
+                          : item != kSocialMediaTurqApp
                               ? "https://${item.toLowerCase()}.com/"
                               : "";
                     },
@@ -176,7 +178,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                       }),
                       SizedBox(height: 4),
                       Text(
-                        controller.selected.value,
+                        socialMediaDisplayTitleForKey(
+                            controller.selected.value),
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 12,
@@ -218,7 +221,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                         // inside your Column where the URL TextField lives:
 
                         Obx(() {
-                          final isTurq = controller.selected.value == "TurqApp";
+                          final isTurq =
+                              controller.selected.value == kSocialMediaTurqApp;
                           return SizedBox(
                             height: 40,
                             child: TextField(
@@ -271,7 +275,7 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                   .toString();
                               String logoValue = "";
                               if (controller.selected.value.isNotEmpty) {
-                                logoValue = controller.embeddedLogoAsset(
+                                logoValue = socialMediaEmbeddedLogoAsset(
                                   controller.selected.value,
                                 );
                               } else if (controller.imageFile.value != null) {

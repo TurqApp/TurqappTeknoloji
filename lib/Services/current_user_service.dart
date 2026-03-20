@@ -15,7 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
-import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
@@ -199,7 +198,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
         if (!_isSyncing) {
           unawaited(_startFirebaseSync());
         }
-        unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
         // Auth tarafı gecikmeli/yanlış dönebileceği için Firestore alanı ile
         // arka planda kesinleştir.
         unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
@@ -220,7 +218,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
           .timeout(const Duration(milliseconds: 350), onTimeout: () {});
 
       // 2️⃣ Ağır ağ işlerini arka planda başlat; startup'ı bloklamasın.
-      unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
       unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
       unawaited(_loadEmailVerifyConfig());
 
@@ -233,86 +230,6 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
       _isInitialized = true;
       return false;
     }
-  }
-
-  Future<void> _restorePendingDeletionIfNeeded(String uid) async {
-    try {
-      final userRepository = UserRepository.ensure();
-      final data = await _readRootUserData(uid, preferCache: true);
-      if (data.isEmpty) return;
-
-      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      if (status != 'pending_deletion') return;
-
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      int? scheduledAtMs;
-      final dynamic scheduledRaw = data['deletionScheduledAt'];
-      if (scheduledRaw is Timestamp) {
-        scheduledAtMs = scheduledRaw.millisecondsSinceEpoch;
-      } else if (scheduledRaw is num) {
-        scheduledAtMs = scheduledRaw.toInt();
-      }
-      if (scheduledAtMs != null && scheduledAtMs <= nowMs) {
-        return;
-      }
-
-      await userRepository.updateUserFields(uid, {
-        'accountStatus': 'active',
-        'isDeleted': false,
-        'isPrivate': false,
-        'updatedDate': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      try {
-        final actions = await _userSubcollectionRepository.getEntries(
-          uid,
-          subcollection: 'account_actions',
-          preferCache: true,
-        );
-        final pendingDeletion = actions.firstWhereOrNull(
-          (entry) =>
-              (entry.data['type'] ?? '').toString() == 'deletion' &&
-              (entry.data['status'] ?? '').toString() == 'pending',
-        );
-        if (pendingDeletion != null) {
-          await _userSubcollectionRepository.upsertEntry(
-            uid,
-            subcollection: 'account_actions',
-            docId: pendingDeletion.id,
-            data: {
-              'status': 'cancelled',
-              'cancelledAt': DateTime.now().millisecondsSinceEpoch,
-            },
-          );
-          final next = actions.map((entry) {
-            if (entry.id != pendingDeletion.id) return entry;
-            return UserSubcollectionEntry(
-              id: entry.id,
-              data: {
-                ...entry.data,
-                'status': 'cancelled',
-                'cancelledAt': DateTime.now().millisecondsSinceEpoch,
-              },
-            );
-          }).toList(growable: false);
-          await _userSubcollectionRepository.setEntries(
-            uid,
-            subcollection: 'account_actions',
-            items: next,
-          );
-        }
-      } catch (e, st) {
-        _logSilently('restore.account_actions', e, st);
-      }
-
-      await PostRepository.ensure().restoreDeletedPostsForUser(uid);
-    } catch (_) {}
-  }
-
-  Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
-    await _restorePendingDeletionIfNeeded(uid);
   }
 
   /// Force refresh from Firebase (bypasses cache)

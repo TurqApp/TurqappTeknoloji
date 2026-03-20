@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid_controller.dart';
@@ -167,12 +168,18 @@ class DenemeGrid extends StatelessWidget {
   String _formattedApplicationText(int count) {
     final scaled = count * 3;
     if (scaled / 1000000 > 1) {
-      return '${(scaled / 1000000).toStringAsFixed(2)}M Başvuru';
+      return 'practice.application_count'.trParams({
+        'count': '${(scaled / 1000000).toStringAsFixed(2)}M',
+      });
     }
     if (scaled / 1000 > 1) {
-      return '${(scaled / 1000).toStringAsFixed(1)}B Başvuru';
+      return 'practice.application_count'.trParams({
+        'count': '${(scaled / 1000).toStringAsFixed(1)}B',
+      });
     }
-    return '$scaled Başvuru';
+    return 'practice.application_count'.trParams({
+      'count': '$scaled',
+    });
   }
 
   Color _ctaColor(DenemeGridController controller) {
@@ -195,18 +202,18 @@ class DenemeGrid extends StatelessWidget {
   String _ctaLabel(DenemeGridController controller) {
     if (controller.currentTime.value <
         controller.examTime.value - controller.fifteenMinutes) {
-      return 'Hemen Başvur';
+      return 'practice.apply_now'.tr;
     }
     if (controller.currentTime.value >=
             controller.examTime.value - controller.fifteenMinutes &&
         controller.currentTime.value < controller.examTime.value) {
-      return 'Başvuru Kapandı';
+      return 'scholarship.closed'.tr;
     }
     if (controller.currentTime.value >= controller.examTime.value &&
         controller.currentTime.value < model.bitis) {
-      return 'Sınav Başladı';
+      return 'practice.started'.tr;
     }
-    return 'Hemen Başla';
+    return 'practice.start_now'.tr;
   }
 
   Widget _buildMedia({double? width, double? height, double radius = 12}) {
@@ -316,7 +323,7 @@ class DenemeGrid extends StatelessWidget {
                   Text(
                     model.sinavAciklama.trim().isNotEmpty
                         ? model.sinavAciklama.trim()
-                        : 'Online deneme sınavı',
+                        : 'practice.online_exam_fallback'.tr,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -338,7 +345,7 @@ class DenemeGrid extends StatelessWidget {
                         Expanded(
                           child: Text(
                             controller.isLoadingApplicants.value
-                                ? 'Yükleniyor...'
+                                ? 'common.loading'.tr
                                 : _formattedApplicationText(
                                     controller.toplamBasvuru.value,
                                   ),
@@ -385,6 +392,7 @@ class DenemeGrid extends StatelessWidget {
   }
 
   Widget _buildListCard(DenemeGridController controller) {
+    const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
       onTap: _openCard,
       child: Padding(
@@ -399,105 +407,116 @@ class DenemeGrid extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMedia(width: 108, height: 108, radius: 10),
+              _buildMedia(
+                width: metrics.mediaSize,
+                height: metrics.mediaSize,
+                radius: 10,
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 122),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        children: [
-                          Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      model.sinavAdi,
+                              Text(
+                                model.sinavAdi,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        EducationShareIconButton(
+                          onTap: _shareExternally,
+                          size: metrics.actionButtonSize,
+                          iconSize: metrics.actionIconSize,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: metrics.contentGap),
+                    Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.calendar,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            formatTimestamp(model.timeStamp.toInt()),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 12,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: metrics.contentGap + 2),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    CupertinoIcons.doc_text,
+                                    size: 14,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      model.sinavTuru,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: 'MontserratBold',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratMedium',
                                       ),
                                     ),
-                                    if (model.sinavAciklama
-                                        .trim()
-                                        .isNotEmpty) ...[
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        model.sinavAciklama.trim(),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 12,
-                                          height: 1.1,
-                                          fontFamily: 'MontserratMedium',
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              EducationShareIconButton(
-                                onTap: _shareExternally,
-                                size: 36,
-                                iconSize: 20,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(
-                                CupertinoIcons.calendar,
-                                size: 14,
-                                color: Colors.grey.shade500,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  formatTimestamp(model.timeStamp.toInt()),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 12,
-                                    fontFamily: 'MontserratMedium',
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
+                              const SizedBox(height: 4),
+                              Obx(
+                                () => Row(
                                   children: [
                                     Icon(
-                                      CupertinoIcons.doc_text,
+                                      CupertinoIcons.person_2_fill,
                                       size: 14,
                                       color: Colors.grey.shade500,
                                     ),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        model.sinavTuru,
+                                        controller.isLoadingApplicants.value
+                                            ? 'common.loading'.tr
+                                            : _formattedApplicationText(
+                                                controller.toplamBasvuru.value,
+                                              ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -509,70 +528,40 @@ class DenemeGrid extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Obx(
-                                  () => Row(
-                                    children: [
-                                      Icon(
-                                        CupertinoIcons.person_2_fill,
-                                        size: 14,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          controller.isLoadingApplicants.value
-                                              ? 'Yükleniyor...'
-                                              : _formattedApplicationText(
-                                                  controller
-                                                      .toplamBasvuru.value,
-                                                ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade700,
-                                            fontSize: 12,
-                                            fontFamily: 'MontserratMedium',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 110,
-                            child: Obx(
-                              () => Container(
-                                height: 22,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: _ctaColor(controller),
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(8),
-                                  ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: metrics.railWidth,
+                          child: Obx(
+                            () => Container(
+                              height: 22,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _ctaColor(controller),
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(8),
                                 ),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    _ctaLabel(controller),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontFamily: 'MontserratMedium',
-                                    ),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _ctaLabel(controller),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontFamily: 'MontserratMedium',
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],

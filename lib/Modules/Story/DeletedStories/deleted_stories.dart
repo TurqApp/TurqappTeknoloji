@@ -47,7 +47,7 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
                 'story.deleted_stories.tab_deleted'.tr,
                 'story.deleted_stories.tab_expired'.tr,
               ],
-              pageName: 'DeletedStories',
+              pageName: kDeletedStoriesPageLineBarTag,
               pageController: controller.pageController,
             ),
             Expanded(
@@ -254,7 +254,10 @@ class _TabbedContent extends StatelessWidget {
     return PageView(
       controller: controller.pageController,
       onPageChanged: (idx) {
-        Get.find<PageLineBarController>(tag: 'DeletedStories').selection.value =
+        Get.find<PageLineBarController>(
+                tag: kDeletedStoriesPageLineBarTag)
+            .selection
+            .value =
             idx;
       },
       children: [

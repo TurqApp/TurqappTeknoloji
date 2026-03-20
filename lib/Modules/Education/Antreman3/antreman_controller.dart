@@ -275,10 +275,10 @@ class AntremanController extends GetxController {
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Ana Kategori Seç',
-                            style: TextStyle(
+                            'training.select_main_category_title'.tr,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
                             ),
@@ -292,9 +292,9 @@ class AntremanController extends GetxController {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Soru Bankası bu kategori ile açılır. İstediğin zaman menüden değiştirebilirsin.',
-                      style: TextStyle(
+                    Text(
+                      'training.select_main_category_body'.tr,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Colors.black54,
                         fontWeight: FontWeight.w500,

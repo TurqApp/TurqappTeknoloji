@@ -10,10 +10,29 @@ class CikmisSoruOlustur extends StatefulWidget {
 }
 
 class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
+  static const _sinavTuruLgs = 'LGS';
+  static const _sinavTuruTyt = 'TYT';
+  static const _sinavTuruAyt = 'AYT';
+  static const _sinavTuruKpss = 'KPSS';
+  static const _sinavTuruAles = 'ALES';
+  static const _sinavTuruDgs = 'DGS';
+  static const _sinavTuruYds = 'YDS';
+  static const _kpssLisansOrtaogretim = 'Ortaöğretim';
+  static const _kpssLisansOnLisans = 'Ön Lisans';
+  static const _kpssLisansLisans = 'Lisans';
+  static const _kpssLisansEgitimBirimleri = 'Eğitim Birimleri';
+  static const _kpssLisansAGrubu1 = 'A Grubu 1';
+  static const _kpssLisansAGrubu2 = 'A Grubu 2';
+
   List<String> dersler = [];
-  String sinavTuru = "LGS";
-  String kpssSecilenLisans = "Ortaöğretim";
+  String sinavTuru = _sinavTuruLgs;
+  String kpssSecilenLisans = _kpssLisansOrtaogretim;
   List<TextEditingController> soruSayisiTextFields = [];
+
+  bool _isKpssCommonLevel(String value) =>
+      value == _kpssLisansOrtaogretim ||
+      value == _kpssLisansOnLisans ||
+      value == _kpssLisansLisans;
 
   @override
   void initState() {
@@ -146,16 +165,17 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
 
                       sinavTuru = sinavTurleriList[index];
 
-                      if (sinavTuru == "LGS") {
+                      if (sinavTuru == _sinavTuruLgs) {
                         dersler = lgsDersler;
-                      } else if (sinavTuru == "TYT") {
+                      } else if (sinavTuru == _sinavTuruTyt) {
                         dersler = tytDersler;
-                      } else if (sinavTuru == "AYT") {
+                      } else if (sinavTuru == _sinavTuruAyt) {
                         dersler = aytDersler;
-                      } else if (sinavTuru == "KPSS") {
-                        kpssSecilenLisans = "Ortaöğretim";
+                      } else if (sinavTuru == _sinavTuruKpss) {
+                        kpssSecilenLisans = _kpssLisansOrtaogretim;
                         dersler = kpssDerslerOrtaVeOnLisans;
-                      } else if (sinavTuru == "ALES" || sinavTuru == "DGS") {
+                      } else if (sinavTuru == _sinavTuruAles ||
+                          sinavTuru == _sinavTuruDgs) {
                         dersler = alesVeDgsDersler;
                       } else {
                         dersler = ydsDersler;
@@ -203,7 +223,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
             },
           ),
         ),
-        if (sinavTuru == "KPSS")
+        if (sinavTuru == _sinavTuruKpss)
           Column(
             children: [
               SizedBox(height: 10),
@@ -225,16 +245,16 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
 
                                 disposeTextEditingControllers();
 
-                                if (kpssSecilenLisans == "Ortaöğretim" ||
-                                    kpssSecilenLisans == "Lisans" ||
-                                    kpssSecilenLisans == "Ön Lisans") {
+                                if (_isKpssCommonLevel(kpssSecilenLisans)) {
                                   dersler = kpssDerslerOrtaVeOnLisans;
                                 } else if (kpssSecilenLisans ==
-                                    "Eğitim Birimleri") {
+                                    _kpssLisansEgitimBirimleri) {
                                   dersler = kpssDerslerEgitimbirimleri;
-                                } else if (kpssSecilenLisans == "A Grubu 1") {
+                                } else if (kpssSecilenLisans ==
+                                    _kpssLisansAGrubu1) {
                                   dersler = kpssDerslerAgrubu1;
-                                } else if (kpssSecilenLisans == "A Grubu 2") {
+                                } else if (kpssSecilenLisans ==
+                                    _kpssLisansAGrubu2) {
                                   dersler = kpssDerslerAgrubu2;
                                 }
 
@@ -283,7 +303,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
             ],
           ),
         SizedBox(height: 20),
-        if (sinavTuru == "LGS")
+        if (sinavTuru == _sinavTuruLgs)
           Column(
             children: [
               SizedBox(height: 10),
@@ -341,7 +361,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "TYT")
+        if (sinavTuru == _sinavTuruTyt)
           Column(
             children: [
               SizedBox(height: 10),
@@ -399,7 +419,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "AYT")
+        if (sinavTuru == _sinavTuruAyt)
           Column(
             children: [
               SizedBox(height: 10),
@@ -457,10 +477,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "KPSS" &&
-            (kpssSecilenLisans == "Ortaöğretim" ||
-                kpssSecilenLisans == "Ön Lisans" ||
-                kpssSecilenLisans == "Lisans"))
+        if (sinavTuru == _sinavTuruKpss && _isKpssCommonLevel(kpssSecilenLisans))
           Column(
             children: [
               SizedBox(height: 10),
@@ -518,7 +535,8 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "KPSS" && kpssSecilenLisans == "Eğitim Birimleri")
+        if (sinavTuru == _sinavTuruKpss &&
+            kpssSecilenLisans == _kpssLisansEgitimBirimleri)
           Column(
             children: [
               SizedBox(height: 10),
@@ -576,7 +594,8 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "KPSS" && kpssSecilenLisans == "A Grubu 1")
+        if (sinavTuru == _sinavTuruKpss &&
+            kpssSecilenLisans == _kpssLisansAGrubu1)
           Column(
             children: [
               SizedBox(height: 10),
@@ -634,7 +653,8 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "KPSS" && kpssSecilenLisans == "A Grubu 2")
+        if (sinavTuru == _sinavTuruKpss &&
+            kpssSecilenLisans == _kpssLisansAGrubu2)
           Column(
             children: [
               SizedBox(height: 10),
@@ -692,7 +712,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "ALES" || sinavTuru == "DGS")
+        if (sinavTuru == _sinavTuruAles || sinavTuru == _sinavTuruDgs)
           Column(
             children: [
               SizedBox(height: 10),
@@ -750,7 +770,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                 ),
             ],
           ),
-        if (sinavTuru == "YDS")
+        if (sinavTuru == _sinavTuruYds)
           Column(
             children: [
               SizedBox(height: 10),

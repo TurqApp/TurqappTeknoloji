@@ -20,11 +20,14 @@ class MyJobAds extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
-                children: [BackButtons(text: "İlanlarım")],
+                children: [BackButtons(text: "pasaj.job_finder.my_ads".tr)],
               ),
             ),
             PageLineBar(
-                barList: ["Yayında", "Süresi Doldu"],
+                barList: [
+                  "pasaj.job_finder.published_tab".tr,
+                  "pasaj.job_finder.expired_tab".tr,
+                ],
                 pageName: "MyJobAds",
                 pageController: controller.pageController),
             Expanded(
@@ -59,7 +62,7 @@ class MyJobAds extends StatelessWidget {
                               );
                             },
                           )
-                        : EmptyRow(text: "İlan Bulunamadı");
+                        : EmptyRow(text: "pasaj.job_finder.no_my_ads".tr);
                   }),
                   Obx(() {
                     if (controller.isLoadingDeactive.value &&
@@ -84,7 +87,7 @@ class MyJobAds extends StatelessWidget {
                               );
                             },
                           )
-                        : EmptyRow(text: "İlan Bulunamadı");
+                        : EmptyRow(text: "pasaj.job_finder.no_my_ads".tr);
                   })
                 ],
               ),

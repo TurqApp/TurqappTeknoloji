@@ -2,14 +2,14 @@ import 'package:flutter/cupertino.dart';
 
 class AdminTaskDefinition {
   final String id;
-  final String title;
-  final String description;
+  final String titleKey;
+  final String descriptionKey;
   final IconData icon;
 
   const AdminTaskDefinition({
     required this.id,
-    required this.title,
-    required this.description,
+    required this.titleKey,
+    required this.descriptionKey,
     required this.icon,
   });
 }
@@ -17,62 +17,62 @@ class AdminTaskDefinition {
 const List<AdminTaskDefinition> adminTaskCatalog = <AdminTaskDefinition>[
   AdminTaskDefinition(
     id: 'moderation',
-    title: 'Moderasyon',
-    description: 'Flag, rapor ve içerik eşiklerini yönetir.',
+    titleKey: 'admin.task.moderation.title',
+    descriptionKey: 'admin.task.moderation.desc',
     icon: CupertinoIcons.flag_fill,
   ),
   AdminTaskDefinition(
     id: 'reports',
-    title: 'Raporlar',
-    description: 'Kullanıcı ve içerik raporlarını inceler.',
+    titleKey: 'admin.task.reports.title',
+    descriptionKey: 'admin.task.reports.desc',
     icon: CupertinoIcons.exclamationmark_bubble_fill,
   ),
   AdminTaskDefinition(
     id: 'badges',
-    title: 'Rozet Yönetimi',
-    description: 'Rozet başvurularını inceler ve rozet verir.',
+    titleKey: 'admin.task.badges.title',
+    descriptionKey: 'admin.task.badges.desc',
     icon: CupertinoIcons.checkmark_seal_fill,
   ),
   AdminTaskDefinition(
     id: 'approvals',
-    title: 'Onay / Başvurular',
-    description: 'Rozet ve benzeri başvuru-onay kuyruklarını takip eder.',
+    titleKey: 'admin.task.approvals.title',
+    descriptionKey: 'admin.task.approvals.desc',
     icon: CupertinoIcons.checkmark_alt_circle_fill,
   ),
   AdminTaskDefinition(
     id: 'user_bans',
-    title: 'Ban Yönetimi',
-    description: 'Kullanıcı banlarını uygular veya kaldırır.',
+    titleKey: 'admin.task.user_bans.title',
+    descriptionKey: 'admin.task.user_bans.desc',
     icon: CupertinoIcons.hand_raised_fill,
   ),
   AdminTaskDefinition(
     id: 'admin_push',
-    title: 'Admin Push',
-    description: 'Toplu bildirim ve sistem duyurularını gönderir.',
+    titleKey: 'admin.task.admin_push.title',
+    descriptionKey: 'admin.task.admin_push.desc',
     icon: CupertinoIcons.bell_fill,
   ),
   AdminTaskDefinition(
     id: 'ads_center',
-    title: 'Reklam Merkezi',
-    description: 'Reklam ve kampanya operasyonlarını yönetir.',
+    titleKey: 'admin.task.ads_center.title',
+    descriptionKey: 'admin.task.ads_center.desc',
     icon: CupertinoIcons.speaker_2_fill,
   ),
   AdminTaskDefinition(
     id: 'story_music',
-    title: 'Hikaye Müzikleri',
-    description: 'Hikaye müziği kataloglarını yönetir.',
+    titleKey: 'admin.task.story_music.title',
+    descriptionKey: 'admin.task.story_music.desc',
     icon: CupertinoIcons.music_note_list,
   ),
   AdminTaskDefinition(
     id: 'pasaj',
-    title: 'Pasaj Operasyonu',
-    description: 'Pasaj tarafındaki içerik ve akışları takip eder.',
+    titleKey: 'admin.task.pasaj.title',
+    descriptionKey: 'admin.task.pasaj.desc',
     icon: CupertinoIcons.briefcase_fill,
   ),
   AdminTaskDefinition(
     id: 'support',
-    title: 'Kullanıcı Destek',
-    description: 'Kullanıcı taleplerini ve geri bildirimleri takip eder.',
+    titleKey: 'admin.task.support.title',
+    descriptionKey: 'admin.task.support.desc',
     icon: CupertinoIcons.chat_bubble_2_fill,
   ),
 ];

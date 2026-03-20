@@ -249,7 +249,7 @@ class TestsGrid extends StatelessWidget {
                     borderRadius: BorderRadius.all(Radius.circular(50)),
                   ),
                   child: Text(
-                    "Hemen Başla",
+                    "tests.start_now".tr,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,

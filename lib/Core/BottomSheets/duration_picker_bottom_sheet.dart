@@ -135,7 +135,7 @@ class DurationPickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "İptal",
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -160,7 +160,7 @@ class DurationPickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "Tamam",
+                        'common.ok'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,

@@ -21,9 +21,10 @@ class AdsCampaignListView extends StatelessWidget {
                 child: Obx(() {
                   return DropdownButtonFormField<AdCampaignStatus?>(
                     initialValue: controller.filterStatus.value,
-                    decoration: _decoration('Status'),
+                    decoration: _decoration('ads_center.status'.tr),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Tümü')),
+                      DropdownMenuItem(
+                          value: null, child: Text('common.all'.tr)),
                       ...AdCampaignStatus.values.map(
                         (e) => DropdownMenuItem(
                           value: e,
@@ -43,9 +44,10 @@ class AdsCampaignListView extends StatelessWidget {
                 child: Obx(() {
                   return DropdownButtonFormField<AdPlacementType?>(
                     initialValue: controller.filterPlacement.value,
-                    decoration: _decoration('Placement'),
+                    decoration: _decoration('ads_center.placement'.tr),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Tümü')),
+                      DropdownMenuItem(
+                          value: null, child: Text('common.all'.tr)),
                       ...AdPlacementType.values.map(
                         (e) => DropdownMenuItem(
                           value: e,
@@ -75,8 +77,8 @@ class AdsCampaignListView extends StatelessWidget {
                   },
                 );
               }),
-              const Text(
-                'Test kampanyaları dahil',
+              Text(
+                'ads_center.include_test_campaigns'.tr,
                 style: TextStyle(fontFamily: 'MontserratMedium', fontSize: 12),
               ),
               const Spacer(),
@@ -85,8 +87,8 @@ class AdsCampaignListView extends StatelessWidget {
                   Get.to(() => const AdsCampaignEditorView());
                 },
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text(
-                  'Yeni Kampanya',
+                label: Text(
+                  'ads_center.new_campaign'.tr,
                   style: TextStyle(fontFamily: 'MontserratMedium'),
                 ),
               ),
@@ -98,9 +100,9 @@ class AdsCampaignListView extends StatelessWidget {
           child: Obx(() {
             final list = controller.campaigns;
             if (list.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(
-                  'Kampanya bulunamadı.',
+                  'ads_center.no_campaigns'.tr,
                   style: TextStyle(fontFamily: 'MontserratMedium'),
                 ),
               );
@@ -121,7 +123,7 @@ class AdsCampaignListView extends StatelessWidget {
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     title: Text(
-                      c.name.isEmpty ? '(isimsiz kampanya)' : c.name,
+                      c.name.isEmpty ? 'ads_center.untitled_campaign'.tr : c.name,
                       style: const TextStyle(
                         fontFamily: 'MontserratBold',
                         fontSize: 14,
@@ -133,17 +135,17 @@ class AdsCampaignListView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Status: ${c.status.name} • Bid: ${c.bidType.name} ${c.bidAmount.toStringAsFixed(2)}',
+                            '${'ads_center.status'.tr}: ${c.status.name} • ${'ads_center.bid'.tr}: ${c.bidType.name} ${c.bidAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                                 fontFamily: 'MontserratMedium', fontSize: 12),
                           ),
                           Text(
-                            'Placement: ${c.placementTypes.map((e) => e.name).join(', ')}',
+                            '${'ads_center.placement'.tr}: ${c.placementTypes.map((e) => e.name).join(', ')}',
                             style: const TextStyle(
                                 fontFamily: 'MontserratMedium', fontSize: 12),
                           ),
                           Text(
-                            'Bütçe: total ${c.totalBudget.toStringAsFixed(2)} / daily ${c.dailyBudget.toStringAsFixed(2)} / spent ${c.spentAmount.toStringAsFixed(2)}',
+                            '${'ads_center.budget'.tr}: ${'ads_center.total'.tr} ${c.totalBudget.toStringAsFixed(2)} / ${'ads_center.daily'.tr} ${c.dailyBudget.toStringAsFixed(2)} / ${'ads_center.spent'.tr} ${c.spentAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                                 fontFamily: 'MontserratMedium', fontSize: 12),
                           ),
@@ -163,11 +165,15 @@ class AdsCampaignListView extends StatelessWidget {
                               c.id, AdCampaignStatus.paused);
                         }
                       },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Düzenle')),
+                      itemBuilder: (_) => [
                         PopupMenuItem(
-                            value: 'activate', child: Text('Aktif Et')),
-                        PopupMenuItem(value: 'pause', child: Text('Duraklat')),
+                            value: 'edit', child: Text('profile.edit'.tr)),
+                        PopupMenuItem(
+                            value: 'activate',
+                            child: Text('ads_center.activate'.tr)),
+                        PopupMenuItem(
+                            value: 'pause',
+                            child: Text('ads_center.pause'.tr)),
                       ],
                     ),
                   ),

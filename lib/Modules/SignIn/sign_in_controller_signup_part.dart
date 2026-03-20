@@ -136,10 +136,10 @@ extension SignInControllerSignupPart on SignInController {
         await FirebaseAuth.instance.currentUser?.delete();
       } catch (_) {}
       AppSnackbar(
-        'Limit Aşıldı',
+        'signup.limit_title'.tr,
         e.message.isNotEmpty
             ? e.message
-            : 'Bu telefon numarası için en fazla 5 hesap oluşturulabilir.',
+            : 'signup.limit_body'.tr,
       );
       wait.value = false;
     } on UsernameAlreadyTaken catch (e) {
@@ -147,10 +147,10 @@ extension SignInControllerSignupPart on SignInController {
         await FirebaseAuth.instance.currentUser?.delete();
       } catch (_) {}
       AppSnackbar(
-        'Kullanıcı adı kullanımda',
+        'signup.username_taken_title'.tr,
         e.message.isNotEmpty
             ? e.message
-            : 'Lütfen farklı bir kullanıcı adı seç.',
+            : 'signup.username_taken_body'.tr,
       );
       wait.value = false;
     } catch (_) {
@@ -164,14 +164,14 @@ extension SignInControllerSignupPart on SignInController {
         await FirebaseAuth.instance.currentUser?.delete();
       } catch (_) {}
       AppSnackbar(
-        'Kayıt tamamlanamadı',
-        'Hesap oluşturma sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+        'signup.failed_title'.tr,
+        'signup.failed_body'.tr,
       );
     }
   }
 
   Future<void> searchEmail() async {
-    final candidate = emailcontroller.text.trim().toLowerCase();
+    final candidate = normalizeEmailAddress(emailcontroller.text);
     final requestId = ++_emailAvailabilityRequestId;
     emailAvilable.value = false;
     if (!isValidEmail(candidate)) return;
@@ -202,7 +202,7 @@ extension SignInControllerSignupPart on SignInController {
   }
 
   Future<void> searchNickname() async {
-    final usernameLower = nickname.value.trim().toLowerCase();
+    final usernameLower = normalizeNicknameInput(nickname.value);
     final requestId = ++_nicknameAvailabilityRequestId;
     nicknameAvilable.value = false;
     if (usernameLower.length < 8) return;
@@ -235,24 +235,24 @@ extension SignInControllerSignupPart on SignInController {
   Future<bool> validateSignupIdentityStep() async {
     if (signupIdentityCheckLoading.value) return false;
     signupIdentityCheckLoading.value = true;
-    final emailText = emailcontroller.text.trim().toLowerCase();
-    final nicknameText = nicknamecontroller.text.trim().toLowerCase();
+    final emailText = normalizeEmailAddress(emailcontroller.text);
+    final nicknameText = normalizeNicknameInput(nicknamecontroller.text);
     final pass = passwordcontroller.text;
 
     try {
       if (!signupPoliciesAccepted.value) {
         AppSnackbar(
-          'Onay Gerekli',
-          'Devam etmek icin uyelik sozlesmesi ve politika metinlerini kabul etmelisiniz.',
+          'signup.required_acceptance_title'.tr,
+          'signup.required_acceptance_body'.tr,
         );
         return false;
       }
       if (!isValidEmail(emailText)) {
-        AppSnackbar('Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
+        AppSnackbar('signup.missing_info_title'.tr, 'signup.invalid_email'.tr);
         return false;
       }
       if (nicknameText.length < 8) {
-        AppSnackbar('Eksik Bilgi', 'Kullanıcı adı en az 8 karakter olmalı.');
+        AppSnackbar('signup.missing_info_title'.tr, 'signup.username_min'.tr);
         return false;
       }
 
@@ -260,8 +260,8 @@ extension SignInControllerSignupPart on SignInController {
       await verifyPassword();
       if (!passwordAvilable.value) {
         AppSnackbar(
-          'Zayıf Şifre',
-          'Şifre en az bir harf, bir sayı ve bir noktalama içermeli (min 6 karakter).',
+          'signup.weak_password_title'.tr,
+          'signup.weak_password_body'.tr,
         );
         return false;
       }
@@ -275,11 +275,11 @@ extension SignInControllerSignupPart on SignInController {
       nicknameAvilable.value = availability.nicknameAvailable;
       if (!availability.reachable) return false;
       if (!availability.emailAvailable) {
-        AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
+        AppSnackbar('signup.unavailable_title'.tr, 'signup.email_taken'.tr);
         return false;
       }
       if (!availability.nicknameAvailable) {
-        AppSnackbar('Kullanılamaz', 'Bu kullanıcı adı zaten kullanımda.');
+        AppSnackbar('signup.unavailable_title'.tr, 'signup.username_taken'.tr);
         return false;
       }
       return true;
@@ -293,13 +293,13 @@ extension SignInControllerSignupPart on SignInController {
         bool emailAvailable,
         bool nicknameAvailable,
         bool reachable,
-      })> _checkSignupAvailabilityHttp({
+  })> _checkSignupAvailabilityHttp({
     String? email,
     String? nickname,
     bool showServiceError = false,
   }) async {
-    final normalizedEmail = (email ?? '').trim().toLowerCase();
-    final normalizedNickname = (nickname ?? '').trim().toLowerCase();
+    final normalizedEmail = normalizeEmailAddress(email);
+    final normalizedNickname = normalizeNicknameInput(nickname ?? '');
 
     try {
       final response = await _dio.post(
@@ -326,8 +326,8 @@ extension SignInControllerSignupPart on SignInController {
       }
       if (showServiceError) {
         AppSnackbar(
-          'Kontrol Edilemedi',
-          'Kayıt uygunluğu şu anda kontrol edilemiyor. Lütfen tekrar deneyin.',
+          'signup.check_failed_title'.tr,
+          'signup.check_failed_body'.tr,
         );
       }
       return (
@@ -338,8 +338,8 @@ extension SignInControllerSignupPart on SignInController {
     } catch (_) {
       if (showServiceError) {
         AppSnackbar(
-          'Kontrol Edilemedi',
-          'Kayıt uygunluğu şu anda kontrol edilemiyor. Lütfen tekrar deneyin.',
+          'signup.check_failed_title'.tr,
+          'signup.check_failed_body'.tr,
         );
       }
       return (
@@ -368,8 +368,8 @@ extension SignInControllerSignupPart on SignInController {
         'remainingSec': otpTimer.value,
       });
       AppSnackbar(
-        "Bekleyin",
-        "Yeni kod için ${otpTimer.value} saniye bekleyin.",
+        'common.warning'.tr,
+        'signup.wait_for_new_code'.trParams({'seconds': '${otpTimer.value}'}),
       );
       return;
     }
@@ -380,8 +380,8 @@ extension SignInControllerSignupPart on SignInController {
         'phone': phone,
       });
       AppSnackbar(
-        "Geçersiz Telefon",
-        "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.",
+        'signup.phone_invalid_title'.tr,
+        'signup.phone_invalid_body'.tr,
       );
       return;
     }
@@ -390,8 +390,8 @@ extension SignInControllerSignupPart on SignInController {
     try {
       final payload = {
         "phone": phone,
-        "email": email.value.trim().toLowerCase(),
-        "nickname": nickname.value.trim().toLowerCase(),
+        "email": normalizeEmailAddress(email.value),
+        "nickname": normalizeNicknameInput(nickname.value),
       };
       _logSignupOtp('callable_request', {
         'phone': phone,
@@ -410,8 +410,8 @@ extension SignInControllerSignupPart on SignInController {
         'selection': selection.value,
       });
       AppSnackbar(
-        "Kod Gönderildi",
-        "SMS gönderildi. Kod 120 saniye geçerli.",
+        'common.success'.tr,
+        'signup.code_sent_body'.tr,
       );
     } on FirebaseFunctionsException catch (e) {
       _logSignupOtp('callable_error', {
@@ -422,27 +422,28 @@ extension SignInControllerSignupPart on SignInController {
       String message;
       switch (e.code) {
         case 'invalid-argument':
-          message = e.message ?? "Girilen bilgiler geçerli değil.";
+          message = e.message ?? 'signup.otp_invalid_input'.tr;
           break;
         case 'already-exists':
-          message = e.message ?? "Bu bilgiler zaten kullanımda.";
+          message = e.message ?? 'signup.otp_already_exists'.tr;
           break;
         case 'failed-precondition':
-          message = e.message ?? "Yeni kod istemeden önce biraz bekleyin.";
+          message = e.message ?? 'signup.otp_wait_before_resend'.tr;
           break;
         case 'unavailable':
-          message = "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.";
+          message = 'signup.sms_unavailable'.tr;
           break;
         default:
-          message = "Kod gönderilemedi. Lütfen tekrar deneyin.";
+          message = 'signup.code_send_failed'.tr;
       }
-      AppSnackbar("Kod Gönderilemedi", message);
+      AppSnackbar('sign_in.code_send_failed_title'.tr, message);
     } catch (e, st) {
       _logSignupOtp('unexpected_error', {
         'error': e.toString(),
         'stack': st.toString().split('\n').take(3).join(' | '),
       });
-      AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
+      AppSnackbar(
+          'sign_in.code_send_failed_title'.tr, 'sign_in.sms_send_failed'.tr);
     } finally {
       _logSignupOtp('finish', {
         'selection': selection.value,
@@ -469,8 +470,8 @@ extension SignInControllerSignupPart on SignInController {
     if (wait.value) return;
     if (!signupPoliciesAccepted.value) {
       AppSnackbar(
-        'Onay Gerekli',
-        'Hesap olusturmadan once sozlesme ve politikalar kabul edilmelidir.',
+        'signup.required_acceptance_title'.tr,
+        'signup.required_acceptance_body'.tr,
       );
       return;
     }
@@ -479,15 +480,15 @@ extension SignInControllerSignupPart on SignInController {
 
     if (phone.length != 10 || !phone.startsWith('5')) {
       AppSnackbar(
-        "Geçersiz Telefon",
-        "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.",
+        'signup.phone_invalid_title'.tr,
+        'signup.phone_invalid_body'.tr,
       );
       return;
     }
     if (code.length != 6 || int.tryParse(code) == null) {
       AppSnackbar(
-        "Geçersiz Kod",
-        "Lütfen 6 haneli doğrulama kodunu girin.",
+        'signup.code_invalid_title'.tr,
+        'signup.code_invalid_body'.tr,
       );
       return;
     }
@@ -497,12 +498,12 @@ extension SignInControllerSignupPart on SignInController {
       await _functions.httpsCallable('verifySignupSmsCode').call({
         "phone": phone,
         "verificationCode": code,
-        "email": email.value.trim().toLowerCase(),
-        "nickname": nickname.value.trim().toLowerCase(),
+        "email": normalizeEmailAddress(email.value),
+        "nickname": normalizeNicknameInput(nickname.value),
       });
 
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email.value.trim(),
+        email: normalizeEmailAddress(email.value),
         password: password.value.trim(),
       );
       addToFirestore(context);
@@ -511,57 +512,56 @@ extension SignInControllerSignupPart on SignInController {
       String message;
       switch (e.code) {
         case 'deadline-exceeded':
-          message = "Kodun süresi doldu. Lütfen yeni kod isteyin.";
+          message = 'signup.code_expired'.tr;
           break;
         case 'already-exists':
-          message =
-              e.message ?? "Bu e-posta veya kullanıcı adı zaten kullanımda.";
+          message = e.message ?? 'signup.email_or_username_taken'.tr;
           break;
         case 'not-found':
-          message = "Doğrulama kodu bulunamadı. Yeniden kod alın.";
+          message = 'signup.code_not_found'.tr;
           break;
         case 'invalid-argument':
-          message = "Doğrulama kodu hatalı.";
+          message = 'signup.code_wrong'.tr;
           break;
         case 'resource-exhausted':
-          message = "Çok fazla hatalı deneme yapıldı. Yeni kod isteyin.";
+          message = 'signup.too_many_attempts'.tr;
           break;
         case 'failed-precondition':
-          message = e.message ?? "Kod artık geçerli değil. Yeni kod alın.";
+          message = e.message ?? 'signup.code_no_longer_valid'.tr;
           break;
         default:
-          message = "Kod doğrulanamadı. Lütfen tekrar deneyin.";
+          message = 'signup.verify_retry'.tr;
       }
-      AppSnackbar("Doğrulama Başarısız", message);
+      AppSnackbar('signup.verify_failed_title'.tr, message);
     } on FirebaseAuthException catch (e) {
       wait.value = false;
       final code = e.code;
       String message;
       switch (code) {
         case 'email-already-in-use':
-          message = 'Bu e-posta adresi zaten kullanımda.';
+          message = 'signup.email_in_use'.tr;
           break;
         case 'invalid-email':
-          message = 'E-posta adresi geçersiz.';
+          message = 'signup.invalid_email_auth'.tr;
           break;
         case 'weak-password':
-          message = 'Şifre çok zayıf. Daha güçlü bir şifre deneyin.';
+          message = 'signup.password_too_weak'.tr;
           break;
         case 'operation-not-allowed':
-          message = 'E-posta/şifre kayıt yöntemi kapalı.';
+          message = 'signup.email_password_disabled'.tr;
           break;
         case 'network-request-failed':
-          message = 'İnternet bağlantısı kurulamadı.';
+          message = 'signup.network_failed'.tr;
           break;
         default:
-          message = '${e.message ?? 'Kayıt işlemi başarısız.'} ($code)';
+          message = '${e.message ?? 'signup.operation_failed'.tr} ($code)';
       }
-      AppSnackbar('Hesap oluşturulamadı', message);
+      AppSnackbar('signup.account_create_failed_title'.tr, message);
     } catch (_) {
       wait.value = false;
       AppSnackbar(
-        'Hesap oluşturulamadı',
-        'Kayıt sırasında beklenmeyen bir hata oluştu.',
+        'signup.account_create_failed_title'.tr,
+        'signup.unexpected_error'.tr,
       );
     }
   }

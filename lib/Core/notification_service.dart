@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import '../main.dart'; // navigatorKey için
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
@@ -40,6 +41,17 @@ class NotificationService {
   StreamSubscription<User?>? _authStateSub;
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   bool _isHandlingTap = false;
+
+  static const _profileTypes = {'user', 'follow'};
+  static const _postTypes = {
+    'posts',
+    'like',
+    'reshared_posts',
+    'shared_as_posts',
+  };
+  static const _tutoringTypes = {'tutoring_application', 'tutoring_status'};
+  static const _marketTypes = {'market_offer', 'market_offer_status'};
+  static const _chatTypes = {'chat', 'message'};
   static const String _fcmTokenKeyPrefix = 'fcm_token';
 
   Future<void> initialize() async {
@@ -147,7 +159,8 @@ class NotificationService {
 
     final notif = msg.notification;
     final type = (msg.data['type'] ?? '').toString();
-    final title = (notif?.title ?? msg.data['title'] ?? 'TurqApp').toString();
+    final title =
+        (notif?.title ?? msg.data['title'] ?? 'app.name'.tr).toString();
     final body = (notif?.body ?? msg.data['body'] ?? '').toString();
     if (!NotificationPreferencesService.isTypeEnabled(type,
         await NotificationPreferencesService.getCurrentUserPreferences())) {
@@ -242,16 +255,13 @@ class NotificationService {
           ? Get.find<NotifyReaderController>()
           : Get.put(NotifyReaderController());
 
-      final normalized = type.toString().trim().toLowerCase();
+      final normalized = normalizeSearchText(type.toString());
       try {
-        if (normalized == "user" || normalized == "follow") {
+        if (_profileTypes.contains(normalized)) {
           await controller.goToProfile(docID.toString());
           return;
         }
-        if (normalized == "posts" ||
-            normalized == "like" ||
-            normalized == "reshared_posts" ||
-            normalized == "shared_as_posts") {
+        if (_postTypes.contains(normalized)) {
           await controller.goToPost(docID.toString());
           return;
         }
@@ -263,17 +273,15 @@ class NotificationService {
           await controller.goToJob(docID.toString());
           return;
         }
-        if (normalized == "tutoring_application" ||
-            normalized == "tutoring_status") {
+        if (_tutoringTypes.contains(normalized)) {
           await controller.goToTutoring(docID.toString());
           return;
         }
-        if (normalized == "market_offer" ||
-            normalized == "market_offer_status") {
+        if (_marketTypes.contains(normalized)) {
           await controller.goToMarket(docID.toString());
           return;
         }
-        if (normalized == "chat" || normalized == "message") {
+        if (_chatTypes.contains(normalized)) {
           await controller.goToChat(docID.toString());
         }
       } finally {

@@ -14,7 +14,7 @@ class BiographyMaker extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Biyografi"),
+            BackButtons(text: 'biography.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -36,10 +36,10 @@ class BiographyMaker extends StatelessWidget {
                           maxLength: 100,
                           maxLines: null,
                           keyboardType: TextInputType.multiline,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: "Kendini anlat..",
-                            hintStyle: TextStyle(
+                            hintText: 'biography.hint'.tr,
+                            hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
                                 fontSize: 15),

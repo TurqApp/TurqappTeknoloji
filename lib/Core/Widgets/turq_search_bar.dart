@@ -1,12 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class TurqSearchBar extends StatelessWidget {
   const TurqSearchBar({
     super.key,
     required this.controller,
     this.focusNode,
-    this.hintText = "Ara",
+    this.hintText = "",
     this.onTap,
     this.onChanged,
     this.onClear,
@@ -23,6 +24,7 @@ class TurqSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedHintText = hintText.isEmpty ? 'common.search'.tr : hintText;
     return Container(
       height: height,
       alignment: Alignment.centerLeft,
@@ -46,7 +48,7 @@ class TurqSearchBar extends StatelessWidget {
                     onTap: onTap,
                     onChanged: onChanged,
                     decoration: InputDecoration(
-                      hintText: hintText,
+                      hintText: resolvedHintText,
                       hintStyle: const TextStyle(
                         color: Colors.grey,
                         fontFamily: "MontserratMedium",

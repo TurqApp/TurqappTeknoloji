@@ -45,8 +45,8 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
-          'Reklam Merkezi',
+        title: Text(
+          'ads_center.title'.tr,
           style: TextStyle(
             color: Colors.black,
             fontFamily: 'MontserratBold',
@@ -62,13 +62,13 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
             fontFamily: 'MontserratMedium',
             fontSize: 13,
           ),
-          tabs: const [
-            Tab(text: 'Dashboard'),
-            Tab(text: 'Kampanyalar'),
-            Tab(text: 'Editor'),
-            Tab(text: 'Kreatif'),
-            Tab(text: 'Monitor'),
-            Tab(text: 'Preview'),
+          tabs: [
+            Tab(text: 'ads_center.tab_dashboard'.tr),
+            Tab(text: 'ads_center.tab_campaigns'.tr),
+            Tab(text: 'ads_center.tab_editor'.tr),
+            Tab(text: 'ads_center.tab_creatives'.tr),
+            Tab(text: 'ads_center.tab_monitor'.tr),
+            Tab(text: 'ads_center.tab_preview'.tr),
           ],
         ),
       ),
@@ -78,11 +78,11 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
         }
 
         if (!_controller.canAccess.value) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Text(
-                'Bu alan sadece admin erişimine açıktır.',
+                'ads_center.admin_only'.tr,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'MontserratMedium',
@@ -115,7 +115,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: _controller.refreshAll,
-                    child: const Text('Tekrar Dene'),
+                    child: Text('common.retry'.tr),
                   ),
                 ],
               ),

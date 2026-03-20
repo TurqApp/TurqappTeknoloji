@@ -1,3 +1,6 @@
+import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+
 const String _defaultProfileImageUrl = '';
 
 Map<String, dynamic> buildInitialUserDocument({
@@ -7,10 +10,9 @@ Map<String, dynamic> buildInitialUserDocument({
   required String email,
   required String phoneNumber,
 }) {
-  final normalizedNickname = nickname.trim();
-  final username = normalizedNickname.toLowerCase();
+  final username = normalizeNicknameInput(nickname);
   final usernameLower = username;
-  final normalizedEmail = email.trim().toLowerCase();
+  final normalizedEmail = normalizeEmailAddress(email);
   final normalizedPhone = phoneNumber.trim();
   final normalizedFirstName = firstName.trim();
   final normalizedLastName = lastName.trim();

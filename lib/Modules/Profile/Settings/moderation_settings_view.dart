@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Repositories/moderation_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -39,7 +41,7 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Moderasyon"),
+            BackButtons(text: 'admin.moderation.title'.tr),
             Expanded(
               child: FutureBuilder<bool>(
                 future: _canAccessFuture,
@@ -48,13 +50,13 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (accessSnap.data != true) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'Bu alan sadece admin erişimine açıktır.',
+                          'admin.no_access'.tr,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MontserratMedium',
                             fontSize: 14,
                           ),
@@ -89,11 +91,16 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
     try {
       final config = await _configService.ensureWithCallable();
       AppSnackbar(
-        'Moderasyon',
-        'Config güncellendi. Eşik: ${config.blackBadgeFlagThreshold}',
+        'admin.moderation.title'.tr,
+        'admin.moderation.config_updated'.trParams(<String, String>{
+          'threshold': '${config.blackBadgeFlagThreshold}',
+        }),
       );
     } catch (e) {
-      AppSnackbar('Hata', 'Config güncellenemedi: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.moderation.config_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _provisioning = false);
@@ -118,10 +125,13 @@ class _ModerationThresholdList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final threshold = config.blackBadgeFlagThreshold.clamp(1, 1000);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Column(
+      child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.only(bottom: bottomInset + 24),
         children: [
           _buildConfigCard(config),
           const SizedBox(height: 10),
@@ -132,7 +142,9 @@ class _ModerationThresholdList extends StatelessWidget {
               const Icon(CupertinoIcons.flag_fill, color: Colors.red, size: 18),
               const SizedBox(width: 6),
               Text(
-                'Eşik Değeri Aşan Postlar (≥ $threshold)',
+                'admin.moderation.threshold_posts'.trParams(
+                  <String, String>{'threshold': '$threshold'},
+                ),
                 style: const TextStyle(
                   fontFamily: 'MontserratBold',
                   fontSize: 13,
@@ -141,86 +153,95 @@ class _ModerationThresholdList extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: StreamBuilder<List<ModerationFlaggedPost>>(
-              stream: _moderationRepository.watchFlaggedPosts(
-                threshold: threshold,
-              ),
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snap.hasError) {
-                  return const Center(
+          StreamBuilder<List<ModerationFlaggedPost>>(
+            stream: _moderationRepository.watchFlaggedPosts(
+              threshold: threshold,
+            ),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snap.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
                     child: Text(
-                      'Moderasyon listesi alınamadı.',
-                      style: TextStyle(fontFamily: 'MontserratMedium'),
+                      'admin.moderation.list_failed'.tr,
+                      style: const TextStyle(fontFamily: 'MontserratMedium'),
                     ),
-                  );
-                }
-                final docs = snap.data ?? const <ModerationFlaggedPost>[];
-                if (docs.isEmpty) {
-                  return const Center(
+                  ),
+                );
+              }
+              final docs = snap.data ?? const <ModerationFlaggedPost>[];
+              if (docs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
                     child: Text(
-                      'Eşiği aşan post bulunmuyor.',
-                      style: TextStyle(fontFamily: 'MontserratMedium'),
+                      'admin.moderation.no_threshold_posts'.tr,
+                      style: const TextStyle(fontFamily: 'MontserratMedium'),
                     ),
-                  );
-                }
-                return ListView.separated(
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final item = docs[index];
-                    final data = item.data;
-                    final moderation = _asMap(data['moderation']);
-                    final flagCount = _asInt(moderation['flagCount']);
-                    final status =
-                        (moderation['status'] ?? 'active').toString();
-                    final userId =
-                        (data['userID'] ?? data['userId'] ?? '').toString();
-                    final text = (data['metin'] ?? '').toString();
-                    final lastFlagAt = _toDateTime(moderation['lastFlagAt']);
-                    return ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
+                  ),
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: docs.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final item = docs[index];
+                  final data = item.data;
+                  final moderation = _asMap(data['moderation']);
+                  final flagCount = _asInt(moderation['flagCount']);
+                  final status = (moderation['status'] ?? 'active').toString();
+                  final userId =
+                      (data['userID'] ?? data['userId'] ?? '').toString();
+                  final text = (data['metin'] ?? '').toString();
+                  final lastFlagAt = _toDateTime(moderation['lastFlagAt']);
+                  return ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    title: Text(
+                      text.isEmpty ? 'admin.moderation.no_text'.tr : text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'MontserratMedium',
+                        fontSize: 13,
+                        color: Colors.black,
                       ),
-                      title: Text(
-                        text.isEmpty ? 'Metin yok' : text,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'post: ${item.id}\nuser: $userId\nstatus: $status • flag: $flagCount'
+                        '${lastFlagAt == null ? '' : ' • son: ${_formatDate(lastFlagAt)}'}',
                         style: const TextStyle(
                           fontFamily: 'MontserratMedium',
-                          fontSize: 13,
-                          color: Colors.black,
+                          fontSize: 11,
+                          color: Colors.black54,
                         ),
                       ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          'post: ${item.id}\nuser: $userId\nstatus: $status • flag: $flagCount'
-                          '${lastFlagAt == null ? '' : ' • son: ${_formatDate(lastFlagAt)}'}',
-                          style: const TextStyle(
-                            fontFamily: 'MontserratMedium',
-                            fontSize: 11,
-                            color: Colors.black54,
+                    ),
+                    trailing: status == 'shadow_hidden'
+                        ? const Icon(CupertinoIcons.eye_slash_fill,
+                            color: Colors.orange, size: 18)
+                        : const Icon(
+                            CupertinoIcons.exclamationmark_triangle_fill,
+                            color: Colors.red,
+                            size: 18,
                           ),
-                        ),
-                      ),
-                      trailing: status == 'shadow_hidden'
-                          ? const Icon(CupertinoIcons.eye_slash_fill,
-                              color: Colors.orange, size: 18)
-                          : const Icon(
-                              CupertinoIcons.exclamationmark_triangle_fill,
-                              color: Colors.red,
-                              size: 18),
-                    );
-                  },
-                );
-              },
-            ),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
@@ -277,7 +298,9 @@ class _ModerationThresholdList extends StatelessWidget {
                     )
                   : const Icon(CupertinoIcons.gear, size: 15),
               label: Text(
-                provisioning ? 'Kuruluyor...' : 'Config Kur/Yenile',
+                provisioning
+                    ? 'admin.moderation.provisioning'.tr
+                    : 'admin.moderation.ensure_config'.tr,
                 style: const TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 12,
@@ -349,6 +372,8 @@ class _UserBanSectionState extends State<_UserBanSection> {
   @override
   Widget build(BuildContext context) {
     final stream = FirebaseFirestore.instance
+        .collection('adminConfig')
+        .doc('admin')
         .collection('bannedUser')
         .orderBy('updatedAt', descending: true)
         .limit(50)
@@ -364,8 +389,8 @@ class _UserBanSectionState extends State<_UserBanSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Kullanıcı Ban Yönetimi',
+          Text(
+            'admin.moderation.user_ban_title'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 14,
@@ -373,9 +398,9 @@ class _UserBanSectionState extends State<_UserBanSection> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            '1. ihlal: 1 ay, 2. ihlal: 3 ay, 3. ihlal: kalıcı yasak. Geçici cezada kullanıcı sadece gezebilir, beğeni bırakabilir ve yeniden paylaşım yapabilir.',
-            style: TextStyle(
+          Text(
+            'admin.moderation.user_ban_help'.tr,
+            style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 11,
               color: Colors.black54,
@@ -389,7 +414,7 @@ class _UserBanSectionState extends State<_UserBanSection> {
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,
-              hintText: 'Kullanıcı adı',
+              hintText: 'admin.tasks.username'.tr,
               prefixIcon: const Icon(CupertinoIcons.at),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -405,7 +430,7 @@ class _UserBanSectionState extends State<_UserBanSection> {
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,
-              hintText: 'Ban nedeni',
+              hintText: 'admin.moderation.ban_reason'.tr,
               prefixIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 28),
                 child: Icon(CupertinoIcons.exclamationmark_bubble),
@@ -440,9 +465,9 @@ class _UserBanSectionState extends State<_UserBanSection> {
                           ),
                         )
                       : const Icon(CupertinoIcons.hammer_fill, size: 16),
-                  label: const Text(
-                    'Sonraki Cezayı Uygula',
-                    style: TextStyle(fontFamily: 'MontserratBold'),
+                  label: Text(
+                    'admin.moderation.apply_next_penalty'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
                   ),
                 ),
               ),
@@ -459,17 +484,17 @@ class _UserBanSectionState extends State<_UserBanSection> {
                     ),
                   ),
                   icon: const Icon(CupertinoIcons.refresh_thick, size: 16),
-                  label: const Text(
-                    'Banı Kaldır',
-                    style: TextStyle(fontFamily: 'MontserratBold'),
+                  label: Text(
+                    'admin.moderation.clear_ban'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Aktif Banlar',
+          Text(
+            'admin.moderation.active_bans'.tr,
             style: TextStyle(
               fontFamily: 'MontserratBold',
               fontSize: 13,
@@ -487,9 +512,9 @@ class _UserBanSectionState extends State<_UserBanSection> {
                 );
               }
               if (snap.hasError) {
-                return const Text(
-                  'Ban listesi alınamadı.',
-                  style: TextStyle(
+                return Text(
+                  'admin.moderation.ban_list_failed'.tr,
+                  style: const TextStyle(
                     fontFamily: 'MontserratMedium',
                     fontSize: 12,
                     color: Colors.black54,
@@ -501,9 +526,9 @@ class _UserBanSectionState extends State<_UserBanSection> {
                   .where((doc) => (doc.data()['status'] ?? '') != 'cleared')
                   .toList(growable: false);
               if (docs.isEmpty) {
-                return const Text(
-                  'Aktif banlı kullanıcı yok.',
-                  style: TextStyle(
+                return Text(
+                  'admin.moderation.no_active_bans'.tr,
+                  style: const TextStyle(
                     fontFamily: 'MontserratMedium',
                     fontSize: 12,
                     color: Colors.black54,
@@ -570,10 +595,11 @@ class _UserBanSectionState extends State<_UserBanSection> {
               ),
               _BanChip(
                 text: permanent
-                    ? 'Kalıcı'
+                    ? 'admin.moderation.permanent'.tr
                     : expired
-                        ? 'Süresi Doldu'
-                        : 'Seviye $level',
+                        ? 'admin.moderation.expired'.tr
+                        : 'admin.moderation.level'
+                            .trParams(<String, String>{'level': '$level'}),
                 color: permanent
                     ? Colors.red
                     : expired
@@ -584,7 +610,10 @@ class _UserBanSectionState extends State<_UserBanSection> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Strike: $strikeCount • Durum: $status',
+            'admin.moderation.strike_status'.trParams(<String, String>{
+              'count': '$strikeCount',
+              'status': status,
+            }),
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 11,
@@ -595,7 +624,12 @@ class _UserBanSectionState extends State<_UserBanSection> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'Bitiş: ${_formatDate(DateTime.fromMillisecondsSinceEpoch(untilMs))}',
+                'admin.moderation.ends_at'.trParams(
+                  <String, String>{
+                    'date':
+                        _formatDate(DateTime.fromMillisecondsSinceEpoch(untilMs)),
+                  },
+                ),
                 style: const TextStyle(
                   fontFamily: 'MontserratMedium',
                   fontSize: 11,
@@ -628,9 +662,9 @@ class _UserBanSectionState extends State<_UserBanSection> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
-                    'Bir Sonraki Ceza',
-                    style: TextStyle(fontFamily: 'MontserratBold'),
+                  child: Text(
+                    'admin.moderation.next_penalty'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
                   ),
                 ),
               ),
@@ -645,9 +679,9 @@ class _UserBanSectionState extends State<_UserBanSection> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
-                    'Banı Kaldır',
-                    style: TextStyle(fontFamily: 'MontserratBold'),
+                  child: Text(
+                    'admin.moderation.clear_ban'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
                   ),
                 ),
               ),
@@ -659,9 +693,12 @@ class _UserBanSectionState extends State<_UserBanSection> {
   }
 
   Future<void> _applyByNickname(String action) async {
-    final nickname = _normalizeNickname(_nicknameController.text);
+    final nickname = normalizeNicknameInput(_nicknameController.text);
     if (nickname.isEmpty) {
-      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı zorunludur.');
+      AppSnackbar(
+        'admin.tasks.missing_info'.tr,
+        'admin.tasks.username_required'.tr,
+      );
       return;
     }
     await _callBanAction(
@@ -700,7 +737,10 @@ class _UserBanSectionState extends State<_UserBanSection> {
           final nickname = (payload['nickname'] ?? '').toString().trim();
           final user = await _userRepository.findUserByNickname(nickname);
           if (user == null) {
-            AppSnackbar('Hata', 'Bu kullanıcı adı ile kullanıcı bulunamadı.');
+            AppSnackbar(
+              'support.error_title'.tr,
+              'admin.tasks.user_not_found'.tr,
+            );
             return;
           }
           targetUserId = (user['id'] ?? '').toString().trim();
@@ -713,10 +753,14 @@ class _UserBanSectionState extends State<_UserBanSection> {
         final reason = (payload['reason'] ?? '').toString().trim();
         await _approvalRepository.createApproval(
           type: 'user_ban',
-          title: action == 'clear' ? 'Ban kaldırma onayı' : 'Ban işlemi onayı',
+          title: action == 'clear'
+              ? 'admin.moderation.clear_ban_approval'.tr
+              : 'admin.moderation.ban_approval'.tr,
           summary: action == 'clear'
-              ? '@$targetNickname için ban kaldırma talebi oluşturuldu.'
-              : '@$targetNickname için sonraki ceza talebi oluşturuldu.',
+              ? 'admin.moderation.clear_ban_summary'
+                  .trParams(<String, String>{'nickname': targetNickname})
+              : 'admin.moderation.advance_penalty_summary'
+                  .trParams(<String, String>{'nickname': targetNickname}),
           targetUserId: targetUserId,
           targetNickname: targetNickname,
           payload: <String, dynamic>{
@@ -725,7 +769,10 @@ class _UserBanSectionState extends State<_UserBanSection> {
             'reason': reason,
           },
         );
-        AppSnackbar('Moderasyon', 'İşlem admin onay kuyruğuna gönderildi.');
+        AppSnackbar(
+          'admin.moderation.title'.tr,
+          'admin.moderation.sent_for_approval'.tr,
+        );
         if (callableName == 'setUserBanByNickname') {
           _nicknameController.clear();
         }
@@ -743,12 +790,19 @@ class _UserBanSectionState extends State<_UserBanSection> {
       final cleared = (data['status'] ?? '') == 'cleared';
       if (!mounted) return;
       AppSnackbar(
-        'Moderasyon',
+        'admin.moderation.title'.tr,
         cleared
-            ? '@$nickname için ban kaldırıldı.'
+            ? 'admin.moderation.ban_removed'
+                .trParams(<String, String>{'nickname': nickname})
             : permanent
-                ? '@$nickname için kalıcı yasak uygulandı.'
-                : '@$nickname için seviye $level ceza uygulandı.',
+                ? 'admin.moderation.permanent_applied'
+                    .trParams(<String, String>{'nickname': nickname})
+                : 'admin.moderation.level_applied'.trParams(
+                    <String, String>{
+                      'nickname': nickname,
+                      'level': '$level',
+                    },
+                  ),
       );
       if (callableName == 'setUserBanByNickname') {
         _nicknameController.clear();
@@ -757,9 +811,12 @@ class _UserBanSectionState extends State<_UserBanSection> {
         _reasonController.clear();
       }
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar('Hata', _errorMessage(e));
+      AppSnackbar('support.error_title'.tr, _errorMessage(e));
     } catch (e) {
-      AppSnackbar('Hata', 'Ban işlemi tamamlanamadı: $e');
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.moderation.action_failed'.tr}: $e',
+      );
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -767,26 +824,18 @@ class _UserBanSectionState extends State<_UserBanSection> {
     }
   }
 
-  String _normalizeNickname(String raw) {
-    return raw
-        .trim()
-        .replaceFirst(RegExp(r'^@+'), '')
-        .replaceAll(RegExp(r'\s+'), '')
-        .toLowerCase();
-  }
-
   String _errorMessage(FirebaseFunctionsException error) {
     switch (error.code) {
       case 'not-found':
-        return 'Bu kullanıcı adı ile kullanıcı bulunamadı.';
+        return 'admin.tasks.user_not_found'.tr;
       case 'permission-denied':
-        return 'Bu işlem için admin yetkisi gerekli.';
+        return 'admin.badges.permission_required'.tr;
       case 'invalid-argument':
-        return error.message ?? 'Girilen bilgi geçersiz.';
+        return error.message ?? 'admin.badges.invalid_input'.tr;
       case 'failed-precondition':
-        return 'Bu kullanıcı adı için birden fazla kullanıcı bulundu.';
+        return 'admin.badges.multiple_users'.tr;
       default:
-        return error.message ?? 'Ban işlemi tamamlanamadı.';
+        return error.message ?? 'admin.moderation.action_failed'.tr;
     }
   }
 

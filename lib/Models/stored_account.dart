@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
@@ -102,7 +103,7 @@ class StoredAccount {
   factory StoredAccount.fromJson(Map<String, dynamic> json) {
     return StoredAccount(
       uid: (json['uid'] ?? '').toString(),
-      email: (json['email'] ?? '').toString().trim().toLowerCase(),
+      email: normalizeEmailAddress((json['email'] ?? '').toString()),
       username: (json['username'] ?? '').toString(),
       displayName: (json['displayName'] ?? '').toString(),
       rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
@@ -138,7 +139,7 @@ class StoredAccount {
         .toList(growable: false);
     return StoredAccount(
       uid: user.userID,
-      email: user.email.trim().toLowerCase(),
+      email: normalizeEmailAddress(user.email),
       username: username,
       displayName: displayName,
       rozet: user.rozet.trim(),
@@ -171,7 +172,7 @@ class StoredAccount {
         .toList(growable: false);
     return StoredAccount(
       uid: user.userID,
-      email: (firebaseUser.email ?? '').trim().toLowerCase(),
+      email: normalizeEmailAddress(firebaseUser.email),
       username: username,
       displayName: displayName,
       rozet: user.rozet.trim(),

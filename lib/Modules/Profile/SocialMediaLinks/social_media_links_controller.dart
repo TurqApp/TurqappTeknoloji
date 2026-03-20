@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
@@ -27,47 +28,9 @@ class SocialMediaController extends GetxController {
   var isLoading = false.obs;
   String get currentUid => FirebaseAuth.instance.currentUser!.uid;
 
-  List<String> sosyal = [
-    "TurqApp",
-    "instagram",
-    "facebook",
-    "whatsApp",
-    "x",
-    "youtube",
-    "linkedin",
-    "tiktok",
-    "pinterest",
-  ];
-
-  String embeddedLogoAsset(String key) => "assets/icons/${key}_s.webp";
+  List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
 
   bool isKnownEmbeddedKey(String key) => sosyal.contains(key);
-
-  String normalizeEmbeddedKeyFromTitle(String title) {
-    final normalized = title.trim().toLowerCase();
-    switch (normalized) {
-      case 'instagram':
-        return 'instagram';
-      case 'facebook':
-        return 'facebook';
-      case 'whatsapp':
-        return 'whatsApp';
-      case 'x':
-        return 'x';
-      case 'youtube':
-        return 'youtube';
-      case 'linkedin':
-        return 'linkedin';
-      case 'tiktok':
-        return 'tiktok';
-      case 'pinterest':
-        return 'pinterest';
-      case 'turqapp':
-        return 'TurqApp';
-      default:
-        return '';
-    }
-  }
 
   @override
   void onInit() {

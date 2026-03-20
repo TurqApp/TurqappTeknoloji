@@ -29,8 +29,8 @@ class OfflineIndicator extends StatelessWidget {
             children: [
               const Icon(Icons.wifi_off, color: Colors.white, size: 16),
               const SizedBox(width: 8),
-              const Text(
-                'Çevrimdışı - Önbellekten gösteriliyor',
+              Text(
+                'offline_indicator.offline_cached'.tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -47,7 +47,8 @@ class OfflineIndicator extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${offlineService.pendingActions.length} bekliyor',
+                    'offline_indicator.pending_count'
+                        .trParams({'count': '${offlineService.pendingActions.length}'}),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,

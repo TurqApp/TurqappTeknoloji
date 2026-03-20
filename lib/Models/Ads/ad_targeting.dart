@@ -1,4 +1,5 @@
 import 'package:turqappv2/Models/Ads/ad_model_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class AdTargeting {
   final List<String> countries;
@@ -64,9 +65,9 @@ class AdTargeting {
 
   bool _matchList(List<String> allowed, String? value) {
     if (allowed.isEmpty) return true;
-    final normalized = (value ?? '').trim().toLowerCase();
+    final normalized = normalizeSearchText(value ?? '');
     if (normalized.isEmpty) return false;
-    return allowed.map((e) => e.toLowerCase()).contains(normalized);
+    return allowed.map(normalizeSearchText).contains(normalized);
   }
 
   bool matches({

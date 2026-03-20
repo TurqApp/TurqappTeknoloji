@@ -25,29 +25,33 @@ class AdsDashboardView extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(14),
           children: [
-            _sectionTitle('Özet'),
+            _sectionTitle('ads_center.summary'.tr),
             Wrap(
               spacing: 10,
               runSpacing: 10,
               children: [
-                _metricCard('Toplam Kampanya', '${m['totalCampaigns'] ?? 0}'),
-                _metricCard('Aktif', '${m['activeCampaigns'] ?? 0}'),
-                _metricCard('Duraklatıldı', '${m['pausedCampaigns'] ?? 0}'),
-                _metricCard('Impression', '${m['totalImpressions'] ?? 0}'),
-                _metricCard('Reach', '${m['uniqueReach'] ?? 0}'),
-                _metricCard('Click', '${m['clicks'] ?? 0}'),
-                _metricCard('CTR', _percent(m['ctr'])),
-                _metricCard('Spend', _money(m['spend'])),
-                _metricCard('Avg CPC', _money(m['avgCpc'])),
-                _metricCard('Avg CPM', _money(m['avgCpm'])),
                 _metricCard(
-                    'Video Completion', _percent(m['videoCompletionRate'])),
+                    'ads_center.total_campaigns'.tr, '${m['totalCampaigns'] ?? 0}'),
+                _metricCard('ads_center.active'.tr, '${m['activeCampaigns'] ?? 0}'),
+                _metricCard(
+                    'ads_center.paused'.tr, '${m['pausedCampaigns'] ?? 0}'),
+                _metricCard(
+                    'ads_center.impressions'.tr, '${m['totalImpressions'] ?? 0}'),
+                _metricCard('ads_center.reach'.tr, '${m['uniqueReach'] ?? 0}'),
+                _metricCard('ads_center.clicks'.tr, '${m['clicks'] ?? 0}'),
+                _metricCard('CTR', _percent(m['ctr'])),
+                _metricCard('ads_center.spend'.tr, _money(m['spend'])),
+                _metricCard('ads_center.avg_cpc'.tr, _money(m['avgCpc'])),
+                _metricCard('ads_center.avg_cpm'.tr, _money(m['avgCpm'])),
+                _metricCard(
+                    'ads_center.video_completion'.tr,
+                    _percent(m['videoCompletionRate'])),
               ],
             ),
             const SizedBox(height: 16),
-            _sectionTitle('Feature Flags'),
+            _sectionTitle('ads_center.feature_flags'.tr),
             _flagTile(
-              title: 'adsInfrastructureEnabled',
+              title: 'ads_center.flag_infrastructure'.tr,
               value: flags.adsInfrastructureEnabled,
               onChanged: (v) => _saveFlags(
                 controller,
@@ -55,7 +59,7 @@ class AdsDashboardView extends StatelessWidget {
               ),
             ),
             _flagTile(
-              title: 'adsAdminPanelEnabled',
+              title: 'ads_center.flag_admin_panel'.tr,
               value: flags.adsAdminPanelEnabled,
               onChanged: (v) => _saveFlags(
                 controller,
@@ -63,7 +67,7 @@ class AdsDashboardView extends StatelessWidget {
               ),
             ),
             _flagTile(
-              title: 'adsDeliveryEnabled',
+              title: 'ads_center.flag_delivery'.tr,
               value: flags.adsDeliveryEnabled,
               onChanged: (v) => _saveFlags(
                 controller,
@@ -71,7 +75,7 @@ class AdsDashboardView extends StatelessWidget {
               ),
             ),
             _flagTile(
-              title: 'adsPublicVisibilityEnabled',
+              title: 'ads_center.flag_public_visibility'.tr,
               value: flags.adsPublicVisibilityEnabled,
               onChanged: (v) => _saveFlags(
                 controller,
@@ -79,7 +83,7 @@ class AdsDashboardView extends StatelessWidget {
               ),
             ),
             _flagTile(
-              title: 'adsPreviewModeEnabled',
+              title: 'ads_center.flag_preview_mode'.tr,
               value: flags.adsPreviewModeEnabled,
               onChanged: (v) => _saveFlags(
                 controller,

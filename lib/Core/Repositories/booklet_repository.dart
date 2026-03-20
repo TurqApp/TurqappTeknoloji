@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class BookletRepository extends GetxService {
@@ -48,7 +49,7 @@ class BookletRepository extends GetxService {
     bool cacheOnly = false,
   }) =>
       _fetch(
-        cacheKey: 'type:${sinavTuru.trim().toLowerCase()}',
+        cacheKey: 'type:${normalizeSearchText(sinavTuru)}',
         queryBuilder: () => _firestore
             .collection('books')
             .where('sinavTuru', isEqualTo: sinavTuru),
@@ -64,7 +65,7 @@ class BookletRepository extends GetxService {
     bool cacheOnly = false,
   }) =>
       _fetch(
-        cacheKey: 'owner:${userId.trim().toLowerCase()}',
+        cacheKey: 'owner:${normalizeSearchText(userId)}',
         queryBuilder: () =>
             _firestore.collection('books').where('userID', isEqualTo: userId),
         preferCache: preferCache,

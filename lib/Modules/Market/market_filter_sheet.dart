@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
@@ -45,11 +46,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   Widget build(BuildContext context) {
     final cities = controller.availableCities;
     final cityItems = <DropdownMenuItem<String>>[
-      const DropdownMenuItem<String>(
+      DropdownMenuItem<String>(
         value: '',
         child: Text(
-          'Tüm Şehirler',
-          style: TextStyle(
+          'pasaj.market.filter.all_cities'.tr,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 14,
             fontFamily: 'MontserratMedium',
@@ -84,11 +85,11 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppSheetHeader(title: 'Filtreler'),
+              AppSheetHeader(title: 'pasaj.market.filter.title'.tr),
               const SizedBox(height: 16),
-              const Text(
-                'Şehir',
-                style: TextStyle(
+              Text(
+                'common.city'.tr,
+                style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
                   fontFamily: 'MontserratBold',
@@ -100,8 +101,8 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                   await ListBottomSheet.show(
                     context: context,
                     items: cityItems.map((item) => item.value!).toList(),
-                    title: 'Şehir',
-                    searchHintText: 'Şehir ara',
+                    title: 'common.city'.tr,
+                    searchHintText: 'pasaj.market.filter.search_city'.tr,
                     selectedItem: selectedCity,
                     onSelect: (value) {
                       setState(() {
@@ -123,7 +124,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                         Expanded(
                           child: Text(
                             selectedCity.isEmpty
-                                ? 'Tüm Şehirler'
+                                ? 'pasaj.market.filter.all_cities'.tr
                                 : selectedCity,
                             style: const TextStyle(
                               color: Colors.black,
@@ -142,9 +143,9 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Fiyat Aralığı',
-                style: TextStyle(
+              Text(
+                'pasaj.market.filter.price_range'.tr,
+                style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
                   fontFamily: 'MontserratBold',
@@ -157,7 +158,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                     child: TextField(
                       controller: minPriceController,
                       keyboardType: TextInputType.number,
-                      decoration: _inputDecoration('Min'),
+                      decoration: _inputDecoration('pasaj.market.filter.min'.tr),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -165,15 +166,15 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                     child: TextField(
                       controller: maxPriceController,
                       keyboardType: TextInputType.number,
-                      decoration: _inputDecoration('Max'),
+                      decoration: _inputDecoration('pasaj.market.filter.max'.tr),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Sıralama',
-                style: TextStyle(
+              Text(
+                'pasaj.market.filter.sort'.tr,
+                style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
                   fontFamily: 'MontserratBold',
@@ -182,14 +183,25 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: _sortChip(label: 'Yeni', value: 'newest')),
-                  const SizedBox(width: 8),
                   Expanded(
-                    child: _sortChip(label: 'Artan', value: 'price_asc'),
+                    child: _sortChip(
+                      label: 'pasaj.market.filter.newest'.tr,
+                      value: 'newest',
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _sortChip(label: 'Azalan', value: 'price_desc'),
+                    child: _sortChip(
+                      label: 'pasaj.market.filter.ascending'.tr,
+                      value: 'price_asc',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _sortChip(
+                      label: 'pasaj.market.filter.descending'.tr,
+                      value: 'price_desc',
+                    ),
                   ),
                 ],
               ),
@@ -210,9 +222,9 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'Temizle',
-                          style: TextStyle(
+                        child: Text(
+                          'common.clear'.tr,
+                          style: const TextStyle(
                             color: Colors.black,
                             fontSize: 13,
                             fontFamily: 'MontserratBold',
@@ -243,9 +255,9 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: const Text(
-                          'Uygula',
-                          style: TextStyle(
+                        child: Text(
+                          'pasaj.market.filter.apply'.tr,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
                             fontFamily: 'MontserratBold',

@@ -10,6 +10,7 @@ import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -78,12 +79,12 @@ class MessageContent extends StatelessWidget {
         onSendReply: (text, mediaUrl) async {
           await chatController.sendExternalReplyText(
             text,
-            replyText: "Fotoğraf",
+            replyText: 'chat.photo'.tr,
             replyType: "media",
             replyTarget: mediaUrl,
           );
         },
-        replyPreviewLabel: "Fotoğraf",
+        replyPreviewLabel: 'chat.photo'.tr,
       ),
     );
   }
@@ -97,12 +98,12 @@ class MessageContent extends StatelessWidget {
         onSendReply: (text, mediaUrl) async {
           await chatController.sendExternalReplyText(
             text,
-            replyText: "Video",
+            replyText: 'chat.video'.tr,
             replyType: "video",
             replyTarget: mediaUrl,
           );
         },
-        replyPreviewLabel: "Video",
+        replyPreviewLabel: 'chat.video'.tr,
       ),
     );
   }
@@ -229,7 +230,7 @@ class MessageContent extends StatelessWidget {
                                       color: Colors.black45),
                                   const SizedBox(width: 3),
                                   Text(
-                                    "İletildi",
+                                    'chat.forwarded_title'.tr,
                                     style: TextStyle(
                                       color: Colors.black45,
                                       fontSize: 11,
@@ -530,7 +531,7 @@ class MessageContent extends StatelessWidget {
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               child: Text(
-                                "Fotoğrafları gizle",
+                                'chat.hide_photos'.tr,
                                 style: TextStyle(
                                   color: Colors.blueAccent,
                                   fontSize: 12,
@@ -561,7 +562,7 @@ class _FullScreenVideoPlayer extends StatefulWidget {
     required this.videoUrl,
     this.enableReplyBar = false,
     this.onSendReply,
-    this.replyPreviewLabel = "Video",
+    this.replyPreviewLabel = "",
   });
 
   @override
@@ -629,18 +630,18 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
           color: Colors.white.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               CupertinoIcons.reply_thick_solid,
               color: Colors.black,
               size: 14,
             ),
-            SizedBox(width: 5),
+            const SizedBox(width: 5),
             Text(
-              "Yanıtlayın",
-              style: TextStyle(
+              'chat.reply_prompt'.tr,
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 12,
                 fontFamily: "Montserrat",
@@ -717,10 +718,10 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              "Siz",
-                              style: TextStyle(
+                              'chat.you'.tr,
+                              style: const TextStyle(
                                 color: Color(0xFF18A999),
                                 fontSize: 14,
                                 fontFamily: "Montserrat",
@@ -748,7 +749,9 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                         child: Row(
                           children: [
                             Text(
-                              widget.replyPreviewLabel,
+                              widget.replyPreviewLabel.isEmpty
+                                  ? 'chat.video'.tr
+                                  : widget.replyPreviewLabel,
                               style: const TextStyle(
                                 color: Colors.black54,
                                 fontSize: 12,
@@ -768,8 +771,8 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                               textCapitalization: TextCapitalization.sentences,
                               minLines: 1,
                               maxLines: 3,
-                              decoration: const InputDecoration(
-                                hintText: "Mesaj yaz",
+                              decoration: InputDecoration(
+                                hintText: 'chat.message_hint'.tr,
                                 isDense: true,
                                 border: InputBorder.none,
                               ),

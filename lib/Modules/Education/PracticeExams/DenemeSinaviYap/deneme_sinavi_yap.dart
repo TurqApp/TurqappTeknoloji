@@ -8,6 +8,8 @@ import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviYap/deneme
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
+const _practiceExamLgsType = 'LGS';
+
 class DenemeSinaviYap extends StatelessWidget {
   final SinavModel model;
   final Function sinaviBitir;
@@ -88,7 +90,7 @@ class DenemeSinaviYap extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: (controller.model.sinavTuru == "LGS"
+                  children: (controller.model.sinavTuru == _practiceExamLgsType
                           ? ['A', 'B', 'C', 'D']
                           : ['A', 'B', 'C', 'D', 'E'])
                       .map((option) {

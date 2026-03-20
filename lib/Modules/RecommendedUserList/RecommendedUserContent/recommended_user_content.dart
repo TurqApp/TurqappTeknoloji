@@ -118,7 +118,9 @@ class RecommendedUserContent extends StatelessWidget {
                 Obx(() {
                   final isLoading = controller.followLoading.value;
                   final isFollowing = controller.isFollowing.value;
-                  final buttonLabel = isFollowing ? "Takiptesin" : "Takip Et";
+                  final buttonLabel = isFollowing
+                      ? 'following.following'.tr
+                      : 'following.follow'.tr;
                   final textColor = isFollowing ? Colors.black : Colors.white;
                   final backgroundColor =
                       isFollowing ? Colors.grey.withAlpha(30) : Colors.black;

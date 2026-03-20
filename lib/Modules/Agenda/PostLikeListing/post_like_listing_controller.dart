@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class LikeUserItem {
   const LikeUserItem({
@@ -57,7 +58,7 @@ class PostLikeListingController extends GetxController {
   }
 
   void onSearchChanged(String value) {
-    final normalized = _normalize(value);
+    final normalized = normalizeSearchText(value);
     if (query.value == normalized) return;
     query.value = normalized;
   }
@@ -104,7 +105,7 @@ class PostLikeListingController extends GetxController {
       final username = summary.preferredName.trim();
       final fullName = summary.displayName.trim();
       final avatarUrl = summary.avatarUrl.trim();
-      final searchText = _normalize([
+      final searchText = normalizeSearchText([
         nickname,
         username,
         fullName,
@@ -123,20 +124,8 @@ class PostLikeListingController extends GetxController {
     }
   }
 
-  String _normalize(String input) {
-    return input
-        .toLowerCase()
-        .replaceAll('ı', 'i')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('ş', 's')
-        .replaceAll('ö', 'o')
-        .replaceAll('ç', 'c')
-        .trim();
-  }
-
   void _applyFilter() {
-    final term = _normalize(query.value);
+    final term = normalizeSearchText(query.value);
     if (term.isEmpty) {
       filteredUsers.assignAll(users);
     } else {

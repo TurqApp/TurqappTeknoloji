@@ -189,7 +189,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                                           ),
                                         )
                                       : Text(
-                                          "Takip Et",
+                                          'following.follow'.tr,
                                           style: TextStyle(
                                               color: Colors.white,
                                               fontFamily:

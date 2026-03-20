@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+import 'package:turqappv2/Modules/Chat/chat_constants.dart';
 
 class ConversationRepository extends GetxService {
   static ConversationRepository ensure() {
@@ -403,7 +404,7 @@ class ConversationRepository extends GetxService {
         "participants": participants,
         "userID1": participants.first,
         "userID2": participants.last,
-        "lastMessage": "Gönderi",
+        "lastMessage": kConversationPostMessageMarker,
         "lastMessageAt": nowMs,
         "lastMessageAtMs": nowMs,
         "lastSenderId": currentUid,
@@ -479,7 +480,7 @@ class ConversationRepository extends GetxService {
       if (!hasCanonicalParticipants) "participants": participants,
       if (!hasCanonicalParticipants) "userID1": participants.first,
       if (!hasCanonicalParticipants) "userID2": participants.last,
-      "lastMessage": "Gönderi",
+      "lastMessage": kConversationPostMessageMarker,
       "lastMessageAt": nowMs,
       "lastMessageAtMs": nowMs,
       "lastSenderId": currentUid,

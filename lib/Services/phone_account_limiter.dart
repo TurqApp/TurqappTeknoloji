@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/phone_utils.dart';
 
 class PhoneAccountLimitReached implements Exception {
   final String message;
@@ -20,7 +21,7 @@ class PhoneAccountLimiter {
   static const String collectionName = 'phoneAccounts';
 
   String normalize(String raw) {
-    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(raw);
     // App currently uses 10-digit TR numbers starting with '5'
     if (digits.length >= 10) {
       return digits.substring(digits.length - 10);

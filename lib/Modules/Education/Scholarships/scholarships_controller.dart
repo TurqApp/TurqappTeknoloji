@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_view.dart';
@@ -515,13 +516,14 @@ class ScholarshipsController extends GetxController {
     final String fallbackId = 'scholarship-$shortTail';
     final String fallbackUrl = 'https://turqapp.com/e/$fallbackId';
     final String title = _pickScholarshipTitle(scholarshipData, burs);
+    final String normalizedTitle = normalizeSearchText(title);
     final String shortDesc = burs.shortDescription.trim();
     final String providerDesc = burs.bursVeren.trim();
     final String desc = shortDesc.isNotEmpty &&
-            shortDesc.toLowerCase() != title.trim().toLowerCase()
+            normalizeSearchText(shortDesc) != normalizedTitle
         ? shortDesc
         : (providerDesc.isNotEmpty &&
-                providerDesc.toLowerCase() != title.trim().toLowerCase()
+                normalizeSearchText(providerDesc) != normalizedTitle
             ? providerDesc
             : 'scholarship.share_fallback_desc'.tr);
     final String existingShortUrl = _readTextField(scholarshipData, 'shortUrl');
@@ -641,13 +643,14 @@ class ScholarshipsController extends GetxController {
   }
 
   String _pickScholarshipShareDesc(IndividualScholarshipsModel model) {
-    final normalizedTitle = model.baslik.trim().toLowerCase();
+    final normalizedTitle = normalizeSearchText(model.baslik);
     final shortDesc = model.shortDescription.trim();
-    if (shortDesc.isNotEmpty && shortDesc.toLowerCase() != normalizedTitle) {
+    if (shortDesc.isNotEmpty &&
+        normalizeSearchText(shortDesc) != normalizedTitle) {
       return shortDesc;
     }
     final provider = model.bursVeren.trim();
-    if (provider.isNotEmpty && provider.toLowerCase() != normalizedTitle) {
+    if (provider.isNotEmpty && normalizeSearchText(provider) != normalizedTitle) {
       return provider;
     }
     return 'scholarship.share_fallback_desc'.tr;

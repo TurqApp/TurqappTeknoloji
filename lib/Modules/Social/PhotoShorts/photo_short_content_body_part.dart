@@ -50,7 +50,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                       ),
                       blendMode: BlendMode.srcIn,
                       child: Text(
-                        "${widget.model.floodCount.toString()} DİZİ",
+                        "${widget.model.floodCount} ${'saved_posts.series_badge'.tr}",
                         style: TextStyle(
                           fontSize: 15,
                           fontFamily: "MontserratBold",
@@ -200,7 +200,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                                 ),
                                               )
                                             : Text(
-                                                "Takip Et",
+                                                'following.follow'.tr,
                                                 style: TextStyle(
                                                     color: Colors.white,
                                                     fontFamily:

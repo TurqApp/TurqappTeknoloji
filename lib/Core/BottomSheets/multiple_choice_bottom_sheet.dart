@@ -8,21 +8,35 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
   final CreateScholarshipController controller;
   final String title;
   final List<String> items;
+  final String? selectionType;
+  final String Function(String)? itemLabelBuilder;
 
   const MultipleChoiceBottomSheet({
     super.key,
     required this.controller,
     required this.title,
     required this.items,
+    this.selectionType,
+    this.itemLabelBuilder,
   });
+
+  String get _resolvedSelectionType {
+    if (selectionType != null) return selectionType!;
+    return "";
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (title == "Burs Verilecek Aylar") {
+    if (_resolvedSelectionType == "months") {
       controller.selectedItems.assignAll(controller.aylar);
-    } else if (title == "Başvuru Koşulları") {
-      controller.selectedItems.clear();
-    } else if (title == "Gerekli Belgeler") {
+    } else if (_resolvedSelectionType == "conditions") {
+      controller.selectedItems.assignAll(
+        controller.basvuruKosullari.value
+            .split('\n')
+            .map((item) => item.trim())
+            .where((item) => item.isNotEmpty),
+      );
+    } else if (_resolvedSelectionType == "documents") {
       controller.selectedItems.assignAll(controller.belgeler);
     }
 
@@ -38,7 +52,7 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
           AppSheetHeader(title: title),
           Expanded(
             child: items.isEmpty
-                ? const Center(child: Text("Bulunamadı"))
+                ? Center(child: Text('admin.tasks.not_found'.tr))
                 : ListView.builder(
                     itemCount: items.length,
                     itemBuilder: (context, index) {
@@ -61,7 +75,7 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      item,
+                                      itemLabelBuilder?.call(item) ?? item,
                                       style: TextStyles.textFieldTitle.copyWith(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w500,
@@ -110,7 +124,8 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text("İptal", style: TextStyles.textFieldTitle),
+                  child: Text("common.cancel".tr,
+                      style: TextStyles.textFieldTitle),
                 ),
               ),
               const SizedBox(width: 8),
@@ -118,7 +133,7 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     final newItems = controller.selectedItems.join('\n');
-                    if (title == "Başvuru Koşulları") {
+                    if (_resolvedSelectionType == "conditions") {
                       final currentText = controller.basvuruKosullari.value;
                       if (currentText.isNotEmpty && newItems.isNotEmpty) {
                         controller.basvuruKosullari.value =
@@ -127,12 +142,16 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
                         controller.basvuruKosullari.value = newItems;
                       }
                       controller.basvuruKosullariController.text =
-                          controller.basvuruKosullari.value;
-                    } else if (title == "Gerekli Belgeler") {
+                          controller.localizedConditionsText(
+                        controller.basvuruKosullari.value,
+                      );
+                    } else if (_resolvedSelectionType == "documents") {
                       controller.belgeler.assignAll(controller.selectedItems);
                       controller.belgelerController.text =
-                          controller.selectedItems.join('\n');
-                    } else if (title == "Burs Verilecek Aylar") {
+                          controller.localizedDocumentsText(
+                        controller.selectedItems,
+                      );
+                    } else if (_resolvedSelectionType == "months") {
                       controller.aylar.assignAll(controller.selectedItems);
                       controller.aylarController.text =
                           controller.selectedItems.join('\n');
@@ -146,9 +165,9 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    "Seç",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  child: Text(
+                    "common.select".tr,
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

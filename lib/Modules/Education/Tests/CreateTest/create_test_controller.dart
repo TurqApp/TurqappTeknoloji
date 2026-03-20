@@ -15,6 +15,12 @@ import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_question.dart';
 
+const createTestTypeMiddleSchool = 'Ortaokul';
+const createTestTypeHighSchool = 'Lise';
+const createTestTypePrep = 'Hazırlık';
+const createTestTypeLanguage = 'Dil';
+const createTestTypeBranch = 'Branş';
+
 class CreateTestController extends GetxController {
   final TestsModel? model;
   final aciklama = TextEditingController();
@@ -209,7 +215,7 @@ class CreateTestController extends GetxController {
   }
 
   List<String> getFilteredDersler() {
-    if (testTuru.value == "Ortaokul") {
+    if (testTuru.value == createTestTypeMiddleSchool) {
       return [
         "Türkçe",
         "Matematik",
@@ -224,15 +230,15 @@ class CreateTestController extends GetxController {
 
   String localizedTestType(String raw) {
     switch (raw) {
-      case "Ortaokul":
+      case createTestTypeMiddleSchool:
         return "tests.type.middle_school".tr;
-      case "Lise":
+      case createTestTypeHighSchool:
         return "tests.type.high_school".tr;
-      case "Hazırlık":
+      case createTestTypePrep:
         return "tests.type.prep".tr;
-      case "Dil":
+      case createTestTypeLanguage:
         return "tests.type.language".tr;
-      case "Branş":
+      case createTestTypeBranch:
         return "tests.type.branch".tr;
       default:
         return raw;

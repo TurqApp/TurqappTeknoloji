@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,6 +8,7 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
@@ -31,6 +34,12 @@ class JobFinder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    unawaited(
+      AdmobBannerWarmupService.ensure().warmForPasajEntry(
+        surfaceKey: 'job_finder',
+      ),
+    );
+
     final content = Column(
       children: [
         const Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -56,11 +65,11 @@ class JobFinder extends StatelessWidget {
                 menuItems: [
                   PullDownMenuItem(
                     icon: CupertinoIcons.slider_horizontal_3,
-                    title: 'Slider Yönetimi',
+                    title: 'pasaj.common.slider_admin'.tr,
                     onTap: () => Get.to(
-                      () => const SliderAdminView(
+                      () => SliderAdminView(
                         sliderId: 'is_bul',
-                        title: 'İş Veren',
+                        title: 'pasaj.job_finder.title'.tr,
                       ),
                     ),
                   ),
@@ -96,7 +105,7 @@ class JobFinder extends StatelessWidget {
                             color: Colors.black, size: 25),
                       ),
                     ),
-                    TypewriterText(text: "İş Veren"),
+                    TypewriterText(text: "pasaj.job_finder.title".tr),
                   ],
                 ),
                 Obx(() {
@@ -116,7 +125,7 @@ class JobFinder extends StatelessWidget {
                           Text(
                             controller.sehir.value.isNotEmpty
                                 ? controller.sehir.value
-                                : "Tüm Türkiye",
+                                : "pasaj.common.all_turkiye".tr,
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -141,11 +150,11 @@ class JobFinder extends StatelessWidget {
               menuItems: [
                 PullDownMenuItem(
                   icon: CupertinoIcons.slider_horizontal_3,
-                  title: 'Slider Yönetimi',
+                  title: 'pasaj.common.slider_admin'.tr,
                   onTap: () => Get.to(
-                    () => const SliderAdminView(
+                    () => SliderAdminView(
                       sliderId: 'is_bul',
-                        title: 'İş Veren',
+                        title: 'pasaj.job_finder.title'.tr,
                     ),
                   ),
                 ),
@@ -176,15 +185,15 @@ class JobFinder extends StatelessWidget {
           children: [
             _kesfetHeader(isSearching: false, context: context),
             const SizedBox(height: 50),
-            EmptyRow(text: "Sonuç bulunamadı"),
+            EmptyRow(text: "common.no_results".tr),
           ],
         );
       }
 
       final query = controller.search.text.trim();
       final isSearching = query.length >= 2;
-      final tumTurkiye = controller.sehir.value.isEmpty ||
-          controller.sehir.value == "Tüm Türkiye";
+      final tumTurkiye =
+          controller.isAllTurkeySelection(controller.sehir.value);
 
       final dataList = isSearching
           ? controller.aramaSonucu
@@ -203,8 +212,8 @@ class JobFinder extends StatelessWidget {
               _kesfetHeader(isSearching: isSearching, context: context),
               EmptyRow(
                 text: isSearching
-                    ? "Aramana uygun ilan bulunamadı"
-                    : "Şehrinde bir ilan bulunmuyor",
+                    ? "pasaj.job_finder.no_search_result".tr
+                    : "pasaj.job_finder.no_city_listing".tr,
               ),
             ],
           );
@@ -235,8 +244,8 @@ class JobFinder extends StatelessWidget {
               _kesfetHeader(isSearching: isSearching, context: context),
               EmptyRow(
                 text: isSearching
-                    ? "Aramana uygun ilan bulunamadı"
-                    : "Şehrinde bir ilan bulunmuyor",
+                    ? "pasaj.job_finder.no_search_result".tr
+                    : "pasaj.job_finder.no_city_listing".tr,
               ),
             ],
           );
@@ -285,7 +294,7 @@ class JobFinder extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: TurqSearchBar(
               controller: controller.search,
-              hintText: "Ne tür iş arıyorsun ?",
+              hintText: "pasaj.job_finder.search_hint".tr,
             ),
           ),
         ],
@@ -296,9 +305,9 @@ class JobFinder extends StatelessWidget {
                   left: 15, right: 15, top: 15, bottom: 7),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      "Sana En Yakın İlanlar",
+                      "pasaj.job_finder.nearby_listings".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -321,12 +330,12 @@ class JobFinder extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           controller.short.value == 0
-                              ? "Sırala"
+                              ? "pasaj.common.sort".tr
                               : controller.short.value == 1
-                                  ? "Yüksek Maaş"
+                                  ? "pasaj.job_finder.sort_high_salary".tr
                                   : controller.short.value == 2
-                                      ? "Düşük Maaş"
-                                      : "En Yakın",
+                                      ? "pasaj.job_finder.sort_low_salary".tr
+                                      : "pasaj.job_finder.sort_nearest".tr,
                           style: TextStyle(
                             color: controller.short.value != 0
                                 ? Colors.pinkAccent

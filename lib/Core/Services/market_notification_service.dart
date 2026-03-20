@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -21,7 +22,7 @@ class MarketNotificationService {
     final authDisplayName =
         FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
     if (authDisplayName.isNotEmpty) return authDisplayName;
-    return 'TurqApp';
+    return 'app.name'.tr;
   }
 
   static Future<void> notifyOfferCreated({
@@ -33,9 +34,9 @@ class MarketNotificationService {
       type: 'market_offer',
       docId: item.id,
       title: _senderLabel,
-      body: 'İlanınız için teklif var',
-      desc:
-          '${_formatPrice(offerPrice, item.currency)} teklif verdi',
+      body: 'market_notifications.offer_created'.tr,
+      desc: 'market_notifications.offer_amount'
+          .trParams({'amount': _formatPrice(offerPrice, item.currency)}),
       thumbnail: item.coverImageUrl,
       imageUrl: item.coverImageUrl,
     );
@@ -46,8 +47,8 @@ class MarketNotificationService {
     required String status,
   }) async {
     final body = status == 'accepted'
-        ? 'Teklifiniz kabul edildi'
-        : 'Teklifiniz reddedildi';
+        ? 'market_notifications.offer_accepted'.tr
+        : 'market_notifications.offer_rejected'.tr;
     await _writeNotification(
       targetUserId: offer.buyerId,
       type: 'market_offer_status',
@@ -69,8 +70,8 @@ class MarketNotificationService {
     required String coverImageUrl,
   }) async {
     final body = targetUserId == sellerId
-        ? 'İlanınız için mesaj var'
-        : 'İlan için yeni mesaj var';
+        ? 'market_notifications.message_for_your_listing'.tr
+        : 'market_notifications.new_listing_message'.tr;
     await _writeNotification(
       targetUserId: targetUserId,
       type: 'chat',

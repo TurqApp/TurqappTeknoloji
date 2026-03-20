@@ -16,6 +16,9 @@ class CikmisSorularSonucContent extends StatefulWidget {
 }
 
 class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
+  static const _kpss = 'KPSS';
+  static const _undergraduate = 'Lisans';
+
   String _denemeLabelFromYear(String year) {
     final parsedYear = int.tryParse(year);
     if (parsedYear == null) return year;
@@ -26,8 +29,8 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
 
   String _resultTitle() {
     final denemeLabel = _denemeLabelFromYear(widget.model.yil);
-    if (widget.model.anaBaslik == "KPSS") {
-      final prefix = widget.model.baslik3.contains("Lisans")
+    if (widget.model.anaBaslik == _kpss) {
+      final prefix = widget.model.baslik3.contains(_undergraduate)
           ? widget.model.baslik2
           : widget.model.baslik3.replaceAll("ö", "Ö");
       return "$prefix $denemeLabel";

@@ -23,7 +23,7 @@ class ViewChanger extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Görünüm"),
+            BackButtons(text: 'view_changer.title'.tr),
             Expanded(
               child: ListView(
                 children: [
@@ -93,7 +93,7 @@ class ViewChanger extends StatelessWidget {
             ),
             7.pw,
             Text(
-              "Klasik Görünüm",
+              'view_changer.classic'.tr,
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -148,7 +148,7 @@ class ViewChanger extends StatelessWidget {
             ),
             7.pw,
             Text(
-              "Modern Görünüm",
+              'view_changer.modern'.tr,
               style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,

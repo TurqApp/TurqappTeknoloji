@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
@@ -76,7 +77,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         bottom: false,
         child: Column(
           children: [
-            const BackButtons(text: 'Bildirimler'),
+            BackButtons(text: 'notifications.title'.tr),
             Expanded(
               child: _loading
                   ? const Center(child: CupertinoActivityIndicator())
@@ -85,50 +86,46 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                       children: [
                         _deviceNoticeCard(),
                         const SizedBox(height: 18),
-                        const _SectionLabel('Anlık Bildirimler'),
+                        _SectionLabel('notifications.instant'.tr),
                         _SwitchTile(
-                          title: 'Tümünü durdur',
-                          subtitle:
-                              'Bildirimleri geçici olarak tamamen sessize al.',
+                          title: 'notifications.pause_all'.tr,
+                          subtitle: 'notifications.pause_all_desc'.tr,
                           value: _boolValue('pauseAll'),
                           onChanged: (value) => _setValue('pauseAll', value),
                         ),
                         _SwitchTile(
-                          title: 'Uyku modu',
-                          subtitle:
-                              'Rahatsız edilmek istemediğinde bildirimleri sakinleştir.',
+                          title: 'notifications.sleep_mode'.tr,
+                          subtitle: 'notifications.sleep_mode_desc'.tr,
                           value: _boolValue('sleepMode'),
                           onChanged: (value) => _setValue('sleepMode', value),
                         ),
                         _SwitchTile(
-                          title: 'Sadece mesajlar',
-                          subtitle:
-                              'Açıkken yalnızca mesaj bildirimleri görünür.',
+                          title: 'notifications.messages_only'.tr,
+                          subtitle: 'notifications.messages_only_desc'.tr,
                           value: _boolValue('messagesOnly'),
                           onChanged: (value) =>
                               _setValue('messagesOnly', value),
                         ),
                         const SizedBox(height: 14),
-                        const _SectionLabel('Kategoriler'),
+                        _SectionLabel('notifications.categories'.tr),
                         _NavTile(
-                          title: 'Gönderiler ve yorumlar',
-                          subtitle:
-                              'Gönderi etkileşimleri, yorumlar ve duyurular.',
+                          title: 'notifications.posts_comments'.tr,
+                          subtitle: 'notifications.posts_comments_desc'.tr,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => _NotificationCategoryView(
-                                title: 'Gönderiler ve yorumlar',
+                                title: 'notifications.posts_comments'.tr,
                                 items: const [
                                   _NotificationPreferenceItem(
                                     path: 'posts.comments',
-                                    title: 'Yorumlar',
-                                    subtitle: 'Gönderine yapılan yorumlar.',
+                                    titleKey: 'notifications.comments',
+                                    subtitleKey: 'notifications.comments_desc',
                                   ),
                                   _NotificationPreferenceItem(
                                     path: 'posts.postActivity',
-                                    title: 'Gönderi etkileşimleri',
-                                    subtitle:
-                                        'Beğeniler, paylaşımlar ve gönderi pushları.',
+                                    titleKey: 'notifications.post_activity',
+                                    subtitleKey:
+                                        'notifications.post_activity_desc',
                                   ),
                                 ],
                                 initialPrefs: _prefs,
@@ -137,18 +134,18 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                           ),
                         ),
                         _NavTile(
-                          title: 'Takipler',
-                          subtitle: 'Yeni takipçiler ve takip hareketleri.',
+                          title: 'notifications.follows'.tr,
+                          subtitle: 'notifications.follows_desc'.tr,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => _NotificationCategoryView(
-                                title: 'Takipler',
+                                title: 'notifications.follows'.tr,
                                 items: const [
                                   _NotificationPreferenceItem(
                                     path: 'followers.follows',
-                                    title: 'Takip bildirimleri',
-                                    subtitle:
-                                        'Seni takip eden kullanıcılar ve takip hareketleri.',
+                                    titleKey: 'notifications.follow_notifs',
+                                    subtitleKey:
+                                        'notifications.follow_notifs_desc',
                                   ),
                                 ],
                                 initialPrefs: _prefs,
@@ -157,18 +154,19 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                           ),
                         ),
                         _NavTile(
-                          title: 'Mesajlar',
-                          subtitle: 'Sohbet ve direkt mesaj bildirimleri.',
+                          title: 'notifications.messages'.tr,
+                          subtitle: 'notifications.messages_desc'.tr,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => _NotificationCategoryView(
-                                title: 'Mesajlar',
+                                title: 'notifications.messages'.tr,
                                 items: const [
                                   _NotificationPreferenceItem(
                                     path: 'messages.directMessages',
-                                    title: 'Mesajlar',
-                                    subtitle:
-                                        'Birebir sohbetler ve gelen yeni mesajlar.',
+                                    titleKey:
+                                        'notifications.direct_messages',
+                                    subtitleKey:
+                                        'notifications.direct_messages_desc',
                                   ),
                                 ],
                                 initialPrefs: _prefs,
@@ -177,31 +175,32 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                           ),
                         ),
                         _NavTile(
-                          title: 'İlanlar ve başvurular',
-                          subtitle:
-                              'İş ve özel ders ilanlarına gelen başvurular.',
+                          title: 'notifications.opportunities'.tr,
+                          subtitle: 'notifications.opportunities_desc'.tr,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => _NotificationCategoryView(
-                                title: 'İlanlar ve başvurular',
+                                title: 'notifications.opportunities'.tr,
                                 items: const [
                                   _NotificationPreferenceItem(
                                     path: 'opportunities.jobApplications',
-                                    title: 'İş ilanı başvuruları',
-                                    subtitle:
-                                        'İş ilanına yapılan yeni başvurular.',
+                                    titleKey: 'notifications.job_apps',
+                                    subtitleKey:
+                                        'notifications.job_apps_desc',
                                   ),
                                   _NotificationPreferenceItem(
                                     path: 'opportunities.tutoringApplications',
-                                    title: 'Özel ders başvuruları',
-                                    subtitle:
-                                        'Özel ders ilanına yapılan başvurular.',
+                                    titleKey:
+                                        'notifications.tutoring_apps',
+                                    subtitleKey:
+                                        'notifications.tutoring_apps_desc',
                                   ),
                                   _NotificationPreferenceItem(
                                     path: 'opportunities.applicationStatus',
-                                    title: 'Başvuru durumu',
-                                    subtitle:
-                                        'Özel ders başvuru sonucu ve durum güncellemeleri.',
+                                    titleKey:
+                                        'notifications.application_status',
+                                    subtitleKey:
+                                        'notifications.application_status_desc',
                                   ),
                                 ],
                                 initialPrefs: _prefs,
@@ -247,9 +246,9 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Kilit ekranında bildirimleri görmek için cihaz ayarlarından bildirim iznini açık tut.',
-                  style: TextStyle(
+                Text(
+                  'notifications.device_notice'.tr,
+                  style: const TextStyle(
                     color: Colors.black87,
                     fontSize: 13,
                     height: 1.25,
@@ -259,9 +258,9 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: openAppSettings,
-                  child: const Text(
-                    'Cihaz ayarlarına git',
-                    style: TextStyle(
+                  child: Text(
+                    'notifications.device_settings'.tr,
+                    style: const TextStyle(
                       color: Color(0xFF2563EB),
                       fontSize: 13,
                       fontFamily: 'MontserratBold',
@@ -354,8 +353,8 @@ class _NotificationCategoryViewState extends State<_NotificationCategoryView> {
                 itemBuilder: (context, index) {
                   final item = widget.items[index];
                   return _SwitchTile(
-                    title: item.title,
-                    subtitle: item.subtitle,
+                    title: item.titleKey.tr,
+                    subtitle: item.subtitleKey.tr,
                     value: _boolValue(item.path),
                     onChanged: (value) => _setValue(item.path, value),
                   );
@@ -371,13 +370,13 @@ class _NotificationCategoryViewState extends State<_NotificationCategoryView> {
 
 class _NotificationPreferenceItem {
   final String path;
-  final String title;
-  final String subtitle;
+  final String titleKey;
+  final String subtitleKey;
 
   const _NotificationPreferenceItem({
     required this.path,
-    required this.title,
-    required this.subtitle,
+    required this.titleKey,
+    required this.subtitleKey,
   });
 }
 

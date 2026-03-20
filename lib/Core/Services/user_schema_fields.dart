@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
 
 Map<String, dynamic> userScopedMap(
   Map<String, dynamic> data,
@@ -56,18 +57,7 @@ bool userBool(
   bool fallback = false,
 }) {
   final value = userField(data, key: key, scope: scope, fallback: fallback);
-  if (value is bool) return value;
-  if (value is num) return value != 0;
-  if (value is String) {
-    final normalized = value.trim().toLowerCase();
-    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
-      return true;
-    }
-    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
-      return false;
-    }
-  }
-  return fallback;
+  return parseFlexibleBool(value, fallback: fallback);
 }
 
 Map<String, dynamic> scopedUserUpdate({

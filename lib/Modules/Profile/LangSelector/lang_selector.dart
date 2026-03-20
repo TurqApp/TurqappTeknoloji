@@ -29,7 +29,7 @@ class LangSelector extends StatelessWidget {
                     containerRow('language.option.de'.tr, false),
                     containerRow('language.option.fr'.tr, false),
                     containerRow('language.option.ru'.tr, false),
-                    containerRow('Arapça', false),
+                    containerRow('language.option.ar'.tr, false),
                   ],
                 ),
               ),

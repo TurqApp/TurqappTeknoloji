@@ -112,7 +112,12 @@ extension ChatControllerMediaPart on ChatController {
       uploadPercent.value = 0;
       isUploading.value = false;
       images.clear();
-      AppSnackbar("Hata", "Resim yüklenemedi: $e");
+      AppSnackbar(
+        'common.error'.tr,
+        'chat.image_upload_failed_with_error'.trParams({
+          'error': e.toString(),
+        }),
+      );
     }
   }
 
@@ -262,14 +267,17 @@ extension ChatControllerMediaPart on ChatController {
     } catch (_) {
       uploadPercent.value = 0;
       isUploading.value = false;
-      AppSnackbar("Hata", "Video yüklenirken bir hata oluştu");
+      AppSnackbar('common.error'.tr, 'chat.video_upload_failed'.tr);
     }
   }
 
   Future<void> startVoiceRecording() async {
     try {
       if (!await _audioRecorder.hasPermission()) {
-        AppSnackbar("İzin Gerekli", "Mikrofon izni verilmedi");
+        AppSnackbar(
+          'chat.microphone_permission_required'.tr,
+          'chat.microphone_permission_denied'.tr,
+        );
         return;
       }
       final dir = Directory.systemTemp;
@@ -286,7 +294,7 @@ extension ChatControllerMediaPart on ChatController {
       });
     } catch (_) {
       isRecording.value = false;
-      AppSnackbar("Hata", "Ses kaydı başlatılamadı");
+      AppSnackbar('common.error'.tr, 'chat.voice_record_start_failed'.tr);
     }
   }
 
@@ -327,7 +335,7 @@ extension ChatControllerMediaPart on ChatController {
     } catch (_) {
       uploadPercent.value = 0;
       isUploading.value = false;
-      AppSnackbar("Hata", "Sesli mesaj yüklenirken bir hata oluştu");
+      AppSnackbar('common.error'.tr, 'chat.voice_message_upload_failed'.tr);
     }
   }
 
@@ -390,13 +398,13 @@ extension ChatControllerMediaPart on ChatController {
     String? audioUrl,
   }) {
     if (text.isNotEmpty) return text;
-    if (videoUrl != null && videoUrl.isNotEmpty) return "Video";
-    if (audioUrl != null && audioUrl.isNotEmpty) return "Sesli mesaj";
-    if (imageUrls != null && imageUrls.isNotEmpty) return "Fotoğraf";
-    if (gif != null && gif.isNotEmpty) return "GIF";
-    if (latLng != null) return "Konum";
-    if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty) return "Kişi";
-    if (postID != null && postID.isNotEmpty) return "Gönderi";
-    return "Mesaj";
+    if (videoUrl != null && videoUrl.isNotEmpty) return 'chat.video'.tr;
+    if (audioUrl != null && audioUrl.isNotEmpty) return 'chat.audio'.tr;
+    if (imageUrls != null && imageUrls.isNotEmpty) return 'chat.photo'.tr;
+    if (gif != null && gif.isNotEmpty) return 'chat.gif'.tr;
+    if (latLng != null) return 'chat.location'.tr;
+    if (kisiAdSoyad != null && kisiAdSoyad.isNotEmpty) return 'chat.person'.tr;
+    if (postID != null && postID.isNotEmpty) return 'chat.post'.tr;
+    return 'chat.message_hint'.tr;
   }
 }

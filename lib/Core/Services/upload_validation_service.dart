@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:turqappv2/Core/Services/media_compression_service.dart';
 import 'package:video_player/video_player.dart';
@@ -33,9 +34,11 @@ class UploadValidationService {
       // Check file size
       final fileSize = await imageFile.length();
       if (fileSize > UploadConstants.maxImageSizeBytes) {
-        return ValidationResult.error(
-            'Fotoğraf boyutu çok büyük! Maksimum ${UploadConstants.getMaxImageSizeText()} olabilir. '
-            'Mevcut boyut: ${UploadConstants.formatBytes(fileSize)}');
+        return ValidationResult.error('upload_validation.image_size_too_large'
+            .trParams({
+          'max': UploadConstants.getMaxImageSizeText(),
+          'current': UploadConstants.formatBytes(fileSize),
+        }));
       }
 
       // Check image dimensions
@@ -43,7 +46,8 @@ class UploadValidationService {
       final image = img.decodeImage(bytes);
 
       if (image == null) {
-        return ValidationResult.error('Desteklenmeyen fotoğraf formatı!');
+        return ValidationResult.error(
+            'upload_validation.unsupported_image_format'.tr);
       }
 
       return ValidationResult.success(metadata: {
@@ -53,7 +57,10 @@ class UploadValidationService {
         'format': _getImageFormat(imageFile.path),
       });
     } catch (e) {
-      return ValidationResult.error('Fotoğraf analiz edilemedi: $e');
+      return ValidationResult.error(
+          'upload_validation.image_analysis_failed'.trParams({
+        'error': '$e',
+      }));
     }
   }
 
@@ -63,9 +70,11 @@ class UploadValidationService {
       // Check file size
       final fileSize = await videoFile.length();
       if (fileSize > UploadConstants.maxVideoSizeBytes) {
-        return ValidationResult.error(
-            'Video boyutu çok büyük! Maksimum ${UploadConstants.getMaxVideoSizeText()} olabilir. '
-            'Mevcut boyut: ${UploadConstants.formatBytes(fileSize)}');
+        return ValidationResult.error('upload_validation.video_size_too_large'
+            .trParams({
+          'max': UploadConstants.getMaxVideoSizeText(),
+          'current': UploadConstants.formatBytes(fileSize),
+        }));
       }
 
       // Check video properties
@@ -91,9 +100,11 @@ class UploadValidationService {
 
       // Check duration
       if (duration.inSeconds > UploadConstants.maxVideoLengthSeconds) {
-        return ValidationResult.error(
-            'Video süresi çok uzun! Maksimum ${UploadConstants.maxVideoLengthSeconds} saniye olabilir. '
-            'Mevcut süre: ${duration.inSeconds} saniye');
+        return ValidationResult.error('upload_validation.video_duration_too_long'
+            .trParams({
+          'max': '${UploadConstants.maxVideoLengthSeconds}',
+          'current': '${duration.inSeconds}',
+        }));
       }
 
       return ValidationResult.success(metadata: {
@@ -104,7 +115,10 @@ class UploadValidationService {
         'aspectRatio': aspectRatio,
       });
     } catch (e) {
-      return ValidationResult.error('Video analiz edilemedi: $e');
+      return ValidationResult.error(
+          'upload_validation.video_analysis_failed'.trParams({
+        'error': '$e',
+      }));
     }
   }
 
@@ -123,9 +137,11 @@ class UploadValidationService {
     }
 
     if (totalSize > UploadConstants.maxTotalPostSizeBytes) {
-      return ValidationResult.error(
-          'Toplam içerik boyutu çok büyük! Maksimum ${UploadConstants.getMaxTotalSizeText()} olabilir. '
-          'Mevcut toplam: ${UploadConstants.formatBytes(totalSize)}');
+      return ValidationResult.error('upload_validation.total_size_too_large'
+          .trParams({
+        'max': UploadConstants.getMaxTotalSizeText(),
+        'current': UploadConstants.formatBytes(totalSize),
+      }));
     }
 
     return ValidationResult.success(metadata: {
@@ -172,7 +188,7 @@ class UploadValidationService {
         videos.isEmpty &&
         (text == null || text.trim().isEmpty)) {
       return ValidationResult.error(
-          'Gönderi boş olamaz! En az bir fotoğraf, video veya metin ekleyin.');
+          'upload_validation.empty_post'.tr);
     }
 
     // Validate individual images
@@ -180,7 +196,10 @@ class UploadValidationService {
       final imageValidation = await validateImage(images[i]);
       if (!imageValidation.isValid) {
         return ValidationResult.error(
-            'Fotoğraf ${i + 1}: ${imageValidation.errorMessage}');
+            'upload_validation.image_error'.trParams({
+              'index': '${i + 1}',
+              'message': imageValidation.errorMessage ?? '',
+            }));
       }
     }
 
@@ -189,7 +208,10 @@ class UploadValidationService {
       final videoValidation = await validateVideo(videos[i]);
       if (!videoValidation.isValid) {
         return ValidationResult.error(
-            'Video ${i + 1}: ${videoValidation.errorMessage}');
+            'upload_validation.video_error'.trParams({
+              'index': '${i + 1}',
+              'message': videoValidation.errorMessage ?? '',
+            }));
       }
     }
 
@@ -210,7 +232,7 @@ class UploadValidationService {
   /// Show validation error with user-friendly message
   static void showValidationError(String message) {
     AppSnackbar(
-      'Yükleme Hatası',
+      'upload_validation.error_title'.tr,
       message,
       backgroundColor: Colors.red.withValues(alpha: 0.8),
     );
@@ -230,7 +252,7 @@ class UploadValidationService {
       case 'gif':
         return 'GIF';
       default:
-        return 'Unknown';
+        return 'settings.diagnostics.unknown'.tr;
     }
   }
 

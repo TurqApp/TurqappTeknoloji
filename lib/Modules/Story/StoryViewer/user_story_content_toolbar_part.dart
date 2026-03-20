@@ -198,8 +198,8 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     );
                     if (result.isSuccess) {
                       AppSnackbar(
-                        'Kaydedildi',
-                        'Hikaye cihaz galerisine kaydedildi.',
+                        'common.saved'.tr,
+                        'story.saved_to_gallery'.tr,
                         duration: const Duration(seconds: 2),
                       );
                     }

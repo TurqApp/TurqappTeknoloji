@@ -20,6 +20,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details_controller.dart';
+import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';

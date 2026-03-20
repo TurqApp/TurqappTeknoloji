@@ -391,7 +391,9 @@ class ScholarshipPreviewView extends StatelessWidget {
                             12.ph,
                             _buildInfoRow(
                               "scholarship.conditions_label".tr,
-                              controller.basvuruKosullari.value,
+                              controller.localizedConditionsText(
+                                controller.basvuruKosullari.value,
+                              ),
                             ),
                             _buildInfoRow(
                               "scholarship.application_website_label".tr,
@@ -454,23 +456,33 @@ class ScholarshipPreviewView extends StatelessWidget {
                             ),
                             _buildInfoRow(
                               "scholarship.repayable_label".tr,
-                              controller.geriOdemeli.value,
+                              controller.scholarshipRepayableLabel(
+                                controller.geriOdemeli.value,
+                              ),
                             ),
                             _buildInfoRow(
                               "scholarship.duplicate_status_label".tr,
-                              controller.mukerrerDurumu.value,
+                              controller.scholarshipDuplicateStatusLabel(
+                                controller.mukerrerDurumu.value,
+                              ),
                             ),
                             _buildInfoRow(
                               "scholarship.education_audience_label".tr,
-                              controller.egitimKitlesi.value,
+                              controller.scholarshipEducationAudienceLabel(
+                                controller.egitimKitlesi.value,
+                              ),
                             ),
                             _buildInfoRow(
                               "scholarship.target_audience_label".tr,
-                              controller.hedefKitle.value,
+                              controller.scholarshipTargetAudienceLabel(
+                                controller.hedefKitle.value,
+                              ),
                             ),
                             _buildInfoRow(
                               "scholarship.country_label".tr,
-                              controller.ulke.value,
+                              controller.scholarshipCountryLabel(
+                                controller.ulke.value,
+                              ),
                             ),
                             _buildInfoRow(
                               "scholarship.cities_label".tr,
@@ -482,7 +494,10 @@ class ScholarshipPreviewView extends StatelessWidget {
                             ),
                             _buildInfoRow(
                               "scholarship.required_docs_label".tr,
-                              controller.belgeler.join(", "),
+                              controller.localizedDocumentsText(
+                                controller.belgeler,
+                                separator: ", ",
+                              ),
                             ),
                           ],
                         ),

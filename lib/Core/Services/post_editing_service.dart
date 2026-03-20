@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class EditAction {
   final String id;
@@ -320,6 +321,7 @@ class PostEditingService extends GetxController {
   /// Generate grammar and spell check suggestions
   List<SmartSuggestion> _generateGrammarSuggestions(String text) {
     final suggestions = <SmartSuggestion>[];
+    final normalizedText = normalizeSearchText(text);
 
     // Simple Turkish grammar checks
     final commonMistakes = {
@@ -333,11 +335,12 @@ class PostEditingService extends GetxController {
     };
 
     for (final entry in commonMistakes.entries) {
-      if (text.toLowerCase().contains(entry.key.toLowerCase())) {
+      if (normalizedText.contains(normalizeSearchText(entry.key))) {
         suggestions.add(SmartSuggestion(
           type: 'grammar',
           text: text,
-          suggestion: 'Replace "${entry.key}" with "${entry.value}"',
+          suggestion: 'post_editing.replace_with'
+              .trParams({'from': entry.key, 'to': entry.value}),
           metadata: {'original': entry.key, 'corrected': entry.value},
         ));
       }
@@ -349,13 +352,16 @@ class PostEditingService extends GetxController {
   /// Generate content enhancement suggestions
   List<SmartSuggestion> _generateContentSuggestions(String text) {
     final suggestions = <SmartSuggestion>[];
+    final normalizedText = normalizeSearchText(text);
 
     // Suggest adding location if not mentioned
-    if (!text.toLowerCase().contains(RegExp(r'(konum|lokasyon|burada|here)'))) {
+    if (!RegExp(
+      r'(konum|lokasyon|burada|here)',
+    ).hasMatch(normalizedText)) {
       suggestions.add(SmartSuggestion(
         type: 'content',
         text: text,
-        suggestion: 'Consider adding location information',
+        suggestion: 'post_editing.consider_location'.tr,
         metadata: {'type': 'location'},
       ));
     }
@@ -458,31 +464,31 @@ class PostEditingService extends GetxController {
     return [
       {
         'icon': Icons.format_bold,
-        'label': 'Bold',
+        'label': 'post_editing.bold'.tr,
         'active': _currentFormatting.value.bold,
         'action': toggleBold,
       },
       {
         'icon': Icons.format_italic,
-        'label': 'Italic',
+        'label': 'post_editing.italic'.tr,
         'active': _currentFormatting.value.italic,
         'action': toggleItalic,
       },
       {
         'icon': Icons.format_underlined,
-        'label': 'Underline',
+        'label': 'post_editing.underline'.tr,
         'active': _currentFormatting.value.underline,
         'action': toggleUnderline,
       },
       {
         'icon': Icons.format_size,
-        'label': 'Font Size',
+        'label': 'post_editing.font_size'.tr,
         'active': false,
         'action': () => _showFontSizeDialog(),
       },
       {
         'icon': Icons.color_lens,
-        'label': 'Text Color',
+        'label': 'post_editing.text_color'.tr,
         'active': _currentFormatting.value.textColor != null,
         'action': () => _showColorPicker(),
       },
@@ -493,12 +499,14 @@ class PostEditingService extends GetxController {
   void _showFontSizeDialog() {
     Get.dialog(
       AlertDialog(
-        title: const Text('Font Size'),
+        title: Text('post_editing.font_size'.tr),
         content: Obx(() => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Current: ${_currentFormatting.value.fontSize.toInt()}',
+                  'post_editing.current_font_size'.trParams({
+                    'size': _currentFormatting.value.fontSize.toInt().toString(),
+                  }),
                   style: TextStyle(fontSize: _currentFormatting.value.fontSize),
                 ),
                 Slider(
@@ -513,7 +521,7 @@ class PostEditingService extends GetxController {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Tamam'),
+            child: Text('common.done'.tr),
           ),
         ],
       ),
@@ -535,7 +543,7 @@ class PostEditingService extends GetxController {
 
     Get.dialog(
       AlertDialog(
-        title: const Text('Text Color'),
+        title: Text('post_editing.text_color'.tr),
         content: Wrap(
           children: colors
               .map((color) => GestureDetector(
@@ -564,11 +572,11 @@ class PostEditingService extends GetxController {
               changeTextColor(Colors.black);
               Get.back();
             },
-            child: const Text('Reset'),
+            child: Text('common.reset'.tr),
           ),
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text('common.cancel'.tr),
           ),
         ],
       ),

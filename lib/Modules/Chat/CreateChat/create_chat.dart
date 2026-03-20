@@ -53,8 +53,8 @@ class CreateChat extends StatelessWidget {
                           CupertinoIcons.search,
                           color: Colors.black,
                         ),
-                        hintText: "Ara",
-                        hintStyle: TextStyle(
+                        hintText: 'common.search'.tr,
+                        hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
                         ),

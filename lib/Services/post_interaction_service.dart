@@ -3,12 +3,16 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 
 import '../Models/post_interactions_models_new.dart';
 import '../Models/posts_model.dart';
 import '../Models/user_interactions_models.dart';
 import 'offline_mode_service.dart';
+import 'post_moderation_utils.dart';
 
 part 'post_interaction_service_actions_part.dart';
 
@@ -59,22 +63,6 @@ class PostInteractionService extends GetxController {
   final Set<String> _reportedByMe = <String>{};
   bool _permissionDeniedLogged = false;
   static const String _moderationConfigPath = 'adminConfig/moderation';
-  static const Map<String, String> _moderationReasonMap = {
-    'Uyuşturucu': 'drugs',
-    'Kumar': 'gambling',
-    'Çıplaklık': 'nudity',
-    'Dolandırıcılık': 'scam',
-    'Şiddet': 'violence',
-    'Spam': 'spam',
-    'Diğer': 'other',
-    'drugs': 'drugs',
-    'gambling': 'gambling',
-    'nudity': 'nudity',
-    'scam': 'scam',
-    'violence': 'violence',
-    'spam': 'spam',
-    'other': 'other',
-  };
 
   String? get currentUserID => _auth.currentUser?.uid;
   bool get _isOffline =>
@@ -100,7 +88,7 @@ class PostInteractionService extends GetxController {
       if (ownerId == null || ownerId == userId) return;
 
       final notification = NotificationModel(
-        type: _normalizeNotifyType(type),
+        type: normalizeNotificationCreateType(type),
         fromUserID: userId,
         postID: postId,
         timeStamp: _nowMs(),
@@ -114,18 +102,6 @@ class PostInteractionService extends GetxController {
           .add(notification);
     } catch (e) {
       print('Create notification error: $e');
-    }
-  }
-
-  String _normalizeNotifyType(String type) {
-    switch (type) {
-      case 'comment':
-        return 'Comment';
-      case 'like':
-      case 'reshared_posts':
-      case 'shared_as_posts':
-      default:
-        return 'Posts';
     }
   }
 
@@ -312,14 +288,6 @@ class PostInteractionService extends GetxController {
     }
   }
 
-  String _normalizeModerationReason(String reason) {
-    final trimmed = reason.trim();
-    if (trimmed.isEmpty) return 'other';
-    return _moderationReasonMap[trimmed] ??
-        _moderationReasonMap[trimmed.toLowerCase()] ??
-        'other';
-  }
-
   int _asInt(dynamic value, {int fallback = 0}) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -328,14 +296,7 @@ class PostInteractionService extends GetxController {
   }
 
   bool _asBool(dynamic value, {required bool fallback}) {
-    if (value is bool) return value;
-    if (value is num) return value != 0;
-    if (value is String) {
-      final normalized = value.trim().toLowerCase();
-      if (normalized == 'true' || normalized == '1') return true;
-      if (normalized == 'false' || normalized == '0') return false;
-    }
-    return fallback;
+    return parseFlexibleBool(value, fallback: fallback);
   }
 
   void _updateInteractionCache(

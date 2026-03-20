@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Profile/Policies/policy_content.dart';
 
@@ -53,7 +54,8 @@ class PolicyDetailView extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Son güncelleme: ${policy.updatedAt}',
+                          'policy_detail.last_updated'
+                              .trParams({'date': policy.updatedAt}),
                           style: const TextStyle(
                             color: Colors.black45,
                             fontSize: 12,

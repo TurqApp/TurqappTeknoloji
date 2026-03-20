@@ -15,6 +15,8 @@ class DormitoryInfoController extends GetxController {
   static const String _selectCity = "Şehir Seç";
   static const String _selectDistrict = "İlçe Seç";
   static const String _selectAdminType = "İdari Seç";
+  static const String _publicAdminType = "DEVLET";
+  static const String _privateAdminType = "ÖZEL";
   String get selectCityValue => _selectCity;
   String get selectDistrictValue => _selectDistrict;
   String get selectAdminTypeValue => _selectAdminType;
@@ -32,7 +34,7 @@ class DormitoryInfoController extends GetxController {
   final yurtInput = TextEditingController();
   final yurtSelectionController = TextEditingController();
   final yurtInputText = "".obs;
-  final subList = ["DEVLET", "ÖZEL"].obs;
+  final subList = [_publicAdminType, _privateAdminType].obs;
   final sehirler = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   final yurtList = <DormitoryModel>[].obs;
@@ -53,15 +55,68 @@ class DormitoryInfoController extends GetxController {
 
   String localizedAdminType(String value) {
     switch (value) {
-      case "DEVLET":
+      case _publicAdminType:
         return 'dormitory.admin_public'.tr;
-      case "ÖZEL":
+      case _privateAdminType:
         return 'dormitory.admin_private'.tr;
       case _selectAdminType:
         return 'dormitory.select_admin_type'.tr;
       default:
         return value;
     }
+  }
+
+  String localizedSelectLabel(String value) {
+    switch (value) {
+      case _selectCity:
+        return 'common.select_city'.tr;
+      case _selectDistrict:
+        return 'common.select_district'.tr;
+      case _selectAdminType:
+        return 'dormitory.select_admin_type'.tr;
+      default:
+        return value;
+    }
+  }
+
+  bool get isCityUnselected =>
+      sehir.value.isEmpty || sehir.value == _selectCity;
+
+  bool _matchesValue(String value, Set<String> variants) =>
+      variants.contains(value.trim());
+
+  String normalizedAdminType(String value) {
+    if (_matchesValue(value, const <String>{
+      _publicAdminType,
+      'Public',
+      'Öffentlich',
+      'Publique',
+      'Pubblico',
+      'Государственный',
+    })) {
+      return _publicAdminType;
+    }
+    if (_matchesValue(value, const <String>{
+      _privateAdminType,
+      'Private',
+      'Privat',
+      'Privé',
+      'Privato',
+      'Частный',
+    })) {
+      return _privateAdminType;
+    }
+    if (_matchesValue(value, const <String>{
+      _selectAdminType,
+      'Select Administration',
+      'Verwaltung wählen',
+      'Choisir ladministration',
+      'Seleziona amministrazione',
+      'Выберите управление',
+    })) {
+      return _selectAdminType;
+    }
+    return value;
   }
 
   @override
@@ -110,9 +165,7 @@ class DormitoryInfoController extends GetxController {
         title: 'dormitory.select_admin_type'.tr,
         startSelection: localizedAdminType(sub.value),
         onBackData: (v) {
-          final localizedList = subList.map(localizedAdminType).toList();
-          final selectedIndex = localizedList.indexOf(v);
-          sub.value = selectedIndex >= 0 ? subList[selectedIndex] : v;
+          sub.value = normalizedAdminType(v);
           yurt.value = "";
           yurtSelectionController.clear();
         },
@@ -130,7 +183,7 @@ class DormitoryInfoController extends GetxController {
       ListBottomSheet(
         list: sehirler,
         title: 'common.select_city'.tr,
-        startSelection: sehir.value,
+        startSelection: isCityUnselected ? null : sehir.value,
         onBackData: (v) {
           sehir.value = v;
           ilce.value = "";
@@ -150,7 +203,7 @@ class DormitoryInfoController extends GetxController {
     final filteredYurtList = yurtList
         .where(
           (item) =>
-              item.sub == sub.value.toUpperCase() &&
+              item.sub == normalizedAdminType(sub.value).toUpperCase() &&
               item.ilAdi == sehir.value.toUpperCase(),
         )
         .map((item) => item.adi)

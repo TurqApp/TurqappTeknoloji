@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/scholarship_applications_content_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -16,6 +17,18 @@ class ApplicantProfile extends StatelessWidget {
   final String userID;
 
   const ApplicantProfile({super.key, required this.userID});
+
+  bool _isNoValue(String value) {
+    final normalized = normalizeSearchText(value);
+    return const <String>{
+      'hayır',
+      'hayir',
+      'no',
+      'nein',
+      'non',
+      'нет',
+    }.contains(normalized);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,8 +145,7 @@ class ApplicantProfile extends StatelessWidget {
                             'scholarship.applicant.father_alive'.tr,
                             controller.babaHayata.value,
                           ),
-                          if (controller.babaHayata.value.toLowerCase() !=
-                              "hayır") ...[
+                          if (!_isNoValue(controller.babaHayata.value)) ...[
                             _buildText(
                               'scholarship.applicant.father_name'.tr,
                               controller.babaAdi.value,
@@ -161,8 +173,7 @@ class ApplicantProfile extends StatelessWidget {
                             'scholarship.applicant.mother_alive'.tr,
                             controller.anneHayata.value,
                           ),
-                          if (controller.anneHayata.value.toLowerCase() !=
-                              "hayır") ...[
+                          if (!_isNoValue(controller.anneHayata.value)) ...[
                             _buildText(
                               'scholarship.applicant.mother_name'.tr,
                               controller.anneAdi.value,

@@ -9,12 +9,14 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_content.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
 
 import 'in_app_notifications_controller.dart';
 
 class InAppNotifications extends StatelessWidget {
   InAppNotifications({super.key});
+
   final controller = Get.put(InAppNotificationsController());
   final recommendedController =
       Get.isRegistered<RecommendedUserListController>()
@@ -203,7 +205,7 @@ class InAppNotifications extends StatelessWidget {
         "notifications.tab_mentions".tr,
         "notifications.tab_listings".tr,
       ],
-      pageName: 'Notifications',
+      pageName: kNotificationsPageLineBarTag,
       fontSize: 15,
       pageController: controller.pageController,
     );
@@ -291,11 +293,15 @@ class InAppNotifications extends StatelessWidget {
   }
 
   List<dynamic> _followNotifications() {
-    return controller.list.where((n) => n.postType == "User").toList();
+    return controller.list
+        .where((n) => n.postType == kNotificationPostTypeUser)
+        .toList();
   }
 
   List<dynamic> _commentNotifications() {
-    return controller.list.where((n) => n.postType == "Comment").toList();
+    return controller.list
+        .where((n) => n.postType == kNotificationPostTypeComment)
+        .toList();
   }
 
   List<dynamic> _listingNotifications() {
@@ -303,18 +309,17 @@ class InAppNotifications extends StatelessWidget {
   }
 
   bool _isListingNotification(NotificationModel notification) {
-    final normalizedType = notification.type.trim().toLowerCase();
-    final normalizedPostType = notification.postType.trim().toLowerCase();
+    final normalizedType = normalizeNotificationType(
+      notification.type,
+      '',
+    );
+    final normalizedPostType = normalizeNotificationType(
+      '',
+      notification.postType,
+    );
 
-    return normalizedType == "job_application" ||
-        normalizedType == "tutoring_application" ||
-        normalizedType == "tutoring_status" ||
-        normalizedType == "market_offer" ||
-        normalizedType == "market_offer_status" ||
-        normalizedPostType == "jobapplication" ||
-        normalizedPostType == "tutoringapplication" ||
-        normalizedPostType == "market" ||
-        normalizedPostType == "market_chat";
+    return isListingNotificationType(normalizedType) ||
+        isListingNotificationPostType(normalizedPostType);
   }
 
   List<Widget> _buildGroupedList(List<dynamic> notifications) {

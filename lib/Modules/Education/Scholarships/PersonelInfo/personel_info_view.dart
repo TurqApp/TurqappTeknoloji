@@ -57,19 +57,22 @@ class PersonelInfoView extends StatelessWidget {
                                 {
                                   ...scopedUserUpdate(
                                     scope: 'family',
-                                    values: {"engelliRaporu": "Yok"},
+                                    values: {
+                                      "engelliRaporu": controller.noneValue,
+                                    },
                                   ),
                                   ...scopedUserUpdate(
                                     scope: 'profile',
                                     values: {
                                       "tc": "",
-                                      "medeniHal": "Bekar",
-                                      "ulke": "Türkiye",
+                                      "medeniHal": controller.singleValue,
+                                      "ulke": controller.turkeyValue,
                                       "nufusSehir": "",
                                       "nufusIlce": "",
                                       "cinsiyet":
                                           controller.defaultSelectValue,
-                                      "calismaDurumu": "Çalışmıyor",
+                                      "calismaDurumu":
+                                          controller.notWorkingValue,
                                       "dogumTarihi": "",
                                     },
                                   ),
@@ -130,7 +133,7 @@ class PersonelInfoView extends StatelessWidget {
                                       Flexible(
                                         child: DropdownField(
                                           config: FieldConfig(
-                                            label: "İl",
+                                            label: "common.city".tr,
                                             title: "common.select_city".tr,
                                             value: controller.city,
                                             items: controller.sehirler,
@@ -145,7 +148,7 @@ class PersonelInfoView extends StatelessWidget {
                                       Flexible(
                                         child: DropdownField(
                                           config: FieldConfig(
-                                            label: "İlçe",
+                                            label: "common.district".tr,
                                             title: "common.select_district".tr,
                                             value: controller.town,
                                             items: (() {

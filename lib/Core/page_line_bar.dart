@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
-import 'package:turqappv2/Modules/JobFinder/MyJobAds/my_job_ads_controller.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 import 'package:turqappv2/Modules/Profile/LikedPosts/liked_posts_controller.dart';
-import 'package:turqappv2/Modules/Profile/Policies/policies_controller.dart';
 import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart';
-import 'package:turqappv2/Modules/SpotifySelector/spotify_selector_controller.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+
+const String kExplorePageLineBarTag = 'explore_page_line_bar';
+const String kSavedPostsPageLineBarTag = 'saved_posts_page_line_bar';
+const String kLikedPostsPageLineBarTag = 'liked_posts_page_line_bar';
+const String kNotificationsPageLineBarTag = 'notifications_page_line_bar';
+const String kDeletedStoriesPageLineBarTag = 'deleted_stories_page_line_bar';
+const String kFollowersPageLineBarTag = 'followers_page_line_bar';
+const String kFollowersSocialProfilePageLineBarTag =
+    'followers_social_profile_page_line_bar';
 
 class PageLineBar extends StatefulWidget {
   final List<String> barList;
@@ -93,14 +98,22 @@ class _PageLineBarState extends State<PageLineBar> {
                   alignment: Alignment.bottomCenter,
                   children: [
                     Center(
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: widget.fontSize,
-                          fontFamily: controller.selection.value == index
-                              ? AppFontFamilies.mbold
-                              : AppFontFamilies.mmedium,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            item,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: widget.fontSize,
+                              fontFamily: controller.selection.value == index
+                                  ? AppFontFamilies.mbold
+                                  : AppFontFamilies.mmedium,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -133,31 +146,24 @@ class PageLineBarController extends GetxController {
   void setSelectionTo(int index) {
     selection.value = index;
     switch (pageName) {
-      case 'Explore':
+      case kExplorePageLineBarTag:
         Get.find<ExploreController>().goToPage(index);
         break;
-      case 'SavedPosts':
-        Get.find<SavedPostsController>().goToPage(index);
+      case kSavedPostsPageLineBarTag:
+        final controller = Get.find<SavedPostsController>();
+        controller.pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+        );
         break;
-      case 'LikedPosts':
+      case kLikedPostsPageLineBarTag:
         Get.find<LikedPostControllers>().goToPage(index);
         break;
-      case 'Policies':
-        Get.find<PoliciesController>().goToPage(index);
-        break;
-      case 'Notifications':
+      case kNotificationsPageLineBarTag:
         Get.find<InAppNotificationsController>().goToPage(index);
         break;
-      case 'Spotify':
-        Get.find<SpotifySelectorController>().goToPage(index);
-        break;
-      case 'MyTutorings':
-        Get.find<MyTutoringsController>().goToPage(index);
-        break;
-      case 'MyJobAds':
-        Get.find<MyJobAdsController>().goToPage(index);
-        break;
-      case 'Followers':
+      case kFollowersPageLineBarTag:
         Get.find<FollowingFollowersController>().goToPage(index);
         break;
       default:

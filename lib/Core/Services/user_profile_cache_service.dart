@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 
 import 'turq_image_cache_manager.dart';
 
@@ -364,7 +365,7 @@ class UserProfileCacheService extends GetxService {
     final u = username.trim();
     final ul = usernameLower.trim();
 
-    final hasSpace = n.contains(RegExp(r'\s'));
+    final hasSpace = hasNicknameWhitespace(n);
     if (n.isNotEmpty && !hasSpace) return n;
     if (u.isNotEmpty) return u;
     if (ul.isNotEmpty) return ul;

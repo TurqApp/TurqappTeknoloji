@@ -21,7 +21,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
                   Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
                   SizedBox(width: 12),
                   Text(
-                    "Yeniden Paylaş Gizliliği",
+                    'post_creator.reshare_privacy_title'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -43,7 +43,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Herkes yeniden paylaşabilir.",
+                          'post_creator.reshare_everyone_desc'.tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,
@@ -88,7 +88,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Sadece takipçilerim yeniden paylaşabilir.",
+                          'post_creator.reshare_followers_desc'.tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,
@@ -133,7 +133,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Paylaşıma kapalı.",
+                          'post_creator.reshare_closed_desc'.tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,
@@ -192,7 +192,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           izBirakDateTime.value =
               v.isAfter(maxIzBirakDate) ? maxIzBirakDate : v;
         },
-        title: "İz Bırak Yayın Tarihi",
+        title: 'post_creator.schedule_title'.tr,
       ),
       isScrollControlled: true,
     );
@@ -200,6 +200,9 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
 
   Future<List<PostsModel>> uploadAllPosts(
       UploadProgressController progressController) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishPost)) {
+      return <PostsModel>[];
+    }
     final allPosts = <PreparedPostModel>[];
     final uploadedPosts = <PostsModel>[];
     final uuid = const Uuid().v4();
@@ -276,8 +279,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       // Update progress
       progressController.updateProgress(
         current: index + 1,
-        fileName: 'Gönderi ${index + 1}',
-        statusText: 'Medya dosyaları yükleniyor...',
+        fileName: 'post_creator.publish_item'.trParams({
+          'index': '${index + 1}',
+        }),
+        statusText: 'post_creator.uploading_media'.tr,
       );
 
       final imageUrls = <String>[];
@@ -311,7 +316,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       if (post.video != null) {
         final nsfwVideo = await OptimizedNSFWService.checkVideo(post.video!);
         if (nsfwVideo.errorMessage != null) {
-          throw Exception('NSFW video kontrolü başarısız');
+          throw Exception('post_creator.video_nsfw_check_failed'.tr);
         }
         if (nsfwVideo.isNSFW) {
           throw Exception('Uygunsuz video tespit edildi');
@@ -452,8 +457,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       // Update progress for database save
       progressController.updateProgress(
         current: index + 1,
-        fileName: 'Gönderi ${index + 1}',
-        statusText: 'Veritabanına kaydediliyor...',
+        fileName: 'post_creator.publish_item'.trParams({
+          'index': '${index + 1}',
+        }),
+        statusText: 'post_creator.saving_to_database'.tr,
       );
 
       final scheduledDate = _normalizedIzBirakDateTime();
@@ -538,9 +545,14 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         try {
           final currentUserId = FirebaseAuth.instance.currentUser!.uid;
           final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
+          final counterTargetPostId = _isQuotedPost
+              ? await resolveQuoteCounterTargetPostId()
+              : _sharedOriginalPostID;
           await FirebaseFirestore.instance
               .collection("Posts")
-              .doc(_sharedOriginalPostID)
+              .doc(counterTargetPostId.isNotEmpty
+                  ? counterTargetPostId
+                  : _sharedOriginalPostID)
               .collection("postSharers")
               .doc(currentUserId)
               .set({
@@ -548,6 +560,16 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
             "timestamp": shareTimestamp,
             "sharedPostID": docID,
           }, SetOptions(merge: true));
+          if (_isQuotedPost) {
+            await FirebaseFirestore.instance
+                .collection("Posts")
+                .doc(counterTargetPostId.isNotEmpty
+                    ? counterTargetPostId
+                    : _sharedOriginalPostID)
+                .update({
+              'stats.retryCount': FieldValue.increment(1),
+            });
+          }
         } catch (_, __) {}
       }
 

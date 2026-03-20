@@ -15,7 +15,7 @@ class ProfileContact extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "İletişim"),
+            BackButtons(text: 'profile_contact.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -40,7 +40,7 @@ class ProfileContact extends StatelessWidget {
                                           color: Colors.black),
                                       SizedBox(width: 12),
                                       Text(
-                                        "Arama",
+                                        'profile_contact.call'.tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 15,
@@ -79,7 +79,7 @@ class ProfileContact extends StatelessWidget {
                                           color: Colors.black),
                                       SizedBox(width: 12),
                                       Text(
-                                        "E-Posta",
+                                        'profile_contact.email'.tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 15,

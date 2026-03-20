@@ -174,7 +174,7 @@ class OpticalPreview extends StatelessWidget {
                                         ),
                                       ),
                                       child: Text(
-                                        "Test'i Bitir",
+                                        "practice.finish_exam".tr,
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 15,
@@ -202,7 +202,7 @@ class OpticalPreview extends StatelessWidget {
                                   children: [
                                     SizedBox(height: 20),
                                     Text(
-                                      "Test Başlamıştır!",
+                                      "answer_key.exam_started_title".tr,
                                       style: TextStyle(
                                         color: Colors.purple,
                                         fontSize: 25,
@@ -211,7 +211,7 @@ class OpticalPreview extends StatelessWidget {
                                     ),
                                     SizedBox(height: 12),
                                     Text(
-                                      "Bilgilerini doldurup testi başlatabilirsin. Tüm cevapların sınav sonunda kaydedilecektir.",
+                                      "answer_key.exam_started_body".tr,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -223,7 +223,7 @@ class OpticalPreview extends StatelessWidget {
                                     Divider(color: Colors.grey),
                                     SizedBox(height: 12),
                                     Text(
-                                      "Test Bilgilendirmesi",
+                                      "answer_key.exam_information_title".tr,
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 18,
@@ -249,7 +249,8 @@ class OpticalPreview extends StatelessWidget {
                                         ),
                                         Expanded(
                                           child: Text(
-                                            "Ad soyad ve öğrenci numaranı girdikten sonra testi başlatabilirsin.",
+                                            "answer_key.exam_information_step1"
+                                                .tr,
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 18,
@@ -278,7 +279,8 @@ class OpticalPreview extends StatelessWidget {
                                         ),
                                         Expanded(
                                           child: Text(
-                                            "Cevaplarını tamamladığında alttaki butonla sınavı bitirip yanıtlarını gönderebilirsin.",
+                                            "answer_key.exam_information_step2"
+                                                .tr,
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 18,
@@ -371,8 +373,8 @@ class OpticalPreview extends StatelessWidget {
                                                 .length <
                                             6) {
                                           AppSnackbar(
-                                            'Eksik Bilgi',
-                                            'Ad ve soyad en az 6 karakter olmalıdır.',
+                                            'signup.missing_info_title'.tr,
+                                            'answer_key.full_name_required'.tr,
                                           );
                                           return;
                                         }
@@ -380,8 +382,9 @@ class OpticalPreview extends StatelessWidget {
                                             .trim()
                                             .isEmpty) {
                                           AppSnackbar(
-                                            'Eksik Bilgi',
-                                            'Öğrenci numarası boş bırakılamaz.',
+                                            'signup.missing_info_title'.tr,
+                                            'answer_key.student_number_required'
+                                                .tr,
                                           );
                                           return;
                                         }
@@ -399,7 +402,7 @@ class OpticalPreview extends StatelessWidget {
                                           ),
                                         ),
                                         child: Text(
-                                          "Test'e Başla",
+                                          "answer_key.start_now".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,

@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
 
@@ -64,7 +65,7 @@ class AnswerKeyContent extends StatelessWidget {
           borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
         child: Text(
-          'İncele',
+          'answer_key.inspect'.tr,
           style: TextStyle(
             color: Colors.white,
             fontSize: fontSize,
@@ -176,7 +177,7 @@ class AnswerKeyContent extends StatelessWidget {
                   Text(
                     controller.model.yayinEvi.trim().isNotEmpty
                         ? controller.model.yayinEvi.trim()
-                        : 'Cevap anahtarı',
+                        : 'answer_key.answer_key_label'.tr,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -237,6 +238,7 @@ class AnswerKeyContent extends StatelessWidget {
     BuildContext context,
     AnswerKeyContentController controller,
   ) {
+    const metrics = PasajListCardMetrics.regular;
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final canShareFeed = AdminAccessService.isKnownAdminSync() ||
         controller.model.userID == currentUid;
@@ -255,168 +257,142 @@ class AnswerKeyContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 108,
-                height: 108,
+                width: metrics.mediaSize,
+                height: metrics.mediaSize,
                 child: _buildMedia(10),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 120),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      controller.model.baslik,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: 'MontserratBold',
-                                      ),
+                              Text(
+                                controller.model.baslik,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                controller.model.sinavTuru,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.indigo,
+                                  fontSize: 12,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                controller.model.yayinEvi,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey.shade700,
+                                  fontSize: 12,
+                                  height: 1.1,
+                                  fontFamily: 'MontserratMedium',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (canShareFeed) ...[
+                              EducationShareIconButton(
+                                onTap: controller.shareBooklet,
+                                size: metrics.actionButtonSize,
+                                iconSize: metrics.actionIconSize,
+                              ),
+                              SizedBox(width: metrics.railActionGap),
+                            ],
+                            AppHeaderActionButton(
+                              onTap: controller.toggleBookmark,
+                              size: metrics.actionButtonSize,
+                              child: Icon(
+                                controller.isBookmarked.value
+                                    ? CupertinoIcons.bookmark_fill
+                                    : CupertinoIcons.bookmark,
+                                color: controller.isBookmarked.value
+                                    ? Colors.orange
+                                    : Colors.black87,
+                                size: metrics.actionIconSize,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: metrics.contentGap),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  SvgPicture.asset(
+                                    'assets/icons/statsyeni.svg',
+                                    height: 14,
+                                    colorFilter: const ColorFilter.mode(
+                                      Colors.black,
+                                      BlendMode.srcIn,
                                     ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      controller.model.sinavTuru,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.indigo,
-                                        fontSize: 12,
-                                        fontFamily: 'MontserratBold',
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      controller.model.yayinEvi,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'answer_key.views'.trParams({
+                                        'count': NumberFormatter.format(
+                                          controller.model.viewCount,
+                                        ),
+                                      }),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: Colors.grey.shade700,
                                         fontSize: 12,
-                                        height: 1.1,
                                         fontFamily: 'MontserratMedium',
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (canShareFeed) ...[
-                                    EducationShareIconButton(
-                                      onTap: controller.shareBooklet,
-                                      size: 36,
-                                      iconSize: 20,
-                                    ),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  AppHeaderActionButton(
-                                    onTap: controller.toggleBookmark,
-                                    size: 36,
-                                    child: Icon(
-                                      controller.isBookmarked.value
-                                          ? CupertinoIcons.bookmark_fill
-                                          : CupertinoIcons.bookmark,
-                                      color: controller.isBookmarked.value
-                                          ? Colors.orange
-                                          : Colors.black87,
-                                      size: 20,
                                     ),
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      CupertinoIcons.calendar,
-                                      size: 14,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        controller.model.basimTarihi,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 12,
-                                          fontFamily: 'MontserratMedium',
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    SvgPicture.asset(
-                                      'assets/icons/statsyeni.svg',
-                                      height: 14,
-                                      colorFilter: const ColorFilter.mode(
-                                        Colors.black,
-                                        BlendMode.srcIn,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        '${NumberFormatter.format(controller.model.viewCount)} görüntülenme',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 12,
-                                          fontFamily: 'MontserratMedium',
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: metrics.railWidth,
+                          child: _buildPrimaryButton(
+                            context,
+                            controller,
+                            height: 22,
+                            fontSize: 10,
                           ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 110,
-                            child: _buildPrimaryButton(
-                              context,
-                              controller,
-                              height: 22,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
@@ -29,14 +30,6 @@ class EditorNicknameController extends GetxController {
   final RxBool hasUserTyped = false.obs;
   Timer? _debounce;
   final UserRepository _userRepository = UserRepository.ensure();
-  static const Map<String, String> _trMap = {
-    'ç': 'c',
-    'ğ': 'g',
-    'ı': 'i',
-    'ö': 'o',
-    'ş': 's',
-    'ü': 'u',
-  };
 
   @override
   void onInit() {
@@ -79,7 +72,7 @@ class EditorNicknameController extends GetxController {
 
   void _onTextChanged() {
     final currentText = nicknameController.text;
-    final norm = _normalize(currentText);
+    final norm = normalizeEditableNickname(currentText);
 
     // Kullanıcının gerçekten yazdığını işaretle
     if (currentText.isNotEmpty && currentText != _originalNickname) {
@@ -103,17 +96,7 @@ class EditorNicknameController extends GetxController {
     });
   }
 
-  String _normalize(String raw) {
-    String normalized = raw.trim().toLowerCase();
-    for (final entry in _trMap.entries) {
-      normalized = normalized.replaceAll(entry.key, entry.value);
-    }
-    normalized = normalized.replaceAll(RegExp(r'\s+'), '');
-    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9._]'), '');
-    return normalized;
-  }
-
-  String get currentNormalized => _normalize(nicknameController.text);
+  String get currentNormalized => normalizeEditableNickname(nicknameController.text);
 
   bool get canSave {
     final name = currentNormalized;

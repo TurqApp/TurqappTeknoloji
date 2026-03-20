@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -70,9 +71,9 @@ class _SliderAdminViewState extends State<SliderAdminView> {
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'updatedDate': DateTime.now().millisecondsSinceEpoch,
       });
-      AppSnackbar('Tamam', 'Slider görseli eklendi');
+      AppSnackbar('common.ok'.tr, 'slider_admin.added'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Slider görseli eklenemedi: $e');
+      AppSnackbar('common.error'.tr, 'slider_admin.add_failed'.trParams({'error': '$e'}));
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -118,9 +119,10 @@ class _SliderAdminViewState extends State<SliderAdminView> {
       if (oldStoragePath.isNotEmpty && oldStoragePath != '$storagePath.webp') {
         await FirebaseStorage.instance.ref().child(oldStoragePath).delete();
       }
-      AppSnackbar('Tamam', 'Slider görseli güncellendi');
+      AppSnackbar('common.ok'.tr, 'slider_admin.updated'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Slider görseli güncellenemedi: $e');
+      AppSnackbar(
+          'common.error'.tr, 'slider_admin.update_failed'.trParams({'error': '$e'}));
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -152,9 +154,14 @@ class _SliderAdminViewState extends State<SliderAdminView> {
       }
 
       await _normalizeExtraOrder();
-      AppSnackbar('Tamam', hasDefault ? 'Görsel kaldırıldı' : 'Görsel silindi');
+      AppSnackbar(
+          'common.ok'.tr,
+          hasDefault
+              ? 'slider_admin.hidden'.tr
+              : 'slider_admin.deleted'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Slider görseli kaldırılamadı: $e');
+      AppSnackbar(
+          'common.error'.tr, 'slider_admin.remove_failed'.trParams({'error': '$e'}));
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -170,9 +177,10 @@ class _SliderAdminViewState extends State<SliderAdminView> {
         'hiddenDefaults': FieldValue.arrayRemove([index]),
         'updatedDate': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
-      AppSnackbar('Tamam', 'Varsayılan görsel geri açıldı');
+      AppSnackbar('common.ok'.tr, 'slider_admin.restored'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Varsayılan görsel açılamadı: $e');
+      AppSnackbar(
+          'common.error'.tr, 'slider_admin.restore_failed'.trParams({'error': '$e'}));
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -213,7 +221,8 @@ class _SliderAdminViewState extends State<SliderAdminView> {
       });
       await batch.commit();
     } catch (e) {
-      AppSnackbar('Hata', 'Sıralama güncellenemedi: $e');
+      AppSnackbar(
+          'common.error'.tr, 'slider_admin.sort_failed'.trParams({'error': '$e'}));
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -247,7 +256,9 @@ class _SliderAdminViewState extends State<SliderAdminView> {
           children: [
             Column(
               children: [
-                BackButtons(text: '${widget.title} Slider'),
+                BackButtons(
+                  text: 'slider_admin.title'.trParams({'title': widget.title}),
+                ),
                 Expanded(
                   child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                     stream: _sliderMeta.snapshots(),
@@ -391,7 +402,10 @@ class _SliderAdminViewState extends State<SliderAdminView> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'Slider görseli ${index + 1}',
+                                                    'slider_admin.image_label'
+                                                        .trParams({
+                                                      'index': '${index + 1}',
+                                                    }),
                                                     style: const TextStyle(
                                                       fontSize: 15,
                                                       fontFamily:
@@ -400,12 +414,16 @@ class _SliderAdminViewState extends State<SliderAdminView> {
                                                   ),
                                                   Text(
                                                     remoteDoc != null
-                                                        ? 'Canlı görsel'
+                                                        ? 'slider_admin.live'
+                                                            .tr
                                                         : hasDefault
                                                             ? isHidden
-                                                                ? 'Gizli varsayılan'
-                                                                : 'Varsayılan görsel'
-                                                            : 'Ek görsel',
+                                                                ? 'slider_admin.hidden_default'
+                                                                    .tr
+                                                                : 'slider_admin.default_image'
+                                                                    .tr
+                                                            : 'slider_admin.extra_image'
+                                                                .tr,
                                                     style: const TextStyle(
                                                       color: Colors.black54,
                                                       fontSize: 12,
@@ -462,19 +480,23 @@ class _SliderAdminViewState extends State<SliderAdminView> {
                                               itemBuilder: (context) {
                                                 final items =
                                                     <PopupMenuEntry<String>>[
-                                                  const PopupMenuItem(
+                                                  PopupMenuItem(
                                                     value: 'replace',
                                                     child: Text(
-                                                        'Görseli Değiştir'),
+                                                      'slider_admin.replace'.tr,
+                                                    ),
                                                   ),
                                                 ];
                                                 if (isHidden &&
                                                     hasDefault &&
                                                     remoteDoc == null) {
                                                   items.add(
-                                                    const PopupMenuItem(
+                                                    PopupMenuItem(
                                                       value: 'restore',
-                                                      child: Text('Yeniden Aç'),
+                                                      child: Text(
+                                                        'slider_admin.reopen'
+                                                            .tr,
+                                                      ),
                                                     ),
                                                   );
                                                 } else {
@@ -483,8 +505,10 @@ class _SliderAdminViewState extends State<SliderAdminView> {
                                                       value: 'delete',
                                                       child: Text(
                                                         hasDefault
-                                                            ? 'Kaldır'
-                                                            : 'Sil',
+                                                            ? 'common.remove'
+                                                                .tr
+                                                            : 'common.delete'
+                                                                .tr,
                                                       ),
                                                     ),
                                                   );

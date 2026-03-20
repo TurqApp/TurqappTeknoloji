@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 
 class AdRenderer extends StatelessWidget {
   const AdRenderer({
     super.key,
     required this.slot,
-    this.title = 'Sponsorlu',
+    this.title = '',
   });
 
   final AdSlot slot;
@@ -32,7 +33,7 @@ class AdRenderer extends StatelessWidget {
           const Icon(Icons.campaign_outlined, size: 18),
           const SizedBox(width: 8),
           Text(
-            '$title • ${slot.placement.name.toUpperCase()}',
+            '${title.isEmpty ? 'ads.sponsored'.tr : title} • ${slot.placement.name.toUpperCase()}',
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 13,

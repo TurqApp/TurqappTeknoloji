@@ -12,6 +12,8 @@ import 'package:saver_gallery/saver_gallery.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
@@ -28,17 +30,17 @@ class MyQRCodeController extends GetxController {
   }
 
   String _buildProfileLink() {
-    final nickname = userService.nickname.trim();
+    final nickname = normalizeProfileSlug(userService.nickname);
     if (nickname.isNotEmpty) {
-      return 'https://turqapp.com/u/$nickname';
+      return buildTurqAppProfileUrl(nickname);
     }
     final uid = userService.userId.isNotEmpty
         ? userService.userId
         : (FirebaseAuth.instance.currentUser?.uid ?? '');
     if (uid.isNotEmpty) {
-      return 'https://turqapp.com/u/$uid';
+      return buildTurqAppProfileUrl(uid);
     }
-    return 'https://turqapp.com/u/guest';
+    return buildTurqAppProfileUrl('guest');
   }
 
   String _fallbackProfileLink() {
@@ -51,14 +53,14 @@ class MyQRCodeController extends GetxController {
     final uid = userService.userId.isNotEmpty
         ? userService.userId
         : (FirebaseAuth.instance.currentUser?.uid ?? '');
-    final nickname = userService.nickname.trim();
+    final nickname = normalizeProfileSlug(userService.nickname);
     if (uid.isEmpty || nickname.isEmpty) return;
     try {
       await _shortLinkService.upsertUser(
         userId: uid,
         slug: nickname,
         title: '@$nickname - TurqApp',
-        desc: 'TurqApp profilini görüntüle',
+        desc: 'qr.profile_desc'.tr,
         imageUrl: userService.avatarUrl,
       );
     } catch (_) {}

@@ -37,6 +37,19 @@ class AgendaShuffleCacheService extends GetxService {
     _cachedAt = null;
   }
 
+  void removePosts(Iterable<String> docIds) {
+    final ids = docIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (ids.isEmpty) return;
+    _posts.removeWhere((post) => ids.contains(post.docID));
+    if (_index > _posts.length) {
+      _index = _posts.length;
+    }
+    if (_posts.isEmpty) {
+      _cachedAt = null;
+      _index = 0;
+    }
+  }
+
   void replace(List<PostsModel> posts) {
     _posts
       ..clear()

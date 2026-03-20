@@ -52,8 +52,8 @@ class _MarketSavedViewState extends State<MarketSavedView> {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Beğendiklerim',
+        title: Text(
+          'pasaj.market.saved_items'.tr,
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -74,11 +74,11 @@ class _MarketSavedViewState extends State<MarketSavedView> {
             },
             child: items.isEmpty
                 ? ListView(
-                    children: const [
+                    children: [
                       SizedBox(height: 140),
                       Center(
                         child: Text(
-                          'Beğenilen ilan bulunamadı.',
+                          'pasaj.market.saved_empty'.tr,
                           style: TextStyle(
                             color: Colors.black54,
                             fontSize: 14,
@@ -127,20 +127,14 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                     ? Image.network(
                         item.coverImageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Transform.flip(
-                          flipX: true,
-                          child: Icon(
-                            AppIcons.like,
-                            color: Color(0xFF2563EB),
-                          ),
+                        errorBuilder: (_, __, ___) => Icon(
+                          AppIcons.save,
+                          color: Colors.orange,
                         ),
                       )
-                    : Transform.flip(
-                        flipX: true,
-                        child: Icon(
-                          AppIcons.like,
-                          color: Color(0xFF2563EB),
-                        ),
+                    : Icon(
+                        AppIcons.save,
+                        color: Colors.orange,
                       ),
               ),
             ),
@@ -162,7 +156,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                   const SizedBox(height: 4),
                   Text(
                     item.locationText.isEmpty
-                        ? 'Konum belirtilmedi'
+                        ? 'pasaj.market.location_missing'.tr
                         : item.locationText,
                     style: const TextStyle(
                       color: Colors.black54,
@@ -191,13 +185,10 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Transform.flip(
-                      flipX: true,
-                      child: Icon(
-                        AppIcons.liked,
-                        color: Color(0xFF2563EB),
-                      ),
-                    ),
+                      : Icon(
+                          AppIcons.saved,
+                          color: Colors.orange,
+                        ),
             ),
           ],
         ),
@@ -216,13 +207,13 @@ class _MarketSavedViewState extends State<MarketSavedView> {
         _busyIds.remove(item.id);
         _reload(force: true);
       });
-      AppSnackbar('Tamam', 'Beğenilenlerden kaldırıldı.');
+      AppSnackbar('common.success'.tr, 'pasaj.market.removed_saved'.tr);
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _busyIds.remove(item.id);
       });
-      AppSnackbar('Hata', 'Kayıt kaldırılamadı.');
+      AppSnackbar('common.error'.tr, 'pasaj.market.unsave_failed'.tr);
     }
   }
 

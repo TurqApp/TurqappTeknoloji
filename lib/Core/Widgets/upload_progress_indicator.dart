@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../upload_constants.dart';
 
 class UploadProgressIndicator extends StatelessWidget {
@@ -33,7 +34,7 @@ class UploadProgressIndicator extends StatelessWidget {
         children: [
           // Total size indicator
           _buildProgressRow(
-            label: 'Toplam Boyut',
+            label: 'common.total_size'.tr,
             current: UploadConstants.formatBytes(totalSizeBytes),
             max: UploadConstants.getMaxTotalSizeText(),
             progress: sizeProgress,
@@ -45,7 +46,7 @@ class UploadProgressIndicator extends StatelessWidget {
 
             // Image count indicator
             _buildProgressRow(
-              label: 'Fotoğraflar',
+              label: 'common.photos'.tr,
               current: '$currentImageCount',
               max: '${UploadConstants.maxImagesPerPost}',
               progress: imageProgress,
@@ -56,7 +57,7 @@ class UploadProgressIndicator extends StatelessWidget {
 
             // Video count indicator
             _buildProgressRow(
-              label: 'Videolar',
+              label: 'common.videos'.tr,
               current: '$currentVideoCount',
               max: '${UploadConstants.maxVideosPerPost}',
               progress: videoProgress,
@@ -153,13 +154,13 @@ class UploadLimitInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.blue, size: 18),
-              SizedBox(width: 8),
+              const Icon(Icons.info_outline, color: Colors.blue, size: 18),
+              const SizedBox(width: 8),
               Text(
-                'Upload Limitleri',
-                style: TextStyle(
+                'upload.limits_title'.tr,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.blue,
@@ -168,14 +169,32 @@ class UploadLimitInfo extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildLimitRow('Fotoğraf:',
-              'Maksimum ${UploadConstants.getMaxImageSizeText()} per fotoğraf'),
-          _buildLimitRow('Video:',
-              'Maksimum ${UploadConstants.getMaxVideoSizeText()}, ${UploadConstants.maxVideoLengthSeconds} saniye'),
-          _buildLimitRow('Toplam:',
-              'Post başına maksimum ${UploadConstants.getMaxTotalSizeText()}'),
-          _buildLimitRow('Sayı:',
-              '${UploadConstants.maxImagesPerPost} fotoğraf veya ${UploadConstants.maxVideosPerPost} video'),
+          _buildLimitRow(
+            'upload.photos_label'.tr,
+            'upload.photos_limit'.trParams({
+              'size': UploadConstants.getMaxImageSizeText(),
+            }),
+          ),
+          _buildLimitRow(
+            'upload.videos_label'.tr,
+            'upload.videos_limit'.trParams({
+              'size': UploadConstants.getMaxVideoSizeText(),
+              'seconds': '${UploadConstants.maxVideoLengthSeconds}',
+            }),
+          ),
+          _buildLimitRow(
+            'upload.total_label'.tr,
+            'upload.total_limit'.trParams({
+              'size': UploadConstants.getMaxTotalSizeText(),
+            }),
+          ),
+          _buildLimitRow(
+            'upload.count_label'.tr,
+            'upload.count_limit'.trParams({
+              'images': '${UploadConstants.maxImagesPerPost}',
+              'videos': '${UploadConstants.maxVideosPerPost}',
+            }),
+          ),
         ],
       ),
     );

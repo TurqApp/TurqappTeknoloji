@@ -26,6 +26,7 @@ class SupportMessageRepository extends GetxService {
   }
 
   Future<void> createMessage({
+    required String topic,
     required String message,
   }) async {
     final authUser = FirebaseAuth.instance.currentUser;
@@ -34,7 +35,11 @@ class SupportMessageRepository extends GetxService {
     if (uid.trim().isEmpty) {
       throw Exception('not_authenticated');
     }
+    final normalizedTopic = topic.trim();
     final text = message.trim();
+    if (normalizedTopic.isEmpty) {
+      throw Exception('empty_topic');
+    }
     if (text.isEmpty) {
       throw Exception('empty_message');
     }
@@ -46,6 +51,7 @@ class SupportMessageRepository extends GetxService {
       'avatarUrl': (current?.avatarUrl ?? '').trim(),
       'rozet': (current?.rozet ?? '').trim(),
       'email': (authUser?.email ?? '').trim(),
+      'topic': normalizedTopic,
       'message': text,
       'status': 'open',
       'adminNote': '',

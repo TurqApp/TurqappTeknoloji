@@ -191,7 +191,7 @@ class ShortContentController extends GetxController {
     try {
       await _postRepository.toggleLike(model);
     } catch (e) {
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.like_failed'.tr);
     }
   }
 
@@ -202,7 +202,7 @@ class ShortContentController extends GetxController {
     try {
       await _postRepository.toggleSave(model);
     } catch (e) {
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.save_failed'.tr);
     }
   }
 
@@ -222,7 +222,7 @@ class ShortContentController extends GetxController {
         } catch (_) {}
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Yeniden paylaşma işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.reshare_failed'.tr);
     }
   }
 
@@ -235,12 +235,12 @@ class ShortContentController extends GetxController {
       if (success) {
         isReported.value = true;
         reportCount.value++;
-        AppSnackbar('Başarılı', 'Post şikayet edildi');
+        AppSnackbar('common.success'.tr, 'post.report_success'.tr);
       } else {
-        AppSnackbar('Bilgi', 'Bu post daha önce şikayet edilmiş');
+        AppSnackbar('common.info'.tr, 'post.already_reported'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Şikayet işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.report_failed'.tr);
     }
   }
 
@@ -502,7 +502,7 @@ class ShortContentController extends GetxController {
         takipEdiyorum.value = true;
       }
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
     } catch (_) {
     } finally {

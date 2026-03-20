@@ -8,6 +8,7 @@ import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../../Core/Services/user_profile_cache_service.dart';
 import '../../../Core/Utils/avatar_url.dart';
+import '../../../Core/Utils/nickname_utils.dart';
 import '../../../Services/current_user_service.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/story_model.dart';
@@ -44,7 +45,9 @@ class StoryRowController extends GetxController {
     users.insert(
       0,
       StoryUserModel(
-        nickname: nickname.isNotEmpty ? nickname : '@kullanici',
+        nickname: nickname.isNotEmpty
+            ? nickname
+            : 'story.placeholder_nickname'.tr,
         avatarUrl: userService.avatarUrl,
         fullName: fullName,
         userID: myUid,
@@ -57,7 +60,7 @@ class StoryRowController extends GetxController {
     final nickname = (data['nickname'] ?? '').toString().trim();
     final username = (data['username'] ?? '').toString().trim();
     final usernameLower = (data['usernameLower'] ?? '').toString().trim();
-    final hasSpace = nickname.contains(RegExp(r'\s'));
+    final hasSpace = hasNicknameWhitespace(nickname);
     if (nickname.isNotEmpty && !hasSpace) return nickname;
     if (username.isNotEmpty) return username;
     if (usernameLower.isNotEmpty) return usernameLower;

@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
+import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -42,6 +43,9 @@ class JobContentController extends GetxController {
   }
 
   Future<void> toggleSave(String docId) async {
+    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveJob)) {
+      return;
+    }
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
@@ -66,7 +70,10 @@ class JobContentController extends GetxController {
     final existing = await _jobRepository.fetchById(model.docID,
         preferCache: false, forceRefresh: true);
     if (existing == null) {
-      AppSnackbar("Uyarı", "İlan kaydına ulaşılamadı.");
+      AppSnackbar(
+        "common.info".tr,
+        "pasaj.job_finder.listing_not_found".tr,
+      );
       return;
     }
 
@@ -93,7 +100,10 @@ class JobContentController extends GetxController {
         finder.list.refresh();
       }
     }
-    AppSnackbar("İlan Yenilendi", "İlan tekrar yayına alındı.");
+    AppSnackbar(
+      "common.success".tr,
+      "pasaj.job_finder.reactivated".tr,
+    );
   }
 
   Future<void> shareJob(JobModel model) async {
@@ -101,7 +111,10 @@ class JobContentController extends GetxController {
     final canShare =
         AdminAccessService.isKnownAdminSync() || uid == model.userID;
     if (!canShare) {
-      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      AppSnackbar(
+        "common.info".tr,
+        "pasaj.job_finder.share_auth_required".tr,
+      );
       return;
     }
     await ShareActionGuard.run(() async {

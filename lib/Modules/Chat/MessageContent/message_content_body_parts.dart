@@ -455,7 +455,7 @@ extension MessageContentBodyParts on MessageContent {
     );
 
     if (model.isUnsent) {
-      return Text("Mesaj geri alındı", style: baseStyle);
+      return Text('chat.unsent_message'.tr, style: baseStyle);
     }
 
     return RichText(
@@ -613,7 +613,7 @@ extension MessageContentBodyParts on MessageContent {
                     children: [
                       _menuAction(
                         icon: CupertinoIcons.arrowshape_turn_up_left,
-                        title: "Yanıtla",
+                        title: 'chat.reply'.tr,
                         onTap: () {
                           Navigator.of(context).pop();
                           chatController.startReply(model);
@@ -621,7 +621,7 @@ extension MessageContentBodyParts on MessageContent {
                       ),
                       _menuAction(
                         icon: CupertinoIcons.doc_on_doc,
-                        title: "Kopyala",
+                        title: 'common.copy'.tr,
                         onTap: () {
                           final text = model.metin.trim();
                           final copyValue = text.isNotEmpty
@@ -641,8 +641,9 @@ extension MessageContentBodyParts on MessageContent {
                         icon: model.isStarred
                             ? CupertinoIcons.star_fill
                             : CupertinoIcons.star,
-                        title:
-                            model.isStarred ? "Yıldızı Kaldır" : "Yıldız Ekle",
+                        title: model.isStarred
+                            ? 'chat.remove_star'.tr
+                            : 'chat.add_star'.tr,
                         onTap: () {
                           Navigator.of(context).pop();
                           chatController.toggleStarMessage(model);
@@ -650,7 +651,7 @@ extension MessageContentBodyParts on MessageContent {
                       ),
                       _menuAction(
                         icon: CupertinoIcons.trash,
-                        title: "Sil",
+                        title: 'common.delete'.tr,
                         isDestructive: true,
                         onTap: () {
                           Navigator.of(context).pop();

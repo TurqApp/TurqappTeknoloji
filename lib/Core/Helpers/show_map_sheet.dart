@@ -20,7 +20,7 @@ Future<void> showMapsSheetWithAdres(String adres) async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AppSheetHeader(title: "Haritalarda Aç"),
+            AppSheetHeader(title: 'pasaj.job_finder.open_in_maps'.tr),
 
             // GOOGLE MAPS
             AppSheetActionTile(
@@ -37,7 +37,7 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 height: 36,
                 child: Image.asset("assets/icons/googlemaps.webp"),
               ),
-              title: "Google Haritalar'da Aç",
+              title: 'pasaj.job_finder.open_google_maps'.tr,
             ),
 
             // APPLE MAPS (sadece iOS'ta)
@@ -56,7 +56,7 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                   height: 36,
                   child: Image.asset("assets/icons/applemaps.webp"),
                 ),
-                title: "Apple Haritalar'da Aç",
+                title: 'pasaj.job_finder.open_apple_maps'.tr,
               ),
 
             // YANDEX MAPS
@@ -84,7 +84,7 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 ),
                 child: Image.asset("assets/icons/yandexmaps.webp"),
               ),
-              title: "Yandex Haritalar'da Aç",
+              title: 'pasaj.job_finder.open_yandex_maps'.tr,
             ),
           ],
         ),

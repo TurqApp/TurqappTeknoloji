@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_repository_service.dart';
@@ -15,15 +16,15 @@ class AdsDeliveryService {
   Future<AdDeliveryResult> simulateForAdmin(AdDeliveryContext context) async {
     final flags = AdsFeatureFlagsService.to.flags.value;
     if (!flags.adsInfrastructureEnabled || !flags.adsAdminPanelEnabled) {
-      return const AdDeliveryResult(
+      return AdDeliveryResult(
         hasAd: false,
-        message: 'Ads altyapısı veya admin paneli kapalı.',
+        message: 'ads_delivery.infrastructure_disabled'.tr,
       );
     }
     if (!flags.adsPreviewModeEnabled) {
-      return const AdDeliveryResult(
+      return AdDeliveryResult(
         hasAd: false,
-        message: 'Preview modu kapalı.',
+        message: 'ads_delivery.preview_disabled'.tr,
       );
     }
 
@@ -73,8 +74,8 @@ class AdsDeliveryService {
   Future<AdDeliveryResult> _simulateLocal(AdDeliveryContext context) async {
     final campaigns = await _repository.getCampaignsOnce();
     if (campaigns.isEmpty) {
-      return const AdDeliveryResult(
-          hasAd: false, message: 'Kampanya bulunamadı');
+      return AdDeliveryResult(
+          hasAd: false, message: 'ads_delivery.no_campaign'.tr);
     }
 
     final now = DateTime.now();
@@ -128,7 +129,7 @@ class AdsDeliveryService {
     if (eligible.isEmpty) {
       return AdDeliveryResult(
         hasAd: false,
-        message: 'Uygun reklam bulunamadı.',
+        message: 'ads_delivery.no_ad'.tr,
         decisions: decisions,
       );
     }
@@ -153,7 +154,7 @@ class AdsDeliveryService {
       );
       return AdDeliveryResult(
         hasAd: false,
-        message: 'Kreatif onayı eksik.',
+        message: 'ads_delivery.creative_missing'.tr,
         decisions: decisions,
       );
     }
@@ -163,7 +164,7 @@ class AdsDeliveryService {
       campaign: selected,
       creative: approved.first,
       decisions: decisions,
-      message: 'Uygun reklam bulundu.',
+      message: 'ads_delivery.ad_found'.tr,
     );
   }
 

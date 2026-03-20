@@ -3,10 +3,10 @@ part of 'create_scholarship_view.dart';
 extension CreateScholarshipBasicPart on CreateScholarshipView {
   String _applicationPlaceLabel(String value) {
     switch (value) {
-      case 'TurqApp':
+      case CreateScholarshipController.applicationPlaceTurqAppValue:
         return 'scholarship.application_place_turqapp'.tr;
       case 'Burs Web Site':
-      case 'Web Site':
+      case CreateScholarshipController.applicationPlaceWebsiteValue:
         return 'scholarship.application_place_website'.tr;
       default:
         return value;
@@ -157,21 +157,20 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                 RegExp(r'[a-zA-Z0-9\-\._~:/?#[\]@!$&()*+,;=%]'),
               ),
               TextInputFormatter.withFunction((oldValue, newValue) {
-                String text = newValue.text;
+                const scheme = 'https://';
+                final text = newValue.text;
 
-                // Eğer https:// ile başlamıyorsa veya sadece https:// ise
-                if (!text.startsWith("https://") || text.length < 8) {
+                if (!hasHttpUrlScheme(text) || text.length < scheme.length) {
                   return TextEditingValue(
-                    text: "https://",
-                    selection: TextSelection.collapsed(offset: 8),
+                    text: scheme,
+                    selection: TextSelection.collapsed(offset: scheme.length),
                   );
                 }
 
-                // Eğer https:// den sonra sadece / varsa, onu kaldır
-                if (text == "https:///") {
+                if (text == '$scheme/') {
                   return TextEditingValue(
-                    text: "https://",
-                    selection: TextSelection.collapsed(offset: 8),
+                    text: scheme,
+                    selection: TextSelection.collapsed(offset: scheme.length),
                   );
                 }
 
@@ -317,6 +316,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                     title: "scholarship.conditions_label".tr,
                     items: controller.bursKosullari,
                     selectionType: 'conditions',
+                    itemLabelBuilder: controller.scholarshipConditionLabel,
                   ),
                 );
               },
@@ -370,6 +370,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                     title: "scholarship.required_docs_label".tr,
                     items: controller.gerekliBelgeler,
                     selectionType: 'documents',
+                    itemLabelBuilder: controller.scholarshipDocumentLabel,
                   ),
                 );
               },
@@ -440,6 +441,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                     title: "scholarship.award_months_label".tr,
                     items: controller.bursVerilecekAylar,
                     selectionType: 'months',
+                    itemLabelBuilder: controller.awardMonthLabel,
                   ),
                 );
               },
@@ -466,7 +468,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
             onTap: () {
               AppBottomSheet.show(
                 context: Get.context!,
-                items: const ["TurqApp", "Burs Web Site"],
+                items: controller.applicationOption,
                 title: "scholarship.application_place_label".tr,
                 selectedItem: controller.basvuruYapilacakYer.value,
                 itemLabelBuilder: (item) => _applicationPlaceLabel(
@@ -483,7 +485,9 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
         ),
         16.ph,
         Obx(() {
-          if (controller.basvuruYapilacakYer.value == "Burs Web Site") {
+          if (controller.isWebsiteApplicationPlace(
+            controller.basvuruYapilacakYer.value,
+          )) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -505,9 +509,10 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                       FilteringTextInputFormatter.deny(RegExp(r'\s')),
                     ],
                     onChanged: (value) {
-                      if (!value.startsWith("https://")) {
-                        value =
-                            "https://${value.replaceFirst(RegExp(r'^https?://'), '')}";
+                      if (!hasHttpUrlScheme(value)) {
+                        value = ensureUrlHasScheme(
+                          value.replaceFirst(RegExp(r'^https?://'), ''),
+                        );
                         controller.basvuruURL.value = value;
                         controller.basvuruURLController.text = value;
                         controller.basvuruURLController.selection =
@@ -658,7 +663,9 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                     controller.basvuruYapilacakYer.value.isEmpty ||
                     controller.baslangicTarihi.value.isEmpty ||
                     controller.bitisTarihi.value.isEmpty ||
-                    (controller.basvuruYapilacakYer.value == "Burs Web Site" &&
+                    (controller.isWebsiteApplicationPlace(
+                          controller.basvuruYapilacakYer.value,
+                        ) &&
                         controller.basvuruURL.value.isEmpty)) {
                   AppSnackbar(
                     'common.error'.tr,

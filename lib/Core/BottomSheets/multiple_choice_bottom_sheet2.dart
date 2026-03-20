@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 
 class MultiSelectBottomSheet2 extends StatelessWidget {
+  static const String _allUniversitiesKey = 'scholarship.all_universities';
+  static const String _allUniversitiesValue = 'Tüm Üniversiteler';
   final String title;
   final List<String> items;
   final List<String> selectedItems;
   final Function(List<String>) onConfirm;
   final Map<String, List<String>>? relatedItems;
   final String? parentSelection;
+  final String Function(String)? itemLabelBuilder;
 
   const MultiSelectBottomSheet2({
     super.key,
@@ -19,7 +23,28 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
     required this.onConfirm,
     this.relatedItems,
     this.parentSelection,
+    this.itemLabelBuilder,
   });
+
+  bool _isAllUniversitiesValue(String value) {
+    final normalized = value.trim();
+    return const <String>{
+      _allUniversitiesValue,
+      _allUniversitiesKey,
+      'All Universities',
+      'Alle Universitäten',
+      'Toutes les universités',
+      'Tutte le università',
+      'Все университеты',
+    }.contains(normalized);
+  }
+
+  bool _containsSelectedValue(List<String> values, String item) {
+    if (_isAllUniversitiesValue(item)) {
+      return values.any(_isAllUniversitiesValue);
+    }
+    return values.contains(item);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,12 +60,12 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
       if (searchQuery.value.isEmpty) {
         filteredItems.assignAll(baseItems);
       } else {
+        final normalizedQuery = normalizeSearchText(searchQuery.value);
         filteredItems.assignAll(
           baseItems
               .where(
-                (item) => item.toLowerCase().contains(
-                      searchQuery.value.toLowerCase(),
-                    ),
+                (item) =>
+                    normalizeSearchText(item).contains(normalizedQuery),
               )
               .toList(),
         );
@@ -71,7 +96,7 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Ara',
+                hintText: 'common.search'.tr,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -98,10 +123,13 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
           Expanded(
             child: Obx(
               () => filteredItems.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        'Sonuç bulunamadı',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        'explore.no_results'.tr,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -110,19 +138,27 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
                         final item = filteredItems[index];
                         return GestureDetector(
                           onTap: () {
-                            if (item == 'Tüm Üniversiteler') {
-                              if (tempSelectedItems.contains(item)) {
+                            final isAllUniversities =
+                                _isAllUniversitiesValue(item);
+                            if (isAllUniversities) {
+                              if (_containsSelectedValue(
+                                tempSelectedItems,
+                                item,
+                              )) {
                                 tempSelectedItems.clear();
                               } else {
-                                tempSelectedItems.assignAll([item]);
+                                tempSelectedItems.assignAll(
+                                  <String>[_allUniversitiesValue],
+                                );
                               }
                             } else {
-                              if (tempSelectedItems.contains(
-                                'Tüm Üniversiteler',
+                              tempSelectedItems.removeWhere(
+                                _isAllUniversitiesValue,
+                              );
+                              if (_containsSelectedValue(
+                                tempSelectedItems,
+                                item,
                               )) {
-                                tempSelectedItems.remove('Tüm Üniversiteler');
-                              }
-                              if (tempSelectedItems.contains(item)) {
                                 tempSelectedItems.remove(item);
                               } else {
                                 tempSelectedItems.add(item);
@@ -140,7 +176,7 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        item,
+                                        itemLabelBuilder?.call(item) ?? item,
                                         style:
                                             TextStyles.textFieldTitle.copyWith(
                                           fontSize: 16,
@@ -150,10 +186,16 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
                                     ),
                                     Obx(
                                       () => Icon(
-                                        tempSelectedItems.contains(item)
+                                        _containsSelectedValue(
+                                          tempSelectedItems,
+                                          item,
+                                        )
                                             ? Icons.check_circle
                                             : Icons.radio_button_unchecked,
-                                        color: tempSelectedItems.contains(item)
+                                        color: _containsSelectedValue(
+                                          tempSelectedItems,
+                                          item,
+                                        )
                                             ? Colors.green
                                             : Colors.grey,
                                         size: 21,
@@ -189,14 +231,19 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text("İptal", style: TextStyles.textFieldTitle),
+                  child: Text("common.cancel".tr,
+                      style: TextStyles.textFieldTitle),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    onConfirm(tempSelectedItems);
+                    if (tempSelectedItems.any(_isAllUniversitiesValue)) {
+                      onConfirm(<String>[_allUniversitiesValue]);
+                    } else {
+                      onConfirm(tempSelectedItems);
+                    }
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
@@ -206,9 +253,9 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    "Seç",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  child: Text(
+                    "common.select".tr,
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

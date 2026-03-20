@@ -28,36 +28,73 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> yillar = [];
+  static const _english = 'İngilizce';
+  static const _german = 'Almanca';
+  static const _arabic = 'Arapça';
+  static const _french = 'Fransızca';
+  static const _russian = 'Rusça';
+  static const _associate = 'Ön Lisans';
+  static const _undergraduate = 'Lisans';
+  static const _aGroup = 'A Grubu';
+  static const _fieldKnowledge = 'Alan Bilgisi';
+  static const _educationSciences = 'Eğitim Bilimleri';
+  static const _generalAbilityCulture = 'GK - GY';
+  static const _ydt = 'YDT';
+  static const _tyt = 'TYT';
+  static const _ayt = 'AYT';
+  static const _dgs = 'DGS';
+  static const _lgs = 'LGS';
+  static const _kpss = 'KPSS';
+  static const _ktbt = 'KTBT';
+  static const _ttbt = 'TTBT';
+  static const _ales = 'ALES';
+  static const _yks = 'YKS';
 
   String _denemeLabel(int index) =>
       'past_questions.mock_label'.trParams({'index': '${index + 1}'});
 
   String _localizedExamType(String raw) {
     switch (raw) {
-      case 'İngilizce':
+      case _english:
         return 'tests.language.english'.tr;
-      case 'Almanca':
+      case _german:
         return 'tests.language.german'.tr;
-      case 'Arapça':
+      case _arabic:
         return 'tests.language.arabic'.tr;
-      case 'Fransızca':
+      case _french:
         return 'tests.language.french'.tr;
-      case 'Rusça':
+      case _russian:
         return 'tests.language.russian'.tr;
-      case 'Ön Lisans':
+      case _associate:
         return 'past_questions.exam_type.associate'.tr;
-      case 'Lisans':
+      case _undergraduate:
         return 'past_questions.exam_type.undergraduate'.tr;
-      case 'GK - GY':
+      case _generalAbilityCulture:
         return 'past_questions.branch.general_ability_culture'.tr;
-      case 'A Grubu':
+      case _aGroup:
         return 'past_questions.branch.group_a'.tr;
-      case 'Eğitim Bilimleri':
+      case _educationSciences:
         return 'past_questions.branch.education_sciences'.tr;
-      case 'Alan Bilgisi':
+      case _fieldKnowledge:
         return 'past_questions.branch.field_knowledge'.tr;
       default:
         return raw;
+    }
+  }
+
+  bool _isLanguageOrDirectBranch(String raw) {
+    switch (raw) {
+      case _ttbt:
+      case _ktbt:
+      case _ales:
+      case _german:
+      case _english:
+      case _french:
+      case _russian:
+      case _arabic:
+        return true;
+      default:
+        return false;
     }
   }
 
@@ -75,14 +112,7 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                 (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
               return false;
             }
-            if (widget.baslik2 == "TTBT" ||
-                widget.baslik2 == "KTBT" ||
-                widget.baslik2 == "ALES" ||
-                widget.baslik2 == "Almanca" ||
-                widget.baslik2 == "İngilizce" ||
-                widget.baslik2 == "Fransızca" ||
-                widget.baslik2 == "Rusça" ||
-                widget.baslik2 == "Arapça") {
+            if (_isLanguageOrDirectBranch(widget.baslik2)) {
               return true;
             }
             if (widget.baslik3.isNotEmpty) {
@@ -137,14 +167,7 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (widget.sinavTuru == "KTBT" ||
-                                  widget.sinavTuru == "TTBT" ||
-                                  widget.sinavTuru == "İngilizce" ||
-                                  widget.sinavTuru == "Fransızca" ||
-                                  widget.sinavTuru == "Arapça" ||
-                                  widget.sinavTuru == "Almanca" ||
-                                  widget.sinavTuru == "Rusça" ||
-                                  widget.sinavTuru == "ALES") {
+                              if (_isLanguageOrDirectBranch(widget.sinavTuru)) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -156,8 +179,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                     ),
                                   ),
                                 );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "A Grubu") {
+                              } else if (widget.sinavTuru == _undergraduate &&
+                                  widget.baslik2 == _aGroup) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -170,8 +193,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                     ),
                                   ),
                                 );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "Alan Bilgisi") {
+                              } else if (widget.sinavTuru == _undergraduate &&
+                                  widget.baslik2 == _fieldKnowledge) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -184,8 +207,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                     ),
                                   ),
                                 );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "Eğitim Bilimleri") {
+                              } else if (widget.sinavTuru == _undergraduate &&
+                                  widget.baslik2 == _educationSciences) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -198,8 +221,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                     ),
                                   ),
                                 );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "GK - GY") {
+                              } else if (widget.sinavTuru == _undergraduate &&
+                                  widget.baslik2 == _generalAbilityCulture) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -212,8 +235,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                     ),
                                   ),
                                 );
-                              } else if (widget.anaBaslik == "YKS" &&
-                                  widget.sinavTuru == "YDT") {
+                              } else if (widget.anaBaslik == _yks &&
+                                  widget.sinavTuru == _ydt) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -226,8 +249,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                     ),
                                   ),
                                 );
-                              } else if (widget.anaBaslik == "YKS" &&
-                                  widget.sinavTuru == "TYT") {
+                              } else if (widget.anaBaslik == _yks &&
+                                  widget.sinavTuru == _tyt) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -235,13 +258,13 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: yillar[index],
-                                      baslik2: "TYT",
-                                      baslik3: "TYT",
+                                      baslik2: _tyt,
+                                      baslik3: _tyt,
                                     ),
                                   ),
                                 );
-                              } else if (widget.anaBaslik == "YKS" &&
-                                  widget.sinavTuru == "AYT") {
+                              } else if (widget.anaBaslik == _yks &&
+                                  widget.sinavTuru == _ayt) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -249,13 +272,13 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: yillar[index],
-                                      baslik2: "AYT",
-                                      baslik3: "AYT",
+                                      baslik2: _ayt,
+                                      baslik3: _ayt,
                                     ),
                                   ),
                                 );
-                              } else if (widget.anaBaslik == "DGS" &&
-                                  widget.sinavTuru == "DGS") {
+                              } else if (widget.anaBaslik == _dgs &&
+                                  widget.sinavTuru == _dgs) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -263,13 +286,13 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: yillar[index],
-                                      baslik2: "DGS",
-                                      baslik3: "DGS",
+                                      baslik2: _dgs,
+                                      baslik3: _dgs,
                                     ),
                                   ),
                                 );
-                              } else if (widget.anaBaslik == "LGS" &&
-                                  widget.sinavTuru == "LGS") {
+                              } else if (widget.anaBaslik == _lgs &&
+                                  widget.sinavTuru == _lgs) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -277,13 +300,13 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: yillar[index],
-                                      baslik2: "LGS",
-                                      baslik3: "LGS",
+                                      baslik2: _lgs,
+                                      baslik3: _lgs,
                                     ),
                                   ),
                                 );
-                              } else if (widget.anaBaslik == "KPSS" &&
-                                  widget.sinavTuru == "Ön Lisans") {
+                              } else if (widget.anaBaslik == _kpss &&
+                                  widget.sinavTuru == _associate) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -291,8 +314,8 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       yil: yillar[index],
-                                      baslik2: "Ön Lisans",
-                                      baslik3: "Ön Lisans",
+                                      baslik2: _associate,
+                                      baslik3: _associate,
                                     ),
                                   ),
                                 );

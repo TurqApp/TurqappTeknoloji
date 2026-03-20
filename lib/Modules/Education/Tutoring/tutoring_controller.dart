@@ -6,7 +6,6 @@ import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
-import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -128,17 +127,14 @@ class TutoringController extends GetxController {
     isLoadingMore.value = true;
     try {
       final nextPage = _currentPage + 1;
-      final result = await TypesenseEducationSearchService.instance.searchHits(
-        entity: EducationTypesenseEntity.tutoring,
-        query: '*',
+      final result = await _tutoringSnapshotRepository.loadHome(
+        userId: CurrentUserService.instance.userId,
         limit: _pageSize,
         page: nextPage,
+        forceSync: true,
       );
-      final newItems = result.hits
-          .map(TutoringModel.fromTypesenseHit)
-          .where((item) => item.docID.isNotEmpty)
-          .toList(growable: false);
-      hasMore.value = (nextPage * _pageSize) < result.found;
+      final newItems = result.data ?? const <TutoringModel>[];
+      hasMore.value = newItems.length >= _pageSize;
       _currentPage = nextPage;
 
       // Batch fetch users for new items

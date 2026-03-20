@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Applications/applications_controller.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 
 class ApplicationsView extends StatelessWidget {
@@ -144,7 +145,8 @@ class ApplicationsView extends StatelessWidget {
                                                     template: '',
                                                     ulke: '',
                                                   ),
-                                                  'type': 'bireysel',
+                                                  'type':
+                                                      kIndividualScholarshipType,
                                                   'userData': {
                                                     'nickname':
                                                         application['nickname'],

@@ -8,6 +8,8 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/deep_link_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -257,26 +259,26 @@ class DeepLinkService extends GetxService {
         return null;
       }
       if (segments.length < 2) return null;
-      final type = _normalizeType(segments[0]);
+      final type = normalizeDeepLinkType(segments[0]);
       if (type == null) return null;
-      final id = _normalizeId(segments[1]);
+      final id = normalizeDeepLinkId(segments[1]);
       if (id.isEmpty) return null;
       return _ParsedDeepLink(type: type, id: id);
     }
 
     if (scheme == 'turqapp') {
       if (host.isNotEmpty) {
-        final mappedHostType = _normalizeType(host);
+        final mappedHostType = normalizeDeepLinkType(host);
         if (mappedHostType != null && segments.isNotEmpty) {
-          final id = _normalizeId(segments.first);
+          final id = normalizeDeepLinkId(segments.first);
           if (id.isEmpty) return null;
           return _ParsedDeepLink(type: mappedHostType, id: id);
         }
       }
       if (segments.length >= 2) {
-        final type = _normalizeType(segments[0]);
+        final type = normalizeDeepLinkType(segments[0]);
         if (type != null) {
-          final id = _normalizeId(segments[1]);
+          final id = normalizeDeepLinkId(segments[1]);
           if (id.isEmpty) return null;
           return _ParsedDeepLink(type: type, id: id);
         }
@@ -285,32 +287,6 @@ class DeepLinkService extends GetxService {
 
     return null;
   }
-
-  String? _normalizeType(String raw) {
-    final value = raw.toLowerCase();
-    if (value == 'p' || value == 'post') return 'post';
-    if (value == 's' || value == 'story') return 'story';
-    if (value == 'u' || value == 'user' || value == 'profile') return 'user';
-    if (value == 'i' ||
-        value == 'e' ||
-        value == 'edu' ||
-        value == 'education') {
-      return 'edu';
-    }
-    if (value == 'm' || value == 'market' || value == 'product') {
-      return 'market';
-    }
-    return null;
-  }
-
-  String _normalizeId(String raw) {
-    var id = raw.trim();
-    // Mesaj içinde yazılırken sona gelen noktalama/boş karakterleri temizle.
-    id = id.replaceAll(RegExp(r'^[^A-Za-z0-9_-]+'), '');
-    id = id.replaceAll(RegExp(r'[^A-Za-z0-9_-]+$'), '');
-    return id;
-  }
-
   Future<void> _openPost(String postId) async {
     final lookup = await _getPostLookup(postId);
     final model = lookup.model;
@@ -466,7 +442,7 @@ class DeepLinkService extends GetxService {
   }
 
   Future<void> _openEducationLink(String entityId) async {
-    final normalized = entityId.trim().toLowerCase();
+    final normalized = normalizeSearchText(entityId);
     if (normalized.startsWith('job:')) {
       await _openJob(entityId.split(':').last.trim());
       return;

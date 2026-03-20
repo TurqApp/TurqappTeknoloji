@@ -9,6 +9,8 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'dart:io';
 
+const _addQuestionMiddleSchoolType = 'Ortaokul';
+
 class AddTestQuestionController extends GetxController {
   final List<TestReadinessModel> initialSoruList;
   final String testID;
@@ -101,7 +103,7 @@ class AddTestQuestionController extends GetxController {
       TestReadinessModel(
         id: docID,
         img: "",
-        max: testTuru == "Ortaokul" ? 4 : 5,
+        max: testTuru == _addQuestionMiddleSchoolType ? 4 : 5,
         dogruCevap: "",
         docID: docID.toString(),
       ),

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/render_list_patch.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class FeedRenderCoordinator extends GetxService {
@@ -87,10 +88,10 @@ class FeedRenderCoordinator extends GetxService {
         return followingIds.contains(model.userID);
       }).toList(growable: false);
     } else if (isCityMode) {
-      final normalizedCity = city.trim().toLowerCase();
+      final normalizedCity = normalizeLocationText(city);
       filtered = filtered.where((item) {
         final model = item['model'] as PostsModel;
-        return model.locationCity.trim().toLowerCase() == normalizedCity;
+        return normalizeLocationText(model.locationCity) == normalizedCity;
       }).toList(growable: false);
     }
 

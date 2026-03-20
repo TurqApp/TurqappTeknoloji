@@ -104,8 +104,8 @@ class ResultsAndAnswers extends StatelessWidget {
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const Text(
-                                    "Doğru",
+                                  Text(
+                                    "tests.correct".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -134,8 +134,8 @@ class ResultsAndAnswers extends StatelessWidget {
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const Text(
-                                    "Yanlış",
+                                  Text(
+                                    "tests.wrong".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -164,8 +164,8 @@ class ResultsAndAnswers extends StatelessWidget {
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const Text(
-                                    "Boş",
+                                  Text(
+                                    "tests.blank".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,

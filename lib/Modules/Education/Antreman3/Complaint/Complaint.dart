@@ -78,19 +78,32 @@ class ComplaintBottomSheet extends StatelessWidget {
 
     final List<Map<String, String>> sikayetOptions = [
       {
-        'title': 'Sorunun yanlış olduğunu düşünüyorum.',
-        'desc':
-            '${question.sinavTuru} ${question.ders} ${question.soruNo}. soru içeriğinde bir hata olduğunu düşünüyorum, bu soru doğru değil.',
+        'key': 'question_wrong',
+        'title': 'training.complaint_option_question_wrong_title'.tr,
+        'desc': 'training.complaint_option_question_wrong_desc'.trParams({
+          'exam': question.sinavTuru,
+          'lesson': question.ders,
+          'number': question.soruNo,
+        }),
       },
       {
-        'title': 'Cevabın yanlış olduğunu düşünüyorum.',
-        'desc':
-            '${question.sinavTuru} ${question.ders} ${question.soruNo}. sorunun doğru cevabı yanlış olarak işaretlenmiş.',
+        'key': 'answer_wrong',
+        'title': 'training.complaint_option_answer_wrong_title'.tr,
+        'desc': 'training.complaint_option_answer_wrong_desc'.trParams({
+          'exam': question.sinavTuru,
+          'lesson': question.ders,
+          'number': question.soruNo,
+        }),
       },
       {
-        'title': 'Soru ${question.ders} dersine ait değil.',
-        'desc':
-            '${question.sinavTuru} ${question.ders} ${question.soruNo}. soru, ${question.ders} dersi kategorisine uygun değil.',
+        'key': 'wrong_lesson',
+        'title': 'training.complaint_option_wrong_lesson_title'
+            .trParams({'lesson': question.ders}),
+        'desc': 'training.complaint_option_wrong_lesson_desc'.trParams({
+          'exam': question.sinavTuru,
+          'lesson': question.ders,
+          'number': question.soruNo,
+        }),
       },
     ];
 
@@ -124,7 +137,7 @@ class ComplaintBottomSheet extends StatelessWidget {
           SizedBox(height: 12),
           Center(
             child: Text(
-              "Soru hakkında",
+              "training.question_about".tr,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -137,14 +150,14 @@ class ComplaintBottomSheet extends StatelessWidget {
             return Column(
               children: sikayetOptions.map((option) {
                 final isSelected = selectedSikayets.contains(
-                  option['title'],
+                  option['key'],
                 );
                 return GestureDetector(
                   onTap: () {
                     if (isSelected) {
-                      selectedSikayets.remove(option['title']);
+                      selectedSikayets.remove(option['key']);
                     } else {
-                      selectedSikayets.add(option['title']!);
+                      selectedSikayets.add(option['key']!);
                     }
                   },
                   child: Container(
@@ -260,7 +273,7 @@ class ComplaintBottomSheet extends StatelessWidget {
                 }
                 for (var title in selectedSikayets) {
                   final selectedOption = sikayetOptions.firstWhere(
-                    (option) => option['title'] == title,
+                    (option) => option['key'] == title,
                   );
                   sikayetController.submitSikayet(
                     question.docID,

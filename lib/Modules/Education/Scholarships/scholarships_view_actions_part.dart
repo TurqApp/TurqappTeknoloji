@@ -33,7 +33,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    type == 'bireysel' && userId.isNotEmpty
+                    isIndividualScholarshipType(type) && userId.isNotEmpty
                         ? '${_truncateLabel(_getUserDisplayName(type, userData, firmaData), maxChars: 34)} '
                         : _truncateLabel(
                             _getUserDisplayName(type, userData, firmaData),
@@ -48,7 +48,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                     overflow: TextOverflow.clip,
                     softWrap: false,
                   ),
-                  if (type == 'bireysel' && userId.isNotEmpty)
+                  if (isIndividualScholarshipType(type) &&
+                      userId.isNotEmpty)
                     RozetContent(
                       size: 13,
                       userID: userId,
@@ -208,7 +209,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   bool _hasMultipleImages(String type, dynamic burs) {
-    return type == 'bireysel' &&
+    return isIndividualScholarshipType(type) &&
         burs is IndividualScholarshipsModel &&
         burs.img2.isNotEmpty;
   }
@@ -321,7 +322,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
           _buildScholarshipTitle(index, type, burs, daysDiff),
           5.ph,
           _buildScholarshipDescription(index, type, burs),
-          if (type == 'bireysel' &&
+          if (isIndividualScholarshipType(type) &&
               canExpandDescription &&
               (_isTextLongerThanTwoLines(displayDescription, Get.context!) ||
                   _isTextLongerThanTwoLines(
@@ -349,7 +350,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: type == 'bireysel'
+          child: isIndividualScholarshipType(type)
               ? GestureDetector(
                   onTap: () => controller.toggleExpanded(index),
                   child: Obx(
@@ -391,7 +392,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       return Padding(
         padding: EdgeInsets.only(left: 8),
         child: Text(
-          '(Süre Doldu)',
+          '(${ 'scholarship.closed'.tr})',
           style: TextStyle(
             fontSize: 14,
             fontFamily: "MontserratBold",
@@ -405,7 +406,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       return Padding(
         padding: EdgeInsets.only(left: 8),
         child: Text(
-          'Son gün',
+          'common.last_day'.tr,
           style: TextStyle(
             fontSize: 14,
             fontFamily: "MontserratBold",
@@ -433,7 +434,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Widget _buildScholarshipDescription(int index, String type, dynamic burs) {
-    if (type == 'bireysel') {
+    if (isIndividualScholarshipType(type)) {
       final description = _getDisplayDescription(type, burs);
       final canExpand = description == burs.aciklama && description.isNotEmpty;
       final baseStyle = TextStyle(
@@ -487,7 +488,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   String _getDisplayDescription(String type, dynamic burs) {
-    if (type == 'bireysel' && burs is IndividualScholarshipsModel) {
+    if (isIndividualScholarshipType(type) &&
+        burs is IndividualScholarshipsModel) {
       final summary = burs.shortDescription.trim();
       if (summary.isNotEmpty) return summary;
       return burs.aciklama;
@@ -542,7 +544,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     Map<String, dynamic>? userData,
     Map<String, dynamic> scholarshipData,
   ) {
-    final isOwnScholarship = type == 'bireysel' &&
+    final isOwnScholarship = isIndividualScholarshipType(type) &&
         userData?['userID']?.toString() ==
             FirebaseAuth.instance.currentUser?.uid;
 
@@ -569,9 +571,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   String _getMainActionButtonText(String type, bool isOwnScholarship) {
-    if (isOwnScholarship) return 'Bursu İncele';
-    if (type == 'bireysel') return 'Başvur';
-    return 'Ayrıntılı Bilgi';
+    if (isOwnScholarship) return 'common.view'.tr;
+    if (isIndividualScholarshipType(type)) {
+      return 'pasaj.job_finder.apply'.tr;
+    }
+    return 'common.details'.tr;
   }
 
   Widget _buildInteractionButtons(
@@ -681,8 +685,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                 icon: CupertinoIcons.add_circled,
                 onTap: () async {
                   final allowed = await ensureCurrentUserRozetPermission(
-                    minimumRozet: 'Sarı',
-                    featureName: 'Burs oluşturma',
+                    minimumRozet: 'sari',
+                    featureName: 'scholarship.create_title'.tr,
                   );
                   if (!allowed) return;
                   Get.delete<CreateScholarshipController>(force: true);
@@ -697,8 +701,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                 icon: CupertinoIcons.doc_text,
                 onTap: () async {
                   final allowed = await ensureCurrentUserRozetPermission(
-                    minimumRozet: 'Sarı',
-                    featureName: 'Burs ilanları',
+                    minimumRozet: 'sari',
+                    featureName: 'scholarship.my_listings'.tr,
                   );
                   if (!allowed) return;
                   Get.to(MyScholarshipView())?.then((_) async {

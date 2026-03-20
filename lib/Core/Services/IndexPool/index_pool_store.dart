@@ -187,6 +187,12 @@ class IndexPoolStore {
     } catch (_) {}
   }
 
+  /// Transitional helper while this service is being demoted to a warm-launch
+  /// pool instead of the primary snapshot store.
+  Future<void> clear() async {
+    await _deletePoolFile();
+  }
+
   Future<List<PostsModel>> loadPosts(
     IndexPoolKind kind, {
     int limit = 20,

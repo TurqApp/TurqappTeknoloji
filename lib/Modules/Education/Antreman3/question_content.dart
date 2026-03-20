@@ -16,6 +16,8 @@ import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
+const _antremanLgsType = 'LGS';
+
 class QuestionContent extends StatelessWidget {
   QuestionContent({super.key});
 
@@ -256,7 +258,7 @@ class QuestionContent extends StatelessWidget {
                                       false;
                               // LGS için şık sayısını 4 ile sınırlandır (A, B, C, D)
                               final int optionCount =
-                                  question.sinavTuru == "LGS"
+                                  question.sinavTuru == _antremanLgsType
                                       ? 4
                                       : question.kacCevap.toInt();
 

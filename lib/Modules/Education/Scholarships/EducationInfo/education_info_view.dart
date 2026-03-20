@@ -109,14 +109,15 @@ class EducationInfoView extends StatelessWidget {
                           children: [
                             DropdownField(
                               config: FieldConfig(
-                                label: "Eğitim Seviyesi",
+                                label: "scholarship.applicant.education_level"
+                                    .tr,
                                 items: [
-                                  'Ortaokul',
-                                  'Lise',
-                                  'Önlisans',
-                                  'Lisans',
-                                  'Yüksek Lisans',
-                                  'Doktora',
+                                  controller.middleSchoolValue,
+                                  controller.highSchoolValue,
+                                  controller.associateValue,
+                                  controller.bachelorValue,
+                                  controller.mastersValue,
+                                  controller.doctorateValue,
                                 ],
                                 value: controller.selectedEducationLevel,
                                 onSelect: (selected) {
@@ -153,19 +154,25 @@ class EducationInfoView extends StatelessWidget {
 
   Widget _buildFormFields() {
     switch (controller.selectedEducationLevel.value) {
-      case 'Ortaokul':
+      case _ when controller.selectedEducationLevel.value ==
+          controller.middleSchoolValue:
         return _buildMiddleSchoolFields();
-      case 'Lise':
+      case _ when controller.selectedEducationLevel.value ==
+          controller.highSchoolValue:
         return _buildHighSchoolFields();
-      case 'Önlisans':
+      case _ when controller.selectedEducationLevel.value ==
+          controller.associateValue:
         return _buildHigherEducationFields(isUndergraduate: false);
-      case 'Lisans':
+      case _ when controller.selectedEducationLevel.value ==
+          controller.bachelorValue:
         return _buildHigherEducationFields(isUndergraduate: true);
-      case 'Yüksek Lisans':
+      case _ when controller.selectedEducationLevel.value ==
+          controller.mastersValue:
         return _buildHigherEducationFields(
           isUndergraduate: true,
         );
-      case 'Doktora':
+      case _ when controller.selectedEducationLevel.value ==
+          controller.doctorateValue:
         return _buildHigherEducationFields(
           isUndergraduate: true,
         );
@@ -180,7 +187,7 @@ class EducationInfoView extends StatelessWidget {
         children: [
           DropdownField(
             config: FieldConfig(
-              label: "Ülke",
+              label: "scholarship.country_label".tr,
               items: controller.countries,
               value: controller.selectedCountry,
               onSelect: (selected) {
@@ -202,7 +209,7 @@ class EducationInfoView extends StatelessWidget {
                 Flexible(
                   child: DropdownField(
                     config: FieldConfig(
-                      label: "İl",
+                      label: "common.city".tr,
                       items: controller.cities,
                       value: controller.selectedCity,
                       onSelect: (selected) {
@@ -221,7 +228,7 @@ class EducationInfoView extends StatelessWidget {
                 Flexible(
                   child: DropdownField(
                     config: FieldConfig(
-                      label: "İlçe",
+                      label: "common.district".tr,
                       items: (() {
                         final districts = controller.cityDistrictData
                             .where(
@@ -252,7 +259,7 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedDistrict.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Okul",
+                label: "education_info.middle_school".tr,
                 items: [],
                 value: controller.selectedSchool,
                 onSelect: (selected) {
@@ -269,8 +276,8 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedSchool.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Sınıf",
-                items: ['5. Sınıf', '6. Sınıf', '7. Sınıf', '8. Sınıf'],
+                label: "education_info.class_level".tr,
+                items: ['5', '6', '7', '8'],
                 value: controller.selectedClassLevel,
                 onSelect: (selected) {
                   controller.selectedClassLevel.value = selected;
@@ -292,7 +299,7 @@ class EducationInfoView extends StatelessWidget {
         children: [
           DropdownField(
             config: FieldConfig(
-              label: "Ülke",
+              label: "scholarship.country_label".tr,
               items: controller.countries,
               value: controller.selectedCountry,
               onSelect: (selected) {
@@ -314,7 +321,7 @@ class EducationInfoView extends StatelessWidget {
                 Flexible(
                   child: DropdownField(
                     config: FieldConfig(
-                      label: "İl",
+                      label: "common.city".tr,
                       items: controller.cities,
                       value: controller.selectedCity,
                       onSelect: (selected) {
@@ -333,7 +340,7 @@ class EducationInfoView extends StatelessWidget {
                 Flexible(
                   child: DropdownField(
                     config: FieldConfig(
-                      label: "İlçe",
+                      label: "common.district".tr,
                       items: (() {
                         final districts = controller.cityDistrictData
                             .where(
@@ -364,7 +371,7 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedDistrict.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Lise",
+                label: "education_info.high_school".tr,
                 items: [],
                 value: controller.selectedHighSchool,
                 onSelect: (selected) {
@@ -381,8 +388,8 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedHighSchool.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Sınıf",
-                items: ['9. Sınıf', '10. Sınıf', '11. Sınıf', '12. Sınıf'],
+                label: "education_info.class_level".tr,
+                items: ['9', '10', '11', '12'],
                 value: controller.selectedClassLevel,
                 onSelect: (selected) {
                   controller.selectedClassLevel.value = selected;
@@ -414,7 +421,7 @@ class EducationInfoView extends StatelessWidget {
         children: [
           DropdownField(
             config: FieldConfig(
-              label: "Ülke",
+              label: "scholarship.country_label".tr,
               items: controller.countries,
               value: controller.selectedCountry,
               onSelect: (selected) {
@@ -433,7 +440,7 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedCountry.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "İl",
+                label: "common.city".tr,
                 items: controller.cities,
                 value: controller.selectedCity,
                 onSelect: (selected) {
@@ -451,7 +458,7 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedCity.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Üniversite",
+                label: "common.university".tr,
                 items: controller.higherEducations
                     .where((edu) =>
                         edu.il == controller.selectedCity.value &&
@@ -474,7 +481,7 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedUniversity.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Fakülte",
+                label: "scholarship.applicant.faculty".tr,
                 items: controller.higherEducations
                     .where((edu) =>
                         edu.il == controller.selectedCity.value &&
@@ -497,7 +504,7 @@ class EducationInfoView extends StatelessWidget {
           if (controller.selectedFaculty.value.isNotEmpty)
             DropdownField(
               config: FieldConfig(
-                label: "Bölüm",
+                label: "scholarship.applicant.department".tr,
                 items: controller.higherEducations
                     .where((edu) =>
                         edu.il == controller.selectedCity.value &&
@@ -522,10 +529,9 @@ class EducationInfoView extends StatelessWidget {
 
   Widget _buildSaveButton() {
     final String currentLevel = controller.selectedEducationLevel.value;
-    String buttonText = 'Kaydet';
-    buttonText = 'common.save'.tr;
+    final String buttonText = 'common.save'.tr;
 
-    if (currentLevel == 'Ortaokul' &&
+    if (currentLevel == controller.middleSchoolValue &&
         controller.selectedCountry.value.isNotEmpty &&
         controller.selectedCity.value.isNotEmpty &&
         controller.selectedDistrict.value.isNotEmpty &&
@@ -538,7 +544,7 @@ class EducationInfoView extends StatelessWidget {
         onTap: controller.saveMiddleSchool,
         text: buttonText,
       );
-    } else if (currentLevel == 'Lise' &&
+    } else if (currentLevel == controller.highSchoolValue &&
         controller.selectedCountry.value.isNotEmpty &&
         controller.selectedCity.value.isNotEmpty &&
         controller.selectedDistrict.value.isNotEmpty &&
@@ -552,10 +558,10 @@ class EducationInfoView extends StatelessWidget {
         text: buttonText,
       );
     } else if ([
-          'Önlisans',
-          'Lisans',
-          'Yüksek Lisans',
-          'Doktora',
+          controller.associateValue,
+          controller.bachelorValue,
+          controller.mastersValue,
+          controller.doctorateValue,
         ].contains(currentLevel) &&
         controller.selectedCountry.value.isNotEmpty &&
         controller.selectedCity.value.isNotEmpty &&

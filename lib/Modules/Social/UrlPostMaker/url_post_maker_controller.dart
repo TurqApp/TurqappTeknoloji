@@ -39,7 +39,7 @@ class UrlPostMakerController extends GetxController {
       final value = (raw ?? '').trim();
       if (value.isNotEmpty) return value;
     }
-    return 'Türkiye';
+    return 'common.country_turkey'.tr;
   }
 
   Future<void> getReadyVideoPlayer(String url) async {
@@ -362,7 +362,7 @@ class UrlPostMakerController extends GetxController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Hiç kimse yorum yapamaz.",
+                          "post.comments_disabled_none".tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,

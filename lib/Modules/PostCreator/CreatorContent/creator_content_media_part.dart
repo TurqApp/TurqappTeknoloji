@@ -1,5 +1,12 @@
 part of 'creator_content.dart';
 
+const Map<String, String> _videoLookLabelKeys = <String, String>{
+  'original': 'post_creator.look.original',
+  'clear': 'post_creator.look.clear',
+  'cinema': 'post_creator.look.cinema',
+  'vibe': 'post_creator.look.vibe',
+};
+
 extension CreatorContentMediaPart on CreatorContent {
   Widget videoBody() {
     return Obx(() {
@@ -92,8 +99,8 @@ extension CreatorContentMediaPart on CreatorContent {
                       color: Colors.black.withAlpha(120),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Kapak seçildi',
+                    child: Text(
+                      'post_creator.cover_selected'.tr,
                       style: TextStyle(color: Colors.white, fontSize: 11),
                     ),
                   );
@@ -247,7 +254,8 @@ extension CreatorContentMediaPart on CreatorContent {
         child: Row(
           children: presets.map((preset) {
             final isSelected = controller.videoLookPreset.value == preset;
-            final label = CreatorContent._videoLookLabels[preset] ?? preset;
+            final labelKey = _videoLookLabelKeys[preset] ?? '';
+            final label = labelKey.isNotEmpty ? labelKey.tr : preset;
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(

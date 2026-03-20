@@ -33,9 +33,9 @@ extension JobDetailsReviewsPart on JobDetails {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Değerlendir",
-                      style: TextStyle(
+                    Text(
+                      "pasaj.market.rate".tr,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
                         fontFamily: "MontserratBold",
@@ -66,7 +66,7 @@ extension JobDetailsReviewsPart on JobDetails {
                       controller: textController,
                       maxLines: 4,
                       decoration: InputDecoration(
-                        hintText: "Yorumunuzu yazın",
+                        hintText: "pasaj.market.review_comment_hint".tr,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -111,9 +111,9 @@ extension JobDetailsReviewsPart on JobDetails {
                                   ),
                                 ),
                               )
-                            : const Text(
-                                "Kaydet",
-                                style: TextStyle(
+                            : Text(
+                                "common.save".tr,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
                                   fontFamily: "MontserratBold",
@@ -154,7 +154,7 @@ extension JobDetailsReviewsPart on JobDetails {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Değerlendirmeler", style: TextStyles.bold16Black),
+              Text("pasaj.market.reviews".tr, style: TextStyles.bold16Black),
               if (canReview)
                 GestureDetector(
                   onTap: () => _showJobReviewBottomSheet(controller),
@@ -165,9 +165,9 @@ extension JobDetailsReviewsPart on JobDetails {
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      "Değerlendir",
-                      style: TextStyle(
+                    child: Text(
+                      "pasaj.market.rate".tr,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontFamily: 'MontserratBold',
@@ -180,7 +180,7 @@ extension JobDetailsReviewsPart on JobDetails {
           const SizedBox(height: 8),
           if (controller.reviews.isEmpty)
             Text(
-              "Henüz değerlendirme yok.",
+              "pasaj.market.no_reviews".tr,
               style: TextStyles.tutoringLocation,
             )
           else ...[
@@ -278,7 +278,7 @@ extension JobDetailsReviewsPart on JobDetails {
                             children: [
                               Expanded(
                                 child: Text(
-                                  name.isNotEmpty ? name : "Kullanıcı",
+                                  name.isNotEmpty ? name : "common.user".tr,
                                   style: TextStyles.bold15Black,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -342,7 +342,7 @@ extension JobDetailsReviewsPart on JobDetails {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Benzer İlanlar", style: TextStyles.bold16Black),
+          Text("pasaj.market.related_listings".tr, style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
             height: (Get.height * 0.30).clamp(206.0, 236.0),
@@ -419,9 +419,9 @@ extension JobDetailsReviewsPart on JobDetails {
                                     color: Colors.black,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text(
-                                    "İlana Git",
-                                    style: TextStyle(
+                                  child: Text(
+                                    "pasaj.market.inspect".tr,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
                                       fontFamily: "MontserratBold",

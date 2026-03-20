@@ -59,8 +59,8 @@ class OpticalFormEntryController extends GetxController {
     } else {
       focusNode.unfocus();
       showAlertDialog(
-        "Sınavın süresi doldu!",
-        "Aradığınız sınavın süresi dolmuştur!",
+        "answer_key.exam_expired_title".tr,
+        "answer_key.exam_expired_body".tr,
       );
       model.value = null;
     }
@@ -110,15 +110,25 @@ class OpticalFormEntryController extends GetxController {
 
         final net = dogru - (yanlis * 0.25);
         showAlertDialog(
-          "Tebrikler, Sınavı Tamamladın!",
-          "Doğru: $dogru   •   Yanlış: $yanlis   •   Boş: $bos   •   Net: ${net.toStringAsFixed(2)}",
+          "tests.completed_title".tr,
+          "tests.result_breakdown".trParams({
+            "correct": "$dogru",
+            "wrong": "$yanlis",
+            "blank": "$bos",
+            "net": net.toStringAsFixed(2),
+          }),
         );
       } catch (_) {
         showAlertDialog(
-            "Tebrikler, Sınavı Tamamladın!", "Sonuç hesaplanamadı.");
+          "tests.completed_title".tr,
+          "tests.result_unavailable".tr,
+        );
       }
     } else {
-      showAlertDialog("Tebrikler, Sınavı Tamamladın!", "Sonuç hesaplanamadı.");
+      showAlertDialog(
+        "tests.completed_title".tr,
+        "tests.result_unavailable".tr,
+      );
     }
     model.value = null;
     search.text = "";
@@ -129,8 +139,8 @@ class OpticalFormEntryController extends GetxController {
     if (model.value!.baslangic.toInt() >
         DateTime.now().millisecondsSinceEpoch) {
       showAlertDialog(
-        "Sınav Başlamadı!",
-        "Sınavınız başlamadı. Başladıktan sonra tekrar deneyin!",
+        "answer_key.exam_not_started_title".tr,
+        "answer_key.exam_not_started_body".tr,
       );
     } else {
       Get.to(

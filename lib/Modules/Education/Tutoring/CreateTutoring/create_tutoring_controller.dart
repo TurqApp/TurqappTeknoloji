@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
@@ -71,8 +72,8 @@ class CreateTutoringController extends GetxController {
   Future<void> _geocodeLocation() async {
     try {
       final query = town.isNotEmpty
-          ? '$town, ${city.value}, Türkiye'
-          : '${city.value}, Türkiye';
+          ? '$town, ${city.value}, ${'common.country_turkey'.tr}'
+          : '${city.value}, ${'common.country_turkey'.tr}';
       final locations = await locationFromAddress(query);
       if (locations.isNotEmpty) {
         _lat = locations.first.latitude;
@@ -261,9 +262,9 @@ class CreateTutoringController extends GetxController {
       if (candidate.isEmpty) continue;
       final exact = sehirler.firstWhereOrNull((item) => item == candidate);
       if (exact != null) return exact;
-      final normalizedCandidate = _normalizeLocation(candidate);
+      final normalizedCandidate = normalizeLocationText(candidate);
       final fuzzy = sehirler.firstWhereOrNull(
-        (item) => _normalizeLocation(item) == normalizedCandidate,
+        (item) => normalizeLocationText(item) == normalizedCandidate,
       );
       if (fuzzy != null) return fuzzy;
     }
@@ -280,26 +281,13 @@ class CreateTutoringController extends GetxController {
       if (candidate.isEmpty) continue;
       final exact = districts.firstWhereOrNull((item) => item == candidate);
       if (exact != null) return exact;
-      final normalizedCandidate = _normalizeLocation(candidate);
+      final normalizedCandidate = normalizeLocationText(candidate);
       final fuzzy = districts.firstWhereOrNull(
-        (item) => _normalizeLocation(item) == normalizedCandidate,
+        (item) => normalizeLocationText(item) == normalizedCandidate,
       );
       if (fuzzy != null) return fuzzy;
     }
     return null;
-  }
-
-  String _normalizeLocation(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll('ı', 'i')
-        .replaceAll('i̇', 'i')
-        .replaceAll('ş', 's')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('ö', 'o')
-        .replaceAll('ç', 'c')
-        .trim();
   }
 
   Future<List<String>> uploadImages() async {

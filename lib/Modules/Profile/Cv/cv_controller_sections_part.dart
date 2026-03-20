@@ -22,7 +22,7 @@ extension CvControllerSectionsPart on CvController {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Yeni Okul Ekle",
+                  'cv.add_school_title'.tr,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 18,
@@ -36,13 +36,14 @@ extension CvControllerSectionsPart on CvController {
                   ),
                   onPressed: () {
                     if (okul.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan", "Okul adı boş bırakılamaz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_school_name'.tr);
                       return;
                     }
                     if (yil.text.isNotEmpty &&
-                        yil.text != "Halen" &&
+                        !isPresentCvYear(yil.text) &&
                         !_validateYear(yil.text)) {
-                      AppSnackbar("Hata", "Geçerli bir yıl girin");
+                      AppSnackbar('common.error'.tr, 'cv.invalid_year'.tr);
                       return;
                     }
                     okullar.add(CvSchoolModel(
@@ -55,7 +56,7 @@ extension CvControllerSectionsPart on CvController {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
-                      "Ekle",
+                      'social_links.add'.tr,
                       style: TextStyle(
                         color: Colors.blueAccent,
                         fontSize: 15,
@@ -66,9 +67,9 @@ extension CvControllerSectionsPart on CvController {
                 )
               ],
             ),
-            _textFieldBox(okul, "Okul Adı"),
+            _textFieldBox(okul, 'cv.school_name'.tr),
             SizedBox(height: 15),
-            _textFieldBox(bolum, "Bölüm"),
+            _textFieldBox(bolum, 'cv.department'.tr),
             SizedBox(height: 15),
             Container(
               height: 50,
@@ -89,7 +90,7 @@ extension CvControllerSectionsPart on CvController {
                         FilteringTextInputFormatter.digitsOnly,
                       ],
                       decoration: InputDecoration(
-                        hintText: "Mezuniyet Yılı",
+                        hintText: 'cv.graduation_year'.tr,
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
@@ -105,9 +106,9 @@ extension CvControllerSectionsPart on CvController {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => yil.text = "Halen",
+                    onTap: () => yil.text = 'cv.ongoing'.tr,
                     child: Text(
-                      "Devam Ediyorum",
+                      'cv.currently_studying'.tr,
                       style: TextStyle(
                         color: Colors.blueAccent,
                         fontSize: 14,
@@ -148,7 +149,7 @@ extension CvControllerSectionsPart on CvController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Okul Düzenle",
+                Text('cv.edit_school_title'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -156,13 +157,14 @@ extension CvControllerSectionsPart on CvController {
                 TextButton(
                   onPressed: () {
                     if (okul.text.trim().isEmpty) {
-                      AppSnackbar("Eksik Alan", "Okul adı boş bırakılamaz");
+                      AppSnackbar(
+                          'cv.missing_field'.tr, 'cv.missing_school_name'.tr);
                       return;
                     }
                     if (yil.text.isNotEmpty &&
-                        yil.text != "Halen" &&
+                        !isPresentCvYear(yil.text) &&
                         !_validateYear(yil.text)) {
-                      AppSnackbar("Hata", "Geçerli bir yıl girin");
+                      AppSnackbar('common.error'.tr, 'cv.invalid_year'.tr);
                       return;
                     }
                     okullar[index] = CvSchoolModel(
@@ -173,16 +175,16 @@ extension CvControllerSectionsPart on CvController {
                     okullar.refresh();
                     Get.back();
                   },
-                  child: Text("Kaydet",
+                  child: Text('cv.save'.tr,
                       style: TextStyle(
                           color: Colors.blueAccent,
                           fontFamily: "MontserratBold")),
                 ),
               ],
             ),
-            _textFieldBox(okul, "Okul Adı"),
+            _textFieldBox(okul, 'cv.school_name'.tr),
             SizedBox(height: 15),
-            _textFieldBox(bolum, "Bölüm"),
+            _textFieldBox(bolum, 'cv.department'.tr),
             SizedBox(height: 15),
             Container(
               height: 50,
@@ -203,7 +205,7 @@ extension CvControllerSectionsPart on CvController {
                         FilteringTextInputFormatter.digitsOnly,
                       ],
                       decoration: InputDecoration(
-                        hintText: "Mezuniyet Yılı",
+                        hintText: 'cv.graduation_year'.tr,
                         hintStyle: TextStyle(
                             color: Colors.grey, fontFamily: "MontserratMedium"),
                         border: InputBorder.none,
@@ -215,8 +217,8 @@ extension CvControllerSectionsPart on CvController {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => yil.text = "Halen",
-                    child: Text("Devam Ediyorum",
+                    onTap: () => yil.text = 'cv.ongoing'.tr,
+                    child: Text('cv.currently_studying'.tr,
                         style: TextStyle(
                             color: Colors.blueAccent,
                             fontSize: 14,
@@ -240,18 +242,6 @@ extension CvControllerSectionsPart on CvController {
     RxString selectedDil = ''.obs;
     RxInt selectedSeviye = 3.obs;
 
-    final List<String> ornekdiller = [
-      "İngilizce",
-      "Almanca",
-      "Fransızca",
-      "İspanyolca",
-      "Arapça",
-      "Türkçe",
-      "Rusça",
-      "İtalyanca",
-      "Korece",
-    ];
-
     Get.bottomSheet(
       Container(
         constraints: BoxConstraints(maxHeight: Get.height / 2),
@@ -267,7 +257,7 @@ extension CvControllerSectionsPart on CvController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Yeni Dil Ekle",
+                Text('cv.add_language_title'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -287,7 +277,7 @@ extension CvControllerSectionsPart on CvController {
                             },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text("Ekle",
+                        child: Text('social_links.add'.tr,
                             style: TextStyle(
                                 color: selectedDil.value.isEmpty
                                     ? Colors.grey
@@ -302,7 +292,7 @@ extension CvControllerSectionsPart on CvController {
             Obx(() => SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: ornekdiller.map((dil) {
+                    children: CvController.languageOptionKeys.map((dil) {
                       final bool isSelected = selectedDil.value == dil;
                       return GestureDetector(
                         onTap: () => selectedDil.value = dil,
@@ -316,7 +306,7 @@ extension CvControllerSectionsPart on CvController {
                                 : Colors.grey.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(dil,
+                          child: Text(localizedLanguage(dil),
                               style: TextStyle(
                                   fontSize: 14,
                                   fontFamily: "MontserratMedium",
@@ -329,7 +319,7 @@ extension CvControllerSectionsPart on CvController {
                   ),
                 )),
             const SizedBox(height: 20),
-            Text("Seviye",
+            Text('cv.level'.tr,
                 style: TextStyle(
                     fontFamily: "MontserratMedium",
                     fontSize: 14,
@@ -361,20 +351,8 @@ extension CvControllerSectionsPart on CvController {
 
   void dilDuzenle(int index) {
     final model = diler[index];
-    RxString selectedDil = model.languege.obs;
+    RxString selectedDil = normalizeLanguageValue(model.languege).obs;
     RxInt selectedSeviye = (model.level.toInt()).obs;
-
-    final List<String> ornekdiller = [
-      "İngilizce",
-      "Almanca",
-      "Fransızca",
-      "İspanyolca",
-      "Arapça",
-      "Türkçe",
-      "Rusça",
-      "İtalyanca",
-      "Korece",
-    ];
 
     Get.bottomSheet(
       Container(
@@ -391,7 +369,7 @@ extension CvControllerSectionsPart on CvController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Dil Düzenle",
+                Text('cv.edit_language_title'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -407,7 +385,7 @@ extension CvControllerSectionsPart on CvController {
                               diler.refresh();
                               Get.back();
                             },
-                      child: Text("Kaydet",
+                      child: Text('cv.save'.tr,
                           style: TextStyle(
                               color: selectedDil.value.isEmpty
                                   ? Colors.grey
@@ -420,7 +398,7 @@ extension CvControllerSectionsPart on CvController {
             Obx(() => SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: ornekdiller.map((dil) {
+                    children: CvController.languageOptionKeys.map((dil) {
                       final bool isSelected = selectedDil.value == dil;
                       return GestureDetector(
                         onTap: () => selectedDil.value = dil,
@@ -434,7 +412,7 @@ extension CvControllerSectionsPart on CvController {
                                 : Colors.grey.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(dil,
+                          child: Text(localizedLanguage(dil),
                               style: TextStyle(
                                   fontSize: 14,
                                   fontFamily: "MontserratMedium",
@@ -447,7 +425,7 @@ extension CvControllerSectionsPart on CvController {
                   ),
                 )),
             const SizedBox(height: 20),
-            Text("Seviye",
+            Text('cv.level'.tr,
                 style: TextStyle(
                     fontFamily: "MontserratMedium",
                     fontSize: 14,
@@ -488,8 +466,8 @@ extension CvControllerSectionsPart on CvController {
     RxBool halenCalisiyorum = false.obs;
 
     _showExperienceSheet(
-      title: "Yeni İş Deneyimi Ekle",
-      buttonText: "Ekle",
+      title: 'cv.add_experience_title'.tr,
+      buttonText: 'social_links.add'.tr,
       firmaAdi: firmaAdi,
       pozisyon: pozisyon,
       yil1: yil1,
@@ -498,15 +476,16 @@ extension CvControllerSectionsPart on CvController {
       halenCalisiyorum: halenCalisiyorum,
       onSave: () {
         if (firmaAdi.text.trim().isEmpty || pozisyon.text.trim().isEmpty) {
-          AppSnackbar("Eksik Alan", "Firma adı ve pozisyon zorunludur");
+          AppSnackbar(
+              'cv.missing_field'.tr, 'cv.missing_company_position'.tr);
           return;
         }
         if (yil1.text.isNotEmpty && !_validateYear(yil1.text)) {
-          AppSnackbar("Hata", "Geçerli bir başlangıç yılı girin");
+          AppSnackbar('common.error'.tr, 'cv.invalid_start_year'.tr);
           return;
         }
         if (yil2.text.isNotEmpty && !_validateYear(yil2.text)) {
-          AppSnackbar("Hata", "Geçerli bir ayrılış yılı girin");
+          AppSnackbar('common.error'.tr, 'cv.invalid_end_year'.tr);
           return;
         }
         Get.back();
@@ -514,7 +493,8 @@ extension CvControllerSectionsPart on CvController {
           company: firmaAdi.text.trim(),
           position: pozisyon.text.trim(),
           year1: yil1.text.trim(),
-          year2: halenCalisiyorum.value ? "Devam Ediyor" : yil2.text.trim(),
+          year2:
+              halenCalisiyorum.value ? 'cv.ongoing'.tr : yil2.text.trim(),
           description: aciklama.text.trim(),
         ));
       },
@@ -523,19 +503,28 @@ extension CvControllerSectionsPart on CvController {
 
   void isDeneyimiDuzenle(int index) {
     final model = isDeneyimleri[index];
+    final ongoingLabels = <String>{
+      'Devam Ediyor',
+      'cv.ongoing'.tr,
+      'Ongoing',
+      'Läuft noch',
+      'En cours',
+      'In corso',
+      'Продолжается',
+    };
     TextEditingController firmaAdi = TextEditingController(text: model.company);
     TextEditingController pozisyon =
         TextEditingController(text: model.position);
     TextEditingController yil1 = TextEditingController(text: model.year1);
     TextEditingController yil2 = TextEditingController(
-        text: model.year2 == "Devam Ediyor" ? "" : model.year2);
+        text: ongoingLabels.contains(model.year2) ? "" : model.year2);
     TextEditingController aciklama =
         TextEditingController(text: model.description);
-    RxBool halenCalisiyorum = (model.year2 == "Devam Ediyor").obs;
+    RxBool halenCalisiyorum = ongoingLabels.contains(model.year2).obs;
 
     _showExperienceSheet(
-      title: "Deneyim Düzenle",
-      buttonText: "Kaydet",
+      title: 'cv.edit_experience_title'.tr,
+      buttonText: 'cv.save'.tr,
       firmaAdi: firmaAdi,
       pozisyon: pozisyon,
       yil1: yil1,
@@ -544,22 +533,24 @@ extension CvControllerSectionsPart on CvController {
       halenCalisiyorum: halenCalisiyorum,
       onSave: () {
         if (firmaAdi.text.trim().isEmpty || pozisyon.text.trim().isEmpty) {
-          AppSnackbar("Eksik Alan", "Firma adı ve pozisyon zorunludur");
+          AppSnackbar(
+              'cv.missing_field'.tr, 'cv.missing_company_position'.tr);
           return;
         }
         if (yil1.text.isNotEmpty && !_validateYear(yil1.text)) {
-          AppSnackbar("Hata", "Geçerli bir başlangıç yılı girin");
+          AppSnackbar('common.error'.tr, 'cv.invalid_start_year'.tr);
           return;
         }
         if (yil2.text.isNotEmpty && !_validateYear(yil2.text)) {
-          AppSnackbar("Hata", "Geçerli bir ayrılış yılı girin");
+          AppSnackbar('common.error'.tr, 'cv.invalid_end_year'.tr);
           return;
         }
         isDeneyimleri[index] = CVExperinceModel(
           company: firmaAdi.text.trim(),
           position: pozisyon.text.trim(),
           year1: yil1.text.trim(),
-          year2: halenCalisiyorum.value ? "Devam Ediyor" : yil2.text.trim(),
+          year2:
+              halenCalisiyorum.value ? 'cv.ongoing'.tr : yil2.text.trim(),
           description: aciklama.text.trim(),
         );
         isDeneyimleri.refresh();
@@ -610,9 +601,9 @@ extension CvControllerSectionsPart on CvController {
                 ],
               ),
               SizedBox(height: 15),
-              _textFieldBox(firmaAdi, "Firma Adı"),
+              _textFieldBox(firmaAdi, 'cv.company_name'.tr),
               SizedBox(height: 15),
-              _textFieldBox(pozisyon, "Pozisyon"),
+              _textFieldBox(pozisyon, 'cv.position'.tr),
               SizedBox(height: 15),
               // Description
               Container(
@@ -629,7 +620,7 @@ extension CvControllerSectionsPart on CvController {
                   maxLines: 3,
                   maxLength: 200,
                   decoration: InputDecoration(
-                    hintText: "Görev Tanımı (opsiyonel)",
+                    hintText: 'cv.description_optional'.tr,
                     hintStyle: TextStyle(
                         color: Colors.grey, fontFamily: "MontserratMedium"),
                     border: InputBorder.none,
@@ -664,7 +655,7 @@ extension CvControllerSectionsPart on CvController {
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             decoration: InputDecoration(
-                              hintText: "Başlangıç",
+                              hintText: 'cv.start_year'.tr,
                               hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontFamily: "MontserratMedium"),
@@ -700,8 +691,8 @@ extension CvControllerSectionsPart on CvController {
                               ],
                               decoration: InputDecoration(
                                 hintText: halenCalisiyorum.value
-                                    ? "Devam Ediyor"
-                                    : "Ayrılış",
+                                    ? 'cv.ongoing'.tr
+                                    : 'cv.end_year'.tr,
                                 hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontStyle: halenCalisiyorum.value
@@ -749,7 +740,7 @@ extension CvControllerSectionsPart on CvController {
                                     color: Colors.white, size: 20),
                               ),
                               SizedBox(width: 7),
-                              Text("Hâlen çalışıyorum",
+                              Text('cv.currently_working'.tr,
                                   style: TextStyle(
                                       color: Colors.blueAccent,
                                       fontSize: 14,

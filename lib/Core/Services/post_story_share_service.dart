@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -26,7 +27,7 @@ class PostStoryShareService {
   static Future<void> openStoryMakerForPost(PostsModel model) async {
     final seed = await buildSeed(model);
     if (seed == null) {
-      AppSnackbar('Hata', 'Bu gönderi için hikayeye eklenecek medya bulunamadı');
+      AppSnackbar('common.error'.tr, 'post_story_share.media_missing'.tr);
       return;
     }
 
@@ -89,8 +90,7 @@ class PostStoryShareService {
     }
 
     final nickname = await ReshareHelper.getUserNickname(userId);
-    if (nickname.trim().isNotEmpty &&
-        nickname.trim() != 'Bilinmeyen Kullanıcı') {
+    if (!ReshareHelper.isUnknownUserLabel(nickname)) {
       return nickname.trim();
     }
 
@@ -99,8 +99,7 @@ class PostStoryShareService {
     }
 
     final displayName = await ReshareHelper.getUserDisplayName(userId);
-    if (displayName.trim().isNotEmpty &&
-        displayName.trim() != 'Bilinmeyen Kullanıcı') {
+    if (!ReshareHelper.isUnknownUserLabel(displayName)) {
       return displayName.trim();
     }
 
@@ -131,7 +130,7 @@ class PostStoryShareService {
     }
 
     final rawVideo = model.video.trim();
-    if (rawVideo.isNotEmpty && !rawVideo.toLowerCase().contains('.m3u8')) {
+    if (rawVideo.isNotEmpty && !isHlsPlaylistUrl(rawVideo)) {
       return (
         url: CdnUrlBuilder.toCdnUrl(rawVideo),
         isVideo: true,

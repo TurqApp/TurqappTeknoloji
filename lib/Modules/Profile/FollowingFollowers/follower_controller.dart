@@ -2,9 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 
 class FollowerController extends GetxController {
@@ -24,41 +23,8 @@ class FollowerController extends GetxController {
       <String, _FollowerUserCacheEntry>{};
   static final Map<String, _FollowStateCacheEntry> _followStateCacheByUser =
       <String, _FollowStateCacheEntry>{};
-  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
-
-  String _resolveAvatar(Map<String, dynamic> data) {
-    final profile = (data['profile'] is Map)
-        ? Map<String, dynamic>.from(data['profile'] as Map)
-        : const <String, dynamic>{};
-    return resolveAvatarUrl(data, profile: profile).trim();
-  }
-
-  String _resolveNickname(Map<String, dynamic> data) {
-    final profile = (data['profile'] is Map)
-        ? Map<String, dynamic>.from(data['profile'] as Map)
-        : const <String, dynamic>{};
-    return (data['nickname'] ??
-            profile['nickname'] ??
-            data['username'] ??
-            profile['username'] ??
-            data['usernameLower'] ??
-            profile['usernameLower'] ??
-            '')
-        .toString()
-        .trim();
-  }
-
-  String _resolveFullName(Map<String, dynamic> data) {
-    final profile = (data['profile'] is Map)
-        ? Map<String, dynamic>.from(data['profile'] as Map)
-        : const <String, dynamic>{};
-    final firstName =
-        (data['firstName'] ?? profile['firstName'] ?? '').toString().trim();
-    final lastName =
-        (data['lastName'] ?? profile['lastName'] ?? '').toString().trim();
-    return '$firstName $lastName'.trim();
-  }
 
   Future<void> getData(String userID) async {
     if (isLoaded.value) return;
@@ -74,11 +40,14 @@ class FollowerController extends GetxController {
       return;
     }
 
-    final data = await _userRepository.getUserRaw(userID) ?? const {};
-    if (data.isNotEmpty) {
-      final resolvedAvatar = _resolveAvatar(data);
-      final resolvedNickname = _resolveNickname(data);
-      final resolvedFullname = _resolveFullName(data);
+    final data = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
+    if (data != null) {
+      final resolvedAvatar = data.avatarUrl;
+      final resolvedNickname = data.nickname;
+      final resolvedFullname = data.displayName;
       avatarUrl.value = resolvedAvatar;
       nickname.value = resolvedNickname;
       fullname.value = resolvedFullname;
@@ -143,7 +112,7 @@ class FollowerController extends GetxController {
     } catch (_) {
       isFollowed.value = wasFollowed;
       isFollowed.refresh();
-      AppSnackbar('Hata', 'Takip durumu güncellenemedi.');
+      AppSnackbar('common.error'.tr, 'following.update_failed'.tr);
       followLoading.value = false;
       return;
     }
@@ -169,7 +138,7 @@ class FollowerController extends GetxController {
     }
 
     if (outcome.limitReached) {
-      AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+      AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
     }
 
     followLoading.value = false;

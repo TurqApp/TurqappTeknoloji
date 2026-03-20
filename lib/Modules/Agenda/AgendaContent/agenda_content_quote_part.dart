@@ -215,7 +215,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
           sourcePostData['nickname'],
           profile['nickname'],
           profile['username'],
-        ], username.isNotEmpty ? username : 'Kullanıcı');
+        ], username.isNotEmpty ? username : 'common.user'.tr);
         final avatarUrl = (widget.model.quotedSourceAvatarUrl.isNotEmpty
                 ? widget.model.quotedSourceAvatarUrl
                 : (profile['avatarUrl'] ??
@@ -246,7 +246,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 children: [
                   Flexible(
                     child: Text(
-                      displayName.isEmpty ? 'Kullanıcı' : displayName,
+                      displayName.isEmpty ? 'common.user'.tr : displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

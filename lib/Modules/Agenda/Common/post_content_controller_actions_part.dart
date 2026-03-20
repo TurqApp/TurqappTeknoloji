@@ -201,7 +201,7 @@ extension PostContentControllerActionsPart on PostContentController {
       }
     } catch (e) {
       yenidenPaylasildiMi.value = wasReshared;
-      AppSnackbar('Hata', 'Yeniden paylaşma işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.reshare_failed'.tr);
     }
   }
 
@@ -508,7 +508,7 @@ extension PostContentControllerActionsPart on PostContentController {
           likes.remove(uid);
         }
       }
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.like_failed'.tr);
     }
   }
 
@@ -519,7 +519,7 @@ extension PostContentControllerActionsPart on PostContentController {
       await _postRepository.toggleSave(model);
     } catch (e) {
       saved.value = wasSaved;
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.save_failed'.tr);
     }
   }
 
@@ -577,7 +577,7 @@ extension PostContentControllerActionsPart on PostContentController {
         isFollowing.value = true;
       }
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
     } catch (e) {
       print('Bir hata oluştu: $e');
@@ -627,15 +627,18 @@ extension PostContentControllerActionsPart on PostContentController {
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
       }
-      AppSnackbar('Push', '$written kullaniciya push kuyruga alindi');
+      AppSnackbar(
+        'admin_push.queue_title'.tr,
+        'admin_push.queue_body_count'.trParams({'count': '$written'}),
+      );
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
-        AppSnackbar('Push', 'Push kuyruga alindi');
+        AppSnackbar('admin_push.queue_title'.tr, 'admin_push.queue_body'.tr);
         return;
       }
-      AppSnackbar('Hata', 'Push gonderilemedi: $e');
+      AppSnackbar('common.error'.tr, 'post.push_failed'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Push gonderilemedi: $e');
+      AppSnackbar('common.error'.tr, 'post.push_failed'.tr);
     }
   }
 

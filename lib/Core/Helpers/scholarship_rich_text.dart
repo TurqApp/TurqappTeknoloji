@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class ScholarshipRichText {
   static const List<String> _highlightPhrases = [
@@ -76,7 +77,7 @@ class ScholarshipRichText {
   static bool _shouldHighlightHeading(String line) {
     if (line.isEmpty) return false;
 
-    final normalized = _normalize(line);
+    final normalized = normalizeSearchText(line);
     for (final phrase in _highlightPhrases) {
       if (normalized.contains(phrase)) {
         return true;
@@ -84,22 +85,5 @@ class ScholarshipRichText {
     }
 
     return false;
-  }
-
-  static String _normalize(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll('ı', 'i')
-        .replaceAll('İ', 'i')
-        .replaceAll('ş', 's')
-        .replaceAll('Ş', 's')
-        .replaceAll('ğ', 'g')
-        .replaceAll('Ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('Ü', 'u')
-        .replaceAll('ö', 'o')
-        .replaceAll('Ö', 'o')
-        .replaceAll('ç', 'c')
-        .replaceAll('Ç', 'c');
   }
 }

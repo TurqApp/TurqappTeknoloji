@@ -20,6 +20,10 @@ class _AdmobKareState extends State<AdmobKare> {
   static int _loadingCount = 0;
   static const int _defaultWarmupCount = 3;
   static const int _maxPoolSize = 8;
+  static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
+    'DEBUG_RENDER_ADMOB',
+    defaultValue: false,
+  );
 
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
@@ -36,6 +40,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   static bool get _supportsSharedPool => false;
+  static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
@@ -51,6 +56,7 @@ class _AdmobKareState extends State<AdmobKare> {
 
   static Future<void> warmupPool(
       {int targetCount = _defaultWarmupCount}) async {
+    if (_usePlaceholderOnly) return;
     if (!_supportsSharedPool) return;
     if (targetCount <= 0) return;
 
@@ -106,6 +112,7 @@ class _AdmobKareState extends State<AdmobKare> {
   @override
   void initState() {
     super.initState();
+    if (_usePlaceholderOnly) return;
     _attachBannerOrLoad();
   }
 
@@ -247,6 +254,24 @@ class _AdmobKareState extends State<AdmobKare> {
   Widget build(BuildContext context) {
     if (_isDisposed) {
       return const SizedBox.shrink();
+    }
+
+    if (_usePlaceholderOnly) {
+      return const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: SizedBox(
+          height: 250,
+          child: Center(
+            child: Text(
+              'Debug reklam gizlendi',
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     final ad = _bannerAd;

@@ -25,6 +25,8 @@ class CikmisSorularBaslik2Secimi extends StatefulWidget {
 
 class _CikmisSorularBaslik2SecimiState
     extends State<CikmisSorularBaslik2Secimi> {
+  static const _undergraduate = 'Lisans';
+
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> basliklar = [];
 
@@ -103,7 +105,7 @@ class _CikmisSorularBaslik2SecimiState
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (widget.sinavTuru == "Lisans") {
+                              if (widget.sinavTuru == _undergraduate) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(

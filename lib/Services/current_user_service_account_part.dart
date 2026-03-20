@@ -1,6 +1,43 @@
 part of 'current_user_service.dart';
 
 extension CurrentUserServiceAccountPart on CurrentUserService {
+  Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .get();
+      final data = snapshot.data();
+      if (data == null) return;
+
+      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
+      final isDeleted = data['isDeleted'] == true;
+      if (status != 'pending_deletion' && !isDeleted) {
+        return;
+      }
+
+      final patch = <String, dynamic>{
+        'accountStatus': 'active',
+        'isDeleted': false,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
+        'deletionRequestedAt': FieldValue.delete(),
+        'deletionScheduledAt': FieldValue.delete(),
+      };
+
+      await UserRepository.ensure().updateUserFields(
+        firebaseUser.uid,
+        patch,
+        mergeIntoCache: false,
+      );
+
+      await _applyOptimisticLocalPatch({'isDeleted': false});
+      _purgeUserScopedCaches(firebaseUser.uid);
+    } catch (_) {}
+  }
+
   Future<void> updateFields(Map<String, dynamic> fields) async {
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
@@ -356,12 +393,10 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
     if (isEmailVerified) return;
     try {
       await user.sendEmailVerification();
-      AppSnackbar(
-          "Doğrulama E-postası", "E-posta doğrulama bağlantısı gönderildi.");
+      AppSnackbar('common.info'.tr, 'editor_email.code_sent'.tr);
     } catch (e, st) {
       _logSilently('email.verify.send', e, st);
-      AppSnackbar(
-          "Uyarı", "Doğrulama e-postası gönderilemedi. Lütfen tekrar deneyin.");
+      AppSnackbar('common.warning'.tr, 'editor_email.code_send_failed'.tr);
     }
   }
 
@@ -371,8 +406,10 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   }) async {
     await refreshEmailVerificationStatus(reloadAuthUser: true);
     if (isEmailVerified) return true;
-    AppSnackbar("E-posta Doğrulama Gerekli",
-        "$actionName için e-posta doğrulaması gerekli.");
+    AppSnackbar(
+      'common.info'.tr,
+      'editor_email.required_for_action'.trParams({'action': actionName}),
+    );
     if (showPrompt) {
       await maybeShowEmailVerificationPrompt(actionName: actionName);
     }
@@ -397,23 +434,24 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
     await Get.dialog(
       AlertDialog(
-        title: const Text("E-posta Doğrulaması"),
+        title: Text('editor_email.title'.tr),
         content: Text(
           actionName == null
-              ? "Hesabını güvenli kullanmak için e-posta adresini doğrulamalısın."
-              : "$actionName için e-posta adresini doğrulamalısın.",
+              ? 'editor_email.dialog_body_general'.tr
+              : 'editor_email.dialog_body_action'
+                  .trParams({'action': actionName}),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text("Daha Sonra"),
+            child: Text('common.cancel'.tr),
           ),
           TextButton(
             onPressed: () async {
               Get.back();
               await sendVerificationEmailIfNeeded(force: true);
             },
-            child: const Text("Tekrar Gönder"),
+            child: Text('login.resend_code'.tr),
           ),
         ],
       ),

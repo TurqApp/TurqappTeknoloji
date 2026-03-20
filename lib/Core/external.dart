@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'dart:ui' as ui;
@@ -347,11 +348,11 @@ String kacGunKaldi(int timestampMillis) {
   final fark = hedefTarih.difference(simdi).inDays;
 
   if (fark > 0) {
-    return "$fark gün kaldı";
+    return 'common.days_left'.trParams({'count': '$fark'});
   } else if (fark == 0) {
-    return "Bugün!";
+    return 'common.today'.tr;
   } else {
-    return "${fark.abs()} gün geçti";
+    return 'common.days_ago'.trParams({'count': '${fark.abs()}'});
   }
 }
 

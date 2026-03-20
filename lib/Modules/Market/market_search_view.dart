@@ -24,7 +24,6 @@ class _MarketSearchViewState extends State<MarketSearchView> {
     controller = Get.isRegistered<MarketController>()
         ? Get.find<MarketController>()
         : Get.put(MarketController());
-    controller.listingSelection.value = 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focusNode.requestFocus();
@@ -70,7 +69,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                     child: TurqSearchBar(
                       controller: controller.search,
                       focusNode: _focusNode,
-                      hintText: 'İlan ara',
+                      hintText: 'pasaj.market.search_hint'.tr,
                       onChanged: controller.setSearchQuery,
                       onClear: () => controller.setSearchQuery(''),
                     ),
@@ -125,8 +124,8 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                 if (items.isEmpty) {
                   return _buildInfoState(
                     icon: CupertinoIcons.cube_box,
-                    title: 'Sonuç bulunamadı',
-                    subtitle: 'Aramana uygun ilan bulunmuyor.',
+                    title: 'common.no_results'.tr,
+                    subtitle: 'pasaj.market.search.no_results_body'.tr,
                   );
                 }
 
@@ -137,7 +136,8 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                       child: Row(
                         children: [
                           Text(
-                            '${items.length} sonuç',
+                            'pasaj.market.search.result_count'
+                                .trParams({'count': '${items.length}'}),
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 13,
@@ -175,8 +175,8 @@ class _MarketSearchViewState extends State<MarketSearchView> {
       if (items.isEmpty) {
         return _buildInfoState(
           icon: CupertinoIcons.search,
-          title: 'İlan aramaya başla',
-          subtitle: 'Son aramaların burada görünecek.',
+          title: 'pasaj.market.search.start_title'.tr,
+          subtitle: 'pasaj.market.search.start_body'.tr,
         );
       }
 
@@ -185,9 +185,9 @@ class _MarketSearchViewState extends State<MarketSearchView> {
         children: [
           Row(
             children: [
-              const Text(
-                'Son Aramalar',
-                style: TextStyle(
+              Text(
+                'pasaj.market.search.recent'.tr,
+                style: const TextStyle(
                   color: Colors.black,
                   fontSize: 14,
                   fontFamily: 'MontserratBold',
@@ -196,9 +196,9 @@ class _MarketSearchViewState extends State<MarketSearchView> {
               const Spacer(),
               TextButton(
                 onPressed: controller.clearRecentSearches,
-                child: const Text(
-                  'Temizle',
-                  style: TextStyle(
+                child: Text(
+                  'common.clear'.tr,
+                  style: const TextStyle(
                     color: Colors.black54,
                     fontSize: 12,
                     fontFamily: 'MontserratMedium',
@@ -351,17 +351,14 @@ class _MarketSearchViewState extends State<MarketSearchView> {
               children: [
                 GestureDetector(
                   onTap: () => controller.toggleSaved(item),
-                  child: Transform.flip(
-                    flipX: true,
-                    child: Icon(
-                      controller.isSaved(item.id)
-                          ? AppIcons.liked
-                          : AppIcons.like,
-                      color: controller.isSaved(item.id)
-                          ? const Color(0xFF2563EB)
-                          : Colors.grey.shade600,
-                      size: 22,
-                    ),
+                  child: Icon(
+                    controller.isSaved(item.id)
+                        ? AppIcons.saved
+                        : AppIcons.save,
+                    color: controller.isSaved(item.id)
+                        ? Colors.orange
+                        : Colors.grey.shade600,
+                    size: 22,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -467,15 +464,15 @@ class _MarketSearchViewState extends State<MarketSearchView> {
   String _statusLabel(String status) {
     switch (status) {
       case 'sold':
-        return 'Satıldı';
+        return 'pasaj.market.status.sold'.tr;
       case 'reserved':
-        return 'Rezerve';
+        return 'pasaj.market.status.reserved'.tr;
       case 'draft':
-        return 'Taslak';
+        return 'pasaj.market.status.draft'.tr;
       case 'archived':
-        return 'Arşiv';
+        return 'pasaj.market.status.archived'.tr;
       default:
-        return 'Aktif';
+        return 'pasaj.market.status.active'.tr;
     }
   }
 }

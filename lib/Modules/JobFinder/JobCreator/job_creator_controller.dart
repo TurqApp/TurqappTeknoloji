@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -26,6 +27,7 @@ import 'package:flutter/scheduler.dart';
 import '../../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../../Models/cities_model.dart';
 import '../../../Models/job_model.dart';
+import '../job_localization_utils.dart';
 
 class JobCreatorController extends GetxController {
   final CityDirectoryService _cityDirectoryService =
@@ -93,6 +95,15 @@ class JobCreatorController extends GetxController {
 
   final JobModel? existingJob;
   JobCreatorController({this.existingJob});
+
+  String localizedWorkTypes(List<String> values) =>
+      values.map(localizeJobWorkType).join(', ');
+
+  String localizedWorkDays(List<String> values) =>
+      values.map(localizeJobDay).join(', ');
+
+  String localizedBenefits(List<String> values) =>
+      values.map(localizeJobBenefit).join(', ');
 
   int parseMoneyInput(String value) {
     return int.tryParse(value.replaceAll('.', '').trim()) ?? 0;
@@ -213,7 +224,7 @@ class JobCreatorController extends GetxController {
                   onPressed: () {
                     cropController.crop();
                   },
-                  child: Text("Kırp ve Kullan"),
+                  child: Text('pasaj.job_finder.create.crop_use'.tr),
                 ),
               )
             ],
@@ -239,7 +250,7 @@ class JobCreatorController extends GetxController {
               Row(
                 children: [
                   Text(
-                    "Çalışma Türü",
+                    'pasaj.job_finder.create.work_type'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -277,7 +288,7 @@ class JobCreatorController extends GetxController {
                             children: [
                               Expanded(
                                 child: Text(
-                                  item,
+                                  localizeJobWorkType(item),
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 15,
@@ -329,7 +340,7 @@ class JobCreatorController extends GetxController {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Ek İmkanlar",
+              'pasaj.job_finder.create.benefits'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -367,7 +378,7 @@ class JobCreatorController extends GetxController {
                           children: [
                             Expanded(
                               child: Text(
-                                item,
+                                localizeJobBenefit(item),
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -424,7 +435,7 @@ class JobCreatorController extends GetxController {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Çalışma Günleri",
+              'pasaj.job_finder.create.work_days'.tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -455,7 +466,7 @@ class JobCreatorController extends GetxController {
                         children: [
                           Expanded(
                             child: Text(
-                              item,
+                              localizeJobDay(item),
                               style: TextStyle(
                                 fontSize: 15,
                                 color: Colors.black,
@@ -500,7 +511,7 @@ class JobCreatorController extends GetxController {
         height: Get.height / 2,
         child: ListBottomSheet(
           list: allJobs,
-          title: "Meslek",
+          title: 'pasaj.job_finder.create.profession'.tr,
           startSelection: meslek.value,
           onBackData: (v) {
             meslek.value = v;
@@ -529,7 +540,7 @@ class JobCreatorController extends GetxController {
         height: Get.height / 2,
         child: ListBottomSheet(
           list: sehirler,
-          title: "Şehir Seç",
+          title: 'pasaj.job_finder.select_city'.tr,
           startSelection: sehir.value,
           onBackData: (v) {
             sehir.value = v;
@@ -557,7 +568,7 @@ class JobCreatorController extends GetxController {
         height: Get.height / 2,
         child: ListBottomSheet(
           list: districts,
-          title: "İlçe Seç",
+          title: 'pasaj.job_finder.create.select_district'.tr,
           startSelection: ilce.value,
           onBackData: (v) {
             ilce.value = v;
@@ -647,9 +658,9 @@ class JobCreatorController extends GetxController {
       if (candidate.isEmpty) continue;
       final exact = sehirler.firstWhereOrNull((city) => city == candidate);
       if (exact != null) return exact;
-      final normalizedCandidate = _normalizeLocation(candidate);
+      final normalizedCandidate = normalizeLocationText(candidate);
       final fuzzy = sehirler.firstWhereOrNull(
-        (city) => _normalizeLocation(city) == normalizedCandidate,
+        (city) => normalizeLocationText(city) == normalizedCandidate,
       );
       if (fuzzy != null) return fuzzy;
     }
@@ -668,26 +679,13 @@ class JobCreatorController extends GetxController {
       final exact =
           districts.firstWhereOrNull((district) => district == candidate);
       if (exact != null) return exact;
-      final normalizedCandidate = _normalizeLocation(candidate);
+      final normalizedCandidate = normalizeLocationText(candidate);
       final fuzzy = districts.firstWhereOrNull(
-        (district) => _normalizeLocation(district) == normalizedCandidate,
+        (district) => normalizeLocationText(district) == normalizedCandidate,
       );
       if (fuzzy != null) return fuzzy;
     }
     return null;
-  }
-
-  String _normalizeLocation(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll('ı', 'i')
-        .replaceAll('i̇', 'i')
-        .replaceAll('ş', 's')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ü', 'u')
-        .replaceAll('ö', 'o')
-        .replaceAll('ç', 'c')
-        .trim();
   }
 
   Future<void> uploadCroppedImageToFirebase(String docID) async {
@@ -700,10 +698,10 @@ class JobCreatorController extends GetxController {
       await tempFile.writeAsBytes(bytes, flush: true);
       final nsfw = await OptimizedNSFWService.checkImage(tempFile);
       if (nsfw.errorMessage != null) {
-        throw Exception('Görsel güvenlik kontrolü tamamlanamadı');
+        throw Exception('pasaj.job_finder.image_security_failed'.tr);
       }
       if (nsfw.isNSFW) {
-        throw Exception('Uygunsuz görsel tespit edildi');
+        throw Exception('pasaj.job_finder.image_nsfw_detected'.tr);
       }
 
       final downloadUrl = await WebpUploadService.uploadBytesAsWebp(
@@ -806,7 +804,7 @@ class JobCreatorController extends GetxController {
     try {
       await uploadCroppedImageToFirebase(docID);
     } catch (e) {
-      AppSnackbar('Hata', e.toString().replaceFirst('Exception: ', ''));
+      AppSnackbar('common.error'.tr, e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }

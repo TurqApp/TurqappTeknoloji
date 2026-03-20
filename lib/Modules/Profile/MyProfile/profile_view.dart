@@ -122,16 +122,11 @@ class _ProfileViewState extends State<ProfileView> {
 
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
   String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
-  String get _myRozet {
-    final direct = normalizeRozetValue(controller.headerRozet.value);
-    if (direct.isNotEmpty) return direct;
-    return normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '');
-  }
-
   bool get _hasVerifiedRozet {
     final headerRozet = normalizeRozetValue(controller.headerRozet.value);
     if (headerRozet.isNotEmpty) return true;
-    return _myRozet.isNotEmpty;
+    return normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '')
+        .isNotEmpty;
   }
 
   String get _myMeslek => userService.currentUserRx.value?.meslekKategori ?? '';

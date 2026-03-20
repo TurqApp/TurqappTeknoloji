@@ -1,5 +1,7 @@
 part of 'sinav_hazirla.dart';
 
+const _sinavHazirlaKpssType = 'KPSS';
+
 extension SinavHazirlaBodyPart on SinavHazirla {
   Widget buildContent(BuildContext context) {
     final controller = Get.put(SinavHazirlaController(sinavModel: sinavModel));
@@ -472,7 +474,7 @@ extension SinavHazirlaBodyPart on SinavHazirla {
                               ),
                             ),
                             Obx(
-                              () => controller.sinavTuru.value == "KPSS"
+                              () => controller.sinavTuru.value == _sinavHazirlaKpssType
                                   ? Column(
                                       children: [
                                         SizedBox(height: 10),

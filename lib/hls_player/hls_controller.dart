@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 
 enum PlayerState {
@@ -458,7 +459,9 @@ class HLSController {
             break;
 
           case 'error':
-            final message = event['message'] as String? ?? 'Unknown error';
+            final message =
+                event['message'] as String? ??
+                'error_handling.category_unknown'.tr;
             if (_telemetryVideoId != null) {
               _telemetry.onError(_telemetryVideoId!, message);
             }

@@ -317,7 +317,7 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
 
     // Show feedback
     AppSnackbar(
-      'Applied',
+      'common.success'.tr,
       suggestion.suggestion,
       duration: const Duration(seconds: 2),
       backgroundColor: Colors.green,

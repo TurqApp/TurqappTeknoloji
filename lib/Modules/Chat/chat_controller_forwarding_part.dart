@@ -117,7 +117,7 @@ extension ChatControllerForwardingPart on ChatController {
       otherIds.add(other);
     }
 
-    final userMap = await _userRepository.getUsersRaw(otherIds);
+    final userMap = await _userSummaryResolver.resolveMany(otherIds);
     for (final doc in snapDocs) {
       if (doc.id == chatID) continue;
       final participants = List<String>.from(doc.data()["participants"] ?? []);
@@ -128,16 +128,12 @@ extension ChatControllerForwardingPart on ChatController {
       items.add({
         "chatID": doc.id,
         "userID": other,
-        "nickname": (userData["displayName"] ??
-                userData["username"] ??
-                userData["nickname"] ??
-                "")
-            .toString(),
+        "nickname": userData.preferredName,
       });
     }
 
     if (items.isEmpty) {
-      AppSnackbar("Bilgi", "İletilecek sohbet bulunamadı");
+      AppSnackbar("common.info".tr, "chat.forward_target_missing".tr);
       return;
     }
 
@@ -222,7 +218,8 @@ extension ChatControllerForwardingPart on ChatController {
       }
     };
 
-    final previewText = model.metin.isNotEmpty ? model.metin : "İletilen mesaj";
+    final previewText =
+        model.metin.isNotEmpty ? model.metin : 'chat.forwarded_body'.tr;
     final convRef = FirebaseFirestore.instance
         .collection("conversations")
         .doc(targetChatId);
@@ -330,7 +327,7 @@ extension ChatControllerForwardingPart on ChatController {
 
     await convRef.collection("messages").add(convMessage);
 
-    AppSnackbar("İletildi", "Mesaj seçilen sohbete iletildi");
+    AppSnackbar('chat.forwarded_title'.tr, 'chat.forwarded_body'.tr);
     if (Get.isRegistered<ChatListingController>()) {
       Get.find<ChatListingController>().getList();
     }

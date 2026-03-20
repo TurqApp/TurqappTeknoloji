@@ -144,17 +144,17 @@ class CreatorContentController extends GetxController
     String durationLabel(int hours) {
       switch (hours) {
         case 6:
-          return '6 sa';
+          return 'post_creator.poll_option_6h'.tr;
         case 12:
-          return '12 sa';
+          return 'post_creator.poll_option_12h'.tr;
         case 24:
-          return '1 g';
+          return 'post_creator.poll_option_1d'.tr;
         case 72:
-          return '3 g';
+          return 'post_creator.poll_option_3d'.tr;
         case 168:
-          return '7 g';
+          return 'post_creator.poll_option_7d'.tr;
         default:
-          return '1 g';
+          return 'post_creator.poll_option_1d'.tr;
       }
     }
 
@@ -184,8 +184,8 @@ class CreatorContentController extends GetxController
                 ),
                 Row(
                   children: [
-                    const Text(
-                      'Anket',
+                    Text(
+                      'post_creator.poll_title'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 16,
@@ -217,8 +217,8 @@ class CreatorContentController extends GetxController
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'Zaman Seçenekleri',
+                                Text(
+                                  'post_creator.poll_time_options'.tr,
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontFamily: "MontserratBold",
@@ -226,23 +226,23 @@ class CreatorContentController extends GetxController
                                 ),
                                 const SizedBox(height: 8),
                                 ListTile(
-                                  title: const Text('6 sa'),
+                                  title: Text('post_creator.poll_option_6h'.tr),
                                   onTap: () => Get.back(result: 6),
                                 ),
                                 ListTile(
-                                  title: const Text('12 sa'),
+                                  title: Text('post_creator.poll_option_12h'.tr),
                                   onTap: () => Get.back(result: 12),
                                 ),
                                 ListTile(
-                                  title: const Text('1 g'),
+                                  title: Text('post_creator.poll_option_1d'.tr),
                                   onTap: () => Get.back(result: 24),
                                 ),
                                 ListTile(
-                                  title: const Text('3 g'),
+                                  title: Text('post_creator.poll_option_3d'.tr),
                                   onTap: () => Get.back(result: 72),
                                 ),
                                 ListTile(
-                                  title: const Text('7 g'),
+                                  title: Text('post_creator.poll_option_7d'.tr),
                                   onTap: () => Get.back(result: 168),
                                 ),
                                 const SizedBox(height: 8),
@@ -273,7 +273,9 @@ class CreatorContentController extends GetxController
                     maxLength: 25,
                     inputFormatters: [LengthLimitingTextInputFormatter(25)],
                     decoration: fieldDecoration(
-                      'Seçenek ${i + 1}',
+                      'post_creator.poll_option'.trParams({
+                        'index': '${i + 1}',
+                      }),
                       prefixText: '${String.fromCharCode(65 + i)}) ',
                     ),
                   ),
@@ -287,7 +289,7 @@ class CreatorContentController extends GetxController
                             optionCtrls.add(TextEditingController());
                           });
                         },
-                  child: const Text('+ Bir seçenek daha ekle'),
+                  child: Text('post_creator.poll_add_option'.tr),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -297,7 +299,7 @@ class CreatorContentController extends GetxController
                         pollData.value = null;
                         Get.back();
                       },
-                      child: const Text('Kaldır'),
+                      child: Text('common.remove'.tr),
                     ),
                     const Spacer(),
                     ElevatedButton(
@@ -307,7 +309,10 @@ class CreatorContentController extends GetxController
                             .where((t) => t.isNotEmpty)
                             .toList();
                         if (options.length < 2) {
-                          AppSnackbar('Hata', 'En az iki seçenek zorunlu.');
+                          AppSnackbar(
+                            'common.error'.tr,
+                            'post_creator.poll_min_options'.tr,
+                          );
                           return;
                         }
                         pollData.value = {
@@ -319,7 +324,7 @@ class CreatorContentController extends GetxController
                         };
                         Get.back();
                       },
-                      child: const Text('Oluştur'),
+                      child: Text('common.create'.tr),
                     ),
                   ],
                 ),
@@ -335,7 +340,7 @@ class CreatorContentController extends GetxController
   Future<void> pickImage() async {
     if (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty) {
       UploadValidationService.showValidationError(
-          'Video seçiliyken fotoğraf ekleyemezsiniz. En fazla 1 video seçilebilir.');
+          'post_creator.photo_with_video_forbidden'.tr);
       return;
     }
 
@@ -347,7 +352,7 @@ class CreatorContentController extends GetxController
     final remaining = maxImages - existingCount - existingReusedCount;
     if (remaining <= 0) {
       UploadValidationService.showValidationError(
-          'Maksimum $maxImages fotograf secilebilir.');
+          'post_creator.max_photo_count'.trParams({'count': '$maxImages'}));
       return;
     }
 
@@ -365,8 +370,11 @@ class CreatorContentController extends GetxController
 
     if (!isSeries && totalCount > maxImages) {
       UploadValidationService.showValidationError(
-          'Maksimum $maxImages fotograf ekleyebilirsiniz. '
-          'Mevcut: $currentImageCount, Eklenmek istenen: $newImageCount');
+          'post_creator.max_photo_add'.trParams({
+            'count': '$maxImages',
+            'current': '$currentImageCount',
+            'adding': '$newImageCount',
+          }));
       return;
     }
 
@@ -374,7 +382,10 @@ class CreatorContentController extends GetxController
       final validation = await UploadValidationService.validateImage(files[i]);
       if (!validation.isValid) {
         UploadValidationService.showValidationError(
-            'Fotoğraf ${i + 1}: ${validation.errorMessage}');
+            'post_creator.photo_validation_prefix'.trParams({
+              'index': '${i + 1}',
+              'error': validation.errorMessage ?? '',
+            }));
         return;
       }
     }
@@ -511,8 +522,8 @@ class CreatorContentController extends GetxController
       _enforceImageCap();
 
       AppSnackbar(
-        'Uyarı',
-        'Fotoğraflar eklendi ancak sıkıştırma başarısız oldu.',
+        'post_creator.warning_title'.tr,
+        'post_creator.photos_compression_failed'.tr,
         backgroundColor: Colors.orange.withValues(alpha: 0.8),
       );
     } finally {
@@ -634,8 +645,9 @@ class CreatorContentController extends GetxController
       _enforceImageCap();
 
       AppSnackbar(
-        'Başarılı!',
-        'Fotoğraf eklendi. ${compressionResult.spaceSavedText}',
+        'post_creator.success_title'.tr,
+        'post_creator.photo_added'
+            .trParams({'saved': compressionResult.spaceSavedText}),
         backgroundColor: Colors.green.withValues(alpha: 0.8),
       );
     } catch (e) {
@@ -645,8 +657,8 @@ class CreatorContentController extends GetxController
       _enforceImageCap();
 
       AppSnackbar(
-        'Uyarı',
-        'Fotoğraf eklendi ancak sıkıştırma başarısız oldu.',
+        'post_creator.warning_title'.tr,
+        'post_creator.photo_added_no_compress'.tr,
         backgroundColor: Colors.orange.withValues(alpha: 0.8),
       );
     } finally {
@@ -664,7 +676,8 @@ class CreatorContentController extends GetxController
         !isSeries &&
         (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty)) {
       UploadValidationService.showValidationError(
-          'En fazla ${UploadConstants.maxVideosPerPost} video seçebilirsiniz.');
+          'post_creator.max_video_count'
+              .trParams({'count': '${UploadConstants.maxVideosPerPost}'}));
       return;
     }
 
@@ -1026,7 +1039,7 @@ class CreatorContentController extends GetxController
                                 endIndent: 8,
                                 color: Colors.grey,
                               )),
-                              Text('Kapak Fotoğrafı Seç',
+                              Text('post_creator.cover_title'.tr,
                                   style: TextStyles.bold16Black),
                               Expanded(
                                   child: Divider(
@@ -1248,7 +1261,7 @@ class CreatorContentController extends GetxController
                           Get.back();
                         },
                         label: Text(
-                          'Vazgeç',
+                          'common.cancel'.tr,
                           style: TextStyles.medium15Black,
                         ),
                       ),
@@ -1286,7 +1299,8 @@ class CreatorContentController extends GetxController
                             ],
                           ),
                           child:
-                              Text('Kaydet', style: TextStyles.medium15white),
+                              Text('common.save'.tr,
+                                  style: TextStyles.medium15white),
                         ),
                       ),
                     ),
@@ -1303,7 +1317,7 @@ class CreatorContentController extends GetxController
 
   Future<void> goToLocationMap() async {
     Get.to(() => LocationFinderView(
-          submitButtonTitle: "Bu adresi kullan",
+          submitButtonTitle: 'post_creator.use_address'.tr,
           backAdres: (v) {
             adres.value = v;
           },
@@ -1368,5 +1382,31 @@ class CreatorContentController extends GetxController
     await controller.pause();
     await controller.dispose();
     rxVideoPlayerController.value = null;
+  }
+
+  Future<void> resetComposerState() async {
+    textEdit.clear();
+    selectedImages.clear();
+    selectedVideo.value = null;
+    croppedImages.clear();
+    reusedImageUrls.clear();
+    reusedImageAspectRatio.value = 0.0;
+    reusedVideoUrl.value = '';
+    reusedVideoThumbnail.value = '';
+    reusedVideoAspectRatio.value = 0.0;
+    videoLookPreset.value = 'original';
+    selectedThumbnail.value = null;
+    pollData.value = null;
+    adres.value = '';
+    gif.value = '';
+    isCropping.value = false;
+    isPlaying.value = false;
+    hasVideo.value = false;
+    isProcessing.value = false;
+    isFocusedOnce.value = false;
+    contentNotEmpty.value = false;
+    textChanged.value = false;
+    waitingVideo.value = false;
+    await _releaseVideoController();
   }
 }

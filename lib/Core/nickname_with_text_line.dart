@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 
@@ -104,7 +105,7 @@ class _NicknameWithTextLineState extends State<NicknameWithTextLine> {
                 },
             ),
           );
-        } else if (word.startsWith("http://") || word.startsWith("https://")) {
+        } else if (hasHttpUrlScheme(word)) {
           spans.add(
             TextSpan(
               text: spans.isEmpty ? word : " $word",
@@ -216,7 +217,7 @@ class _NicknameWithTextLineState extends State<NicknameWithTextLine> {
 
   Widget _buildCollapsedTextWithInlineButton(List<TextSpan> spans,
       TextStyle defaultStyle, BoxConstraints constraints) {
-    final buttonText = "daha fazla göster";
+    final buttonText = 'common.show_more'.tr;
     final buttonStyle = _buttonStyle;
 
     // Kısaltılmış görünümde stilleri kaybetmemek için doğrudan spans'i kullan,
@@ -245,7 +246,7 @@ class _NicknameWithTextLineState extends State<NicknameWithTextLine> {
 
   Widget _buildExpandedTextWithInlineButton(List<TextSpan> spans,
       TextStyle defaultStyle, BoxConstraints constraints) {
-    final buttonText = "daha az göster";
+    final buttonText = 'common.show_less'.tr;
     final buttonStyle = _buttonStyle;
 
     // Wrap widget ile inline buton yerleştirme

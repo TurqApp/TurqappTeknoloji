@@ -45,7 +45,7 @@ extension MessageContentReplyParts on MessageContent {
             const SizedBox(width: 3),
           ],
           if (model.isEdited) ...[
-            Text("düzenlendi",
+            Text('common.edited'.tr,
                 style: TextStyle(
                     color: metaColor, fontSize: 10, fontFamily: "Montserrat")),
             const SizedBox(width: 3),
@@ -75,26 +75,26 @@ extension MessageContentReplyParts on MessageContent {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
     if (model.replySenderId.trim().isNotEmpty &&
         model.replySenderId.trim() == currentUid) {
-      return "Siz";
+      return 'chat.you'.tr;
     }
     final peer = chatController.nickname.value.trim();
-    return peer.isEmpty ? "TurqApp" : peer;
+    return peer.isEmpty ? 'app.name'.tr : peer;
   }
 
   String _replyPreviewText() {
     final text = model.replyText.trim();
     if (text.isNotEmpty) return text;
-    switch (model.replyType.trim().toLowerCase()) {
+    switch (normalizeSearchText(model.replyType)) {
       case "media":
-        return "Fotoğraf";
+        return 'chat.photo'.tr;
       case "video":
-        return "Video";
+        return 'chat.video'.tr;
       case "audio":
-        return "Ses";
+        return 'chat.audio'.tr;
       case "location":
-        return "Konum";
+        return 'chat.location'.tr;
       case "post":
-        return "Gönderi";
+        return 'chat.post'.tr;
       default:
         return "";
     }
@@ -102,7 +102,7 @@ extension MessageContentReplyParts on MessageContent {
 
   Widget _buildReplyCard() {
     final target = model.replyMessageId.trim();
-    final type = model.replyType.trim().toLowerCase();
+    final type = normalizeSearchText(model.replyType);
     final preview = _replyPreviewText();
     final canOpenMedia =
         (type == "media" || type == "video") && target.isNotEmpty;

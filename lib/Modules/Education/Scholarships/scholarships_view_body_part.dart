@@ -321,7 +321,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
 
     final scholarshipData = items[index];
     final burs = scholarshipData['model'];
-    final type = 'bireysel';
+    final type = kIndividualScholarshipType;
     final userData = scholarshipData['userData'] as Map<String, dynamic>?;
     final firmaData = null;
     final docId = scholarshipData['docId'] as String;
@@ -373,7 +373,10 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
   }
 
   int _calculateDaysDiff(String type, dynamic burs) {
-    if (type != 'bireysel' || burs is! IndividualScholarshipsModel) return -1;
+    if (!isIndividualScholarshipType(type) ||
+        burs is! IndividualScholarshipsModel) {
+      return -1;
+    }
     final rawEndDate = burs.bitisTarihi.trim();
     if (rawEndDate.isEmpty) return -1;
     try {

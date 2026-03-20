@@ -16,7 +16,7 @@ class ImagePreview extends StatefulWidget {
     required this.startIndex,
     this.enableReplyBar = false,
     this.onSendReply,
-    this.replyPreviewLabel = "Fotoğraf",
+    this.replyPreviewLabel = "",
   });
 
   @override
@@ -83,18 +83,18 @@ class _ImagePreviewState extends State<ImagePreview> {
           color: Colors.white.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               CupertinoIcons.reply_thick_solid,
               color: Colors.black,
               size: 14,
             ),
-            SizedBox(width: 5),
+            const SizedBox(width: 5),
             Text(
-              "Yanıtlayın",
-              style: TextStyle(
+              'chat.reply_prompt'.tr,
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 12,
                 fontFamily: "MontserratMedium",
@@ -187,9 +187,9 @@ class _ImagePreviewState extends State<ImagePreview> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  "Siz",
+                                  'chat.you'.tr,
                                   style: TextStyle(
                                     color: Color(0xFF18A999),
                                     fontSize: 14,
@@ -236,8 +236,8 @@ class _ImagePreviewState extends State<ImagePreview> {
                                       TextCapitalization.sentences,
                                   minLines: 1,
                                   maxLines: 3,
-                                  decoration: const InputDecoration(
-                                    hintText: "Mesaj yaz",
+                                  decoration: InputDecoration(
+                                    hintText: 'chat.message_hint'.tr,
                                     isDense: true,
                                     border: InputBorder.none,
                                   ),
