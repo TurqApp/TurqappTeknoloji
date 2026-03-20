@@ -10,7 +10,7 @@ Bu dosya artik otomasyon + manuel dogrulama + bilincli raw alanlar + legacy clea
 
 Referans durum:
 
-- Guncel `HEAD`: `ccb53e78` `Expand full automation rollout plan`
+- Guncel `HEAD`: `18b8f582` `Skip redundant saved results and books patches`
 - Resolver/cache-first stabilizasyon checkpoint'i: `863b6a98` `Finalize urgent resolver follow-ups`
 - Ana mimari safhasi bitti.
 - Resolver / cache-first yayginlastirma buyuk olcude bitti.
@@ -559,7 +559,7 @@ Fazli yuruyus:
 
 Aktif faz:
 
-- Su an `Faz 3` ilk dilimi aktif.
+- Su an Passage omurgasinda `Faz 6` gercek cihaz dogrulamasi ile `Faz 3-5` kalite omurgasi paralel ilerliyor.
 - Son tamamlanan kritik urun isi: feed visibility + hybrid feed fallback fix.
 - Son tamamlanan kalite isi: `runtime invariant guard` ilk dilimi + `Notifications` invariantlari + `integration_test/` iskeleti.
 - Son tamamlanan smoke isi: ana nav ve kritik ekranlar icin kararlı integration test key'leri.
@@ -580,6 +580,9 @@ Aktif faz:
 - Son tamamlanan backend veri isi: `marketStore/offers` collection-group sorgulari icin eksik composite index tanimlari eklendi ve `turqappteknoloji` projesine deploy edildi; gecersiz eski `reshares` index tanimi dosyadan cikarildi.
 - Son tamamlanan market offer sadeleştirmesi: offer okumalari mirror subcollection (`users/{uid}/marketOffersSent|Received`) kanonik kaynak olacak sekilde daraltildi; permission gürültüsü ureten collection-group ve item-scan fallback'leri kaldirildi.
 - Son tamamlanan market owner index isi: `marketStore userId + createdAt` composite indexi eklendi ve deploy edildi.
+- Son tamamlanan Passage omurga isi: `Job`, `Market`, `Online Sınav`, `Cevap Anahtarı`, `Özel Ders` ve ilgili saved/owner/search/refresh yuzeylerinde gereksiz ikinci dalga `assignAll`, build-ici warmup, kart-ici gec fetch ve kullanilmayan user-summary preload zincirleri daraltildi.
+- Son tamamlanan Passage kart stabilizasyonu: grid/list kartlarinda ortak metrik/token cizgisi acildi; save icon guncellemeleri kart seviyesine izole edildi; `Online Sınav` basvuru satiri dogrudan model/snapshot hattina baglandi; `Cevap Anahtarı` hazir soru metni ceviri anahtari geri yuklendi.
+- Son tamamlanan Android Passage smoke sonucu: bugunku cihaz turunda `Market`, `İş Veren`, `Online Sınav`, `Cevap Anahtarı`, `Özel Ders` yuzeyleri acildi; ilk karede kritik veri satirlari geldi ve `Market` ile `İş Veren`de kisa bekleme sonrasi gozle gorulur gec reorder gorulmedi.
 - Sonraki teknik hedef: dashboard UI ve backend alert kanalini baglamak; smoke testleri production-benzeri sabit fixture JSON + CI/device smoke parametresi + veri seviyesinde state assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
