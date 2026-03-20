@@ -153,7 +153,7 @@ class AgendaController extends GetxController {
   String get feedTitle {
     if (isFollowingMode) return 'agenda.following'.tr;
     if (isCityMode) return 'agenda.city'.tr;
-    return 'TurqApp';
+    return 'app.name'.tr;
   }
 
   String get currentUserLocationCity {
@@ -423,12 +423,18 @@ class AgendaController extends GetxController {
     final current = centeredIndex.value;
     var bestIndex = -1;
     var bestFraction = 0.0;
+    var fallbackIndex = -1;
+    var fallbackFraction = 0.0;
 
     _visibleFractions.forEach((index, fraction) {
       if (index < 0 || index >= agendaList.length) return;
-      if (fraction < playThreshold) return;
       final post = agendaList[index];
       if (!_canAutoplayVideoPost(post)) return;
+      if (fraction > fallbackFraction) {
+        fallbackFraction = fraction;
+        fallbackIndex = index;
+      }
+      if (fraction < playThreshold) return;
       if (fraction > bestFraction) {
         bestFraction = fraction;
         bestIndex = index;
@@ -452,9 +458,20 @@ class AgendaController extends GetxController {
       return;
     }
 
+    final secondaryThreshold = GetPlatform.isAndroid ? 0.55 : 0.62;
+    if (fallbackIndex >= 0 && fallbackFraction >= secondaryThreshold) {
+      if (centeredIndex.value != fallbackIndex) {
+        centeredIndex.value = fallbackIndex;
+        lastCenteredIndex = fallbackIndex;
+      }
+      _trackPlaybackWindow();
+      return;
+    }
+
     if (current >= 0) {
       final currentFraction = _visibleFractions[current] ?? 0.0;
-      if (currentFraction < stopThreshold) {
+      final lingerThreshold = GetPlatform.isAndroid ? 0.14 : stopThreshold;
+      if (currentFraction < lingerThreshold) {
         centeredIndex.value = -1;
       }
     }

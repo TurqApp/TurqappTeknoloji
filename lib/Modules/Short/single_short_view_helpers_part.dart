@@ -3,6 +3,27 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  void _requestExclusivePlayback(
+    String docId, {
+    Duration minSpacing = const Duration(milliseconds: 220),
+  }) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return;
+    final now = DateTime.now();
+    final lastDocId = _lastExclusivePlayDocId;
+    final lastAt = _lastExclusivePlayAt;
+    if (lastDocId == trimmed &&
+        lastAt != null &&
+        now.difference(lastAt) < minSpacing) {
+      return;
+    }
+    _lastExclusivePlayDocId = trimmed;
+    _lastExclusivePlayAt = now;
+    try {
+      VideoStateManager.instance.playOnlyThis(trimmed);
+    } catch (_) {}
+  }
+
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await adapter.pause();
@@ -205,9 +226,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       for (var i = 0; i < 3; i++) {
         if (!mounted || ctrl.isDisposed) return;
         await ctrl.play();
-        try {
-          VideoStateManager.instance.playOnlyThis(docId);
-        } catch (_) {}
+        _requestExclusivePlayback(docId);
         await Future.delayed(const Duration(milliseconds: 120));
         if (ctrl.value.isPlaying) break;
       }
@@ -247,9 +266,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       ctrl.setVolume(volume ? 1 : 0);
     } catch (_) {}
     unawaited(ctrl.play());
-    try {
-      VideoStateManager.instance.playOnlyThis(shorts[index].docID);
-    } catch (_) {}
+    _requestExclusivePlayback(shorts[index].docID);
     if (index == currentPage) {
       _beginTelemetryForCurrentPage(ctrl);
     }
@@ -587,7 +604,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
             if (mounted && sameController && !ctrl.isDisposed) {
               ctrl.seekTo(Duration.zero);
               if (index >= 0 && index < shorts.length) {
-                VideoStateManager.instance.playOnlyThis(shorts[index].docID);
+                _requestExclusivePlayback(shorts[index].docID);
               }
               _completionTriggered[index] = false;
             }

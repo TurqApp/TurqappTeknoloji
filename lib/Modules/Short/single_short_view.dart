@@ -177,6 +177,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   bool _telemetryFirstFrame = false;
   HLSVideoAdapter? _telemetryAdapter;
   String? _activeTelemetryVideoId;
+  String? _lastExclusivePlayDocId;
+  DateTime? _lastExclusivePlayAt;
 
   @override
   void initState() {
@@ -439,7 +441,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             hasStableFocus: false,
           );
           if (currentPage >= 0 && currentPage < shorts.length) {
-            VideoStateManager.instance.playOnlyThis(shorts[currentPage].docID);
+            _requestExclusivePlayback(shorts[currentPage].docID);
           }
         } catch (_) {}
       }
@@ -726,7 +728,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                 isAudible: this.volume,
                 hasStableFocus: true,
               );
-              VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
+              _requestExclusivePlayback(shorts[idx].docID);
             }
           },
           videoPlayerController: vp,
@@ -758,10 +760,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                               (shorts.isNotEmpty
                                   ? shorts[currentPage].docID
                                   : null);
-                          final pos =
-                              (ctrl != null && ctrl.value.isInitialized)
-                                  ? ctrl.value.position
-                                  : Duration.zero;
+                          final pos = (ctrl != null && ctrl.value.isInitialized)
+                              ? ctrl.value.position
+                              : Duration.zero;
                           Navigator.of(context).pop({
                             'docID': docID,
                             'positionMs': pos.inMilliseconds,
@@ -792,58 +793,59 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                               );
                             }),
                           ),
-                        if (shorts[idx].floodCount > 1)
-                          IconButton(
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              minimumSize: const Size(36, 36),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              backgroundColor: Colors.black.withAlpha(50),
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(12)),
+                          if (shorts[idx].floodCount > 1)
+                            IconButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                minimumSize: const Size(36, 36),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: Colors.black.withAlpha(50),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(12)),
+                                ),
                               ),
-                            ),
-                            onPressed: () async {
-                              try {
-                                if (vp.value.isInitialized) {
-                                  await vp.pause();
-                                }
-                              } catch (_) {}
-                              await Get.to(
-                                  () => FloodListing(mainModel: shorts[idx]));
-                              if (!mounted) return;
-                              if (idx == currentPage) {
+                              onPressed: () async {
                                 try {
-                                  vp.setVolume(volume ? 1 : 0);
-                                  _updateTelemetryHintsForCurrentPage(
-                                    isAudible: volume,
-                                    hasStableFocus: false,
-                                  );
-                                  VideoStateManager.instance
-                                      .playOnlyThis(shorts[idx].docID);
+                                  if (vp.value.isInitialized) {
+                                    await vp.pause();
+                                  }
                                 } catch (_) {}
-                              }
-                            },
-                            icon: ShaderMask(
-                              shaderCallback: (bounds) => const LinearGradient(
-                                colors: [Colors.white, Colors.blue],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ).createShader(Rect.fromLTWH(
-                                  0, 0, bounds.width, bounds.height)),
-                              blendMode: BlendMode.srcIn,
-                              child: Text(
-                                "${shorts[idx].floodCount} ${'saved_posts.series_badge'.tr}",
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                  color: Colors.white,
+                                await Get.to(
+                                    () => FloodListing(mainModel: shorts[idx]));
+                                if (!mounted) return;
+                                if (idx == currentPage) {
+                                  try {
+                                    vp.setVolume(volume ? 1 : 0);
+                                    _updateTelemetryHintsForCurrentPage(
+                                      isAudible: volume,
+                                      hasStableFocus: false,
+                                    );
+                                    _requestExclusivePlayback(
+                                        shorts[idx].docID);
+                                  } catch (_) {}
+                                }
+                              },
+                              icon: ShaderMask(
+                                shaderCallback: (bounds) =>
+                                    const LinearGradient(
+                                  colors: [Colors.white, Colors.blue],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ).createShader(Rect.fromLTWH(
+                                        0, 0, bounds.width, bounds.height)),
+                                blendMode: BlendMode.srcIn,
+                                child: Text(
+                                  "${shorts[idx].floodCount} ${'saved_posts.series_badge'.tr}",
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontFamily: "MontserratBold",
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       )
                     ],
