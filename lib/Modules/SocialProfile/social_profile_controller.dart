@@ -174,7 +174,8 @@ class SocialProfileController extends GetxController {
                   ) ==
                   pendingIdentity;
             })
-          : allPosts.indexWhere((post) => 'post_${post.docID}' == pendingIdentity);
+          : allPosts
+              .indexWhere((post) => 'post_${post.docID}' == pendingIdentity);
       if (pendingIndex >= 0) {
         return pendingIndex;
       }
@@ -201,7 +202,8 @@ class SocialProfileController extends GetxController {
             lastCenteredIndex! >= 0 &&
             lastCenteredIndex! < activeLength)
         ? postSelection.value == 0
-            ? ((activeCombinedEntries[lastCenteredIndex!]['docID'] as String?) ??
+            ? ((activeCombinedEntries[lastCenteredIndex!]['docID']
+                    as String?) ??
                 '')
             : allPosts[lastCenteredIndex!].docID
         : null;
@@ -606,8 +608,13 @@ class SocialProfileController extends GetxController {
                       Get.back();
                       await _socialLinksRepository.deleteLink(userID, docID);
 
-                      final links = Get.find<SocialMediaController>();
-                      links.getData();
+                      unawaited(
+                        SocialMediaController.maybeFind()?.getData(
+                              silent: true,
+                              forceRefresh: true,
+                            ) ??
+                            Future.value(),
+                      );
                     },
                     child: Container(
                       height: 50,
@@ -1046,5 +1053,6 @@ class _SocialCounterCacheEntry {
     required this.cachedAt,
   });
 }
-  final VisibilityPolicyService _visibilityPolicy =
-      VisibilityPolicyService.ensure();
+
+final VisibilityPolicyService _visibilityPolicy =
+    VisibilityPolicyService.ensure();

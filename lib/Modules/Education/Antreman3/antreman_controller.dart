@@ -24,6 +24,20 @@ import 'package:turqappv2/Services/current_user_service.dart';
 part 'antreman_controller_actions_part.dart';
 
 class AntremanController extends GetxController {
+  static AntremanController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(AntremanController(), permanent: permanent);
+  }
+
+  static AntremanController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static AntremanController? maybeFind() {
+    if (!Get.isRegistered<AntremanController>()) return null;
+    return Get.find<AntremanController>();
+  }
+
   static const String _mainCategoryPrefKeyPrefix = 'antreman_main_category';
   static const String _categoryCachePrefix = 'antreman_category_cache_';
   static const String _categoryCacheTimePrefix =

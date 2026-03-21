@@ -129,11 +129,7 @@ class SignInController extends GetxController
   }
 
   void _ensureFeedTabSelected() {
-    if (Get.isRegistered<NavBarController>()) {
-      Get.find<NavBarController>().selectedIndex.value = 0;
-      return;
-    }
-    final nav = Get.put(NavBarController());
+    final nav = NavBarController.maybeFind() ?? NavBarController.ensure();
     nav.selectedIndex.value = 0;
   }
 
@@ -388,8 +384,8 @@ class SignInController extends GetxController
     super.onClose();
   }
 
-  String get typedBrandText =>
-      _loginWord.substring(0, typedBrandLength.value.clamp(0, _loginWord.length));
+  String get typedBrandText => _loginWord.substring(
+      0, typedBrandLength.value.clamp(0, _loginWord.length));
 
   void _startBrandTypewriter() {
     _typewriterTimer?.cancel();

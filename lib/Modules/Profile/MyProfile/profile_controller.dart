@@ -732,8 +732,13 @@ class ProfileController extends GetxController {
         final uid = _resolvedActiveUid;
         if (uid == null || uid.isEmpty) return;
         await _socialLinksRepository.deleteLink(uid, docID);
-        final links = Get.find<SocialMediaController>();
-        links.getData();
+        unawaited(
+          SocialMediaController.maybeFind()?.getData(
+                silent: true,
+                forceRefresh: true,
+              ) ??
+              Future.value(),
+        );
       },
     );
   }

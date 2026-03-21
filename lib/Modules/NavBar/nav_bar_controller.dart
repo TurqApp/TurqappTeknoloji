@@ -27,6 +27,19 @@ typedef TextUpdate = String;
 
 class NavBarController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
+  static NavBarController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(NavBarController());
+  }
+
+  static NavBarController ensure() => _ensureController();
+
+  static NavBarController? maybeFind() {
+    if (!Get.isRegistered<NavBarController>()) return null;
+    return Get.find<NavBarController>();
+  }
+
   static const String _appVersionDocId = 'appVersion';
   static const String _selectedIndexPrefKeyPrefix = 'nav_selected_index';
   static const String _ratingFirstSeenAtKey = 'rating_prompt_first_seen_at';
@@ -257,9 +270,8 @@ class NavBarController extends GetxController
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_isDisposed) return;
-    final hasEducation = Get.isRegistered<SettingsController>()
-        ? Get.find<SettingsController>().educationScreenIsOn.value
-        : false;
+    final hasEducation =
+        SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
 
     if (state == AppLifecycleState.paused ||
@@ -297,9 +309,8 @@ class NavBarController extends GetxController
 
   void changeIndex(int index) {
     final previous = selectedIndex.value;
-    final hasEducation = Get.isRegistered<SettingsController>()
-        ? Get.find<SettingsController>().educationScreenIsOn.value
-        : false;
+    final hasEducation =
+        SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
     selectedIndex.value = index;
     unawaited(_persistSelectedIndex(index));

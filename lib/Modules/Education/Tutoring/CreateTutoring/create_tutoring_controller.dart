@@ -602,8 +602,8 @@ class CreateTutoringController extends GetxController {
   }
 
   void _applyLocalTutoringPatch(TutoringModel patchedModel) {
-    if (Get.isRegistered<TutoringController>()) {
-      final controller = Get.find<TutoringController>();
+    final controller = TutoringController.maybeFind();
+    if (controller != null) {
       final homeIndex = controller.tutoringList.indexWhere(
         (item) => item.docID == patchedModel.docID,
       );

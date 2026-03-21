@@ -24,6 +24,20 @@ import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_view.dart';
 
 class ScholarshipsController extends GetxController {
+  static ScholarshipsController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(ScholarshipsController(), permanent: permanent);
+  }
+
+  static ScholarshipsController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static ScholarshipsController? maybeFind() {
+    if (!Get.isRegistered<ScholarshipsController>()) return null;
+    return Get.find<ScholarshipsController>();
+  }
+
   final FollowRepository _followRepository = FollowRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
@@ -208,18 +222,19 @@ class ScholarshipsController extends GetxController {
       final userData = Map<String, dynamic>.from(
         item['userData'] as Map? ?? const <String, dynamic>{},
       );
-      final userID = (userData['userID'] ?? model?.userID ?? '')
-          .toString()
-          .trim();
+      final userID =
+          (userData['userID'] ?? model?.userID ?? '').toString().trim();
       likedScholarships.putIfAbsent(
         docId,
-        () => _likedByCurrentUser.contains(docId) ||
+        () =>
+            _likedByCurrentUser.contains(docId) ||
             (currentUserId.isNotEmpty &&
                 (model?.begeniler.contains(currentUserId) ?? false)),
       );
       bookmarkedScholarships.putIfAbsent(
         docId,
-        () => _bookmarkedByCurrentUser.contains(docId) ||
+        () =>
+            _bookmarkedByCurrentUser.contains(docId) ||
             (currentUserId.isNotEmpty &&
                 (model?.kaydedenler.contains(currentUserId) ?? false)),
       );
@@ -648,7 +663,8 @@ class ScholarshipsController extends GetxController {
       return shortDesc;
     }
     final provider = model.bursVeren.trim();
-    if (provider.isNotEmpty && normalizeSearchText(provider) != normalizedTitle) {
+    if (provider.isNotEmpty &&
+        normalizeSearchText(provider) != normalizedTitle) {
       return provider;
     }
     return 'scholarship.share_fallback_desc'.tr;
@@ -745,8 +761,8 @@ class ScholarshipsController extends GetxController {
       unawaited(_primeLocalStateForCombined(items));
       _applyScholarshipStateFromCombined(items);
       _prefetchShortLinksForList(allScholarships);
-      hasMoreData.value =
-          items.length >= initialBatchSize && allScholarships.length < totalCount.value;
+      hasMoreData.value = items.length >= initialBatchSize &&
+          allScholarships.length < totalCount.value;
     }
 
     if (!resource.isRefreshing || items.isNotEmpty) {

@@ -114,9 +114,9 @@ class _SocialProfileState extends State<SocialProfile> {
       _ownsController = true;
     }
     final highlightsTag = 'highlights_${widget.userID}';
-    if (!Get.isRegistered<StoryHighlightsController>(tag: highlightsTag)) {
-      Get.put(
-        StoryHighlightsController(userId: widget.userID),
+    if (StoryHighlightsController.maybeFind(tag: highlightsTag) == null) {
+      StoryHighlightsController.ensure(
+        userId: widget.userID,
         tag: highlightsTag,
       );
       _ownsHighlightsController = true;

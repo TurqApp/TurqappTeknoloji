@@ -23,9 +23,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
   @override
   void initState() {
     super.initState();
-    controller = Get.isRegistered<MarketController>()
-        ? Get.find<MarketController>()
-        : Get.put(MarketController());
+    controller = MarketController.ensure();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focusNode.requestFocus();

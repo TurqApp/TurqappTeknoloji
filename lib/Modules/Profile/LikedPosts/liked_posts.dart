@@ -42,10 +42,11 @@ class _LikedPostsState extends State<LikedPosts> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<LikedPostControllers>()) {
-      controller = Get.find<LikedPostControllers>();
+    final existingController = LikedPostControllers.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(LikedPostControllers());
+      controller = LikedPostControllers.ensure();
       _ownsController = true;
     }
 
@@ -57,7 +58,8 @@ class _LikedPostsState extends State<LikedPosts> {
   void dispose() {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
-    if (_ownsController && Get.isRegistered<LikedPostControllers>()) {
+    if (_ownsController &&
+        identical(LikedPostControllers.maybeFind(), controller)) {
       Get.delete<LikedPostControllers>(force: true);
     }
     super.dispose();
@@ -180,8 +182,8 @@ class _LikedPostsState extends State<LikedPosts> {
                                     model: model,
                                     isPreview: false,
                                     shouldPlay: isCentered,
-                                    instanceTag:
-                                        controller.agendaInstanceTag(model.docID),
+                                    instanceTag: controller
+                                        .agendaInstanceTag(model.docID),
                                   ),
                                 ),
                                 SizedBox(

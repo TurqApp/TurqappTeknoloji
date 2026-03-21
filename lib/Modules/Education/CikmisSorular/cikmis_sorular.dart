@@ -30,9 +30,7 @@ class CikmisSorular extends StatefulWidget {
 
 class _CikmisSorularState extends State<CikmisSorular> {
   final CikmisSorularController controller =
-      Get.isRegistered<CikmisSorularController>()
-          ? Get.find<CikmisSorularController>()
-          : Get.put(CikmisSorularController(), permanent: true);
+      CikmisSorularController.ensure(permanent: true);
   final ScrollController _scrollController = ScrollController();
   double _previousOffset = 0.0;
   bool showButons = false;

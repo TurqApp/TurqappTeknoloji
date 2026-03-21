@@ -86,10 +86,7 @@ class EducationView extends StatelessWidget {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.market) {
       return null;
     }
-    if (!Get.isRegistered<MarketController>()) {
-      Get.put(MarketController(), permanent: true);
-    }
-    return Get.find<MarketController>();
+    return MarketController.ensure(permanent: true);
   }
 
   bool _showInlineMarketActions() {
@@ -102,10 +99,7 @@ class EducationView extends StatelessWidget {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.jobFinder) {
       return null;
     }
-    if (!Get.isRegistered<JobFinderController>()) {
-      Get.put(JobFinderController(), permanent: true);
-    }
-    return Get.find<JobFinderController>();
+    return JobFinderController.ensure(permanent: true);
   }
 
   bool _showInlineJobActions() {
@@ -115,10 +109,7 @@ class EducationView extends StatelessWidget {
   }
 
   ViewModeController _viewModeController() {
-    if (!Get.isRegistered<ViewModeController>()) {
-      Get.put(ViewModeController(), permanent: true);
-    }
-    return Get.find<ViewModeController>();
+    return ViewModeController.ensure(permanent: true);
   }
 
   DenemeSinavlariController? _activePracticeExamController() {
@@ -126,10 +117,7 @@ class EducationView extends StatelessWidget {
         PasajTabIds.onlineExam) {
       return null;
     }
-    if (!Get.isRegistered<DenemeSinavlariController>()) {
-      Get.put(DenemeSinavlariController(), permanent: true);
-    }
-    return Get.find<DenemeSinavlariController>();
+    return DenemeSinavlariController.ensure(permanent: true);
   }
 
   bool _showInlinePracticeExamActions() {
@@ -142,10 +130,7 @@ class EducationView extends StatelessWidget {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.answerKey) {
       return null;
     }
-    if (!Get.isRegistered<AnswerKeyController>()) {
-      Get.put(AnswerKeyController(), permanent: true);
-    }
-    return Get.find<AnswerKeyController>();
+    return AnswerKeyController.ensure(permanent: true);
   }
 
   bool _showInlineAnswerKeyActions() {
@@ -158,20 +143,14 @@ class EducationView extends StatelessWidget {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
     }
-    if (!Get.isRegistered<TutoringController>()) {
-      Get.put(TutoringController(), permanent: true);
-    }
-    return Get.find<TutoringController>();
+    return TutoringController.ensure(permanent: true);
   }
 
   TutoringFilterController? _activeTutoringFilterController() {
     if (_tabIdForIndex(controller.selectedTab.value) != PasajTabIds.tutoring) {
       return null;
     }
-    if (!Get.isRegistered<TutoringFilterController>()) {
-      Get.put(TutoringFilterController(), permanent: true);
-    }
-    return Get.find<TutoringFilterController>();
+    return TutoringFilterController.ensure(permanent: true);
   }
 
   bool _showInlineTutoringActions() {
@@ -320,25 +299,15 @@ class EducationView extends StatelessWidget {
   ScrollController? _activeScrollController() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
-        return Get.isRegistered<ScholarshipsController>()
-            ? Get.find<ScholarshipsController>().scrollController
-            : null;
+        return ScholarshipsController.maybeFind()?.scrollController;
       case PasajTabIds.onlineExam:
-        return Get.isRegistered<DenemeSinavlariController>()
-            ? Get.find<DenemeSinavlariController>().scrollController
-            : null;
+        return DenemeSinavlariController.maybeFind()?.scrollController;
       case PasajTabIds.answerKey:
-        return Get.isRegistered<AnswerKeyController>()
-            ? Get.find<AnswerKeyController>().scrollController
-            : null;
+        return AnswerKeyController.maybeFind()?.scrollController;
       case PasajTabIds.tutoring:
-        return Get.isRegistered<TutoringController>()
-            ? Get.find<TutoringController>().scrollController
-            : null;
+        return TutoringController.maybeFind()?.scrollController;
       case PasajTabIds.market:
-        return Get.isRegistered<MarketController>()
-            ? Get.find<MarketController>().scrollController
-            : null;
+        return MarketController.maybeFind()?.scrollController;
       default:
         return null;
     }
@@ -347,25 +316,19 @@ class EducationView extends StatelessWidget {
   bool _showMenuByScrollOffset() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
-        return Get.isRegistered<ScholarshipsController>()
-            ? Get.find<ScholarshipsController>().scrollOffset.value <= 350
-            : true;
+        return (ScholarshipsController.maybeFind()?.scrollOffset.value ?? 0) <=
+            350;
       case PasajTabIds.onlineExam:
-        return Get.isRegistered<DenemeSinavlariController>()
-            ? Get.find<DenemeSinavlariController>().scrollOffset.value <= 350
-            : true;
+        return (DenemeSinavlariController.maybeFind()?.scrollOffset.value ??
+                0) <=
+            350;
       case PasajTabIds.answerKey:
-        return Get.isRegistered<AnswerKeyController>()
-            ? Get.find<AnswerKeyController>().scrollOffset.value <= 350
-            : true;
+        return (AnswerKeyController.maybeFind()?.scrollOffset.value ?? 0) <=
+            350;
       case PasajTabIds.tutoring:
-        return Get.isRegistered<TutoringController>()
-            ? Get.find<TutoringController>().scrollOffset.value <= 350
-            : true;
+        return (TutoringController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.market:
-        return Get.isRegistered<MarketController>()
-            ? Get.find<MarketController>().scrollOffset.value <= 350
-            : true;
+        return (MarketController.maybeFind()?.scrollOffset.value ?? 0) <= 350;
       default:
         return true;
     }
@@ -384,9 +347,7 @@ class EducationView extends StatelessWidget {
             title: 'settings.title'.tr,
             icon: CupertinoIcons.gear,
             onTap: () {
-              if (Get.isRegistered<ScholarshipsController>()) {
-                Get.find<ScholarshipsController>().settings(context);
-              }
+              ScholarshipsController.maybeFind()?.settings(context);
             },
           ),
           PullDownMenuItem(
@@ -436,9 +397,7 @@ class EducationView extends StatelessWidget {
             title: 'education.change_main_category'.tr,
             icon: CupertinoIcons.square_grid_2x2,
             onTap: () {
-              final antController = Get.isRegistered<AntremanController>()
-                  ? Get.find<AntremanController>()
-                  : Get.put(AntremanController());
+              final antController = AntremanController.ensure();
               antController.openMainCategoryPicker(context, force: true);
             },
           ),
@@ -459,8 +418,9 @@ class EducationView extends StatelessWidget {
             title: 'pasaj.market.add_listing'.tr,
             icon: CupertinoIcons.add_circled,
             onTap: () {
-              if (Get.isRegistered<MarketController>()) {
-                Get.find<MarketController>().openRoundMenu('create');
+              final marketController = MarketController.maybeFind();
+              if (marketController != null) {
+                marketController.openRoundMenu('create');
               } else {
                 Get.to(() => const MarketCreateView());
               }
@@ -470,27 +430,21 @@ class EducationView extends StatelessWidget {
             title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.cube_box,
             onTap: () {
-              if (Get.isRegistered<MarketController>()) {
-                Get.find<MarketController>().openRoundMenu('my_items');
-              }
+              MarketController.maybeFind()?.openRoundMenu('my_items');
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.market.saved_items'.tr,
             icon: CupertinoIcons.hand_thumbsup,
             onTap: () {
-              if (Get.isRegistered<MarketController>()) {
-                Get.find<MarketController>().openRoundMenu('saved');
-              }
+              MarketController.maybeFind()?.openRoundMenu('saved');
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.market.my_offers'.tr,
             icon: CupertinoIcons.tag,
             onTap: () {
-              if (Get.isRegistered<MarketController>()) {
-                Get.find<MarketController>().openRoundMenu('offers');
-              }
+              MarketController.maybeFind()?.openRoundMenu('offers');
             },
           ),
           PullDownMenuItem(
@@ -589,9 +543,7 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(AnswerKeyCreatingOption(
               onBack: () {
-                if (Get.isRegistered<AnswerKeyController>()) {
-                  Get.find<AnswerKeyController>().refreshData();
-                }
+                AnswerKeyController.maybeFind()?.refreshData();
               },
             )),
           ),
@@ -1025,10 +977,7 @@ class EducationView extends StatelessWidget {
                               );
                             case PasajTabIds.market:
                               final marketController =
-                                  Get.isRegistered<MarketController>()
-                                      ? Get.find<MarketController>()
-                                      : Get.put(MarketController(),
-                                          permanent: true);
+                                  MarketController.ensure(permanent: true);
                               return MarketView(
                                 embedded: true,
                                 showEmbeddedControls: false,
@@ -1081,9 +1030,8 @@ class EducationView extends StatelessWidget {
               final scrollController = _activeScrollController();
               final showMenu = _showMenuByScrollOffset();
               final menuItems = _menuItemsForActiveTab(context);
-              final tabBarVisible = Get.isRegistered<NavBarController>()
-                  ? Get.find<NavBarController>().showBar.value
-                  : true;
+              final tabBarVisible =
+                  NavBarController.maybeFind()?.showBar.value ?? true;
               final searchActive = controller.isKeyboardOpen.value ||
                   controller.isSearchMode.value;
 

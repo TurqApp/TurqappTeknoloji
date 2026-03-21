@@ -12,12 +12,25 @@ import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutori
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
+  static TutoringController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(TutoringController(), permanent: permanent);
+  }
+
+  static TutoringController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static TutoringController? maybeFind() {
+    if (!Get.isRegistered<TutoringController>()) return null;
+    return Get.find<TutoringController>();
+  }
+
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
-  final TextEditingController searchPreviewController =
-      TextEditingController();
+  final TextEditingController searchPreviewController = TextEditingController();
   var isLoading = true.obs;
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;

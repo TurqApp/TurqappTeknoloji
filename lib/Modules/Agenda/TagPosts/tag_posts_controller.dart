@@ -5,6 +5,11 @@ import '../AgendaContent/agenda_content_controller.dart';
 import 'tag_posts_repository.dart';
 
 class TagPostsController extends GetxController {
+  static TagPostsController? maybeFind() {
+    if (!Get.isRegistered<TagPostsController>()) return null;
+    return Get.find<TagPostsController>();
+  }
+
   final String tag;
   final TagPostsRepository _repo;
   RxList<PostsModel> list = <PostsModel>[].obs;
@@ -17,6 +22,12 @@ class TagPostsController extends GetxController {
 
   TagPostsController({required this.tag, TagPostsRepository? repository})
       : _repo = repository ?? TagPostsRepository();
+
+  static TagPostsController ensure({required String tag}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(TagPostsController(tag: tag));
+  }
 
   @override
   void onInit() {

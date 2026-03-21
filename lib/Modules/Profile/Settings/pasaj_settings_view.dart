@@ -19,10 +19,11 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SettingsController>()) {
-      controller = Get.find<SettingsController>();
+    final existingController = SettingsController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(SettingsController());
+      controller = SettingsController.ensure();
       _ownsController = true;
     }
   }
@@ -30,8 +31,7 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SettingsController>() &&
-        identical(Get.find<SettingsController>(), controller)) {
+        identical(SettingsController.maybeFind(), controller)) {
       Get.delete<SettingsController>(force: true);
     }
     super.dispose();

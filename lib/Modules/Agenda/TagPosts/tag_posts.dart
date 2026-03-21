@@ -24,11 +24,12 @@ class _TagPostsState extends State<TagPosts> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<TagPostsController>()) {
-      controller = Get.find<TagPostsController>();
+    final existingController = TagPostsController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(TagPostsController(tag: widget.tag));
+      controller = TagPostsController.ensure(tag: widget.tag);
       _ownsController = true;
     }
     scrollController.addListener(_onScroll);
@@ -39,8 +40,7 @@ class _TagPostsState extends State<TagPosts> {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
     if (_ownsController &&
-        Get.isRegistered<TagPostsController>() &&
-        identical(Get.find<TagPostsController>(), controller)) {
+        identical(TagPostsController.maybeFind(), controller)) {
       Get.delete<TagPostsController>(force: true);
     }
     super.dispose();

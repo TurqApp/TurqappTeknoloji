@@ -95,16 +95,18 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SettingsController>()) {
-      controller = Get.find<SettingsController>();
+    final existingSettingsController = SettingsController.maybeFind();
+    if (existingSettingsController != null) {
+      controller = existingSettingsController;
     } else {
-      controller = Get.put(SettingsController());
+      controller = SettingsController.ensure();
       _ownsSettingsController = true;
     }
-    if (Get.isRegistered<ScholarshipsController>()) {
-      scholarshipsController = Get.find<ScholarshipsController>();
+    final existingScholarshipsController = ScholarshipsController.maybeFind();
+    if (existingScholarshipsController != null) {
+      scholarshipsController = existingScholarshipsController;
     } else {
-      scholarshipsController = Get.put(ScholarshipsController());
+      scholarshipsController = ScholarshipsController.ensure();
       _ownsScholarshipsController = true;
     }
   }
@@ -112,13 +114,14 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void dispose() {
     if (_ownsScholarshipsController &&
-        Get.isRegistered<ScholarshipsController>() &&
-        identical(Get.find<ScholarshipsController>(), scholarshipsController)) {
+        identical(
+          ScholarshipsController.maybeFind(),
+          scholarshipsController,
+        )) {
       Get.delete<ScholarshipsController>(force: true);
     }
     if (_ownsSettingsController &&
-        Get.isRegistered<SettingsController>() &&
-        identical(Get.find<SettingsController>(), controller)) {
+        identical(SettingsController.maybeFind(), controller)) {
       Get.delete<SettingsController>(force: true);
     }
     super.dispose();

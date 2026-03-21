@@ -45,7 +45,7 @@ class _TutoringSearchState extends State<TutoringSearch> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        Get.find<ViewModeController>();
+        ViewModeController.ensure(permanent: true);
 
     return Scaffold(
       backgroundColor: Colors.white,

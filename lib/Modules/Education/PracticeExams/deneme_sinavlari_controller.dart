@@ -16,6 +16,22 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinavlariController extends GetxController {
+  static DenemeSinavlariController _ensureController({
+    bool permanent = false,
+  }) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DenemeSinavlariController(), permanent: permanent);
+  }
+
+  static DenemeSinavlariController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static DenemeSinavlariController? maybeFind() {
+    if (!Get.isRegistered<DenemeSinavlariController>()) return null;
+    return Get.find<DenemeSinavlariController>();
+  }
+
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_practice_exam_listing_selection';
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();

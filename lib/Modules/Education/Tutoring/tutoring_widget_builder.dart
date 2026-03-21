@@ -79,9 +79,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
     final savedController = Get.isRegistered<SavedTutoringsController>()
         ? Get.find<SavedTutoringsController>()
         : Get.put(SavedTutoringsController());
-    final tutoringController = Get.isRegistered<TutoringController>()
-        ? Get.find<TutoringController>()
-        : Get.put(TutoringController());
+    final tutoringController = TutoringController.ensure();
     final myTutoringsController = Get.isRegistered<MyTutoringsController>()
         ? Get.find<MyTutoringsController>()
         : null;

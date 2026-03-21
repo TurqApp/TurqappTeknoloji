@@ -22,7 +22,7 @@ const _thenSolveLgsType = 'LGS';
 class ThenSolve extends StatelessWidget {
   ThenSolve({super.key});
 
-  final AntremanController controller = Get.find<AntremanController>();
+  final AntremanController controller = AntremanController.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
@@ -123,7 +123,9 @@ class ThenSolve extends StatelessWidget {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    '${'tests.question_number'.trParams({'index': '${index + 1}'})} ${question.sinavTuru} - ${question.ders}',
+                                    '${'tests.question_number'.trParams({
+                                          'index': '${index + 1}'
+                                        })} ${question.sinavTuru} - ${question.ders}',
                                     style: TextStyle(
                                       fontSize: 20,
                                       color: Colors.black,
@@ -346,20 +348,19 @@ class ThenSolve extends StatelessWidget {
                                         }
                                       },
                                     ),
-                                        StreamBuilder<int>(
-                                          stream: _antremanRepository
-                                              .commentCountStream(
-                                            question.docID,
-                                          ),
-                                          builder: (context, snapshot) {
-                                            final commentCount =
-                                                snapshot.data ?? 0;
-                                            return Text(
-                                              "$commentCount",
-                                              style: TextStyle(fontSize: 14),
-                                            );
-                                          },
-                                        ),
+                                    StreamBuilder<int>(
+                                      stream: _antremanRepository
+                                          .commentCountStream(
+                                        question.docID,
+                                      ),
+                                      builder: (context, snapshot) {
+                                        final commentCount = snapshot.data ?? 0;
+                                        return Text(
+                                          "$commentCount",
+                                          style: TextStyle(fontSize: 14),
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
                                 Obx(
@@ -397,7 +398,8 @@ class ThenSolve extends StatelessWidget {
                                                 }
                                               },
                                       ),
-                                      Text("pasaj.question_bank.solve_later".tr),
+                                      Text(
+                                          "pasaj.question_bank.solve_later".tr),
                                     ],
                                   ),
                                 ),

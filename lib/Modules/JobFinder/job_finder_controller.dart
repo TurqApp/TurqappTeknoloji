@@ -22,6 +22,20 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 class JobFinderController extends GetxController {
+  static JobFinderController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(JobFinderController(), permanent: permanent);
+  }
+
+  static JobFinderController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static JobFinderController? maybeFind() {
+    if (!Get.isRegistered<JobFinderController>()) return null;
+    return Get.find<JobFinderController>();
+  }
+
   static const int _fullBootstrapLimit = 150;
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_job_listing_selection';

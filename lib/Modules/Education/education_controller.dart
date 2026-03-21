@@ -30,10 +30,7 @@ class EducationController extends GetxController {
   final visibleTabIndexes = List<int>.generate(pasajTabs.length, (i) => i).obs;
   final pasajConfigLoaded = false.obs;
   DateTime _lastNavToggleAt = DateTime.fromMillisecondsSinceEpoch(0);
-  final SettingsController settingsController =
-      Get.isRegistered<SettingsController>()
-          ? Get.find<SettingsController>()
-          : Get.put(SettingsController());
+  final SettingsController settingsController = SettingsController.ensure();
   StreamSubscription<Map<String, dynamic>>? _pasajConfigSub;
   final Map<String, bool> _adminPasajVisibility = <String, bool>{};
 
@@ -68,9 +65,7 @@ class EducationController extends GetxController {
   @override
   void onClose() {
     _pasajConfigSub?.cancel();
-    if (Get.isRegistered<NavBarController>()) {
-      Get.find<NavBarController>().showBar.value = true;
-    }
+    NavBarController.maybeFind()?.showBar.value = true;
     tabScrollController.dispose();
     searchController.dispose();
     searchFocus.dispose();
@@ -170,36 +165,36 @@ class EducationController extends GetxController {
   void resetActivePasajSurfaceToTop() {
     switch (titles[selectedTab.value]) {
       case PasajTabIds.market:
-        if (Get.isRegistered<MarketController>()) {
-          final market = Get.find<MarketController>();
+        final market = MarketController.maybeFind();
+        if (market != null) {
           _resetTrackedScrollController(market.scrollController);
           market.scrollOffset.value = 0;
         }
         break;
       case PasajTabIds.scholarships:
-        if (Get.isRegistered<ScholarshipsController>()) {
-          final scholarships = Get.find<ScholarshipsController>();
+        final scholarships = ScholarshipsController.maybeFind();
+        if (scholarships != null) {
           _resetTrackedScrollController(scholarships.scrollController);
           scholarships.scrollOffset.value = 0;
         }
         break;
       case PasajTabIds.onlineExam:
-        if (Get.isRegistered<DenemeSinavlariController>()) {
-          final exams = Get.find<DenemeSinavlariController>();
+        final exams = DenemeSinavlariController.maybeFind();
+        if (exams != null) {
           _resetTrackedScrollController(exams.scrollController);
           exams.scrollOffset.value = 0;
         }
         break;
       case PasajTabIds.answerKey:
-        if (Get.isRegistered<AnswerKeyController>()) {
-          final answerKey = Get.find<AnswerKeyController>();
+        final answerKey = AnswerKeyController.maybeFind();
+        if (answerKey != null) {
           _resetTrackedScrollController(answerKey.scrollController);
           answerKey.scrollOffset.value = 0;
         }
         break;
       case PasajTabIds.tutoring:
-        if (Get.isRegistered<TutoringController>()) {
-          final tutoring = Get.find<TutoringController>();
+        final tutoring = TutoringController.maybeFind();
+        if (tutoring != null) {
           _resetTrackedScrollController(tutoring.scrollController);
           tutoring.scrollOffset.value = 0;
         }
@@ -223,7 +218,8 @@ class EducationController extends GetxController {
   }
 
   void onVerticalScrollDirection(ScrollDirection direction) {
-    if (!Get.isRegistered<NavBarController>()) return;
+    final nav = NavBarController.maybeFind();
+    if (nav == null) return;
     if (direction == ScrollDirection.idle) return;
 
     // Avoid rapid flicker from tiny scroll oscillations.
@@ -231,7 +227,6 @@ class EducationController extends GetxController {
     if (now.difference(_lastNavToggleAt).inMilliseconds < 120) return;
     _lastNavToggleAt = now;
 
-    final nav = Get.find<NavBarController>();
     if (direction == ScrollDirection.reverse) {
       nav.showBar.value = false; // scrolling down => hide
     } else if (direction == ScrollDirection.forward) {
@@ -243,11 +238,9 @@ class EducationController extends GetxController {
     if (notification.metrics.axis != Axis.horizontal) return false;
 
     // Yatay hareketlerde tab bar tekrar görünsün.
-    if (Get.isRegistered<NavBarController>()) {
-      final nav = Get.find<NavBarController>();
-      if (!nav.showBar.value) {
-        nav.showBar.value = true;
-      }
+    final nav = NavBarController.maybeFind();
+    if (nav != null && !nav.showBar.value) {
+      nav.showBar.value = true;
     }
 
     // Sadece ilk gorunen sekmede dis gecis davranisina izin ver.
@@ -339,45 +332,31 @@ class EducationController extends GetxController {
     final query = searchText.value;
     switch (titles[selectedTab.value]) {
       case PasajTabIds.scholarships:
-        if (Get.isRegistered<ScholarshipsController>()) {
-          Get.find<ScholarshipsController>().setSearchQuery(query);
-        }
+        ScholarshipsController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.jobFinder:
-        if (Get.isRegistered<JobFinderController>()) {
-          final jc = Get.find<JobFinderController>();
+        final jc = JobFinderController.maybeFind();
+        if (jc != null) {
           jc.search.text = query;
         }
         break;
       case PasajTabIds.market:
-        if (Get.isRegistered<MarketController>()) {
-          Get.find<MarketController>().setSearchQuery(query);
-        }
+        MarketController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.questionBank:
-        if (Get.isRegistered<AntremanController>()) {
-          Get.find<AntremanController>().setSearchQuery(query);
-        }
+        AntremanController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.practiceExams:
-        if (Get.isRegistered<CikmisSorularController>()) {
-          Get.find<CikmisSorularController>().setSearchQuery(query);
-        }
+        CikmisSorularController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.onlineExam:
-        if (Get.isRegistered<DenemeSinavlariController>()) {
-          Get.find<DenemeSinavlariController>().setSearchQuery(query);
-        }
+        DenemeSinavlariController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.answerKey:
-        if (Get.isRegistered<AnswerKeyController>()) {
-          Get.find<AnswerKeyController>().setSearchQuery(query);
-        }
+        AnswerKeyController.maybeFind()?.setSearchQuery(query);
         break;
       case PasajTabIds.tutoring:
-        if (Get.isRegistered<TutoringController>()) {
-          Get.find<TutoringController>().setSearchQuery(query);
-        }
+        TutoringController.maybeFind()?.setSearchQuery(query);
         break;
     }
   }
@@ -386,45 +365,28 @@ class EducationController extends GetxController {
   void _clearModuleSearch(int tabIndex) {
     switch (titles[tabIndex]) {
       case PasajTabIds.scholarships:
-        if (Get.isRegistered<ScholarshipsController>()) {
-          Get.find<ScholarshipsController>().setSearchQuery('');
-        }
+        ScholarshipsController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.jobFinder:
-        if (Get.isRegistered<JobFinderController>()) {
-          final jc = Get.find<JobFinderController>();
-          jc.search.clear();
-        }
+        JobFinderController.maybeFind()?.search.clear();
         break;
       case PasajTabIds.market:
-        if (Get.isRegistered<MarketController>()) {
-          Get.find<MarketController>().setSearchQuery('');
-        }
+        MarketController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.questionBank:
-        if (Get.isRegistered<AntremanController>()) {
-          Get.find<AntremanController>().setSearchQuery('');
-        }
+        AntremanController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.practiceExams:
-        if (Get.isRegistered<CikmisSorularController>()) {
-          Get.find<CikmisSorularController>().setSearchQuery('');
-        }
+        CikmisSorularController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.onlineExam:
-        if (Get.isRegistered<DenemeSinavlariController>()) {
-          Get.find<DenemeSinavlariController>().setSearchQuery('');
-        }
+        DenemeSinavlariController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.answerKey:
-        if (Get.isRegistered<AnswerKeyController>()) {
-          Get.find<AnswerKeyController>().setSearchQuery('');
-        }
+        AnswerKeyController.maybeFind()?.setSearchQuery('');
         break;
       case PasajTabIds.tutoring:
-        if (Get.isRegistered<TutoringController>()) {
-          Get.find<TutoringController>().setSearchQuery('');
-        }
+        TutoringController.maybeFind()?.setSearchQuery('');
         break;
     }
   }

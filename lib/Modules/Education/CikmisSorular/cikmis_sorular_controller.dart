@@ -8,6 +8,20 @@ import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_m
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class CikmisSorularController extends GetxController {
+  static CikmisSorularController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(CikmisSorularController(), permanent: permanent);
+  }
+
+  static CikmisSorularController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static CikmisSorularController? maybeFind() {
+    if (!Get.isRegistered<CikmisSorularController>()) return null;
+    return Get.find<CikmisSorularController>();
+  }
+
   final CikmisSorularSnapshotRepository _snapshotRepository =
       CikmisSorularSnapshotRepository.ensure();
 

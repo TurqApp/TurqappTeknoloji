@@ -18,8 +18,7 @@ class MyTutorings extends StatefulWidget {
 
 class _MyTutoringsState extends State<MyTutorings> {
   late final MyTutoringsController controller;
-  late final String _pageLineBarTag =
-      'MyTutorings_${identityHashCode(this)}';
+  late final String _pageLineBarTag = 'MyTutorings_${identityHashCode(this)}';
   bool _ownsController = false;
 
   @override
@@ -46,9 +45,7 @@ class _MyTutoringsState extends State<MyTutorings> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        Get.isRegistered<ViewModeController>()
-            ? Get.find<ViewModeController>()
-            : Get.put(ViewModeController());
+        ViewModeController.ensure(permanent: true);
 
     return Obx(
       () {

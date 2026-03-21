@@ -102,7 +102,7 @@ class _ClassicContentState extends State<ClassicContent>
     rowSpacing: 0,
   );
   static const Color _actionColor = Color(0xFF47515C);
-  final arsivController = Get.put(ArchiveController());
+  final arsivController = ArchiveController.ensure();
   final PageController _pageController = PageController(keepPage: false);
   int _currentPage = 0;
   bool _isFullscreen = false;

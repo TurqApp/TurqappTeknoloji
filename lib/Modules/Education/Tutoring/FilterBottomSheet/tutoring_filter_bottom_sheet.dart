@@ -13,9 +13,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
 
   TutoringFilterBottomSheet({super.key, required this.controller});
   final TutoringFilterController filterController =
-      Get.isRegistered<TutoringFilterController>()
-          ? Get.find<TutoringFilterController>()
-          : Get.put(TutoringFilterController());
+      TutoringFilterController.ensure();
 
   String _branchLabel(String value) {
     const map = {
@@ -61,8 +59,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
     const map = {
       'Öğrencinin Evi': 'tutoring.lesson_place.student_home',
       'Öğretmenin Evi': 'tutoring.lesson_place.teacher_home',
-      'Öğrencinin veya Öğretmenin Evi':
-          'tutoring.lesson_place.either_home',
+      'Öğrencinin veya Öğretmenin Evi': 'tutoring.lesson_place.either_home',
       'Uzaktan Eğitim': 'tutoring.lesson_place.remote',
       'Ders Verme Alanı': 'tutoring.lesson_place.lesson_area',
     };
@@ -404,8 +401,8 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                 color: Colors.black,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child:
-                                  Text("common.apply".tr, style: TextStyles.bold16White),
+                              child: Text("common.apply".tr,
+                                  style: TextStyles.bold16White),
                             ),
                           ),
                         ),

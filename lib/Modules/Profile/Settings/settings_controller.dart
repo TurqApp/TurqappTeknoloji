@@ -4,6 +4,19 @@ import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 
 class SettingsController extends GetxController {
+  static SettingsController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SettingsController());
+  }
+
+  static SettingsController ensure() => _ensureController();
+
+  static SettingsController? maybeFind() {
+    if (!Get.isRegistered<SettingsController>()) return null;
+    return Get.find<SettingsController>();
+  }
+
   RxBool educationScreenIsOn = true.obs;
   final pasajOrder = pasajTabs.obs;
   final pasajVisibility = <String, bool>{}.obs;
@@ -21,7 +34,8 @@ class SettingsController extends GetxController {
   String get _prefKey => '$_prefKeyPrefix:$_activeUid';
   String get _pasajOrderKey => '$_pasajOrderKeyPrefix:$_activeUid';
   String get _pasajVisibilityKey => '$_pasajVisibilityKeyPrefix:$_activeUid';
-  String get _pasajOrderVersionKey => '$_pasajOrderVersionKeyPrefix:$_activeUid';
+  String get _pasajOrderVersionKey =>
+      '$_pasajOrderVersionKeyPrefix:$_activeUid';
 
   @override
   Future<void> onInit() async {

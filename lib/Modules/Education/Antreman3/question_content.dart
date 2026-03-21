@@ -21,7 +21,7 @@ const _antremanLgsType = 'LGS';
 class QuestionContent extends StatelessWidget {
   QuestionContent({super.key});
 
-  final AntremanController controller = Get.find<AntremanController>();
+  final AntremanController controller = AntremanController.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
@@ -61,7 +61,8 @@ class QuestionContent extends StatelessWidget {
                           controller.onScreenReEnter();
                           Get.back();
                         },
-                        child: BackButtons(text: "training.question_bank_title".tr),
+                        child: BackButtons(
+                            text: "training.question_bank_title".tr),
                       ),
                     ),
                     IconButton(
@@ -448,7 +449,8 @@ class QuestionContent extends StatelessWidget {
                                           height: 24,
                                         ),
                                       ),
-                                      Text("pasaj.question_bank.solve_later".tr),
+                                      Text(
+                                          "pasaj.question_bank.solve_later".tr),
                                     ],
                                   ),
                                 ),

@@ -21,9 +21,8 @@ class AntremanView2 extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AntremanController controller = Get.isRegistered<AntremanController>()
-      ? Get.find<AntremanController>()
-      : Get.put(AntremanController(), permanent: true);
+  final AntremanController controller =
+      AntremanController.ensure(permanent: true);
 
   void _dismissSharedEducationSearchFocus() {
     if (!Get.isRegistered<EducationController>()) return;
@@ -216,7 +215,7 @@ class AntremanView2 extends StatelessWidget {
                     return Semantics(
                       label: IntegrationTestKeys.questionBankCategory(category),
                       button: true,
-                        child: GestureDetector(
+                      child: GestureDetector(
                         onTap: () async {
                           _dismissSharedEducationSearchFocus();
                           await controller.setMainCategory(category);

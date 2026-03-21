@@ -7,6 +7,19 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/material.dart';
 
 class DeletedStoriesController extends GetxController {
+  static DeletedStoriesController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DeletedStoriesController());
+  }
+
+  static DeletedStoriesController ensure() => _ensureController();
+
+  static DeletedStoriesController? maybeFind() {
+    if (!Get.isRegistered<DeletedStoriesController>()) return null;
+    return Get.find<DeletedStoriesController>();
+  }
+
   RxList<StoryModel> list = <StoryModel>[].obs;
   RxBool isLoading = false.obs;
   // Silinme zamanı bilgisi (ms) – UI'da göstermek için

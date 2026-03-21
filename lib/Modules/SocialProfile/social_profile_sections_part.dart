@@ -640,10 +640,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
 
   Widget _buildLinksAndHighlightsRow() {
     final tag = 'highlights_${widget.userID}';
-    if (!Get.isRegistered<StoryHighlightsController>(tag: tag)) {
+    final hlController = StoryHighlightsController.maybeFind(tag: tag);
+    if (hlController == null) {
       return const SizedBox.shrink();
     }
-    final hlController = Get.find<StoryHighlightsController>(tag: tag);
     return Obx(() {
       final mixedItems = <Map<String, dynamic>>[];
       for (final social in controller.socialMediaList) {

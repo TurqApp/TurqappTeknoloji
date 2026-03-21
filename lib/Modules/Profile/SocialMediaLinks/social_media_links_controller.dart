@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,6 +15,19 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
+  static SocialMediaController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SocialMediaController());
+  }
+
+  static SocialMediaController ensure() => _ensureController();
+
+  static SocialMediaController? maybeFind() {
+    if (!Get.isRegistered<SocialMediaController>()) return null;
+    return Get.find<SocialMediaController>();
+  }
+
   final SocialMediaLinksRepository _linksRepository =
       SocialMediaLinksRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -26,7 +40,11 @@ class SocialMediaController extends GetxController {
   var enableSave = false.obs;
   var isUploading = false.obs;
   var isLoading = false.obs;
-  String get currentUid => CurrentUserService.instance.userId;
+  String get currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
 
@@ -53,6 +71,11 @@ class SocialMediaController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
+    if (currentUid.isEmpty) {
+      isLoading.value = false;
+      list.clear();
+      return;
+    }
     final cached = await _linksRepository.getLinks(
       currentUid,
       preferCache: true,
@@ -76,16 +99,22 @@ class SocialMediaController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
+    final uid = currentUid;
+    if (uid.isEmpty) {
+      list.clear();
+      isLoading.value = false;
+      return;
+    }
     if (!silent) {
       isLoading.value = true;
     }
     try {
       list.value = await _linksRepository.getLinks(
-        currentUid,
+        uid,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
-      SilentRefreshGate.markRefreshed('profile:social_media:$currentUid');
+      SilentRefreshGate.markRefreshed('profile:social_media:$uid');
     } finally {
       isLoading.value = false;
     }

@@ -13,6 +13,20 @@ import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_ke
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AnswerKeyController extends GetxController {
+  static AnswerKeyController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(AnswerKeyController(), permanent: permanent);
+  }
+
+  static AnswerKeyController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static AnswerKeyController? maybeFind() {
+    if (!Get.isRegistered<AnswerKeyController>()) return null;
+    return Get.find<AnswerKeyController>();
+  }
+
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_answer_key_listing_selection';
   final AnswerKeySnapshotRepository _answerKeySnapshotRepository =

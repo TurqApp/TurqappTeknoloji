@@ -225,9 +225,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
               GestureDetector(
                 onTap: () {
                   final deletedStoriesController =
-                      Get.isRegistered<DeletedStoriesController>()
-                          ? Get.find<DeletedStoriesController>()
-                          : null;
+                      DeletedStoriesController.maybeFind();
                   final isDeletedStory = deletedStoriesController?.deletedAtById
                           .containsKey(currentStory.id) ==
                       true;

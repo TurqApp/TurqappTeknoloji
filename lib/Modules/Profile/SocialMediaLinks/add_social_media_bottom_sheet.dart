@@ -11,7 +11,7 @@ import 'social_media_links_controller.dart';
 
 class AddSocialMediaBottomSheet extends StatelessWidget {
   AddSocialMediaBottomSheet({super.key})
-      : controller = Get.find<SocialMediaController>();
+      : controller = SocialMediaController.ensure();
   final SocialMediaController controller;
 
   @override
@@ -41,11 +41,12 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                       controller.selected.value = item;
                       controller.textController.text =
                           socialMediaDisplayTitleForKey(item);
-                      controller.urlController.text = item == kSocialMediaWhatsApp
-                          ? "https://wa.me/+90"
-                          : item != kSocialMediaTurqApp
-                              ? "https://${normalizeLowercase(item)}.com/"
-                              : "";
+                      controller.urlController.text =
+                          item == kSocialMediaWhatsApp
+                              ? "https://wa.me/+90"
+                              : item != kSocialMediaTurqApp
+                                  ? "https://${normalizeLowercase(item)}.com/"
+                                  : "";
                     },
                     child: Container(
                       margin:
@@ -301,8 +302,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               Get.back();
                             } catch (e) {
                               final msg = normalizeLowercase(
-                                        e.toString(),
-                                      ).contains('permission-denied')
+                                e.toString(),
+                              ).contains('permission-denied')
                                   ? 'social_links.save_permission_error'.tr
                                   : 'social_links.save_failed'.tr;
                               AppSnackbar('common.error'.tr, msg);

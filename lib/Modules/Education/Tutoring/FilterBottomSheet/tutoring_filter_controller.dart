@@ -8,7 +8,23 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringFilterController extends GetxController {
-  final TutoringController tutoringController = Get.find<TutoringController>();
+  static TutoringFilterController _ensureController({
+    bool permanent = false,
+  }) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(TutoringFilterController(), permanent: permanent);
+  }
+
+  static TutoringFilterController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static TutoringFilterController? maybeFind() {
+    if (!Get.isRegistered<TutoringFilterController>()) return null;
+    return Get.find<TutoringFilterController>();
+  }
+
+  final TutoringController tutoringController = TutoringController.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   final isLoading = true.obs;

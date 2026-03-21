@@ -15,9 +15,9 @@ class TutoringContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TutoringController controller = Get.find<TutoringController>();
+    final TutoringController controller = TutoringController.ensure();
     final ViewModeController viewModeController =
-        Get.find<ViewModeController>();
+        ViewModeController.ensure(permanent: true);
     final localizedCategoryName = tutoringBranchLabel(categoryName);
 
     return Scaffold(

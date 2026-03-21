@@ -39,17 +39,11 @@ class TutoringView extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final TutoringController tutoringController =
-      Get.isRegistered<TutoringController>()
-          ? Get.find<TutoringController>()
-          : Get.put(TutoringController(), permanent: true);
+      TutoringController.ensure(permanent: true);
   final ViewModeController viewModeController =
-      Get.isRegistered<ViewModeController>()
-          ? Get.find<ViewModeController>()
-          : Get.put(ViewModeController(), permanent: true);
+      ViewModeController.ensure(permanent: true);
   final TutoringFilterController filterController =
-      Get.isRegistered<TutoringFilterController>()
-          ? Get.find<TutoringFilterController>()
-          : Get.put(TutoringFilterController(), permanent: true);
+      TutoringFilterController.ensure(permanent: true);
   final applyFilterTrigger = false.obs;
   ScrollController get _scrollController => tutoringController.scrollController;
 
@@ -190,7 +184,8 @@ class TutoringView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: TurqSearchBar(
-                            controller: tutoringController.searchPreviewController,
+                            controller:
+                                tutoringController.searchPreviewController,
                             hintText: 'tutoring.search_hint'.tr,
                             onTap: () => Get.to(() => const TutoringSearch()),
                           ),

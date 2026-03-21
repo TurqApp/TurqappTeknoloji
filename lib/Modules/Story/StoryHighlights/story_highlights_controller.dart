@@ -10,6 +10,26 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
+  static StoryHighlightsController _ensureController({
+    required String userId,
+    required String tag,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(StoryHighlightsController(userId: userId), tag: tag);
+  }
+
+  static StoryHighlightsController ensure({
+    required String userId,
+    required String tag,
+  }) =>
+      _ensureController(userId: userId, tag: tag);
+
+  static StoryHighlightsController? maybeFind({required String tag}) {
+    if (!Get.isRegistered<StoryHighlightsController>(tag: tag)) return null;
+    return Get.find<StoryHighlightsController>(tag: tag);
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String userId;
   StoryHighlightsController({required this.userId});

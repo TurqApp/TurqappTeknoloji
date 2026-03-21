@@ -118,8 +118,8 @@ class JobContentController extends GetxController {
     if (Get.isRegistered<MyJobAdsController>()) {
       await Get.find<MyJobAdsController>().getActive();
     }
-    if (Get.isRegistered<JobFinderController>()) {
-      final finder = Get.find<JobFinderController>();
+    final finder = JobFinderController.maybeFind();
+    if (finder != null) {
       await finder.getStartData();
       await finder.refreshJob(model.docID);
 

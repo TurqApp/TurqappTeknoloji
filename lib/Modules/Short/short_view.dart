@@ -891,9 +891,7 @@ class _ShortViewState extends State<ShortView> {
                             await PostRepository.ensure().toggleLike(list[idx]);
                           },
                           onSwipeRight: () async {
-                            if (Get.isRegistered<NavBarController>()) {
-                              Get.find<NavBarController>().changeIndex(0);
-                            }
+                            NavBarController.maybeFind()?.changeIndex(0);
                           },
                           volumeOff: (v) {
                             if (v) {

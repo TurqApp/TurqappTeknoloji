@@ -30,9 +30,7 @@ class JobFinder extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   static bool _bannerWarmupTriggered = false;
-  final controller = Get.isRegistered<JobFinderController>()
-      ? Get.find<JobFinderController>()
-      : Get.put(JobFinderController(), permanent: true);
+  final controller = JobFinderController.ensure(permanent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +145,7 @@ class JobFinder extends StatelessWidget {
                   onTap: () => Get.to(
                     () => SliderAdminView(
                       sliderId: 'is_bul',
-                        title: 'pasaj.job_finder.title'.tr,
+                      title: 'pasaj.job_finder.title'.tr,
                     ),
                   ),
                 ),
@@ -221,7 +219,8 @@ class JobFinder extends StatelessWidget {
                 isGrid: false,
               ),
               adBuilder: (slot) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 child: AdmobKare(
                   key: ValueKey('job-list-ad-$slot'),
                 ),

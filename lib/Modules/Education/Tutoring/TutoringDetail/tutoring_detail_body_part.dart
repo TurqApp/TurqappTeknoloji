@@ -10,10 +10,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
         Get.isRegistered<SavedTutoringsController>()
             ? Get.find<SavedTutoringsController>()
             : Get.put(SavedTutoringsController());
-    final TutoringController tutoringController =
-        Get.isRegistered<TutoringController>()
-            ? Get.find<TutoringController>()
-            : Get.put(TutoringController());
+    final TutoringController tutoringController = TutoringController.ensure();
     final String? currentUserId = getCurrentUserId();
 
     Future<void> deleteTutoring(String docId) async {

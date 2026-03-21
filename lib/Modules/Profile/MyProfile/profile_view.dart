@@ -174,6 +174,36 @@ class _ProfileViewState extends State<ProfileView> {
     return rowController.users;
   }
 
+  StoryHighlightsController? _ensureProfileHighlightsController() {
+    final uid = _myUserId.trim();
+    if (uid.isEmpty) return null;
+    final tag = 'highlights_$uid';
+    final existing = StoryHighlightsController.maybeFind(tag: tag);
+    if (existing != null) {
+      return existing;
+    }
+    _ownsHighlightsController = true;
+    return StoryHighlightsController.ensure(userId: uid, tag: tag);
+  }
+
+  Future<void> _refreshProfileSurfaceMeta({bool force = false}) async {
+    final uid = _myUserId.trim();
+    if (uid.isEmpty) return;
+    await controller.refreshAll();
+    await socialMediaController.getData(
+      silent: !force,
+      forceRefresh: force,
+    );
+    final highlightsController = _ensureProfileHighlightsController();
+    if (highlightsController != null) {
+      await highlightsController.loadHighlights(
+        silent: !force,
+        forceRefresh: force,
+      );
+    }
+    unawaited(_loadMarketItems(force: force));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -184,10 +214,11 @@ class _ProfileViewState extends State<ProfileView> {
       controller = ProfileController.ensure();
       _ownsController = true;
     }
-    if (Get.isRegistered<SocialMediaController>()) {
-      socialMediaController = Get.find<SocialMediaController>();
+    final existingSocialMediaController = SocialMediaController.maybeFind();
+    if (existingSocialMediaController != null) {
+      socialMediaController = existingSocialMediaController;
     } else {
-      socialMediaController = Get.put(SocialMediaController());
+      socialMediaController = SocialMediaController.ensure();
       _ownsSocialMediaController = true;
     }
     try {
@@ -198,22 +229,15 @@ class _ProfileViewState extends State<ProfileView> {
     } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      socialMediaController.getData();
+      unawaited(_refreshProfileSurfaceMeta(force: true));
     });
-    unawaited(_loadMarketItems());
     _marketUserWorker = ever(userService.currentUserRx, (_) {
-      unawaited(_loadMarketItems(force: true));
+      unawaited(_refreshProfileSurfaceMeta(force: true));
     });
 
-    final uid = _myUserId;
-    if (uid.isNotEmpty) {
-      final tag = 'highlights_$uid';
-      if (Get.isRegistered<StoryHighlightsController>(tag: tag)) {
-        Get.find<StoryHighlightsController>(tag: tag).loadHighlights();
-      } else {
-        Get.put(StoryHighlightsController(userId: uid), tag: tag);
-        _ownsHighlightsController = true;
-      }
+    final highlightsController = _ensureProfileHighlightsController();
+    if (highlightsController != null) {
+      unawaited(highlightsController.loadHighlights());
     }
   }
 
@@ -353,8 +377,10 @@ class _ProfileViewState extends State<ProfileView> {
       }
     }
     if (_ownsSocialMediaController &&
-        Get.isRegistered<SocialMediaController>() &&
-        identical(Get.find<SocialMediaController>(), socialMediaController)) {
+        identical(
+          SocialMediaController.maybeFind(),
+          socialMediaController,
+        )) {
       Get.delete<SocialMediaController>(force: true);
     }
     if (_ownsController &&

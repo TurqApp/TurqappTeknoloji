@@ -8,8 +8,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   void _suspendEmbeddedFeedContextsForRoute() {
-    if (Get.isRegistered<FloodListingController>()) {
-      final floodController = Get.find<FloodListingController>();
+    final floodController = FloodListingController.maybeFind();
+    if (floodController != null) {
       final floodIndex = floodController.floods
           .indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
@@ -46,8 +46,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<ArchiveController>()) {
-      final archiveController = Get.find<ArchiveController>();
+    final archiveController = ArchiveController.maybeFind();
+    if (archiveController != null) {
       final archiveIndex = archiveController.list
           .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
@@ -57,8 +57,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<LikedPostControllers>()) {
-      final likedController = Get.find<LikedPostControllers>();
+    final likedController = LikedPostControllers.maybeFind();
+    if (likedController != null) {
       final likedIndex =
           likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
@@ -69,8 +69,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<TopTagsController>()) {
-      final topTagsController = Get.find<TopTagsController>();
+    final topTagsController = TopTagsController.maybeFind();
+    if (topTagsController != null) {
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
       if (topTagsIndex >= 0) {
@@ -81,8 +81,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<TagPostsController>()) {
-      final tagPostsController = Get.find<TagPostsController>();
+    final tagPostsController = TagPostsController.maybeFind();
+    if (tagPostsController != null) {
       final tagPostIndex = tagPostsController.list
           .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
@@ -106,8 +106,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   void _restoreEmbeddedFeedContexts() {
-    if (Get.isRegistered<FloodListingController>()) {
-      final floodController = Get.find<FloodListingController>();
+    final floodController = FloodListingController.maybeFind();
+    if (floodController != null) {
       final floodIndex = floodController.floods
           .indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
@@ -145,8 +145,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<ArchiveController>()) {
-      final archiveController = Get.find<ArchiveController>();
+    final archiveController = ArchiveController.maybeFind();
+    if (archiveController != null) {
       final archiveIndex = archiveController.list
           .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
@@ -157,8 +157,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<LikedPostControllers>()) {
-      final likedController = Get.find<LikedPostControllers>();
+    final likedController = LikedPostControllers.maybeFind();
+    if (likedController != null) {
       final likedIndex =
           likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
@@ -169,8 +169,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<TopTagsController>()) {
-      final topTagsController = Get.find<TopTagsController>();
+    final topTagsController = TopTagsController.maybeFind();
+    if (topTagsController != null) {
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
       if (topTagsIndex >= 0) {
@@ -181,8 +181,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<TagPostsController>()) {
-      final tagPostsController = Get.find<TagPostsController>();
+    final tagPostsController = TagPostsController.maybeFind();
+    if (tagPostsController != null) {
       final tagPostIndex = tagPostsController.list
           .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {

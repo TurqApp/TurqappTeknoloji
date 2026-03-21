@@ -37,10 +37,7 @@ class NavBarView extends StatelessWidget {
   final NavBarController controller = Get.isRegistered<NavBarController>()
       ? Get.find<NavBarController>()
       : Get.put(NavBarController());
-  final SettingsController settingController =
-      Get.isRegistered<SettingsController>()
-          ? Get.find<SettingsController>()
-          : Get.put(SettingsController());
+  final SettingsController settingController = SettingsController.ensure();
   final DeepLinkService? deepLinkService = DeepLinkService.maybeFind();
 
   // Ensure controllers are available

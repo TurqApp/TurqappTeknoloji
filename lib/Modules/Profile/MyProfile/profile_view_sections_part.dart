@@ -6,9 +6,8 @@ extension _ProfileViewSectionsPart on _ProfileViewState {
     if (uid.isEmpty) return const SizedBox.shrink();
 
     final tag = 'highlights_$uid';
-    final hlController = Get.isRegistered<StoryHighlightsController>(tag: tag)
-        ? Get.find<StoryHighlightsController>(tag: tag)
-        : Get.put(StoryHighlightsController(userId: uid), tag: tag);
+    final hlController =
+        StoryHighlightsController.ensure(userId: uid, tag: tag);
 
     return Obx(() {
       const rowHeight = 90.0;

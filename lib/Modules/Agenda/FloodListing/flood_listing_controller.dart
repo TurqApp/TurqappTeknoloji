@@ -5,6 +5,19 @@ import 'package:turqappv2/Models/posts_model.dart';
 import '../AgendaContent/agenda_content_controller.dart';
 
 class FloodListingController extends GetxController {
+  static FloodListingController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(FloodListingController());
+  }
+
+  static FloodListingController ensure() => _ensureController();
+
+  static FloodListingController? maybeFind() {
+    if (!Get.isRegistered<FloodListingController>()) return null;
+    return Get.find<FloodListingController>();
+  }
+
   // Flood gönderiler listesi
   RxList<PostsModel> floods = <PostsModel>[].obs;
 

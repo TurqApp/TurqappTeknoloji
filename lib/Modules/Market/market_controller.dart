@@ -31,6 +31,20 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'market_schema_service.dart';
 
 class MarketController extends GetxController {
+  static MarketController _ensureController({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(MarketController(), permanent: permanent);
+  }
+
+  static MarketController ensure({bool permanent = false}) =>
+      _ensureController(permanent: permanent);
+
+  static MarketController? maybeFind() {
+    if (!Get.isRegistered<MarketController>()) return null;
+    return Get.find<MarketController>();
+  }
+
   static const String _recentSearchesKey = 'market_recent_searches_v1';
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_market_listing_selection';
@@ -209,17 +223,16 @@ class MarketController extends GetxController {
   Future<void> _bootstrapHomeData() async {
     try {
       await _schemaService.loadSchema();
-      final loadedCategories =
-          _schemaService
-              .categories()
-              .where(_isVisibleCategory)
-              .toList(growable: true)
-            ..sort(
-              (a, b) => _compareCategoryPriority(
-                (a['label'] ?? '').toString(),
-                (b['label'] ?? '').toString(),
-              ),
-            );
+      final loadedCategories = _schemaService
+          .categories()
+          .where(_isVisibleCategory)
+          .toList(growable: true)
+        ..sort(
+          (a, b) => _compareCategoryPriority(
+            (a['label'] ?? '').toString(),
+            (b['label'] ?? '').toString(),
+          ),
+        );
       final roundMenu = _schemaService.roundMenuItems();
       if (!_sameMapList(categories, loadedCategories)) {
         categories.assignAll(loadedCategories);
@@ -251,17 +264,16 @@ class MarketController extends GetxController {
     }
     try {
       await _schemaService.loadSchema();
-      final loadedCategories =
-          _schemaService
-              .categories()
-              .where(_isVisibleCategory)
-              .toList(growable: true)
-            ..sort(
-              (a, b) => _compareCategoryPriority(
-                (a['label'] ?? '').toString(),
-                (b['label'] ?? '').toString(),
-              ),
-            );
+      final loadedCategories = _schemaService
+          .categories()
+          .where(_isVisibleCategory)
+          .toList(growable: true)
+        ..sort(
+          (a, b) => _compareCategoryPriority(
+            (a['label'] ?? '').toString(),
+            (b['label'] ?? '').toString(),
+          ),
+        );
       final roundMenu = _schemaService.roundMenuItems();
       if (!_sameMapList(categories, loadedCategories)) {
         categories.assignAll(loadedCategories);

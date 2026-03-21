@@ -323,9 +323,7 @@ class _SplashViewState extends State<SplashView> {
     }
     _didNavigate = true;
     if (loggedIn) {
-      if (Get.isRegistered<NavBarController>()) {
-        Get.find<NavBarController>().selectedIndex.value = 0;
-      }
+      NavBarController.maybeFind()?.selectedIndex.value = 0;
       Get.offAll(() => NavBarView());
       return;
     }

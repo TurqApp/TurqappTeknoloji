@@ -41,9 +41,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
     final bottomInset = media.viewInsets.bottom;
 
     final tag = 'highlights_$uid';
-    final controller = Get.isRegistered<StoryHighlightsController>(tag: tag)
-        ? Get.find<StoryHighlightsController>(tag: tag)
-        : Get.put(StoryHighlightsController(userId: uid), tag: tag);
+    final controller = StoryHighlightsController.ensure(userId: uid, tag: tag);
 
     return SafeArea(
       top: false,

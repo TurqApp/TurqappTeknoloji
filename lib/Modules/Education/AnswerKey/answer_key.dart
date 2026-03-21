@@ -47,9 +47,8 @@ class AnswerKey extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AnswerKeyController controller = Get.isRegistered<AnswerKeyController>()
-      ? Get.find<AnswerKeyController>()
-      : Get.put(AnswerKeyController(), permanent: true);
+  final AnswerKeyController controller =
+      AnswerKeyController.ensure(permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -92,17 +91,19 @@ class AnswerKey extends StatelessWidget {
                                     () => Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 15),
-                                      child: controller.listingSelection.value ==
+                                      child: controller
+                                                  .listingSelection.value ==
                                               0
                                           ? Column(
-                                              children: PasajListingAdLayout.buildListChildren(
+                                              children: PasajListingAdLayout
+                                                  .buildListChildren(
                                                 items: items,
                                                 itemBuilder: (item, index) =>
                                                     AnswerKeyContent(
                                                   key: ValueKey(item.docID),
                                                   model: item,
-                                                  onUpdate: (v) => controller
-                                                      .refreshData(),
+                                                  onUpdate: (v) =>
+                                                      controller.refreshData(),
                                                   isListLayout: true,
                                                 ),
                                                 adBuilder: (slot) => AdmobKare(
@@ -112,7 +113,8 @@ class AnswerKey extends StatelessWidget {
                                               ),
                                             )
                                           : Column(
-                                              children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                                              children: PasajListingAdLayout
+                                                  .buildTwoColumnGridChildren(
                                                 items: items,
                                                 horizontalSpacing: 4,
                                                 rowSpacing: 4,
@@ -120,8 +122,8 @@ class AnswerKey extends StatelessWidget {
                                                     AnswerKeyContent(
                                                   key: ValueKey(item.docID),
                                                   model: item,
-                                                  onUpdate: (v) => controller
-                                                      .refreshData(),
+                                                  onUpdate: (v) =>
+                                                      controller.refreshData(),
                                                 ),
                                                 adBuilder: (slot) => AdmobKare(
                                                   key: ValueKey(

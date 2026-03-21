@@ -27,10 +27,10 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _navBarSnapshot() {
-    if (!Get.isRegistered<NavBarController>()) {
+    final controller = NavBarController.maybeFind();
+    if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final controller = Get.find<NavBarController>();
     return <String, dynamic>{
       'registered': true,
       'selectedIndex': controller.selectedIndex.value,

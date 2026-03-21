@@ -34,9 +34,7 @@ class DenemeSinavlari extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final DenemeSinavlariController controller =
-      Get.isRegistered<DenemeSinavlariController>()
-          ? Get.find<DenemeSinavlariController>()
-          : Get.put(DenemeSinavlariController(), permanent: true);
+      DenemeSinavlariController.ensure(permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -236,7 +234,8 @@ class DenemeSinavlari extends StatelessWidget {
                           ),
                         )
                       : Column(
-                          children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                          children:
+                              PasajListingAdLayout.buildTwoColumnGridChildren(
                             items: items,
                             horizontalSpacing: 4,
                             rowSpacing: 4,

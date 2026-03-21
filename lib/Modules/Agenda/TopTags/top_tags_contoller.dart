@@ -7,6 +7,19 @@ import '../AgendaContent/agenda_content_controller.dart';
 import 'top_tags_repository.dart';
 
 class TopTagsController extends GetxController {
+  static TopTagsController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(TopTagsController());
+  }
+
+  static TopTagsController ensure() => _ensureController();
+
+  static TopTagsController? maybeFind() {
+    if (!Get.isRegistered<TopTagsController>()) return null;
+    return Get.find<TopTagsController>();
+  }
+
   final TopTagsRepository _repo;
   TopTagsController({TopTagsRepository? repository})
       : _repo = repository ?? TopTagsRepository.ensure();

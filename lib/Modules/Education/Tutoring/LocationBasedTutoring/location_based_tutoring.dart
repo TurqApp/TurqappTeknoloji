@@ -45,7 +45,7 @@ class _LocationBasedTutoringState extends State<LocationBasedTutoring> {
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController =
-        Get.find<ViewModeController>();
+        ViewModeController.ensure(permanent: true);
 
     return Scaffold(
       body: SafeArea(
