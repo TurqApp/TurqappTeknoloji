@@ -12,6 +12,7 @@ import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../Agenda/agenda_controller.dart';
+import '../../Explore/explore_controller.dart';
 import '../../Profile/MyProfile/profile_controller.dart';
 import '../../Profile/Archives/archives_controller.dart';
 import '../../Profile/LikedPosts/liked_posts_controller.dart';
@@ -557,6 +558,22 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         if (visibleFraction >= 0.72) {
           floodController.centeredIndex.value = floodIndex;
           floodController.lastCenteredIndex = floodIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('explore_series_') &&
+        Get.isRegistered<ExploreController>()) {
+      final exploreController = Get.find<ExploreController>();
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.floodsVisibleIndex.value = exploreIndex;
+        exploreController.capturePendingFloodEntry(
+          preferredIndex: exploreIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          exploreController.lastFloodVisibleIndex = exploreIndex;
         }
       }
     }

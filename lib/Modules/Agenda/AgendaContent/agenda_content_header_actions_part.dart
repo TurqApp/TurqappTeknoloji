@@ -90,6 +90,17 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         tagPostsController.centeredIndex.value = -1;
       }
     }
+
+    if (Get.isRegistered<ExploreController>()) {
+      final exploreController = Get.find<ExploreController>();
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.capturePendingFloodEntry(model: widget.model);
+        exploreController.lastFloodVisibleIndex = exploreIndex;
+        exploreController.floodsVisibleIndex.value = -1;
+      }
+    }
   }
 
   void _restoreEmbeddedFeedContexts() {
@@ -176,6 +187,17 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         tagPostsController.lastCenteredIndex = tagPostIndex;
         tagPostsController.currentVisibleIndex.value = tagPostIndex;
         tagPostsController.centeredIndex.value = tagPostIndex;
+      }
+    }
+
+    if (Get.isRegistered<ExploreController>()) {
+      final exploreController = Get.find<ExploreController>();
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.capturePendingFloodEntry(model: widget.model);
+        exploreController.floodsVisibleIndex.value = exploreIndex;
+        exploreController.lastFloodVisibleIndex = exploreIndex;
       }
     }
   }

@@ -81,6 +81,7 @@ class ExploreController extends GetxController {
   RxBool floodsIsLoading = false.obs;
   final RxInt floodsVisibleIndex = (-1).obs;
   int? lastFloodVisibleIndex;
+  String? _pendingFloodDocId;
   RxBool showScrollToTop = false.obs;
   final RxSet<String> followingIDs = <String>{}.obs;
   // Boş sayfa tespit sayaçları (filtre sonrası görünür içerik çıkmadığında)
@@ -179,6 +180,7 @@ class ExploreController extends GetxController {
     if (position.pixels <= 0) {
       floodsVisibleIndex.value = 0;
       lastFloodVisibleIndex = 0;
+      capturePendingFloodEntry(preferredIndex: 0);
       return;
     }
     final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
@@ -197,6 +199,54 @@ class ExploreController extends GetxController {
     }
     floodsVisibleIndex.value = nextIndex;
     lastFloodVisibleIndex = nextIndex;
+    capturePendingFloodEntry(preferredIndex: nextIndex);
+  }
+
+  int resolveFloodSeriesFocusIndex() {
+    if (exploreFloods.isEmpty) return -1;
+    final pendingDocId = _pendingFloodDocId;
+    if (pendingDocId != null && pendingDocId.isNotEmpty) {
+      final mapped =
+          exploreFloods.indexWhere((post) => post.docID == pendingDocId);
+      if (mapped >= 0) return mapped;
+    }
+    if (lastFloodVisibleIndex != null &&
+        lastFloodVisibleIndex! >= 0 &&
+        lastFloodVisibleIndex! < exploreFloods.length) {
+      return lastFloodVisibleIndex!;
+    }
+    if (floodsVisibleIndex.value >= 0 &&
+        floodsVisibleIndex.value < exploreFloods.length) {
+      return floodsVisibleIndex.value;
+    }
+    return 0;
+  }
+
+  void restoreFloodSeriesFocus() {
+    final target = resolveFloodSeriesFocusIndex();
+    if (target < 0 || target >= exploreFloods.length) return;
+    floodsVisibleIndex.value = target;
+    lastFloodVisibleIndex = target;
+  }
+
+  void capturePendingFloodEntry({int? preferredIndex, PostsModel? model}) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      _pendingFloodDocId = docId.isEmpty ? null : docId;
+      return;
+    }
+    final candidateIndex = preferredIndex ??
+        (floodsVisibleIndex.value >= 0
+            ? floodsVisibleIndex.value
+            : lastFloodVisibleIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= exploreFloods.length) {
+      _pendingFloodDocId = null;
+      return;
+    }
+    final docId = exploreFloods[candidateIndex].docID.trim();
+    _pendingFloodDocId = docId.isEmpty ? null : docId;
   }
 
   void suspendExplorePreview({int focusIndex = -1}) {
@@ -630,6 +680,7 @@ class ExploreController extends GetxController {
   Future<void> fetchFloods() async {
     if (floodsIsLoading.value || !floodsHasMore.value) return;
     floodsIsLoading.value = true;
+    capturePendingFloodEntry();
     try {
       if (lastFloodsDoc == null) _floodsEmptyScans = 0;
       int pagesFetched = 0;
@@ -694,6 +745,7 @@ class ExploreController extends GetxController {
       if (accumulated.isNotEmpty) {
         final prioritized = _prioritizeCachedVideos(accumulated);
         exploreFloods.addAll(prioritized);
+        restoreFloodSeriesFocus();
         _floodsEmptyScans = 0;
         floodsHasMore.value = !noMoreServerPages; // sunucu bitti mi?
       } else {

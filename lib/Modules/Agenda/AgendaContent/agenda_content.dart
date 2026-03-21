@@ -36,6 +36,7 @@ import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing
 import 'package:turqappv2/Modules/Agenda/SinglePost/single_post.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts_controller.dart';
+import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_contoller.dart';
 import 'package:turqappv2/Modules/Profile/LikedPosts/liked_posts_controller.dart';

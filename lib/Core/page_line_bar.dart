@@ -5,6 +5,7 @@ import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_contro
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 import 'package:turqappv2/Modules/Profile/LikedPosts/liked_posts_controller.dart';
 import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/SocialProfileFollowers/social_profile_followers_controller.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
 const String kExplorePageLineBarTag = 'explore_page_line_bar';
@@ -40,9 +41,34 @@ class _PageLineBarState extends State<PageLineBar> {
   late PageLineBarController controller;
   bool _didInit = false;
 
-  bool get _hasAttachedPageController {
+  void _syncExternalPageController(
+    int index, {
+    required bool animate,
+  }) {
     final pageController = widget.pageController;
-    return pageController != null && pageController.hasClients;
+    if (pageController == null) {
+      controller.setSelectionTo(index);
+      return;
+    }
+
+    void syncAfterFrame() {
+      if (!mounted) return;
+      if (!pageController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => syncAfterFrame());
+        return;
+      }
+      if (animate) {
+        pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        pageController.jumpToPage(index);
+      }
+    }
+
+    syncAfterFrame();
   }
 
   @override
@@ -62,11 +88,10 @@ class _PageLineBarState extends State<PageLineBar> {
       _didInit = true;
       if (widget.initialIndex != controller.selection.value) {
         controller.selection.value = widget.initialIndex;
-        if (_hasAttachedPageController) {
-          widget.pageController!.jumpToPage(widget.initialIndex);
-        } else {
-          controller.setSelectionTo(widget.initialIndex);
-        }
+        _syncExternalPageController(
+          widget.initialIndex,
+          animate: false,
+        );
       }
     });
   }
@@ -81,15 +106,7 @@ class _PageLineBarState extends State<PageLineBar> {
             child: GestureDetector(
               onTap: () {
                 controller.selection.value = index;
-                if (_hasAttachedPageController) {
-                  widget.pageController!.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                } else {
-                  controller.setSelectionTo(index);
-                }
+                _syncExternalPageController(index, animate: true);
               },
               child: Container(
                 height: 40,
@@ -165,6 +182,9 @@ class PageLineBarController extends GetxController {
         break;
       case kFollowersPageLineBarTag:
         Get.find<FollowingFollowersController>().goToPage(index);
+        break;
+      case kFollowersSocialProfilePageLineBarTag:
+        Get.find<SocialProfileFollowersController>().goToPage(index);
         break;
       default:
         break;
