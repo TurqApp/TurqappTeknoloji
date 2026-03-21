@@ -161,7 +161,7 @@ class AccountCenterService extends GetxService {
 
   Future<void> reconcileWithAuthSession() async {
     await _ensurePrefs();
-    final authUid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    final authUid = CurrentUserService.instance.userId.trim();
     if (authUid.isEmpty) {
       if (activeUid.value.isNotEmpty) {
         activeUid.value = '';
@@ -337,7 +337,7 @@ class AccountCenterService extends GetxService {
   }
 
   Future<void> setSingleDeviceSessionEnabled(bool enabled) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final deviceKey = await DeviceSessionService.instance.getOrCreateDeviceKey();
@@ -356,7 +356,7 @@ class AccountCenterService extends GetxService {
   }
 
   Future<void> registerCurrentDeviceSessionIfEnabled() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return;
     final raw = await UserRepository.ensure().getUserRaw(
       uid,

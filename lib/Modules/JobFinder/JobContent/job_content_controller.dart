@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
@@ -13,6 +12,7 @@ import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/MyJobAds/my_job_ads_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class JobContentController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
@@ -42,8 +42,8 @@ class JobContentController extends GetxController {
   }
 
   static Future<void> warmSavedIdsForCurrentUser() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     final cached = _savedIdsByUser[uid];
     if (cached != null) return;
     final records = await JobSavedStore.getSavedJobs(
@@ -59,8 +59,8 @@ class JobContentController extends GetxController {
       return;
     }
     _initializedSavedDocId = normalizedDocId;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     try {
       final savedIds = await _loadSavedIds(uid);
       saved.value = savedIds.contains(normalizedDocId);
@@ -73,8 +73,8 @@ class JobContentController extends GetxController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveJob)) {
       return;
     }
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
 
     try {
       final savedIds = await _loadSavedIds(uid);
@@ -92,8 +92,8 @@ class JobContentController extends GetxController {
   }
 
   Future<void> reactivateEndedJob(JobModel model) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     if (model.userID != uid || !model.ended) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -137,7 +137,7 @@ class JobContentController extends GetxController {
   }
 
   Future<void> shareJob(JobModel model) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final canShare =
         AdminAccessService.isKnownAdminSync() || uid == model.userID;
     if (!canShare) {

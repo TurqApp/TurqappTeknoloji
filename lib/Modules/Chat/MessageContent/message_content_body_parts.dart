@@ -7,7 +7,7 @@ extension MessageContentBodyParts on MessageContent {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         mainAxisAlignment:
-            model.userID == FirebaseAuth.instance.currentUser!.uid
+            model.userID == _currentUserId
                 ? MainAxisAlignment.end
                 : MainAxisAlignment.start,
         children: [
@@ -64,7 +64,7 @@ extension MessageContentBodyParts on MessageContent {
 
   Widget contactInfoBar() {
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
+      mainAxisAlignment: model.userID == _currentUserId
           ? MainAxisAlignment.end
           : MainAxisAlignment.start,
       children: [
@@ -144,7 +144,7 @@ extension MessageContentBodyParts on MessageContent {
   Widget videoBubble() {
     final mediaSize = _mediaBubbleSize();
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
+      mainAxisAlignment: model.userID == _currentUserId
           ? MainAxisAlignment.end
           : MainAxisAlignment.start,
       children: [
@@ -212,7 +212,7 @@ extension MessageContentBodyParts on MessageContent {
 
   Widget audioBubble() {
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
+      mainAxisAlignment: model.userID == _currentUserId
           ? MainAxisAlignment.end
           : MainAxisAlignment.start,
       children: [
@@ -223,7 +223,7 @@ extension MessageContentBodyParts on MessageContent {
           child: _AudioPlayerWidget(
             audioUrl: model.sesliMesaj,
             durationMs: model.audioDurationMs,
-            isMine: model.userID == FirebaseAuth.instance.currentUser!.uid,
+            isMine: model.userID == _currentUserId,
           ),
         ),
       ],
@@ -250,7 +250,7 @@ extension MessageContentBodyParts on MessageContent {
           padding: const EdgeInsets.symmetric(horizontal: 7),
           child: Row(
             mainAxisAlignment:
-                model.userID == FirebaseAuth.instance.currentUser!.uid
+                model.userID == _currentUserId
                     ? MainAxisAlignment.end
                     : MainAxisAlignment.end,
             children: [
@@ -262,7 +262,7 @@ extension MessageContentBodyParts on MessageContent {
                   fontFamily: "Montserrat",
                 ),
               ),
-              if (model.userID == FirebaseAuth.instance.currentUser!.uid) ...[
+              if (model.userID == _currentUserId) ...[
                 const SizedBox(width: 3),
                 _buildStatusTicks(
                   readColor: const Color(0xFF53BDEB),
@@ -294,7 +294,7 @@ extension MessageContentBodyParts on MessageContent {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (model.userID == FirebaseAuth.instance.currentUser!.uid) ...[
+          if (model.userID == _currentUserId) ...[
             _buildStatusTicks(),
             const SizedBox(width: 4),
           ],

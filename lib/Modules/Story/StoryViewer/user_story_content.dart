@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -31,6 +30,7 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'user_story_content_playback_part.dart';
 part 'user_story_content_view_part.dart';
@@ -134,8 +134,8 @@ class _UserStoryContentState extends State<UserStoryContent>
           UserStoryContentController(
               storyID: widget.user.stories[storyIndex].id,
               nickname: widget.user.nickname,
-              isMyStory:
-                  widget.user.userID == FirebaseAuth.instance.currentUser!.uid),
+              isMyStory: widget.user.userID ==
+                  CurrentUserService.instance.userId),
           tag: '${widget.user.userID}_$storyIndex');
     }
   }
@@ -153,8 +153,8 @@ class _UserStoryContentState extends State<UserStoryContent>
           UserStoryContentController(
               storyID: widget.user.stories[storyIndex].id,
               nickname: widget.user.nickname,
-              isMyStory:
-                  widget.user.userID == FirebaseAuth.instance.currentUser!.uid),
+              isMyStory: widget.user.userID ==
+                  CurrentUserService.instance.userId),
           tag: '${widget.user.userID}_$storyIndex');
     }
   }

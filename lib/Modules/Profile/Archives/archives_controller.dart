@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
@@ -137,8 +138,8 @@ class ArchiveController extends GetxController {
   }
 
   Future<void> fetchData({bool silent = false}) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     if (!silent) {
       isLoading.value = true;
     }

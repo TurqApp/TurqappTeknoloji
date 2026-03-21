@@ -25,8 +25,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
               return GestureDetector(
                 onTap: () async {
                   try {
-                    final uid = FirebaseAuth.instance.currentUser?.uid;
-                    if (uid != null) {
+                    final uid = _myUserId;
+                    if (uid.isNotEmpty) {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
@@ -185,8 +185,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
               return GestureDetector(
                 onTap: () async {
                   try {
-                    final uid = FirebaseAuth.instance.currentUser?.uid;
-                    if (uid != null) {
+                    final uid = _myUserId;
+                    if (uid.isNotEmpty) {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
@@ -330,7 +330,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final isVisible = (model.timeStamp <= nowMs) && !model.flood;
       if (isVisible) {
-        final me = FirebaseAuth.instance.currentUser?.uid ?? '';
+        final me = _myUserId;
         if (me.isNotEmpty) {
           await FirebaseFirestore.instance
               .collection('users')

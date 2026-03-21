@@ -6,7 +6,7 @@ extension MessageContentPostParts on MessageContent {
     if (post == null) {
       return const SizedBox.shrink();
     }
-    final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
+    final isMine = model.userID == _currentUserId;
     final hasImage = post.img.isNotEmpty;
     final hasVideo = post.hasPlayableVideo || post.thumbnail.isNotEmpty;
     final previewUrl = hasImage

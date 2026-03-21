@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
@@ -7,6 +6,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class BookletPreviewController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -30,14 +30,14 @@ class BookletPreviewController extends GetxController {
   }
 
   void _initialize() {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final currentUserId = CurrentUserService.instance.userId;
     _loadBookmarkState(currentUserId);
     fetchAnswerKeys();
     fetchUserData();
   }
 
-  Future<void> _loadBookmarkState(String? currentUserId) async {
-    if (currentUserId == null) return;
+  Future<void> _loadBookmarkState(String currentUserId) async {
+    if (currentUserId.isEmpty) return;
 
     try {
       final savedDoc = await _subcollectionRepository.getEntry(
@@ -104,8 +104,8 @@ class BookletPreviewController extends GetxController {
   }
 
   Future<void> toggleBookmark() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) return;
 
     try {
       final savedDoc = await _subcollectionRepository.getEntry(

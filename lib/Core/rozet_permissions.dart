@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -89,8 +88,8 @@ Future<String> getCurrentUserRozet() async {
   final cached = (CurrentUserService.instance.currentUser?.rozet ?? '').trim();
   if (cached.isNotEmpty) return cached;
 
-  final uid = FirebaseAuth.instance.currentUser?.uid;
-  if (uid == null || uid.isEmpty) return '';
+  final uid = CurrentUserService.instance.userId;
+  if (uid.isEmpty) return '';
 
   try {
     final summary = await UserSummaryResolver.ensure().resolve(

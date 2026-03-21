@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SolveTestController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -68,7 +68,7 @@ class SolveTestController extends GetxController {
   Future<void> getUserFullName() async {
     try {
       final summary = await _userSummaryResolver.resolve(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
         preferCache: true,
       );
       fullname.value = summary?.preferredName ?? "";
@@ -85,7 +85,7 @@ class SolveTestController extends GetxController {
     _testRepository
         .submitAnswers(
       testID,
-      userId: FirebaseAuth.instance.currentUser!.uid,
+      userId: CurrentUserService.instance.userId,
       answers: cevaplar.toList(growable: false),
     )
         .catchError((error) {});

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
@@ -9,6 +8,7 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyScholarshipController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -25,8 +25,8 @@ class MyScholarshipController extends GetxController {
   }
 
   Future<void> _bootstrapMyScholarships() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
       return;
@@ -34,7 +34,7 @@ class MyScholarshipController extends GetxController {
 
     try {
       final cachedRaw = await _scholarshipRepository.fetchMyScholarshipsRaw(
-        user.uid,
+        userId,
         limit: 50,
         cacheOnly: true,
       );
@@ -44,7 +44,7 @@ class MyScholarshipController extends GetxController {
         );
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
-          'scholarships:mine:${user.uid}',
+          'scholarships:mine:$userId',
           minInterval: _silentRefreshInterval,
         )) {
           unawaited(fetchMyScholarships(silent: true, forceRefresh: true));
@@ -60,8 +60,8 @@ class MyScholarshipController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
       return;
@@ -74,12 +74,12 @@ class MyScholarshipController extends GetxController {
     try {
       final rawScholarships =
           await _scholarshipRepository.fetchMyScholarshipsRaw(
-        user.uid,
+        userId,
         limit: 50,
         forceRefresh: forceRefresh,
       );
       myScholarships.value = await _buildScholarshipCards(rawScholarships);
-      SilentRefreshGate.markRefreshed('scholarships:mine:${user.uid}');
+      SilentRefreshGate.markRefreshed('scholarships:mine:$userId');
     } catch (e) {
       AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
     } finally {

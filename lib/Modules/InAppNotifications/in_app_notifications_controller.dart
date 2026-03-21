@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class InAppNotificationsController extends GetxController {
   var selection = 0.obs;
@@ -40,8 +40,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   void _bindPreferences() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     _settingsSub?.cancel();
     _settingsSub = _notificationsRepository
         .watchSettings(uid)
@@ -61,8 +61,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   Future<void> getData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) {
       complatedDataFetch.value = true;
       list.clear();
       return;
@@ -208,8 +208,8 @@ class InAppNotificationsController extends GetxController {
     complatedDataFetch.value = true;
     _applyFilters();
     _refreshUnreadTotal();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isNotEmpty) {
       unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
         userId: uid,
         notifications: List<NotificationModel>.from(_allNotifications),
@@ -273,8 +273,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   Future<void> delete(String docID) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final previousAll = List<NotificationModel>.from(_allNotifications);
     _allNotifications.removeWhere((n) => n.docID == docID);
     _applyFilters();
@@ -302,8 +302,8 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> deleteMany(List<String> docIDs) async {
     if (docIDs.isEmpty) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
     final previousAll = List<NotificationModel>.from(_allNotifications);
@@ -335,8 +335,8 @@ class InAppNotificationsController extends GetxController {
     final idx = _allNotifications.indexWhere((n) => n.docID == docID);
     if (idx < 0 || _allNotifications[idx].isRead) return;
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     _allNotifications[idx].isRead = true;
     _applyFilters();
     _refreshUnreadTotal();
@@ -362,8 +362,8 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> markManyAsRead(List<String> docIDs) async {
     if (docIDs.isEmpty) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
     final changed = <int>[];
@@ -428,8 +428,8 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> markAllAsRead() async {
     if (busyMarkAllRead.value) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     busyMarkAllRead.value = true;
     final unread = list
         .where((n) => !n.isRead)
@@ -459,7 +459,7 @@ class InAppNotificationsController extends GetxController {
   int get unreadCount => unreadTotal.value;
 
   Future<void> bildirimleriTopluSil() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = CurrentUserService.instance.userId;
     await _notificationsRepository.deleteAll(uid);
   }
 

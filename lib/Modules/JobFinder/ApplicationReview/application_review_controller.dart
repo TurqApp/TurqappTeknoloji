@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ApplicationReviewController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -101,7 +101,7 @@ class ApplicationReviewController extends GetxController {
 
   Future<void> updateStatus(String userID, String newStatus) async {
     try {
-      final actorUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final actorUid = CurrentUserService.instance.userId;
       if (actorUid.isEmpty) {
         AppSnackbar(
           'common.error'.tr,

@@ -2,13 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/explore_repository.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
@@ -16,6 +14,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
@@ -91,6 +90,8 @@ class ExploreController extends GetxController {
       UserSubcollectionRepository.ensure();
   TopTagsRepository get _topTagsRepository => TopTagsRepository.ensure();
   ExploreRepository get _exploreRepository => ExploreRepository.ensure();
+  VisibilityPolicyService get _visibilityPolicy =>
+      VisibilityPolicyService.ensure();
   Worker? _currentUserWorker;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
@@ -168,8 +169,8 @@ class ExploreController extends GetxController {
   }
 
   void _bindFollowingListener() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
 
     // ✅ OPTIMIZED: One-time fetch instead of real-time listener
     _fetchFollowingIDs(uid);
@@ -177,8 +178,8 @@ class ExploreController extends GetxController {
 
   Future<void> _fetchFollowingIDs(String uid) async {
     try {
-      final ids = await FollowRepository.ensure().getFollowingIds(
-        uid,
+      final ids = await _visibilityPolicy.loadViewerFollowingIds(
+        viewerUserId: uid,
         preferCache: true,
       );
       followingIDs.assignAll(ids);
@@ -274,7 +275,8 @@ class ExploreController extends GetxController {
       )) {
         await fetchExplorePosts();
       }
-    } else if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore)) {
+    } else if (ContentPolicy.allowBackgroundRefresh(
+        ContentScreenKind.explore)) {
       unawaited(fetchExplorePosts());
     }
   }
@@ -288,7 +290,6 @@ class ExploreController extends GetxController {
       allowStale: true,
     );
     if (fromPool.isEmpty) return;
-    final me = FirebaseAuth.instance.currentUser?.uid;
     final profiles = await _userCache.getProfiles(
       fromPool.map((e) => e.userID).toSet().toList(),
       preferCache: true,
@@ -306,10 +307,12 @@ class ExploreController extends GetxController {
         isDeleted: profile['isDeleted'],
       );
       if (isDeactivated) return false;
-      if (!isPrivate) return true;
-      final isMine = me != null && p.userID == me;
-      final follows = followingIDs.contains(p.userID);
-      return isMine || follows;
+      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: p.userID,
+        followingIds: followingIDs,
+        isPrivate: isPrivate,
+        isDeleted: false,
+      );
     }).toList();
     if (filtered.isEmpty) return;
     final valid = _dedupeExplorePosts(filtered);
@@ -666,7 +669,6 @@ class ExploreController extends GetxController {
   Future<List<PostsModel>> _filterByPrivacy(List<PostsModel> items) async {
     if (items.isEmpty) return items;
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
-    final me = FirebaseAuth.instance.currentUser?.uid;
     final userProfiles = await _userCache.getProfiles(
       uniqueUserIDs,
       preferCache: true,
@@ -680,10 +682,12 @@ class ExploreController extends GetxController {
 
     final filtered = items.where((post) {
       final isPrivate = userPrivacy[post.userID] ?? false;
-      if (!isPrivate) return true;
-      final isMine = me != null && post.userID == me;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
+      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: post.userID,
+        followingIds: followingIDs,
+        isPrivate: isPrivate,
+        isDeleted: false,
+      );
     }).toList();
     return filtered;
   }
@@ -808,7 +812,7 @@ class ExploreController extends GetxController {
 
   Future<void> search(String query) async {
     final nick = query.trim();
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final currentUserId = CurrentUserService.instance.userId;
     final requestId = ++_searchRequestId;
     if (nick.isEmpty) {
       _clearSearchResults();

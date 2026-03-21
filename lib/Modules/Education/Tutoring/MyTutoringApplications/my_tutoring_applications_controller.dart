@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
-import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyTutoringApplicationsController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
@@ -23,8 +23,8 @@ class MyTutoringApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     final cached = await _subcollectionRepository.getEntries(
       uid,
       subcollection: 'myTutoringApplications',
@@ -56,8 +56,8 @@ class MyTutoringApplicationsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) return;
       final items = await _subcollectionRepository.getEntries(
         uid,
         subcollection: 'myTutoringApplications',
@@ -79,8 +79,8 @@ class MyTutoringApplicationsController extends GetxController {
 
   Future<void> cancelApplication(String tutoringDocID) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) return;
 
       await _tutoringRepository.cancelApplication(
         tutoringId: tutoringDocID,

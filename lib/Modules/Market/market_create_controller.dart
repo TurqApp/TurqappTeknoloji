@@ -563,9 +563,7 @@ class MarketCreateController extends GetxController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishMarket)) {
       return;
     }
-    final uid = CurrentUserService.instance.userId.isNotEmpty
-        ? CurrentUserService.instance.userId
-        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       AppSnackbar(
         'common.error'.tr,

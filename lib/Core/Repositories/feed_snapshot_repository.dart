@@ -5,12 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class FeedSnapshotQuery {
@@ -59,6 +59,8 @@ class FeedSnapshotRepository extends GetxService {
   final PostRepository _postRepository = PostRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
   final WarmLaunchPool _warmLaunchPool = WarmLaunchPool.ensure();
 
   late final MemoryScopedSnapshotStore<List<PostsModel>> _memoryStore =
@@ -533,13 +535,10 @@ class FeedSnapshotRepository extends GetxService {
   }
 
   Future<Set<String>> _loadFollowingIds(String userId) async {
-    final normalized = userId.trim();
-    if (normalized.isEmpty) return <String>{};
-    final ids = await FollowRepository.ensure().getFollowingIds(
-      normalized,
+    return VisibilityPolicyService.ensure().loadViewerFollowingIds(
+      viewerUserId: userId,
       preferCache: true,
     );
-    return ids.toSet();
   }
 
   Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({
@@ -634,9 +633,13 @@ class FeedSnapshotRepository extends GetxService {
         }
         continue;
       }
-      final isMine =
-          currentUserId.isNotEmpty && post.userID.trim() == currentUserId;
-      if (summary.isPrivate && !isMine && !followingIds.contains(post.userID)) {
+      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: post.userID,
+        followingIds: followingIds,
+        isPrivate: summary.isPrivate,
+        isDeleted: summary.isDeleted,
+      );
+      if (!canSeeAuthor) {
         if (kDebugMode && dropLogs.length < 12) {
           dropLogs.add('${post.docID}:private_not_following:${post.userID}');
         }

@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FamilyInfoController extends GetxController {
   static const String _selectValue = "Seçiniz";
@@ -162,7 +162,7 @@ class FamilyInfoController extends GetxController {
   Future<void> fetchFromFirestore() async {
     try {
       final data = await _userRepository.getUserRaw(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
       );
       if (data != null) {
         familyInfo.value = userString(data, key: 'familyInfo', scope: 'family');
@@ -463,7 +463,7 @@ class FamilyInfoController extends GetxController {
     // Veri kaydetme
     try {
       await _userRepository.updateUserFields(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
         {
           ...scopedUserUpdate(
             scope: 'family',
@@ -527,7 +527,7 @@ class FamilyInfoController extends GetxController {
     try {
       // Firestore'dan aile bilgilerini sıfırla
       await _userRepository.updateUserFields(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
         {
           ...scopedUserUpdate(
             scope: 'family',

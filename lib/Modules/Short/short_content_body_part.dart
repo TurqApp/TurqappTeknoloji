@@ -72,8 +72,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          if (model.userID !=
-                              FirebaseAuth.instance.currentUser!.uid) {
+                          if (model.userID != _currentUserId) {
                             volumeOff(false);
                             Get.to(() => SocialProfile(userID: model.userID))
                                 ?.then((v) {
@@ -110,9 +109,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                                 Flexible(
                                   child: GestureDetector(
                                     onTap: () {
-                                      if (model.userID !=
-                                          FirebaseAuth
-                                              .instance.currentUser!.uid) {
+                                      if (model.userID != _currentUserId) {
                                         volumeOff(false);
                                         Get.to(SocialProfile(
                                                 userID: model.userID))
@@ -154,8 +151,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                       ),
                       SizedBox(width: 7),
                       if (!controller.takipEdiyorum.value &&
-                          model.userID !=
-                              FirebaseAuth.instance.currentUser!.uid &&
+                          model.userID != _currentUserId &&
                           controller.avatarUrl.value != "")
                         Transform.translate(
                           offset: Offset(20, 0),
@@ -238,8 +234,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                                     .findUidForHandle(mention) ??
                                 "";
                         if (targetUid.isNotEmpty &&
-                            targetUid !=
-                                FirebaseAuth.instance.currentUser!.uid) {
+                            targetUid != _currentUserId) {
                           volumeOff(false);
                           await Get.to(() => SocialProfile(userID: targetUid));
                           volumeOff(true);
@@ -567,7 +562,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
           title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
-        if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
+        if (model.userID == _currentUserId ||
             AdminAccessService.isKnownAdminSync())
           PullDownMenuItem(
             onTap: () {
@@ -634,7 +629,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
           title: 'common.share'.tr,
           icon: CupertinoIcons.share_up,
         ),
-        if (model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (model.userID == _currentUserId)
           PullDownMenuItem(
             onTap: () {
               // Videoyu durdur
@@ -661,7 +656,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
           ),
         if (controller.arsivlendi.value == false &&
             controller.model.arsiv == false &&
-            model.userID == FirebaseAuth.instance.currentUser!.uid)
+            model.userID == _currentUserId)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -673,7 +668,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
           ),
         if (controller.arsivlendi.value == false &&
             controller.model.arsiv == true &&
-            model.userID == FirebaseAuth.instance.currentUser!.uid)
+            model.userID == _currentUserId)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();
@@ -683,7 +678,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
-        if (model.userID != FirebaseAuth.instance.currentUser!.uid)
+        if (model.userID != _currentUserId)
           PullDownMenuItem(
             onTap: () {
               volumeOff(false);

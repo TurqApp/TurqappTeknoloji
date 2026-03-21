@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryCommentsController extends GetxController {
   final StoryRepository _storyRepository = StoryRepository.ensure();
@@ -41,7 +41,7 @@ class StoryCommentsController extends GetxController {
     try {
       await _storyRepository.addStoryComment(
         storyID,
-        userId: FirebaseAuth.instance.currentUser!.uid,
+        userId: CurrentUserService.instance.userId,
         text: text,
         gif: gif,
       );

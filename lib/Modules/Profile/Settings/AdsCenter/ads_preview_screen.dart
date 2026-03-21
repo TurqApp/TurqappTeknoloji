@@ -1,8 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdsPreviewScreen extends StatefulWidget {
   const AdsPreviewScreen({super.key});
@@ -23,7 +23,7 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
   void initState() {
     super.initState();
     _controller = Get.find<AdsCenterController>();
-    _userId.text = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _userId.text = CurrentUserService.instance.userId;
   }
 
   @override

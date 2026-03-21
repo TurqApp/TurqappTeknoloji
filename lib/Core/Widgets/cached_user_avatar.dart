@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
@@ -81,14 +80,13 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     _didBootstrap = true;
 
     final uid = (widget.userId ?? '').trim();
-    final authUid = (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
     if (uid.isEmpty) {
       await _resolveLocalFile(_resolvedUrl, allowNetwork: true);
       return;
     }
 
     final currentUser = CurrentUserService.instance;
-    if (uid == currentUser.userId || (authUid.isNotEmpty && uid == authUid)) {
+    if (uid == currentUser.userId) {
       final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
       if (currentAvatar.isNotEmpty) {
         _resolvedUrl = currentAvatar;
@@ -222,10 +220,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   Widget build(BuildContext context) {
     final userService = CurrentUserService.instance;
     final uid = (widget.userId ?? '').trim();
-    final authUid = (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
 
-    if (uid.isNotEmpty &&
-        (uid == userService.userId || (authUid.isNotEmpty && uid == authUid))) {
+    if (uid.isNotEmpty && uid == userService.userId) {
       return StreamBuilder(
         stream: userService.userStream,
         initialData: userService.currentUser,

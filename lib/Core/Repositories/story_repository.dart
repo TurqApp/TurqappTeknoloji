@@ -3,16 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
@@ -70,6 +69,8 @@ class StoryRepository extends GetxService {
     return Get.put(UserProfileCacheService(), permanent: true);
   }
   final UserRepository _userRepository = UserRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   String? _storyRowCacheDirectoryPath;
   SharedPreferences? _prefs;
@@ -216,10 +217,11 @@ class StoryRepository extends GetxService {
       userDataMap.addAll(await _loadMissingProfilesFromUsers(missingUserIds));
     }
 
-    final followingIds = currentUid.isEmpty
-        ? <String>{}
-        : await FollowRepository.ensure()
-            .getFollowingIds(currentUid, preferCache: true);
+    final followingIds = await VisibilityPolicyService.ensure()
+        .loadViewerFollowingIds(
+      viewerUserId: currentUid,
+      preferCache: true,
+    );
     final blockedSet = blockedUserIds.toSet();
     final current = CurrentUserService.instance;
     final users = <StoryUserModel>[];
@@ -236,9 +238,13 @@ class StoryRepository extends GetxService {
       );
 
       final isPrivate = (data['isPrivate'] ?? false) == true;
-      final isMine = currentUid.isNotEmpty && userId == currentUid;
-      final iFollow = followingIds.contains(userId);
-      if (isPrivate && !isMine && !iFollow) continue;
+      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: userId,
+        followingIds: followingIds,
+        isPrivate: isPrivate,
+        isDeleted: false,
+      );
+      if (!canSeeAuthor) continue;
 
       final resolvedNickname = _resolveStoryNickname(data).trim();
       users.add(
@@ -247,7 +253,7 @@ class StoryRepository extends GetxService {
               ? resolvedNickname
               : (data['nickname']?.toString().trim().isNotEmpty == true
                   ? data['nickname'].toString().trim()
-                  : (isMine
+                  : (currentUid.isNotEmpty && userId == currentUid
                       ? (current.nickname.isNotEmpty ? current.nickname : 'sen')
                       : 'kullanici')),
           avatarUrl: _resolveAvatar(data),
@@ -537,7 +543,9 @@ class StoryRepository extends GetxService {
   }
 
   Future<String> repostDeletedStory(StoryModel story) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? story.userId;
+    final uid = CurrentUserService.instance.userId.isNotEmpty
+        ? CurrentUserService.instance.userId
+        : story.userId;
     if (uid.trim().isEmpty) return '';
 
     final docRef = FirebaseFirestore.instance.collection('stories').doc();

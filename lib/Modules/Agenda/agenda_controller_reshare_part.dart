@@ -6,8 +6,8 @@ extension AgendaControllerResharePart on AgendaController {
     bool refreshFollowings = false,
   }) async {
     try {
-      final followings = await FollowRepository.ensure().getFollowingIds(
-        uid,
+      final followings = await _visibilityPolicy.loadViewerFollowingIds(
+        viewerUserId: uid,
         preferCache: true,
         forceRefresh: refreshFollowings,
       );
@@ -25,8 +25,8 @@ extension AgendaControllerResharePart on AgendaController {
   }
 
   Future<void> refreshFollowingData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     await _fetchFollowingAndReshares(uid, refreshFollowings: true);
   }
 
@@ -35,7 +35,7 @@ extension AgendaControllerResharePart on AgendaController {
     int perPostLimit = 2,
   }) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final uid = CurrentUserService.instance.userId;
       final targetPosts =
           posts.take(AgendaController._reshareScanPostLimit).toList();
       if (targetPosts.isEmpty) return;
@@ -55,7 +55,7 @@ extension AgendaControllerResharePart on AgendaController {
           for (final entry in entries) {
             if (entry.quotedPost) continue;
             final rid = entry.userId;
-            if (uid != null && rid == uid) continue;
+            if (rid == uid) continue;
             final key = '${p.docID}::$rid';
             if (existingKeys.contains(key)) continue;
             final ts = entry.timeStamp;
@@ -318,8 +318,8 @@ extension AgendaControllerResharePart on AgendaController {
 
   Future<void> _fetchAndMergeReshareEvents({int eventLimit = 500}) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) return;
 
       final allReshareEvents = <Map<String, dynamic>>[];
       final reshareUserIds = <String>{};
@@ -351,11 +351,14 @@ extension AgendaControllerResharePart on AgendaController {
       final visibleEvents = allReshareEvents.where((event) {
         final reshareUserId = (event['userID'] ?? '').toString();
         if (reshareUserId.isEmpty) return false;
-        if (reshareUserId == uid) return true;
-        if (followingIDs.contains(reshareUserId)) return true;
         final isPrivate = _userPrivacyCache[reshareUserId] ?? false;
         final isDeactivated = _userDeactivatedCache[reshareUserId] ?? false;
-        return !isPrivate && !isDeactivated;
+        return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+          authorUserId: reshareUserId,
+          followingIds: followingIDs,
+          isPrivate: isPrivate,
+          isDeleted: isDeactivated,
+        );
       }).toList()
         ..sort((a, b) => ((b['timeStamp'] ?? 0) as int)
             .compareTo((a['timeStamp'] ?? 0) as int));

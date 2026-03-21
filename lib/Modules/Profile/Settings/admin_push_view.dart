@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
@@ -7,6 +6,7 @@ import 'package:turqappv2/Core/Repositories/admin_push_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/job_categories.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdminPushView extends StatefulWidget {
   const AdminPushView({super.key});
@@ -157,7 +157,9 @@ class _AdminPushViewState extends State<AdminPushView> {
         minAge: minAge,
         maxAge: maxAge,
       );
-      final senderUid = FirebaseAuth.instance.currentUser?.uid ?? "admin";
+      final senderUid = CurrentUserService.instance.userId.trim().isEmpty
+          ? "admin"
+          : CurrentUserService.instance.userId.trim();
 
       if (targetUids.isEmpty) {
         AppSnackbar(

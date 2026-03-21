@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../../../Core/rozet_content.dart';
 import '../../../../../Models/story_comment_model.dart';
 import '../../../../SocialProfile/social_profile.dart';
@@ -23,6 +23,8 @@ class StoryCommentUser extends StatelessWidget {
       required this.model,
       required this.storyID,
       required this.isMyStory});
+
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +43,7 @@ class StoryCommentUser extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      if (model.userID !=
-                          FirebaseAuth.instance.currentUser!.uid) {
+                      if (model.userID != _currentUserId) {
                         Get.to(() => SocialProfile(userID: model.userID));
                       }
                     },
@@ -74,8 +75,7 @@ class StoryCommentUser extends StatelessWidget {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                if (model.userID !=
-                                    FirebaseAuth.instance.currentUser!.uid) {
+                                if (model.userID != _currentUserId) {
                                   Get.to(() =>
                                       SocialProfile(userID: model.userID));
                                 }
@@ -150,8 +150,7 @@ class StoryCommentUser extends StatelessWidget {
                   SizedBox(
                     width: 6,
                   ),
-                  if (isMyStory ||
-                      model.userID == FirebaseAuth.instance.currentUser!.uid)
+                  if (isMyStory || model.userID == _currentUserId)
                     Transform.translate(
                       offset: Offset(0, -10),
                       child: IconButton(

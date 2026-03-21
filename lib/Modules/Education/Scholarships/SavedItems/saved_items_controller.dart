@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -9,6 +8,7 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedItemsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -28,8 +28,8 @@ class SavedItemsController extends GetxController {
   }
 
   Future<void> _bootstrapSavedItems() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
@@ -37,13 +37,13 @@ class SavedItemsController extends GetxController {
     try {
       final results = await Future.wait<List<Map<String, dynamic>>>([
         _fetchScholarships(
-          user.uid,
+          userId,
           isLiked: true,
           cacheOnly: true,
           assignResult: false,
         ),
         _fetchScholarships(
-          user.uid,
+          userId,
           isBookmarked: true,
           cacheOnly: true,
           assignResult: false,
@@ -56,7 +56,7 @@ class SavedItemsController extends GetxController {
         bookmarkedScholarships.assignAll(bookmarked);
         isLoading.value = false;
         if (SilentRefreshGate.shouldRefresh(
-          'scholarships:saved:${user.uid}',
+          'scholarships:saved:$userId',
           minInterval: _silentRefreshInterval,
         )) {
           unawaited(fetchSavedItems(silent: true, forceRefresh: true));
@@ -72,8 +72,8 @@ class SavedItemsController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
@@ -85,17 +85,17 @@ class SavedItemsController extends GetxController {
     try {
       await Future.wait([
         _fetchScholarships(
-          user.uid,
+          userId,
           isLiked: true,
           forceRefresh: forceRefresh,
         ),
         _fetchScholarships(
-          user.uid,
+          userId,
           isBookmarked: true,
           forceRefresh: forceRefresh,
         ),
       ]);
-      SilentRefreshGate.markRefreshed('scholarships:saved:${user.uid}');
+      SilentRefreshGate.markRefreshed('scholarships:saved:$userId');
     } finally {
       if (shouldShowLoader ||
           (likedScholarships.isEmpty && bookmarkedScholarships.isEmpty)) {
@@ -183,12 +183,11 @@ class SavedItemsController extends GetxController {
   }
 
   Future<void> toggleLike(String docId, String type) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
-    final userId = user.uid;
 
     try {
       await _scholarshipRepository.toggleLike(
@@ -202,12 +201,11 @@ class SavedItemsController extends GetxController {
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
-    final userId = user.uid;
 
     try {
       await _scholarshipRepository.toggleBookmark(

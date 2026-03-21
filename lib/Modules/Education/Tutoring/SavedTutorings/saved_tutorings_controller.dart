@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedTutoringsController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
@@ -22,8 +22,8 @@ class SavedTutoringsController extends GetxController {
   }
 
   Future<void> loadSavedTutorings() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     try {
       final entries = await _subcollectionRepository.getEntries(
         uid,
@@ -41,8 +41,8 @@ class SavedTutoringsController extends GetxController {
   Future<void> addSavedTutoring(String docId) async {
     if (!savedTutoringIds.contains(docId)) {
       savedTutoringIds.add(docId);
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isNotEmpty) {
         await _subcollectionRepository.setEntries(
           uid,
           subcollection: 'educators',
@@ -62,8 +62,8 @@ class SavedTutoringsController extends GetxController {
   Future<void> removeSavedTutoring(String docId) async {
     if (savedTutoringIds.contains(docId)) {
       savedTutoringIds.remove(docId);
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isNotEmpty) {
         await _subcollectionRepository.setEntries(
           uid,
           subcollection: 'educators',

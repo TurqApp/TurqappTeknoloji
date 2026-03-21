@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -28,9 +27,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
   @override
   void initState() {
     super.initState();
-    uid = (FirebaseAuth.instance.currentUser?.uid ?? '').isNotEmpty
-        ? (FirebaseAuth.instance.currentUser?.uid ?? '')
-        : CurrentUserService.instance.userId;
+    uid = CurrentUserService.instance.userId;
     _reload();
   }
 

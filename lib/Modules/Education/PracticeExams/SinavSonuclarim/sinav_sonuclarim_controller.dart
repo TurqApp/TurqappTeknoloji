@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SinavSonuclarimController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
@@ -69,8 +69,8 @@ class SinavSonuclarimController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserID == null || currentUserID.isEmpty) return;
+    final currentUserID = CurrentUserService.instance.userId;
+    if (currentUserID.isEmpty) return;
     final cached = await _practiceExamRepository.fetchAnsweredByUser(
       currentUserID,
       cacheOnly: true,
@@ -99,7 +99,7 @@ class SinavSonuclarimController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+      final currentUserID = CurrentUserService.instance.userId;
       final exams = await _practiceExamRepository.fetchAnsweredByUser(
         currentUserID,
         preferCache: !forceRefresh,

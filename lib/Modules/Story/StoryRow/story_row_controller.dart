@@ -34,9 +34,15 @@ class StoryRowController extends GetxController {
   DateTime? _lastExpireCleanupAt;
   final StoryRepository _storyRepository = StoryRepository.ensure();
 
+  String get _currentUid {
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   void _ensureMyUserPlaceholder() {
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid == null || myUid.isEmpty) return;
+    final myUid = _currentUid;
+    if (myUid.isEmpty) return;
     if (users.any((u) => u.userID == myUid)) return;
 
     final nickname = userService.nickname.trim();
@@ -96,7 +102,7 @@ class StoryRowController extends GetxController {
 
   Future<void> _bootstrapStoryRow() async {
     await _loadStoriesFromMiniCache();
-    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final myUid = _currentUid;
     if (users.isEmpty ||
         SilentRefreshGate.shouldRefresh(
           'story:row:$myUid',
@@ -109,8 +115,8 @@ class StoryRowController extends GetxController {
   // Kendi kullanıcıyı hemen ekle (boş hikayelerle bile olsa görünür olsun)
   Future<void> addMyUserImmediately() async {
     try {
-      final myUid = FirebaseAuth.instance.currentUser?.uid;
-      if (myUid != null) {
+      final myUid = _currentUid;
+      if (myUid.isNotEmpty) {
         final data = await _userCache.getProfile(
           myUid,
           preferCache: true,
@@ -166,7 +172,7 @@ class StoryRowController extends GetxController {
   }
 
   Future<void> clearSessionCache() async {
-    final ownerUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final ownerUid = _currentUid;
     users.clear();
     _backgroundScheduled = false;
     if (ownerUid.isEmpty) return;
@@ -193,9 +199,9 @@ class StoryRowController extends GetxController {
         return;
       }
       final lim = limit ?? initialLimit;
-      final myUid = FirebaseAuth.instance.currentUser?.uid;
+      final myUid = _currentUid;
 
-      if (myUid != null) {
+      if (myUid.isNotEmpty) {
         final now = DateTime.now();
         final shouldCleanup = _lastExpireCleanupAt == null ||
             now.difference(_lastExpireCleanupAt!) >= _expireCleanupInterval;
@@ -208,9 +214,8 @@ class StoryRowController extends GetxController {
       final result = await _storyRepository.fetchStoryUsers(
         limit: lim,
         cacheFirst: cacheFirst,
-        currentUid: myUid ?? '',
-        blockedUserIds:
-            userService.currentUserRx.value?.blockedUsers ?? const <String>[],
+        currentUid: myUid,
+        blockedUserIds: userService.blockedUserIds,
       );
       cacheHit = result.cacheHit;
       final tempList = [...result.users];
@@ -218,7 +223,7 @@ class StoryRowController extends GetxController {
       // Önce kendi kullanıcını oluştur/çek
       StoryUserModel? myStoryUser;
 
-      if (myUid != null) {
+      if (myUid.isNotEmpty) {
         // Story'si varsa model tempList'te olacak
         myStoryUser = tempList.firstWhereOrNull((u) => u.userID == myUid);
 
@@ -280,12 +285,12 @@ class StoryRowController extends GetxController {
         ...seen,
       ];
       unawaited(_warmVisibleAvatarFiles(users));
-      if (kDebugMode && myUid != null) {
+      if (kDebugMode && myUid.isNotEmpty) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
         debugPrint(
             "Story row self state: exists=${me != null} stories=${me?.stories.length ?? 0}");
       }
-      if (myUid != null && myUid.isNotEmpty) {
+      if (myUid.isNotEmpty) {
         unawaited(
           _storyRepository.saveStoryRowCache(users, ownerUid: myUid),
         );
@@ -313,7 +318,7 @@ class StoryRowController extends GetxController {
 
   Future<void> _loadStoriesFromMiniCache({bool allowExpired = false}) async {
     try {
-      final expectedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final expectedUid = userService.userId.trim();
       final loaded = await _storyRepository.restoreStoryRowCache(
         ownerUid: expectedUid,
         allowExpired: allowExpired,

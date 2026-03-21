@@ -25,8 +25,8 @@ extension StoryRepositoryHelpersPart on StoryRepository {
     String userId,
     CurrentUserService current,
   ) {
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid != null && myUid == userId) {
+    final myUid = current.userId;
+    if (myUid.isNotEmpty && myUid == userId) {
       final full = current.fullName.trim();
       final parts = full.split(RegExp(r'\s+')).where((e) => e.isNotEmpty);
       final first = parts.isNotEmpty ? parts.first : '';

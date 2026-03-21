@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,6 +12,7 @@ import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class EducationInfoView extends StatelessWidget {
@@ -20,6 +20,7 @@ class EducationInfoView extends StatelessWidget {
 
   final EducationInfoController controller = Get.put(EducationInfoController());
   final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _currentUserService = CurrentUserService.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +47,11 @@ class EducationInfoView extends StatelessWidget {
                           cancelText: 'common.cancel'.tr,
                           yesText: 'common.reset'.tr,
                           onYesPressed: () async {
+                            final userId = _currentUserService.userId;
+                            if (userId.isEmpty) return;
                             controller.clearFields();
                             await _userRepository.updateUserFields(
-                              FirebaseAuth.instance.currentUser?.uid ?? '',
+                              userId,
                               {
                                 ...scopedUserUpdate(
                                   scope: 'education',

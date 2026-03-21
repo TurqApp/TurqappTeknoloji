@@ -174,7 +174,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
             ),
           ),
         ),
-        if (currentStory.userId == FirebaseAuth.instance.currentUser!.uid)
+        if (currentStory.userId == CurrentUserService.instance.userId)
           myToolBar()
         else
           otherToolBar()

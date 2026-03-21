@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/material.dart';
 
 class DeletedStoriesController extends GetxController {
@@ -15,6 +15,7 @@ class DeletedStoriesController extends GetxController {
   // UI paging
   final PageController pageController = PageController();
   final StoryRepository _storyRepository = StoryRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   @override
   void onInit() {
@@ -55,8 +56,8 @@ class DeletedStoriesController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = _userService.userId.trim();
+      if (uid.isEmpty) return;
 
       if (initial) {
         final restored = await _restoreFromCache(uid);
@@ -105,8 +106,8 @@ class DeletedStoriesController extends GetxController {
     list.removeWhere((e) => e.id == storyId);
     deletedAtById.remove(storyId);
     deleteReasonById.remove(storyId);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
+    final uid = _userService.userId.trim();
+    if (uid.isNotEmpty) {
       await _persistCache(uid);
     }
     // Dinamik: Hikaye satırını anlık tazele ve sahiplik bayrağını güncelle
@@ -128,8 +129,8 @@ class DeletedStoriesController extends GetxController {
     list.removeWhere((e) => e.id == story.id);
     deletedAtById.remove(story.id);
     deleteReasonById.remove(story.id);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
+    final uid = _userService.userId.trim();
+    if (uid.isNotEmpty) {
       await _persistCache(uid);
     }
     try {

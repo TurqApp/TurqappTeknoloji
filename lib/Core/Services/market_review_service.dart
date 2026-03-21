@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Models/market_review_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MarketReviewService {
   const MarketReviewService();
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
-  User? get _user => FirebaseAuth.instance.currentUser;
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   CollectionReference<Map<String, dynamic>> _reviewsRef(String itemId) {
     return _firestore.collection('marketStore').doc(itemId).collection('Reviews');
@@ -33,7 +33,7 @@ class MarketReviewService {
     required int rating,
     required String comment,
   }) async {
-    final uid = _user?.uid ?? '';
+    final uid = _currentUserId;
     if (uid.isEmpty) {
       throw Exception('auth_required');
     }
@@ -55,7 +55,7 @@ class MarketReviewService {
     required String itemId,
     required String reviewId,
   }) async {
-    final uid = _user?.uid ?? '';
+    final uid = _currentUserId;
     if (uid.isEmpty || uid != reviewId) {
       throw Exception('forbidden');
     }

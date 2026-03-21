@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticalPreviewController extends GetxController {
   final OpticalFormModel model;
@@ -45,7 +45,7 @@ class OpticalPreviewController extends GetxController {
     _opticalFormRepository
         .saveUserAnswers(
           model.docID,
-          FirebaseAuth.instance.currentUser!.uid,
+          CurrentUserService.instance.userId,
           answers: cevaplar.toList(growable: false),
           ogrenciNo: ogrenciNo.text,
           fullName: fullName.text,
@@ -56,7 +56,7 @@ class OpticalPreviewController extends GetxController {
   void kullaniciyiSinavGirdiKaydet() {
     _opticalFormRepository.initializeUserAnswers(
       model.docID,
-      FirebaseAuth.instance.currentUser!.uid,
+      CurrentUserService.instance.userId,
       model.cevaplar.length,
     );
   }

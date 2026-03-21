@@ -72,7 +72,7 @@ extension MessageContentReplyParts on MessageContent {
   }
 
   String _replySenderLabel() {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final currentUid = CurrentUserService.instance.userId.trim();
     if (model.replySenderId.trim().isNotEmpty &&
         model.replySenderId.trim() == currentUid) {
       return 'chat.you'.tr;

@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MandatoryFollowService {
   MandatoryFollowService._();
@@ -25,8 +25,8 @@ class MandatoryFollowService {
   }
 
   Future<void> _enforceInternal() async {
-    final me = FirebaseAuth.instance.currentUser?.uid;
-    if (me == null || me.isEmpty) return;
+    final me = CurrentUserService.instance.userId.trim();
+    if (me.isEmpty) return;
 
     final required = await _loadRequiredUids();
     if (required.isEmpty) return;
@@ -93,18 +93,9 @@ class MandatoryFollowService {
     required String me,
     required String other,
   }) async {
-    if (me == other) return;
-    final db = FirebaseFirestore.instance;
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    final myFollowingRef =
-        db.collection('users').doc(me).collection('followings').doc(other);
-    final otherFollowersRef =
-        db.collection('users').doc(other).collection('followers').doc(me);
-
-    final batch = db.batch();
-    batch.set(myFollowingRef, {'timeStamp': now}, SetOptions(merge: true));
-    batch.set(otherFollowersRef, {'timeStamp': now}, SetOptions(merge: true));
-    await batch.commit();
+    await FollowRepository.ensure().createRelationPair(
+      currentUid: me,
+      otherUid: other,
+    );
   }
 }

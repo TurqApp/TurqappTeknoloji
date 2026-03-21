@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
@@ -63,6 +64,8 @@ class FollowingFollowersController extends GetxController {
   var nickname = "".obs;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   FollowingFollowersController(
       {required this.userId, required int initialPage}) {
@@ -214,8 +217,8 @@ class FollowingFollowersController extends GetxController {
     }
 
     final fetchLimit = _resolveLimit(initial: initial);
-    final ids = await _followRepository.getFollowingIds(
-      userId,
+    final ids = await _visibilityPolicy.loadViewerFollowingIds(
+      viewerUserId: userId,
       preferCache: !forceServer,
       forceRefresh: forceServer,
     );
@@ -455,8 +458,8 @@ class FollowingFollowersController extends GetxController {
             preferCache: true,
             forceRefresh: false,
           )
-        : await _followRepository.getFollowingIds(
-            userId,
+        : await _visibilityPolicy.loadViewerFollowingIds(
+            viewerUserId: userId,
             preferCache: true,
             forceRefresh: false,
           );

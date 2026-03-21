@@ -1,8 +1,8 @@
 import 'dart:ui';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 
 class SharedPostLabel extends StatefulWidget {
@@ -122,7 +122,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           // Kendi ID'si ise tıklanabilir olmasın
-          final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+          final currentUserID = CurrentUserService.instance.userId;
           if (effectiveUserID != currentUserID) {
             Get.to(() => SocialProfile(userID: effectiveUserID));
           }

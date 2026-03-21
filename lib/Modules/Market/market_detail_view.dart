@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
@@ -59,8 +58,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       const <String, Map<String, dynamic>>{};
 
   MarketItemModel get item => _item;
+  String get _currentUserId => CurrentUserService.instance.userId;
   bool get _isOwner {
-    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    final uid = _currentUserId.trim();
     return uid.isNotEmpty && uid == item.userId;
   }
 
@@ -873,7 +873,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
 
   Widget _buildReviewsSection() {
     final canReview = !_isOwner;
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUserId = _currentUserId;
     final existingReview = _reviews
         .where((review) => review.userId == currentUserId)
         .cast<MarketReviewModel?>()
@@ -1032,7 +1032,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   }
 
   Widget _buildReviewCard(MarketReviewModel review) {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUserId = _currentUserId;
     final user = _reviewUsers[review.userId] ?? const <String, dynamic>{};
     final name = (user['nickname'] ??
             user['username'] ??
@@ -1172,7 +1172,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   }
 
   Future<void> _showReviewSheet({MarketReviewModel? existingReview}) async {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUserId = _currentUserId;
     if (currentUserId.isEmpty) {
       AppSnackbar(
         'common.info'.tr,

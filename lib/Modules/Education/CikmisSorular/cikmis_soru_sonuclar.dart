@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -6,6 +5,7 @@ import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Models/Education/cikmis_soru_sonuc_model.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_sonuc_content.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class CikmisSoruSonuclar extends StatefulWidget {
@@ -25,7 +25,9 @@ class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
   }
 
   Future<void> getData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? "local";
+    final uid = CurrentUserService.instance.userId.isNotEmpty
+        ? CurrentUserService.instance.userId
+        : "local";
     final tempList = await _repository.fetchUserResults(uid);
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     if (mounted) {

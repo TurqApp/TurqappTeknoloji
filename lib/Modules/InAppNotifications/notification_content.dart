@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +9,7 @@ import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'notification_content_controller.dart';
 
@@ -39,6 +39,8 @@ class NotificationContent extends StatelessWidget {
         : model.desc.trim();
     return base.endsWith(".") ? base : "$base.";
   }
+
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +73,7 @@ class NotificationContent extends StatelessWidget {
                       onCardTap!.call();
                       return;
                     }
-                    if (model.userID !=
-                        FirebaseAuth.instance.currentUser!.uid) {
+                    if (model.userID != _currentUserId) {
                       Get.to(() => SocialProfile(userID: model.userID));
                     }
                   },

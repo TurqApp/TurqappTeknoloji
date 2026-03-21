@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'StoryLikes/story_likes.dart';
 import 'StorySeens/story_seens.dart';
 
@@ -21,6 +21,7 @@ class UserStoryContentController extends GetxController {
   var likeCount = 0.obs;
   var isLikedMe = false.obs;
   final StoryRepository _storyRepository = StoryRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   // Reaction emoji support
   static const List<String> reactionEmojis = [
@@ -35,7 +36,7 @@ class UserStoryContentController extends GetxController {
   final RxString myReaction = ''.obs;
 
   Future<void> getLikes(String storyID) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = _userService.userId.trim();
     final snapshot = await _storyRepository.fetchStoryEngagement(
       storyID,
       currentUid: uid,
@@ -125,7 +126,7 @@ class UserStoryContentController extends GetxController {
 
   Future<void> getReactions(String storyID) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final uid = _userService.userId.trim();
       final snapshot = await _storyRepository.fetchStoryEngagement(
         storyID,
         currentUid: uid,
@@ -139,7 +140,7 @@ class UserStoryContentController extends GetxController {
 
   Future<void> react(String storyID, String emoji) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final uid = _userService.userId.trim();
       if (uid.isEmpty) return;
 
       final previousReaction = myReaction.value;
@@ -172,7 +173,7 @@ class UserStoryContentController extends GetxController {
   }
 
   Future<void> like(String storyID) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = _userService.userId.trim();
     if (uid.isEmpty) return;
     final next = await _storyRepository.toggleStoryLike(
       storyID,
@@ -192,7 +193,7 @@ class UserStoryContentController extends GetxController {
   }
 
   Future<void> setSeen(String storyID) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = _userService.userId.trim();
     if (uid.isEmpty) return;
     await _storyRepository.setStorySeen(
       storyID,

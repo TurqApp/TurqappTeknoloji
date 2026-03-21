@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -12,6 +11,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class PersonalizedController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
@@ -63,7 +63,7 @@ class PersonalizedController extends GetxController {
   }
 
   String get _cacheKey {
-    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return '$_cacheKeyPrefix:guest';
     return '$_cacheKeyPrefix:$uid';
   }
@@ -122,8 +122,8 @@ class PersonalizedController extends GetxController {
   // Load user data from Firestore
   Future<void> _loadUserData() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) return;
 
       final data = await _userRepository.getUserRaw(uid);
       if (data != null) {
@@ -325,8 +325,8 @@ class PersonalizedController extends GetxController {
 
     // Update in Firestore
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isNotEmpty) {
         await _userRepository.updateUserFields(uid, {
           ...scopedUserUpdate(
             scope: 'profile',

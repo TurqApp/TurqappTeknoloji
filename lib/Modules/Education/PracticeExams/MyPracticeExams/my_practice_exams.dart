@@ -1,17 +1,17 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/MyPracticeExams/my_practice_exams_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyPracticeExams extends StatelessWidget {
   const MyPracticeExams({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final MyPracticeExamsController controller =
         Get.put(MyPracticeExamsController());
 

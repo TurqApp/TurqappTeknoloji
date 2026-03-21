@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TagPostsRepository {
   final FirebaseFirestore _db;
-  final FollowRepository _followRepository;
+  final VisibilityPolicyService _visibilityPolicy;
   final UserRepository _userRepository;
 
   TagPostsRepository({FirebaseFirestore? firestore})
       : _db = firestore ?? FirebaseFirestore.instance,
-        _followRepository = FollowRepository.ensure(),
+        _visibilityPolicy = VisibilityPolicyService.ensure(),
         _userRepository = UserRepository.ensure();
 
   Future<List<PostsModel>> fetchByTag(String tag) async {
@@ -118,10 +118,13 @@ class TagPostsRepository {
 
   Future<List<PostsModel>> _filterByPrivacy(List<PostsModel> items) async {
     if (items.isEmpty) return items;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return items;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return items;
 
-    final followingIDs = (await _followRepository.getFollowingIds(uid)).toSet();
+    final followingIDs = (await _visibilityPolicy.loadViewerFollowingIds(
+      viewerUserId: uid,
+    ))
+        .toSet();
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
 
     final Map<String, bool> userPrivacy = {};
@@ -132,10 +135,12 @@ class TagPostsRepository {
 
     return items.where((post) {
       final isPrivate = userPrivacy[post.userID] ?? false;
-      if (!isPrivate) return true;
-      final isMine = post.userID == uid;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
+      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: post.userID,
+        followingIds: followingIDs,
+        isPrivate: isPrivate,
+        isDeleted: false,
+      );
     }).toList();
   }
 }

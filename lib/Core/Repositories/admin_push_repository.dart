@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdminPushReport {
   final String id;
@@ -191,7 +192,7 @@ class AdminPushRepository extends GetxService {
           .limit(pageSize);
     }
 
-    final senderUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final senderUid = CurrentUserService.instance.userId;
     return targets
         .where((targetUid) => targetUid.isNotEmpty && targetUid != senderUid)
         .toList(growable: false);
@@ -204,7 +205,9 @@ class AdminPushRepository extends GetxService {
     required List<String> targetUids,
   }) async {
     if (targetUids.isEmpty) return;
-    final senderUid = FirebaseAuth.instance.currentUser?.uid ?? 'admin';
+    final senderUid = CurrentUserService.instance.userId.isNotEmpty
+        ? CurrentUserService.instance.userId
+        : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     const batchSize = 400;
 
@@ -212,11 +215,7 @@ class AdminPushRepository extends GetxService {
       final batch = FirebaseFirestore.instance.batch();
       final chunk = targetUids.skip(i).take(batchSize);
       for (final targetUid in chunk) {
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(targetUid)
-            .collection('notifications')
-            .doc();
+        final docRef = NotificationsRepository.ensure().inboxDoc(targetUid);
         batch.set(docRef, {
           'type': type,
           'title': title,
@@ -243,7 +242,9 @@ class AdminPushRepository extends GetxService {
     final targetUids = await resolveTargetUids(filters: filters);
     if (targetUids.isEmpty) return 0;
 
-    final senderUid = FirebaseAuth.instance.currentUser?.uid ?? 'admin';
+    final senderUid = CurrentUserService.instance.userId.isNotEmpty
+        ? CurrentUserService.instance.userId
+        : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     const batchSize = 400;
     var written = 0;
@@ -252,11 +253,7 @@ class AdminPushRepository extends GetxService {
       final batch = FirebaseFirestore.instance.batch();
       final chunk = targetUids.skip(i).take(batchSize);
       for (final targetUid in chunk) {
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(targetUid)
-            .collection('notifications')
-            .doc();
+        final docRef = NotificationsRepository.ensure().inboxDoc(targetUid);
         batch.set(docRef, {
           'type': 'posts',
           'fromUserID': senderUid,

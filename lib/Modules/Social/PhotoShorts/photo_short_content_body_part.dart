@@ -82,8 +82,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                       ? GestureDetector(
                                           onTap: () {
                                             if (widget.model.userID !=
-                                                FirebaseAuth.instance
-                                                    .currentUser!.uid) {
+                                                _currentUserId) {
                                               Get.to(
                                                 () => SocialProfile(
                                                   userID: widget.model.userID,
@@ -118,8 +117,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                       GestureDetector(
                                         onTap: () {
                                           if (widget.model.userID !=
-                                              FirebaseAuth
-                                                  .instance.currentUser!.uid) {
+                                              _currentUserId) {
                                             Get.to(
                                               () => SocialProfile(
                                                 userID: widget.model.userID,
@@ -158,8 +156,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                             ),
                             SizedBox(width: 7),
                             if (!controller.takipEdiyorum.value &&
-                                widget.model.userID !=
-                                    FirebaseAuth.instance.currentUser!.uid &&
+                                widget.model.userID != _currentUserId &&
                                 controller.avatarUrl.value != "")
                               Transform.translate(
                                 offset: Offset(15, 0),
@@ -308,12 +305,12 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                 children: [
                   Icon(
                     controller.likes.contains(
-                      FirebaseAuth.instance.currentUser!.uid,
+                      _currentUserId,
                     )
                         ? CupertinoIcons.hand_thumbsup_fill
                         : CupertinoIcons.hand_thumbsup,
                     color: controller.likes.contains(
-                      FirebaseAuth.instance.currentUser!.uid,
+                      _currentUserId,
                     )
                         ? Colors.blueAccent
                         : Colors.white,
@@ -500,7 +497,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           title: 'short.add_to_story'.tr,
           icon: CupertinoIcons.sparkles,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
+        if (widget.model.userID == _currentUserId ||
             controller.canSendAdminPush)
           PullDownMenuItem(
             onTap: () {
@@ -577,7 +574,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           title: 'common.share'.tr,
           icon: CupertinoIcons.share_up,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (widget.model.userID == _currentUserId)
           PullDownMenuItem(
             onTap: () {
               noYesAlert(
@@ -596,7 +593,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
-            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+            widget.model.userID == _currentUserId)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -607,7 +604,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
-            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+            widget.model.userID == _currentUserId)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();
@@ -616,7 +613,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
-        if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid)
+        if (widget.model.userID != _currentUserId)
           PullDownMenuItem(
             onTap: () {
               Get.to(() => ReportUser(

@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class _CachedFollowingSet {
   final Set<String> ids;
@@ -98,12 +98,33 @@ class FollowRepository extends GetxService {
     return ids;
   }
 
+  Future<int> countFollowersInRange(
+    String uid, {
+    required int fromInclusive,
+    int? toInclusive,
+    int? toExclusive,
+  }) async {
+    if (uid.isEmpty) return 0;
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('followers')
+        .where('timeStamp', isGreaterThanOrEqualTo: fromInclusive);
+    if (toInclusive != null) {
+      query = query.where('timeStamp', isLessThanOrEqualTo: toInclusive);
+    } else if (toExclusive != null) {
+      query = query.where('timeStamp', isLessThan: toExclusive);
+    }
+    final aggregate = await query.count().get();
+    return aggregate.count ?? 0;
+  }
+
   Future<bool> isFollowing(
     String otherUid, {
     String? currentUid,
     bool preferCache = true,
   }) async {
-    final me = currentUid ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+    final me = currentUid ?? CurrentUserService.instance.userId;
     if (me.isEmpty || otherUid.isEmpty) return false;
 
     final cached = await getFollowingIds(
@@ -150,6 +171,194 @@ class FollowRepository extends GetxService {
       next.remove(otherUid);
     }
     await _persistRelation(_relationKey(currentUid, 'followings'), next);
+  }
+
+  Future<void> createRelationPair({
+    required String currentUid,
+    required String otherUid,
+    int? timestampMs,
+  }) async {
+    if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid) return;
+    final firestore = FirebaseFirestore.instance;
+    final now = timestampMs ?? DateTime.now().millisecondsSinceEpoch;
+    final batch = firestore.batch();
+    final followingRef = firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('followings')
+        .doc(otherUid);
+    final followerRef = firestore
+        .collection('users')
+        .doc(otherUid)
+        .collection('followers')
+        .doc(currentUid);
+    batch.set(followingRef, {'timeStamp': now}, SetOptions(merge: true));
+    batch.set(followerRef, {'timeStamp': now}, SetOptions(merge: true));
+    await batch.commit();
+    await applyToggle(currentUid, otherUid, nowFollowing: true);
+  }
+
+  Future<void> deleteRelationPair({
+    required String currentUid,
+    required String otherUid,
+  }) async {
+    if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid) return;
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+    final followingRef = firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('followings')
+        .doc(otherUid);
+    final followerRef = firestore
+        .collection('users')
+        .doc(otherUid)
+        .collection('followers')
+        .doc(currentUid);
+    batch.delete(followingRef);
+    batch.delete(followerRef);
+    await batch.commit();
+    await applyToggle(currentUid, otherUid, nowFollowing: false);
+  }
+
+  Future<FollowWriteResult> toggleRelation({
+    required String currentUid,
+    required String otherUid,
+    required int dailyLimit,
+    required String todayKey,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
+    final myFollowingRef = firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('followings')
+        .doc(otherUid);
+    final otherFollowersRef = firestore
+        .collection('users')
+        .doc(otherUid)
+        .collection('followers')
+        .doc(currentUid);
+    final counterRef = firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('private')
+        .doc('followDaily');
+
+    final result =
+        await firestore.runTransaction<FollowWriteResult>((transaction) async {
+      final myFollowSnap = await transaction.get(myFollowingRef);
+
+      if (myFollowSnap.exists) {
+        transaction.delete(myFollowingRef);
+        transaction.delete(otherFollowersRef);
+        return const FollowWriteResult(
+            nowFollowing: false, limitReached: false);
+      }
+
+      int currentCount = 0;
+      var storedDay = todayKey;
+      final counterSnap = await transaction.get(counterRef);
+      if (counterSnap.exists) {
+        final data = counterSnap.data();
+        storedDay = (data?['date'] as String?) ?? todayKey;
+        if (storedDay == todayKey) {
+          final raw = data?['count'];
+          if (raw is int) currentCount = raw;
+        }
+      }
+
+      if (currentCount >= dailyLimit) {
+        return const FollowWriteResult(nowFollowing: false, limitReached: true);
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      transaction.set(
+          myFollowingRef, {'timeStamp': now}, SetOptions(merge: true));
+      transaction.set(
+          otherFollowersRef, {'timeStamp': now}, SetOptions(merge: true));
+      transaction.set(
+        counterRef,
+        {'date': todayKey, 'count': currentCount + 1},
+        SetOptions(merge: true),
+      );
+      return const FollowWriteResult(nowFollowing: true, limitReached: false);
+    });
+
+    await applyToggle(
+      currentUid,
+      otherUid,
+      nowFollowing: result.nowFollowing,
+    );
+    return result;
+  }
+
+  Future<bool> ensureRelation({
+    required String currentUid,
+    required String otherUid,
+    required bool bypassDailyLimit,
+    required int dailyLimit,
+    required String todayKey,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
+    final myFollowingRef = firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('followings')
+        .doc(otherUid);
+    final otherFollowersRef = firestore
+        .collection('users')
+        .doc(otherUid)
+        .collection('followers')
+        .doc(currentUid);
+    final counterRef = firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('private')
+        .doc('followDaily');
+
+    final created = await firestore.runTransaction<bool>((transaction) async {
+      final existing = await transaction.get(myFollowingRef);
+      if (existing.exists) return false;
+
+      if (!bypassDailyLimit) {
+        int currentCount = 0;
+        var storedDay = todayKey;
+        final counterSnap = await transaction.get(counterRef);
+        if (counterSnap.exists) {
+          final data = counterSnap.data();
+          storedDay = (data?['date'] as String?) ?? todayKey;
+          if (storedDay == todayKey) {
+            final raw = data?['count'];
+            if (raw is int) currentCount = raw;
+          }
+        }
+
+        if (currentCount >= dailyLimit) {
+          return false;
+        }
+        transaction.set(
+          counterRef,
+          {'date': todayKey, 'count': currentCount + 1},
+          SetOptions(merge: true),
+        );
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      transaction.set(
+          myFollowingRef, {'timeStamp': now}, SetOptions(merge: true));
+      transaction.set(
+          otherFollowersRef, {'timeStamp': now}, SetOptions(merge: true));
+      return true;
+    });
+
+    if (created) {
+      await applyToggle(
+        currentUid,
+        otherUid,
+        nowFollowing: true,
+      );
+    }
+    return created;
   }
 
   Future<void> invalidate(String uid) async {
@@ -225,7 +434,8 @@ class FollowRepository extends GetxService {
     _relationMemory[relationKey] =
         _CachedFollowingSet(ids: ids.toSet(), cachedAt: cachedAt);
     if (relationKey.endsWith(':followings')) {
-      final uid = relationKey.substring(0, relationKey.length - ':followings'.length);
+      final uid =
+          relationKey.substring(0, relationKey.length - ':followings'.length);
       _memory[uid] = _CachedFollowingSet(ids: ids.toSet(), cachedAt: cachedAt);
     }
     _prefs ??= await SharedPreferences.getInstance();
@@ -237,7 +447,8 @@ class FollowRepository extends GetxService {
       }),
     );
     if (relationKey.endsWith(':followings')) {
-      final uid = relationKey.substring(0, relationKey.length - ':followings'.length);
+      final uid =
+          relationKey.substring(0, relationKey.length - ':followings'.length);
       await _prefs?.setString(
         _prefsKey(uid),
         jsonEncode({
@@ -250,4 +461,14 @@ class FollowRepository extends GetxService {
 
   String _relationPrefsKey(String relationKey) =>
       '$_relationPrefsKeyPrefix:$relationKey';
+}
+
+class FollowWriteResult {
+  final bool nowFollowing;
+  final bool limitReached;
+
+  const FollowWriteResult({
+    required this.nowFollowing,
+    required this.limitReached,
+  });
 }

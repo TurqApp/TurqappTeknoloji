@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdsCampaignEditorView extends StatefulWidget {
   const AdsCampaignEditorView({super.key, this.initialCampaign});
@@ -458,7 +458,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   }
 
   Future<void> _save() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final base = widget.initialCampaign ?? AdCampaign.empty(createdBy: uid);
 
     final campaign = base.copyWith(

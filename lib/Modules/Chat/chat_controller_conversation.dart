@@ -2,8 +2,8 @@ part of 'chat_controller.dart';
 
 extension _ChatControllerConversationX on ChatController {
   Future<void> _clearConversationUnread() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     try {
       await _conversationRepository.setUnreadCount(
         chatId: chatID,
@@ -29,8 +29,8 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   Future<void> _markConversationOpenedNow() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
       "chat_last_opened_${uid}_$chatID",
@@ -39,8 +39,8 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   Future<void> _markConversationOpenedAt(int timestampMs) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final key = "chat_last_opened_${uid}_$chatID";
     final old = prefs.getInt(key) ?? 0;
@@ -102,8 +102,8 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _onTypingChanged() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final text = textEditingController.text;
     if (text.isNotEmpty) {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -133,8 +133,8 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _clearTyping() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     if (!_typingActive) return;
     try {
       FirebaseFirestore.instance
@@ -191,8 +191,8 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   Future<void> loadChatBackgroundPreference() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     try {
       final data = await _conversationRepository.getConversation(
             chatID,
@@ -220,8 +220,8 @@ extension _ChatControllerConversationX on ChatController {
   Future<void> setChatBackgroundPreference(int index) async {
     if (index < 0 || index > 5) return;
     chatBgPaletteIndex.value = index;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     try {
       await FirebaseFirestore.instance
           .collection("conversations")

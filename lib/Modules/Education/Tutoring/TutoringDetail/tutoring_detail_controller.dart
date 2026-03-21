@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_review_model.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringDetailController extends GetxController {
   var isLoading = true.obs;
@@ -43,7 +43,7 @@ class TutoringDetailController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
 
-  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+  String get _uid => CurrentUserService.instance.userId;
 
   @override
   void onInit() {
@@ -93,7 +93,7 @@ class TutoringDetailController extends GetxController {
   Future<void> checkBasvuru(String docID) async {
     try {
       final uid = _uid;
-      if (uid == null) return;
+      if (uid.isEmpty) return;
       basvuruldu.value = await _tutoringRepository.hasApplication(docID, uid);
     } catch (_) {
       basvuruldu.value = false;
@@ -102,7 +102,7 @@ class TutoringDetailController extends GetxController {
 
   Future<void> toggleBasvuru(String docId) async {
     final uid = _uid;
-    if (uid == null) {
+    if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'tutoring.apply_login_required'.tr);
       return;
     }
@@ -148,7 +148,7 @@ class TutoringDetailController extends GetxController {
   Future<void> _incrementViewCount(String docID, String ownerUID) async {
     try {
       final uid = _uid;
-      if (uid == null) return;
+      if (uid.isEmpty) return;
       if (uid == ownerUID) return;
       await _tutoringRepository.incrementViewCount(docID);
     } catch (_) {}
@@ -219,7 +219,7 @@ class TutoringDetailController extends GetxController {
 
   Future<void> submitReview(String docID, int rating, String comment) async {
     final uid = _uid;
-    if (uid == null) return;
+    if (uid.isEmpty) return;
 
     try {
       await _tutoringRepository.submitReview(

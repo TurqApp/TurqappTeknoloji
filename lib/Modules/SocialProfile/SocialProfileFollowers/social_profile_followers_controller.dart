@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 
 class SocialProfileFollowersController extends GetxController {
   String userID;
@@ -21,6 +22,8 @@ class SocialProfileFollowersController extends GetxController {
   static final Map<String, _RelationListCacheEntry> _relationCache =
       <String, _RelationListCacheEntry>{};
   final FollowRepository _followRepository = FollowRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   SocialProfileFollowersController(
       {required int initialPage, required this.userID}) {
@@ -78,8 +81,8 @@ class SocialProfileFollowersController extends GetxController {
     if (isLoadingFollowing || !hasMoreFollowing) return;
     isLoadingFollowing = true;
 
-    final ids = await _followRepository.getFollowingIds(
-      userID,
+    final ids = await _visibilityPolicy.loadViewerFollowingIds(
+      viewerUserId: userID,
       preferCache: true,
       forceRefresh: false,
     );

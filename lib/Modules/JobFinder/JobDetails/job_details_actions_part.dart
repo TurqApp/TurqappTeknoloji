@@ -9,7 +9,7 @@ extension JobDetailsActionsPart on JobDetails {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (controller.model.value.userID ==
-                (FirebaseAuth.instance.currentUser?.uid ?? ''))
+                CurrentUserService.instance.userId)
               Expanded(
                 child: Row(
                   children: [

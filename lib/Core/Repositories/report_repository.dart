@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/strings.dart';
 import 'package:turqappv2/Models/report_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReportAggregateItem {
   final String id;
@@ -42,7 +42,7 @@ class ReportRepository extends GetxService {
     required ReportModel selection,
     String targetType = 'post',
   }) async {
-    final reporterUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final reporterUserId = CurrentUserService.instance.userId;
     if (reporterUserId.isEmpty) {
       throw StateError('auth_required');
     }
@@ -123,7 +123,7 @@ class ReportRepository extends GetxService {
   }
 
   Future<Map<String, dynamic>> ensureConfigWithCallable() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('ensureReportsConfig');
     final res = await callable.call(<String, dynamic>{
@@ -140,7 +140,7 @@ class ReportRepository extends GetxService {
     required String aggregateId,
     required bool restore,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('reviewReportedTarget');
     await callable.call(<String, dynamic>{

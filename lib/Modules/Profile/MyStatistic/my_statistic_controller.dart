@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_stats_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -52,8 +51,8 @@ class MyStatisticController extends GetxController {
   }
 
   void _bindUserDocCounters() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     _userDocSub?.cancel();
     final userService = CurrentUserService.instance;
     final current = userService.currentUser;
@@ -73,8 +72,8 @@ class MyStatisticController extends GetxController {
   Future<void> _loadAll() async {
     isLoading.value = true;
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) {
         _reset();
         return;
       }
@@ -108,8 +107,8 @@ class MyStatisticController extends GetxController {
   }
 
   Future<void> _loadWarmCache() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     final cached = await _statsRepository.getStats(uid, preferCache: true);
     if (cached == null || cached.isEmpty) return;
     _applyStatsSnapshot(cached);

@@ -115,7 +115,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     title: 'common.share'.tr,
                     icon: CupertinoIcons.share_up,
                   ),
-                  if (!_isBlockedByMe(widget.userID))
+                  if (!controller.isBlockedByCurrentViewer(widget.userID))
                     PullDownMenuItem(
                       onTap: () async {
                         _setCenteredIndex(-1);
@@ -125,7 +125,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       title: 'common.block'.tr,
                       icon: CupertinoIcons.xmark_circle,
                     ),
-                  if (_isBlockedByMe(widget.userID))
+                  if (controller.isBlockedByCurrentViewer(widget.userID))
                     PullDownMenuItem(
                       onTap: () async {
                         _setCenteredIndex(-1);
@@ -167,7 +167,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           imageAndFollowButtons(),
           const SizedBox(height: 12),
           textInfoBody(),
-          if (!_isBlockedByMe(widget.userID)) _buildLinksAndHighlightsRow(),
+          if (!controller.isBlockedByCurrentViewer(widget.userID))
+            _buildLinksAndHighlightsRow(),
           Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -190,9 +191,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
         children: [
           GestureDetector(
             onTap: () async {
-              final isPrivateBlocked = controller.gizliHesap.value &&
-                  controller.takipEdiyorum.value == false &&
-                  widget.userID != _myUserId;
+              final isPrivateBlocked =
+                  controller.isPrivateContentBlockedFor(_myUserId);
               if (isPrivateBlocked) {
                 AppSnackbar('profile.private_account_title'.tr,
                     'profile.private_story_follow_required'.tr);
@@ -223,10 +223,11 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             child: _buildProfileImageWithBorder(),
           ),
           const SizedBox(width: 12),
-          if (controller.complatedCheck.value && !_isBlockedByMe(widget.userID))
+          if (controller.complatedCheck.value &&
+              !controller.isBlockedByCurrentViewer(widget.userID))
             followButtons()
           else if (controller.complatedCheck.value &&
-              _isBlockedByMe(widget.userID))
+              controller.isBlockedByCurrentViewer(widget.userID))
             unblockButton(),
         ],
       ),
@@ -712,7 +713,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     highlight: hl,
                   ),
                   onLongPress: () {
-                    final myUid = FirebaseAuth.instance.currentUser?.uid;
+                    final myUid = CurrentUserService.instance.userId;
                     if (widget.userID == myUid) {
                       noYesAlert(
                         title: 'profile.remove_highlight_title'.tr,
@@ -750,11 +751,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      _isBlockedByMe(widget.userID)
-                          ? "0"
-                          : NumberFormatter.format(
-                              controller.totalPosts.toInt(),
-                            ),
+                      controller.displayCounterValue(
+                        viewerUserId: widget.userID,
+                        value: controller.totalPosts.toInt(),
+                      ),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -793,11 +793,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      _isBlockedByMe(widget.userID)
-                          ? "0"
-                          : NumberFormatter.format(
-                              controller.totalFollower.toInt(),
-                            ),
+                      controller.displayCounterValue(
+                        viewerUserId: widget.userID,
+                        value: controller.totalFollower.toInt(),
+                      ),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -836,11 +835,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      _isBlockedByMe(widget.userID)
-                          ? "0"
-                          : NumberFormatter.format(
-                              controller.totalFollowing.toInt(),
-                            ),
+                      controller.displayCounterValue(
+                        viewerUserId: widget.userID,
+                        value: controller.totalFollowing.toInt(),
+                      ),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -870,11 +868,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    _isBlockedByMe(widget.userID)
-                        ? "0"
-                        : NumberFormatter.format(
-                            controller.totalLikes.value.toInt(),
-                          ),
+                    controller.displayCounterValue(
+                      viewerUserId: widget.userID,
+                      value: controller.totalLikes.value.toInt(),
+                    ),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -907,11 +904,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      _isBlockedByMe(widget.userID)
-                          ? "0"
-                          : NumberFormatter.format(
-                              controller.totalMarket.toInt(),
-                            ),
+                      controller.displayCounterValue(
+                        viewerUserId: widget.userID,
+                        value: controller.totalMarket.toInt(),
+                      ),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 18,

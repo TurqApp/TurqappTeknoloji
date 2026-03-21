@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'story_highlights_controller.dart';
 
 class HighlightPickerSheet extends StatefulWidget {
@@ -27,8 +27,8 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return const SizedBox.shrink();
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return const SizedBox.shrink();
     final media = MediaQuery.of(context);
     final topInset = media.padding.top;
     final bottomInset = media.viewInsets.bottom;

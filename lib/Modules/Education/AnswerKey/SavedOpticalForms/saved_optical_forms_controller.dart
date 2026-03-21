@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedOpticalFormsController extends GetxController {
   final BookletRepository _bookletRepository = BookletRepository.ensure();
@@ -61,8 +61,8 @@ class SavedOpticalFormsController extends GetxController {
 
   Future<void> _bootstrapData() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) {
         isLoading.value = false;
         return;
       }
@@ -108,7 +108,7 @@ class SavedOpticalFormsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = CurrentUserService.instance.userId;
       final savedEntries = await _userSubcollectionRepository.getEntries(
         uid,
         subcollection: "books",

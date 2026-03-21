@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
+import { addInboxItem } from "./notificationInbox";
 import { normalizeUsernameLower } from "./userSchemaUtils";
 
 if (admin.apps.length === 0) {
@@ -12,6 +13,10 @@ const RENEWAL_CUTOFF_MS = Date.UTC(2026, 3, 1, 0, 0, 0, 0);
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const ONE_MONTH_MS = 30 * ONE_DAY_MS;
 const ONE_YEAR_MS = 365 * ONE_DAY_MS;
+
+function verifiedCollection() {
+  return db.collection("adminConfig").doc("admin").collection("TurqAppVerified");
+}
 
 const BADGE_MAP = new Map<string, string>([
   ["", ""],
@@ -32,20 +37,16 @@ function badgeNeedsAnnualRenewal(rozet: string, nowMs: number): boolean {
 }
 
 async function createRenewalNotification(uid: string, rozet: string, expiresAt: number) {
-  await db
-    .collection("users")
-    .doc(uid)
-    .collection("notifications")
-    .add({
-      type: "System",
-      fromUserID: "",
-      postID: "",
-      timeStamp: Date.now(),
-      read: false,
-      title: "Rozet yenileme zamanı",
-      body: `${rozet} rozetiniz 1 ay içinde sona erecek. Yeniden başvuru ekranı açıldı.`,
-      badgeExpiresAt: expiresAt,
-    });
+  await addInboxItem(db, uid, {
+    type: "System",
+    fromUserID: "",
+    postID: "",
+    timeStamp: Date.now(),
+    read: false,
+    title: "Rozet yenileme zamanı",
+    body: `${rozet} rozetiniz 1 ay içinde sona erecek. Yeniden başvuru ekranı açıldı.`,
+    badgeExpiresAt: expiresAt,
+  });
 }
 
 function ensureAuth(context: functions.https.CallableContext) {
@@ -212,7 +213,7 @@ async function applyBadgeToUserDoc(
   }
 
   await userDoc.ref.update(userPatch);
-  await db.collection("TurqAppVerified").doc(userDoc.id).set({
+  await verifiedCollection().doc(userDoc.id).set({
     userID: userDoc.id,
     selected: rozet,
     status: "approved",
@@ -341,7 +342,7 @@ export const processBadgeRenewals = functions
             updatedDate: nowMs,
             rozetExpiredAt: nowMs,
           }, {merge: true});
-          await db.collection("TurqAppVerified").doc(doc.id).set({
+          await verifiedCollection().doc(doc.id).set({
             userID: doc.id,
             status: "expired",
             expiredAt: nowMs,
@@ -355,7 +356,7 @@ export const processBadgeRenewals = functions
             rozetRenewalWarnedAt: nowMs,
             updatedDate: nowMs,
           }, {merge: true});
-          await db.collection("TurqAppVerified").doc(doc.id).set({
+          await verifiedCollection().doc(doc.id).set({
             userID: doc.id,
             status: "renewal_open",
             renewalOpenedAt: nowMs,

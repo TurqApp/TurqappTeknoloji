@@ -97,21 +97,17 @@ class _ProfileViewState extends State<ProfileView> {
   Worker? _marketUserWorker;
 
   String get _myUserId {
-    final serviceUserId =
-        (userService.currentUserRx.value?.userID ?? '').trim();
+    final serviceUserId = userService.userId.trim();
     if (serviceUserId.isNotEmpty) return serviceUserId;
     return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   }
 
-  String get _myNickname => userService.currentUserRx.value?.nickname ?? '';
+  String get _myNickname => userService.nickname;
   String get _myIosSafeNickname {
     final controllerNickname = controller.headerNickname.value.trim();
     if (controllerNickname.isNotEmpty) return controllerNickname;
     final direct = _myNickname.trim();
     if (direct.isNotEmpty) return direct;
-    final authDisplay =
-        FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
-    if (authDisplay.isNotEmpty) return authDisplay;
     return _myNickname;
   }
 
@@ -121,18 +117,17 @@ class _ProfileViewState extends State<ProfileView> {
     return userService.avatarUrl;
   }
 
-  String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
-  String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
+  String get _myFirstName => userService.firstName;
+  String get _myLastName => userService.lastName;
   bool get _hasVerifiedRozet {
     final headerRozet = normalizeRozetValue(controller.headerRozet.value);
     if (headerRozet.isNotEmpty) return true;
-    return normalizeRozetValue(userService.currentUserRx.value?.rozet ?? '')
-        .isNotEmpty;
+    return normalizeRozetValue(userService.rozet).isNotEmpty;
   }
 
-  String get _myMeslek => userService.currentUserRx.value?.meslekKategori ?? '';
-  String get _myBio => userService.currentUserRx.value?.bio ?? '';
-  String get _myAdres => userService.currentUserRx.value?.adres ?? '';
+  String get _myMeslek => userService.meslekKategori;
+  String get _myBio => userService.bio;
+  String get _myAdres => userService.adres;
   String get _myDisplayFirstName {
     final display = controller.headerDisplayName.value.trim();
     if (display.isNotEmpty) return display;
@@ -166,8 +161,8 @@ class _ProfileViewState extends State<ProfileView> {
     return _myAdres.trim();
   }
 
-  int get _myTotalPosts => userService.currentUserRx.value?.counterOfPosts ?? 0;
-  int get _myTotalLikes => userService.currentUserRx.value?.counterOfLikes ?? 0;
+  int get _myTotalPosts => userService.counterOfPosts;
+  int get _myTotalLikes => userService.counterOfLikes;
   int get _myTotalMarket =>
       _marketItems.where((item) => item.status != 'archived').length;
   bool get _hasMyStories =>
@@ -199,8 +194,8 @@ class _ProfileViewState extends State<ProfileView> {
       unawaited(_loadMarketItems(force: true));
     });
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null && uid.isNotEmpty) {
+    final uid = userService.userId;
+    if (uid.isNotEmpty) {
       final tag = 'highlights_$uid';
       if (Get.isRegistered<StoryHighlightsController>(tag: tag)) {
         Get.find<StoryHighlightsController>(tag: tag).loadHighlights();

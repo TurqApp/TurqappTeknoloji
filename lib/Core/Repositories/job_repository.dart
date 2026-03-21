@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
@@ -449,11 +450,8 @@ class JobRepository extends GetxService {
         .doc(userId)
         .collection('myApplications')
         .doc(jobDocId);
-    final ownerNotificationRef = _firestore
-        .collection('users')
-        .doc(ownerUserId)
-        .collection('notifications')
-        .doc();
+    final ownerNotificationRef =
+        NotificationsRepository.ensure().inboxDoc(ownerUserId);
     final jobDocRef = _firestore.collection(JobCollection.name).doc(jobDocId);
 
     final snap = await applicationRef.get();
@@ -525,11 +523,8 @@ class JobRepository extends GetxService {
         .doc(applicantUserId)
         .collection('myApplications')
         .doc(jobDocId);
-    final notificationRef = _firestore
-        .collection('users')
-        .doc(applicantUserId)
-        .collection('notifications')
-        .doc();
+    final notificationRef =
+        NotificationsRepository.ensure().inboxDoc(applicantUserId);
 
     final applicationSnap = await applicationRef.get();
     if (!applicationSnap.exists) {

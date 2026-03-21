@@ -479,8 +479,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
         Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Obx(() {
-            final me = FirebaseAuth.instance.currentUser;
-            if (me == null) return const SizedBox.shrink();
+            final me = _currentUid;
+            if (me.isEmpty) return const SizedBox.shrink();
             return Transform.translate(
               offset: const Offset(17, 0),
               child: SizedBox(
@@ -563,7 +563,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
             await UsernameLookupRepository.ensure().findUidForHandle(mention) ??
                 '';
 
-        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        final currentUid = controller.userService.userId;
         if (targetUid.isNotEmpty && targetUid != currentUid) {
           await Get.to(() => SocialProfile(userID: targetUid));
         }

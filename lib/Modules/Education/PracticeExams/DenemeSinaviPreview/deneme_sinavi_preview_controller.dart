@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -7,6 +6,7 @@ import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -26,6 +26,7 @@ class DenemeSinaviPreviewController extends GetxController {
   final int fifteenMinutes = 15 * 60 * 1000;
 
   final SinavModel model;
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   DenemeSinaviPreviewController({required this.model});
 
@@ -71,9 +72,7 @@ class DenemeSinaviPreviewController extends GetxController {
       List<String> gecersizSayilanlar = List<String>.from(
         data['gecersizSayilanlar'] ?? [],
       );
-      sinavaGirebilir.value = !gecersizSayilanlar.contains(
-        FirebaseAuth.instance.currentUser!.uid,
-      );
+      sinavaGirebilir.value = !gecersizSayilanlar.contains(_currentUserId);
     } catch (error) {
       AppSnackbar('common.error'.tr, 'practice.invalidity_load_failed'.tr);
       sinavaGirebilir.value = true;
@@ -82,7 +81,8 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<Map<String, num>?> _getLatestExamSummary() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = _currentUserId;
+      if (uid.isEmpty) return null;
       final answers = await _practiceExamRepository.fetchAnswers(
         model.docID,
         preferCache: true,
@@ -140,7 +140,7 @@ class DenemeSinaviPreviewController extends GetxController {
         .collection("SinaviBitenler")
         .doc(DateTime.now().millisecondsSinceEpoch.toString())
         .set({
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "userID": _currentUserId,
       "timeStamp": DateTime.now().millisecondsSinceEpoch,
     });
     SetOptions(merge: true);
@@ -234,7 +234,8 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> addBasvuru() async {
     try {
-      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final currentUid = _currentUserId;
+      if (currentUid.isEmpty) return;
       final examRef = FirebaseFirestore.instance
           .collection("practiceExams")
           .doc(model.docID);
@@ -286,7 +287,7 @@ class DenemeSinaviPreviewController extends GetxController {
       );
       dahaOnceBasvurdu.value = await _practiceExamRepository.hasApplication(
         model.docID,
-        FirebaseAuth.instance.currentUser!.uid,
+        _currentUserId,
       );
     } catch (error) {
       AppSnackbar('common.error'.tr, 'practice.application_check_failed'.tr);

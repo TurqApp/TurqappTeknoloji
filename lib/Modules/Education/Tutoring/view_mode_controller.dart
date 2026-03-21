@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ViewModeController extends GetxController {
   static const String _viewModePrefKeyPrefix = 'pasaj_tutoring_view_mode';
@@ -18,7 +18,7 @@ class ViewModeController extends GetxController {
   }
 
   Future<void> _restoreViewMode() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       isGridView.value = false;
       isReady.value = true;
@@ -35,7 +35,7 @@ class ViewModeController extends GetxController {
   }
 
   Future<void> _persistViewMode() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();

@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FindingJobApplyController extends GetxController {
   final CvRepository _cvRepository = CvRepository.ensure();
@@ -13,8 +13,8 @@ class FindingJobApplyController extends GetxController {
   }
 
   Future<void> cvCheck() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     try {
       final data = await _cvRepository.getCv(uid, preferCache: true);
       cvVar.value = data != null;
@@ -26,8 +26,8 @@ class FindingJobApplyController extends GetxController {
   }
 
   Future<void> toggleFindingJob() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || !cvVar.value) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty || !cvVar.value) return;
     final next = !isFinding.value;
     isFinding.value = next;
     await _cvRepository.updateCvFields(uid, {"findingJob": next});

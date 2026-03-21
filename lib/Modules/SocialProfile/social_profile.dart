@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
@@ -79,12 +78,7 @@ class _SocialProfileState extends State<SocialProfile> {
   ScrollController get _currentScrollController =>
       _scrollControllerForSelection(controller.postSelection.value);
 
-  String get _myUserId => userService.currentUserRx.value?.userID ?? '';
-  bool _isBlockedByMe(String otherUserId) {
-    final blocked =
-        userService.currentUserRx.value?.blockedUsers ?? const <String>[];
-    return blocked.contains(otherUserId);
-  }
+  String get _myUserId => userService.userId;
 
   @override
   void initState() {
@@ -254,11 +248,10 @@ class _SocialProfileState extends State<SocialProfile> {
                   },
                   child: Column(
                     children: [
-                      if (!_isBlockedByMe(widget.userID))
+                      if (!controller.isBlockedByCurrentViewer(widget.userID))
                         Expanded(
-                          child: (controller.gizliHesap.value &&
-                                  controller.takipEdiyorum.value == false &&
-                                  widget.userID != _myUserId)
+                          child: controller
+                                  .isPrivateContentBlockedFor(_myUserId)
                               ? Column(
                                   children: [
                                     header(),

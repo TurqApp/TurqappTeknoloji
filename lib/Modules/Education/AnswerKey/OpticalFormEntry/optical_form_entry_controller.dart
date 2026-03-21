@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,6 +6,7 @@ import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticalFormEntryController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -81,7 +81,7 @@ class OpticalFormEntryController extends GetxController {
       try {
         final userAnswers = await _opticalFormRepository.fetchUserAnswers(
           currentModel.docID,
-          FirebaseAuth.instance.currentUser!.uid,
+          CurrentUserService.instance.userId,
           forceRefresh: true,
         );
         final answerKey = currentModel.cevaplar;

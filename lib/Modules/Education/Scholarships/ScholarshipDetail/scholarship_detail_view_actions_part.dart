@@ -13,7 +13,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
     return Obx(() {
       final isLoading = controller.isLoading.value;
       final isOwnScholarship = userData['userID']?.toString() ==
-          FirebaseAuth.instance.currentUser?.uid;
+          CurrentUserService.instance.userId;
 
       // Tarih kontrolü
       bool isExpired = false;

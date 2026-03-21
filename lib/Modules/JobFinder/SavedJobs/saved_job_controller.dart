@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -10,6 +9,7 @@ import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedJobsController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
@@ -76,8 +76,8 @@ class SavedJobsController extends GetxController {
   }
 
   Future<void> _bootstrapSavedJobs() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       list.clear();
       isLoading.value = false;
       return;
@@ -115,8 +115,8 @@ class SavedJobsController extends GetxController {
     bool forceRefresh = false,
     bool allowLocationPrompt = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       list.clear();
       isLoading.value = false;
       return;

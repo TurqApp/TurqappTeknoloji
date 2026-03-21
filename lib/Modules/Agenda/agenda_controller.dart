@@ -1,10 +1,8 @@
 import 'dart:math';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
@@ -13,10 +11,12 @@ import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/IndexPool/index_pool_store.dart';
@@ -25,7 +25,6 @@ import '../../Core/Services/agenda_shuffle_cache_service.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
-import '../../Services/current_user_service.dart';
 
 part 'agenda_controller_feed_part.dart';
 part 'agenda_controller_loading_part.dart';
@@ -52,6 +51,8 @@ class AgendaController extends GetxController {
           ? Get.find<UserProfileCacheService>()
           : Get.put(UserProfileCacheService(), permanent: true);
   UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
+  VisibilityPolicyService get _visibilityPolicy =>
+      VisibilityPolicyService.ensure();
   PostRepository get _postRepository => PostRepository.ensure();
   FeedSnapshotRepository get _feedSnapshotRepository =>
       FeedSnapshotRepository.ensure();
@@ -120,12 +121,12 @@ class AgendaController extends GetxController {
     if (await _isUserDeactivated(post.userID)) return false;
 
     final isPrivate = await _isUserPrivate(post.userID);
-    if (!isPrivate) return true;
-
-    final me = FirebaseAuth.instance.currentUser?.uid;
-    final isMine = me != null && post.userID == me;
-    final follows = followingIDs.contains(post.userID);
-    return isMine || follows;
+    return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      authorUserId: post.userID,
+      followingIds: followingIDs,
+      isPrivate: isPrivate,
+      isDeleted: false,
+    );
   }
 
   final RxSet<String> followingIDs = <String>{}.obs;
@@ -159,19 +160,7 @@ class AgendaController extends GetxController {
   }
 
   String get currentUserLocationCity {
-    final user = CurrentUserService.instance.currentUserRx.value;
-    final candidates = [
-      user?.locationSehir,
-      user?.city,
-      user?.ikametSehir,
-      user?.il,
-      user?.ulke,
-    ];
-    for (final raw in candidates) {
-      final value = (raw ?? '').trim();
-      if (value.isNotEmpty) return value;
-    }
-    return 'common.country_turkey'.tr;
+    return CurrentUserService.instance.preferredLocationCity;
   }
 
   void setFeedViewMode(FeedViewMode mode) {
@@ -519,8 +508,8 @@ class AgendaController extends GetxController {
   }
 
   void _bindFollowingListener() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     // İlk yükleme: pull-based (SWR pattern)
     _fetchFollowingAndReshares(uid);
   }

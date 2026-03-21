@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
@@ -15,6 +14,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
 
 class EducationFeedPostShareService {
@@ -166,8 +166,8 @@ class EducationFeedPostShareService {
     required String ctaType,
     required String ctaDocId,
   }) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final currentUid = CurrentUserService.instance.userId;
+    if (currentUid.isEmpty) {
       AppSnackbar('login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
       return;
     }
@@ -235,7 +235,7 @@ class EducationFeedPostShareService {
           'tags': [],
           'thumbnail': imageUrl.trim(),
           'timeStamp': now,
-          'userID': currentUser.uid,
+          'userID': currentUid,
           'video': '',
           'hlsStatus': 'none',
           'hlsMasterUrl': '',
@@ -286,7 +286,7 @@ class EducationFeedPostShareService {
           tags: const [],
           thumbnail: imageUrl.trim(),
           timeStamp: now,
-          userID: currentUser.uid,
+          userID: currentUid,
           video: '',
           hlsStatus: 'none',
           hlsMasterUrl: '',

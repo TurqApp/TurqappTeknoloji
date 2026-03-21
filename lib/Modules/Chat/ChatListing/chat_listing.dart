@@ -1,5 +1,4 @@
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -9,6 +8,7 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListingContent/chat_listing_content.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'chat_listing_controller.dart';
 
@@ -18,7 +18,7 @@ class ChatListing extends StatelessWidget {
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
   final ValueNotifier<String?> _openedChatId = ValueNotifier<String?>(null);
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => CurrentUserService.instance.userId;
 
   Future<void> _archiveChat(ChatListingModel item) async {
     await _conversationRepository.setArchived(

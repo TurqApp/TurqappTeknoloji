@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -9,7 +8,6 @@ class MarketNotificationService {
   MarketNotificationService._();
 
   static String get _currentUid =>
-      FirebaseAuth.instance.currentUser?.uid ??
       CurrentUserService.instance.userId;
 
   static String get _senderLabel {
@@ -17,9 +15,6 @@ class MarketNotificationService {
     if (fullName.isNotEmpty) return fullName;
     final nickname = CurrentUserService.instance.nickname.trim();
     if (nickname.isNotEmpty) return nickname;
-    final authDisplayName =
-        FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
-    if (authDisplayName.isNotEmpty) return authDisplayName;
     return 'app.name'.tr;
   }
 

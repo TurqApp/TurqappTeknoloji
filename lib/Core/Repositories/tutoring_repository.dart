@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -15,7 +16,8 @@ class TutoringRepository extends GetxService {
   final FirebaseFirestore _firestore;
   static const Duration _ttl = Duration(hours: 12);
   static const String _prefsPrefix = 'tutoring_repository_v1';
-  final Map<String, _TimedValue<dynamic>> _memory = <String, _TimedValue<dynamic>>{};
+  final Map<String, _TimedValue<dynamic>> _memory =
+      <String, _TimedValue<dynamic>>{};
   SharedPreferences? _prefs;
   static const int _thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
 
@@ -43,7 +45,8 @@ class TutoringRepository extends GetxService {
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
-    final snap = await query.get(const GetOptions(source: Source.serverAndCache));
+    final snap =
+        await query.get(const GetOptions(source: Source.serverAndCache));
     final items = snap.docs
         .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
         .where((t) => !_isExpired(t))
@@ -60,7 +63,8 @@ class TutoringRepository extends GetxService {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
-    final ids = docIds.where((id) => id.trim().isNotEmpty).toList(growable: false);
+    final ids =
+        docIds.where((id) => id.trim().isNotEmpty).toList(growable: false);
     if (ids.isEmpty) return const <TutoringModel>[];
     final byId = <String, TutoringModel>{};
     final missing = <String>[];
@@ -87,7 +91,8 @@ class TutoringRepository extends GetxService {
 
     const chunkSize = 10;
     for (var i = 0; i < missing.length; i += chunkSize) {
-      final end = (i + chunkSize > missing.length) ? missing.length : i + chunkSize;
+      final end =
+          (i + chunkSize > missing.length) ? missing.length : i + chunkSize;
       final chunk = missing.sublist(i, end);
       final snapshot = await _firestore
           .collection('educators')
@@ -185,7 +190,8 @@ class TutoringRepository extends GetxService {
       final cached = await _getCachedList(cacheKey);
       if (cached != null) {
         return cached
-            .map((e) => TutoringModel.fromJson(e, (e['docID'] ?? '').toString()))
+            .map(
+                (e) => TutoringModel.fromJson(e, (e['docID'] ?? '').toString()))
             .where((t) => t.docID.isNotEmpty)
             .toList(growable: false);
       }
@@ -259,15 +265,12 @@ class TutoringRepository extends GetxService {
         .doc(userId)
         .collection('myTutoringApplications')
         .doc(tutoringId);
-    final ownerNotificationRef = _firestore
-        .collection('users')
-        .doc(ownerUid)
-        .collection('notifications')
-        .doc();
+    final ownerNotificationRef =
+        NotificationsRepository.ensure().inboxDoc(ownerUid);
     final educatorDocRef = _firestore.collection('educators').doc(tutoringId);
 
-    final snap =
-        await educatorAppRef.get(const GetOptions(source: Source.serverAndCache));
+    final snap = await educatorAppRef
+        .get(const GetOptions(source: Source.serverAndCache));
     final batch = _firestore.batch();
 
     if (snap.exists) {
@@ -279,8 +282,8 @@ class TutoringRepository extends GetxService {
       );
       await batch.commit();
 
-      final docSnap =
-          await educatorDocRef.get(const GetOptions(source: Source.serverAndCache));
+      final docSnap = await educatorDocRef
+          .get(const GetOptions(source: Source.serverAndCache));
       if (docSnap.exists) {
         final count = (docSnap.data()?['applicationCount'] ?? 0) as num;
         if (count < 0) {
@@ -505,8 +508,7 @@ class TutoringRepository extends GetxService {
                   tutorImage: (e['tutorImage'] ?? '').toString(),
                   status: (e['status'] ?? 'pending').toString(),
                   timeStamp: (e['timeStamp'] as num?)?.toInt() ?? 0,
-                  statusUpdatedAt:
-                      (e['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+                  statusUpdatedAt: (e['statusUpdatedAt'] as num?)?.toInt() ?? 0,
                   note: (e['note'] ?? '').toString(),
                 ))
             .toList(growable: false);
@@ -591,11 +593,13 @@ class TutoringRepository extends GetxService {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       if (ts <= 0) return null;
-      if (DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) > _ttl) {
+      if (DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) >
+          _ttl) {
         return null;
       }
       final value = decoded['v'];
-      _memory[key] = _TimedValue<dynamic>(value: value, cachedAt: DateTime.now());
+      _memory[key] =
+          _TimedValue<dynamic>(value: value, cachedAt: DateTime.now());
       return value;
     } catch (_) {
       return null;

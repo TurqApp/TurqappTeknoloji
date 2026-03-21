@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
@@ -10,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FieldConfig {
   final String label;
@@ -867,8 +867,8 @@ class PersonelInfoController extends GetxController
   }
 
   Future<void> fetchData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       isLoading.value = false;
       return;
@@ -959,8 +959,8 @@ class PersonelInfoController extends GetxController
   }
 
   Future<void> saveData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }

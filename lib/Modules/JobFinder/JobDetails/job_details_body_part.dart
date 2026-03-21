@@ -198,8 +198,7 @@ extension JobDetailsBodyPart on JobDetails {
                 child: Column(
                   children: [
                     GestureDetector(
-                      onTap: current.userID ==
-                              (FirebaseAuth.instance.currentUser?.uid ?? '')
+                      onTap: current.userID == CurrentUserService.instance.userId
                           ? null
                           : () => Get.to(() => SocialProfile(userID: current.userID)),
                       child: Row(
@@ -250,8 +249,7 @@ extension JobDetailsBodyPart on JobDetails {
                               ],
                             ),
                           ),
-                          if (current.userID !=
-                              (FirebaseAuth.instance.currentUser?.uid ?? ''))
+                          if (current.userID != CurrentUserService.instance.userId)
                             const Icon(
                               CupertinoIcons.chevron_right,
                               color: Colors.black38,

@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,12 +8,13 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AntremanScore extends StatelessWidget {
   AntremanScore({super.key});
 
   final AntremanScoreController controller = Get.put(AntremanScoreController());
-  final String currentUserID = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final String currentUserID = CurrentUserService.instance.userId;
   final ScrollController _scrollController = ScrollController();
 
   @override

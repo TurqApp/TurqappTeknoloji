@@ -1,12 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdsAdminGuard {
   const AdsAdminGuard._();
 
   static Future<bool> canAccessAdsCenter() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return false;
+    if (CurrentUserService.instance.userId.isEmpty) return false;
     return AdminAccessService.canAccessTask('ads_center');
   }
 
@@ -15,9 +14,8 @@ class AdsAdminGuard {
   }
 
   static Future<String?> currentUidIfAdmin() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
     final ok = await canAccessAdsCenter();
-    return ok ? user.uid : null;
+    final uid = CurrentUserService.instance.userId;
+    return ok && uid.isNotEmpty ? uid : null;
   }
 }

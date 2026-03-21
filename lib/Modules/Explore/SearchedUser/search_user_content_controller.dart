@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
@@ -27,7 +26,8 @@ class SearchUserContentController extends GetxController {
       );
       explore?.resumeExplorePreview();
 
-      final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+      final currentUserID = CurrentUserService.instance.userId;
+      if (currentUserID.isEmpty) return;
       await _userSubcollectionRepository.upsertEntry(
         currentUserID,
         subcollection: 'lastSearches',
@@ -50,7 +50,8 @@ class SearchUserContentController extends GetxController {
   }
 
   Future<void> removeFromLastSearch() async {
-    final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUserID = CurrentUserService.instance.userId;
+    if (currentUserID.isEmpty) return;
     await _userSubcollectionRepository.deleteEntry(
       currentUserID,
       subcollection: 'lastSearches',

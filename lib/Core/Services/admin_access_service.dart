@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdminAccessService {
   static bool _adminCached = false;
@@ -15,7 +16,7 @@ class AdminAccessService {
   static List<String> _taskCache = <String>[];
 
   static bool isKnownAdminSync() {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = CurrentUserService.instance.userId.trim();
     if (_cachedUid != currentUid) {
       _cachedUid = currentUid;
       _adminCached = false;

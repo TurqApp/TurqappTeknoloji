@@ -111,6 +111,46 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   /// Current user nickname (shortcut)
   String get nickname => _currentUser?.nickname ?? '';
 
+  String get firstName => _currentUser?.firstName ?? '';
+
+  String get lastName => _currentUser?.lastName ?? '';
+
+  String get rozet => _currentUser?.rozet ?? '';
+
+  String get email => _currentUser?.email ?? '';
+
+  String get phoneNumber => _currentUser?.phoneNumber ?? '';
+
+  String get bio => _currentUser?.bio ?? '';
+
+  String get meslekKategori => _currentUser?.meslekKategori ?? '';
+
+  String get adres => _currentUser?.adres ?? '';
+
+  String get preferredLocationCityOrEmpty {
+    final candidates = [
+      _currentUser?.locationSehir,
+      _currentUser?.city,
+      _currentUser?.ikametSehir,
+      _currentUser?.il,
+      _currentUser?.ulke,
+    ];
+    for (final raw in candidates) {
+      final value = (raw ?? '').trim();
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
+
+  String get preferredLocationCity {
+    final value = preferredLocationCityOrEmpty;
+    return value.isNotEmpty ? value : 'common.country_turkey'.tr;
+  }
+
+  int get counterOfPosts => _currentUser?.counterOfPosts ?? 0;
+
+  int get counterOfLikes => _currentUser?.counterOfLikes ?? 0;
+
   /// Current user profile image (shortcut)
   String get avatarUrl {
     final raw = (_currentUser?.avatarUrl ?? '').trim();
@@ -729,11 +769,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
         'Hesap Engellendi',
         'Bu hesap uygulamaya erişimden kalıcı olarak uzaklaştırıldı.',
       );
-      await logout();
-      await FirebaseAuth.instance.signOut();
-      if (Get.key.currentContext != null) {
-        await Get.offAll(() => SignIn());
-      }
+      await _signOutToSignIn();
       return true;
     } catch (_) {
       return true;
@@ -787,15 +823,9 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
         'Oturum Kapatıldı',
         'Bu hesap başka bir telefonda açıldı. Yeniden giriş için şifre gerekir.',
       );
-      await logout();
-      await FirebaseAuth.instance.signOut();
-      if (Get.key.currentContext != null) {
-        await Get.offAll(
-          () => SignIn(
-            initialIdentifier: (data['email'] ?? '').toString().trim(),
-          ),
-        );
-      }
+      await _signOutToSignIn(
+        initialIdentifier: (data['email'] ?? '').toString().trim(),
+      );
       return true;
     } catch (_) {
       return true;
@@ -826,6 +856,19 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     } catch (_) {}
   }
 
+  Future<void> _signOutToSignIn({
+    String initialIdentifier = '',
+  }) async {
+    await logout();
+    await FirebaseAuth.instance.signOut();
+    if (Get.key.currentContext == null) return;
+    await Get.offAll(
+      () => SignIn(
+        initialIdentifier: initialIdentifier,
+      ),
+    );
+  }
+
   /// Update specific fields (optimistic update)
   ///
   /// **Example:**
@@ -838,6 +881,9 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   bool isUserBlocked(String userId) {
     return _currentUser?.blockedUsers.contains(userId) ?? false;
   }
+
+  List<String> get blockedUserIds =>
+      List<String>.from(_currentUser?.blockedUsers ?? const <String>[]);
 
   bool hasReadStory(String storyId) {
     return _currentUser?.readStories.contains(storyId) ?? false;

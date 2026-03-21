@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class LocationBasedTutoringController extends GetxController {
   static const String _cacheKey = 'location_tutoring_cache_v1';
@@ -99,7 +99,7 @@ class LocationBasedTutoringController extends GetxController {
       );
 
       final result = await _tutoringSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 250,
         forceSync: !silent,
       );

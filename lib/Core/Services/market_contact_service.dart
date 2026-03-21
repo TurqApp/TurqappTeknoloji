@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
@@ -12,6 +11,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MarketContactService {
@@ -21,7 +21,7 @@ class MarketContactService {
       ConversationRepository.ensure();
 
   Future<void> openChat(MarketItemModel item) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = CurrentUserService.instance.userId.trim();
     if (currentUid.isEmpty) {
       AppSnackbar('login.sign_in'.tr, 'market_contact.sign_in_required'.tr);
       return;

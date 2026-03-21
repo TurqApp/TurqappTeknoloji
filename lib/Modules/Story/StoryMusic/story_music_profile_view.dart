@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryMusicProfileView extends StatefulWidget {
   final String musicId;
@@ -97,7 +97,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
     if (userIds.isNotEmpty) {
     }
 
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid = CurrentUserService.instance.userId.trim();
     final entries = activeStories.map((story) {
       final userData = userDataById[story.userId];
       final nickname = _resolveNickname(userData, story.userId == currentUid);
@@ -124,7 +124,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
 
   String _resolveNickname(UserSummary? data, bool isCurrentUser) {
     if (isCurrentUser) {
-      final current = FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+      final current = CurrentUserService.instance.fullName.trim();
       if (current.isNotEmpty) return current;
     }
     final nickname = data?.nickname.trim() ?? '';
@@ -140,7 +140,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
 
   String _resolveAvatar(UserSummary? data, bool isCurrentUser) {
     if (isCurrentUser) {
-      final currentPhoto = FirebaseAuth.instance.currentUser?.photoURL?.trim() ?? '';
+      final currentPhoto = CurrentUserService.instance.avatarUrl.trim();
       if (currentPhoto.isNotEmpty) return currentPhoto;
     }
     return data?.avatarUrl ?? '';

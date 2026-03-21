@@ -2,8 +2,8 @@ part of 'profile_view.dart';
 
 extension _ProfileViewSectionsPart on _ProfileViewState {
   Widget _buildLinksAndHighlightsRow() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return const SizedBox.shrink();
+    final uid = _myUserId;
+    if (uid.isEmpty) return const SizedBox.shrink();
 
     final tag = 'highlights_$uid';
     final hlController = Get.isRegistered<StoryHighlightsController>(tag: tag)

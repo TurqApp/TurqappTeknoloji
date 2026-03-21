@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DormitoryInfoController extends GetxController {
   static const String _selectCity = "Şehir Seç";
@@ -147,7 +147,7 @@ class DormitoryInfoController extends GetxController {
   Future<void> fetchFirestoreData() async {
     try {
       final data = await _userRepository.getUserRaw(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
       );
       if (data != null) {
         yurt.value = userString(
@@ -263,7 +263,7 @@ class DormitoryInfoController extends GetxController {
         final String savedYurt =
             listedeYok.value ? yurtInputText.value : yurt.value;
         await _userRepository.updateUserFields(
-          FirebaseAuth.instance.currentUser!.uid,
+          CurrentUserService.instance.userId,
           scopedUserUpdate(
             scope: 'family',
             values: {"yurt": savedYurt},

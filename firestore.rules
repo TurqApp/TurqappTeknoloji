@@ -531,46 +531,43 @@ service cloud.firestore {
             || (docData.stats.reportedCount is int && docData.stats.reportedCount >= 0))
         );
     }
-    function changedPostStatsKeys() {
-      return resource.data.keys().hasAny(['stats']) && resource.data.stats is map
-        ? request.resource.data.stats.diff(resource.data.stats).affectedKeys()
-        : request.resource.data.stats.keys();
-    }
     function postStatDelta(key) {
       return postDocStatValue(request.resource.data, key)
         - postDocStatValue(resource.data, key);
     }
-    function isAllowedPostStatDeltaForKey(key) {
+    function changedOnlyPostStatKey(key) {
       return (
-        (key == 'likeCount'
-          || key == 'commentCount'
-          || key == 'savedCount'
-          || key == 'retryCount')
-        && postStatDelta(key) >= -1
-        && postStatDelta(key) <= 1
+        resource.data.keys().hasAny(['stats'])
+        && resource.data.stats is map
+        && request.resource.data.stats.diff(resource.data.stats).affectedKeys().hasOnly([key])
       )
       || (
-        (key == 'statsCount' || key == 'reportedCount')
-        && postStatDelta(key) >= 0
-        && postStatDelta(key) <= 1
+        !(resource.data.keys().hasAny(['stats']) && resource.data.stats is map)
+        && request.resource.data.stats.keys().hasOnly([key])
       );
     }
-    function changedPostStatKeyIsAllowed(key) {
-      return !changedPostStatsKeys().hasAny([key])
-        || isAllowedPostStatDeltaForKey(key);
+    function canChangePostStatDeltaOne(key) {
+      return changedOnlyPostStatKey(key)
+        && postStatDelta(key) >= -1
+        && postStatDelta(key) <= 1;
+    }
+    function canIncrementPostStatOnce(key) {
+      return changedOnlyPostStatKey(key)
+        && postStatDelta(key) >= 0
+        && postStatDelta(key) <= 1;
     }
     function canUpdatePostStatsCounters() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats'])
         && request.resource.data.stats is map
         && hasValidPostStatsShape(request.resource.data)
-        && changedPostStatsKeys().hasOnly(postStatsKeys())
-        && changedPostStatsKeys().size() == 1
-        && changedPostStatKeyIsAllowed('statsCount')
-        && changedPostStatKeyIsAllowed('likeCount')
-        && changedPostStatKeyIsAllowed('commentCount')
-        && changedPostStatKeyIsAllowed('savedCount')
-        && changedPostStatKeyIsAllowed('retryCount')
-        && changedPostStatKeyIsAllowed('reportedCount');
+        && (
+          canIncrementPostStatOnce('statsCount')
+          || canChangePostStatDeltaOne('likeCount')
+          || canChangePostStatDeltaOne('commentCount')
+          || canChangePostStatDeltaOne('savedCount')
+          || canChangePostStatDeltaOne('retryCount')
+          || canIncrementPostStatOnce('reportedCount')
+        );
     }
     function canOwnerUpdatePostContent() {
       return isAuth()
@@ -787,6 +784,10 @@ service cloud.firestore {
           'role', 'admin',
           'isBanned', 'isDeleted', 'isApproved', 'isBot', 'isAdvertiser',
           'accountStatus', 'deletedAt',
+          'nickname', 'username', 'usernameLower',
+          'nicknameChangedAt', 'nicknameLastChangedAt',
+          'nicknameGraceWindowStartAt', 'nicknameGraceChangeCount',
+          'oldNicknames', 'nicknameHistory',
           'takipciSayisi', 'takipEdilenSayisi', 'gonderSayisi',
           'followerCount', 'followingCount', 'postCount',
           'counterOfFollowers', 'counterOfFollowings', 'counterOfPosts'
@@ -1109,13 +1110,15 @@ service cloud.firestore {
       allow write: if canManageAdminPanels();
     }
 
-    match /adminApprovals/{docId} {
-      allow read: if canManageAdminPanels()
-        || (isAuth()
-          && resource.data.createdBy is string
-          && resource.data.createdBy == request.auth.uid);
-      allow create: if canCreateAdminApproval();
-      allow update, delete: if isAdmin();
+    match /adminConfig/{configId} {
+      match /adminApprovals/{docId} {
+        allow read: if canManageAdminPanels()
+          || (isAuth()
+            && resource.data.createdBy is string
+            && resource.data.createdBy == request.auth.uid);
+        allow create: if canCreateAdminApproval();
+        allow update, delete: if isAdmin();
+      }
     }
 
     match /supportMessages/{docId} {
@@ -1231,13 +1234,11 @@ service cloud.firestore {
       allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
       // Sahip: içerik alanlarını güncelleyebilir.
       // İstemci sayaçları ise yalnızca tek alan ve izinli delta ile değiştirilebilir.
-      allow update: if isAuth() && (
-        isAdmin()
-        || isAllowlistedAdmin()
-        || canFlagPostModerationUpdate()
-        || canOwnerUpdatePostContent()
-        || canUpdatePostStatsCounters()
-      );
+      allow update: if isAuth() && canUpdatePostStatsCounters();
+      allow update: if isAuth() && canOwnerUpdatePostContent();
+      allow update: if isAuth() && canFlagPostModerationUpdate();
+      allow update: if isAdmin();
+      allow update: if isAllowlistedAdmin();
       allow delete: if isAuth() && (
         resource.data.userID == request.auth.uid
         || isAdmin()
@@ -2032,7 +2033,7 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if false; // Legacy hashtag path disabled
     }
-    match /TurqAppVerified/{docId} {
+    match /adminConfig/admin/TurqAppVerified/{docId} {
       allow read: if isOwner(docId) || isAdmin();
       allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
       allow update: if isAdmin() || (
@@ -2043,7 +2044,7 @@ service cloud.firestore {
       );
       allow delete: if isAdmin();
     }
-    match /bannedUser/{docId} {
+    match /adminConfig/admin/bannedUser/{docId} {
       allow read: if canManageAdminPanels() || hasAssignedAdminTask('user_bans');
       allow write: if false;
     }

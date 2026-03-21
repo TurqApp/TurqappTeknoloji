@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -364,10 +363,10 @@ class PostContentController extends GetxController {
   }
 
   void _syncSharedInteractionState() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = CurrentUserService.instance.userId;
     if (_postState == null) return;
     final liked = _postState!.liked.value;
-    if (uid != null) {
+    if (uid.isNotEmpty) {
       if (liked) {
         if (!likes.contains(uid)) likes.add(uid);
       } else {
@@ -377,7 +376,7 @@ class PostContentController extends GetxController {
     saved.value = _postState!.saved.value;
     yenidenPaylasildiMi.value = _postState!.reshared.value ||
         agendaController.myReshares.containsKey(reshareTargetPostId);
-    if (uid != null) {
+    if (uid.isNotEmpty) {
       if (_postState!.commented.value) {
         if (!comments.contains(uid)) comments.add(uid);
       } else {
@@ -387,8 +386,8 @@ class PostContentController extends GetxController {
   }
 
   Future<void> votePoll(int optionIndex) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     final postRef =
         FirebaseFirestore.instance.collection('Posts').doc(model.docID);
 

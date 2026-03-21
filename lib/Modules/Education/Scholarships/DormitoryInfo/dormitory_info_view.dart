@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DormitoryInfoView extends StatelessWidget {
   DormitoryInfoView({super.key});
@@ -57,7 +57,7 @@ class DormitoryInfoView extends StatelessWidget {
                             controller.yurtSelectionController.clear();
 
                             await _userRepository.updateUserFields(
-                              FirebaseAuth.instance.currentUser?.uid ?? '',
+                              CurrentUserService.instance.userId,
                               scopedUserUpdate(
                                 scope: 'family',
                                 values: {"yurt": ""},

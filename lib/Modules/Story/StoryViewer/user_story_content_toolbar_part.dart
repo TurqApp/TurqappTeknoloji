@@ -54,7 +54,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                         currentStory.id,
                         widget.user.nickname,
                         widget.user.userID ==
-                            FirebaseAuth.instance.currentUser!.uid,
+                            CurrentUserService.instance.userId,
                         onClosed: (v) {
                       _startProgress();
                       unawaited(_resumeStoryAudio());

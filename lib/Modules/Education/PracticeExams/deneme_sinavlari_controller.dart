@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinavlariController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
@@ -81,7 +81,7 @@ class DenemeSinavlariController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -99,7 +99,7 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -131,7 +131,7 @@ class DenemeSinavlariController extends GetxController {
         ? Get.find<SavedPracticeExamsController>()
         : Get.put(SavedPracticeExamsController(), permanent: true);
     await savedController.loadSavedExams(silent: true);
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _practiceExamSnapshotRepository
         .openHome(
@@ -169,7 +169,7 @@ class DenemeSinavlariController extends GetxController {
   Future<void> getOkulBilgisi() async {
     try {
       final data = await _userSummaryResolver.resolve(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
         preferCache: true,
       );
       final rozet = data?.rozet;
@@ -189,7 +189,7 @@ class DenemeSinavlariController extends GetxController {
     _lastDocument = null;
     try {
       final resource = await _practiceExamSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: _pageSize,
       );
       final items = resource.data ?? const <SinavModel>[];
@@ -246,7 +246,7 @@ class DenemeSinavlariController extends GetxController {
     try {
       final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );

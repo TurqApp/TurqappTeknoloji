@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -20,6 +19,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/de
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_hazirla.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -70,7 +70,7 @@ class DenemeGrid extends StatelessWidget {
   }
 
   void _openCard() {
-    if (model.userID == FirebaseAuth.instance.currentUser!.uid) {
+    if (model.userID == CurrentUserService.instance.userId) {
       Get.dialog(
         AlertDialog(
           title: Text(
@@ -185,7 +185,7 @@ class DenemeGrid extends StatelessWidget {
   }
 
   bool get _isOwner =>
-      model.userID == FirebaseAuth.instance.currentUser?.uid;
+      model.userID == CurrentUserService.instance.userId;
 
   Color _ctaColor(DenemeGridController controller) {
     if (_isOwner) {

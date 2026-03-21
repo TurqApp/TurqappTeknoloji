@@ -8,7 +8,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   void startEdit(MessageModel model) {
-    if (model.userID != FirebaseAuth.instance.currentUser!.uid) return;
+    if (model.userID != CurrentUserService.instance.userId) return;
     if (model.metin.trim().isEmpty) return;
     editingMessage.value = model;
     replyingTo.value = null;
@@ -85,8 +85,8 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   Future<void> deleteSelectedMessages() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || selectedMessageIds.isEmpty) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty || selectedMessageIds.isEmpty) return;
     try {
       final convRef =
           FirebaseFirestore.instance.collection("conversations").doc(chatID);
@@ -117,7 +117,7 @@ extension ChatControllerActionsPart on ChatController {
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
     required bool replace,
   }) {
-    final currentUID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUID = CurrentUserService.instance.userId;
     if (replace) _conversationMessages.clear();
     final List<String> unseenRawDocIds = [];
     final List<String> undeliveredRawDocIds = [];
@@ -188,7 +188,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   String get _localChatWindowKey {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return "chat_window_cache_guest_$chatID";
     return "chat_window_cache_${uid}_$chatID";
   }
@@ -306,7 +306,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   Future<String?> _resolveCounterpartUserId() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final currentUid = CurrentUserService.instance.userId.trim();
     if (currentUid.isEmpty) return null;
 
     final candidates = <String>{};
@@ -420,7 +420,7 @@ extension ChatControllerActionsPart on ChatController {
     required String previewText,
     required int nowMs,
   }) async {
-    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    final currentUid = CurrentUserService.instance.userId;
     final participants = [currentUid, targetUserId]..sort();
     final convRef =
         FirebaseFirestore.instance.collection("conversations").doc(chatID);
@@ -606,7 +606,7 @@ extension ChatControllerActionsPart on ChatController {
       final replyTextFinal = (replyTextOverride ?? "").trim();
       final replyTypeFinal = (replyTypeOverride ?? "text").trim();
       final replySenderFinal =
-          (replySenderIdOverride ?? FirebaseAuth.instance.currentUser!.uid)
+          (replySenderIdOverride ?? CurrentUserService.instance.userId)
               .trim();
       final replyMessageFinal =
           (replyMessageIdOverride ?? "preview_${now.microsecondsSinceEpoch}")
@@ -659,10 +659,10 @@ extension ChatControllerActionsPart on ChatController {
       );
 
       final conversationMessageData = {
-        "senderId": FirebaseAuth.instance.currentUser!.uid,
+        "senderId": CurrentUserService.instance.userId,
         "text": text,
         "createdDate": now.millisecondsSinceEpoch,
-        "seenBy": [FirebaseAuth.instance.currentUser!.uid],
+        "seenBy": [CurrentUserService.instance.userId],
         "type": messageType,
         "mediaUrls": gif != null ? [gif] : (imageUrls ?? []),
         "likes": <String>[],
@@ -722,7 +722,7 @@ extension ChatControllerActionsPart on ChatController {
       );
 
       try {
-        final currentUid = FirebaseAuth.instance.currentUser!.uid;
+        final currentUid = CurrentUserService.instance.userId;
         final resolvedTargetUid = await _resolveCounterpartUserId();
         final targetUidForConversation = resolvedTargetUid ?? userID;
         final convRef =

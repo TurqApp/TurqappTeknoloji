@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedTestsController extends GetxController {
   final TestRepository _testRepository = TestRepository.ensure();
@@ -19,7 +19,7 @@ class SavedTestsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = CurrentUserService.instance.userId;
     final cached = await _testRepository.fetchFavorites(
       uid,
       cacheOnly: true,
@@ -46,7 +46,7 @@ class SavedTestsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = CurrentUserService.instance.userId;
       final items = await _testRepository.fetchFavorites(
         uid,
         preferCache: !forceRefresh,

@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -20,6 +19,7 @@ import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/connectivity_helper.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/question_content.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'antreman_controller_actions_part.dart';
 
@@ -35,7 +35,7 @@ class AntremanController extends GetxController {
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   String get _activeUid {
-    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     return uid.isEmpty ? 'guest' : uid;
   }
 
@@ -165,7 +165,7 @@ class AntremanController extends GetxController {
   final RxList<QuestionBankModel> searchResults = <QuestionBankModel>[].obs;
   final RxBool isSearchLoading = false.obs;
 
-  final String userID = FirebaseAuth.instance.currentUser!.uid;
+  final String userID = CurrentUserService.instance.userId;
   final int batchSize = 5;
   final RxInt expandedSubIndex = RxInt(-1);
   final RxString mainCategory = ''.obs;

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class ShortSnapshotQuery {
@@ -44,6 +44,8 @@ class ShortSnapshotRepository extends GetxService {
   final ShortRepository _shortRepository = ShortRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
   final WarmLaunchPool _warmLaunchPool = WarmLaunchPool.ensure();
 
   late final MemoryScopedSnapshotStore<List<PostsModel>> _memoryStore =
@@ -229,13 +231,10 @@ class ShortSnapshotRepository extends GetxService {
   }
 
   Future<Set<String>> _loadFollowingIds(String userId) async {
-    final normalized = userId.trim();
-    if (normalized.isEmpty) return <String>{};
-    final ids = await FollowRepository.ensure().getFollowingIds(
-      normalized,
+    return VisibilityPolicyService.ensure().loadViewerFollowingIds(
+      viewerUserId: userId,
       preferCache: true,
     );
-    return ids.toSet();
   }
 
   Future<List<PostsModel>> _filterEligiblePosts(
@@ -266,10 +265,13 @@ class ShortSnapshotRepository extends GetxService {
     for (final post in normalized) {
       final summary = summaries[post.userID];
       if (summary == null) continue;
-      if (summary.isDeleted) continue;
-      final isMine =
-          currentUserId.isNotEmpty && post.userID.trim() == currentUserId;
-      if (summary.isPrivate && !isMine && !followingIds.contains(post.userID)) {
+      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: post.userID,
+        followingIds: followingIds,
+        isPrivate: summary.isPrivate,
+        isDeleted: summary.isDeleted,
+      );
+      if (!canSeeAuthor) {
         continue;
       }
       visible.add(

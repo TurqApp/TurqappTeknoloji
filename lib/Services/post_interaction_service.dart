@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 import '../Models/post_interactions_models_new.dart';
 import '../Models/posts_model.dart';
 import '../Models/user_interactions_models.dart';
+import 'current_user_service.dart';
 import 'offline_mode_service.dart';
 import 'post_moderation_utils.dart';
 
@@ -51,11 +52,9 @@ class ModerationFlagResult {
 /// senkronize eder.
 class PostInteractionService extends GetxController {
   PostInteractionService({FirebaseFirestore? firestore, FirebaseAuth? auth})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
-  final FirebaseAuth _auth;
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
@@ -65,7 +64,10 @@ class PostInteractionService extends GetxController {
   bool _permissionDeniedLogged = false;
   static const String _moderationConfigPath = 'adminConfig/moderation';
 
-  String? get currentUserID => _auth.currentUser?.uid;
+  String? get currentUserID {
+    final uid = CurrentUserService.instance.userId.trim();
+    return uid.isEmpty ? null : uid;
+  }
   bool get _isOffline =>
       Get.isRegistered<OfflineModeService>() &&
       !Get.find<OfflineModeService>().isOnline.value;

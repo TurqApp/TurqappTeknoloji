@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
@@ -26,7 +26,7 @@ class SocialMediaController extends GetxController {
   var enableSave = false.obs;
   var isUploading = false.obs;
   var isLoading = false.obs;
-  String get currentUid => FirebaseAuth.instance.currentUser!.uid;
+  String get currentUid => CurrentUserService.instance.userId;
 
   List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
 
@@ -140,8 +140,7 @@ class SocialMediaController extends GetxController {
     return WebpUploadService.uploadFileAsWebp(
       storage: FirebaseStorage.instance,
       file: file,
-      storagePathWithoutExt:
-          "users/${FirebaseAuth.instance.currentUser!.uid}/social_links/$docID",
+      storagePathWithoutExt: "users/$currentUid/social_links/$docID",
     );
   }
 

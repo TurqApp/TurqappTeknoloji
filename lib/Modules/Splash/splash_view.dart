@@ -937,8 +937,7 @@ class _SplashViewState extends State<SplashView> {
   }) async {
     try {
       final Set<String> userIds = {};
-      final currentUser = CurrentUserService.instance.currentUserRx.value;
-      final currentUid = currentUser?.userID.trim() ?? '';
+      final currentUid = CurrentUserService.instance.userId.trim();
       if (currentUid.isNotEmpty) {
         userIds.add(currentUid);
       }
@@ -996,8 +995,7 @@ class _SplashViewState extends State<SplashView> {
 
   Future<void> _warmProfileCacheSurfaces({required bool onWiFi}) async {
     try {
-      final currentUser = CurrentUserService.instance.currentUserRx.value;
-      final uid = currentUser?.userID.trim() ?? '';
+      final uid = CurrentUserService.instance.userId.trim();
       if (uid.isEmpty) return;
 
       final urls = <String>{};

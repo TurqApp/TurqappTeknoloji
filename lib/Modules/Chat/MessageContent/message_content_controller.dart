@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:contact_add/contact.dart';
 import 'package:contact_add/contact_add.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/BottomSheets/show_action_sheet.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -335,8 +335,8 @@ class MessageContentController extends GetxController {
 
   Future<void> deleteMessage() async {
     if (model.source == "preview") return;
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null || currentUid.isEmpty) return;
+    final currentUid = CurrentUserService.instance.userId.trim();
+    if (currentUid.isEmpty) return;
 
     await showActionSheet(
       title: 'chat.delete_message_title'.tr,
@@ -374,8 +374,8 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> likeImage() async {
-    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserID == null || currentUserID.isEmpty) return;
+    final currentUserID = CurrentUserService.instance.userId.trim();
+    if (currentUserID.isEmpty) return;
     await _conversationRepository.toggleMessageLike(
       chatId: mainID,
       messageId: model.rawDocID,

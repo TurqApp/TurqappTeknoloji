@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -296,7 +295,7 @@ class CreateTutoringController extends GetxController {
   Future<List<String>> uploadImages() async {
     List<String> imageUrls = [];
     final storage = firebase_storage.FirebaseStorage.instance;
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = CurrentUserService.instance.userId;
     // Not: Storage’dan hiçbir veri silinmeyecek — eski görseller korunur
 
     final newLocalImages =
@@ -411,7 +410,7 @@ class CreateTutoringController extends GetxController {
         sehir: cityController.text,
         telefon: isPhoneOpen.value,
         timeStamp: DateTime.now().millisecondsSinceEpoch,
-        userID: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userID: CurrentUserService.instance.userId,
         whatsapp: false,
         availability: availability.isNotEmpty
             ? Map<String, List<String>>.from(availability)

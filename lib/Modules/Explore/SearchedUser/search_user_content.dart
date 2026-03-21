@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,6 +14,7 @@ import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchUserContent extends StatelessWidget {
   final OgrenciModel model;
@@ -44,8 +44,8 @@ class SearchUserContent extends StatelessWidget {
       return;
     }
     try {
-      final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUserID == null || currentUserID.isEmpty) return;
+      final currentUserID = CurrentUserService.instance.userId;
+      if (currentUserID.isEmpty) return;
       await _userSubcollectionRepository.upsertEntry(
         currentUserID,
         subcollection: 'lastSearches',
@@ -95,8 +95,8 @@ class SearchUserContent extends StatelessWidget {
       return;
     }
     try {
-      final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUserID != null && currentUserID.isNotEmpty) {
+      final currentUserID = CurrentUserService.instance.userId;
+      if (currentUserID.isNotEmpty) {
         await _userSubcollectionRepository.deleteEntry(
           currentUserID,
           subcollection: 'lastSearches',

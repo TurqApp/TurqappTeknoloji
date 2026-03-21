@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedPracticeExamsController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
@@ -60,8 +60,8 @@ class SavedPracticeExamsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
 
     final savedEntries = await _subcollectionRepository.getEntries(
       uid,
@@ -100,8 +100,8 @@ class SavedPracticeExamsController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
 
     if (!silent || savedExams.isEmpty) {
       isLoading.value = true;
@@ -141,8 +141,8 @@ class SavedPracticeExamsController extends GetxController {
   }
 
   Future<void> toggleSavedExam(String docId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
 
     if (savedExamIds.contains(docId)) {
       savedExamIds.remove(docId);

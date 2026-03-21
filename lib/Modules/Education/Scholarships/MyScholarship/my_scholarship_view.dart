@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +9,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_schola
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class MyScholarshipView extends StatelessWidget {
@@ -158,9 +158,8 @@ class MyScholarshipView extends StatelessWidget {
                                                 ),
                                                 RozetContent(
                                                   size: 15,
-                                                  userID: FirebaseAuth.instance
-                                                          .currentUser?.uid ??
-                                                      '',
+                                                  userID: CurrentUserService
+                                                      .instance.userId,
                                                 ),
                                               ],
                                             ),

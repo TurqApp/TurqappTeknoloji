@@ -9,6 +9,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class OfflineModeService extends GetxController {
   static final OfflineModeService instance = OfflineModeService._internal();
@@ -66,7 +68,7 @@ class OfflineModeService extends GetxController {
   }
 
   String get _activeUid {
-    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     return uid.isEmpty ? 'guest' : uid;
   }
 
@@ -574,27 +576,9 @@ class PendingAction {
     final targetUid = data['targetUid'] as String?;
     final currentUid = data['currentUid'] as String?;
     if (targetUid == null || currentUid == null) return;
-
-    final firestore = FirebaseFirestore.instance;
-    final batch = firestore.batch();
-
-    batch.set(
-      firestore
-          .collection('users')
-          .doc(targetUid)
-          .collection('followers')
-          .doc(currentUid),
-      {'timeStamp': DateTime.now().millisecondsSinceEpoch},
+    await FollowRepository.ensure().createRelationPair(
+      currentUid: currentUid,
+      otherUid: targetUid,
     );
-    batch.set(
-      firestore
-          .collection('users')
-          .doc(currentUid)
-          .collection('followings')
-          .doc(targetUid),
-      {'timeStamp': DateTime.now().millisecondsSinceEpoch},
-    );
-
-    await batch.commit();
   }
 }

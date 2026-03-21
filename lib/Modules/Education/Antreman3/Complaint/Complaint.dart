@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class Complaint {
   final String postID;
@@ -37,7 +37,7 @@ class Complaint {
 
 class ComplaintController extends GetxController {
   final RxString selectedSikayet = ''.obs;
-  final String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final String userID = CurrentUserService.instance.userId;
 
   void submitSikayet(
     String postID,

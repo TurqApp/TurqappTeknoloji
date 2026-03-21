@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_question.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 const createTestTypeMiddleSchool = 'Ortaokul';
 const createTestTypeHighSchool = 'Lise';
@@ -197,7 +197,7 @@ class CreateTestController extends GetxController {
       "favoriler": [],
       "paylasilabilir": paylasilabilir.value,
       "timeStamp": DateTime.now().millisecondsSinceEpoch.toString(),
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "userID": CurrentUserService.instance.userId,
       "taslak": true,
       "testTuru": testTuru.value,
     }, SetOptions(merge: true));

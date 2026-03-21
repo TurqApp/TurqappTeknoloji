@@ -116,6 +116,12 @@ class _AgendaContentState extends State<AgendaContent>
   String _quotedSourceFutureUserId = '';
   String _quotedSourceFuturePostId = '';
 
+  String get _currentUid {
+    final serviceUid = controller.userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   int get _feedCacheWidth {
     final media = MediaQuery.of(context);
     return (media.size.width * media.devicePixelRatio).round();

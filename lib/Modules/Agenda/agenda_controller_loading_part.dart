@@ -247,8 +247,8 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> _tryQuickFillFromPool() async {
-    final me = FirebaseAuth.instance.currentUser?.uid;
-    if (me == null || me.isEmpty) return;
+    final me = CurrentUserService.instance.userId;
+    if (me.isEmpty) return;
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
       limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
@@ -318,8 +318,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
       }
 
-      final String? me = FirebaseAuth.instance.currentUser?.uid;
-
       // Gösterilen ama aslında geçersiz/gizli olan postları feed'den kaldır
       final toRemove = <String>[];
       for (final post in shown) {
@@ -332,12 +330,14 @@ extension AgendaControllerLoadingPart on AgendaController {
           continue;
         }
         final isPrivate = userPrivacy[post.userID] ?? false;
-        if (isPrivate) {
-          final isMine = me != null && post.userID == me;
-          final follows = followingIDs.contains(post.userID);
-          if (!isMine && !follows) {
-            toRemove.add(post.docID);
-          }
+        final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+          authorUserId: post.userID,
+          followingIds: followingIDs,
+          isPrivate: isPrivate,
+          isDeleted: false,
+        );
+        if (!canSeeAuthor) {
+          toRemove.add(post.docID);
         }
       }
 
@@ -424,8 +424,8 @@ extension AgendaControllerLoadingPart on AgendaController {
     Map<String, Map<String, dynamic>> _,
   ) async {
     if (posts.isEmpty) return;
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null || userId.isEmpty) return;
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) return;
     await _feedSnapshotRepository.persistHomeSnapshot(
       userId: userId,
       posts: posts,
@@ -472,8 +472,8 @@ extension AgendaControllerLoadingPart on AgendaController {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       return _loadLegacyAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
@@ -561,8 +561,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
 
       // Following/reshare verilerini yenile (SWR)
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) unawaited(_fetchFollowingAndReshares(uid));
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
       // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
       await fetchAgendaBigData(initial: true);
@@ -730,17 +730,18 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
     }
 
-    final String? me = FirebaseAuth.instance.currentUser?.uid;
     return items.where((post) {
       if (hiddenPosts.contains(post.docID)) return false;
       if (post.deletedPost == true) return false;
       if (!_isRenderablePost(post)) return false;
       if (userDeactivated[post.userID] == true) return false;
       final isPrivate = userPrivacy[post.userID] ?? false;
-      if (!isPrivate) return true;
-      final isMine = me != null && post.userID == me;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
+      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: post.userID,
+        followingIds: followingIDs,
+        isPrivate: isPrivate,
+        isDeleted: false,
+      );
     }).toList();
   }
 }

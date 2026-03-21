@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
 import '../Models/posts_model.dart';
@@ -12,6 +11,7 @@ import '../Modules/Agenda/agenda_controller.dart';
 import '../Modules/Explore/explore_controller.dart';
 import '../Modules/Profile/MyProfile/profile_controller.dart';
 import '../Modules/Short/short_controller.dart';
+import '../Services/current_user_service.dart';
 
 /// Uygulama genelinde gönderi silme (soft delete) işlemini merkezileştirir.
 ///
@@ -44,9 +44,9 @@ class PostDeleteService {
 
     // 2) Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts -=1
     try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
+      final me = CurrentUserService.instance.userId.trim();
       final isVisibleRoot = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisibleRoot) {
+      if (me.isNotEmpty && model.userID == me && isVisibleRoot) {
         await firestore
             .collection('users')
             .doc(me)

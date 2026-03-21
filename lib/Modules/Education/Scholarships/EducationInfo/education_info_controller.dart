@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/high_school_model.dart';
 import 'package:turqappv2/Models/Education/higher_education_model.dart';
 import 'package:turqappv2/Models/middle_school_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class EducationInfoController extends GetxController
     with GetTickerProviderStateMixin {
@@ -21,6 +21,7 @@ class EducationInfoController extends GetxController
   static const String _masters = 'Yüksek Lisans';
   static const String _doctorate = 'Doktora';
   final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _currentUserService = CurrentUserService.instance;
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   final EducationReferenceDataService _referenceDataService =
@@ -243,13 +244,13 @@ class EducationInfoController extends GetxController
 
   Future<void> loadSavedData() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = _currentUserService.userId;
+      if (userId.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }
 
-      final data = await _userRepository.getUserRaw(user.uid);
+      final data = await _userRepository.getUserRaw(userId);
       if (data != null) {
         String educationLevel = userString(
           data,
@@ -308,13 +309,13 @@ class EducationInfoController extends GetxController
   Future<void> loadSavedDataForLevel(String level) async {
     try {
       isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = _currentUserService.userId;
+      if (userId.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }
 
-      final data = await _userRepository.getUserRaw(user.uid);
+      final data = await _userRepository.getUserRaw(userId);
       if (data != null) {
         String savedLevel =
             userString(data, key: 'educationLevel', scope: 'education');
@@ -460,13 +461,13 @@ class EducationInfoController extends GetxController
 
     try {
       isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = _currentUserService.userId;
+      if (userId.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }
 
-      await _userRepository.updateUserFields(user.uid, {
+      await _userRepository.updateUserFields(userId, {
         ...scopedUserUpdate(
           scope: 'education',
           values: {
@@ -533,13 +534,13 @@ class EducationInfoController extends GetxController
 
     try {
       isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = _currentUserService.userId;
+      if (userId.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }
 
-      await _userRepository.updateUserFields(user.uid, {
+      await _userRepository.updateUserFields(userId, {
         ...scopedUserUpdate(
           scope: 'education',
           values: {
@@ -609,15 +610,15 @@ class EducationInfoController extends GetxController
 
     try {
       isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = _currentUserService.userId;
+      if (userId.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }
 
       String educationLevel = selectedEducationLevel.value;
 
-      await _userRepository.updateUserFields(user.uid, {
+      await _userRepository.updateUserFields(userId, {
         ...scopedUserUpdate(
           scope: 'education',
           values: {

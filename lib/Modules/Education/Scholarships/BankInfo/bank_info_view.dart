@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +11,7 @@ import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/BankInfo/bank_info_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class BankInfoView extends StatelessWidget {
   BankInfoView({super.key});
@@ -53,7 +53,7 @@ class BankInfoView extends StatelessWidget {
                                   controller.defaultFastTypeEmail;
                               controller.iban.clear();
                               await _userRepository.updateUserFields(
-                                FirebaseAuth.instance.currentUser?.uid ?? '',
+                                CurrentUserService.instance.userId,
                                 {
                                 ...scopedUserUpdate(
                                   scope: 'finance',

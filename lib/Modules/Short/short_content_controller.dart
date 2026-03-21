@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:async';
@@ -16,6 +15,7 @@ import '../../Services/post_interaction_service.dart';
 import '../../Core/Repositories/post_repository.dart';
 import '../../Core/Repositories/follow_repository.dart';
 import '../../Core/Services/user_summary_resolver.dart';
+import '../../Services/current_user_service.dart';
 
 class ShortContentController extends GetxController {
   String postID;
@@ -70,6 +70,7 @@ class ShortContentController extends GetxController {
   Worker? _postDataWorker;
   Timer? _deleteFadeTimer;
   Timer? _deleteRemoveTimer;
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   @override
   void onInit() {
@@ -433,7 +434,7 @@ class ShortContentController extends GetxController {
       token.value = '';
       takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
         userID,
-        currentUid: FirebaseAuth.instance.currentUser!.uid,
+        currentUid: _currentUserId,
         preferCache: true,
       );
       return;
@@ -464,7 +465,7 @@ class ShortContentController extends GetxController {
 
     takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
       userID,
-      currentUid: FirebaseAuth.instance.currentUser!.uid,
+      currentUid: _currentUserId,
       preferCache: true,
     );
   }
@@ -484,7 +485,7 @@ class ShortContentController extends GetxController {
     if (followLoading.value) return;
 
     try {
-      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final currentUid = _currentUserId;
       final alreadyFollowing = await FollowRepository.ensure().isFollowing(
         model.userID,
         currentUid: currentUid,

@@ -970,6 +970,211 @@ test("stories comments block spoofed payload", async () => {
   );
 });
 
+test("followers allow self-scoped follower edge payload", async () => {
+  const ownerUid = "follow-owner";
+  const followerUid = "follow-follower";
+  const followerCtx = testEnv.authenticatedContext(followerUid);
+
+  await assertSucceeds(
+    setDoc(
+      doc(followerCtx.firestore(), `users/${ownerUid}/followers/${followerUid}`),
+      {
+        timeStamp: Date.now(),
+      },
+    ),
+  );
+});
+
+test("followings block spoofed owner writes", async () => {
+  const ownerUid = "follow-owner-block";
+  const actorUid = "follow-actor-block";
+  const actorCtx = testEnv.authenticatedContext(actorUid);
+
+  await assertFails(
+    setDoc(
+      doc(actorCtx.firestore(), `users/${ownerUid}/followings/target-user`),
+      {
+        timeStamp: Date.now(),
+      },
+    ),
+  );
+});
+
+test("notifications allow canonical actor payload for target inbox", async () => {
+  const senderUid = "notif-sender";
+  const targetUid = "notif-target";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `users/${senderUid}`), {
+      firstName: "Sender",
+      isBanned: false,
+      isDeleted: false,
+    });
+  });
+
+  const senderCtx = testEnv.authenticatedContext(senderUid);
+  await assertSucceeds(
+    setDoc(
+      doc(senderCtx.firestore(), `users/${targetUid}/notifications/notif-1`),
+      {
+        type: "like",
+        fromUserID: senderUid,
+        userID: targetUid,
+        postID: "post-1",
+        timeStamp: Date.now(),
+        read: false,
+        isRead: false,
+      },
+    ),
+  );
+});
+
+test("notifications block spoofed sender payload", async () => {
+  const senderUid = "notif-sender-block";
+  const targetUid = "notif-target-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `users/${senderUid}`), {
+      firstName: "Sender",
+      isBanned: false,
+      isDeleted: false,
+    });
+  });
+
+  const senderCtx = testEnv.authenticatedContext(senderUid);
+  await assertFails(
+    setDoc(
+      doc(senderCtx.firestore(), `users/${targetUid}/notifications/notif-2`),
+      {
+        type: "like",
+        fromUserID: "different-user",
+        userID: targetUid,
+        postID: "post-1",
+        timeStamp: Date.now(),
+        read: false,
+        isRead: false,
+      },
+    ),
+  );
+});
+
+test("conversations allow participant create and read", async () => {
+  const uid1 = "conv-user-1";
+  const uid2 = "conv-user-2";
+  const conversationId = "conv-user-1_conv-user-2";
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+  await assertSucceeds(
+    setDoc(doc(user1Ctx.firestore(), `conversations/${conversationId}`), {
+      participants: [uid1, uid2],
+      lastMessage: "",
+      lastMessageAt: 0,
+      unread: {},
+      archived: {},
+      muted: {},
+      pinned: {},
+      typing: {},
+    }),
+  );
+
+  const user2Ctx = testEnv.authenticatedContext(uid2);
+  await assertSucceeds(
+    getDoc(doc(user2Ctx.firestore(), `conversations/${conversationId}`)),
+  );
+});
+
+test("conversations block non-participant read", async () => {
+  const uid1 = "conv-read-owner-1";
+  const uid2 = "conv-read-owner-2";
+  const outsiderUid = "conv-outsider";
+  const conversationId = "conv-read-owner-1_conv-read-owner-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      participants: [uid1, uid2],
+      lastMessage: "",
+      lastMessageAt: 0,
+      unread: {},
+      archived: {},
+      muted: {},
+      pinned: {},
+      typing: {},
+    });
+  });
+
+  const outsiderCtx = testEnv.authenticatedContext(outsiderUid);
+  await assertFails(
+    getDoc(doc(outsiderCtx.firestore(), `conversations/${conversationId}`)),
+  );
+});
+
+test("conversation messages allow participant self-sent payload", async () => {
+  const uid1 = "msg-user-1";
+  const uid2 = "msg-user-2";
+  const conversationId = "msg-user-1_msg-user-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      participants: [uid1, uid2],
+      lastMessage: "",
+      lastMessageAt: 0,
+      unread: {},
+      archived: {},
+      muted: {},
+      pinned: {},
+      typing: {},
+    });
+  });
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+  await assertSucceeds(
+    setDoc(
+      doc(user1Ctx.firestore(), `conversations/${conversationId}/messages/msg-1`),
+      {
+        senderId: uid1,
+        createdDate: Date.now(),
+        type: "text",
+        seenBy: [uid1],
+        text: "merhaba",
+      },
+    ),
+  );
+});
+
+test("conversation messages block spoofed sender payload", async () => {
+  const uid1 = "msg-user-3";
+  const uid2 = "msg-user-4";
+  const conversationId = "msg-user-3_msg-user-4";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `conversations/${conversationId}`), {
+      participants: [uid1, uid2],
+      lastMessage: "",
+      lastMessageAt: 0,
+      unread: {},
+      archived: {},
+      muted: {},
+      pinned: {},
+      typing: {},
+    });
+  });
+
+  const user1Ctx = testEnv.authenticatedContext(uid1);
+
+  await assertFails(
+    setDoc(
+      doc(user1Ctx.firestore(), `conversations/${conversationId}/messages/msg-2`),
+      {
+        senderId: uid2,
+        createdDate: Date.now(),
+        type: "text",
+        seenBy: [uid1],
+        text: "spoof",
+      },
+    ),
+  );
+});
+
 test("reports collection allows authenticated complaint payload", async () => {
   const uid = "reporter-user";
   const ctx = testEnv.authenticatedContext(uid);

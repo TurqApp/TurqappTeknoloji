@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,6 +12,7 @@ import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class PersonelInfoView extends StatelessWidget {
   PersonelInfoView({super.key});
@@ -53,7 +53,7 @@ class PersonelInfoView extends StatelessWidget {
                               controller.resetToOriginal();
                               // 2) Firestore güncellemesi
                               await _userRepository.updateUserFields(
-                                FirebaseAuth.instance.currentUser?.uid ?? '',
+                                CurrentUserService.instance.userId,
                                 {
                                   ...scopedUserUpdate(
                                     scope: 'family',

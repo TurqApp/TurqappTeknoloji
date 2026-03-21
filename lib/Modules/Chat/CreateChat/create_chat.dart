@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +6,7 @@ import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/Chat/CreateChat/CreateChatContent/create_chat_content.dart';
 import 'package:turqappv2/Modules/Chat/CreateChat/create_chat_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../Profile/FollowingFollowers/following_followers_controller.dart';
 
@@ -14,7 +14,7 @@ class CreateChat extends StatelessWidget {
   CreateChat({super.key});
   final followersFollowing = Get.put(
     FollowingFollowersController(
-        initialPage: 0, userId: FirebaseAuth.instance.currentUser!.uid),
+        initialPage: 0, userId: CurrentUserService.instance.userId),
   );
   final controllerr = Get.put(CreateChatController());
   final chatListingController = Get.find<ChatListingController>();
@@ -97,7 +97,7 @@ class CreateChat extends StatelessWidget {
                             ));
                       } else {
                         final chatId = buildConversationId(
-                          FirebaseAuth.instance.currentUser!.uid,
+                          CurrentUserService.instance.userId,
                           selectedUserId,
                         );
                         await Get.to(() => ChatView(

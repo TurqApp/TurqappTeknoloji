@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ResultsAndAnswersController extends GetxController {
   final OpticalFormRepository _opticalFormRepository =
@@ -20,7 +20,7 @@ class ResultsAndAnswersController extends GetxController {
   Future<void> getCevaplarim() async {
     final fetchedCevaplar = await _opticalFormRepository.fetchUserAnswers(
       model.docID,
-      FirebaseAuth.instance.currentUser!.uid,
+      CurrentUserService.instance.userId,
       preferCache: true,
     );
     cevaplar.assignAll(fetchedCevaplar);

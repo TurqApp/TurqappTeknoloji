@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class IzBirakSubscriptionService extends GetxService {
   static IzBirakSubscriptionService ensure() {
@@ -26,9 +26,9 @@ class IzBirakSubscriptionService extends GetxService {
   }
 
   Future<bool> subscribe(String postId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = CurrentUserService.instance.userId.trim();
     final normalizedPostId = postId.trim();
-    if (uid == null || normalizedPostId.isEmpty) return false;
+    if (uid.isEmpty || normalizedPostId.isEmpty) return false;
     if (subscribedPostIds.contains(normalizedPostId)) return true;
     if (_loadingPostIds.contains(normalizedPostId)) return true;
 
@@ -54,8 +54,8 @@ class IzBirakSubscriptionService extends GetxService {
   }
 
   Future<void> _hydrateSubscription(String postId) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || postId.isEmpty || _loadingPostIds.contains(postId)) {
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty || postId.isEmpty || _loadingPostIds.contains(postId)) {
       return;
     }
     _loadingPostIds.add(postId);

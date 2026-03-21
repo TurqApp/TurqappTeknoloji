@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
@@ -16,6 +16,7 @@ class StoryHighlightsController extends GetxController {
   final StoryHighlightsRepository _repository =
       StoryHighlightsRepository.ensure();
   final StoryRepository _storyRepository = StoryRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   RxList<StoryHighlightModel> highlights = <StoryHighlightModel>[].obs;
   RxBool isLoading = false.obs;
@@ -74,8 +75,8 @@ class StoryHighlightsController extends GetxController {
     String coverUrl = '',
   }) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return null;
+      final uid = _userService.userId.trim();
+      if (uid.isEmpty) return null;
 
       final docRefId = DateTime.now().microsecondsSinceEpoch.toString();
 
@@ -108,8 +109,8 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> addStoryToHighlight(String highlightId, String storyId) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = _userService.userId.trim();
+      if (uid.isEmpty) return;
 
       await _repository.addStoryToHighlight(
         uid,
@@ -131,8 +132,8 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> deleteHighlight(String highlightId) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = _userService.userId.trim();
+      if (uid.isEmpty) return;
 
       await _repository.deleteHighlight(
         uid,
@@ -150,8 +151,8 @@ class StoryHighlightsController extends GetxController {
   Future<void> updateHighlight(
       String highlightId, String title, String coverUrl) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = _userService.userId.trim();
+      if (uid.isEmpty) return;
 
       await _repository.updateHighlight(
         uid,
@@ -175,8 +176,8 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> _hydrateMissingCoverUrls() async {
     if (highlights.isEmpty) return;
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final canPersist = currentUid != null && currentUid == userId;
+    final currentUid = _userService.userId.trim();
+    final canPersist = currentUid.isNotEmpty && currentUid == userId;
     var anyLocalUpdate = false;
 
     for (var i = 0; i < highlights.length; i++) {

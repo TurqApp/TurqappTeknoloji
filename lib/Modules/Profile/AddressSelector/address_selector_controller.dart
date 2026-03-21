@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -23,7 +22,7 @@ class AddressSelectorController extends GetxController {
     }
 
     _userRepository
-        .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
+        .getUserRaw(CurrentUserService.instance.userId)
         .then((data) {
       addressController.text = ((data ?? const {})["adres"] ?? "").toString();
     });
@@ -31,7 +30,7 @@ class AddressSelectorController extends GetxController {
 
   Future<void> setData() async {
     await _userRepository.updateUserFields(
-      FirebaseAuth.instance.currentUser!.uid,
+      CurrentUserService.instance.userId,
       {"adres": addressController.text},
     );
 

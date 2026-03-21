@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +9,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/ders_ve_sonuclar_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinaviYapController extends GetxController
     with WidgetsBindingObserver {
@@ -30,6 +30,7 @@ class DenemeSinaviYapController extends GetxController
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   DenemeSinaviYapController({
     required this.model,
@@ -79,7 +80,7 @@ class DenemeSinaviYapController extends GetxController
   Future<void> fetchUserData() async {
     try {
       final data = await _userSummaryResolver.resolve(
-        FirebaseAuth.instance.currentUser!.uid,
+        _currentUserId,
         preferCache: true,
       );
       fullName.value = data?.displayName.trim() ?? '';
@@ -124,7 +125,7 @@ class DenemeSinaviYapController extends GetxController
         .doc(model.docID)
         .set({
       "gecersizSayilanlar": FieldValue.arrayUnion([
-        FirebaseAuth.instance.currentUser!.uid,
+        _currentUserId,
       ]),
     }, SetOptions(merge: true));
     Get.back();
@@ -141,7 +142,7 @@ class DenemeSinaviYapController extends GetxController
           .doc(docID)
           .set({
         "yanitlar": selectedAnswers,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
+        "userID": _currentUserId,
         "timeStamp": DateTime.now().millisecondsSinceEpoch.toInt(),
       });
       SetOptions(merge: true);

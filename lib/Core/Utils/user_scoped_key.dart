@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 String activeUserScope({String guestFallback = 'guest'}) {
-  final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  final uid = CurrentUserService.instance.userId.trim();
   return uid.isEmpty ? guestFallback : uid;
 }
 
@@ -11,8 +11,7 @@ String userScopedKey(
   String guestFallback = 'guest',
 }) {
   final normalizedPrefix = prefix.trim();
-  final normalizedUid = (uid ?? FirebaseAuth.instance.currentUser?.uid ?? '')
-      .trim();
+  final normalizedUid = (uid ?? CurrentUserService.instance.userId).trim();
   final scope = normalizedUid.isEmpty ? guestFallback.trim() : normalizedUid;
   if (scope.isEmpty) {
     return normalizedPrefix;

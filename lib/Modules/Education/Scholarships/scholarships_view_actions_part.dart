@@ -88,7 +88,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   VoidCallback? _getUserTapHandler(
       String type, Map<String, dynamic>? userData) {
     final uid = userData?['userID']?.toString() ?? '';
-    if (uid != FirebaseAuth.instance.currentUser?.uid) {
+    if (uid != CurrentUserService.instance.userId) {
       return () {
         Get.to(() => SocialProfile(userID: uid));
       };
@@ -120,7 +120,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid = CurrentUserService.instance.userId;
     return userData?['userID']?.toString() != currentUid;
   }
 
@@ -546,7 +546,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   ) {
     final isOwnScholarship = isIndividualScholarshipType(type) &&
         userData?['userID']?.toString() ==
-            FirebaseAuth.instance.currentUser?.uid;
+            CurrentUserService.instance.userId;
 
     return GestureDetector(
       onTap: () =>

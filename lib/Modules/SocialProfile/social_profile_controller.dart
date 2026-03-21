@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
@@ -92,6 +93,29 @@ class SocialProfileController extends GetxController {
 
   final RxList<PostsModel> photos = <PostsModel>[].obs;
   final RxList<PostsModel> scheduledPosts = <PostsModel>[].obs;
+
+  bool isPrivateContentBlockedFor(String? viewerUserId) {
+    return gizliHesap.value &&
+        takipEdiyorum.value == false &&
+        viewerUserId != userID;
+  }
+
+  bool isBlockedByCurrentViewer(String? otherUserId) {
+    final other = (otherUserId ?? '').trim();
+    if (other.isEmpty) return false;
+    final currentBlocked = CurrentUserService.instance.blockedUserIds;
+    return currentBlocked.contains(other);
+  }
+
+  String displayCounterValue({
+    required String? viewerUserId,
+    required num value,
+  }) {
+    if (isBlockedByCurrentViewer(viewerUserId)) {
+      return "0";
+    }
+    return NumberFormatter.format(value.toInt());
+  }
 
   final RxBool isLoadingPosts = false.obs;
   final RxBool hasMorePosts = true.obs;
@@ -185,8 +209,8 @@ class SocialProfileController extends GetxController {
 
   Future<void> _logProfileVisitIfNeeded() async {
     try {
-      final current = FirebaseAuth.instance.currentUser?.uid;
-      if (current == null) return;
+      final current = CurrentUserService.instance.userId;
+      if (current.isEmpty) return;
       if (current == userID) return; // kendi profili
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       await _userSubcollectionRepository.upsertEntry(
@@ -239,8 +263,8 @@ class SocialProfileController extends GetxController {
           preferCache: true,
           forceRefresh: false,
         );
-        final followings = await _followRepository.getFollowingIds(
-          userID,
+        final followings = await _visibilityPolicy.loadViewerFollowingIds(
+          viewerUserId: userID,
           preferCache: true,
           forceRefresh: false,
         );
@@ -282,8 +306,8 @@ class SocialProfileController extends GetxController {
   }
 
   Future<void> isFollowingCheck() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null) return;
+    final currentUid = CurrentUserService.instance.userId;
+    if (currentUid.isEmpty) return;
     _pruneCaches();
     final cacheKey = '$currentUid:$userID';
     final cached = _followCheckCache[cacheKey];
@@ -595,8 +619,8 @@ class SocialProfileController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       // Reconcile with server outcome
       takipEdiyorum.value = outcome.nowFollowing;
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUid != null) {
+      final currentUid = CurrentUserService.instance.userId;
+      if (currentUid.isNotEmpty) {
         _followCheckCache['$currentUid:$userID'] = _SocialFollowCheckCacheEntry(
           isFollowing: outcome.nowFollowing,
           cachedAt: DateTime.now(),
@@ -639,11 +663,9 @@ class SocialProfileController extends GetxController {
       cancelText: 'common.cancel'.tr,
       yesText: 'common.block'.tr,
       onYesPressed: () async {
-        final currentUid = FirebaseAuth.instance.currentUser!.uid;
+        final currentUid = CurrentUserService.instance.userId;
 
         // 1) Engellenenler listesine ekle (canonical subcollection + legacy array)
-        final meDoc =
-            FirebaseFirestore.instance.collection("users").doc(currentUid);
         await _userSubcollectionRepository.upsertEntry(
           currentUid,
           subcollection: 'blockedUsers',
@@ -654,17 +676,15 @@ class SocialProfileController extends GetxController {
           },
         );
 
-        // 2) Takip ilişkilerini temizle (batch ile topluca)
-        final batch = FirebaseFirestore.instance.batch();
-        final otherDoc =
-            FirebaseFirestore.instance.collection("users").doc(userID);
-
-        batch.delete(meDoc.collection("followings").doc(userID));
-        batch.delete(meDoc.collection("followers").doc(userID));
-        batch.delete(otherDoc.collection("followings").doc(currentUid));
-        batch.delete(otherDoc.collection("followers").doc(currentUid));
-
-        await batch.commit();
+        // 2) Takip ilişkilerini temizle
+        await _followRepository.deleteRelationPair(
+          currentUid: currentUid,
+          otherUid: userID,
+        );
+        await _followRepository.deleteRelationPair(
+          currentUid: userID,
+          otherUid: currentUid,
+        );
 
         // 3) Veri yenileme
         CurrentUserService.instance.forceRefresh();
@@ -683,7 +703,7 @@ class SocialProfileController extends GetxController {
       yesText: 'blocked_users.unblock'.tr,
       onYesPressed: () async {
         // 1) Engellenenler listesinden kaldır
-        final currentUid = FirebaseAuth.instance.currentUser!.uid;
+        final currentUid = CurrentUserService.instance.userId;
         await _userSubcollectionRepository.deleteEntry(
           currentUid,
           subcollection: 'blockedUsers',
@@ -867,3 +887,5 @@ class _SocialCounterCacheEntry {
     required this.cachedAt,
   });
 }
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();

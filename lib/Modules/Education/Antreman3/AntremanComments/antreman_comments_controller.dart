@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class Comment {
   final String docID;
@@ -97,7 +97,7 @@ class AntremanCommentsController extends GetxController {
   final QuestionBankModel question;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
-  final String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final String userID = CurrentUserService.instance.userId;
   final FocusNode focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
 

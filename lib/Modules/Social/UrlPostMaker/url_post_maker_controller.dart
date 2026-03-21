@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -27,19 +26,7 @@ class UrlPostMakerController extends GetxController {
   String? originalPostID;
 
   String _resolvePostLocationCity() {
-    final user = CurrentUserService.instance.currentUserRx.value;
-    final candidates = [
-      user?.locationSehir,
-      user?.city,
-      user?.ikametSehir,
-      user?.il,
-      user?.ulke,
-    ];
-    for (final raw in candidates) {
-      final value = (raw ?? '').trim();
-      if (value.isNotEmpty) return value;
-    }
-    return 'common.country_turkey'.tr;
+    return CurrentUserService.instance.preferredLocationCity;
   }
 
   Future<void> getReadyVideoPlayer(String url) async {
@@ -143,7 +130,7 @@ class UrlPostMakerController extends GetxController {
         "tags": [],
         "thumbnail": thumbnail,
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
+        "userID": CurrentUserService.instance.userId,
         "video": video,
         "hlsStatus": "none",
         "hlsMasterUrl": "",
@@ -177,15 +164,15 @@ class UrlPostMakerController extends GetxController {
                 .collection("Posts")
                 .doc(targetPostID)
                 .collection("postSharers")
-                .doc(FirebaseAuth.instance.currentUser!.uid)
+                .doc(CurrentUserService.instance.userId)
                 .set({
-              "userID": FirebaseAuth.instance.currentUser!.uid,
+              "userID": CurrentUserService.instance.userId,
               "timestamp": DateTime.now().millisecondsSinceEpoch,
               "sharedPostID": uuid, // Paylaşılan yeni post ID'si
               "quotedPost": false,
             });
             print(
-                'postSharers updated for post: $targetPostID by user: ${FirebaseAuth.instance.currentUser!.uid}');
+                'postSharers updated for post: $targetPostID by user: ${CurrentUserService.instance.userId}');
           }
         } catch (e) {
           print('Error updating postSharers: $e');
@@ -224,7 +211,7 @@ class UrlPostMakerController extends GetxController {
         tags: const [],
         thumbnail: thumbnail,
         timeStamp: DateTime.now().millisecondsSinceEpoch,
-        userID: FirebaseAuth.instance.currentUser!.uid,
+        userID: CurrentUserService.instance.userId,
         video: video,
         hlsStatus: 'none',
         hlsMasterUrl: '',

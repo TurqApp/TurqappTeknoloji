@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +16,7 @@ import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'chat_listing_content_controller.dart';
@@ -78,7 +78,7 @@ class ChatListingContent extends StatelessWidget {
     return "${dt.day}.${dt.month}.${dt.year}";
   }
 
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => CurrentUserService.instance.userId;
 
   Future<void> _refreshList() async {
     if (Get.isRegistered<ChatListingController>()) {

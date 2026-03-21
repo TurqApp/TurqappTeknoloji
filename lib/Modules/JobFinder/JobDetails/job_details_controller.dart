@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
@@ -21,6 +20,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../JobCreator/job_creator.dart';
 import '../ApplicationReview/application_review.dart';
@@ -42,6 +42,7 @@ class JobDetailsController extends GetxController {
   final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
       JobHomeSnapshotRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   JobDetailsController({required JobModel model}) : model = model.obs;
 
@@ -77,8 +78,8 @@ class JobDetailsController extends GetxController {
 
   Future<void> _incrementViewCount() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = _currentUserId;
+      if (uid.isEmpty) return;
       if (model.value.userID == uid) return;
       await _jobRepository.incrementViewCount(model.value.docID);
     } catch (_) {}
@@ -107,7 +108,7 @@ class JobDetailsController extends GetxController {
 
   Future<void> cvCheck() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final uid = _currentUserId;
       if (uid.isEmpty) {
         cvVar.value = false;
         return;
@@ -119,7 +120,7 @@ class JobDetailsController extends GetxController {
 
   Future<void> checkSaved(String docId) async {
     try {
-      final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
+      final uid = _currentUserId;
       if (uid.isEmpty) {
         saved.value = false;
         return;
@@ -134,7 +135,7 @@ class JobDetailsController extends GetxController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveJob)) {
       return;
     }
-    final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
+    final uid = _currentUserId;
     if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'pasaj.job_finder.relogin_required'.tr);
       return;
@@ -159,7 +160,7 @@ class JobDetailsController extends GetxController {
 
   Future<void> shareJob() async {
     final current = model.value;
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = _currentUserId;
     final canShare =
         AdminAccessService.isKnownAdminSync() || uid == current.userID;
     if (!canShare) {
@@ -211,7 +212,7 @@ class JobDetailsController extends GetxController {
 
       final result = await _jobHomeSnapshotRepository.search(
         query: query,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: _currentUserId,
         limit: 20,
         forceSync: true,
       );
@@ -240,7 +241,7 @@ class JobDetailsController extends GetxController {
       if (query.isEmpty) return;
       final cached = await _jobHomeSnapshotRepository.search(
         query: query,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: _currentUserId,
         limit: 20,
       );
       final cachedJobs = cached.data ?? const <JobModel>[];
@@ -324,7 +325,7 @@ class JobDetailsController extends GetxController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.reviewJob)) {
       return false;
     }
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = _currentUserId;
     if (uid.isEmpty) {
       AppSnackbar(
         'common.error'.tr,
@@ -469,7 +470,7 @@ class JobDetailsController extends GetxController {
 
   Future<void> checkBasvuru(String docID) async {
     try {
-      final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
+      final uid = _currentUserId;
       if (uid.isEmpty) {
         basvuruldu.value = false;
         return;
@@ -482,7 +483,7 @@ class JobDetailsController extends GetxController {
 
   /// Dual-write başvuru toggle with batch
   Future<void> toggleBasvuru(String docId) async {
-    final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
+    final uid = _currentUserId;
     if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'pasaj.job_finder.relogin_required'.tr);
       return;

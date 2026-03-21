@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class NotificationContentController extends GetxController {
   static const String _userType = kNotificationPostTypeUserLower;
@@ -183,8 +183,8 @@ class NotificationContentController extends GetxController {
   }
 
   Future<void> _loadFollowingState() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null || currentUid.isEmpty) return;
+    final currentUid = CurrentUserService.instance.userId.trim();
+    if (currentUid.isEmpty) return;
     following.value = await _followRepository.isFollowing(
       userID,
       currentUid: currentUid,

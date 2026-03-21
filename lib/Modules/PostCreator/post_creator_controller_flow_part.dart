@@ -12,7 +12,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
   Future<({String nickname, String username, String fullName, String displayName, String avatarUrl, String rozet})>
       _resolveAuthorSummary() async {
     final current = CurrentUserService.instance;
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? current.userId;
+    final uid = current.userId;
     final userRaw = uid.isNotEmpty
         ? await UserRepository.ensure().getUserRaw(
               uid,
@@ -384,7 +384,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           'text': controller.textEdit.text.trim(),
           'location': '',
           'gif': controller.gif.value,
-          'userID': FirebaseAuth.instance.currentUser!.uid,
+          'userID': CurrentUserService.instance.userId,
           'authorNickname': authorSummary.nickname,
           'authorDisplayName': authorSummary.displayName,
           'authorAvatarUrl': authorSummary.avatarUrl,

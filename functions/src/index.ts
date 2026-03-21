@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
 import { upsertPostIntoHybridFeed } from "./hybridFeed";
+import { buildInboxPayload } from "./notificationInbox";
 export { archiveOnStoryDelete, cleanupExpiredStories } from "./storyArchive";
 import {
   normalizeAvatarUrl,
@@ -570,7 +571,7 @@ export const publishScheduledIzBirakPosts = functions.pubsub
               .doc(subscriberId)
               .collection("notifications")
               .doc(`izbirak_${postDoc.id}`),
-            {
+            buildInboxPayload(subscriberId, {
               type: "Posts",
               fromUserID: ownerId,
               postID: postDoc.id,
@@ -579,7 +580,7 @@ export const publishScheduledIzBirakPosts = functions.pubsub
               title: "İz Bırak yayında",
               body,
               imageUrl,
-            },
+            }),
           );
           opCount++;
 

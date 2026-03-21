@@ -18,7 +18,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   void _bindRecentSearchUsers() {
     _currentUserWorker?.dispose();
     _recentSearchReloadKey = _buildRecentSearchReloadKey(
-      CurrentUserService.instance.currentUserRx.value,
+      CurrentUserService.instance.currentUser,
     );
     _currentUserWorker = ever(
       CurrentUserService.instance.currentUserRx,
@@ -36,8 +36,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
 
   String _buildRecentSearchReloadKey(dynamic currentUser) {
     final userID =
-        (currentUser?.userID ?? FirebaseAuth.instance.currentUser?.uid ?? '')
-            .toString();
+        (currentUser?.userID ?? CurrentUserService.instance.userId).toString();
     if (userID.isEmpty) {
       return '';
     }
@@ -51,8 +50,8 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   Future<void> _reloadRecentSearchUsers() async {
-    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserID == null || currentUserID.isEmpty) {
+    final currentUserID = CurrentUserService.instance.userId;
+    if (currentUserID.isEmpty) {
       recentSearchUsers.clear();
       await _saveRecentSearchUsersCache();
       return;
@@ -141,8 +140,8 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   String? _recentSearchUsersCacheKey() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return null;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return null;
     return '${ExploreController._recentSearchUsersCachePrefix}$uid';
   }
 
@@ -201,10 +200,9 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   Future<void> saveRecentSearch(String targetUid) async {
-    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+    final currentUserID = CurrentUserService.instance.userId;
     final cleanTarget = targetUid.trim();
-    if (currentUserID == null ||
-        currentUserID.isEmpty ||
+    if (currentUserID.isEmpty ||
         cleanTarget.isEmpty ||
         cleanTarget == currentUserID) {
       return;
@@ -249,9 +247,9 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   Future<void> removeRecentSearch(String targetUid) async {
-    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+    final currentUserID = CurrentUserService.instance.userId;
     final cleanTarget = targetUid.trim();
-    if (currentUserID == null || currentUserID.isEmpty || cleanTarget.isEmpty) {
+    if (currentUserID.isEmpty || cleanTarget.isEmpty) {
       return;
     }
 

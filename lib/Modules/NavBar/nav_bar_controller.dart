@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +19,7 @@ import '../../Core/Services/audio_focus_coordinator.dart';
 import '../../Core/Services/integration_test_mode.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
+import '../../Services/current_user_service.dart';
 
 typedef TextUpdate = String;
 
@@ -90,7 +90,7 @@ class NavBarController extends GetxController
   }
 
   Future<void> restorePersistedIndex() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -102,7 +102,7 @@ class NavBarController extends GetxController
 
   Future<void> _persistSelectedIndex(int index) async {
     if (index == 2) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();

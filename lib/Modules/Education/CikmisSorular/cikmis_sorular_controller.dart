@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class CikmisSorularController extends GetxController {
   final CikmisSorularSnapshotRepository _snapshotRepository =
@@ -31,7 +31,7 @@ class CikmisSorularController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _snapshotRepository
         .openHome(userId: userId)
@@ -45,7 +45,7 @@ class CikmisSorularController extends GetxController {
     }
     try {
       final resource = await _snapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         forceSync: !silent,
       );
       final items = resource.data ?? const <Map<String, dynamic>>[];
@@ -120,7 +120,7 @@ class CikmisSorularController extends GetxController {
     try {
       final resource = await _snapshotRepository.search(
         query: normalized,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );

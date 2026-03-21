@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/ogrenci_model.dart';
 
 class BlockedUsersController extends GetxController {
@@ -31,8 +31,8 @@ class BlockedUsersController extends GetxController {
     final hasLocal = await _hydrateBlockedUsersFromCache();
     if (hasLocal) {
       isLoading.value = false;
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null &&
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isNotEmpty &&
           SilentRefreshGate.shouldRefresh(
             'blocked_users:$uid',
             minInterval: _silentRefreshInterval,
@@ -48,7 +48,7 @@ class BlockedUsersController extends GetxController {
   }
 
   Future<bool> _hydrateBlockedUsersFromCache() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = CurrentUserService.instance.userId;
     final entries = await _subcollectionRepository.getEntries(
       uid,
       subcollection: 'blockedUsers',
@@ -78,7 +78,7 @@ class BlockedUsersController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = CurrentUserService.instance.userId;
       final entries = await _subcollectionRepository.getEntries(
         uid,
         subcollection: 'blockedUsers',
@@ -213,7 +213,7 @@ class BlockedUsersController extends GetxController {
                   child: GestureDetector(
                     onTap: () async {
                       try {
-                        final uid = FirebaseAuth.instance.currentUser!.uid;
+                        final uid = CurrentUserService.instance.userId;
                         await _subcollectionRepository.deleteEntry(
                           uid,
                           subcollection: 'blockedUsers',

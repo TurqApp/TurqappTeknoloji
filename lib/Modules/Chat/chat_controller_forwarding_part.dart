@@ -19,13 +19,13 @@ extension ChatControllerForwardingPart on ChatController {
       textOverride: clean,
       replyTextOverride: replyText,
       replyTypeOverride: replyType,
-      replySenderIdOverride: FirebaseAuth.instance.currentUser?.uid ?? "",
+      replySenderIdOverride: CurrentUserService.instance.userId,
       replyMessageIdOverride: replyTarget,
     );
   }
 
   Future<void> toggleReaction(MessageModel model, String emoji) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = CurrentUserService.instance.userId;
     final ref = FirebaseFirestore.instance
         .collection("conversations")
         .doc(chatID)
@@ -61,7 +61,7 @@ extension ChatControllerForwardingPart on ChatController {
   }
 
   Future<void> unsendMessage(MessageModel model) async {
-    final currentUID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUID = CurrentUserService.instance.userId;
     if (model.userID != currentUID) return;
 
     await FirebaseFirestore.instance

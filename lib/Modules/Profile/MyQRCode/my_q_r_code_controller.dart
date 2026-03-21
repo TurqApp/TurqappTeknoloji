@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show ImageByteFormat;
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -36,7 +35,7 @@ class MyQRCodeController extends GetxController {
     }
     final uid = userService.userId.isNotEmpty
         ? userService.userId
-        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+        : '';
     if (uid.isNotEmpty) {
       return buildTurqAppProfileUrl(uid);
     }
@@ -52,7 +51,7 @@ class MyQRCodeController extends GetxController {
     profileLink.value = link;
     final uid = userService.userId.isNotEmpty
         ? userService.userId
-        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+        : '';
     final nickname = normalizeProfileSlug(userService.nickname);
     if (uid.isEmpty || nickname.isEmpty) return;
     try {

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,6 +23,7 @@ import '../../../Core/Repositories/post_repository.dart';
 import '../../../Core/Repositories/admin_push_repository.dart';
 import '../../../Core/Services/user_summary_resolver.dart';
 import '../../../Core/Services/typesense_post_service.dart';
+import '../../../Services/current_user_service.dart';
 
 class PhotoShortsContentController extends GetxController {
   PostsModel model;
@@ -97,6 +97,7 @@ class PhotoShortsContentController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _reshareDocSub;
   StreamSubscription<DocumentSnapshot>? _postDocSub;
   Worker? _interactionWorker;
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   // Reactive count variables using centralized manager
   RxInt get likeCount => countManager.getLikeCount(model.docID);
@@ -185,12 +186,12 @@ class PhotoShortsContentController extends GetxController {
   }
 
   void _syncSharedInteractionState() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _currentUserId;
     if (_postState == null) return;
     final liked = _postState!.liked.value;
     final savedState = _postState!.saved.value;
     final reshared = _postState!.reshared.value;
-    if (uid != null) {
+    if (uid.isNotEmpty) {
       if (liked) {
         if (!likes.contains(uid)) likes.add(uid);
       } else {
@@ -452,7 +453,7 @@ class PhotoShortsContentController extends GetxController {
 
   Future<void> sikayetEt() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = _currentUserId;
       // 1) Yeni gizleme durumu
       final bool yeniDurum = !model.sikayetEdildi;
 
@@ -523,7 +524,7 @@ class PhotoShortsContentController extends GetxController {
       fullName.value = postLevelDisplayName;
       takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
         userID,
-        currentUid: FirebaseAuth.instance.currentUser!.uid,
+        currentUid: _currentUserId,
         preferCache: true,
       );
       return;
@@ -550,7 +551,7 @@ class PhotoShortsContentController extends GetxController {
 
     takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
       userID,
-      currentUid: FirebaseAuth.instance.currentUser!.uid,
+      currentUid: _currentUserId,
       preferCache: true,
     );
   }
@@ -613,8 +614,8 @@ class PhotoShortsContentController extends GetxController {
   }
 
   Future<void> getReSharedUsers(String docID) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = _currentUserId;
+    if (uid.isEmpty) {
       reSharedUsers.clear();
       return;
     }
@@ -624,8 +625,8 @@ class PhotoShortsContentController extends GetxController {
   }
 
   Future<void> getSaved() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = _currentUserId;
+    if (uid.isEmpty) {
       saved.clear();
       return;
     }
@@ -658,13 +659,11 @@ class PhotoShortsContentController extends GetxController {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    reSharedUsers
-                            .contains(FirebaseAuth.instance.currentUser!.uid)
+                    reSharedUsers.contains(_currentUserId)
                         ? 'post.reshare_undo'.tr
                         : 'post.reshare_action'.tr,
                     style: TextStyle(
-                      color: reSharedUsers
-                              .contains(FirebaseAuth.instance.currentUser!.uid)
+                      color: reSharedUsers.contains(_currentUserId)
                           ? Colors.red
                           : Colors.black,
                       fontSize: 15,
@@ -727,7 +726,7 @@ class PhotoShortsContentController extends GetxController {
   }
 
   Future<void> reShare(PostsModel model) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = _currentUserId;
 
     if (!reSharedUsers.contains(uid)) {
       // Yeni paylaşım
@@ -804,7 +803,7 @@ class PhotoShortsContentController extends GetxController {
         "yeniPostID": newPostID,
       });
 
-      reSharedUsers.add(FirebaseAuth.instance.currentUser!.uid);
+      reSharedUsers.add(_currentUserId);
 
       // Profildeki gönderiler listesine en üstten eklemeyi dene
       try {
@@ -829,7 +828,7 @@ class PhotoShortsContentController extends GetxController {
             .collection("YenidenPaylas")
             .doc(uid)
             .delete();
-        reSharedUsers.remove(FirebaseAuth.instance.currentUser!.uid);
+        reSharedUsers.remove(_currentUserId);
 
         // UI'dan kaldır
         agendaController.agendaList
@@ -847,8 +846,8 @@ class PhotoShortsContentController extends GetxController {
   }
 
   Future<void> getLikes() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = _currentUserId;
+    if (uid.isEmpty) {
       likes.clear();
       return;
     }
@@ -867,7 +866,7 @@ class PhotoShortsContentController extends GetxController {
 
   Future<void> saveSeeing() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = _currentUserId;
       await _postRepository.ensureViewerSeen(model.docID, uid);
     } catch (_) {}
   }
@@ -886,8 +885,8 @@ class PhotoShortsContentController extends GetxController {
   Future<void> sendAdminPushForPost() async {
     if (!canSendAdminPush) return;
 
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null) return;
+    final currentUid = _currentUserId;
+    if (currentUid.isEmpty) return;
 
     final pushCopy = _buildPostPushCopy();
     final title = pushCopy.title;

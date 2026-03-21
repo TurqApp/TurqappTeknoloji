@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Utils/deep_link_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -26,10 +26,13 @@ import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DeepLinkService extends GetxService {
   final ShortLinkService _shortLinkService = ShortLinkService();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
   static const Duration _lookupTtl = Duration(seconds: 30);
   static final Map<String, _PostLookupCache> _postLookupCache =
       <String, _PostLookupCache>{};
@@ -152,7 +155,7 @@ class DeepLinkService extends GetxService {
 
     _handling = true;
     try {
-      if (FirebaseAuth.instance.currentUser == null) {
+      if (CurrentUserService.instance.userId.isEmpty) {
         return;
       }
 
@@ -198,7 +201,7 @@ class DeepLinkService extends GetxService {
           await _openStory(entityId);
           return;
         case 'user':
-          Get.to(() => SocialProfile(userID: entityId));
+          await _openUserProfile(entityId);
           return;
         case 'edu':
           await _openEducationLink(entityId);
@@ -229,7 +232,7 @@ class DeepLinkService extends GetxService {
           await _openStory(rawId);
           return true;
         case 'user':
-          Get.to(() => SocialProfile(userID: rawId));
+          await _openUserProfile(rawId);
           return true;
         case 'edu':
           await _openEducationLink(rawId);
@@ -299,6 +302,10 @@ class DeepLinkService extends GetxService {
       return;
     }
 
+    if (!await _canOpenUserContent(model.userID)) {
+      return;
+    }
+
     if (model.video.trim().isNotEmpty) {
       await Get.to(() => SingleShortView(
             startModel: model,
@@ -348,6 +355,9 @@ class DeepLinkService extends GetxService {
       AppSnackbar('common.info'.tr, 'deep_link.story_owner_missing'.tr);
       return;
     }
+    if (!await _canOpenUserContent(userId, summary: userData)) {
+      return;
+    }
 
     final stories = await _fetchStoriesByUserIndexSafe(userId);
 
@@ -374,6 +384,54 @@ class DeepLinkService extends GetxService {
           startedUser: user,
           storyOwnerUsers: [user],
         ));
+  }
+
+  Future<void> _openUserProfile(String userId) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) {
+      AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
+      return;
+    }
+    final lookup = await _getUserLookup(normalizedUserId);
+    final userData = lookup.data;
+    if (userData == null) {
+      AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
+      return;
+    }
+    if (!await _canOpenUserContent(normalizedUserId, summary: userData)) {
+      return;
+    }
+    Get.to(() => SocialProfile(userID: normalizedUserId));
+  }
+
+  Future<bool> _canOpenUserContent(
+    String userId, {
+    UserSummary? summary,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) {
+      AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
+      return false;
+    }
+
+    final resolvedSummary =
+        summary ?? await _userSummaryResolver.resolve(normalizedUserId);
+    if (resolvedSummary == null || resolvedSummary.isDeleted) {
+      AppSnackbar('common.info'.tr, 'notify_reader.profile_open_failed'.tr);
+      return false;
+    }
+
+    final followingIds = await _visibilityPolicy.loadViewerFollowingIds();
+    final canOpen = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      authorUserId: normalizedUserId,
+      followingIds: followingIds,
+      isPrivate: resolvedSummary.isPrivate,
+      isDeleted: resolvedSummary.isDeleted,
+    );
+    if (canOpen) return true;
+
+    AppSnackbar('common.info'.tr, 'social_profile.private_follow_to_see_posts'.tr);
+    return false;
   }
 
   Future<void> _openMarket(String itemId) async {

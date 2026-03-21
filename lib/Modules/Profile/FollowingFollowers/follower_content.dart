@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FollowerContent extends StatelessWidget {
   final String userID;
@@ -36,7 +36,7 @@ class FollowerContent extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () {
-                if (userID != FirebaseAuth.instance.currentUser!.uid) {
+                if (userID != CurrentUserService.instance.userId) {
                   Get.to(() => SocialProfile(userID: userID))!.then((v) {
                     controller.followControl(userID);
                   });
@@ -107,7 +107,7 @@ class FollowerContent extends StatelessWidget {
               width: 12,
             ),
             if (controller.isLoaded.value &&
-                userID != FirebaseAuth.instance.currentUser!.uid)
+                userID != CurrentUserService.instance.userId)
               Column(
                 children: [
                   if (controller.isFollowed.value == false)

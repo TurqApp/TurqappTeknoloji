@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class CreateBookController extends GetxController {
   final Function? onBack;
@@ -139,7 +139,7 @@ class CreateBookController extends GetxController {
       "timeStamp":
           existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
       "yayinEvi": yayinEviController.text,
-      "userID": existingBook?.userID ?? FirebaseAuth.instance.currentUser!.uid,
+      "userID": existingBook?.userID ?? CurrentUserService.instance.userId,
       "viewCount": existingBook?.viewCount ?? 0,
     }, SetOptions(merge: true));
 
@@ -197,8 +197,8 @@ class CreateBookController extends GetxController {
     BuildContext context,
   ) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = CurrentUserService.instance.userId;
+      if (userId.isEmpty) {
         showIndicator.value = false;
         return;
       }

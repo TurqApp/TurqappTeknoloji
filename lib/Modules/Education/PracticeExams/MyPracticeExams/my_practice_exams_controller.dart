@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyPracticeExamsController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
@@ -55,7 +55,7 @@ class MyPracticeExamsController extends GetxController {
   }
 
   Future<void> _bootstrapExams() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       exams.clear();
       isLoading.value = false;
@@ -86,7 +86,7 @@ class MyPracticeExamsController extends GetxController {
     bool forceRefresh = false,
     bool silent = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       exams.clear();
       isLoading.value = false;

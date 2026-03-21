@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'story_content_profile_controller.dart';
 
@@ -12,6 +12,8 @@ class StoryContentProfiles extends StatelessWidget {
   final String userID;
 
   StoryContentProfiles({super.key, required this.userID});
+
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class StoryContentProfiles extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () {
-              if (userID != FirebaseAuth.instance.currentUser!.uid) {
+              if (userID != _currentUserId) {
                 Get.to(() => SocialProfile(userID: userID));
               }
             },

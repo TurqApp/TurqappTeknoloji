@@ -1,13 +1,13 @@
 import 'dart:developer';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AntremanScoreController extends GetxController {
   static List<Map<String, dynamic>>? _cachedLeaderboard;
@@ -227,7 +227,7 @@ class AntremanScoreController extends GetxController {
       const int pageSize = 200;
       DocumentSnapshot<Map<String, dynamic>>? lastDocument;
       userRank.value = 0;
-      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final currentUserId = CurrentUserService.instance.userId;
 
       while (tempLeaderboard.length < limit) {
         final page = await _antremanRepository.fetchLeaderboardPage(
@@ -281,7 +281,7 @@ class AntremanScoreController extends GetxController {
   }
 
   Future<void> getUserAntPoint() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final monthlyScore = await _antremanRepository.getMonthlyScore(uid);
     if (monthlyScore != null) {
       userPoint.value = monthlyScore;

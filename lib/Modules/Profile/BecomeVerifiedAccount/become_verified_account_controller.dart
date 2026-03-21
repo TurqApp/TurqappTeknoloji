@@ -41,7 +41,7 @@ class BecomeVerifiedAccountController extends GetxController {
     super.onInit();
     _verifiedAccountRepository
         .fetchApplicationState(
-          FirebaseAuth.instance.currentUser!.uid,
+          CurrentUserService.instance.userId,
         )
         .then((state) {
       existingApplicationStatus.value = state?.status ?? '';
@@ -164,9 +164,9 @@ class BecomeVerifiedAccountController extends GetxController {
   Future<bool> submitApplication() async {
     if (isSubmitting.value) return false;
     isSubmitting.value = true;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = CurrentUserService.instance.userId;
     try {
-      if (uid == null || uid.isEmpty) {
+      if (uid.isEmpty) {
         AppSnackbar('common.error'.tr, 'become_verified.session_missing'.tr);
         return false;
       }
@@ -226,7 +226,7 @@ class BecomeVerifiedAccountController extends GetxController {
         bodySelection.value = 3;
         existingApplicationStatus.value = 'pending';
         await _verifiedAccountRepository.fetchApplicationState(
-          uid!,
+          uid,
           forceRefresh: true,
         );
         return false;

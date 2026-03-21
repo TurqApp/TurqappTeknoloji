@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -82,8 +81,8 @@ class StoryInteractionOptimizer extends GetxService {
     _isWriting = true;
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
+      final uid = _userService.userId.trim();
+      if (uid.isEmpty) {
         _isWriting = false;
         return;
       }

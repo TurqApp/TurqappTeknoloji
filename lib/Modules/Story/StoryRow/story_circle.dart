@@ -1,5 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
@@ -40,6 +40,12 @@ class _StoryCircleState extends State<StoryCircle> {
   static const double _labelWidth = 78;
   static const double _addBadgeSize = 18;
 
+  String get _currentUid {
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -58,9 +64,9 @@ class _StoryCircleState extends State<StoryCircle> {
                   final prevIndex = cont?.lastCenteredIndex;
                   cont?.lastCenteredIndex = prevIndex;
                   cont?.centeredIndex.value = -1;
-                  final myUserID = FirebaseAuth.instance.currentUser?.uid;
+                  final myUserID = _currentUid;
                   final isMe =
-                      myUserID != null && widget.model.userID == myUserID;
+                      myUserID.isNotEmpty && widget.model.userID == myUserID;
 
                   // Eğer tıklanan çember bana aitse
                   if (isMe) {
@@ -96,8 +102,8 @@ class _StoryCircleState extends State<StoryCircle> {
                   }
                 },
                 onLongPress: () {
-                  final myId = FirebaseAuth.instance.currentUser?.uid;
-                  final isMe = myId != null && widget.model.userID == myId;
+                  final myId = _currentUid;
+                  final isMe = myId.isNotEmpty && widget.model.userID == myId;
                   if (isMe) {
                     // Uzun basınca silinmiş hikayeler – arka plan videolarını durdur
                     final agenda = Get.isRegistered<AgendaController>()
@@ -121,8 +127,8 @@ class _StoryCircleState extends State<StoryCircle> {
                   }
                 },
                 child: Obx(() {
-                  final myId = FirebaseAuth.instance.currentUser?.uid;
-                  final isMe = myId != null && widget.model.userID == myId;
+                  final myId = _currentUid;
+                  final isMe = myId.isNotEmpty && widget.model.userID == myId;
                   final hasStory = widget.model.stories.isNotEmpty;
 
                   // OPTİMİZE EDİLMİŞ CACHE'DEN HIZLI KONTROL
@@ -236,9 +242,8 @@ class _StoryCircleState extends State<StoryCircle> {
               Positioned(
                   bottom: 0,
                   right: 0,
-                  child: (FirebaseAuth.instance.currentUser != null &&
-                          widget.model.userID ==
-                              FirebaseAuth.instance.currentUser!.uid)
+                  child: (_currentUid.isNotEmpty &&
+                          widget.model.userID == _currentUid)
                       ? GestureDetector(
                           onTap: () {
                             // Agenda'daki oynatmayi durdur ve StoryMaker'a git

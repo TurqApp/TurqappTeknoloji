@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class GifLibraryService {
   GifLibraryService._();
@@ -22,8 +22,8 @@ class GifLibraryService {
     required String category,
   }) async {
     final cleanUrl = url.trim();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (cleanUrl.isEmpty || uid == null || uid.isEmpty) {
+    final uid = CurrentUserService.instance.userId.trim();
+    if (cleanUrl.isEmpty || uid.isEmpty) {
       return;
     }
 

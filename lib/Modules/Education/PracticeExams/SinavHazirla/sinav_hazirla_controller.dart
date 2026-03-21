@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sinav_sorusu_hazirla.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 const _sinavTuruLgs = 'LGS';
 const _sinavTuruTyt = 'TYT';
@@ -184,7 +184,7 @@ class SinavHazirlaController extends GetxController {
             soruSayisiTextFields.map((controller) => controller.text).toList(),
         "taslak": true,
         "public": public.value,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
+        "userID": CurrentUserService.instance.userId,
         "bitisDk": sure.value,
         "bitis": combinedDateTime.millisecondsSinceEpoch + (sure.value * 60000),
       }, SetOptions(merge: true));

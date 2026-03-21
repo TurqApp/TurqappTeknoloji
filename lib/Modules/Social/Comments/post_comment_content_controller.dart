@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Models/post_interactions_models_new.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -41,8 +41,8 @@ class PostCommentContentController extends GetxController {
 
   Future<void> toggleLike() async {
     await _interactionService.toggleCommentLike(postID, model.docID);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     if (likes.contains(uid)) {
       likes.remove(uid);
     } else {

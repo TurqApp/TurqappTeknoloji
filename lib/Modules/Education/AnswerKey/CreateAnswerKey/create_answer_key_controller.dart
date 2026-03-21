@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class CreateAnswerKeyController extends GetxController {
   final Function onBack;
@@ -84,7 +84,7 @@ class CreateAnswerKeyController extends GetxController {
       "name": nameController.text.isNotEmpty
           ? nameController.text
           : "answer_key.untitled_optical_form".tr,
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "userID": CurrentUserService.instance.userId,
       "baslangic": selectedDateTime.value.millisecondsSinceEpoch,
       "bitis": selectedDateTime.value.millisecondsSinceEpoch +
           (60000 * sinavSuresiCount.value),

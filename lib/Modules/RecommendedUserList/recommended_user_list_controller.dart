@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/recommended_users_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/recommended_user_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserListController extends GetxController {
   RxList<RecommendedUserModel> list = <RecommendedUserModel>[].obs;
@@ -13,6 +13,8 @@ class RecommendedUserListController extends GetxController {
   final RxBool hasError = false.obs;
 
   final RxList<String> takipEdilenler = <String>[].obs;
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   DocumentSnapshot? lastFollowingDoc;
   bool hasMoreFollowing = true;
@@ -91,9 +93,9 @@ class RecommendedUserListController extends GetxController {
     isLoadingFollowing = true;
 
     try {
-      final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-      final ids = await FollowRepository.ensure().getFollowingIds(
-        currentUserId,
+      final currentUserId = CurrentUserService.instance.userId;
+      final ids = await _visibilityPolicy.loadViewerFollowingIds(
+        viewerUserId: currentUserId,
         preferCache: true,
       );
       takipEdilenler.assignAll(ids.toList());
@@ -121,7 +123,7 @@ class RecommendedUserListController extends GetxController {
     hasError.value = false;
 
     try {
-      final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+      final currentUserId = CurrentUserService.instance.userId;
 
       // Takip ettiklerimizi yükleyelim (cache'ten gelirse hızlı)
       await getFollowing();

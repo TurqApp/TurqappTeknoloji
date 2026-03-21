@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyAdminApprovalResultsView extends StatelessWidget {
   const MyAdminApprovalResultsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final repo = AdminApprovalRepository.ensure();
 
     return Scaffold(

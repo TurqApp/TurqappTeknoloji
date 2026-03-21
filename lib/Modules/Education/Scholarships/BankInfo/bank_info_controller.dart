@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,6 +6,7 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class BankInfoController extends GetxController {
   static const String _selectBank = "Banka Seç";
@@ -83,7 +83,7 @@ class BankInfoController extends GetxController {
   Future<void> loadData() async {
     try {
       final data = await _userRepository.getUserRaw(
-            FirebaseAuth.instance.currentUser!.uid,
+            CurrentUserService.instance.userId,
           ) ??
           const <String, dynamic>{};
       final bank = userString(data, key: "bank", scope: "finance");
@@ -165,7 +165,7 @@ class BankInfoController extends GetxController {
 
     // Save to Firestore
     _userRepository
-        .updateUserFields(FirebaseAuth.instance.currentUser!.uid, {
+        .updateUserFields(CurrentUserService.instance.userId, {
       ...scopedUserUpdate(
         scope: 'finance',
         values: {

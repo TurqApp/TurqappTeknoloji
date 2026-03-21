@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyBookletResultsController extends GetxController {
   final OpticalFormRepository _opticalFormRepository =
@@ -30,8 +30,8 @@ class MyBookletResultsController extends GetxController {
   }
 
   Future<void> _bootstrapResults() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       isLoading.value = false;
       return;
     }
@@ -69,7 +69,7 @@ class MyBookletResultsController extends GetxController {
   Future<void> fetchBookletResults({bool forceRefresh = false}) async {
     try {
       final snapshot = await _userSubcollectionRepository.getEntries(
-        FirebaseAuth.instance.currentUser!.uid,
+        CurrentUserService.instance.userId,
         subcollection: "KitapcikCevaplari",
         orderByField: "timeStamp",
         descending: true,
@@ -84,7 +84,7 @@ class MyBookletResultsController extends GetxController {
   /// Eski: tüm OptikKodlar çek → her biri için Yanitlar/{uid} oku (N+1)
   /// Yeni: collectionGroup("Yanitlar") ile uid dokümanlarını bul → parent OptikKodlar'ı batch çek
   Future<void> fetchOptikSonuclari({bool forceRefresh = false}) async {
-    final currentUserUID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUserUID = CurrentUserService.instance.userId;
 
     try {
       final tempList = await _opticalFormRepository.fetchAnsweredByUser(
@@ -102,7 +102,7 @@ class MyBookletResultsController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     final shouldShowLoader = !silent && list.isEmpty && optikSonuclari.isEmpty;
     if (shouldShowLoader) {
       isLoading.value = true;

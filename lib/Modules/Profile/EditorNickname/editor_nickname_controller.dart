@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -16,7 +15,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class EditorNicknameController extends GetxController {
   final TextEditingController nicknameController = TextEditingController();
 
-  final uid = FirebaseAuth.instance.currentUser!.uid;
+  final uid = CurrentUserService.instance.userId;
   static const Duration _graceWindow = Duration(hours: 1);
   static const Duration _changeCooldown = Duration(days: 15);
 

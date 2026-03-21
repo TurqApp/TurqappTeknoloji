@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 
 class _CachedProfileStats {
   final Map<String, dynamic> data;
@@ -20,6 +21,7 @@ class ProfileStatsRepository extends GetxService {
 
   SharedPreferences? _prefs;
   final Map<String, _CachedProfileStats> _memory = {};
+  final FollowRepository _followRepository = FollowRepository.ensure();
 
   static ProfileStatsRepository ensure() {
     if (Get.isRegistered<ProfileStatsRepository>()) {
@@ -132,26 +134,20 @@ class ProfileStatsRepository extends GetxService {
     final ts30 = now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
     final ts60 = now.subtract(const Duration(days: 60)).millisecondsSinceEpoch;
 
-    final last30Agg = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('followers')
-        .where('timeStamp', isGreaterThanOrEqualTo: ts30)
-        .where('timeStamp', isLessThanOrEqualTo: tsNow)
-        .count()
-        .get();
-    final prev30Agg = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('followers')
-        .where('timeStamp', isGreaterThanOrEqualTo: ts60)
-        .where('timeStamp', isLessThan: ts30)
-        .count()
-        .get();
+    final last30Count = await _followRepository.countFollowersInRange(
+      uid,
+      fromInclusive: ts30,
+      toInclusive: tsNow,
+    );
+    final prev30Count = await _followRepository.countFollowersInRange(
+      uid,
+      fromInclusive: ts60,
+      toExclusive: ts30,
+    );
 
     return <String, int>{
-      'followerGrowth30d': last30Agg.count ?? 0,
-      'followerGrowthPrev30d': prev30Agg.count ?? 0,
+      'followerGrowth30d': last30Count,
+      'followerGrowthPrev30d': prev30Count,
     };
   }
 

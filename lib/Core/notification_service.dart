@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -10,7 +9,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../main.dart'; // navigatorKey için
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
@@ -91,12 +92,12 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     if (token.isEmpty) return;
 
-    final user = FirebaseAuth.instance.currentUser;
-    final tokenKey = _tokenPrefsKey(user?.uid);
+    final currentUid = CurrentUserService.instance.userId;
+    final tokenKey = _tokenPrefsKey(currentUid);
     final saved = prefs.getString(tokenKey);
-    if (user != null) {
+    if (currentUid.isNotEmpty) {
       await UserRepository.ensure().updateUserFields(
-        user.uid,
+        currentUid,
         {"fcmToken": token},
       );
     }
@@ -149,7 +150,7 @@ class NotificationService {
 
   Future<void> showNotification(RemoteMessage msg) async {
     if (!_shouldUseLocalNotifications()) return;
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final currentUid = CurrentUserService.instance.userId;
     final fromUserID = (msg.data['fromUserID'] ?? '').toString().trim();
     if (currentUid.isNotEmpty &&
         fromUserID.isNotEmpty &&
@@ -300,7 +301,7 @@ class NotificationService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final fromUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final fromUid = CurrentUserService.instance.userId;
       if (fromUid.isEmpty) return;
       final myToken = prefs.getString(_tokenPrefsKey(fromUid));
 
@@ -315,11 +316,7 @@ class NotificationService {
         return;
       }
 
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(targetUid)
-          .collection("notifications")
-          .add({
+      await NotificationsRepository.ensure().createInboxItem(targetUid, {
         "type": type,
         "fromUserID": fromUid,
         "postID": docID,

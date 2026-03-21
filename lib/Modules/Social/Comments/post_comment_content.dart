@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Models/post_interactions_models_new.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -40,9 +40,9 @@ class PostCommentContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<PostCommentContentController>(tag: model.docID);
     return Obx(() {
-      final currentUID = FirebaseAuth.instance.currentUser?.uid;
+      final currentUID = CurrentUserService.instance.userId;
       final hasLiked =
-          currentUID != null && controller.likes.contains(currentUID);
+          currentUID.isNotEmpty && controller.likes.contains(currentUID);
       return Padding(
         padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
         child: Row(

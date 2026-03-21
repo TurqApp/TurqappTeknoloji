@@ -16,8 +16,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                         onTap: () {
                           controller.pausetheall.value = true;
                           Get.to(() => AboutProfile(
-                              userID: FirebaseAuth
-                                  .instance.currentUser!.uid))?.then((_) {
+                              userID: _myUserId))?.then((_) {
                             controller.resumeCenteredPost();
                           });
                         },
@@ -125,7 +124,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      final myUserID = FirebaseAuth.instance.currentUser!.uid;
+                      final myUserID = _myUserId;
 
                       if (_hasMyStories) {
                         try {
@@ -411,7 +410,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               controller.pausetheall.value = true;
               Get.to(() => FollowingFollowers(
                   selection: 0,
-                  userId: FirebaseAuth.instance.currentUser!.uid))?.then((_) {
+                  userId: _myUserId))?.then((_) {
                 controller.resumeCenteredPost();
               });
             },
@@ -456,7 +455,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               controller.pausetheall.value = true;
               Get.to(() => FollowingFollowers(
                   selection: 1,
-                  userId: FirebaseAuth.instance.currentUser!.uid))?.then((_) {
+                  userId: _myUserId))?.then((_) {
                 controller.resumeCenteredPost();
               });
             },

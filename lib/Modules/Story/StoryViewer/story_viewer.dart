@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +10,7 @@ import '../StoryRow/story_user_model.dart';
 import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Core/connectivity_helper.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import '../StoryRow/story_row_controller.dart';
 
@@ -317,8 +317,8 @@ class _StoryViewerState extends State<StoryViewer>
 
   void _onScreenshotDetected() {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId.trim();
+      if (uid.isEmpty) return;
       if (currentPageIndex >= widget.storyOwnerUsers.length) return;
       final storyOwner = widget.storyOwnerUsers[currentPageIndex];
       // Kendi hikayemi screenshot'lamak bir sey yapmaz
@@ -388,8 +388,8 @@ class _StoryViewerState extends State<StoryViewer>
   /// Kullanıcının tüm hikayelerini bitirdikten sonra çağrılır
   void _markUserAsFullyViewed(int index) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null && index < widget.storyOwnerUsers.length) {
+      final uid = CurrentUserService.instance.userId.trim();
+      if (uid.isNotEmpty && index < widget.storyOwnerUsers.length) {
         final user = widget.storyOwnerUsers[index];
         final targetUserId = user.userID;
 

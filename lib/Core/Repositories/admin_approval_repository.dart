@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -41,9 +40,9 @@ class AdminApprovalRepository extends GetxService {
     required String targetNickname,
     required Map<String, dynamic> payload,
   }) async {
-    final authUser = FirebaseAuth.instance.currentUser;
-    final current = CurrentUserService.instance.currentUser;
-    final uid = authUser?.uid ?? '';
+    final currentService = CurrentUserService.instance;
+    final current = currentService.currentUser;
+    final uid = currentService.userId;
     await _ref.add(<String, dynamic>{
       'type': type.trim(),
       'title': title.trim(),
@@ -64,24 +63,24 @@ class AdminApprovalRepository extends GetxService {
   }
 
   Future<void> approve(String docId) async {
-    final authUser = FirebaseAuth.instance.currentUser;
-    final current = CurrentUserService.instance.currentUser;
+    final currentService = CurrentUserService.instance;
+    final current = currentService.currentUser;
     await _ref.doc(docId).set(<String, dynamic>{
       'status': 'approved',
       'resolvedAt': FieldValue.serverTimestamp(),
-      'resolvedBy': authUser?.uid ?? '',
+      'resolvedBy': currentService.userId,
       'resolvedByNickname': current?.nickname.trim() ?? '',
       'rejectionReason': '',
     }, SetOptions(merge: true));
   }
 
   Future<void> reject(String docId, {String reason = ''}) async {
-    final authUser = FirebaseAuth.instance.currentUser;
-    final current = CurrentUserService.instance.currentUser;
+    final currentService = CurrentUserService.instance;
+    final current = currentService.currentUser;
     await _ref.doc(docId).set(<String, dynamic>{
       'status': 'rejected',
       'resolvedAt': FieldValue.serverTimestamp(),
-      'resolvedBy': authUser?.uid ?? '',
+      'resolvedBy': currentService.userId,
       'resolvedByNickname': current?.nickname.trim() ?? '',
       'rejectionReason': reason.trim(),
     }, SetOptions(merge: true));

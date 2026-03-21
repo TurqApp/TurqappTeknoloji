@@ -2,12 +2,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 String kacGunKaldi(int timestampMillis) {
   final hedefTarih = DateTime.fromMillisecondsSinceEpoch(timestampMillis);
@@ -72,11 +72,12 @@ String timeAgoMetin(num timestamp) {
 Future<void> getDeviceInfo() async {
   final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
-  if (FirebaseAuth.instance.currentUser != null) {
+  final currentUid = CurrentUserService.instance.userId;
+  if (currentUid.isNotEmpty) {
     if (Platform.isAndroid) {
       AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
       await UserRepository.ensure().updateUserFields(
-        FirebaseAuth.instance.currentUser!.uid,
+        currentUid,
         {
           "device": "Android ${androidInfo.model}",
           "deviceVersion": androidInfo.version.release,
@@ -88,7 +89,7 @@ Future<void> getDeviceInfo() async {
       print("iOS device info synced");
 
       await UserRepository.ensure().updateUserFields(
-        FirebaseAuth.instance.currentUser!.uid,
+        currentUid,
         {
           "device": "Apple ${iosInfo.modelName}",
           "deviceVersion": iosInfo.systemVersion,

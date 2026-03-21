@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -17,6 +16,7 @@ import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
@@ -121,7 +121,7 @@ class JobFinderController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -139,7 +139,7 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -212,7 +212,7 @@ class JobFinderController extends GetxController {
     try {
       final resource = await _jobHomeSnapshotRepository.search(
         query: query,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );
@@ -236,7 +236,7 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> _bootstrapStartData() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = CurrentUserService.instance.userId;
     await JobContentController.warmSavedIdsForCurrentUser();
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _jobHomeSnapshotRepository
@@ -259,7 +259,7 @@ class JobFinderController extends GetxController {
     }
     try {
       final resource = await _jobHomeSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: limit,
         forceSync: forceRefresh,
       );

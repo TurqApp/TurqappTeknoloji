@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Services/network_awareness_service.dart';
 
 class UnreadMessagesController extends GetxController {
@@ -37,14 +37,14 @@ class UnreadMessagesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if (FirebaseAuth.instance.currentUser?.uid != null) {
+    if (CurrentUserService.instance.userId.isNotEmpty) {
       startListeners();
     }
   }
 
   void startListeners({bool force = false}) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     if (!force && _listenersStarted && _activeUid == uid) return;
 
     _cancelAllSubscriptions();
@@ -96,8 +96,8 @@ class UnreadMessagesController extends GetxController {
   }
 
   Future<void> _syncUnread({required bool forceServer}) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || _isSyncing) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty || _isSyncing) return;
 
     final cacheOnly = _isOffline;
     final shouldHitServer = !cacheOnly &&
@@ -214,8 +214,8 @@ class UnreadMessagesController extends GetxController {
   }
 
   Future<void> _persistReadCutoff(String chatId, int cutoffMs) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || chatId.trim().isEmpty || cutoffMs <= 0) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty || chatId.trim().isEmpty || cutoffMs <= 0) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt("chat_last_opened_${uid}_$chatId", cutoffMs);

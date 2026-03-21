@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/music_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryMusicLibraryService {
   StoryMusicLibraryService._();
@@ -193,8 +193,8 @@ class StoryMusicLibraryService {
   }
 
   Future<Set<String>> fetchSavedMusicIds() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return <String>{};
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return <String>{};
     try {
       final entries = await _userSubcollectionRepository.getEntries(
         uid,
@@ -210,9 +210,9 @@ class StoryMusicLibraryService {
   }
 
   Future<bool> toggleSavedMusic(MusicModel track) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = CurrentUserService.instance.userId.trim();
     final cleanId = track.docID.trim();
-    if (uid == null || uid.isEmpty || cleanId.isEmpty) return false;
+    if (uid.isEmpty || cleanId.isEmpty) return false;
     final existing = await _userSubcollectionRepository.getEntry(
       uid,
       subcollection: 'savedMusic',

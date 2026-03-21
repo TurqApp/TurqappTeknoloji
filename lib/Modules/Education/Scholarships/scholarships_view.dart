@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +24,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';

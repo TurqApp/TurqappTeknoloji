@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -39,8 +38,8 @@ class ReshareHelper {
       final safeUserID = userID.trim();
       if (safeUserID.isEmpty) return _unknownUser;
 
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      if (me != null &&
+      final me = CurrentUserService.instance.userId.trim();
+      if (me.isNotEmpty &&
           safeUserID == me &&
           Get.isRegistered<CurrentUserService>()) {
         final current = Get.find<CurrentUserService>();
@@ -91,8 +90,8 @@ class ReshareHelper {
       final safeUserID = userID.trim();
       if (safeUserID.isEmpty) return _unknownUser;
 
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      if (me != null &&
+      final me = CurrentUserService.instance.userId.trim();
+      if (me.isNotEmpty &&
           safeUserID == me &&
           Get.isRegistered<CurrentUserService>()) {
         final current = Get.find<CurrentUserService>();

@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FollowerController extends GetxController {
   var avatarUrl = "".obs;
@@ -77,8 +77,8 @@ class FollowerController extends GetxController {
   }
 
   Future<void> followControl(String userID) async {
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid == null) return;
+    final myUid = CurrentUserService.instance.userId;
+    if (myUid.isEmpty) return;
     _pruneFollowStateCache();
 
     final cacheKey = '$myUid:$userID';
@@ -120,8 +120,8 @@ class FollowerController extends GetxController {
     isFollowed.value = outcome.nowFollowing; // reconcile
     isFollowed.refresh();
 
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid != null) {
+    final myUid = CurrentUserService.instance.userId;
+    if (myUid.isNotEmpty) {
       try {
         _followStateCacheByUser['$myUid:$otherUserID'] = _FollowStateCacheEntry(
           isFollowed: outcome.nowFollowing,

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,6 +12,7 @@ import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_view.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TestsGridController extends GetxController {
   final TestsModel model;
@@ -71,7 +71,7 @@ class TestsGridController extends GetxController {
   }
 
   void checkIfFavorite() async {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final userId = CurrentUserService.instance.userId;
     final data = await _testRepository.fetchRawById(
       model.docID,
       preferCache: true,
@@ -84,7 +84,7 @@ class TestsGridController extends GetxController {
   }
 
   void toggleFavorite() async {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final userId = CurrentUserService.instance.userId;
     isFavorite.value = await _testRepository.toggleFavorite(
       model.docID,
       userId: userId,
@@ -293,7 +293,7 @@ class TestsGridController extends GetxController {
   }
 
   void handleTestAction(BuildContext context) {
-    if (model.userID == FirebaseAuth.instance.currentUser!.uid) {
+    if (model.userID == CurrentUserService.instance.userId) {
       Get.bottomSheet(
         Padding(
           padding: const EdgeInsets.all(20),
@@ -505,7 +505,7 @@ class TestsGridController extends GetxController {
   }
 
   void navigateToProfile(BuildContext context) {
-    if (model.userID != FirebaseAuth.instance.currentUser!.uid) {
+    if (model.userID != CurrentUserService.instance.userId) {
       Get.to(() => SocialProfile(userID: model.userID));
     } else {
       Get.to(() => ProfileView());

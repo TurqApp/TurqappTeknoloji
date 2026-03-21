@@ -1,12 +1,12 @@
 import 'dart:developer';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchAnswerKeyController extends GetxController {
   final searchController = TextEditingController();
@@ -82,7 +82,7 @@ class SearchAnswerKeyController extends GetxController {
     try {
       final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );

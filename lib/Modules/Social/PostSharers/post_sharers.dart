@@ -1,11 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_controller.dart';
 import 'package:turqappv2/Modules/Social/PostSharers/post_sharers_controller.dart';
 import 'package:turqappv2/Models/post_sharers_model.dart';
@@ -143,7 +143,7 @@ class _PostSharerTileState extends State<_PostSharerTile> {
   FollowerController? _followController;
   bool _followStateReady = false;
 
-  String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _currentUid => CurrentUserService.instance.userId;
 
   @override
   void initState() {

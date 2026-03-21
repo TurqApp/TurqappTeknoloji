@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -26,6 +25,7 @@ import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -49,7 +49,7 @@ class JobDetails extends StatelessWidget {
     final targetUid =
         await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
 
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid = CurrentUserService.instance.userId;
     if (targetUid.isNotEmpty && targetUid != currentUid) {
       await Get.to(() => SocialProfile(userID: targetUid));
     }

@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TestPastResultContentController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -65,11 +65,10 @@ class TestPastResultContentController extends GetxController {
   void _applySnapshot(List<Map<String, dynamic>> snapshot) {
     count.value = 0;
     timeStamp.value = 0;
+    final currentUserId = CurrentUserService.instance.userId;
     final filtered = snapshot
         .where(
-          (doc) =>
-              (doc["userID"] ?? "").toString() ==
-              FirebaseAuth.instance.currentUser!.uid,
+          (doc) => (doc["userID"] ?? "").toString() == currentUserId,
         )
         .toList(growable: false)
       ..sort(

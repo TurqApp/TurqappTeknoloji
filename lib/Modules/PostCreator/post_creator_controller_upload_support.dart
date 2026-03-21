@@ -2,19 +2,7 @@ part of 'post_creator_controller.dart';
 
 extension _PostCreatorControllerUploadSupportX on PostCreatorController {
   String _resolvePostLocationCity() {
-    final user = CurrentUserService.instance.currentUserRx.value;
-    final candidates = [
-      user?.locationSehir,
-      user?.city,
-      user?.ikametSehir,
-      user?.il,
-      user?.ulke,
-    ];
-    for (final raw in candidates) {
-      final value = (raw ?? '').trim();
-      if (value.isNotEmpty) return value;
-    }
-    return '';
+    return CurrentUserService.instance.preferredLocationCityOrEmpty;
   }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {

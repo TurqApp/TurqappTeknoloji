@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class NotifyPostLookup {
   const NotifyPostLookup({
@@ -68,12 +68,9 @@ class NotifyMarketLookup {
 class NotifyLookupRepository extends GetxService {
   NotifyLookupRepository({
     FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
-  final FirebaseAuth _auth;
 
   static const Duration _postLookupTtl = Duration(seconds: 30);
   static const Duration _chatLookupTtl = Duration(seconds: 30);
@@ -121,7 +118,7 @@ class NotifyLookupRepository extends GetxService {
 
   Future<NotifyChatLookup> getChatLookup(String chatID) async {
     _pruneStaleLookups();
-    final currentUid = _auth.currentUser?.uid ?? '';
+    final currentUid = CurrentUserService.instance.userId;
     final cacheKey = '${currentUid}_$chatID';
     final cached = _chatLookupCache[cacheKey];
     if (cached != null &&

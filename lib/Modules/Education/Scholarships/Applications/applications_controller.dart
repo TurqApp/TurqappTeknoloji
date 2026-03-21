@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
@@ -9,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ApplicationsController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -25,8 +25,8 @@ class ApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapApplications() async {
-    final userID = FirebaseAuth.instance.currentUser?.uid;
-    if (userID == null) {
+    final userID = CurrentUserService.instance.userId;
+    if (userID.isEmpty) {
       isLoading.value = false;
       return;
     }
@@ -58,8 +58,8 @@ class ApplicationsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       applications.assignAll(applicationList);
-      final userID = FirebaseAuth.instance.currentUser?.uid;
-      if (userID != null) {
+      final userID = CurrentUserService.instance.userId;
+      if (userID.isNotEmpty) {
         SilentRefreshGate.markRefreshed('scholarships:applications:$userID');
       }
     } catch (e) {
@@ -73,8 +73,8 @@ class ApplicationsController extends GetxController {
     bool cacheOnly = false,
     bool forceRefresh = false,
   }) async {
-    final userID = FirebaseAuth.instance.currentUser?.uid;
-    if (userID == null) {
+    final userID = CurrentUserService.instance.userId;
+    if (userID.isEmpty) {
       throw StateError('Kullanıcı oturumu açık değil.');
     }
 
@@ -140,8 +140,8 @@ class ApplicationsController extends GetxController {
 
   Future<void> withdrawApplication(String bursID) async {
     try {
-      final userID = FirebaseAuth.instance.currentUser?.uid;
-      if (userID == null) {
+      final userID = CurrentUserService.instance.userId;
+      if (userID.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;
       }

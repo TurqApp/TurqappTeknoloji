@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringSearchController extends GetxController {
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
@@ -78,7 +78,7 @@ class TutoringSearchController extends GetxController {
   Future<void> _bootstrapInitialData() async {
     try {
       final resource = await _tutoringSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 60,
       );
       final cachedItems = resource.data ?? const <TutoringModel>[];
@@ -106,7 +106,7 @@ class TutoringSearchController extends GetxController {
     }
     try {
       final result = await _tutoringSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 60,
         forceSync: forceRefresh,
       );
@@ -134,7 +134,7 @@ class TutoringSearchController extends GetxController {
     try {
       final result = await _tutoringSnapshotRepository.search(
         query: normalized,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 60,
         forceSync: true,
       );

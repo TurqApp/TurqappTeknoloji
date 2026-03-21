@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Repositories/notification_preferences_repository.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class NotificationPreferencesService {
   NotificationPreferencesService._();
@@ -33,23 +33,23 @@ class NotificationPreferencesService {
       NotificationPreferencesRepository.ensure();
 
   static Stream<Map<String, dynamic>> currentUserPreferencesStream() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) {
       return Stream.value(defaults());
     }
     return _repository.watchPreferences(uid).map(mergeWithDefaults);
   }
 
   static Future<Map<String, dynamic>> getCurrentUserPreferences() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return defaults();
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return defaults();
     final data = await _repository.getPreferences(uid, preferCache: true);
     return mergeWithDefaults(data);
   }
 
   static Future<void> setValue(String path, dynamic value) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.userId.trim();
+    if (uid.isEmpty) return;
     final current = mergeWithDefaults(
       await _repository.getPreferences(uid, preferCache: true),
     );

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ScholarshipDetailController extends GetxController {
   static const String _selectValue = 'Seçiniz';
@@ -73,21 +73,21 @@ class ScholarshipDetailController extends GetxController {
     final docId =
         scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '';
     if (docId.isEmpty) return;
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
+    final currentUserId = CurrentUserService.instance.userId;
+    if (currentUserId.isEmpty) return;
     final model = scholarshipData['model'];
     if (model is IndividualScholarshipsModel &&
-        model.userID == currentUser.uid) {
+        model.userID == currentUserId) {
       return;
     }
     ScholarshipFirestorePath.doc(docId).update({
-      'goruntuleme': FieldValue.arrayUnion([currentUser.uid]),
+      'goruntuleme': FieldValue.arrayUnion([currentUserId]),
     }).catchError((_) {});
   }
 
   Future<void> checkUserApplicationReadiness() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final currentUserId = CurrentUserService.instance.userId;
+    if (currentUserId.isEmpty) {
       applyReady.value = false;
       AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
@@ -95,7 +95,7 @@ class ScholarshipDetailController extends GetxController {
 
     try {
       isLoading.value = true;
-      final data = await _userRepository.getUserRaw(currentUser.uid);
+      final data = await _userRepository.getUserRaw(currentUserId);
 
       if (data != null) {
         final educationLevel =
@@ -199,8 +199,8 @@ class ScholarshipDetailController extends GetxController {
 
   Future<void> checkIfUserAlreadyApplied(
       Map<String, dynamic> scholarshipData) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final currentUserId = CurrentUserService.instance.userId;
+    if (currentUserId.isEmpty) {
       allreadyApplied.value = false;
       return;
     }
@@ -212,7 +212,7 @@ class ScholarshipDetailController extends GetxController {
       if (scholarshipId.isNotEmpty) {
         allreadyApplied.value = await _scholarshipRepository.hasUserApplied(
           scholarshipId,
-          currentUser.uid,
+          currentUserId,
         );
       } else {
         allreadyApplied.value = false;
@@ -227,8 +227,8 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> applyForScholarship(String scholarshipId, String type) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final currentUserId = CurrentUserService.instance.userId;
+    if (currentUserId.isEmpty) {
       AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
     }
@@ -244,16 +244,16 @@ class ScholarshipDetailController extends GetxController {
       final docRef = ScholarshipFirestorePath.doc(scholarshipId);
       final field = 'basvurular';
 
-      await docRef.collection('Basvurular').doc(currentUser.uid).set({
+      await docRef.collection('Basvurular').doc(currentUserId).set({
         'timeStamp': DateTime.now().millisecondsSinceEpoch,
       });
 
       await docRef.update({
-        field: FieldValue.arrayUnion([currentUser.uid]),
+        field: FieldValue.arrayUnion([currentUserId]),
       });
       await _scholarshipRepository.setUserAppliedCache(
         scholarshipId,
-        currentUser.uid,
+        currentUserId,
         true,
       );
 
@@ -267,15 +267,14 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> initializeFollowState(String followedId) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final followerId = CurrentUserService.instance.userId;
+    if (followerId.isEmpty) {
       isFollowing.value = false;
       return;
     }
     if (followedId.isEmpty) return;
     if (_followInitForId == followedId) return;
     _followInitForId = followedId;
-    final followerId = currentUser.uid;
     isFollowing.value = await _followRepository.isFollowing(
       followedId,
       currentUid: followerId,
@@ -341,8 +340,8 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> cancelApplication(String scholarshipId, String type) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    final currentUserId = CurrentUserService.instance.userId;
+    if (currentUserId.isEmpty) {
       AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
     }
@@ -352,10 +351,10 @@ class ScholarshipDetailController extends GetxController {
       final docRef = ScholarshipFirestorePath.doc(scholarshipId);
       final field = 'basvurular';
 
-      await docRef.collection('Basvurular').doc(currentUser.uid).delete();
+      await docRef.collection('Basvurular').doc(currentUserId).delete();
 
       await docRef.update({
-        field: FieldValue.arrayRemove([currentUser.uid]),
+        field: FieldValue.arrayRemove([currentUserId]),
       });
 
       allreadyApplied.value = false;

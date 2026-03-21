@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyApplicationsController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
@@ -24,8 +24,8 @@ class MyApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapApplications() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       isLoading.value = false;
       return;
     }
@@ -61,8 +61,8 @@ class MyApplicationsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) return;
       final items = await _subcollectionRepository.getEntries(
         uid,
         subcollection: 'myApplications',
@@ -84,8 +84,8 @@ class MyApplicationsController extends GetxController {
 
   Future<void> cancelApplication(String jobDocID) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.userId;
+      if (uid.isEmpty) return;
 
       final batch = FirebaseFirestore.instance.batch();
 

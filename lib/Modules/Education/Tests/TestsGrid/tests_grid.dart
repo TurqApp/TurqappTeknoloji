@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +6,15 @@ import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TestsGrid extends StatelessWidget {
   final TestsModel model;
   final Function? update;
 
   const TestsGrid({super.key, required this.model, this.update});
+
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +87,7 @@ class TestsGrid extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (model.userID != FirebaseAuth.instance.currentUser!.uid)
+                  if (model.userID != _currentUserId)
                     GestureDetector(
                       onTap: () => controller.showReportModal(context),
                       child: Icon(
@@ -202,7 +204,7 @@ class TestsGrid extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (model.userID == FirebaseAuth.instance.currentUser!.uid)
+                  if (model.userID == _currentUserId)
                     Padding(
                       padding: EdgeInsets.only(top: 17),
                       child: Row(
@@ -236,7 +238,7 @@ class TestsGrid extends StatelessWidget {
             ),
           ),
           SizedBox(height: 7),
-          if (model.userID != FirebaseAuth.instance.currentUser!.uid)
+          if (model.userID != _currentUserId)
             GestureDetector(
               onTap: () => controller.navigateToTestSolve(context),
               child: Padding(

@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class BookletAnswerController extends GetxController {
   final ConfigRepository _configRepository = ConfigRepository.ensure();
@@ -79,7 +79,7 @@ class BookletAnswerController extends GetxController {
     try {
       await FirebaseFirestore.instance
           .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .doc(CurrentUserService.instance.userId)
           .collection("KitapcikCevaplari")
           .add({
         "timeStamp": DateTime.now().millisecondsSinceEpoch,

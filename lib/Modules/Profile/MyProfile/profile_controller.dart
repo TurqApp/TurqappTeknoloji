@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/profile_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/posts_model.dart';
@@ -35,6 +36,8 @@ class ProfileController extends GetxController {
   final ProfileRenderCoordinator _profileRenderCoordinator =
       ProfileRenderCoordinator.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
@@ -116,6 +119,16 @@ class ProfileController extends GetxController {
       <int, ScrollController>{};
   var showPfImage = false.obs;
 
+  String? get _resolvedActiveUid {
+    final active = _activeUid?.trim();
+    if (active != null && active.isNotEmpty) return active;
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    final authUid = FirebaseAuth.instance.currentUser?.uid.trim();
+    if (authUid != null && authUid.isNotEmpty) return authUid;
+    return null;
+  }
+
   ScrollController scrollControllerForSelection(int selection) {
     return _scrollControllers.putIfAbsent(
       selection,
@@ -130,7 +143,7 @@ class ProfileController extends GetxController {
   void onInit() {
     super.onInit();
     // Aktif kullanıcıyı kaydet ve auth değişimini dinle
-    _activeUid = FirebaseAuth.instance.currentUser?.uid;
+    _activeUid = _resolvedActiveUid;
     _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
 
     _bindCacheWorkers();
@@ -237,7 +250,7 @@ class ProfileController extends GetxController {
   }
 
   Future<void> _bootstrapHeaderFromTypesense() async {
-    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null || uid.isEmpty) return;
     try {
       final summary = await _userSummaryResolver.resolve(
@@ -334,7 +347,7 @@ class ProfileController extends GetxController {
   }
 
   void _schedulePersistPostCaches() {
-    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null || uid.isEmpty) return;
     _persistCacheTimer?.cancel();
     _persistCacheTimer = Timer(const Duration(milliseconds: 400), () {
@@ -357,7 +370,7 @@ class ProfileController extends GetxController {
   }
 
   Future<void> _restoreCachedListsForActiveUser() async {
-    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null || uid.isEmpty) return;
     final resource = await _profileSnapshotRepository.bootstrapProfile(
       userId: uid,
@@ -412,7 +425,7 @@ class ProfileController extends GetxController {
   }
 
   void _listenToCounterChanges() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
 
     _counterSub?.cancel();
@@ -436,7 +449,7 @@ class ProfileController extends GetxController {
   }
 
   void _bindResharesRealtime() {
-    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
     _resharesSub?.cancel();
     _resharesSub = _linkService.listenResharedPosts(uid).listen((refs) {
@@ -525,7 +538,7 @@ class ProfileController extends GetxController {
   }
 
   Future<void> getCounters() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
 
     try {
@@ -550,8 +563,8 @@ class ProfileController extends GetxController {
           preferCache: true,
           forceRefresh: false,
         );
-        final followings = await _followRepository.getFollowingIds(
-          uid,
+        final followings = await _visibilityPolicy.loadViewerFollowingIds(
+          viewerUserId: uid,
           preferCache: true,
           forceRefresh: false,
         );
@@ -601,7 +614,8 @@ class ProfileController extends GetxController {
       cancelText: "common.cancel".tr,
       yesText: "common.remove".tr,
       onYesPressed: () async {
-        final uid = FirebaseAuth.instance.currentUser!.uid;
+        final uid = _resolvedActiveUid;
+        if (uid == null || uid.isEmpty) return;
         await _socialLinksRepository.deleteLink(uid, docID);
         final links = Get.find<SocialMediaController>();
         links.getData();
@@ -610,7 +624,7 @@ class ProfileController extends GetxController {
   }
 
   Future<void> getLastPostAndAddToAllPosts() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
 
     final lastPost = await _profileRepository.fetchLatestProfilePost(uid);
@@ -638,13 +652,13 @@ class ProfileController extends GetxController {
   }
 
   Future<void> getReshares() async {
-    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
     await _hydrateReshares(uid, _latestReshareRefs);
   }
 
   Future<void> getResharesSingle() async {
-    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
 
     final post = await _profileRepository.fetchLatestResharePost(uid);
@@ -686,7 +700,7 @@ class ProfileController extends GetxController {
   Future<void> _loadInitialPrimaryBuckets({
     bool forceSync = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null || uid.isEmpty) return;
     final resource = await _profileSnapshotRepository.loadProfile(
       userId: uid,
@@ -715,7 +729,7 @@ class ProfileController extends GetxController {
     required bool initial,
     bool force = false,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = _resolvedActiveUid;
     if (uid == null) return;
     if (_isLoadingPrimary && !force) return;
     if (!initial && !_hasMorePrimary) return;

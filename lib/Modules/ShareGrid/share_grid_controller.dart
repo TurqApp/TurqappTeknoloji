@@ -1,13 +1,13 @@
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../Chat/ChatListing/chat_listing_controller.dart';
 
@@ -24,7 +24,8 @@ class ShareGridController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
-  final FollowRepository _followRepository = FollowRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   @override
   void onInit() {
@@ -34,8 +35,10 @@ class ShareGridController extends GetxController {
   }
 
   Future<void> getFolowers() async {
-    final currentUid = FirebaseAuth.instance.currentUser!.uid;
-    final ids = await _followRepository.getFollowingIds(currentUid);
+    final currentUid = CurrentUserService.instance.userId;
+    final ids = await _visibilityPolicy.loadViewerFollowingIds(
+      viewerUserId: currentUid,
+    );
     final limitedIds = ids.take(20).toList();
     final profiles = await _userSummaryResolver.resolveMany(limitedIds);
     final items = <OgrenciModel>[];
@@ -63,7 +66,7 @@ class ShareGridController extends GetxController {
     final sohbet = chatListingController.list.firstWhereOrNull(
       (val) => val.userID == userID,
     );
-    final currentUID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUID = CurrentUserService.instance.userId;
     final chatId = sohbet?.chatID ?? buildConversationId(currentUID, userID);
 
     try {

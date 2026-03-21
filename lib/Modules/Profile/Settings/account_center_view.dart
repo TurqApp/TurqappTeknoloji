@@ -28,7 +28,7 @@ class AccountCenterView extends StatelessWidget {
   CurrentUserService get _currentUserService => CurrentUserService.instance;
 
   Future<void> _continueWithAccount(StoredAccount account) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = _currentUserService.userId.trim();
     if (currentUid == account.uid) {
       AppSnackbar(
         'account_center.active_account_title'.tr,
@@ -98,7 +98,7 @@ class AccountCenterView extends StatelessWidget {
     BuildContext context,
     StoredAccount account,
   ) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = _currentUserService.userId.trim();
     if (currentUid == account.uid) {
       AppSnackbar(
         'account_center.active_account_title'.tr,
@@ -322,7 +322,7 @@ class _SessionSecuritySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -486,7 +486,7 @@ class _PersonalDetailsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = CurrentUserService.instance.userId.trim();
     return FutureBuilder<String?>(
       key: ValueKey(currentUid),
       future: _loadContactDetails(),
@@ -574,17 +574,11 @@ class _ContactDetailsView extends StatelessWidget {
   const _ContactDetailsView();
 
   String _emailValue(CurrentUserService currentUserService) {
-    return (currentUserService.currentUser?.email ??
-            FirebaseAuth.instance.currentUser?.email ??
-            '')
-        .trim();
+    return currentUserService.email.trim();
   }
 
   String _phoneValue(CurrentUserService currentUserService) {
-    return (currentUserService.currentUser?.phoneNumber ??
-            FirebaseAuth.instance.currentUser?.phoneNumber ??
-            '')
-        .trim();
+    return currentUserService.phoneNumber.trim();
   }
 
   @override

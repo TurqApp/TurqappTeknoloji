@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyTestResultsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -19,7 +19,7 @@ class MyTestResultsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUserID = CurrentUserService.instance.userId;
     final cached = await _testRepository.fetchAnsweredByUser(
       currentUserID,
       cacheOnly: true,
@@ -46,7 +46,7 @@ class MyTestResultsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+      final currentUserID = CurrentUserService.instance.userId;
       final items = await _testRepository.fetchAnsweredByUser(
         currentUserID,
         preferCache: !forceRefresh,

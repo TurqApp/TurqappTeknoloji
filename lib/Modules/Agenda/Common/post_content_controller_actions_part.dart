@@ -171,11 +171,11 @@ extension PostContentControllerActionsPart on PostContentController {
           ? await _postRepository.toggleReshare(model)
           : await _interactionService.toggleReshare(targetPostId);
 
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final uid = userService.userId;
 
       if (status) {
         yenidenPaylasildiMi.value = true;
-        if (uid != null && !reSharedUsers.contains(uid)) {
+        if (uid.isNotEmpty && !reSharedUsers.contains(uid)) {
           reSharedUsers.add(uid);
           reShareUserUserID.value = uid;
           reShareUserNickname.value = 'Sen';
@@ -188,7 +188,7 @@ extension PostContentControllerActionsPart on PostContentController {
         await onReshareAdded(uid, targetPostId: targetPostId);
       } else {
         yenidenPaylasildiMi.value = false;
-        if (uid != null) {
+        if (uid.isNotEmpty) {
           reSharedUsers.remove(uid);
           agendaController.myReshares.remove(targetPostId);
         }
@@ -206,14 +206,15 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> followCheck() async {
-    if (model.userID != FirebaseAuth.instance.currentUser!.uid) {
+    final currentUid = userService.userId;
+    if (model.userID != currentUid) {
       if (agendaController.followingIDs.contains(model.userID)) {
         isFollowing.value = true;
         return;
       }
       final docExists = await FollowRepository.ensure().isFollowing(
         model.userID,
-        currentUid: FirebaseAuth.instance.currentUser!.uid,
+        currentUid: currentUid,
         preferCache: true,
       );
       isFollowing.value = docExists;
@@ -298,7 +299,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
     // Current user posts should stay bound to current-user stream so avatar/
     // nickname changes are reflected immediately in feed cards.
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final currentUserId = userService.userId;
     if (currentUserId == userID) {
       if (userService.currentUser != null) {
         final user = userService.currentUser!;
@@ -441,8 +442,8 @@ extension PostContentControllerActionsPart on PostContentController {
     reSharedUsers.value = list;
 
     // Kimi göstereceğiz? Önce ben, sonra takip ettiklerimden en günceli
-    final me = FirebaseAuth.instance.currentUser?.uid;
-    if (me != null && list.contains(me)) {
+    final me = userService.userId;
+    if (me.isNotEmpty && list.contains(me)) {
       reShareUserUserID.value = me;
       reShareUserNickname.value = 'Sen';
       PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
@@ -495,13 +496,13 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> like() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final bool wasLiked = uid != null && likes.contains(uid);
+    final uid = userService.userId;
+    final bool wasLiked = uid.isNotEmpty && likes.contains(uid);
 
     try {
       await _postRepository.toggleLike(model);
     } catch (e) {
-      if (uid != null) {
+      if (uid.isNotEmpty) {
         if (wasLiked) {
           if (!likes.contains(uid)) likes.add(uid);
         } else {
@@ -553,14 +554,14 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> followUser() async {
-    if (model.userID == FirebaseAuth.instance.currentUser!.uid) return;
+    if (model.userID == userService.userId) return;
     await onlyFollowUserOneTime();
   }
 
   Future<void> onlyFollowUserOneTime() async {
     try {
       if (followLoading.value) return;
-      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final currentUid = userService.userId;
       final alreadyFollowing = await FollowRepository.ensure().isFollowing(
         model.userID,
         currentUid: currentUid,
@@ -600,8 +601,8 @@ extension PostContentControllerActionsPart on PostContentController {
   Future<void> sendAdminPushForPost() async {
     if (!canSendAdminPush) return;
 
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null) return;
+    final currentUid = userService.userId;
+    if (currentUid.isEmpty) return;
 
     final pushCopy = _buildPostPushCopy();
     final title = pushCopy.title;
@@ -644,18 +645,18 @@ extension PostContentControllerActionsPart on PostContentController {
 
   // Dinamik sayaç güncelleme fonksiyonları
   Future<void> updateCommentCount({bool increment = true}) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = userService.userId;
 
     if (increment) {
       commentCount.value++;
       // Yorum yapıldığında kullanıcıyı comments listesine ekle
-      if (uid != null && !comments.contains(uid)) {
+      if (uid.isNotEmpty && !comments.contains(uid)) {
         comments.add(uid);
       }
     } else if (commentCount.value > 0) {
       commentCount.value--;
       // Yorum silindiğinde kullanıcıyı listeden çıkar (eğer başka yorumu yoksa)
-      if (uid != null) {
+      if (uid.isNotEmpty) {
         // Real-time listener zaten kontrol ediyor, ek işlem gerekmiyor
         // Çünkü _bindCommentsListener kullanıcının yorumlarını dinliyor
       }

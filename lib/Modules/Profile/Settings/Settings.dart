@@ -99,7 +99,7 @@ class SettingsView extends StatelessWidget {
                       FutureBuilder<VerifiedAccountApplicationState?>(
                         future:
                             _verifiedAccountRepository.fetchApplicationState(
-                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                          userService.userId,
                         ),
                         builder: (context, snapshot) {
                           final application = snapshot.data;
@@ -107,8 +107,7 @@ class SettingsView extends StatelessWidget {
                               application?.isPending == true;
                           final canRenew =
                               application?.canSubmitRenewal == true;
-                          final hasBadge =
-                              (userService.currentUser?.rozet ?? "").isNotEmpty;
+                          final hasBadge = userService.rozet.isNotEmpty;
                           if (hasPendingApplication) {
                             return buildRow(
                               'settings.badge_application'.tr,
@@ -187,7 +186,7 @@ class SettingsView extends StatelessWidget {
                       buildRow('settings.about'.tr, CupertinoIcons.info, () {
                         Get.to(
                           () => AboutProfile(
-                            userID: FirebaseAuth.instance.currentUser!.uid,
+                            userID: userService.userId,
                           ),
                         );
                       }),
@@ -199,7 +198,7 @@ class SettingsView extends StatelessWidget {
                       }),
                       StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                         stream: _adminTaskAssignmentRepository.watchAssignment(
-                          FirebaseAuth.instance.currentUser?.uid ?? '',
+                          userService.userId,
                         ),
                         builder: (context, taskSnap) {
                           final data = taskSnap.data?.data();
@@ -219,7 +218,7 @@ class SettingsView extends StatelessWidget {
                                   QuerySnapshot<Map<String, dynamic>>>(
                                 stream:
                                     _adminApprovalRepository.watchOwnApprovals(
-                                  FirebaseAuth.instance.currentUser?.uid ?? '',
+                                  userService.userId,
                                 ),
                                 builder: (context, approvalsSnap) {
                                   final docs =
@@ -315,9 +314,8 @@ class SettingsView extends StatelessWidget {
                           title: 'settings.sign_out_title'.tr,
                           message: 'settings.sign_out_message'.tr,
                           onYesPressed: () async {
-                            final currentUser =
-                                FirebaseAuth.instance.currentUser?.uid;
-                            if (currentUser != null) {
+                            final currentUser = userService.userId.trim();
+                            if (currentUser.isNotEmpty) {
                               await _userRepository.updateUserFields(
                                 currentUser,
                                 {"token": ""},

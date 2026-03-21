@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class _CachedVerifiedAccountStatus {
   final bool exists;
@@ -111,8 +111,8 @@ class VerifiedAccountRepository extends GetxService {
   }
 
   Future<void> submitApplication(Map<String, dynamic> payload) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) return;
     final ref = _collection().doc(uid);
     final existing = await ref.get();
     if (existing.exists) {

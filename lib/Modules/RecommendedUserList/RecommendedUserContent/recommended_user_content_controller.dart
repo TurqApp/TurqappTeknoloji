@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserContentController extends GetxController {
   String userID;
@@ -23,7 +23,7 @@ class RecommendedUserContentController extends GetxController {
   Future<void> getTakipStatus() async {
     isFollowing.value = await _followRepository.isFollowing(
       userID,
-      currentUid: FirebaseAuth.instance.currentUser!.uid,
+      currentUid: CurrentUserService.instance.userId,
       preferCache: true,
     );
   }

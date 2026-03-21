@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
@@ -12,7 +11,7 @@ class MarketOfferService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static String get _currentUid {
-    final authUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final authUid = CurrentUserService.instance.userId.trim();
     if (authUid.isNotEmpty) {
       return authUid;
     }

@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Models/chat_listing_model.dart';
 import '../../../Core/Services/network_awareness_service.dart';
@@ -37,7 +37,7 @@ class ChatListingController extends GetxController {
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid => CurrentUserService.instance.userId;
   Duration get _syncInterval {
     if (_isOffline) return const Duration(seconds: 25);
     return _isOnWiFi
@@ -56,8 +56,8 @@ class ChatListingController extends GetxController {
   }
 
   String get _cacheKey {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    return uid == null ? '' : 'chat_listing_cache_$uid';
+    final uid = CurrentUserService.instance.userId.trim();
+    return uid.isEmpty ? '' : 'chat_listing_cache_$uid';
   }
 
   Future<void> _restoreCachedList() async {
@@ -306,7 +306,7 @@ class ChatListingController extends GetxController {
     required bool cacheOnly,
   }) async {
     final tempList = <ChatListingModel>[];
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = CurrentUserService.instance.userId;
     final prefs = await SharedPreferences.getInstance();
     final docs = await _conversationRepository.fetchUserConversations(
       uid,
@@ -432,10 +432,10 @@ class ChatListingController extends GetxController {
   }
 
   void startConversationListener() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = CurrentUserService.instance.userId.trim();
     _syncTimer?.cancel();
     _conversationsSub?.cancel();
-    if (uid == null) return;
+    if (uid.isEmpty) return;
 
     if (!_isOffline) {
       _conversationsSub = _conversationRepository

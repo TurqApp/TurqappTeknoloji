@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -160,7 +159,7 @@ class MarketController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -178,7 +177,7 @@ class MarketController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -228,7 +227,7 @@ class MarketController extends GetxController {
       }
     } catch (_) {}
     await _loadSavedItems();
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _marketSnapshotRepository
         .openHome(
@@ -686,7 +685,7 @@ class MarketController extends GetxController {
     try {
       final fetched = await _marketSnapshotRepository.search(
         query: query,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );
@@ -752,7 +751,7 @@ class MarketController extends GetxController {
   }) async {
     try {
       final fetched = await _marketSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 120,
         forceSync: forceRefresh,
       );
@@ -1032,9 +1031,6 @@ class MarketController extends GetxController {
   }
 
   String get _currentUid {
-    if (CurrentUserService.instance.userId.isNotEmpty) {
-      return CurrentUserService.instance.userId;
-    }
-    return FirebaseAuth.instance.currentUser?.uid ?? '';
+    return CurrentUserService.instance.userId;
   }
 }

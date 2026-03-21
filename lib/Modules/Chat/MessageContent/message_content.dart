@@ -1,6 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +16,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:turqappv2/Modules/Chat/MessageContent/message_content_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
@@ -47,6 +47,7 @@ class MessageContent extends StatelessWidget {
       : null;
   final ValueNotifier<Offset?> _lastLongPressGlobal =
       ValueNotifier<Offset?>(null);
+  String get _currentUserId => CurrentUserService.instance.userId;
 
   double _mediaBubbleSize() {
     return (Get.width * 0.58).clamp(180.0, 220.0).toDouble();
@@ -125,7 +126,7 @@ class MessageContent extends StatelessWidget {
       padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
       child: Column(
         mainAxisAlignment:
-            model.userID == FirebaseAuth.instance.currentUser!.uid
+            model.userID == _currentUserId
                 ? MainAxisAlignment.end
                 : MainAxisAlignment.start,
         children: [
@@ -167,7 +168,7 @@ class MessageContent extends StatelessWidget {
   }
 
   Widget messageBubble() {
-    final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
+    final isMine = model.userID == _currentUserId;
     final bubbleColor = isMine ? const Color(0xFFE7FFDB) : Colors.white;
     final hasReactions =
         model.reactions.entries.where((e) => e.value.isNotEmpty).isNotEmpty;
@@ -255,8 +256,7 @@ class MessageContent extends StatelessWidget {
                     ),
                   ),
                   // Beğeni ikonu - sağ üst
-                  if (model.begeniler
-                      .contains(FirebaseAuth.instance.currentUser!.uid))
+                  if (model.begeniler.contains(_currentUserId))
                     Positioned(
                       top: -4,
                       right: -4,
@@ -303,14 +303,14 @@ class MessageContent extends StatelessWidget {
   Widget imageList() {
     final mediaSize = _mediaBubbleSize();
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
+      mainAxisAlignment: model.userID == _currentUserId
           ? MainAxisAlignment.end
           : MainAxisAlignment.start,
       children: [
         Obx(() {
           return Column(
             crossAxisAlignment:
-                model.userID == FirebaseAuth.instance.currentUser!.uid
+                model.userID == _currentUserId
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
             children: [
@@ -431,8 +431,7 @@ class MessageContent extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (model.begeniler.contains(
-                                FirebaseAuth.instance.currentUser!.uid))
+                            if (model.begeniler.contains(_currentUserId))
                               Positioned(
                                 top: -4,
                                 right: -4,
@@ -477,7 +476,7 @@ class MessageContent extends StatelessWidget {
                     final isLast = index == model.imgs.length - 1;
                     return Column(
                       crossAxisAlignment:
-                          model.userID == FirebaseAuth.instance.currentUser!.uid
+                          model.userID == _currentUserId
                               ? CrossAxisAlignment.end
                               : CrossAxisAlignment.start,
                       children: [

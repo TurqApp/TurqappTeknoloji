@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/report_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReportUserController extends GetxController {
   String userID;
@@ -86,7 +86,7 @@ class ReportUserController extends GetxController {
   }
 
   Future<void> block() async {
-    final currentUserID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUserID = CurrentUserService.instance.userId;
     final blockedEntries = await _userSubcollectionRepository.getEntries(
       userID,
       subcollection: "blockedUsers",
