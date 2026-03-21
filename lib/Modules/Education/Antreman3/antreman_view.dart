@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
+import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -23,6 +24,16 @@ class AntremanView2 extends StatelessWidget {
   final AntremanController controller = Get.isRegistered<AntremanController>()
       ? Get.find<AntremanController>()
       : Get.put(AntremanController(), permanent: true);
+
+  void _dismissSharedEducationSearchFocus() {
+    if (!Get.isRegistered<EducationController>()) return;
+    final educationController = Get.find<EducationController>();
+    if (educationController.searchFocus.hasFocus) {
+      educationController.searchFocus.unfocus();
+    }
+    educationController.isKeyboardOpen.value = false;
+    educationController.isSearchMode.value = false;
+  }
 
   BoxDecoration _sectionCardDecoration({
     required Color color,
@@ -153,7 +164,10 @@ class AntremanView2 extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final item = controller.searchResults[index];
                     return ListTile(
-                      onTap: () => controller.openSearchResult(item),
+                      onTap: () {
+                        _dismissSharedEducationSearchFocus();
+                        controller.openSearchResult(item);
+                      },
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -202,8 +216,9 @@ class AntremanView2 extends StatelessWidget {
                     return Semantics(
                       label: IntegrationTestKeys.questionBankCategory(category),
                       button: true,
-                      child: GestureDetector(
+                        child: GestureDetector(
                         onTap: () async {
+                          _dismissSharedEducationSearchFocus();
                           await controller.setMainCategory(category);
                         },
                         child: Container(

@@ -262,6 +262,11 @@ class EducationController extends GetxController {
       text: query,
       selection: TextSelection.collapsed(offset: query.length),
     );
+    if (query.isEmpty && searchFocus.hasFocus) {
+      searchFocus.unfocus();
+      isKeyboardOpen.value = false;
+      isSearchMode.value = false;
+    }
     if (searchText.value != query) {
       searchText.value = query;
     } else {
