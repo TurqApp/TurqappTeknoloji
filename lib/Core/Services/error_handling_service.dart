@@ -120,7 +120,8 @@ class ErrorHandlingService extends GetxController {
   }
 
   static ErrorHandlingService? maybeFind() {
-    if (!Get.isRegistered<ErrorHandlingService>()) return null;
+    final isRegistered = Get.isRegistered<ErrorHandlingService>();
+    if (!isRegistered) return null;
     return Get.find<ErrorHandlingService>();
   }
 

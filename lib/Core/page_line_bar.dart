@@ -188,7 +188,8 @@ class PageLineBarController extends GetxController {
   }
 
   static PageLineBarController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PageLineBarController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PageLineBarController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PageLineBarController>(tag: tag);
   }
 
@@ -214,10 +215,9 @@ class PageLineBarController extends GetxController {
     if (tag != null && Get.isRegistered<T>(tag: tag)) {
       return Get.find<T>(tag: tag);
     }
-    if (Get.isRegistered<T>()) {
-      return Get.find<T>();
-    }
-    return null;
+    final isRegistered = Get.isRegistered<T>();
+    if (!isRegistered) return null;
+    return Get.find<T>();
   }
 
   void setSelectionTo(int index) {

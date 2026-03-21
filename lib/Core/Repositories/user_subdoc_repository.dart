@@ -22,17 +22,16 @@ class UserSubdocRepository extends GetxService {
   final Map<String, _CachedUserSubdoc> _memory = {};
 
   static UserSubdocRepository? maybeFind() {
-    if (!Get.isRegistered<UserSubdocRepository>()) return null;
+    final isRegistered = Get.isRegistered<UserSubdocRepository>();
+    if (!isRegistered) return null;
     return Get.find<UserSubdocRepository>();
   }
 
-  static UserSubdocRepository _ensureService() {
+  static UserSubdocRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UserSubdocRepository(), permanent: true);
   }
-
-  static UserSubdocRepository ensure() => _ensureService();
 
   @override
   void onInit() {

@@ -24,7 +24,8 @@ class MyApplicationsController extends GetxController {
   }
 
   static MyApplicationsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MyApplicationsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<MyApplicationsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MyApplicationsController>(tag: tag);
   }
 

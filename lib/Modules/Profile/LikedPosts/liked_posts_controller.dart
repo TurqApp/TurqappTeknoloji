@@ -11,16 +11,15 @@ import 'package:turqappv2/Models/user_post_reference.dart';
 import 'package:turqappv2/Services/user_post_link_service.dart';
 
 class LikedPostControllers extends GetxController {
-  static LikedPostControllers _ensureController() {
+  static LikedPostControllers ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(LikedPostControllers());
   }
 
-  static LikedPostControllers ensure() => _ensureController();
-
   static LikedPostControllers? maybeFind() {
-    if (!Get.isRegistered<LikedPostControllers>()) return null;
+    final isRegistered = Get.isRegistered<LikedPostControllers>();
+    if (!isRegistered) return null;
     return Get.find<LikedPostControllers>();
   }
 

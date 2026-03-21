@@ -84,6 +84,8 @@ class HLSVideoAdapter extends ChangeNotifier {
   double? _pendingPreferredBufferDurationSeconds;
 
   HLSController get hlsController => _hls;
+  int get rendererStallCount => _hls.rendererStallCount;
+  int get surfaceRebindCount => _hls.surfaceRebindCount;
 
   HLSVideoAdapter({
     required String url,

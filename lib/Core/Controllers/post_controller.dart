@@ -19,7 +19,8 @@ class PostController extends GetxController {
   }
 
   static PostController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PostController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PostController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostController>(tag: tag);
   }
 

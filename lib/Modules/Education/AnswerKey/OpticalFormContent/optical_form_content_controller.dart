@@ -20,9 +20,9 @@ class OpticalFormContentController extends GetxController {
   }
 
   static OpticalFormContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<OpticalFormContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<OpticalFormContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<OpticalFormContentController>(tag: tag);
   }
 

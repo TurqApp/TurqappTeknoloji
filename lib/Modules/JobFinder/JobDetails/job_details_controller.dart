@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
@@ -42,7 +43,8 @@ class JobDetailsController extends GetxController {
   }
 
   static JobDetailsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<JobDetailsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<JobDetailsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<JobDetailsController>(tag: tag);
   }
 
@@ -436,7 +438,10 @@ class JobDetailsController extends GetxController {
                   final url = Uri.parse(
                       'https://www.google.com/maps/search/?api=1&query=$lat,$long');
                   if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                    await confirmAndLaunchExternalUrl(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    );
                   }
                   Get.back();
                 },
@@ -453,8 +458,10 @@ class JobDetailsController extends GetxController {
                     final url =
                         Uri.parse('http://maps.apple.com/?q=$lat,$long');
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
+                      await confirmAndLaunchExternalUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                     Get.back();
                   },
@@ -476,8 +483,10 @@ class JobDetailsController extends GetxController {
                     final webUrl = Uri.parse(
                         'https://yandex.com/maps/?ll=$long,$lat&z=10');
                     if (await canLaunchUrl(webUrl)) {
-                      await launchUrl(webUrl,
-                          mode: LaunchMode.externalApplication);
+                      await confirmAndLaunchExternalUrl(
+                        webUrl,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   }
                   Get.back();

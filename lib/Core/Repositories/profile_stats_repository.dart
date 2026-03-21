@@ -24,18 +24,15 @@ class ProfileStatsRepository extends GetxService {
   final FollowRepository _followRepository = FollowRepository.ensure();
 
   static ProfileStatsRepository? maybeFind() {
-    if (!Get.isRegistered<ProfileStatsRepository>()) return null;
+    final isRegistered = Get.isRegistered<ProfileStatsRepository>();
+    if (!isRegistered) return null;
     return Get.find<ProfileStatsRepository>();
   }
 
-  static ProfileStatsRepository _ensureService() {
+  static ProfileStatsRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ProfileStatsRepository(), permanent: true);
-  }
-
-  static ProfileStatsRepository ensure() {
-    return _ensureService();
   }
 
   @override

@@ -1,6 +1,33 @@
 import 'package:get/get.dart';
 
 class ScholarshipApplicationsListController extends GetxController {
+  static ScholarshipApplicationsListController ensure({
+    required String tag,
+    required String docID,
+    required List<String> basvuranlar,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ScholarshipApplicationsListController(
+        docID: docID,
+        basvuranlar: basvuranlar,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ScholarshipApplicationsListController? maybeFind({
+    required String tag,
+  }) {
+    final isRegistered =
+        Get.isRegistered<ScholarshipApplicationsListController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ScholarshipApplicationsListController>(tag: tag);
+  }
+
   final String docID;
   final List<String> basvuranlar;
 

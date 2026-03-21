@@ -74,7 +74,8 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   }
 
   static CurrentUserService? maybeFind() {
-    if (!Get.isRegistered<CurrentUserService>()) return null;
+    final isRegistered = Get.isRegistered<CurrentUserService>();
+    if (!isRegistered) return null;
     return Get.find<CurrentUserService>();
   }
 

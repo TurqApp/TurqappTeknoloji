@@ -17,17 +17,16 @@ class OpticalFormRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static OpticalFormRepository? maybeFind() {
-    if (!Get.isRegistered<OpticalFormRepository>()) return null;
+    final isRegistered = Get.isRegistered<OpticalFormRepository>();
+    if (!isRegistered) return null;
     return Get.find<OpticalFormRepository>();
   }
 
-  static OpticalFormRepository _ensureService() {
+  static OpticalFormRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(OpticalFormRepository(), permanent: true);
   }
-
-  static OpticalFormRepository ensure() => _ensureService();
 
   @override
   void onInit() {

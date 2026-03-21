@@ -6,18 +6,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class IzBirakSubscriptionService extends GetxService {
   static IzBirakSubscriptionService? maybeFind() {
-    if (!Get.isRegistered<IzBirakSubscriptionService>()) return null;
+    final isRegistered = Get.isRegistered<IzBirakSubscriptionService>();
+    if (!isRegistered) return null;
     return Get.find<IzBirakSubscriptionService>();
   }
 
-  static IzBirakSubscriptionService _ensureService() {
+  static IzBirakSubscriptionService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(IzBirakSubscriptionService(), permanent: true);
-  }
-
-  static IzBirakSubscriptionService ensure() {
-    return _ensureService();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

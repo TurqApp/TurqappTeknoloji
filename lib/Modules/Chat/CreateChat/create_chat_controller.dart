@@ -11,7 +11,8 @@ class CreateChatController extends GetxController {
   }
 
   static CreateChatController? maybeFind() {
-    if (!Get.isRegistered<CreateChatController>()) return null;
+    final isRegistered = Get.isRegistered<CreateChatController>();
+    if (!isRegistered) return null;
     return Get.find<CreateChatController>();
   }
 

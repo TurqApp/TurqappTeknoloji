@@ -24,9 +24,9 @@ class CategoryBasedAnswerKeyController extends GetxController {
   }
 
   static CategoryBasedAnswerKeyController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CategoryBasedAnswerKeyController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<CategoryBasedAnswerKeyController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CategoryBasedAnswerKeyController>(tag: tag);
   }
 

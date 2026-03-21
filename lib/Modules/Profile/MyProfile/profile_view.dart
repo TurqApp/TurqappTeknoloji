@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
@@ -50,7 +51,6 @@ import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 

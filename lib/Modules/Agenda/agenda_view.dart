@@ -652,6 +652,7 @@ class AgendaView extends StatelessWidget {
                         unreadController.totalUnreadCount.value;
                     final hasUnread = conversationUnreadCount > 0;
                     return AppHeaderActionButton(
+                      key: const ValueKey(IntegrationTestKeys.navChat),
                       size: actionSize,
                       showBadge: hasUnread,
                       onTap: () async {

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -189,7 +190,10 @@ class StoryTextWidget extends StatelessWidget {
                 element.stickerData.isNotEmpty) {
               final uri = Uri.tryParse(element.stickerData.trim());
               if (uri != null) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await confirmAndLaunchExternalUrl(
+                  uri,
+                  mode: LaunchMode.externalApplication,
+                );
               }
             }
           },

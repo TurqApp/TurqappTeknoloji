@@ -20,20 +20,15 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<MyPracticeExamsController>()) {
-      controller = Get.find<MyPracticeExamsController>();
-      _ownsController = false;
-    } else {
-      controller = Get.put(MyPracticeExamsController());
-      _ownsController = true;
-    }
+    final existing = MyPracticeExamsController.maybeFind();
+    _ownsController = existing == null;
+    controller = existing ?? MyPracticeExamsController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<MyPracticeExamsController>() &&
-        identical(Get.find<MyPracticeExamsController>(), controller)) {
+        identical(MyPracticeExamsController.maybeFind(), controller)) {
       Get.delete<MyPracticeExamsController>();
     }
     super.dispose();

@@ -14,7 +14,8 @@ class JobSelectorController extends GetxController {
   }
 
   static JobSelectorController? maybeFind() {
-    if (!Get.isRegistered<JobSelectorController>()) return null;
+    final isRegistered = Get.isRegistered<JobSelectorController>();
+    if (!isRegistered) return null;
     return Get.find<JobSelectorController>();
   }
 

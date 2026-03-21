@@ -39,7 +39,8 @@ class CreatorContentController extends GetxController
   }
 
   static CreatorContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CreatorContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<CreatorContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CreatorContentController>(tag: tag);
   }
 

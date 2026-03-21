@@ -19,7 +19,9 @@ class ResultsAndAnswersController extends GetxController {
   }
 
   static ResultsAndAnswersController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ResultsAndAnswersController>(tag: tag)) return null;
+    final isRegistered =
+        Get.isRegistered<ResultsAndAnswersController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ResultsAndAnswersController>(tag: tag);
   }
 

@@ -60,7 +60,8 @@ class IndexPoolEntry {
 
 class IndexPoolStore {
   static IndexPoolStore? maybeFind() {
-    if (!Get.isRegistered<IndexPoolStore>()) return null;
+    final isRegistered = Get.isRegistered<IndexPoolStore>();
+    if (!isRegistered) return null;
     return Get.find<IndexPoolStore>();
   }
 

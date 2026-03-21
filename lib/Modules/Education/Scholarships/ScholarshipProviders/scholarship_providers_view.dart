@@ -27,26 +27,25 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_providers_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<ScholarshipProvidersController>(
+    final existing = ScholarshipProvidersController.maybeFind(
       tag: _controllerTag,
     );
-    controller = _ownsController
-        ? Get.put(ScholarshipProvidersController(), tag: _controllerTag)
-        : Get.find<ScholarshipProvidersController>(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? ScholarshipProvidersController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<ScholarshipProvidersController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<ScholarshipProvidersController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<ScholarshipProvidersController>(
-          tag: _controllerTag,
-          force: true,
-        );
-      }
+        identical(
+          ScholarshipProvidersController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ScholarshipProvidersController>(
+        tag: _controllerTag,
+        force: true,
+      );
     }
     super.dispose();
   }
@@ -138,26 +137,25 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
                                                           provider['avatarUrl']
                                                                   .isNotEmpty
                                                               ? CachedNetworkImage(
-                                                                  imageUrl: provider[
-                                                                      'avatarUrl'],
+                                                                  imageUrl:
+                                                                      provider[
+                                                                          'avatarUrl'],
                                                                   width: 50,
                                                                   height: 50,
                                                                   fit: BoxFit
                                                                       .cover,
-                                                                  placeholder:
-                                                                      (
+                                                                  placeholder: (
                                                                     context,
                                                                     url,
                                                                   ) =>
-                                                                          CupertinoActivityIndicator(),
-                                                                  errorWidget:
-                                                                      (
+                                                                      CupertinoActivityIndicator(),
+                                                                  errorWidget: (
                                                                     context,
                                                                     url,
                                                                     error,
                                                                   ) =>
-                                                                          SizedBox
-                                                                              .shrink(),
+                                                                      SizedBox
+                                                                          .shrink(),
                                                                 )
                                                               : SizedBox
                                                                   .shrink(),

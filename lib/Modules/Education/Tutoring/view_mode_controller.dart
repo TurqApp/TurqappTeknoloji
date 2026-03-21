@@ -12,7 +12,8 @@ class ViewModeController extends GetxController {
   }
 
   static ViewModeController? maybeFind() {
-    if (!Get.isRegistered<ViewModeController>()) return null;
+    final isRegistered = Get.isRegistered<ViewModeController>();
+    if (!isRegistered) return null;
     return Get.find<ViewModeController>();
   }
 

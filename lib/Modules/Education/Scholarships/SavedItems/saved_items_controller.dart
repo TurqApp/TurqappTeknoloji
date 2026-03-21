@@ -11,6 +11,21 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.d
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedItemsController extends GetxController {
+  static SavedItemsController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(SavedItemsController(), tag: tag, permanent: permanent);
+  }
+
+  static SavedItemsController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<SavedItemsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SavedItemsController>(tag: tag);
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final isLoading = false.obs;
   final likedScholarships = <Map<String, dynamic>>[].obs;

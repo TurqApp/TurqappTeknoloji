@@ -17,7 +17,8 @@ class OpticsAndBooksPublishedController extends GetxController {
   }
 
   static OpticsAndBooksPublishedController? maybeFind() {
-    if (!Get.isRegistered<OpticsAndBooksPublishedController>()) return null;
+    final isRegistered = Get.isRegistered<OpticsAndBooksPublishedController>();
+    if (!isRegistered) return null;
     return Get.find<OpticsAndBooksPublishedController>();
   }
 

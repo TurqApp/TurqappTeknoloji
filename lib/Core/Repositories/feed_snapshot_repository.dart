@@ -50,17 +50,16 @@ class FeedSnapshotRepository extends GetxService {
   static final Set<String> _hybridBackfillRequested = <String>{};
 
   static FeedSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<FeedSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<FeedSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<FeedSnapshotRepository>();
   }
 
-  static FeedSnapshotRepository _ensureService() {
+  static FeedSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(FeedSnapshotRepository(), permanent: true);
   }
-
-  static FeedSnapshotRepository ensure() => _ensureService();
 
   final PostRepository _postRepository = PostRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();

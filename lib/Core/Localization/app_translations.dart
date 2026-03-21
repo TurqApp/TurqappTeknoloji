@@ -845,6 +845,7 @@ class AppTranslations extends Translations {
         'comments.reply': 'Yanıtla',
         'comments.replying_to': '@nickname kullanıcısına yanıt',
         'comments.sending': 'Gönderiliyor',
+        'comments.like_failed': 'Yorum beğenisi güncellenemedi.',
         'comments.community_violation_title': 'Topluluk Kurallarına Aykırı',
         'comments.community_violation_body':
             'Kullandığınız dil, topluluk kurallarımıza uymamaktadır. Lütfen saygılı bir dil kullanınız.',
@@ -3711,7 +3712,7 @@ class AppTranslations extends Translations {
         'post_creator.video_processing': 'Video İşleniyor',
         'post_creator.look.original': 'Orijinal',
         'post_creator.look.clear': 'Temiz',
-        'post_creator.look.cinema': 'Sinematik',
+        'post_creator.look.cinema': 'Sinema',
         'post_creator.look.vibe': 'Canlı',
         'post_creator.look.bright': 'Parlak',
         'post_creator.comments.everyone': 'Herkes',
@@ -4657,6 +4658,7 @@ class AppTranslations extends Translations {
         'comments.reply': 'Reply',
         'comments.replying_to': 'Replying to @nickname',
         'comments.sending': 'Sending',
+        'comments.like_failed': 'Comment like could not be updated.',
         'comments.community_violation_title': 'Against Community Rules',
         'comments.community_violation_body':
             'The language you used does not comply with our community rules. Please use respectful language.',

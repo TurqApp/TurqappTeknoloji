@@ -33,22 +33,20 @@ class _EducationInfoViewState extends State<EducationInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_education_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<EducationInfoController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(EducationInfoController(), tag: _controllerTag)
-        : Get.find<EducationInfoController>(tag: _controllerTag);
+    final existing = EducationInfoController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? EducationInfoController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<EducationInfoController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<EducationInfoController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<EducationInfoController>(tag: _controllerTag, force: true);
-      }
+        identical(
+          EducationInfoController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<EducationInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }
@@ -143,8 +141,8 @@ class _EducationInfoViewState extends State<EducationInfoView> {
                           children: [
                             DropdownField(
                               config: FieldConfig(
-                                label: "scholarship.applicant.education_level"
-                                    .tr,
+                                label:
+                                    "scholarship.applicant.education_level".tr,
                                 items: [
                                   controller.middleSchoolValue,
                                   controller.highSchoolValue,
@@ -188,25 +186,31 @@ class _EducationInfoViewState extends State<EducationInfoView> {
 
   Widget _buildFormFields() {
     switch (controller.selectedEducationLevel.value) {
-      case _ when controller.selectedEducationLevel.value ==
-          controller.middleSchoolValue:
+      case _
+          when controller.selectedEducationLevel.value ==
+              controller.middleSchoolValue:
         return _buildMiddleSchoolFields();
-      case _ when controller.selectedEducationLevel.value ==
-          controller.highSchoolValue:
+      case _
+          when controller.selectedEducationLevel.value ==
+              controller.highSchoolValue:
         return _buildHighSchoolFields();
-      case _ when controller.selectedEducationLevel.value ==
-          controller.associateValue:
+      case _
+          when controller.selectedEducationLevel.value ==
+              controller.associateValue:
         return _buildHigherEducationFields(isUndergraduate: false);
-      case _ when controller.selectedEducationLevel.value ==
-          controller.bachelorValue:
+      case _
+          when controller.selectedEducationLevel.value ==
+              controller.bachelorValue:
         return _buildHigherEducationFields(isUndergraduate: true);
-      case _ when controller.selectedEducationLevel.value ==
-          controller.mastersValue:
+      case _
+          when controller.selectedEducationLevel.value ==
+              controller.mastersValue:
         return _buildHigherEducationFields(
           isUndergraduate: true,
         );
-      case _ when controller.selectedEducationLevel.value ==
-          controller.doctorateValue:
+      case _
+          when controller.selectedEducationLevel.value ==
+              controller.doctorateValue:
         return _buildHigherEducationFields(
           isUndergraduate: true,
         );

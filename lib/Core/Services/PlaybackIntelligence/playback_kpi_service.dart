@@ -39,7 +39,8 @@ class PlaybackKpiService extends GetxService {
   }
 
   static PlaybackKpiService? maybeFind() {
-    if (!Get.isRegistered<PlaybackKpiService>()) return null;
+    final isRegistered = Get.isRegistered<PlaybackKpiService>();
+    if (!isRegistered) return null;
     return Get.find<PlaybackKpiService>();
   }
 

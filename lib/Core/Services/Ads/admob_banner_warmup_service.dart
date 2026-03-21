@@ -22,18 +22,15 @@ class AdmobBannerWarmupService extends GetxService {
   final Map<String, DateTime> _lastWarmupAtBySurface = <String, DateTime>{};
 
   static AdmobBannerWarmupService? maybeFind() {
-    if (!Get.isRegistered<AdmobBannerWarmupService>()) return null;
+    final isRegistered = Get.isRegistered<AdmobBannerWarmupService>();
+    if (!isRegistered) return null;
     return Get.find<AdmobBannerWarmupService>();
   }
 
-  static AdmobBannerWarmupService _ensureService() {
+  static AdmobBannerWarmupService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(AdmobBannerWarmupService(), permanent: true);
-  }
-
-  static AdmobBannerWarmupService ensure() {
-    return _ensureService();
   }
 
   Future<void> ensureInitialized() async {

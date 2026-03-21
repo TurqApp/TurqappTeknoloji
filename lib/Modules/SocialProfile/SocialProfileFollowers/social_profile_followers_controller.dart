@@ -44,9 +44,9 @@ class SocialProfileFollowersController extends GetxController {
   }
 
   static SocialProfileFollowersController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SocialProfileFollowersController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<SocialProfileFollowersController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SocialProfileFollowersController>(tag: tag);
   }
 

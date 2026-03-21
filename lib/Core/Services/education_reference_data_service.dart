@@ -26,21 +26,18 @@ List<Map<String, dynamic>> _decodeObjectEntries(String response) {
 
 class EducationReferenceDataService extends GetxService {
   static EducationReferenceDataService? maybeFind() {
-    if (!Get.isRegistered<EducationReferenceDataService>()) return null;
+    final isRegistered = Get.isRegistered<EducationReferenceDataService>();
+    if (!isRegistered) return null;
     return Get.find<EducationReferenceDataService>();
   }
 
-  static EducationReferenceDataService _ensureService() {
+  static EducationReferenceDataService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(EducationReferenceDataService(), permanent: true);
   }
 
-  static EducationReferenceDataService get instance => _ensureService();
-
-  static EducationReferenceDataService ensure() {
-    return _ensureService();
-  }
+  static EducationReferenceDataService get instance => ensure();
 
   List<String>? _countries;
   Future<List<String>>? _countriesFuture;

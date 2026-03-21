@@ -9,6 +9,21 @@ import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class BankInfoController extends GetxController {
+  static BankInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(BankInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static BankInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<BankInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<BankInfoController>(tag: tag);
+  }
+
   static const String _selectBank = "Banka Seç";
   static const String _email = "E-Posta";
   static const String _phone = "Telefon";
@@ -96,9 +111,8 @@ class BankInfoController extends GetxController {
       );
       selectedBank.value = bank.isNotEmpty ? bank : _selectBank;
       this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
-      kolayAdres.value = kolayAdresList.contains(kolayAdresFromDb)
-          ? kolayAdresFromDb
-          : _email;
+      kolayAdres.value =
+          kolayAdresList.contains(kolayAdresFromDb) ? kolayAdresFromDb : _email;
     } catch (e) {
       AppSnackbar('common.error'.tr, 'bank_info.load_failed'.tr);
     } finally {
@@ -111,7 +125,8 @@ class BankInfoController extends GetxController {
       context: context,
       items: banks,
       title: 'bank_info.select_bank'.tr,
-      selectedItem: selectedBank.value == _selectBank ? null : selectedBank.value,
+      selectedItem:
+          selectedBank.value == _selectBank ? null : selectedBank.value,
       onSelect: (item) {
         selectedBank.value = item;
       },
@@ -125,10 +140,8 @@ class BankInfoController extends GetxController {
       title: 'bank_info.select_fast_type'.tr,
       selectedItem: localizedFastType(kolayAdres.value),
       onSelect: (item) {
-        final selectedIndex = kolayAdresList
-            .map(localizedFastType)
-            .toList()
-            .indexOf(item);
+        final selectedIndex =
+            kolayAdresList.map(localizedFastType).toList().indexOf(item);
         kolayAdres.value =
             selectedIndex >= 0 ? kolayAdresList[selectedIndex] : item;
         iban.text = ''; // Clear the TextField when kolayAdres changes
@@ -164,8 +177,7 @@ class BankInfoController extends GetxController {
     }
 
     // Save to Firestore
-    _userRepository
-        .updateUserFields(CurrentUserService.instance.userId, {
+    _userRepository.updateUserFields(CurrentUserService.instance.userId, {
       ...scopedUserUpdate(
         scope: 'finance',
         values: {

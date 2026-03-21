@@ -31,22 +31,19 @@ class _PersonelInfoViewState extends State<PersonelInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_personal_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<PersonelInfoController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(PersonelInfoController(), tag: _controllerTag)
-        : Get.find<PersonelInfoController>(tag: _controllerTag);
+    final existing = PersonelInfoController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? PersonelInfoController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<PersonelInfoController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<PersonelInfoController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<PersonelInfoController>(tag: _controllerTag, force: true);
-      }
+        identical(
+          PersonelInfoController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PersonelInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }
@@ -100,8 +97,7 @@ class _PersonelInfoViewState extends State<PersonelInfoView> {
                                       "ulke": controller.turkeyValue,
                                       "nufusSehir": "",
                                       "nufusIlce": "",
-                                      "cinsiyet":
-                                          controller.defaultSelectValue,
+                                      "cinsiyet": controller.defaultSelectValue,
                                       "calismaDurumu":
                                           controller.notWorkingValue,
                                       "dogumTarihi": "",
@@ -372,8 +368,7 @@ class DropdownField extends StatelessWidget {
                 Obx(
                   () => Text(
                     config.value.value.isEmpty ||
-                            config.value.value ==
-                                controller.defaultSelectValue
+                            config.value.value == controller.defaultSelectValue
                         ? controller.localizedPlaceholder(config.label)
                         : controller.localizedStaticValue(config.value.value),
                     style: TextStyle(

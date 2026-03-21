@@ -3,6 +3,28 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  void _scheduleVolumeRestore(HLSVideoAdapter ctrl) {
+    final targetVolume = volume ? 1.0 : 0.0;
+    Future<void>.microtask(() async {
+      if (!mounted || ctrl.isDisposed) return;
+      try {
+        await ctrl.setVolume(targetVolume);
+      } catch (_) {}
+    });
+    Future<void>.delayed(const Duration(milliseconds: 120), () async {
+      if (!mounted || ctrl.isDisposed) return;
+      try {
+        await ctrl.setVolume(targetVolume);
+      } catch (_) {}
+    });
+    Future<void>.delayed(const Duration(milliseconds: 320), () async {
+      if (!mounted || ctrl.isDisposed) return;
+      try {
+        await ctrl.setVolume(targetVolume);
+      } catch (_) {}
+    });
+  }
+
   void _requestExclusivePlayback(
     String docId, {
     Duration minSpacing = const Duration(milliseconds: 220),
@@ -214,6 +236,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       if (ctrl.isDisposed) return;
       ctrl.setLooping(false);
       ctrl.setVolume(volume ? 1 : 0);
+      _scheduleVolumeRestore(ctrl);
 
       final targetPos = widget.initialPosition;
       if (targetPos != null) {
@@ -232,6 +255,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         if (!mounted || ctrl.isDisposed) return;
         await ctrl.play();
         _requestExclusivePlayback(docId);
+        _scheduleVolumeRestore(ctrl);
         await Future.delayed(const Duration(milliseconds: 120));
         if (ctrl.value.isPlaying) break;
       }
@@ -270,6 +294,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     try {
       ctrl.setVolume(volume ? 1 : 0);
     } catch (_) {}
+    _scheduleVolumeRestore(ctrl);
     unawaited(ctrl.play());
     _requestExclusivePlayback(shorts[index].docID);
     if (index == currentPage) {

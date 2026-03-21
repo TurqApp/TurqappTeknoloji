@@ -24,7 +24,8 @@ class AppLanguageService extends GetxService {
   }
 
   static AppLanguageService? maybeFind() {
-    if (!Get.isRegistered<AppLanguageService>()) return null;
+    final isRegistered = Get.isRegistered<AppLanguageService>();
+    if (!isRegistered) return null;
     return Get.find<AppLanguageService>();
   }
 

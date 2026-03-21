@@ -150,7 +150,8 @@ class MediaEnhancementService extends GetxController {
   }
 
   static MediaEnhancementService? maybeFind() {
-    if (!Get.isRegistered<MediaEnhancementService>()) return null;
+    final isRegistered = Get.isRegistered<MediaEnhancementService>();
+    if (!isRegistered) return null;
     return Get.find<MediaEnhancementService>();
   }
 

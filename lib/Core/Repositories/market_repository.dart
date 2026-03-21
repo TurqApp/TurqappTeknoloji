@@ -17,18 +17,15 @@ class MarketRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static MarketRepository? maybeFind() {
-    if (!Get.isRegistered<MarketRepository>()) return null;
+    final isRegistered = Get.isRegistered<MarketRepository>();
+    if (!isRegistered) return null;
     return Get.find<MarketRepository>();
   }
 
-  static MarketRepository _ensureService() {
+  static MarketRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(MarketRepository(), permanent: true);
-  }
-
-  static MarketRepository ensure() {
-    return _ensureService();
   }
 
   @override

@@ -14,9 +14,44 @@ import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class PersonalizedController extends GetxController {
+  static String? _activeTag;
+
+  static PersonalizedController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) {
+      _activeTag = tag;
+      return existing;
+    }
+    final created = Get.put(
+      PersonalizedController(),
+      tag: tag,
+      permanent: permanent,
+    );
+    created.controllerTag = tag;
+    _activeTag = tag;
+    return created;
+  }
+
+  static PersonalizedController? maybeFind({String? tag}) {
+    final resolvedTag = (tag ?? _activeTag)?.trim();
+    if (resolvedTag != null && resolvedTag.isNotEmpty) {
+      final isRegistered =
+          Get.isRegistered<PersonalizedController>(tag: resolvedTag);
+      if (!isRegistered) return null;
+      return Get.find<PersonalizedController>(tag: resolvedTag);
+    }
+    final isRegistered = Get.isRegistered<PersonalizedController>();
+    if (!isRegistered) return null;
+    return Get.find<PersonalizedController>();
+  }
+
   final UserRepository _userRepository = UserRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
+  String? controllerTag;
   // Observable lists
   final RxList<IndividualScholarshipsModel> list =
       <IndividualScholarshipsModel>[].obs;
@@ -70,6 +105,9 @@ class PersonalizedController extends GetxController {
 
   @override
   void onClose() {
+    if (_activeTag == controllerTag) {
+      _activeTag = null;
+    }
     scrollController.dispose();
     super.onClose();
   }
@@ -130,8 +168,7 @@ class PersonalizedController extends GetxController {
         _updateUserData(data);
         isUserDataLoaded.value = true;
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // Update user data observables
@@ -306,8 +343,7 @@ class PersonalizedController extends GetxController {
         final place = placemarks[0];
         await _updateLocationData(place);
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // Update location data
@@ -340,8 +376,7 @@ class PersonalizedController extends GetxController {
           ),
         });
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // Refresh list

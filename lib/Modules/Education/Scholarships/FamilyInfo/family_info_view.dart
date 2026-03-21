@@ -29,22 +29,17 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_family_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<FamilyInfoController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(FamilyInfoController(), tag: _controllerTag)
-        : Get.find<FamilyInfoController>(tag: _controllerTag);
+    final existing = FamilyInfoController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? FamilyInfoController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<FamilyInfoController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<FamilyInfoController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<FamilyInfoController>(tag: _controllerTag, force: true);
-      }
+        identical(
+            FamilyInfoController.maybeFind(tag: _controllerTag), controller)) {
+      Get.delete<FamilyInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }
@@ -182,12 +177,12 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
                                         title:
                                             'scholarship.applicant.father_job'
                                                 .tr,
-                                        value: controller
-                                                .fatherJob.value.isEmpty
-                                            ? 'family_info.select_job'.tr
-                                            : controller.localizedSelection(
-                                                controller.fatherJob.value,
-                                              ),
+                                        value:
+                                            controller.fatherJob.value.isEmpty
+                                                ? 'family_info.select_job'.tr
+                                                : controller.localizedSelection(
+                                                    controller.fatherJob.value,
+                                                  ),
                                         hintText: 'family_info.select_job'.tr,
                                         onTap: () => controller.showBottomSheet(
                                           'scholarship.applicant.father_job'.tr,
@@ -317,12 +312,12 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
                                         title:
                                             'scholarship.applicant.mother_job'
                                                 .tr,
-                                        value: controller
-                                                .motherJob.value.isEmpty
-                                            ? 'family_info.select_job'.tr
-                                            : controller.localizedSelection(
-                                                controller.motherJob.value,
-                                              ),
+                                        value:
+                                            controller.motherJob.value.isEmpty
+                                                ? 'family_info.select_job'.tr
+                                                : controller.localizedSelection(
+                                                    controller.motherJob.value,
+                                                  ),
                                         hintText: 'family_info.select_job'.tr,
                                         onTap: () => controller.showBottomSheet(
                                           'scholarship.applicant.mother_job'.tr,
@@ -401,7 +396,8 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
                                 style: TextStyles.textFieldTitle,
                               ),
                               _buildDropdownField(
-                                title: 'scholarship.applicant.home_ownership'.tr,
+                                title:
+                                    'scholarship.applicant.home_ownership'.tr,
                                 value: controller.isHomeOwnershipUnselected
                                     ? 'common.select'.tr
                                     : controller.localizedSelection(
@@ -440,8 +436,8 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                                Text(
-                                                  controller.city.value.isEmpty
+                                              Text(
+                                                controller.city.value.isEmpty
                                                     ? 'common.select_city'.tr
                                                     : controller.city.value,
                                                 style: TextStyle(

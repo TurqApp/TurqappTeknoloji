@@ -57,7 +57,8 @@ class AgendaController extends GetxController {
   }
 
   static AgendaController? maybeFind() {
-    if (!Get.isRegistered<AgendaController>()) return null;
+    final isRegistered = Get.isRegistered<AgendaController>();
+    if (!isRegistered) return null;
     return Get.find<AgendaController>();
   }
 

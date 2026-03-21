@@ -18,18 +18,15 @@ class TestRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static TestRepository? maybeFind() {
-    if (!Get.isRegistered<TestRepository>()) return null;
+    final isRegistered = Get.isRegistered<TestRepository>();
+    if (!isRegistered) return null;
     return Get.find<TestRepository>();
   }
 
-  static TestRepository _ensureService() {
+  static TestRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(TestRepository(), permanent: true);
-  }
-
-  static TestRepository ensure() {
-    return _ensureService();
   }
 
   @override

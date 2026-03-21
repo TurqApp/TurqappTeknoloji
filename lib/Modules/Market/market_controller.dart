@@ -31,17 +31,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'market_schema_service.dart';
 
 class MarketController extends GetxController {
-  static MarketController _ensureController({bool permanent = false}) {
+  static MarketController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(MarketController(), permanent: permanent);
   }
 
-  static MarketController ensure({bool permanent = false}) =>
-      _ensureController(permanent: permanent);
-
   static MarketController? maybeFind() {
-    if (!Get.isRegistered<MarketController>()) return null;
+    final isRegistered = Get.isRegistered<MarketController>();
+    if (!isRegistered) return null;
     return Get.find<MarketController>();
   }
 

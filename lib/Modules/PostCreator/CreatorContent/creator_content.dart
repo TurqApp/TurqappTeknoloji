@@ -72,8 +72,7 @@ class CreatorContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(
-      CreatorContentController(),
+    controller = CreatorContentController.ensure(
       tag: model.index.toString(),
     );
 

@@ -23,17 +23,16 @@ class SocialMediaLinksRepository extends GetxService {
   final Map<String, _CachedSocialMediaLinks> _memory = {};
 
   static SocialMediaLinksRepository? maybeFind() {
-    if (!Get.isRegistered<SocialMediaLinksRepository>()) return null;
+    final isRegistered = Get.isRegistered<SocialMediaLinksRepository>();
+    if (!isRegistered) return null;
     return Get.find<SocialMediaLinksRepository>();
   }
 
-  static SocialMediaLinksRepository _ensureService() {
+  static SocialMediaLinksRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(SocialMediaLinksRepository(), permanent: true);
   }
-
-  static SocialMediaLinksRepository ensure() => _ensureService();
 
   @override
   void onInit() {

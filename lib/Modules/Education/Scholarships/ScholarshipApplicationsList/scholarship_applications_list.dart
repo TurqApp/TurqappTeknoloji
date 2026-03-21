@@ -31,41 +31,35 @@ class _ScholarshipApplicationsListState
     super.initState();
     _controllerTag =
         'scholarship_applications_${widget.docID}_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<ScholarshipApplicationsListController>(
+    final existing = ScholarshipApplicationsListController.maybeFind(
       tag: _controllerTag,
     );
-    controller = _ownsController
-        ? Get.put(
-            ScholarshipApplicationsListController(
-              docID: widget.docID,
-              basvuranlar: widget.basvuranlar,
-            ),
-            tag: _controllerTag,
-          )
-        : Get.find<ScholarshipApplicationsListController>(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ??
+        ScholarshipApplicationsListController.ensure(
+          tag: _controllerTag,
+          docID: widget.docID,
+          basvuranlar: widget.basvuranlar,
+        );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<ScholarshipApplicationsListController>(
-          tag: _controllerTag,
+        identical(
+          ScholarshipApplicationsListController.maybeFind(tag: _controllerTag),
+          controller,
         )) {
-      final registeredController =
-          Get.find<ScholarshipApplicationsListController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<ScholarshipApplicationsListController>(
-          tag: _controllerTag,
-          force: true,
-        );
-      }
+      Get.delete<ScholarshipApplicationsListController>(
+        tag: _controllerTag,
+        force: true,
+      );
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

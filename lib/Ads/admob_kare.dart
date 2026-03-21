@@ -19,6 +19,7 @@ class AdmobKare extends StatefulWidget {
   }
 
   static bool get hasReadyBanner => _AdmobKareState.hasReadyBanner;
+  static bool get hasRenderableBanner => _AdmobKareState.hasRenderableBanner;
 
   @override
   State<AdmobKare> createState() => _AdmobKareState();
@@ -52,6 +53,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static bool get _supportsSharedPool => true;
   static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
   static bool get hasReadyBanner => _readyPool.isNotEmpty;
+  static bool get hasRenderableBanner =>
+      _readyPool.any((ad) => ad.responseInfo != null);
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
@@ -112,6 +115,11 @@ class _AdmobKareState extends State<AdmobKare> {
   BannerAd? _takePreloadedBanner() {
     if (!_supportsSharedPool) return null;
     if (_readyPool.isEmpty) return null;
+    final renderableIndex =
+        _readyPool.indexWhere((ad) => ad.responseInfo != null);
+    if (renderableIndex >= 0) {
+      return _readyPool.removeAt(renderableIndex);
+    }
     return _readyPool.removeAt(0);
   }
 

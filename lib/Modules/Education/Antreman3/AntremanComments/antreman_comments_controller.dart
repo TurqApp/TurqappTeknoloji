@@ -109,7 +109,8 @@ class AntremanCommentsController extends GetxController {
   }
 
   static AntremanCommentsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AntremanCommentsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AntremanCommentsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AntremanCommentsController>(tag: tag);
   }
 

@@ -20,21 +20,22 @@ class SavedItemsView extends StatefulWidget {
 class _SavedItemsViewState extends State<SavedItemsView> {
   late final SavedItemsController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
     _controllerTag = 'saved_items_${identityHashCode(this)}';
-    controller = Get.isRegistered<SavedItemsController>(tag: _controllerTag)
-        ? Get.find<SavedItemsController>(tag: _controllerTag)
-        : Get.put(SavedItemsController(), tag: _controllerTag);
+    final existing = SavedItemsController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? SavedItemsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<SavedItemsController>(tag: _controllerTag) &&
+    if (_ownsController &&
         identical(
-          Get.find<SavedItemsController>(tag: _controllerTag),
+          SavedItemsController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<SavedItemsController>(tag: _controllerTag);

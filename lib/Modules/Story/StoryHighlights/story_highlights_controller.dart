@@ -10,7 +10,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
-  static StoryHighlightsController _ensureController({
+  static StoryHighlightsController ensure({
     required String userId,
     required String tag,
   }) {
@@ -19,14 +19,9 @@ class StoryHighlightsController extends GetxController {
     return Get.put(StoryHighlightsController(userId: userId), tag: tag);
   }
 
-  static StoryHighlightsController ensure({
-    required String userId,
-    required String tag,
-  }) =>
-      _ensureController(userId: userId, tag: tag);
-
   static StoryHighlightsController? maybeFind({required String tag}) {
-    if (!Get.isRegistered<StoryHighlightsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<StoryHighlightsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<StoryHighlightsController>(tag: tag);
   }
 

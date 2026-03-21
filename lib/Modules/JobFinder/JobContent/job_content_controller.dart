@@ -29,7 +29,8 @@ class JobContentController extends GetxController {
   }
 
   static JobContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<JobContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<JobContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<JobContentController>(tag: tag);
   }
 

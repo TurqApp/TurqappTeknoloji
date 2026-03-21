@@ -23,18 +23,15 @@ class ShortRepository extends GetxService {
   final FirebaseFirestore _firestore;
 
   static ShortRepository? maybeFind() {
-    if (!Get.isRegistered<ShortRepository>()) return null;
+    final isRegistered = Get.isRegistered<ShortRepository>();
+    if (!isRegistered) return null;
     return Get.find<ShortRepository>();
   }
 
-  static ShortRepository _ensureService() {
+  static ShortRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ShortRepository(), permanent: true);
-  }
-
-  static ShortRepository ensure() {
-    return _ensureService();
   }
 
   Future<ShortPageResult> fetchReadyPage({

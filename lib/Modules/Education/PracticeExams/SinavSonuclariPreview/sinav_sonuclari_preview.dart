@@ -30,24 +30,20 @@ class _SinavSonuclariPreviewState extends State<SinavSonuclariPreview> {
     super.initState();
     _tag =
         'practice_results_preview_${widget.model.docID}_${identityHashCode(this)}';
-    if (Get.isRegistered<SinavSonuclariPreviewController>(tag: _tag)) {
-      controller = Get.find<SinavSonuclariPreviewController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        SinavSonuclariPreviewController(model: widget.model),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+    final existing = SinavSonuclariPreviewController.maybeFind(tag: _tag);
+    _ownsController = existing == null;
+    controller = existing ??
+        SinavSonuclariPreviewController.ensure(
+          tag: _tag,
+          model: widget.model,
+        );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SinavSonuclariPreviewController>(tag: _tag) &&
         identical(
-          Get.find<SinavSonuclariPreviewController>(tag: _tag),
+          SinavSonuclariPreviewController.maybeFind(tag: _tag),
           controller,
         )) {
       Get.delete<SinavSonuclariPreviewController>(tag: _tag);

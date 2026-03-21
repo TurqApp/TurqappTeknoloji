@@ -40,7 +40,8 @@ class RozetController extends GetxController {
   }
 
   static RozetController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<RozetController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<RozetController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<RozetController>(tag: tag);
   }
 

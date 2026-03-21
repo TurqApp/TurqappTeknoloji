@@ -26,7 +26,8 @@ import 'models.dart';
 /// ```
 class SegmentCacheManager extends GetxController {
   static SegmentCacheManager? maybeFind() {
-    if (!Get.isRegistered<SegmentCacheManager>()) return null;
+    final isRegistered = Get.isRegistered<SegmentCacheManager>();
+    if (!isRegistered) return null;
     return Get.find<SegmentCacheManager>();
   }
 

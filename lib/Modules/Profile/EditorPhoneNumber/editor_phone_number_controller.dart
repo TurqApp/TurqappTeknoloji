@@ -21,7 +21,8 @@ class EditorPhoneNumberController extends GetxController {
   }
 
   static EditorPhoneNumberController? maybeFind() {
-    if (!Get.isRegistered<EditorPhoneNumberController>()) return null;
+    final isRegistered = Get.isRegistered<EditorPhoneNumberController>();
+    if (!isRegistered) return null;
     return Get.find<EditorPhoneNumberController>();
   }
 

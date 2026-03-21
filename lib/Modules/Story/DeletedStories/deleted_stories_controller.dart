@@ -7,16 +7,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/material.dart';
 
 class DeletedStoriesController extends GetxController {
-  static DeletedStoriesController _ensureController() {
+  static DeletedStoriesController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(DeletedStoriesController());
   }
 
-  static DeletedStoriesController ensure() => _ensureController();
-
   static DeletedStoriesController? maybeFind() {
-    if (!Get.isRegistered<DeletedStoriesController>()) return null;
+    final isRegistered = Get.isRegistered<DeletedStoriesController>();
+    if (!isRegistered) return null;
     return Get.find<DeletedStoriesController>();
   }
 

@@ -30,7 +30,9 @@ class PostReshareListingController extends GetxController {
   }
 
   static PostReshareListingController? maybeFind({required String tag}) {
-    if (!Get.isRegistered<PostReshareListingController>(tag: tag)) return null;
+    final isRegistered =
+        Get.isRegistered<PostReshareListingController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostReshareListingController>(tag: tag);
   }
 

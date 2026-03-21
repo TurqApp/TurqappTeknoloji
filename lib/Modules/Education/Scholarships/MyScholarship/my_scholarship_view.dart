@@ -30,32 +30,27 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_my_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<MyScholarshipController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(MyScholarshipController(), tag: _controllerTag)
-        : Get.find<MyScholarshipController>(tag: _controllerTag);
-    _ownsDetailController = !Get.isRegistered<ScholarshipDetailController>();
-    detailController = _ownsDetailController
-        ? Get.put(ScholarshipDetailController())
-        : Get.find<ScholarshipDetailController>();
+    final existing = MyScholarshipController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? MyScholarshipController.ensure(tag: _controllerTag);
+    final existingDetail = ScholarshipDetailController.maybeFind();
+    _ownsDetailController = existingDetail == null;
+    detailController = existingDetail ?? ScholarshipDetailController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<MyScholarshipController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<MyScholarshipController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<MyScholarshipController>(tag: _controllerTag, force: true);
-      }
+        identical(
+          MyScholarshipController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyScholarshipController>(tag: _controllerTag, force: true);
     }
-    if (_ownsDetailController && Get.isRegistered<ScholarshipDetailController>()) {
-      final registeredController = Get.find<ScholarshipDetailController>();
-      if (identical(registeredController, detailController)) {
-        Get.delete<ScholarshipDetailController>(force: true);
-      }
+    if (_ownsDetailController &&
+        identical(ScholarshipDetailController.maybeFind(), detailController)) {
+      Get.delete<ScholarshipDetailController>(force: true);
     }
     super.dispose();
   }

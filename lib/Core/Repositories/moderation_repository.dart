@@ -15,17 +15,16 @@ class ModerationFlaggedPost {
 
 class ModerationRepository extends GetxService {
   static ModerationRepository? maybeFind() {
-    if (!Get.isRegistered<ModerationRepository>()) return null;
+    final isRegistered = Get.isRegistered<ModerationRepository>();
+    if (!isRegistered) return null;
     return Get.find<ModerationRepository>();
   }
 
-  static ModerationRepository _ensureService() {
+  static ModerationRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ModerationRepository(), permanent: true);
   }
-
-  static ModerationRepository ensure() => _ensureService();
 
   Stream<List<ModerationFlaggedPost>> watchFlaggedPosts({
     required int threshold,

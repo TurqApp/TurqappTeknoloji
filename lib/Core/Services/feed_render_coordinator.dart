@@ -8,18 +8,15 @@ class FeedRenderCoordinator extends GetxService {
   static const int _mediaReadyWindow = 10;
 
   static FeedRenderCoordinator? maybeFind() {
-    if (!Get.isRegistered<FeedRenderCoordinator>()) return null;
+    final isRegistered = Get.isRegistered<FeedRenderCoordinator>();
+    if (!isRegistered) return null;
     return Get.find<FeedRenderCoordinator>();
   }
 
-  static FeedRenderCoordinator _ensureService() {
+  static FeedRenderCoordinator ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(FeedRenderCoordinator(), permanent: true);
-  }
-
-  static FeedRenderCoordinator ensure() {
-    return _ensureService();
   }
 
   List<Map<String, dynamic>> buildMergedEntries({

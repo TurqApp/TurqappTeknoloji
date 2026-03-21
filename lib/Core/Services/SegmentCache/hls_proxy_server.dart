@@ -17,7 +17,8 @@ import 'network_policy.dart';
 /// M3U8 playlist'lerde relative path kullanıldığı için rewriting gerekmez.
 class HLSProxyServer extends GetxController {
   static HLSProxyServer? maybeFind() {
-    if (!Get.isRegistered<HLSProxyServer>()) return null;
+    final isRegistered = Get.isRegistered<HLSProxyServer>();
+    if (!isRegistered) return null;
     return Get.find<HLSProxyServer>();
   }
 

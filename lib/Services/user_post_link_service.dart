@@ -9,7 +9,8 @@ import '../Models/user_post_reference.dart';
 /// Kullanıcı-post ilişkilerini yöneten yardımcı servis.
 class UserPostLinkService {
   static UserPostLinkService? maybeFind() {
-    if (!Get.isRegistered<UserPostLinkService>()) return null;
+    final isRegistered = Get.isRegistered<UserPostLinkService>();
+    if (!isRegistered) return null;
     return Get.find<UserPostLinkService>();
   }
 

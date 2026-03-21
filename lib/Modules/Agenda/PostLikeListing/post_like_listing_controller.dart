@@ -32,7 +32,8 @@ class PostLikeListingController extends GetxController {
   }
 
   static PostLikeListingController? maybeFind({required String tag}) {
-    if (!Get.isRegistered<PostLikeListingController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PostLikeListingController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostLikeListingController>(tag: tag);
   }
 

@@ -26,7 +26,8 @@ class MyJobAdsController extends GetxController {
   }
 
   static MyJobAdsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MyJobAdsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<MyJobAdsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MyJobAdsController>(tag: tag);
   }
 

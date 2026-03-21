@@ -37,6 +37,8 @@ class HLSController {
   bool _hasRenderedFirstFrame = false;
   double? _pendingReattachSeekSeconds;
   bool _pendingReattachShouldPlay = false;
+  int _rendererStallCount = 0;
+  int _surfaceRebindCount = 0;
 
   // Fallback support
   String? _fallbackUrl;
@@ -67,6 +69,8 @@ class HLSController {
   bool get isPaused => _state == PlayerState.paused;
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
+  int get rendererStallCount => _rendererStallCount;
+  int get surfaceRebindCount => _surfaceRebindCount;
 
   bool get _isAtPlaybackEnd {
     if (!_duration.isFinite || _duration <= 0) return false;
@@ -113,6 +117,8 @@ class HLSController {
     _eventSubscription = null;
     _hasRenderedFirstFrame = false;
     _firstFrameController.add(false);
+    _rendererStallCount = 0;
+    _surfaceRebindCount = 0;
     _viewId = viewId;
     _eventChannel = EventChannel('turqapp.hls_player/events_$viewId');
     _listenToEvents();
@@ -174,6 +180,8 @@ class HLSController {
     _firstFrameEmitted = false;
     _hasRenderedFirstFrame = false;
     _firstFrameController.add(false);
+    _rendererStallCount = 0;
+    _surfaceRebindCount = 0;
     if (_telemetryVideoId != null) {
       _telemetry.startSession(_telemetryVideoId!, url);
     }
@@ -489,9 +497,19 @@ class HLSController {
             break;
 
           case 'rendererStall':
+            _rendererStallCount += 1;
             if (kDebugMode && !_suppressHlsSmokeLogs) {
               debugPrint(
                 '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] rendererStall payload=$event url=$_currentUrl',
+              );
+            }
+            break;
+
+          case 'surfaceRebind':
+            _surfaceRebindCount += 1;
+            if (kDebugMode && !_suppressHlsSmokeLogs) {
+              debugPrint(
+                '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] surfaceRebind payload=$event url=$_currentUrl',
               );
             }
             break;

@@ -22,17 +22,16 @@ class CvRepository extends GetxService {
   final Map<String, _CachedCv> _memory = {};
 
   static CvRepository? maybeFind() {
-    if (!Get.isRegistered<CvRepository>()) return null;
+    final isRegistered = Get.isRegistered<CvRepository>();
+    if (!isRegistered) return null;
     return Get.find<CvRepository>();
   }
 
-  static CvRepository _ensureService() {
+  static CvRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(CvRepository(), permanent: true);
   }
-
-  static CvRepository ensure() => _ensureService();
 
   @override
   void onInit() {

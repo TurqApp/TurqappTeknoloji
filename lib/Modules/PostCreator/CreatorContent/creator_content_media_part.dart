@@ -257,6 +257,7 @@ extension CreatorContentMediaPart on CreatorContent {
           child: _buildMediaLookPreview(
             controller.videoLookPreset.value,
             _buildImageContentFromMemory(images),
+            applyMatrix: false,
           ),
         ),
         Positioned(
@@ -300,14 +301,14 @@ extension CreatorContentMediaPart on CreatorContent {
             final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
             final palette = _lookPalette(preset);
             return Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.only(right: 5),
               child: GestureDetector(
                 onTap: () => controller.setVideoLookPreset(preset),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutCubic,
-                  width: 92,
-                  padding: const EdgeInsets.all(8),
+                  width: 54,
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -315,7 +316,7 @@ extension CreatorContentMediaPart on CreatorContent {
                       colors:
                           isSelected ? palette.activeShell : palette.idleShell,
                     ),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isSelected
                           ? palette.borderStrong
@@ -335,9 +336,9 @@ extension CreatorContentMediaPart on CreatorContent {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(9),
                         child: SizedBox(
-                          height: 42,
+                          height: 25,
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
@@ -353,8 +354,8 @@ extension CreatorContentMediaPart on CreatorContent {
                               Align(
                                 alignment: Alignment.topRight,
                                 child: Container(
-                                  width: preset == 'bright' ? 34 : 24,
-                                  margin: const EdgeInsets.all(6),
+                                  width: preset == 'bright' ? 20 : 14,
+                                  margin: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(
                                       alpha: preset == 'bright' ? 0.94 : 0.76,
@@ -366,8 +367,8 @@ extension CreatorContentMediaPart on CreatorContent {
                               Align(
                                 alignment: Alignment.bottomLeft,
                                 child: Container(
-                                  height: 10,
-                                  margin: const EdgeInsets.all(6),
+                                  height: 5,
+                                  margin: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: <Color>[
@@ -382,7 +383,7 @@ extension CreatorContentMediaPart on CreatorContent {
                               Center(
                                 child: Icon(
                                   icon,
-                                  size: 16,
+                                  size: 10,
                                   color: palette.text,
                                 ),
                               ),
@@ -390,16 +391,16 @@ extension CreatorContentMediaPart on CreatorContent {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 3),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
                         child: Text(
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: palette.text,
-                            fontSize: 11.5,
+                            fontSize: 7.6,
                             fontFamily: isSelected
                                 ? 'MontserratBold'
                                 : 'MontserratSemiBold',
@@ -472,15 +473,22 @@ extension CreatorContentMediaPart on CreatorContent {
     }
   }
 
-  Widget _buildMediaLookPreview(String preset, Widget child) {
+  Widget _buildMediaLookPreview(
+    String preset,
+    Widget child, {
+    bool applyMatrix = true,
+  }) {
     if (preset == 'original') return child;
     return Stack(
       fit: StackFit.expand,
       children: [
-        ColorFiltered(
-          colorFilter: ColorFilter.matrix(_lookMatrix(preset)),
-          child: child,
-        ),
+        if (applyMatrix)
+          ColorFiltered(
+            colorFilter: ColorFilter.matrix(_lookMatrix(preset)),
+            child: child,
+          )
+        else
+          child,
         IgnorePointer(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -776,6 +784,7 @@ extension CreatorContentMediaPart on CreatorContent {
           child: _buildMediaLookPreview(
             controller.videoLookPreset.value,
             _buildImageContentFromUrls(urls),
+            applyMatrix: false,
           ),
         ),
         Positioned(

@@ -7,6 +7,18 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchDenemeController extends GetxController {
+  static SearchDenemeController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SearchDenemeController(), permanent: permanent);
+  }
+
+  static SearchDenemeController? maybeFind() {
+    final isRegistered = Get.isRegistered<SearchDenemeController>();
+    if (!isRegistered) return null;
+    return Get.find<SearchDenemeController>();
+  }
+
   final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
       PracticeExamSnapshotRepository.ensure();
   final filteredList = <SinavModel>[].obs;

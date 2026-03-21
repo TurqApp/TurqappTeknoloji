@@ -13,21 +13,17 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class InAppNotificationsController extends GetxController {
-  static InAppNotificationsController _ensureController({String? tag}) {
-    if (Get.isRegistered<InAppNotificationsController>(tag: tag)) {
-      return Get.find<InAppNotificationsController>(tag: tag);
-    }
+  static InAppNotificationsController ensure({String? tag}) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
     return Get.put(InAppNotificationsController(), tag: tag);
   }
 
-  static InAppNotificationsController ensure({String? tag}) =>
-      _ensureController(tag: tag);
-
   static InAppNotificationsController? maybeFind({String? tag}) {
-    if (Get.isRegistered<InAppNotificationsController>(tag: tag)) {
-      return Get.find<InAppNotificationsController>(tag: tag);
-    }
-    return null;
+    final isRegistered =
+        Get.isRegistered<InAppNotificationsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<InAppNotificationsController>(tag: tag);
   }
 
   var selection = 0.obs;

@@ -73,7 +73,7 @@ extension _ProfileViewSectionsPart on _ProfileViewState {
         width: width,
         child: GestureDetector(
           onTap: () {
-            launchUrl(Uri.parse(model.url));
+            confirmAndLaunchExternalUrl(Uri.parse(model.url));
           },
           onLongPress: () {
             controller.showSocialMediaLinkDelete(model.docID);

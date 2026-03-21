@@ -45,7 +45,8 @@ class JobCreatorController extends GetxController {
   }
 
   static JobCreatorController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<JobCreatorController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<JobCreatorController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<JobCreatorController>(tag: tag);
   }
 
@@ -154,8 +155,9 @@ class JobCreatorController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if (!Get.isRegistered<GlobalLoaderController>(tag: loaderTag)) {
-      Get.put(GlobalLoaderController(), tag: loaderTag);
+    final existingLoader = GlobalLoaderController.maybeFind(tag: loaderTag);
+    if (existingLoader == null) {
+      GlobalLoaderController.ensure(tag: loaderTag, permanent: false);
       _ownsLoader = true;
     }
 
@@ -214,8 +216,8 @@ class JobCreatorController extends GetxController {
     basvuruSayisi.dispose();
     ilanBasligi.dispose();
     pozisyonSayisi.dispose();
-    if (_ownsLoader &&
-        Get.isRegistered<GlobalLoaderController>(tag: loaderTag)) {
+    final currentLoader = GlobalLoaderController.maybeFind(tag: loaderTag);
+    if (_ownsLoader && currentLoader != null) {
       Get.delete<GlobalLoaderController>(tag: loaderTag);
     }
     super.onClose();
@@ -772,7 +774,8 @@ class JobCreatorController extends GetxController {
   Future<void> setData() async {
     final docID =
         existingJob?.docID ?? Uuid().v4(); // düzenleme veya yeni kayıt
-    final loader = Get.find<GlobalLoaderController>(tag: loaderTag);
+    final loader = GlobalLoaderController.maybeFind(tag: loaderTag) ??
+        GlobalLoaderController.ensure(tag: loaderTag, permanent: false);
     loader.isOn.value = true;
     try {
       final current = CurrentUserService.instance.currentUser;

@@ -39,7 +39,8 @@ class AnswerKeyContentController extends GetxController {
   }
 
   static AnswerKeyContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AnswerKeyContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AnswerKeyContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AnswerKeyContentController>(tag: tag);
   }
 

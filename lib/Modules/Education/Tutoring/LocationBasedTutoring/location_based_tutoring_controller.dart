@@ -26,9 +26,9 @@ class LocationBasedTutoringController extends GetxController {
   }
 
   static LocationBasedTutoringController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<LocationBasedTutoringController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<LocationBasedTutoringController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<LocationBasedTutoringController>(tag: tag);
   }
 

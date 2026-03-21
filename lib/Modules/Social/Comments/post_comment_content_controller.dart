@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -28,9 +29,9 @@ class PostCommentContentController extends GetxController {
   }
 
   static PostCommentContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PostCommentContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<PostCommentContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostCommentContentController>(tag: tag);
   }
 
@@ -72,14 +73,39 @@ class PostCommentContentController extends GetxController {
   }
 
   Future<void> toggleLike() async {
-    await _interactionService.toggleCommentLike(postID, model.docID);
     final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
-    if (likes.contains(uid)) {
-      likes.remove(uid);
-    } else {
-      likes.add(uid);
+    final wasLiked = likes.contains(uid);
+    _applyLocalLikeState(uid: uid, liked: !wasLiked);
+    try {
+      await _interactionService.toggleCommentLike(postID, model.docID);
+    } catch (e) {
+      _applyLocalLikeState(uid: uid, liked: wasLiked);
+      AppSnackbar('common.error'.tr, 'comments.like_failed'.tr);
     }
+  }
+
+  void _applyLocalLikeState({
+    required String uid,
+    required bool liked,
+  }) {
+    if (liked) {
+      if (!likes.contains(uid)) {
+        likes.add(uid);
+      }
+      if (!model.likes.contains(uid)) {
+        model.likes.add(uid);
+      }
+    } else {
+      likes.remove(uid);
+      model.likes.remove(uid);
+    }
+    final parent = PostCommentController.maybeFind(tag: commentControllerTag);
+    parent?.syncCommentLikeLocally(
+      commentId: model.docID,
+      userId: uid,
+      liked: liked,
+    );
   }
 
   Future<bool> deleteComment() async {

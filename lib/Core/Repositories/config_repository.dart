@@ -19,18 +19,15 @@ class ConfigRepository extends GetxService {
   static const String _prefsKeyPrefix = 'config_repository_v1';
 
   static ConfigRepository? maybeFind() {
-    if (!Get.isRegistered<ConfigRepository>()) return null;
+    final isRegistered = Get.isRegistered<ConfigRepository>();
+    if (!isRegistered) return null;
     return Get.find<ConfigRepository>();
   }
 
-  static ConfigRepository _ensureService() {
+  static ConfigRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ConfigRepository(), permanent: true);
-  }
-
-  static ConfigRepository ensure() {
-    return _ensureService();
   }
 
   SharedPreferences? _prefs;

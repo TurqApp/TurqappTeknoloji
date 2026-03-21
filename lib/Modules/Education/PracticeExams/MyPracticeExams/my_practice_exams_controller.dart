@@ -10,6 +10,18 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyPracticeExamsController extends GetxController {
+  static MyPracticeExamsController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(MyPracticeExamsController(), permanent: permanent);
+  }
+
+  static MyPracticeExamsController? maybeFind() {
+    final isRegistered = Get.isRegistered<MyPracticeExamsController>();
+    if (!isRegistered) return null;
+    return Get.find<MyPracticeExamsController>();
+  }
+
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

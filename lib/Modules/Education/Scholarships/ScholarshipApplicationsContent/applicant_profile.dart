@@ -25,6 +25,7 @@ class ApplicantProfile extends StatefulWidget {
 class _ApplicantProfileState extends State<ApplicantProfile> {
   late final ScholarshipApplicationsContentController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   String get userID => widget.userID;
 
@@ -45,26 +46,23 @@ class _ApplicantProfileState extends State<ApplicantProfile> {
     super.initState();
     _controllerTag =
         'scholarship_applicant_profile_${widget.userID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<ScholarshipApplicationsContentController>(
+    final existing = ScholarshipApplicationsContentController.maybeFind(
       tag: _controllerTag,
-    )
-        ? Get.find<ScholarshipApplicationsContentController>(
-            tag: _controllerTag)
-        : Get.put(
-            ScholarshipApplicationsContentController(userID: widget.userID),
-            tag: _controllerTag,
-          );
+    );
+    _ownsController = existing == null;
+    controller = existing ??
+        ScholarshipApplicationsContentController.ensure(
+          tag: _controllerTag,
+          userID: widget.userID,
+        );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<ScholarshipApplicationsContentController>(
-          tag: _controllerTag,
-        ) &&
+    if (_ownsController &&
         identical(
-          Get.find<ScholarshipApplicationsContentController>(
-            tag: _controllerTag,
-          ),
+          ScholarshipApplicationsContentController.maybeFind(
+              tag: _controllerTag),
           controller,
         )) {
       Get.delete<ScholarshipApplicationsContentController>(tag: _controllerTag);

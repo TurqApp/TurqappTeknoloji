@@ -25,9 +25,9 @@ class ApplicationReviewController extends GetxController {
   }
 
   static ApplicationReviewController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ApplicationReviewController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<ApplicationReviewController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ApplicationReviewController>(tag: tag);
   }
 

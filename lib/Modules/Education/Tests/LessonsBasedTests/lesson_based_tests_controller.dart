@@ -21,7 +21,8 @@ class LessonBasedTestsController extends GetxController {
   }
 
   static LessonBasedTestsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<LessonBasedTestsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<LessonBasedTestsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<LessonBasedTestsController>(tag: tag);
   }
 

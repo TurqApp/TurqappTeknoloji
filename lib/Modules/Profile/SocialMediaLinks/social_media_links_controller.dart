@@ -15,16 +15,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
-  static SocialMediaController _ensureController() {
+  static SocialMediaController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(SocialMediaController());
   }
 
-  static SocialMediaController ensure() => _ensureController();
-
   static SocialMediaController? maybeFind() {
-    if (!Get.isRegistered<SocialMediaController>()) return null;
+    final isRegistered = Get.isRegistered<SocialMediaController>();
+    if (!isRegistered) return null;
     return Get.find<SocialMediaController>();
   }
 

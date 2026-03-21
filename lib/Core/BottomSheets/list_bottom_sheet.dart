@@ -313,7 +313,8 @@ class ListBottomSheetController extends GetxController {
   }
 
   static ListBottomSheetController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ListBottomSheetController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ListBottomSheetController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ListBottomSheetController>(tag: tag);
   }
 

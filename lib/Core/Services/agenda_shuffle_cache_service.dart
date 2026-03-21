@@ -13,18 +13,15 @@ class AgendaShuffleCacheService extends GetxService {
   DateTime? _cachedAt;
 
   static AgendaShuffleCacheService? maybeFind() {
-    if (!Get.isRegistered<AgendaShuffleCacheService>()) return null;
+    final isRegistered = Get.isRegistered<AgendaShuffleCacheService>();
+    if (!isRegistered) return null;
     return Get.find<AgendaShuffleCacheService>();
   }
 
-  static AgendaShuffleCacheService _ensureService() {
+  static AgendaShuffleCacheService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(AgendaShuffleCacheService(), permanent: true);
-  }
-
-  static AgendaShuffleCacheService ensure() {
-    return _ensureService();
   }
 
   int get initialFetchSize => _initialFetchSize;

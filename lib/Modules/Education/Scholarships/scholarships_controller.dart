@@ -24,17 +24,15 @@ import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_view.dart';
 
 class ScholarshipsController extends GetxController {
-  static ScholarshipsController _ensureController({bool permanent = false}) {
+  static ScholarshipsController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ScholarshipsController(), permanent: permanent);
   }
 
-  static ScholarshipsController ensure({bool permanent = false}) =>
-      _ensureController(permanent: permanent);
-
   static ScholarshipsController? maybeFind() {
-    if (!Get.isRegistered<ScholarshipsController>()) return null;
+    final isRegistered = Get.isRegistered<ScholarshipsController>();
+    if (!isRegistered) return null;
     return Get.find<ScholarshipsController>();
   }
 

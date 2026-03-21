@@ -5,6 +5,29 @@ import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:get/get.dart';
 
 class ScholarshipApplicationsContentController extends GetxController {
+  static ScholarshipApplicationsContentController ensure({
+    required String tag,
+    required String userID,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ScholarshipApplicationsContentController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ScholarshipApplicationsContentController? maybeFind({
+    required String tag,
+  }) {
+    final isRegistered =
+        Get.isRegistered<ScholarshipApplicationsContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ScholarshipApplicationsContentController>(tag: tag);
+  }
+
   final String userID;
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -131,8 +154,7 @@ class ScholarshipApplicationsContentController extends GetxController {
         nufusIlce.value = userString(data, key: "nufusIlce", scope: "profile");
         fakulte.value = userString(data, key: "fakulte", scope: "education");
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> ogrenciBilgileriniKontrolEt() async {
@@ -175,8 +197,7 @@ class ScholarshipApplicationsContentController extends GetxController {
         ikametIlce.value =
             userString(data, key: "ikametIlce", scope: "profile");
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> toggleDetails() async {

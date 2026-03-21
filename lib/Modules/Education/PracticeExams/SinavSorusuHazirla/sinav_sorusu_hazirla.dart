@@ -36,30 +36,24 @@ class _SinavSorusuHazirlaState extends State<SinavSorusuHazirla> {
     super.initState();
     _tag =
         'practice_question_prepare_${widget.docID}_${identityHashCode(this)}';
-    if (Get.isRegistered<SinavSorusuHazirlaController>(tag: _tag)) {
-      controller = Get.find<SinavSorusuHazirlaController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        SinavSorusuHazirlaController(
+    final existing = SinavSorusuHazirlaController.maybeFind(tag: _tag);
+    _ownsController = existing == null;
+    controller = existing ??
+        SinavSorusuHazirlaController.ensure(
+          tag: _tag,
           docID: widget.docID,
           sinavTuru: widget.sinavTuru,
           tumDersler: widget.tumDersler,
           derslerinSoruSayilari: widget.derslerinSoruSayilari,
           complated: widget.complated,
-        ),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+        );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SinavSorusuHazirlaController>(tag: _tag) &&
         identical(
-          Get.find<SinavSorusuHazirlaController>(tag: _tag),
+          SinavSorusuHazirlaController.maybeFind(tag: _tag),
           controller,
         )) {
       Get.delete<SinavSorusuHazirlaController>(tag: _tag);
@@ -111,13 +105,13 @@ class _SinavSorusuHazirlaState extends State<SinavSorusuHazirla> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(top: 20),
-                                child: SoruContent(
-                                  model: entry.value,
-                                  sinavTuru: widget.sinavTuru,
-                                  mainID: widget.docID,
-                                  index: entry.key,
-                                  ders: entry.value.ders,
-                                ),
+                              child: SoruContent(
+                                model: entry.value,
+                                sinavTuru: widget.sinavTuru,
+                                mainID: widget.docID,
+                                index: entry.key,
+                                ders: entry.value.ders,
+                              ),
                             ),
                             Positioned(
                               top: 10,

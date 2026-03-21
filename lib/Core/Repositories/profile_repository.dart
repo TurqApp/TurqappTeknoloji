@@ -52,17 +52,16 @@ class ProfileRepository extends GetxService {
       <String, PostsModel?>{};
 
   static ProfileRepository? maybeFind() {
-    if (!Get.isRegistered<ProfileRepository>()) return null;
+    final isRegistered = Get.isRegistered<ProfileRepository>();
+    if (!isRegistered) return null;
     return Get.find<ProfileRepository>();
   }
 
-  static ProfileRepository _ensureService() {
+  static ProfileRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ProfileRepository(), permanent: true);
   }
-
-  static ProfileRepository ensure() => _ensureService();
 
   Future<ProfileBuckets?> readCachedBuckets(String uid) async {
     if (uid.isEmpty) return null;

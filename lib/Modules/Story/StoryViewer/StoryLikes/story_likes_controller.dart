@@ -16,7 +16,8 @@ class StoryLikesController extends GetxController {
   }
 
   static StoryLikesController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<StoryLikesController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<StoryLikesController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<StoryLikesController>(tag: tag);
   }
 

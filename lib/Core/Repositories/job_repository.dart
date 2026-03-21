@@ -22,18 +22,15 @@ class JobRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static JobRepository? maybeFind() {
-    if (!Get.isRegistered<JobRepository>()) return null;
+    final isRegistered = Get.isRegistered<JobRepository>();
+    if (!isRegistered) return null;
     return Get.find<JobRepository>();
   }
 
-  static JobRepository _ensureService() {
+  static JobRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(JobRepository(), permanent: true);
-  }
-
-  static JobRepository ensure() {
-    return _ensureService();
   }
 
   @override

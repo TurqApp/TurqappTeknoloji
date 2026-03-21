@@ -43,17 +43,16 @@ class VerifiedAccountRepository extends GetxService {
   final Map<String, _CachedVerifiedAccountStatus> _memory = {};
 
   static VerifiedAccountRepository? maybeFind() {
-    if (!Get.isRegistered<VerifiedAccountRepository>()) return null;
+    final isRegistered = Get.isRegistered<VerifiedAccountRepository>();
+    if (!isRegistered) return null;
     return Get.find<VerifiedAccountRepository>();
   }
 
-  static VerifiedAccountRepository _ensureService() {
+  static VerifiedAccountRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(VerifiedAccountRepository(), permanent: true);
   }
-
-  static VerifiedAccountRepository ensure() => _ensureService();
 
   @override
   void onInit() {

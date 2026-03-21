@@ -3,6 +3,7 @@ class IntegrationTestKeys {
   static const String navFeed = 'it-nav-feed';
   static const String navExplore = 'it-nav-explore';
   static const String navShort = 'it-nav-short';
+  static const String navChat = 'it-nav-chat';
   static const String navEducation = 'it-nav-education';
   static const String navProfile = 'it-nav-profile';
 
@@ -22,8 +23,7 @@ class IntegrationTestKeys {
   static String practiceExamOpen(String docId) =>
       'it-practice-exam-open-$docId';
 
-  static String practiceExamCta(String docId) =>
-      'it-practice-exam-cta-$docId';
+  static String practiceExamCta(String docId) => 'it-practice-exam-cta-$docId';
 
   static String questionBankCategory(String category) =>
       'it-question-bank-category-$category';

@@ -23,9 +23,9 @@ class MyPastTestResultsPreviewController extends GetxController {
   }
 
   static MyPastTestResultsPreviewController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MyPastTestResultsPreviewController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<MyPastTestResultsPreviewController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MyPastTestResultsPreviewController>(tag: tag);
   }
 

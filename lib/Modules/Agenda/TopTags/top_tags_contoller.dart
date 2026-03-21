@@ -14,7 +14,8 @@ class TopTagsController extends GetxController {
   }
 
   static TopTagsController? maybeFind() {
-    if (!Get.isRegistered<TopTagsController>()) return null;
+    final isRegistered = Get.isRegistered<TopTagsController>();
+    if (!isRegistered) return null;
     return Get.find<TopTagsController>();
   }
 

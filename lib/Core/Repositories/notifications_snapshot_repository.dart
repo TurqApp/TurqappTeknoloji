@@ -29,18 +29,15 @@ class NotificationsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'notifications_inbox_snapshot';
 
   static NotificationsSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<NotificationsSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<NotificationsSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<NotificationsSnapshotRepository>();
   }
 
-  static NotificationsSnapshotRepository _ensureService() {
+  static NotificationsSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(NotificationsSnapshotRepository(), permanent: true);
-  }
-
-  static NotificationsSnapshotRepository ensure() {
-    return _ensureService();
   }
 
   final NotificationsRepository _notificationsRepository =

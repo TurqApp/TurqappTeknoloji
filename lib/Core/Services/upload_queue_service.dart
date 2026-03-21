@@ -87,18 +87,16 @@ class QueuedUpload {
 
 class UploadQueueService extends GetxController {
   static UploadQueueService? maybeFind() {
-    if (!Get.isRegistered<UploadQueueService>()) return null;
+    final isRegistered = Get.isRegistered<UploadQueueService>();
+    if (!isRegistered) return null;
     return Get.find<UploadQueueService>();
   }
 
-  static UploadQueueService _ensureService({bool permanent = false}) {
+  static UploadQueueService ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UploadQueueService(), permanent: permanent);
   }
-
-  static UploadQueueService ensure({bool permanent = false}) =>
-      _ensureService(permanent: permanent);
 
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   static const Duration _recentDuplicateWindow = Duration(minutes: 15);

@@ -13,18 +13,15 @@ class TutoringSnapshotRepository extends GetxService {
   static const String _searchSurfaceKey = 'tutoring_search_snapshot';
 
   static TutoringSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<TutoringSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<TutoringSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<TutoringSnapshotRepository>();
   }
 
-  static TutoringSnapshotRepository _ensureService() {
+  static TutoringSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(TutoringSnapshotRepository(), permanent: true);
-  }
-
-  static TutoringSnapshotRepository ensure() {
-    return _ensureService();
   }
 
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();

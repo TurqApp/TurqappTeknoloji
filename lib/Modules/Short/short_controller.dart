@@ -32,7 +32,8 @@ class ShortController extends GetxController {
   }
 
   static ShortController? maybeFind() {
-    if (!Get.isRegistered<ShortController>()) return null;
+    final isRegistered = Get.isRegistered<ShortController>();
+    if (!isRegistered) return null;
     return Get.find<ShortController>();
   }
 

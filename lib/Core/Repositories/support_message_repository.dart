@@ -5,17 +5,16 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class SupportMessageRepository extends GetxService {
   static SupportMessageRepository? maybeFind() {
-    if (!Get.isRegistered<SupportMessageRepository>()) return null;
+    final isRegistered = Get.isRegistered<SupportMessageRepository>();
+    if (!isRegistered) return null;
     return Get.find<SupportMessageRepository>();
   }
 
-  static SupportMessageRepository _ensureService() {
+  static SupportMessageRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(SupportMessageRepository(), permanent: true);
   }
-
-  static SupportMessageRepository ensure() => _ensureService();
 
   CollectionReference<Map<String, dynamic>> get _ref =>
       FirebaseFirestore.instance.collection('supportMessages');

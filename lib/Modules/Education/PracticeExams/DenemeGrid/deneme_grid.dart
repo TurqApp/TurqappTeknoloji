@@ -578,14 +578,11 @@ class DenemeGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DenemeGridController controller = Get.put(
-      DenemeGridController(),
+    final DenemeGridController controller = DenemeGridController.ensure(
       tag: model.docID,
     );
     final SavedPracticeExamsController savedController =
-        Get.isRegistered<SavedPracticeExamsController>()
-            ? Get.find<SavedPracticeExamsController>()
-            : Get.put(SavedPracticeExamsController());
+        SavedPracticeExamsController.ensure();
     controller.initData(model);
 
     return isListLayout

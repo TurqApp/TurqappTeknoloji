@@ -28,9 +28,9 @@ class HashtagTextVideoPostController extends GetxController {
   }
 
   static HashtagTextVideoPostController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<HashtagTextVideoPostController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<HashtagTextVideoPostController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<HashtagTextVideoPostController>(tag: tag);
   }
 

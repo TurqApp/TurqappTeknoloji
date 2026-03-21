@@ -16,7 +16,8 @@ class StoryCommentUserController extends GetxController {
   }
 
   static StoryCommentUserController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<StoryCommentUserController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<StoryCommentUserController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<StoryCommentUserController>(tag: tag);
   }
 

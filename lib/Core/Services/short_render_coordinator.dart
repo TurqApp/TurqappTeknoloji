@@ -15,18 +15,15 @@ class ShortRenderUpdate {
 
 class ShortRenderCoordinator extends GetxService {
   static ShortRenderCoordinator? maybeFind() {
-    if (!Get.isRegistered<ShortRenderCoordinator>()) return null;
+    final isRegistered = Get.isRegistered<ShortRenderCoordinator>();
+    if (!isRegistered) return null;
     return Get.find<ShortRenderCoordinator>();
   }
 
-  static ShortRenderCoordinator _ensureService() {
+  static ShortRenderCoordinator ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ShortRenderCoordinator(), permanent: true);
-  }
-
-  static ShortRenderCoordinator ensure() {
-    return _ensureService();
   }
 
   ShortRenderUpdate buildUpdate({

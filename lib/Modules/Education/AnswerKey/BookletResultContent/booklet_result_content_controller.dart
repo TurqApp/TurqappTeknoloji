@@ -19,9 +19,9 @@ class BookletResultContentController extends GetxController {
   }
 
   static BookletResultContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<BookletResultContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<BookletResultContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<BookletResultContentController>(tag: tag);
   }
 

@@ -24,9 +24,9 @@ class BecomeVerifiedAccountController extends GetxController {
   }
 
   static BecomeVerifiedAccountController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<BecomeVerifiedAccountController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<BecomeVerifiedAccountController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<BecomeVerifiedAccountController>(tag: tag);
   }
 

@@ -5,16 +5,15 @@ import 'package:turqappv2/Models/posts_model.dart';
 import '../AgendaContent/agenda_content_controller.dart';
 
 class FloodListingController extends GetxController {
-  static FloodListingController _ensureController() {
+  static FloodListingController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(FloodListingController());
   }
 
-  static FloodListingController ensure() => _ensureController();
-
   static FloodListingController? maybeFind() {
-    if (!Get.isRegistered<FloodListingController>()) return null;
+    final isRegistered = Get.isRegistered<FloodListingController>();
+    if (!isRegistered) return null;
     return Get.find<FloodListingController>();
   }
 
@@ -91,7 +90,7 @@ class FloodListingController extends GetxController {
   /// Belirtilen flood için controller'ı siler
   void disposeAgendaContentController(String docID) {
     final tag = floodInstanceTag(docID);
-    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+    if (AgendaContentController.maybeFind(tag: tag) != null) {
       Get.delete<AgendaContentController>(tag: tag, force: true);
       print("🎯 Disposed AgendaContentController");
     }

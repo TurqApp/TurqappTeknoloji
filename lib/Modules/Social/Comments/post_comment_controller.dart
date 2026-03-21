@@ -35,7 +35,8 @@ class PostCommentController extends GetxController {
   }
 
   static PostCommentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PostCommentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PostCommentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostCommentController>(tag: tag);
   }
 
@@ -206,6 +207,40 @@ class PostCommentController extends GetxController {
 
   Future<void> toggleCommentLike(String commentId) async {
     await _interactionService.toggleCommentLike(postID, commentId);
+  }
+
+  void syncCommentLikeLocally({
+    required String commentId,
+    required String userId,
+    required bool liked,
+  }) {
+    final index = list.indexWhere((comment) => comment.docID == commentId);
+    if (index < 0) return;
+    final comment = list[index];
+    final updatedLikes = List<String>.from(comment.likes);
+    if (liked) {
+      if (!updatedLikes.contains(userId)) {
+        updatedLikes.add(userId);
+      }
+    } else {
+      updatedLikes.remove(userId);
+    }
+    list[index] = PostCommentModel(
+      likes: updatedLikes,
+      text: comment.text,
+      imgs: comment.imgs,
+      videos: comment.videos,
+      timeStamp: comment.timeStamp,
+      userID: comment.userID,
+      docID: comment.docID,
+      edited: comment.edited,
+      editTimestamp: comment.editTimestamp,
+      deleted: comment.deleted,
+      deletedTimeStamp: comment.deletedTimeStamp,
+      hasReplies: comment.hasReplies,
+      repliesCount: comment.repliesCount,
+    );
+    list.refresh();
   }
 
   void setReplyTarget({required String commentId, required String nickname}) {

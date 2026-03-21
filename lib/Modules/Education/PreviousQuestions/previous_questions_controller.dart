@@ -14,7 +14,9 @@ class PreviousQuestionsController extends GetxController {
   }
 
   static PreviousQuestionsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PreviousQuestionsController>(tag: tag)) return null;
+    final isRegistered =
+        Get.isRegistered<PreviousQuestionsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PreviousQuestionsController>(tag: tag);
   }
 

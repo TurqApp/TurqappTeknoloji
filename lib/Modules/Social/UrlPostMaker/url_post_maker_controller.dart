@@ -28,7 +28,8 @@ class UrlPostMakerController extends GetxController {
   }
 
   static UrlPostMakerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<UrlPostMakerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<UrlPostMakerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<UrlPostMakerController>(tag: tag);
   }
 

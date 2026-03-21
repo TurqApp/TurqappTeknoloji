@@ -96,17 +96,16 @@ class SmartSuggestion {
 
 class PostEditingService extends GetxController {
   static PostEditingService? maybeFind() {
-    if (!Get.isRegistered<PostEditingService>()) return null;
+    final isRegistered = Get.isRegistered<PostEditingService>();
+    if (!isRegistered) return null;
     return Get.find<PostEditingService>();
   }
 
-  static PostEditingService _ensureService() {
+  static PostEditingService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(PostEditingService());
   }
-
-  static PostEditingService ensure() => _ensureService();
 
   final RxList<EditAction> _undoStack = <EditAction>[].obs;
   final RxList<EditAction> _redoStack = <EditAction>[].obs;

@@ -9,16 +9,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ArchiveController extends GetxController {
-  static ArchiveController _ensureController() {
+  static ArchiveController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ArchiveController());
   }
 
-  static ArchiveController ensure() => _ensureController();
-
   static ArchiveController? maybeFind() {
-    if (!Get.isRegistered<ArchiveController>()) return null;
+    final isRegistered = Get.isRegistered<ArchiveController>();
+    if (!isRegistered) return null;
     return Get.find<ArchiveController>();
   }
 

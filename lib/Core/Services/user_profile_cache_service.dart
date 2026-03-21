@@ -25,16 +25,15 @@ class UserProfileCacheService extends GetxService {
   Timer? _persistTimer;
   bool _dirty = false;
 
-  static UserProfileCacheService _ensureService() {
+  static UserProfileCacheService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UserProfileCacheService(), permanent: true);
   }
 
-  static UserProfileCacheService ensure() => _ensureService();
-
   static UserProfileCacheService? maybeFind() {
-    if (!Get.isRegistered<UserProfileCacheService>()) return null;
+    final isRegistered = Get.isRegistered<UserProfileCacheService>();
+    if (!isRegistered) return null;
     return Get.find<UserProfileCacheService>();
   }
 

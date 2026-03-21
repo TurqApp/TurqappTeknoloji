@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -25,7 +27,6 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'scholarship_detail_controller.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 
@@ -36,9 +37,8 @@ part 'scholarship_detail_view_actions_part.dart';
 class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
   ScholarshipDetailView({super.key});
 
-  final ScholarshipsController scholarshipsController = Get.put(
-    ScholarshipsController(),
-  );
+  final ScholarshipsController scholarshipsController =
+      ScholarshipsController.ensure();
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
 

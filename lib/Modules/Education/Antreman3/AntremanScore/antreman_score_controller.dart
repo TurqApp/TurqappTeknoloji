@@ -24,7 +24,8 @@ class AntremanScoreController extends GetxController {
   }
 
   static AntremanScoreController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AntremanScoreController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AntremanScoreController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AntremanScoreController>(tag: tag);
   }
 

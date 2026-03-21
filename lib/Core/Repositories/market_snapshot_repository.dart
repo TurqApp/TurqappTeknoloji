@@ -33,18 +33,15 @@ class MarketSnapshotRepository extends GetxService {
   static const String _searchSurfaceKey = 'market_search_snapshot';
 
   static MarketSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<MarketSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<MarketSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<MarketSnapshotRepository>();
   }
 
-  static MarketSnapshotRepository _ensureService() {
+  static MarketSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(MarketSnapshotRepository(), permanent: true);
-  }
-
-  static MarketSnapshotRepository ensure() {
-    return _ensureService();
   }
 
   late final CacheFirstCoordinator<List<MarketItemModel>> _coordinator =

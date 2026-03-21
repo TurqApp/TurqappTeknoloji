@@ -86,7 +86,8 @@ class MarketCreateController extends GetxController {
   }
 
   static MarketCreateController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MarketCreateController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<MarketCreateController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MarketCreateController>(tag: tag);
   }
 

@@ -26,17 +26,16 @@ class ProfilePostsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'profile_posts_snapshot';
 
   static ProfilePostsSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<ProfilePostsSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<ProfilePostsSnapshotRepository>();
   }
 
-  static ProfilePostsSnapshotRepository _ensureService() {
+  static ProfilePostsSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ProfilePostsSnapshotRepository(), permanent: true);
   }
-
-  static ProfilePostsSnapshotRepository ensure() => _ensureService();
 
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
 

@@ -3,18 +3,15 @@ import 'package:get/get.dart';
 
 class NotificationsRepository extends GetxService {
   static NotificationsRepository? maybeFind() {
-    if (!Get.isRegistered<NotificationsRepository>()) return null;
+    final isRegistered = Get.isRegistered<NotificationsRepository>();
+    if (!isRegistered) return null;
     return Get.find<NotificationsRepository>();
   }
 
-  static NotificationsRepository _ensureService() {
+  static NotificationsRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(NotificationsRepository(), permanent: true);
-  }
-
-  static NotificationsRepository ensure() {
-    return _ensureService();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

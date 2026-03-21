@@ -22,7 +22,8 @@ class TopTagsRepository extends GetxService {
       : _db = firestore ?? FirebaseFirestore.instance;
 
   static TopTagsRepository? maybeFind() {
-    if (!Get.isRegistered<TopTagsRepository>()) return null;
+    final isRegistered = Get.isRegistered<TopTagsRepository>();
+    if (!isRegistered) return null;
     return Get.find<TopTagsRepository>();
   }
 

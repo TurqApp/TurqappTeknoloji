@@ -14,18 +14,15 @@ class UsernameLookupRepository extends GetxService {
       <String, _UsernameCacheEntry>{};
 
   static UsernameLookupRepository? maybeFind() {
-    if (!Get.isRegistered<UsernameLookupRepository>()) return null;
+    final isRegistered = Get.isRegistered<UsernameLookupRepository>();
+    if (!isRegistered) return null;
     return Get.find<UsernameLookupRepository>();
   }
 
-  static UsernameLookupRepository _ensureService() {
+  static UsernameLookupRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UsernameLookupRepository(), permanent: true);
-  }
-
-  static UsernameLookupRepository ensure() {
-    return _ensureService();
   }
 
   Future<String?> findUidForHandle(String handle) async {

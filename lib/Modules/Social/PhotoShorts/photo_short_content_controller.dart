@@ -42,9 +42,9 @@ class PhotoShortsContentController extends GetxController {
   }
 
   static PhotoShortsContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PhotoShortsContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<PhotoShortsContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PhotoShortsContentController>(tag: tag);
   }
 

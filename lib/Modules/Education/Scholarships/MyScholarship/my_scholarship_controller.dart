@@ -11,6 +11,21 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.d
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyScholarshipController extends GetxController {
+  static MyScholarshipController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(MyScholarshipController(), tag: tag, permanent: permanent);
+  }
+
+  static MyScholarshipController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<MyScholarshipController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyScholarshipController>(tag: tag);
+  }
+
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();

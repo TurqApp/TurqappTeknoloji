@@ -65,7 +65,8 @@ class StorageBudgetUsageSnapshot {
 
 class StorageBudgetManager extends GetxService {
   static StorageBudgetManager? maybeFind() {
-    if (!Get.isRegistered<StorageBudgetManager>()) return null;
+    final isRegistered = Get.isRegistered<StorageBudgetManager>();
+    if (!isRegistered) return null;
     return Get.find<StorageBudgetManager>();
   }
 

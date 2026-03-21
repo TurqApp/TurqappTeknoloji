@@ -8,7 +8,8 @@ import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 
 class AdsFeatureFlagsService extends GetxService {
   static AdsFeatureFlagsService? maybeFind() {
-    if (!Get.isRegistered<AdsFeatureFlagsService>()) return null;
+    final isRegistered = Get.isRegistered<AdsFeatureFlagsService>();
+    if (!isRegistered) return null;
     return Get.find<AdsFeatureFlagsService>();
   }
 

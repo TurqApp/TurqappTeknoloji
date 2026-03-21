@@ -36,7 +36,8 @@ class DeepLinkService extends GetxService {
   }
 
   static DeepLinkService? maybeFind() {
-    if (!Get.isRegistered<DeepLinkService>()) return null;
+    final isRegistered = Get.isRegistered<DeepLinkService>();
+    if (!isRegistered) return null;
     return Get.find<DeepLinkService>();
   }
 
@@ -62,13 +63,6 @@ class DeepLinkService extends GetxService {
   bool _started = false;
   bool _handling = false;
   final RxBool initialLinkResolved = false.obs;
-
-  T _ensureController<T>(T Function() create) {
-    if (!Get.isRegistered<T>()) {
-      return Get.put<T>(create());
-    }
-    return Get.find<T>();
-  }
 
   Future<_PostLookupCache> _getPostLookup(String postId) async {
     _pruneStaleLookups();
@@ -526,12 +520,8 @@ class DeepLinkService extends GetxService {
       return;
     }
 
-    final navController = _ensureController<NavBarController>(
-      () => NavBarController(),
-    );
-    final educationController = _ensureController<EducationController>(
-      () => EducationController(),
-    );
+    final navController = NavBarController.ensure();
+    final educationController = EducationController.ensure();
 
     // Eğitim ana ekranı sekmesi
     navController.changeIndex(3);

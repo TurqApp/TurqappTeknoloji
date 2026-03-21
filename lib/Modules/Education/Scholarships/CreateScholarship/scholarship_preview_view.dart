@@ -12,11 +12,13 @@ import 'dart:io';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class ScholarshipPreviewView extends StatelessWidget {
-  const ScholarshipPreviewView({super.key});
+  const ScholarshipPreviewView({super.key, required this.controllerTag});
+
+  final String controllerTag;
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<CreateScholarshipController>();
+    final controller = CreateScholarshipController.ensure(tag: controllerTag);
     final CarouselSliderController carouselController =
         CarouselSliderController();
     final currentIndex = 0.obs;
@@ -205,8 +207,8 @@ class ScholarshipPreviewView extends StatelessWidget {
                               if (imageWidgets.isEmpty) {
                                 return AspectRatio(
                                   aspectRatio: 4 / 3,
-                                    child: Center(
-                                      child: Text(
+                                  child: Center(
+                                    child: Text(
                                       "scholarship.image_missing".tr,
                                       style: TextStyle(
                                         fontSize: 16,
@@ -349,8 +351,7 @@ class ScholarshipPreviewView extends StatelessWidget {
                               ],
                             ),
                             12.ph,
-                            _buildInfoRow(
-                                "scholarship.title_label".tr,
+                            _buildInfoRow("scholarship.title_label".tr,
                                 controller.baslik.value),
                             _buildInfoRow(
                               "scholarship.provider_label".tr,

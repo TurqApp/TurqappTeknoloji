@@ -17,16 +17,15 @@ import 'story_user_model.dart';
 class StoryRowController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
-  static StoryRowController _ensureController() {
+  static StoryRowController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(StoryRowController());
   }
 
-  static StoryRowController ensure() => _ensureController();
-
   static StoryRowController? maybeFind() {
-    if (!Get.isRegistered<StoryRowController>()) return null;
+    final isRegistered = Get.isRegistered<StoryRowController>();
+    if (!isRegistered) return null;
     return Get.find<StoryRowController>();
   }
 

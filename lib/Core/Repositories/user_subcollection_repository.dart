@@ -32,17 +32,16 @@ class UserSubcollectionRepository extends GetxService {
   final Map<String, _CachedUserSubcollection> _memory = {};
 
   static UserSubcollectionRepository? maybeFind() {
-    if (!Get.isRegistered<UserSubcollectionRepository>()) return null;
+    final isRegistered = Get.isRegistered<UserSubcollectionRepository>();
+    if (!isRegistered) return null;
     return Get.find<UserSubcollectionRepository>();
   }
 
-  static UserSubcollectionRepository _ensureService() {
+  static UserSubcollectionRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UserSubcollectionRepository(), permanent: true);
   }
-
-  static UserSubcollectionRepository ensure() => _ensureService();
 
   @override
   void onInit() {

@@ -64,11 +64,9 @@ class PersonalizedContent extends StatelessWidget {
   }
 
   Map<String, dynamic> _createScholarshipData() {
-    String docId = '';
-    if (Get.isRegistered<PersonalizedController>()) {
-      final pc = Get.find<PersonalizedController>();
-      docId = pc.docIdByTimestamp[model.timeStamp] ?? '';
-    }
+    final docId =
+        PersonalizedController.maybeFind()?.docIdByTimestamp[model.timeStamp] ??
+            '';
     return {
       'model': model,
       'type': kIndividualScholarshipType,

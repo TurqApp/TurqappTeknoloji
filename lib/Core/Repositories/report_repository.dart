@@ -29,18 +29,15 @@ class ReportReasonItem {
 
 class ReportRepository extends GetxService {
   static ReportRepository? maybeFind() {
-    if (!Get.isRegistered<ReportRepository>()) return null;
+    final isRegistered = Get.isRegistered<ReportRepository>();
+    if (!isRegistered) return null;
     return Get.find<ReportRepository>();
   }
 
-  static ReportRepository _ensureService() {
+  static ReportRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ReportRepository(), permanent: true);
-  }
-
-  static ReportRepository ensure() {
-    return _ensureService();
   }
 
   Future<void> submitReport({

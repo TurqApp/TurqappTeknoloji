@@ -11,7 +11,8 @@ class SettingsController extends GetxController {
   }
 
   static SettingsController? maybeFind() {
-    if (!Get.isRegistered<SettingsController>()) return null;
+    final isRegistered = Get.isRegistered<SettingsController>();
+    if (!isRegistered) return null;
     return Get.find<SettingsController>();
   }
 

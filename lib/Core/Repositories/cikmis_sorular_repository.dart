@@ -23,17 +23,16 @@ class CikmisSorularRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static CikmisSorularRepository? maybeFind() {
-    if (!Get.isRegistered<CikmisSorularRepository>()) return null;
+    final isRegistered = Get.isRegistered<CikmisSorularRepository>();
+    if (!isRegistered) return null;
     return Get.find<CikmisSorularRepository>();
   }
 
-  static CikmisSorularRepository _ensureService() {
+  static CikmisSorularRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(CikmisSorularRepository(), permanent: true);
   }
-
-  static CikmisSorularRepository ensure() => _ensureService();
 
   @override
   void onInit() {

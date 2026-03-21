@@ -23,7 +23,8 @@ class PostSharersController extends GetxController {
   }
 
   static PostSharersController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PostSharersController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PostSharersController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostSharersController>(tag: tag);
   }
 

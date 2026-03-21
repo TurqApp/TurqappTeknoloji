@@ -13,6 +13,18 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ScholarshipDetailController extends GetxController {
+  static ScholarshipDetailController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(ScholarshipDetailController(), permanent: permanent);
+  }
+
+  static ScholarshipDetailController? maybeFind() {
+    final isRegistered = Get.isRegistered<ScholarshipDetailController>();
+    if (!isRegistered) return null;
+    return Get.find<ScholarshipDetailController>();
+  }
+
   static const String _selectValue = 'Seçiniz';
   static const String _selectActionValue = 'Seçim Yap';
   static const String _selectJobValue = 'Meslek Seç';
@@ -76,8 +88,7 @@ class ScholarshipDetailController extends GetxController {
     final currentUserId = CurrentUserService.instance.userId;
     if (currentUserId.isEmpty) return;
     final model = scholarshipData['model'];
-    if (model is IndividualScholarshipsModel &&
-        model.userID == currentUserId) {
+    if (model is IndividualScholarshipsModel && model.userID == currentUserId) {
       return;
     }
     ScholarshipFirestorePath.doc(docId).update({
@@ -339,8 +350,7 @@ class ScholarshipDetailController extends GetxController {
       isLoading.value = true;
       await ScholarshipFirestorePath.doc(scholarshipId).delete();
       Get.back();
-      final scholarshipsController = Get.find<ScholarshipsController>();
-      await scholarshipsController.fetchScholarships();
+      await ScholarshipsController.maybeFind()?.fetchScholarships();
       AppSnackbar("common.success".tr, "scholarship.delete_success".tr);
     } catch (e) {
       AppSnackbar("common.error".tr, "scholarship.delete_failed".tr);

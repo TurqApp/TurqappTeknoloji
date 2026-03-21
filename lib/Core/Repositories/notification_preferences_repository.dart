@@ -23,17 +23,16 @@ class NotificationPreferencesRepository extends GetxService {
   final Map<String, _CachedNotificationPreferences> _memory = {};
 
   static NotificationPreferencesRepository? maybeFind() {
-    if (!Get.isRegistered<NotificationPreferencesRepository>()) return null;
+    final isRegistered = Get.isRegistered<NotificationPreferencesRepository>();
+    if (!isRegistered) return null;
     return Get.find<NotificationPreferencesRepository>();
   }
 
-  static NotificationPreferencesRepository _ensureService() {
+  static NotificationPreferencesRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(NotificationPreferencesRepository(), permanent: true);
   }
-
-  static NotificationPreferencesRepository ensure() => _ensureService();
 
   @override
   void onInit() {

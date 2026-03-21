@@ -682,7 +682,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     width: 70,
                     child: GestureDetector(
                       onTap: () {
-                        launchUrl(Uri.parse(social.url));
+                        confirmAndLaunchExternalUrl(Uri.parse(social.url));
                       },
                       child: SocialMediaContent(model: social),
                     ),

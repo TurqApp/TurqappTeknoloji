@@ -29,7 +29,8 @@ class PrefetchScheduler extends GetxController {
   }
 
   static PrefetchScheduler? maybeFind() {
-    if (!Get.isRegistered<PrefetchScheduler>()) return null;
+    final isRegistered = Get.isRegistered<PrefetchScheduler>();
+    if (!isRegistered) return null;
     return Get.find<PrefetchScheduler>();
   }
 

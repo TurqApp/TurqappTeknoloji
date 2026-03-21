@@ -17,7 +17,8 @@ class ViewChangerController extends GetxController {
   }
 
   static ViewChangerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ViewChangerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ViewChangerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ViewChangerController>(tag: tag);
   }
 

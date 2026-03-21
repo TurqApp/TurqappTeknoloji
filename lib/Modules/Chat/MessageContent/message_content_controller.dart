@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/BottomSheets/show_action_sheet.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -33,7 +34,8 @@ class MessageContentController extends GetxController {
   }
 
   static MessageContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MessageContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<MessageContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MessageContentController>(tag: tag);
   }
 
@@ -119,7 +121,10 @@ class MessageContentController extends GetxController {
                   final url = Uri.parse(
                       "https://www.google.com/maps/search/?api=1&query=${model.lat},${model.long}");
                   if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                    await confirmAndLaunchExternalUrl(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    );
                   }
                   Get.back();
                 },
@@ -151,8 +156,10 @@ class MessageContentController extends GetxController {
                     final url = Uri.parse(
                         "http://maps.apple.com/?q=${model.lat},${model.long}");
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
+                      await confirmAndLaunchExternalUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                     Get.back();
                   },
@@ -188,8 +195,10 @@ class MessageContentController extends GetxController {
                     final webUrl = Uri.parse(
                         "https://yandex.com/maps/?ll=${model.long},${model.lat}&z=10");
                     if (await canLaunchUrl(webUrl)) {
-                      await launchUrl(webUrl,
-                          mode: LaunchMode.externalApplication);
+                      await confirmAndLaunchExternalUrl(
+                        webUrl,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   }
                   Get.back();

@@ -7,16 +7,15 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Services/network_awareness_service.dart';
 
 class UnreadMessagesController extends GetxController {
-  static UnreadMessagesController _ensureController() {
+  static UnreadMessagesController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UnreadMessagesController());
   }
 
-  static UnreadMessagesController ensure() => _ensureController();
-
   static UnreadMessagesController? maybeFind() {
-    if (!Get.isRegistered<UnreadMessagesController>()) return null;
+    final isRegistered = Get.isRegistered<UnreadMessagesController>();
+    if (!isRegistered) return null;
     return Get.find<UnreadMessagesController>();
   }
 

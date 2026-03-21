@@ -23,7 +23,8 @@ class SearchAnswerKeyController extends GetxController {
   }
 
   static SearchAnswerKeyController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SearchAnswerKeyController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SearchAnswerKeyController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SearchAnswerKeyController>(tag: tag);
   }
 

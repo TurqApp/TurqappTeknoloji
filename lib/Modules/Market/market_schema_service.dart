@@ -15,7 +15,8 @@ class MarketSchemaService extends GetxService {
   SharedPreferences? _prefs;
 
   static MarketSchemaService? maybeFind() {
-    if (!Get.isRegistered<MarketSchemaService>()) return null;
+    final isRegistered = Get.isRegistered<MarketSchemaService>();
+    if (!isRegistered) return null;
     return Get.find<MarketSchemaService>();
   }
 

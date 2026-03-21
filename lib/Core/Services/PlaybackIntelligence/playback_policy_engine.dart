@@ -66,7 +66,8 @@ class PlaybackPolicySnapshot {
 
 class PlaybackPolicyEngine extends GetxService {
   static PlaybackPolicyEngine? maybeFind() {
-    if (!Get.isRegistered<PlaybackPolicyEngine>()) return null;
+    final isRegistered = Get.isRegistered<PlaybackPolicyEngine>();
+    if (!isRegistered) return null;
     return Get.find<PlaybackPolicyEngine>();
   }
 

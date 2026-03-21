@@ -28,7 +28,8 @@ class ReportUserController extends GetxController {
   }
 
   static ReportUserController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ReportUserController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ReportUserController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ReportUserController>(tag: tag);
   }
 

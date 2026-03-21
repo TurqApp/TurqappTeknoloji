@@ -9,6 +9,18 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedPracticeExamsController extends GetxController {
+  static SavedPracticeExamsController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SavedPracticeExamsController(), permanent: permanent);
+  }
+
+  static SavedPracticeExamsController? maybeFind() {
+    final isRegistered = Get.isRegistered<SavedPracticeExamsController>();
+    if (!isRegistered) return null;
+    return Get.find<SavedPracticeExamsController>();
+  }
+
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
   final UserSubcollectionRepository _subcollectionRepository =

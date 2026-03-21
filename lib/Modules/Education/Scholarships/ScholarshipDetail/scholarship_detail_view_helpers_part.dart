@@ -46,7 +46,7 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
 
     final url = Uri.parse(urlString);
     if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+      await confirmAndLaunchExternalUrl(url);
       return;
     }
 

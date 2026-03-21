@@ -25,7 +25,8 @@ class OpticalPreviewController extends GetxController {
   }
 
   static OpticalPreviewController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<OpticalPreviewController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<OpticalPreviewController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<OpticalPreviewController>(tag: tag);
   }
 

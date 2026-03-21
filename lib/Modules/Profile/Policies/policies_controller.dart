@@ -17,7 +17,8 @@ class PoliciesController extends GetxController {
   }
 
   static PoliciesController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<PoliciesController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PoliciesController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PoliciesController>(tag: tag);
   }
 

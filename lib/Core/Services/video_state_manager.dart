@@ -9,18 +9,19 @@ import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 /// Her videonun oynatma pozisyonunu ve durumunu bellekte tutar
 class VideoStateManager extends GetxController {
   static VideoStateManager? maybeFind() {
-    if (!Get.isRegistered<VideoStateManager>()) return null;
+    final isRegistered = Get.isRegistered<VideoStateManager>();
+    if (!isRegistered) return null;
     return Get.find<VideoStateManager>();
   }
 
-  static VideoStateManager _ensureController() {
+  static VideoStateManager ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(VideoStateManager());
   }
 
   static VideoStateManager get instance {
-    return _ensureController();
+    return ensure();
   }
 
   // Video docID -> VideoState mapping

@@ -21,7 +21,8 @@ class LocationShareController extends GetxController {
   }
 
   static LocationShareController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<LocationShareController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<LocationShareController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<LocationShareController>(tag: tag);
   }
 

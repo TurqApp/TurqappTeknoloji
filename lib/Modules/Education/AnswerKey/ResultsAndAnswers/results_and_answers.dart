@@ -379,7 +379,8 @@ class SpeedometerController extends GetxController
   }
 
   static SpeedometerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SpeedometerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SpeedometerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SpeedometerController>(tag: tag);
   }
 

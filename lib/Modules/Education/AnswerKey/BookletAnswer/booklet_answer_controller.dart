@@ -23,7 +23,8 @@ class BookletAnswerController extends GetxController {
   }
 
   static BookletAnswerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<BookletAnswerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<BookletAnswerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<BookletAnswerController>(tag: tag);
   }
 

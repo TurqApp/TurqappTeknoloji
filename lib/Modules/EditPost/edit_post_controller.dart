@@ -39,7 +39,8 @@ class EditPostController extends GetxController {
   }
 
   static EditPostController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<EditPostController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<EditPostController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<EditPostController>(tag: tag);
   }
 
@@ -157,7 +158,7 @@ class EditPostController extends GetxController {
     // );
     double targetMbps = 5.0;
     try {
-      final net = Get.find<NetworkAwarenessService>();
+      final net = NetworkAwarenessService.ensure();
       targetMbps = net.settings.mobileTargetMbps;
     } catch (_) {}
     final compressed = await VideoCompressionService.compressForNetwork(file,

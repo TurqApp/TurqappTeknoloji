@@ -27,7 +27,8 @@ class SocialQrCodeController extends GetxController {
   }
 
   static SocialQrCodeController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SocialQrCodeController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SocialQrCodeController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SocialQrCodeController>(tag: tag);
   }
 

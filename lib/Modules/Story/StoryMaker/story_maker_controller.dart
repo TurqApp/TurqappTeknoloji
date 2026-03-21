@@ -132,7 +132,8 @@ class StoryMakerController extends GetxController {
   }
 
   static StoryMakerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<StoryMakerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<StoryMakerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<StoryMakerController>(tag: tag);
   }
 

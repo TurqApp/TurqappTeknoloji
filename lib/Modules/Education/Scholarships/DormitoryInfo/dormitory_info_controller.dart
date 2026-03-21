@@ -13,6 +13,21 @@ import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class DormitoryInfoController extends GetxController {
+  static DormitoryInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(DormitoryInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static DormitoryInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<DormitoryInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DormitoryInfoController>(tag: tag);
+  }
+
   static const String _selectCity = "Şehir Seç";
   static const String _selectDistrict = "İlçe Seç";
   static const String _selectAdminType = "İdari Seç";

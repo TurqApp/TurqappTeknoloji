@@ -28,6 +28,26 @@ const _kpssLisansAGrubu1 = 'A Grubu 1';
 const _kpssLisansAGrubu2 = 'A Grubu 2';
 
 class SinavHazirlaController extends GetxController {
+  static SinavHazirlaController ensure({
+    required String tag,
+    SinavModel? sinavModel,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SinavHazirlaController(sinavModel: sinavModel),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SinavHazirlaController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<SinavHazirlaController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SinavHazirlaController>(tag: tag);
+  }
+
   var sinavIsmi = TextEditingController().obs;
   var aciklama = TextEditingController().obs;
   var startDate = DateTime.now().obs;

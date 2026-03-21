@@ -24,7 +24,8 @@ class BookletPreviewController extends GetxController {
   }
 
   static BookletPreviewController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<BookletPreviewController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<BookletPreviewController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<BookletPreviewController>(tag: tag);
   }
 

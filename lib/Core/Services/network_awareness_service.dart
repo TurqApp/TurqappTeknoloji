@@ -147,17 +147,16 @@ class DataUsageStats {
 
 class NetworkAwarenessService extends GetxController {
   static NetworkAwarenessService? maybeFind() {
-    if (!Get.isRegistered<NetworkAwarenessService>()) return null;
+    final isRegistered = Get.isRegistered<NetworkAwarenessService>();
+    if (!isRegistered) return null;
     return Get.find<NetworkAwarenessService>();
   }
 
-  static NetworkAwarenessService _ensureService() {
+  static NetworkAwarenessService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(NetworkAwarenessService(), permanent: true);
   }
-
-  static NetworkAwarenessService ensure() => _ensureService();
 
   final Rx<NetworkType> _currentNetwork = NetworkType.none.obs;
   final Rx<NetworkSettings> _settings = NetworkSettings().obs;

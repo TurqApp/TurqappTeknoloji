@@ -28,29 +28,25 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_personalized_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<PersonalizedController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(PersonalizedController(), tag: _controllerTag)
-        : Get.find<PersonalizedController>(tag: _controllerTag);
+    final existing = PersonalizedController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? PersonalizedController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<PersonalizedController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<PersonalizedController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<PersonalizedController>(tag: _controllerTag, force: true);
-      }
+        identical(
+          PersonalizedController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PersonalizedController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

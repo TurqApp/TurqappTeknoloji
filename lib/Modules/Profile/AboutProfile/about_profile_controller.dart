@@ -19,7 +19,8 @@ class AboutProfileController extends GetxController {
   }
 
   static AboutProfileController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AboutProfileController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AboutProfileController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AboutProfileController>(tag: tag);
   }
 

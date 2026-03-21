@@ -38,7 +38,8 @@ class CvController extends GetxController {
   }
 
   static CvController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CvController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<CvController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CvController>(tag: tag);
   }
 

@@ -53,17 +53,16 @@ class AccountCenterService extends GetxService {
   }
 
   static AccountCenterService? maybeFind() {
-    if (!Get.isRegistered<AccountCenterService>()) return null;
+    final isRegistered = Get.isRegistered<AccountCenterService>();
+    if (!isRegistered) return null;
     return Get.find<AccountCenterService>();
   }
 
-  static AccountCenterService _ensureService() {
+  static AccountCenterService ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(AccountCenterService(), permanent: true);
   }
-
-  static AccountCenterService ensure() => _ensureService();
 
   Future<SharedPreferences> _ensurePrefs() async {
     return _prefs ??= await SharedPreferences.getInstance();

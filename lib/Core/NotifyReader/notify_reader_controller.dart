@@ -14,17 +14,15 @@ import '../../Modules/SocialProfile/social_profile.dart';
 import '../../Models/notification_model.dart';
 
 class NotifyReaderController extends GetxController {
-  static NotifyReaderController _ensureController({String? tag}) {
+  static NotifyReaderController ensure({String? tag}) {
     final existing = maybeFind(tag: tag);
     if (existing != null) return existing;
     return Get.put(NotifyReaderController(), tag: tag);
   }
 
-  static NotifyReaderController ensure({String? tag}) =>
-      _ensureController(tag: tag);
-
   static NotifyReaderController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<NotifyReaderController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<NotifyReaderController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<NotifyReaderController>(tag: tag);
   }
 

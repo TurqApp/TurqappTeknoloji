@@ -19,9 +19,9 @@ class AnswerKeyCreatingOptionController extends GetxController {
   }
 
   static AnswerKeyCreatingOptionController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AnswerKeyCreatingOptionController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<AnswerKeyCreatingOptionController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AnswerKeyCreatingOptionController>(tag: tag);
   }
 

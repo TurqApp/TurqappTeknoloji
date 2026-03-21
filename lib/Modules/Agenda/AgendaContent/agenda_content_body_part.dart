@@ -236,8 +236,15 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
-                                              if (v.hasRenderedFirstFrame &&
-                                                  !v.isCompleted) {
+                                              final hasStableVideoFrame =
+                                                  v.hasRenderedFirstFrame &&
+                                                      !v.isCompleted &&
+                                                      (v.isPlaying ||
+                                                          v.position >
+                                                              const Duration(
+                                                                  milliseconds:
+                                                                      180));
+                                              if (hasStableVideoFrame) {
                                                 return const SizedBox.shrink();
                                               }
                                               return child!;

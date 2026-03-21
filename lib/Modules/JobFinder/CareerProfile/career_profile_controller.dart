@@ -22,7 +22,8 @@ class CareerProfileController extends GetxController {
   }
 
   static CareerProfileController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CareerProfileController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<CareerProfileController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CareerProfileController>(tag: tag);
   }
 

@@ -38,7 +38,8 @@ class EditProfileController extends GetxController {
   }
 
   static EditProfileController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<EditProfileController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<EditProfileController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<EditProfileController>(tag: tag);
   }
 

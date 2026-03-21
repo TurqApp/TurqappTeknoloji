@@ -22,18 +22,15 @@ class TutoringRepository extends GetxService {
   static const int _thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
 
   static TutoringRepository? maybeFind() {
-    if (!Get.isRegistered<TutoringRepository>()) return null;
+    final isRegistered = Get.isRegistered<TutoringRepository>();
+    if (!isRegistered) return null;
     return Get.find<TutoringRepository>();
   }
 
-  static TutoringRepository _ensureService() {
+  static TutoringRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(TutoringRepository(), permanent: true);
-  }
-
-  static TutoringRepository ensure() {
-    return _ensureService();
   }
 
   @override

@@ -26,6 +26,23 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 
 class CreateScholarshipController extends GetxController {
+  static CreateScholarshipController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(CreateScholarshipController(),
+        tag: tag, permanent: permanent);
+  }
+
+  static CreateScholarshipController? maybeFind({required String tag}) {
+    final isRegistered =
+        Get.isRegistered<CreateScholarshipController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<CreateScholarshipController>(tag: tag);
+  }
+
   static const String allUniversitiesValue = 'Tüm Üniversiteler';
   static const String turkeyCountryValue = 'Türkiye';
   static const String applicationPlaceTurqAppValue = 'TurqApp';
@@ -168,6 +185,7 @@ class CreateScholarshipController extends GetxController {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   final GlobalKey templateKey = GlobalKey();
+  String? controllerTag;
 
   Future<Map<String, dynamic>> _authorFieldsForCurrentUser() async {
     final uid = _currentUid;
@@ -275,10 +293,9 @@ class CreateScholarshipController extends GetxController {
 
     // Diğer başlangıç ayarları
     currentSection.value = 1;
-    basvuruYapilacakYer.value =
-        isEditing.value
-            ? basvuruYapilacakYer.value
-            : applicationPlaceTurqAppValue;
+    basvuruYapilacakYer.value = isEditing.value
+        ? basvuruYapilacakYer.value
+        : applicationPlaceTurqAppValue;
     basvuruYapilacakYerController.text =
         applicationPlaceDisplayLabel(basvuruYapilacakYer.value);
     basvuruKosullariController.text =
@@ -778,7 +795,8 @@ class CreateScholarshipController extends GetxController {
 
       final webpBytes = await _compressBytesToWebp(bytes, quality: 85);
       if (webpBytes == null || webpBytes.isEmpty) {
-        AppSnackbar('common.error'.tr, 'scholarship.template_convert_failed'.tr);
+        AppSnackbar(
+            'common.error'.tr, 'scholarship.template_convert_failed'.tr);
         return null;
       }
 
@@ -897,8 +915,8 @@ class CreateScholarshipController extends GetxController {
 
           final String egitimKitlesiValue =
               egitimKitlesi.value == educationAudienceAllValue
-              ? educationAudienceAllExpandedValue
-              : egitimKitlesi.value;
+                  ? educationAudienceAllExpandedValue
+                  : egitimKitlesi.value;
 
           final scholarship = IndividualScholarshipsModel(
             aciklama: aciklama.value,
@@ -955,25 +973,20 @@ class CreateScholarshipController extends GetxController {
               {'likesCount': 0, 'bookmarksCount': 0}, SetOptions(merge: true));
 
           // Refresh scholarships after successful save
-          final scholarshipsController = Get.find<ScholarshipsController>();
+          final scholarshipsController = ScholarshipsController.ensure();
           scholarshipsController.fetchScholarships();
 
           // After create: return to NavBarView (Education tab), then open ScholarshipsView
           try {
             // NavBar'a dön ve Education sekmesini seç
             Get.offAll(() => NavBarView());
-            if (Get.isRegistered<NavBarController>()) {
-              // Education sekmesi (varsayılan sıra: 0-Agenda,1-Explore,2-Shorts,3-Education,4-Profile)
-              Get.find<NavBarController>().changeIndex(3);
-            }
+            // Education sekmesi (varsayılan sıra: 0-Agenda,1-Explore,2-Shorts,3-Education,4-Profile)
+            NavBarController.maybeFind()?.changeIndex(3);
           } catch (_) {}
 
-          // Reset scholarships search state if controller exists
-          if (Get.isRegistered<ScholarshipsController>()) {
-            try {
-              Get.find<ScholarshipsController>().resetSearch();
-            } catch (_) {}
-          }
+          try {
+            scholarshipsController.resetSearch();
+          } catch (_) {}
 
           // Bursları Education sekmesi açıkken göster
           Get.to(() => ScholarshipsView());
@@ -1035,8 +1048,8 @@ class CreateScholarshipController extends GetxController {
 
           final String egitimKitlesiValue =
               egitimKitlesi.value == educationAudienceAllValue
-              ? educationAudienceAllExpandedValue
-              : egitimKitlesi.value;
+                  ? educationAudienceAllExpandedValue
+                  : egitimKitlesi.value;
 
           final scholarship = IndividualScholarshipsModel(
             aciklama: aciklama.value,
@@ -1088,23 +1101,18 @@ class CreateScholarshipController extends GetxController {
           });
 
           // Refresh scholarships after successful update
-          final scholarshipsController = Get.find<ScholarshipsController>();
+          final scholarshipsController = ScholarshipsController.ensure();
           scholarshipsController.fetchScholarships();
 
           // After update: return to NavBarView (Education tab), then open ScholarshipsView
           try {
             Get.offAll(() => NavBarView());
-            if (Get.isRegistered<NavBarController>()) {
-              Get.find<NavBarController>().changeIndex(3);
-            }
+            NavBarController.maybeFind()?.changeIndex(3);
           } catch (_) {}
 
-          // Reset scholarships search state if controller exists
-          if (Get.isRegistered<ScholarshipsController>()) {
-            try {
-              Get.find<ScholarshipsController>().resetSearch();
-            } catch (_) {}
-          }
+          try {
+            scholarshipsController.resetSearch();
+          } catch (_) {}
           Get.to(() => ScholarshipsView());
           AppSnackbar('common.success'.tr, 'scholarship.updated_success'.tr);
 
@@ -1120,7 +1128,9 @@ class CreateScholarshipController extends GetxController {
 
   void goToPreview() {
     if (formKey.currentState!.validate()) {
-      Get.to(() => ScholarshipPreviewView());
+      final tag = controllerTag;
+      if (tag == null || tag.isEmpty) return;
+      Get.to(() => ScholarshipPreviewView(controllerTag: tag));
     }
   }
 }

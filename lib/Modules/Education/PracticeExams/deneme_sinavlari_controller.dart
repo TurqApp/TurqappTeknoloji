@@ -16,7 +16,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinavlariController extends GetxController {
-  static DenemeSinavlariController _ensureController({
+  static DenemeSinavlariController ensure({
     bool permanent = false,
   }) {
     final existing = maybeFind();
@@ -24,11 +24,9 @@ class DenemeSinavlariController extends GetxController {
     return Get.put(DenemeSinavlariController(), permanent: permanent);
   }
 
-  static DenemeSinavlariController ensure({bool permanent = false}) =>
-      _ensureController(permanent: permanent);
-
   static DenemeSinavlariController? maybeFind() {
-    if (!Get.isRegistered<DenemeSinavlariController>()) return null;
+    final isRegistered = Get.isRegistered<DenemeSinavlariController>();
+    if (!isRegistered) return null;
     return Get.find<DenemeSinavlariController>();
   }
 
@@ -143,9 +141,9 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    final savedController = Get.isRegistered<SavedPracticeExamsController>()
-        ? Get.find<SavedPracticeExamsController>()
-        : Get.put(SavedPracticeExamsController(), permanent: true);
+    final savedController = SavedPracticeExamsController.ensure(
+      permanent: true,
+    );
     await savedController.loadSavedExams(silent: true);
     final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();

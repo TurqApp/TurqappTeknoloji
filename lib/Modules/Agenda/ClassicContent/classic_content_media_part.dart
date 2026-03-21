@@ -8,9 +8,9 @@ extension _ClassicContentMediaPart on _ClassicContentState {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            Color(0xFF18181B),
-            Color(0xFF27272A),
-            Color(0xFF3F3F46),
+            Color(0xFFE8ECF1),
+            Color(0xFFDCE2E8),
+            Color(0xFFCDD5DD),
           ],
         ),
       ),

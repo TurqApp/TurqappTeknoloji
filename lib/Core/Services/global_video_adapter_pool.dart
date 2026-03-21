@@ -9,18 +9,15 @@ class GlobalVideoAdapterPool extends GetxService {
   static const int _maxWarmAdapters = 10;
 
   static GlobalVideoAdapterPool? maybeFind() {
-    if (!Get.isRegistered<GlobalVideoAdapterPool>()) return null;
+    final isRegistered = Get.isRegistered<GlobalVideoAdapterPool>();
+    if (!isRegistered) return null;
     return Get.find<GlobalVideoAdapterPool>();
   }
 
-  static GlobalVideoAdapterPool _ensureService() {
+  static GlobalVideoAdapterPool ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(GlobalVideoAdapterPool(), permanent: true);
-  }
-
-  static GlobalVideoAdapterPool ensure() {
-    return _ensureService();
   }
 
   final Map<String, _WarmAdapterEntry> _warmAdapters = {};

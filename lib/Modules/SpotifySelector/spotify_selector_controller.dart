@@ -10,14 +10,14 @@ import 'package:turqappv2/Models/music_model.dart';
 
 class SpotifySelectorController extends GetxController {
   static SpotifySelectorController ensure({String? tag}) {
-    if (!Get.isRegistered<SpotifySelectorController>(tag: tag)) {
-      Get.put(SpotifySelectorController(), tag: tag);
-    }
-    return Get.find<SpotifySelectorController>(tag: tag);
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(SpotifySelectorController(), tag: tag);
   }
 
   static SpotifySelectorController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SpotifySelectorController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SpotifySelectorController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SpotifySelectorController>(tag: tag);
   }
 

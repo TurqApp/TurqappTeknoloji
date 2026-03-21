@@ -44,7 +44,8 @@ class ClickableTextController extends GetxController {
   }
 
   static ClickableTextController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ClickableTextController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ClickableTextController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ClickableTextController>(tag: tag);
   }
 

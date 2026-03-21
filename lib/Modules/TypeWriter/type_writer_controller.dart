@@ -16,7 +16,8 @@ class TypewriterController extends GetxController {
   }
 
   static TypewriterController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<TypewriterController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<TypewriterController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<TypewriterController>(tag: tag);
   }
 

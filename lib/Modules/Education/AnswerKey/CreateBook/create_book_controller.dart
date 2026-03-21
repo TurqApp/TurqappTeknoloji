@@ -32,7 +32,8 @@ class CreateBookController extends GetxController {
   }
 
   static CreateBookController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CreateBookController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<CreateBookController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CreateBookController>(tag: tag);
   }
 
@@ -305,9 +306,9 @@ class CreateBookAnswerKeyController extends GetxController {
   }
 
   static CreateBookAnswerKeyController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CreateBookAnswerKeyController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<CreateBookAnswerKeyController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CreateBookAnswerKeyController>(tag: tag);
   }
 

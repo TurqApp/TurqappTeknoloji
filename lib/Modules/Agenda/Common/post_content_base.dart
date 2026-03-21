@@ -68,7 +68,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _replayOverlayLatched = false;
   bool _replayAdPrewarmed = false;
   bool _replayAdVisible = false;
-  bool _replayLeadAdShown = false;
+  bool _replayButtonVisible = false;
   bool _replayAdImpressionReceived = false;
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
@@ -327,9 +327,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final v = _videoAdapter!.value;
     final remaining =
         v.duration > Duration.zero ? v.duration - v.position : null;
-    final replayAdWarmupLead = Theme.of(context).platform == TargetPlatform.iOS
-        ? const Duration(seconds: 8)
-        : const Duration(seconds: 4);
+    const replayAdWarmupLead = Duration(seconds: 2);
     final replayAdWarmupTarget =
         Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
 
@@ -342,30 +340,27 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
     }
 
-    if (!isStandalonePostInstance &&
-        !_replayLeadAdShown &&
-        !_replayOverlayLatched &&
-        remaining != null &&
-        remaining <= const Duration(seconds: 3) &&
-        remaining > const Duration(milliseconds: 400) &&
-        AdmobKare.hasReadyBanner) {
-      _replayLeadAdShown = true;
-      _replayAdVisible = true;
-      _replayAdImpressionReceived = false;
-      _replayAdHideTimer?.cancel();
-      if (mounted) {
-        setState(() {});
-      }
-    }
-
     if (v.isCompleted) {
       if (!_replayOverlayLatched) {
         _replayOverlayLatched = true;
         _replayAdHideTimer?.cancel();
-        _replayAdVisible = false;
+        _replayAdVisible = AdmobKare.hasRenderableBanner;
+        _replayButtonVisible = !_replayAdVisible;
         _replayAdImpressionReceived = false;
         if (!isStandalonePostInstance) {
           unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+        }
+        if (_replayAdVisible) {
+          _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
+            if (!mounted) return;
+            setState(() {
+              _replayAdVisible = false;
+              _replayButtonVisible = true;
+            });
+          });
+        }
+        if (mounted) {
+          setState(() {});
         }
       }
     } else if (_replayOverlayLatched &&
@@ -373,7 +368,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _replayOverlayLatched = false;
       _replayAdPrewarmed = false;
       _replayAdVisible = false;
-      _replayLeadAdShown = false;
+      _replayButtonVisible = false;
       _replayAdImpressionReceived = false;
       _replayAdHideTimer?.cancel();
     }
@@ -484,7 +479,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _replayOverlayLatched = false;
     _replayAdPrewarmed = false;
     _replayAdVisible = false;
-    _replayLeadAdShown = false;
+    _replayButtonVisible = false;
     _replayAdImpressionReceived = false;
     _replayAdHideTimer?.cancel();
     await adapter.setLooping(shouldLoopVideo);
@@ -495,21 +490,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _onReplayAdImpression() {
     if (_replayAdImpressionReceived) return;
     _replayAdImpressionReceived = true;
-    _replayAdHideTimer?.cancel();
-    _replayAdHideTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      setState(() {
-        _replayAdVisible = false;
-      });
-    });
   }
 
   Widget buildFeedReplayOverlay(HLSVideoValue value) {
     if (isStandalonePostInstance) return const SizedBox.shrink();
-    if (!_replayOverlayLatched && !_replayAdVisible && !value.isCompleted) {
+    if (!_replayOverlayLatched && !_replayAdVisible && !_replayButtonVisible) {
       return const SizedBox.shrink();
     }
-    final showReplayButton = _replayOverlayLatched || value.isCompleted;
+    final showReplayButton = _replayButtonVisible;
     final showAdPanel = _replayAdVisible;
     return Positioned.fill(
       child: IgnorePointer(
@@ -529,26 +517,59 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
                       fit: StackFit.expand,
                       children: [
                         if (showAdPanel) ...[
-                          Center(
-                            child: Container(
-                              width: 300,
-                              height: 250,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 300,
+                                height: 250,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: AdmobKare(
+                                  showChrome: false,
+                                  onImpression: _onReplayAdImpression,
+                                ),
                               ),
-                              clipBehavior: Clip.antiAlias,
-                              child: AdmobKare(
-                                showChrome: false,
-                                onImpression: _onReplayAdImpression,
-                              ),
-                            ),
+                              if (showReplayButton) const SizedBox(height: 16),
+                              if (showReplayButton)
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => unawaited(replayVideoFromStart()),
+                                  child: Container(
+                                    width: 148,
+                                    height: 44,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'Tekrar izle',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 14,
+                                          fontFamily: 'MontserratSemiBold',
+                                          height: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           ColoredBox(
                             color: Colors.black.withValues(alpha: 0.10),
                           ),
                         ],
-                        if (showReplayButton)
+                        if (showReplayButton && !showAdPanel)
                           Center(
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,

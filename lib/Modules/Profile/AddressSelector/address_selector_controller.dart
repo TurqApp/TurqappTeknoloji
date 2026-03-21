@@ -15,7 +15,8 @@ class AddressSelectorController extends GetxController {
   }
 
   static AddressSelectorController? maybeFind() {
-    if (!Get.isRegistered<AddressSelectorController>()) return null;
+    final isRegistered = Get.isRegistered<AddressSelectorController>();
+    if (!isRegistered) return null;
     return Get.find<AddressSelectorController>();
   }
 

@@ -21,7 +21,8 @@ class AdsCenterController extends GetxController {
   }
 
   static AdsCenterController? maybeFind() {
-    if (!Get.isRegistered<AdsCenterController>()) return null;
+    final isRegistered = Get.isRegistered<AdsCenterController>();
+    if (!isRegistered) return null;
     return Get.find<AdsCenterController>();
   }
 

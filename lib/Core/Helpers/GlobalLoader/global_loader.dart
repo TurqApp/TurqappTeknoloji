@@ -6,11 +6,9 @@ import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dar
 class GlobalLoader extends StatelessWidget {
   const GlobalLoader({super.key});
 
-  GlobalLoaderController _ensureController() => GlobalLoaderController.ensure();
-
   @override
   Widget build(BuildContext context) {
-    final controller = _ensureController();
+    final controller = GlobalLoaderController.ensure();
     return Obx(() {
       if (!controller.isOn.value) return SizedBox.shrink();
       return CupertinoActivityIndicator(

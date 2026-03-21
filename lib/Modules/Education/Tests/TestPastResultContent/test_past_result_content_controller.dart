@@ -22,9 +22,9 @@ class TestPastResultContentController extends GetxController {
   }
 
   static TestPastResultContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<TestPastResultContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<TestPastResultContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<TestPastResultContentController>(tag: tag);
   }
 

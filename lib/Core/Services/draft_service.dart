@@ -92,7 +92,8 @@ class DraftService extends GetxController {
   }
 
   static DraftService? maybeFind() {
-    if (!Get.isRegistered<DraftService>()) return null;
+    final isRegistered = Get.isRegistered<DraftService>();
+    if (!isRegistered) return null;
     return Get.find<DraftService>();
   }
 

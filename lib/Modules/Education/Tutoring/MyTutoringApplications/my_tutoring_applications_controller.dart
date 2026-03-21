@@ -22,9 +22,9 @@ class MyTutoringApplicationsController extends GetxController {
   }
 
   static MyTutoringApplicationsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MyTutoringApplicationsController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<MyTutoringApplicationsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MyTutoringApplicationsController>(tag: tag);
   }
 

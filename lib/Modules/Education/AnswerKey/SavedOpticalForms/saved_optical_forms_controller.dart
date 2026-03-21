@@ -23,7 +23,9 @@ class SavedOpticalFormsController extends GetxController {
   }
 
   static SavedOpticalFormsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SavedOpticalFormsController>(tag: tag)) return null;
+    final isRegistered =
+        Get.isRegistered<SavedOpticalFormsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SavedOpticalFormsController>(tag: tag);
   }
 

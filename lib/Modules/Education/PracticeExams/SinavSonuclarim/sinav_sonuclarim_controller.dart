@@ -10,6 +10,18 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SinavSonuclarimController extends GetxController {
+  static SinavSonuclarimController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SinavSonuclarimController(), permanent: permanent);
+  }
+
+  static SinavSonuclarimController? maybeFind() {
+    final isRegistered = Get.isRegistered<SinavSonuclarimController>();
+    if (!isRegistered) return null;
+    return Get.find<SinavSonuclarimController>();
+  }
+
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

@@ -35,17 +35,16 @@ class ShortSnapshotRepository extends GetxService {
   static const int _maxPageSkips = 4;
 
   static ShortSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<ShortSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<ShortSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<ShortSnapshotRepository>();
   }
 
-  static ShortSnapshotRepository _ensureService() {
+  static ShortSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ShortSnapshotRepository(), permanent: true);
   }
-
-  static ShortSnapshotRepository ensure() => _ensureService();
 
   final ShortRepository _shortRepository = ShortRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();

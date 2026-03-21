@@ -35,7 +35,8 @@ class ShortContentController extends GetxController {
   }
 
   static ShortContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ShortContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ShortContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ShortContentController>(tag: tag);
   }
 

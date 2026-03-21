@@ -8,16 +8,15 @@ import 'package:turqappv2/Models/recommended_user_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserListController extends GetxController {
-  static RecommendedUserListController _ensureController() {
+  static RecommendedUserListController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(RecommendedUserListController());
   }
 
-  static RecommendedUserListController ensure() => _ensureController();
-
   static RecommendedUserListController? maybeFind() {
-    if (!Get.isRegistered<RecommendedUserListController>()) return null;
+    final isRegistered = Get.isRegistered<RecommendedUserListController>();
+    if (!isRegistered) return null;
     return Get.find<RecommendedUserListController>();
   }
 

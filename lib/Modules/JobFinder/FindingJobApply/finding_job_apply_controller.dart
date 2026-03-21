@@ -17,7 +17,9 @@ class FindingJobApplyController extends GetxController {
   }
 
   static FindingJobApplyController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<FindingJobApplyController>(tag: tag)) return null;
+    final isRegistered =
+        Get.isRegistered<FindingJobApplyController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<FindingJobApplyController>(tag: tag);
   }
 

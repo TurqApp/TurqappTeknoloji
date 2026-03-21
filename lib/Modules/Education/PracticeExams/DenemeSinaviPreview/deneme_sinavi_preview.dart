@@ -39,24 +39,17 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
     super.initState();
     _tag =
         'practice_exam_preview_${widget.model.docID}_${identityHashCode(this)}';
-    if (Get.isRegistered<DenemeSinaviPreviewController>(tag: _tag)) {
-      controller = Get.find<DenemeSinaviPreviewController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        DenemeSinaviPreviewController(model: widget.model),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+    final existing = DenemeSinaviPreviewController.maybeFind(tag: _tag);
+    _ownsController = existing == null;
+    controller = existing ??
+        DenemeSinaviPreviewController.ensure(tag: _tag, model: widget.model);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<DenemeSinaviPreviewController>(tag: _tag) &&
         identical(
-          Get.find<DenemeSinaviPreviewController>(tag: _tag),
+          DenemeSinaviPreviewController.maybeFind(tag: _tag),
           controller,
         )) {
       Get.delete<DenemeSinaviPreviewController>(tag: _tag);
@@ -156,10 +149,10 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
     if (controller.currentTime.value >=
             controller.examTime.value - controller.fifteenMinutes &&
         controller.currentTime.value < controller.examTime.value) {
-      final minutes = ((controller.examTime.value -
-                  controller.currentTime.value) /
-              (60 * 1000))
-          .floor();
+      final minutes =
+          ((controller.examTime.value - controller.currentTime.value) /
+                  (60 * 1000))
+              .floor();
       return 'practice.closed_starts_in'
           .trParams({'minutes': minutes.toString()});
     }
@@ -243,7 +236,8 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
       child: GestureDetector(
         onTap: isCurrentUserId(controller.model.userID)
             ? null
-            : () => Get.to(() => SocialProfile(userID: controller.model.userID)),
+            : () =>
+                Get.to(() => SocialProfile(userID: controller.model.userID)),
         child: Row(
           children: [
             CircleAvatar(
@@ -446,15 +440,14 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
             padding: const EdgeInsets.only(right: 2),
             child: Obx(
               () => AppHeaderActionButton(
-              onTap: controller.toggleSaved,
+                onTap: controller.toggleSaved,
                 child: Icon(
                   controller.isSaved.value
                       ? CupertinoIcons.bookmark_fill
                       : CupertinoIcons.bookmark,
                   size: 20,
-                  color: controller.isSaved.value
-                      ? Colors.orange
-                      : Colors.black87,
+                  color:
+                      controller.isSaved.value ? Colors.orange : Colors.black87,
                 ),
               ),
             ),
@@ -571,8 +564,8 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
                           ),
                           _infoRow(
                             'practice.exam_duration'.tr,
-                            'practice.duration_minutes'
-                                .trParams({'minutes': '${controller.model.bitisDk}'}),
+                            'practice.duration_minutes'.trParams(
+                                {'minutes': '${controller.model.bitisDk}'}),
                           ),
                           Obx(
                             () => _infoRow(

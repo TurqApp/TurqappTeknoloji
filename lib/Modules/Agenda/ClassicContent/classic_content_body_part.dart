@@ -548,7 +548,12 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      if (v.hasRenderedFirstFrame && !v.isCompleted) {
+                      final hasStableVideoFrame = v.hasRenderedFirstFrame &&
+                          !v.isCompleted &&
+                          (v.isPlaying ||
+                              v.position >
+                                  const Duration(milliseconds: 180));
+                      if (hasStableVideoFrame) {
                         return const SizedBox.shrink();
                       }
                       return child!;

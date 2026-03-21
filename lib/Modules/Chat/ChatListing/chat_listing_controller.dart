@@ -22,7 +22,8 @@ class ChatListingController extends GetxController {
   }
 
   static ChatListingController? maybeFind() {
-    if (!Get.isRegistered<ChatListingController>()) return null;
+    final isRegistered = Get.isRegistered<ChatListingController>();
+    if (!isRegistered) return null;
     return Get.find<ChatListingController>();
   }
 

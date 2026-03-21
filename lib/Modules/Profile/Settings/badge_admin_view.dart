@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -13,7 +14,6 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class BadgeAdminView extends StatefulWidget {
   const BadgeAdminView({super.key});
@@ -60,7 +60,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
         return 'become_verified.badge_black';
       default:
         return badgeKey;
-      }
+    }
   }
 
   String _badgeDescKey(String badgeKey) {
@@ -79,7 +79,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
         return 'become_verified.badge_black_desc';
       default:
         return badgeKey;
-      }
+    }
   }
 
   String _localizedBadgeTitle(String badgeKey) => _badgeTitleKey(badgeKey).tr;
@@ -309,9 +309,11 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                         ],
                         const SizedBox(height: 14),
                         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                          stream: _verifiedAccountRepository.watchApplications(),
+                          stream:
+                              _verifiedAccountRepository.watchApplications(),
                           builder: (context, snap) {
-                            if (snap.connectionState == ConnectionState.waiting) {
+                            if (snap.connectionState ==
+                                ConnectionState.waiting) {
                               return const Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -416,8 +418,8 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
               )
             : 'admin.badges.badge_saved'.trParams(<String, String>{
                 'nickname': result.nickname,
-                'badge':
-                    _localizedBadgeTitle(_badgeKeyFromStorageValue(result.badge)),
+                'badge': _localizedBadgeTitle(
+                    _badgeKeyFromStorageValue(result.badge)),
               }),
       );
     } on FirebaseFunctionsException catch (e) {
@@ -662,8 +664,7 @@ class _ApplicationCardState extends State<_ApplicationCard> {
           ),
           const SizedBox(height: 10),
           Text(
-            'admin.badges.status'
-                .trParams(<String, String>{'status': status}),
+            'admin.badges.status'.trParams(<String, String>{'status': status}),
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 12,
@@ -691,7 +692,9 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                   .toList(growable: false),
             ),
           ],
-          if (status != 'approved' && selected.isNotEmpty && userId.isNotEmpty) ...[
+          if (status != 'approved' &&
+              selected.isNotEmpty &&
+              userId.isNotEmpty) ...[
             const SizedBox(height: 12),
             SizedBox(
               height: 42,
@@ -824,10 +827,7 @@ class _LinkChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: () => launchUrl(
-        Uri.parse(link.url),
-        mode: LaunchMode.externalApplication,
-      ),
+      onTap: () => confirmAndLaunchExternalUrl(Uri.parse(link.url)),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(

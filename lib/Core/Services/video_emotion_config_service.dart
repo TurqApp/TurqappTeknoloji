@@ -4,7 +4,8 @@ import 'package:get/get.dart';
 
 class VideoRemoteConfigService extends GetxService {
   static VideoRemoteConfigService? maybeFind() {
-    if (!Get.isRegistered<VideoRemoteConfigService>()) return null;
+    final isRegistered = Get.isRegistered<VideoRemoteConfigService>();
+    if (!isRegistered) return null;
     return Get.find<VideoRemoteConfigService>();
   }
 

@@ -28,7 +28,8 @@ class ShareGridController extends GetxController {
   }
 
   static ShareGridController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ShareGridController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ShareGridController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ShareGridController>(tag: tag);
   }
 

@@ -21,9 +21,9 @@ class RecommendedUserContentController extends GetxController {
   }
 
   static RecommendedUserContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<RecommendedUserContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<RecommendedUserContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<RecommendedUserContentController>(tag: tag);
   }
 

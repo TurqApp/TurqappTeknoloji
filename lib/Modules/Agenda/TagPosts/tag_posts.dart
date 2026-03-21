@@ -20,18 +20,16 @@ class _TagPostsState extends State<TagPosts> {
   late TagPostsController controller;
   late final bool _ownsController;
   final ScrollController scrollController = ScrollController();
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    final existingController = TagPostsController.maybeFind();
-    if (existingController != null) {
-      controller = existingController;
-      _ownsController = false;
-    } else {
-      controller = TagPostsController.ensure(tag: widget.tag);
-      _ownsController = true;
-    }
+    _controllerTag = widget.tag.trim();
+    final existingController =
+        TagPostsController.maybeFind(tag: _controllerTag);
+    controller = TagPostsController.ensure(tag: widget.tag);
+    _ownsController = existingController == null;
     scrollController.addListener(_onScroll);
   }
 
@@ -40,8 +38,11 @@ class _TagPostsState extends State<TagPosts> {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
     if (_ownsController &&
-        identical(TagPostsController.maybeFind(), controller)) {
-      Get.delete<TagPostsController>(force: true);
+        identical(
+          TagPostsController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<TagPostsController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }

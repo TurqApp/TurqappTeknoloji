@@ -50,7 +50,8 @@ class ComplaintController extends GetxController {
   }
 
   static ComplaintController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ComplaintController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ComplaintController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ComplaintController>(tag: tag);
   }
 

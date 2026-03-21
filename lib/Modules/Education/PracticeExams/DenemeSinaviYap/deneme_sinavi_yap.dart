@@ -292,29 +292,24 @@ class _DenemeSinaviYapState extends State<DenemeSinaviYap> {
   @override
   void initState() {
     super.initState();
-    _tag = 'practice_exam_solve_${widget.model.docID}_${identityHashCode(this)}';
-    if (Get.isRegistered<DenemeSinaviYapController>(tag: _tag)) {
-      controller = Get.find<DenemeSinaviYapController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        DenemeSinaviYapController(
+    _tag =
+        'practice_exam_solve_${widget.model.docID}_${identityHashCode(this)}';
+    final existing = DenemeSinaviYapController.maybeFind(tag: _tag);
+    _ownsController = existing == null;
+    controller = existing ??
+        DenemeSinaviYapController.ensure(
+          tag: _tag,
           model: widget.model,
           sinaviBitir: widget.sinaviBitir,
           showGecersizAlert: widget.showGecersizAlert,
           uyariAtla: widget.uyariAtla,
-        ),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+        );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<DenemeSinaviYapController>(tag: _tag) &&
-        identical(Get.find<DenemeSinaviYapController>(tag: _tag), controller)) {
+        identical(DenemeSinaviYapController.maybeFind(tag: _tag), controller)) {
       Get.delete<DenemeSinaviYapController>(tag: _tag);
     }
     super.dispose();

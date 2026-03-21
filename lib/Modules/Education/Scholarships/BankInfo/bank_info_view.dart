@@ -30,21 +30,17 @@ class _BankInfoViewState extends State<BankInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_bank_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<BankInfoController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(BankInfoController(), tag: _controllerTag)
-        : Get.find<BankInfoController>(tag: _controllerTag);
+    final existing = BankInfoController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? BankInfoController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<BankInfoController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<BankInfoController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<BankInfoController>(tag: _controllerTag, force: true);
-      }
+        identical(
+            BankInfoController.maybeFind(tag: _controllerTag), controller)) {
+      Get.delete<BankInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }
@@ -85,20 +81,20 @@ class _BankInfoViewState extends State<BankInfoView> {
                               await _userRepository.updateUserFields(
                                 CurrentUserService.instance.userId,
                                 {
-                                ...scopedUserUpdate(
-                                  scope: 'finance',
-                                  values: {
-                                    "iban": "",
-                                    "bank": "",
-                                  },
-                                ),
-                                ...scopedUserUpdate(
-                                  scope: 'preferences',
-                                  values: {
-                                    "kolayAdresSelection": "",
-                                  },
-                                ),
-                              },
+                                  ...scopedUserUpdate(
+                                    scope: 'finance',
+                                    values: {
+                                      "iban": "",
+                                      "bank": "",
+                                    },
+                                  ),
+                                  ...scopedUserUpdate(
+                                    scope: 'preferences',
+                                    values: {
+                                      "kolayAdresSelection": "",
+                                    },
+                                  ),
+                                },
                               );
                               AppSnackbar(
                                 'common.success'.tr,
@@ -276,8 +272,8 @@ class _BankInfoViewState extends State<BankInfoView> {
                                         Expanded(
                                           child: TextField(
                                             controller: controller.iban,
-                                            inputFormatters:
-                                                controller.isIbanSelected
+                                            inputFormatters: controller
+                                                    .isIbanSelected
                                                 ? [
                                                     LengthLimitingTextInputFormatter(
                                                         16),
@@ -297,17 +293,16 @@ class _BankInfoViewState extends State<BankInfoView> {
                                                                 50),
                                                           ]
                                                         : [],
-                                            keyboardType:
-                                                controller.isIbanSelected ||
-                                                        controller
-                                                            .isPhoneSelected
+                                            keyboardType: controller
+                                                        .isIbanSelected ||
+                                                    controller.isPhoneSelected
                                                 ? TextInputType.number
                                                 : TextInputType.emailAddress,
                                             decoration: InputDecoration(
-                                              hintText: controller
-                                                  .localizedFastType(
-                                                    controller.kolayAdres.value,
-                                                  ),
+                                              hintText:
+                                                  controller.localizedFastType(
+                                                controller.kolayAdres.value,
+                                              ),
                                               hintStyle: TextStyle(
                                                 color: Colors.grey,
                                                 fontFamily: "MontserratMedium",

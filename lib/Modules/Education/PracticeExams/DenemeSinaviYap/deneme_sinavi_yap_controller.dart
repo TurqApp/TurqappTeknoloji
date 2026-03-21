@@ -13,6 +13,34 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinaviYapController extends GetxController
     with WidgetsBindingObserver {
+  static DenemeSinaviYapController ensure({
+    required String tag,
+    required SinavModel model,
+    required Function sinaviBitir,
+    required Function showGecersizAlert,
+    required bool uyariAtla,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      DenemeSinaviYapController(
+        model: model,
+        sinaviBitir: sinaviBitir,
+        showGecersizAlert: showGecersizAlert,
+        uyariAtla: uyariAtla,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static DenemeSinaviYapController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<DenemeSinaviYapController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DenemeSinaviYapController>(tag: tag);
+  }
+
   var fullName = "".obs;
   var list = <SoruModel>[].obs;
   var selectedAnswers = <String>[].obs;

@@ -6,6 +6,27 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
 class SinavSonuclariPreviewController extends GetxController {
+  static SinavSonuclariPreviewController ensure({
+    required String tag,
+    required SinavModel model,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SinavSonuclariPreviewController(model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SinavSonuclariPreviewController? maybeFind({required String tag}) {
+    final isRegistered =
+        Get.isRegistered<SinavSonuclariPreviewController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SinavSonuclariPreviewController>(tag: tag);
+  }
+
   var yanitlar = <String>[].obs;
   var timeStamp = (0 as num).obs;
   var soruList = <SoruModel>[].obs;

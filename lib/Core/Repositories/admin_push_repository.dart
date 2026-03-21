@@ -39,17 +39,16 @@ class AdminPushRepository extends GetxService {
   static const int pushTargetCutoffMs = 1772409600000;
 
   static AdminPushRepository? maybeFind() {
-    if (!Get.isRegistered<AdminPushRepository>()) return null;
+    final isRegistered = Get.isRegistered<AdminPushRepository>();
+    if (!isRegistered) return null;
     return Get.find<AdminPushRepository>();
   }
 
-  static AdminPushRepository _ensureService() {
+  static AdminPushRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(AdminPushRepository(), permanent: true);
   }
-
-  static AdminPushRepository ensure() => _ensureService();
 
   final UserRepository _userRepository = UserRepository.ensure();
 

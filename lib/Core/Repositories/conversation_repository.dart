@@ -7,18 +7,15 @@ import 'package:turqappv2/Modules/Chat/chat_constants.dart';
 
 class ConversationRepository extends GetxService {
   static ConversationRepository? maybeFind() {
-    if (!Get.isRegistered<ConversationRepository>()) return null;
+    final isRegistered = Get.isRegistered<ConversationRepository>();
+    if (!isRegistered) return null;
     return Get.find<ConversationRepository>();
   }
 
-  static ConversationRepository _ensureService() {
+  static ConversationRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ConversationRepository(), permanent: true);
-  }
-
-  static ConversationRepository ensure() {
-    return _ensureService();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

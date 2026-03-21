@@ -60,7 +60,8 @@ class ChatController extends GetxController {
   }
 
   static ChatController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<ChatController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<ChatController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<ChatController>(tag: tag);
   }
 

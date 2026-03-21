@@ -17,18 +17,15 @@ class BookletRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static BookletRepository? maybeFind() {
-    if (!Get.isRegistered<BookletRepository>()) return null;
+    final isRegistered = Get.isRegistered<BookletRepository>();
+    if (!isRegistered) return null;
     return Get.find<BookletRepository>();
   }
 
-  static BookletRepository _ensureService() {
+  static BookletRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(BookletRepository(), permanent: true);
-  }
-
-  static BookletRepository ensure() {
-    return _ensureService();
   }
 
   @override

@@ -25,7 +25,8 @@ class SolveTestController extends GetxController {
   }
 
   static SolveTestController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SolveTestController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SolveTestController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SolveTestController>(tag: tag);
   }
 

@@ -20,7 +20,8 @@ class EditorEmailController extends GetxController {
   }
 
   static EditorEmailController? maybeFind() {
-    if (!Get.isRegistered<EditorEmailController>()) return null;
+    final isRegistered = Get.isRegistered<EditorEmailController>();
+    if (!isRegistered) return null;
     return Get.find<EditorEmailController>();
   }
 

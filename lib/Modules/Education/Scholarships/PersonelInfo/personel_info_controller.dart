@@ -31,6 +31,21 @@ class FieldConfig {
 
 class PersonelInfoController extends GetxController
     with GetTickerProviderStateMixin {
+  static PersonelInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(PersonelInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static PersonelInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<PersonelInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<PersonelInfoController>(tag: tag);
+  }
+
   static const String _countryFieldLabel = 'Ülke';
   static const String _maritalStatusFieldLabel = 'Medeni Hal';
   static const String _genderFieldLabel = 'Cinsiyet';
@@ -38,10 +53,12 @@ class PersonelInfoController extends GetxController
   static const String _employmentFieldLabel = 'Çalışma Durumu';
   static const String _cityFieldLabel = 'İl';
   static const String _districtFieldLabel = 'İlçe';
-  static const String _countryFieldTitleKey = 'personal_info.select_country_title';
+  static const String _countryFieldTitleKey =
+      'personal_info.select_country_title';
   static const String _maritalStatusFieldTitleKey =
       'personal_info.select_marital_status_title';
-  static const String _genderFieldTitleKey = 'personal_info.select_gender_title';
+  static const String _genderFieldTitleKey =
+      'personal_info.select_gender_title';
   static const String _disabilityFieldTitleKey =
       'personal_info.select_disability_title';
   static const String _employmentFieldTitleKey =
@@ -970,8 +987,7 @@ class PersonelInfoController extends GetxController
       return;
     }
 
-    if (county.value == _turkey &&
-        (city.value.isEmpty || town.value.isEmpty)) {
+    if (county.value == _turkey && (city.value.isEmpty || town.value.isEmpty)) {
       AppSnackbar('common.error'.tr, 'personal_info.fill_city_district'.tr);
       return;
     }

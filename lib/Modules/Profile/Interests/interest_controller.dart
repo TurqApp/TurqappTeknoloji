@@ -20,9 +20,8 @@ class InterestsController extends GetxController {
   }
 
   static InterestsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<InterestsController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered = Get.isRegistered<InterestsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<InterestsController>(tag: tag);
   }
 

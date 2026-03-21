@@ -29,16 +29,15 @@ import '../../Models/posts_model.dart';
 part 'explore_controller_recent_search_part.dart';
 
 class ExploreController extends GetxController {
-  static ExploreController _ensureController() {
+  static ExploreController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ExploreController());
   }
 
-  static ExploreController ensure() => _ensureController();
-
   static ExploreController? maybeFind() {
-    if (!Get.isRegistered<ExploreController>()) return null;
+    final isRegistered = Get.isRegistered<ExploreController>();
+    if (!isRegistered) return null;
     return Get.find<ExploreController>();
   }
 
@@ -182,7 +181,7 @@ class ExploreController extends GetxController {
 
   void disposeFloodContentController(String docId) {
     final tag = floodSeriesInstanceTag(docId);
-    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+    if (AgendaContentController.maybeFind(tag: tag) != null) {
       Get.delete<AgendaContentController>(tag: tag, force: true);
     }
   }

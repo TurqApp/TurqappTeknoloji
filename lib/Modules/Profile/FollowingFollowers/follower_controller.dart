@@ -22,7 +22,8 @@ class FollowerController extends GetxController {
   }
 
   static FollowerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<FollowerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<FollowerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<FollowerController>(tag: tag);
   }
 

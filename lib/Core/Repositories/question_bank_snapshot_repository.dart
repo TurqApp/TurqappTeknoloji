@@ -9,18 +9,15 @@ class QuestionBankSnapshotRepository extends GetxService {
   static const String _searchSurfaceKey = 'workout_search_snapshot';
 
   static QuestionBankSnapshotRepository? maybeFind() {
-    if (!Get.isRegistered<QuestionBankSnapshotRepository>()) return null;
+    final isRegistered = Get.isRegistered<QuestionBankSnapshotRepository>();
+    if (!isRegistered) return null;
     return Get.find<QuestionBankSnapshotRepository>();
   }
 
-  static QuestionBankSnapshotRepository _ensureService() {
+  static QuestionBankSnapshotRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(QuestionBankSnapshotRepository(), permanent: true);
-  }
-
-  static QuestionBankSnapshotRepository ensure() {
-    return _ensureService();
   }
 
   late final CacheFirstCoordinator<List<QuestionBankModel>> _coordinator =

@@ -106,16 +106,15 @@ class StoryRepository extends GetxService {
     }).toList(growable: false);
   }
 
-  static StoryRepository _ensureService() {
+  static StoryRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(StoryRepository(), permanent: true);
   }
 
-  static StoryRepository ensure() => _ensureService();
-
   static StoryRepository? maybeFind() {
-    if (!Get.isRegistered<StoryRepository>()) return null;
+    final isRegistered = Get.isRegistered<StoryRepository>();
+    if (!isRegistered) return null;
     return Get.find<StoryRepository>();
   }
 

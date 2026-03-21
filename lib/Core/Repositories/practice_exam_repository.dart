@@ -22,17 +22,16 @@ class PracticeExamRepository extends GetxService {
   SharedPreferences? _prefs;
 
   static PracticeExamRepository? maybeFind() {
-    if (!Get.isRegistered<PracticeExamRepository>()) return null;
+    final isRegistered = Get.isRegistered<PracticeExamRepository>();
+    if (!isRegistered) return null;
     return Get.find<PracticeExamRepository>();
   }
 
-  static PracticeExamRepository _ensureService() {
+  static PracticeExamRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(PracticeExamRepository(), permanent: true);
   }
-
-  static PracticeExamRepository ensure() => _ensureService();
 
   @override
   void onInit() {

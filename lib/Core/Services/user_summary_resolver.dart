@@ -5,18 +5,15 @@ import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 class UserSummaryResolver extends GetxService {
   static UserSummaryResolver? maybeFind() {
-    if (!Get.isRegistered<UserSummaryResolver>()) return null;
+    final isRegistered = Get.isRegistered<UserSummaryResolver>();
+    if (!isRegistered) return null;
     return Get.find<UserSummaryResolver>();
   }
 
-  static UserSummaryResolver _ensureService() {
+  static UserSummaryResolver ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(UserSummaryResolver(), permanent: true);
-  }
-
-  static UserSummaryResolver ensure() {
-    return _ensureService();
   }
 
   UserRepository get _users => UserRepository.ensure();

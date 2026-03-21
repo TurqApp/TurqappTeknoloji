@@ -5,7 +5,8 @@ class PostCountManager extends GetxController {
   static PostCountManager? _instance;
 
   static PostCountManager? maybeFind() {
-    if (!Get.isRegistered<PostCountManager>()) return null;
+    final isRegistered = Get.isRegistered<PostCountManager>();
+    if (!isRegistered) return null;
     return Get.find<PostCountManager>();
   }
 

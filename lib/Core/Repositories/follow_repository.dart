@@ -21,18 +21,15 @@ class FollowRepository extends GetxService {
   static const String _relationPrefsKeyPrefix = 'follow_relation_repository_v1';
 
   static FollowRepository? maybeFind() {
-    if (!Get.isRegistered<FollowRepository>()) return null;
+    final isRegistered = Get.isRegistered<FollowRepository>();
+    if (!isRegistered) return null;
     return Get.find<FollowRepository>();
   }
 
-  static FollowRepository _ensureService() {
+  static FollowRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(FollowRepository(), permanent: true);
-  }
-
-  static FollowRepository ensure() {
-    return _ensureService();
   }
 
   SharedPreferences? _prefs;

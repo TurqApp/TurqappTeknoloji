@@ -23,17 +23,16 @@ class StoryHighlightsRepository extends GetxService {
   final Map<String, _CachedStoryHighlights> _memory = {};
 
   static StoryHighlightsRepository? maybeFind() {
-    if (!Get.isRegistered<StoryHighlightsRepository>()) return null;
+    final isRegistered = Get.isRegistered<StoryHighlightsRepository>();
+    if (!isRegistered) return null;
     return Get.find<StoryHighlightsRepository>();
   }
 
-  static StoryHighlightsRepository _ensureService() {
+  static StoryHighlightsRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(StoryHighlightsRepository(), permanent: true);
   }
-
-  static StoryHighlightsRepository ensure() => _ensureService();
 
   @override
   void onInit() {

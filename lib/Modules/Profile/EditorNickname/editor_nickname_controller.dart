@@ -23,7 +23,8 @@ class EditorNicknameController extends GetxController {
   }
 
   static EditorNicknameController? maybeFind() {
-    if (!Get.isRegistered<EditorNicknameController>()) return null;
+    final isRegistered = Get.isRegistered<EditorNicknameController>();
+    if (!isRegistered) return null;
     return Get.find<EditorNicknameController>();
   }
 

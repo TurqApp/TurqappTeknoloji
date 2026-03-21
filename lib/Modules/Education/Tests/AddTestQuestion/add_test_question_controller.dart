@@ -35,7 +35,8 @@ class AddTestQuestionController extends GetxController {
   }
 
   static AddTestQuestionController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AddTestQuestionController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AddTestQuestionController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AddTestQuestionController>(tag: tag);
   }
 

@@ -18,9 +18,9 @@ class LocationFinderViewController extends GetxController {
   }
 
   static LocationFinderViewController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<LocationFinderViewController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<LocationFinderViewController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<LocationFinderViewController>(tag: tag);
   }
 

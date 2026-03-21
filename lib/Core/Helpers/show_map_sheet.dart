@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> showMapsSheetWithAdres(String adres) async {
@@ -28,7 +29,10 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 final url = Uri.parse(
                     "https://www.google.com/maps/search/?api=1&query=$encodedAdres");
                 if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                  await confirmAndLaunchExternalUrl(
+                    url,
+                    mode: LaunchMode.externalApplication,
+                  );
                 }
                 Get.back();
               },
@@ -47,7 +51,10 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                   final url =
                       Uri.parse("http://maps.apple.com/?q=$encodedAdres");
                   if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                    await confirmAndLaunchExternalUrl(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    );
                   }
                   Get.back();
                 },
@@ -70,8 +77,10 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                   await launchUrl(yandexAppUrl,
                       mode: LaunchMode.externalApplication);
                 } else if (await canLaunchUrl(yandexWebUrl)) {
-                  await launchUrl(yandexWebUrl,
-                      mode: LaunchMode.externalApplication);
+                  await confirmAndLaunchExternalUrl(
+                    yandexWebUrl,
+                    mode: LaunchMode.externalApplication,
+                  );
                 }
                 Get.back();
               },

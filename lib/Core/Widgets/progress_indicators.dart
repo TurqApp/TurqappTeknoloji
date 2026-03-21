@@ -9,7 +9,8 @@ class UploadProgressController extends GetxController {
   }
 
   static UploadProgressController? maybeFind() {
-    if (!Get.isRegistered<UploadProgressController>()) return null;
+    final isRegistered = Get.isRegistered<UploadProgressController>();
+    if (!isRegistered) return null;
     return Get.find<UploadProgressController>();
   }
 

@@ -48,7 +48,8 @@ class PostContentController extends GetxController {
   }
 
   static PostContentController? maybeFind({required String tag}) {
-    if (!Get.isRegistered<PostContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<PostContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<PostContentController>(tag: tag);
   }
 

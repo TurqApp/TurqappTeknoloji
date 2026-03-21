@@ -2,12 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/verified_account_data_list.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_account_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Core/extension.dart';
 
 class BecomeVerifiedAccount extends StatefulWidget {
@@ -725,7 +725,8 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             GestureDetector(
-              onTap: () => launchUrl(Uri.parse("https://x.com/turqapp")),
+              onTap: () =>
+                  confirmAndLaunchExternalUrl(Uri.parse("https://x.com/turqapp")),
               child: Image.asset(
                 "assets/icons/twitterx.webp",
                 height: 40,
@@ -733,14 +734,18 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
             ),
             GestureDetector(
               onTap: () =>
-                  launchUrl(Uri.parse("https://instagram.com/turqapp")),
+                  confirmAndLaunchExternalUrl(
+                    Uri.parse("https://instagram.com/turqapp"),
+                  ),
               child: Image.asset(
                 "assets/icons/instagram.webp",
                 height: 40,
               ),
             ),
             GestureDetector(
-              onTap: () => launchUrl(Uri.parse("https://tiktok.com/@turqapp")),
+              onTap: () => confirmAndLaunchExternalUrl(
+                Uri.parse("https://tiktok.com/@turqapp"),
+              ),
               child: Image.asset(
                 "assets/icons/tiktokx.webp",
                 height: 40,
@@ -748,14 +753,18 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
             ),
             GestureDetector(
               onTap: () =>
-                  launchUrl(Uri.parse("https://linkedin.com/in/turqapp")),
+                  confirmAndLaunchExternalUrl(
+                    Uri.parse("https://linkedin.com/in/turqapp"),
+                  ),
               child: Image.asset(
                 "assets/icons/linkedin.webp",
                 height: 40,
               ),
             ),
             GestureDetector(
-              onTap: () => launchUrl(Uri.parse("https://facebook.com/turqapp")),
+              onTap: () => confirmAndLaunchExternalUrl(
+                Uri.parse("https://facebook.com/turqapp"),
+              ),
               child: Image.asset(
                 "assets/icons/facebook.webp",
                 height: 40,

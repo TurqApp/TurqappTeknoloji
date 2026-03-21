@@ -6,17 +6,16 @@ class AdminApprovalRepository extends GetxService {
   static const String _adminConfigDocId = 'admin';
 
   static AdminApprovalRepository? maybeFind() {
-    if (!Get.isRegistered<AdminApprovalRepository>()) return null;
+    final isRegistered = Get.isRegistered<AdminApprovalRepository>();
+    if (!isRegistered) return null;
     return Get.find<AdminApprovalRepository>();
   }
 
-  static AdminApprovalRepository _ensureService() {
+  static AdminApprovalRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(AdminApprovalRepository(), permanent: true);
   }
-
-  static AdminApprovalRepository ensure() => _ensureService();
 
   CollectionReference<Map<String, dynamic>> get _ref =>
       FirebaseFirestore.instance

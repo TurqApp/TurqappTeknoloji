@@ -3,9 +3,7 @@ part of 'scholarship_detail_view.dart';
 extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
   Widget buildContent(BuildContext context) {
     final ScholarshipDetailController controller =
-        Get.isRegistered<ScholarshipDetailController>()
-            ? Get.find<ScholarshipDetailController>()
-            : Get.put(ScholarshipDetailController());
+        ScholarshipDetailController.ensure();
 
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData == null || scholarshipData['model'] == null) {
@@ -75,19 +73,18 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                         padding: const EdgeInsets.only(left: 4),
                         child: Obx(
                           () => AppHeaderActionButton(
-                            onTap: () => scholarshipsController
-                                .toggleBookmark(scholarshipDocId, type),
+                            onTap: () => scholarshipsController.toggleBookmark(
+                                scholarshipDocId, type),
                             child: Icon(
-                              (scholarshipsController
-                                          .bookmarkedScholarships[
-                                      scholarshipDocId] ??
-                                  false)
+                              (scholarshipsController.bookmarkedScholarships[
+                                          scholarshipDocId] ??
+                                      false)
                                   ? CupertinoIcons.bookmark_fill
                                   : CupertinoIcons.bookmark,
                               color: (scholarshipsController
-                                          .bookmarkedScholarships[
-                                      scholarshipDocId] ??
-                                  false)
+                                              .bookmarkedScholarships[
+                                          scholarshipDocId] ??
+                                      false)
                                   ? Colors.orange
                                   : Colors.black,
                               size: 20,
@@ -401,7 +398,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                 _buildDetail(
                                   'scholarship.other_info'.tr,
                                   '• ${'scholarship.duplicate_status_label'.tr}: ${model.mukerrerDurumu.isNotEmpty ? model.mukerrerDurumu : 'common.unspecified'.tr}\n'
-                                      '• ${'scholarship.repayable_label'.tr}: ${model.geriOdemeli.isNotEmpty ? model.geriOdemeli : 'common.unspecified'.tr}',
+                                  '• ${'scholarship.repayable_label'.tr}: ${model.geriOdemeli.isNotEmpty ? model.geriOdemeli : 'common.unspecified'.tr}',
                                 ),
                               ],
                               ...[

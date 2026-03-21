@@ -169,7 +169,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                 ensureUrlHasScheme(model.basvuruURL);
                             final url = Uri.parse(urlString);
                             if (await canLaunchUrl(url)) {
-                              await launchUrl(url);
+                              await confirmAndLaunchExternalUrl(url);
                             } else {
                               AppSnackbar(
                                 'common.error'.tr,

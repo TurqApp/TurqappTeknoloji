@@ -26,9 +26,8 @@ class BlockedUsersController extends GetxController {
   }
 
   static BlockedUsersController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<BlockedUsersController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered = Get.isRegistered<BlockedUsersController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<BlockedUsersController>(tag: tag);
   }
 

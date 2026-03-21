@@ -18,7 +18,8 @@ class HashtagListerController extends GetxController {
   }
 
   static HashtagListerController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<HashtagListerController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<HashtagListerController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<HashtagListerController>(tag: tag);
   }
 

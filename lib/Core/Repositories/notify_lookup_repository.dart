@@ -92,17 +92,16 @@ class NotifyLookupRepository extends GetxService {
       <String, NotifyMarketLookup>{};
 
   static NotifyLookupRepository? maybeFind() {
-    if (!Get.isRegistered<NotifyLookupRepository>()) return null;
+    final isRegistered = Get.isRegistered<NotifyLookupRepository>();
+    if (!isRegistered) return null;
     return Get.find<NotifyLookupRepository>();
   }
 
-  static NotifyLookupRepository _ensureService() {
+  static NotifyLookupRepository ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(NotifyLookupRepository(), permanent: true);
   }
-
-  static NotifyLookupRepository ensure() => _ensureService();
 
   Future<NotifyPostLookup> getPostLookup(String postID) async {
     _pruneStaleLookups();

@@ -134,33 +134,37 @@ class _UserStoryContentState extends State<UserStoryContent>
   @override
   Widget build(BuildContext context) => buildContent(context);
 
+  String _controllerTagFor(int index) => '${widget.user.userID}_$index';
+
   void _initializeController() {
     if (widget.user.stories.isNotEmpty &&
         storyIndex < widget.user.stories.length) {
-      controller = Get.put(
-          UserStoryContentController(
-              storyID: widget.user.stories[storyIndex].id,
-              nickname: widget.user.nickname,
-              isMyStory: widget.user.userID == _currentUid),
-          tag: '${widget.user.userID}_$storyIndex');
+      controller = UserStoryContentController.ensure(
+        tag: _controllerTagFor(storyIndex),
+        storyID: widget.user.stories[storyIndex].id,
+        nickname: widget.user.nickname,
+        isMyStory: widget.user.userID == _currentUid,
+      );
     }
   }
 
   void _updateController() {
     if (widget.user.stories.isNotEmpty &&
         storyIndex < widget.user.stories.length) {
-      try {
-        Get.delete<UserStoryContentController>(
-            tag: '${widget.user.userID}_${storyIndex - 1}');
-      } catch (e) {
-        // Controller bulunamadıysa devam et
+      final previousTag = _controllerTagFor(storyIndex - 1);
+      if (UserStoryContentController.maybeFind(tag: previousTag) != null) {
+        try {
+          Get.delete<UserStoryContentController>(tag: previousTag);
+        } catch (e) {
+          // Controller bulunamadıysa devam et
+        }
       }
-      controller = Get.put(
-          UserStoryContentController(
-              storyID: widget.user.stories[storyIndex].id,
-              nickname: widget.user.nickname,
-              isMyStory: widget.user.userID == _currentUid),
-          tag: '${widget.user.userID}_$storyIndex');
+      controller = UserStoryContentController.ensure(
+        tag: _controllerTagFor(storyIndex),
+        storyID: widget.user.stories[storyIndex].id,
+        nickname: widget.user.nickname,
+        isMyStory: widget.user.userID == _currentUid,
+      );
     }
   }
 
@@ -171,11 +175,13 @@ class _UserStoryContentState extends State<UserStoryContent>
     _musicStartFallbackTimer?.cancel();
     AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
-    try {
-      Get.delete<UserStoryContentController>(
-          tag: '${widget.user.userID}_$storyIndex');
-    } catch (e) {
-      // Controller bulunamadıysa devam et
+    final tag = _controllerTagFor(storyIndex);
+    if (identical(UserStoryContentController.maybeFind(tag: tag), controller)) {
+      try {
+        Get.delete<UserStoryContentController>(tag: tag);
+      } catch (e) {
+        // Controller bulunamadıysa devam et
+      }
     }
     super.dispose();
   }

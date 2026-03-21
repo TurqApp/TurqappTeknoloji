@@ -23,7 +23,8 @@ class SavedPostsController extends GetxController {
   }
 
   static SavedPostsController? maybeFind() {
-    if (!Get.isRegistered<SavedPostsController>()) return null;
+    final isRegistered = Get.isRegistered<SavedPostsController>();
+    if (!isRegistered) return null;
     return Get.find<SavedPostsController>();
   }
 

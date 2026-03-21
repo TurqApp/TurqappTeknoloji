@@ -29,22 +29,20 @@ class _DormitoryInfoViewState extends State<DormitoryInfoView> {
   void initState() {
     super.initState();
     _controllerTag = 'scholarship_dormitory_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<DormitoryInfoController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(DormitoryInfoController(), tag: _controllerTag)
-        : Get.find<DormitoryInfoController>(tag: _controllerTag);
+    final existing = DormitoryInfoController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? DormitoryInfoController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<DormitoryInfoController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<DormitoryInfoController>(tag: _controllerTag);
-      if (identical(registeredController, controller)) {
-        Get.delete<DormitoryInfoController>(tag: _controllerTag, force: true);
-      }
+        identical(
+          DormitoryInfoController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<DormitoryInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }
@@ -57,9 +55,9 @@ class _DormitoryInfoViewState extends State<DormitoryInfoView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Expanded(
                   child: BackButtons(text: 'dormitory.title'.tr),
                 ),
@@ -239,7 +237,8 @@ class _DormitoryInfoViewState extends State<DormitoryInfoView> {
                                               children: [
                                                 Text(
                                                   controller.capitalize(
-                                                    controller.localizedAdminType(
+                                                    controller
+                                                        .localizedAdminType(
                                                       controller.sub.value,
                                                     ),
                                                   ),
@@ -457,9 +456,9 @@ class _DormitoryInfoViewState extends State<DormitoryInfoView> {
                               ),
                             ],
                           ),
-                                child: Text(
-                                  'common.save'.tr,
-                                  style: TextStyle(
+                          child: Text(
+                            'common.save'.tr,
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,
                               fontFamily: "MontserratMedium",

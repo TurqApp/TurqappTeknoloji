@@ -16,9 +16,9 @@ class StoryContentProfileController extends GetxController {
   }
 
   static StoryContentProfileController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<StoryContentProfileController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<StoryContentProfileController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<StoryContentProfileController>(tag: tag);
   }
 

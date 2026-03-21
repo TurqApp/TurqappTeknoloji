@@ -25,7 +25,8 @@ class EducationController extends GetxController {
   }
 
   static EducationController? maybeFind() {
-    if (!Get.isRegistered<EducationController>()) return null;
+    final isRegistered = Get.isRegistered<EducationController>();
+    if (!isRegistered) return null;
     return Get.find<EducationController>();
   }
 

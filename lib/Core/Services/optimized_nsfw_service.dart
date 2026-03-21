@@ -8,6 +8,8 @@ import 'package:image/image.dart' as img;
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class NSFWCheckResult {
   final bool isNSFW;
@@ -37,6 +39,8 @@ class NSFWCheckResult {
     );
   }
 }
+
+enum _NsfwPolicy { strict, soft, extraSoft }
 
 class OptimizedNSFWService {
   static const String _nudeNetAssetPath = 'assets/models/nudenet/320n.onnx';
@@ -93,6 +97,28 @@ class OptimizedNSFWService {
   static bool get _useNudeNetOnDevice =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
+  static _NsfwPolicy get _activeNsfwPolicy {
+    try {
+      final userService = CurrentUserService.maybeFind();
+      if (userService == null) return _NsfwPolicy.strict;
+      final normalizedRozet = normalizeRozetValue(userService.rozet);
+      switch (normalizedRozet) {
+        case 'gri':
+        case 'turkuaz':
+        case 'sari':
+          return _NsfwPolicy.extraSoft;
+        case 'mavi':
+        case 'siyah':
+        case 'kirmizi':
+          return _NsfwPolicy.soft;
+        default:
+          return userService.isVerified ? _NsfwPolicy.soft : _NsfwPolicy.strict;
+      }
+    } catch (_) {
+      return _NsfwPolicy.strict;
+    }
+  }
+
   static Future<void> initialize({double threshold = 0.3}) async {
     if (_isInitialized) return;
 
@@ -117,8 +143,9 @@ class OptimizedNSFWService {
 
       final filePath = imageFile.path;
       final fileStats = await imageFile.stat();
+      final policy = _activeNsfwPolicy;
       final cacheKey =
-          '$filePath:${fileStats.size}:${fileStats.modified.millisecondsSinceEpoch}';
+          '$filePath:${fileStats.size}:${fileStats.modified.millisecondsSinceEpoch}:${policy.name}';
 
       if (_imageCache.containsKey(cacheKey)) {
         stopwatch.stop();
@@ -136,6 +163,11 @@ class OptimizedNSFWService {
         final verdict = _buildVerdict(
           detections,
           blockedClasses: _blockedNudeNetClasses,
+          minConfidence: switch (policy) {
+            _NsfwPolicy.strict => 0.0,
+            _NsfwPolicy.soft => 0.22,
+            _NsfwPolicy.extraSoft => 0.42,
+          },
         );
         isNSFW = verdict.isNSFW;
         confidence = verdict.confidence;
@@ -180,8 +212,9 @@ class OptimizedNSFWService {
 
       final filePath = videoFile.path;
       final fileStats = await videoFile.stat();
+      final policy = _activeNsfwPolicy;
       final cacheKey =
-          '$filePath:${fileStats.size}:${fileStats.modified.millisecondsSinceEpoch}';
+          '$filePath:${fileStats.size}:${fileStats.modified.millisecondsSinceEpoch}:${policy.name}';
 
       if (_videoCache.containsKey(cacheKey)) {
         stopwatch.stop();
@@ -379,6 +412,7 @@ class OptimizedNSFWService {
     final editor = VideoEditorBuilder(videoPath: videoFile.path);
     final metadata = await editor.getVideoMetadata();
     final durationMs = metadata.duration;
+    final policy = _activeNsfwPolicy;
 
     if (durationMs <= 0) {
       return NSFWCheckResult.error('Invalid video duration');
@@ -410,6 +444,11 @@ class OptimizedNSFWService {
           detections,
           blockedClasses: _blockedNudeNetVideoClasses,
           framesChecked: 1,
+          minConfidence: switch (policy) {
+            _NsfwPolicy.strict => 0.0,
+            _NsfwPolicy.soft => 0.26,
+            _NsfwPolicy.extraSoft => 0.46,
+          },
         );
         final legacyResult = await _runLegacyVideoDetector(thumbFile);
         final legacyBlocked = legacyResult?.isNsfw == true;
@@ -429,14 +468,36 @@ class OptimizedNSFWService {
           await thumbFile.delete();
         } catch (_) {}
 
-        if (legacyBlocked && legacyScore >= 0.24) {
+        final legacyBlockThreshold = switch (policy) {
+          _NsfwPolicy.strict => 0.24,
+          _NsfwPolicy.soft => 0.32,
+          _NsfwPolicy.extraSoft => 0.52,
+        };
+        if (legacyBlocked && legacyScore >= legacyBlockThreshold) {
           foundNSFW = true;
           break;
         }
 
-        if (result.isNSFW && result.confidence >= 0.20) {
+        final frameBlockThreshold = switch (policy) {
+          _NsfwPolicy.strict => 0.20,
+          _NsfwPolicy.soft => 0.28,
+          _NsfwPolicy.extraSoft => 0.46,
+        };
+        final hardBlockThreshold = switch (policy) {
+          _NsfwPolicy.strict => 0.31,
+          _NsfwPolicy.soft => 0.40,
+          _NsfwPolicy.extraSoft => 0.60,
+        };
+        final blockedFrameQuota = switch (policy) {
+          _NsfwPolicy.strict => 2,
+          _NsfwPolicy.soft => 3,
+          _NsfwPolicy.extraSoft => 4,
+        };
+
+        if (result.isNSFW && result.confidence >= frameBlockThreshold) {
           blockedFrames++;
-          if (result.confidence >= 0.31 || blockedFrames >= 2) {
+          if (result.confidence >= hardBlockThreshold ||
+              blockedFrames >= blockedFrameQuota) {
             foundNSFW = true;
             break;
           }
@@ -545,9 +606,11 @@ NSFWCheckResult _buildVerdict(
   List<_NudeNetDetection> detections, {
   required Set<String> blockedClasses,
   int framesChecked = 1,
+  double minConfidence = 0.0,
 }) {
   final blocked = detections
-      .where((d) => blockedClasses.contains(d.label))
+      .where((d) =>
+          blockedClasses.contains(d.label) && d.score >= minConfidence)
       .toList(growable: false);
   final confidence = blocked.isEmpty
       ? 0.0

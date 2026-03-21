@@ -36,23 +36,24 @@ class CreateScholarshipView extends StatefulWidget {
 class _CreateScholarshipViewState extends State<CreateScholarshipView> {
   late final CreateScholarshipController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
     _controllerTag = 'create_scholarship_${identityHashCode(this)}';
-    controller = Get.isRegistered<CreateScholarshipController>(
-      tag: _controllerTag,
-    )
-        ? Get.find<CreateScholarshipController>(tag: _controllerTag)
-        : Get.put(CreateScholarshipController(), tag: _controllerTag);
+    final existing = CreateScholarshipController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? CreateScholarshipController.ensure(tag: _controllerTag);
+    controller.controllerTag = _controllerTag;
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<CreateScholarshipController>(tag: _controllerTag) &&
+    if (_ownsController &&
         identical(
-          Get.find<CreateScholarshipController>(tag: _controllerTag),
+          CreateScholarshipController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<CreateScholarshipController>(tag: _controllerTag);

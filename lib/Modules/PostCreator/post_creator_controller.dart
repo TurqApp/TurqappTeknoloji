@@ -96,7 +96,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   }
 
   static PostCreatorController? maybeFind() {
-    if (!Get.isRegistered<PostCreatorController>()) return null;
+    final isRegistered = Get.isRegistered<PostCreatorController>();
+    if (!isRegistered) return null;
     return Get.find<PostCreatorController>();
   }
 

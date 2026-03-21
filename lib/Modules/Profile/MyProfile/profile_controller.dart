@@ -24,16 +24,15 @@ import '../../../Services/user_post_link_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ProfileController extends GetxController {
-  static ProfileController _ensureController() {
+  static ProfileController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ProfileController());
   }
 
-  static ProfileController ensure() => _ensureController();
-
   static ProfileController? maybeFind() {
-    if (!Get.isRegistered<ProfileController>()) return null;
+    final isRegistered = Get.isRegistered<ProfileController>();
+    if (!isRegistered) return null;
     return Get.find<ProfileController>();
   }
 

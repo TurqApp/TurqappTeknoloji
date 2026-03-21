@@ -49,7 +49,8 @@ class SignInController extends GetxController
   }
 
   static SignInController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SignInController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SignInController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SignInController>(tag: tag);
   }
 

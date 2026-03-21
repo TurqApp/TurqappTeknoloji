@@ -4,7 +4,8 @@ import '../Common/post_content_controller.dart';
 
 class AgendaContentController extends PostContentController {
   static AgendaContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AgendaContentController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AgendaContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AgendaContentController>(tag: tag);
   }
 

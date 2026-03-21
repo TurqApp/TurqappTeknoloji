@@ -16,7 +16,8 @@ class StorySeensController extends GetxController {
   }
 
   static StorySeensController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<StorySeensController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<StorySeensController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<StorySeensController>(tag: tag);
   }
 

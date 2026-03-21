@@ -6,19 +6,18 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryInteractionOptimizer extends GetxService {
   static StoryInteractionOptimizer? maybeFind() {
-    if (!Get.isRegistered<StoryInteractionOptimizer>()) return null;
+    final isRegistered = Get.isRegistered<StoryInteractionOptimizer>();
+    if (!isRegistered) return null;
     return Get.find<StoryInteractionOptimizer>();
   }
 
-  static StoryInteractionOptimizer _ensureService() {
+  static StoryInteractionOptimizer ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(StoryInteractionOptimizer(), permanent: true);
   }
 
-  static StoryInteractionOptimizer ensure() => _ensureService();
-
-  static StoryInteractionOptimizer get to => _ensureService();
+  static StoryInteractionOptimizer get to => ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
 
   // Debouncing ve batching için

@@ -32,7 +32,8 @@ class MyQRCodeController extends GetxController {
   }
 
   static MyQRCodeController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<MyQRCodeController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<MyQRCodeController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<MyQRCodeController>(tag: tag);
   }
 

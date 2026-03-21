@@ -9,6 +9,27 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
+  static DenemeSinaviPreviewController ensure({
+    required String tag,
+    required SinavModel model,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      DenemeSinaviPreviewController(model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static DenemeSinaviPreviewController? maybeFind({required String tag}) {
+    final isRegistered =
+        Get.isRegistered<DenemeSinaviPreviewController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DenemeSinaviPreviewController>(tag: tag);
+  }
+
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
@@ -250,10 +271,9 @@ class DenemeSinaviPreviewController extends GetxController {
         }
 
         final examDoc = await transaction.get(examRef);
-        final currentCount =
-            ((examDoc.data() ?? const <String, dynamic>{})['participantCount']
-                    as num?) ??
-                0;
+        final currentCount = ((examDoc.data() ??
+                const <String, dynamic>{})['participantCount'] as num?) ??
+            0;
 
         transaction.set(applicationRef, {
           "userID": currentUid,
@@ -281,7 +301,8 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> basvuruKontrol() async {
     try {
-      basvuranSayisi.value = await _practiceExamRepository.fetchParticipantCount(
+      basvuranSayisi.value =
+          await _practiceExamRepository.fetchParticipantCount(
         model.docID,
         preferCache: true,
       );
@@ -302,9 +323,7 @@ class DenemeSinaviPreviewController extends GetxController {
   }
 
   Future<void> syncSavedState() async {
-    final savedController = Get.isRegistered<SavedPracticeExamsController>()
-        ? Get.find<SavedPracticeExamsController>()
-        : Get.put(SavedPracticeExamsController());
+    final savedController = SavedPracticeExamsController.ensure();
     if (savedController.savedExamIds.isEmpty &&
         !savedController.isLoading.value) {
       await savedController.loadSavedExams();
@@ -313,9 +332,7 @@ class DenemeSinaviPreviewController extends GetxController {
   }
 
   Future<void> toggleSaved() async {
-    final savedController = Get.isRegistered<SavedPracticeExamsController>()
-        ? Get.find<SavedPracticeExamsController>()
-        : Get.put(SavedPracticeExamsController());
+    final savedController = SavedPracticeExamsController.ensure();
     await savedController.toggleSavedExam(model.docID);
     isSaved.value = savedController.savedExamIds.contains(model.docID);
   }

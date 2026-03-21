@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,16 +28,15 @@ typedef TextUpdate = String;
 
 class NavBarController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
-  static NavBarController _ensureController() {
+  static NavBarController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(NavBarController());
   }
 
-  static NavBarController ensure() => _ensureController();
-
   static NavBarController? maybeFind() {
-    if (!Get.isRegistered<NavBarController>()) return null;
+    final isRegistered = Get.isRegistered<NavBarController>();
+    if (!isRegistered) return null;
     return Get.find<NavBarController>();
   }
 
@@ -754,7 +754,10 @@ class NavBarController extends GetxController
     if (storeUrl.isNotEmpty) {
       final Uri url = Uri.parse(storeUrl);
       try {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+        await confirmAndLaunchExternalUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+        );
       } catch (_) {
         AppSnackbar(
           'common.error'.tr,

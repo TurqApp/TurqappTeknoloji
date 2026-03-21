@@ -182,7 +182,8 @@ class AppBottomSheetController extends GetxController {
   }
 
   static AppBottomSheetController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<AppBottomSheetController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<AppBottomSheetController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<AppBottomSheetController>(tag: tag);
   }
 

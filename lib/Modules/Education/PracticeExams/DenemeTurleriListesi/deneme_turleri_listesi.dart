@@ -22,26 +22,21 @@ class _DenemeTurleriListesiState extends State<DenemeTurleriListesi> {
   @override
   void initState() {
     super.initState();
-    _tag =
-        'practice_exam_type_${widget.sinavTuru}_${identityHashCode(this)}';
-    if (Get.isRegistered<DenemeTurleriListesiController>(tag: _tag)) {
-      controller = Get.find<DenemeTurleriListesiController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        DenemeTurleriListesiController(sinavTuru: widget.sinavTuru),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+    _tag = 'practice_exam_type_${widget.sinavTuru}_${identityHashCode(this)}';
+    final existing = DenemeTurleriListesiController.maybeFind(tag: _tag);
+    _ownsController = existing == null;
+    controller = existing ??
+        DenemeTurleriListesiController.ensure(
+          tag: _tag,
+          sinavTuru: widget.sinavTuru,
+        );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<DenemeTurleriListesiController>(tag: _tag) &&
         identical(
-          Get.find<DenemeTurleriListesiController>(tag: _tag),
+          DenemeTurleriListesiController.maybeFind(tag: _tag),
           controller,
         )) {
       Get.delete<DenemeTurleriListesiController>(tag: _tag);

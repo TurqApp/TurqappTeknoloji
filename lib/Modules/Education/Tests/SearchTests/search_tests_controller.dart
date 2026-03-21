@@ -22,7 +22,8 @@ class SearchTestsController extends GetxController {
   }
 
   static SearchTestsController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<SearchTestsController>(tag: tag)) return null;
+    final isRegistered = Get.isRegistered<SearchTestsController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<SearchTestsController>(tag: tag);
   }
 

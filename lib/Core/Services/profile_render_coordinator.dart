@@ -5,18 +5,15 @@ import 'package:turqappv2/Models/posts_model.dart';
 
 class ProfileRenderCoordinator extends GetxService {
   static ProfileRenderCoordinator? maybeFind() {
-    if (!Get.isRegistered<ProfileRenderCoordinator>()) return null;
+    final isRegistered = Get.isRegistered<ProfileRenderCoordinator>();
+    if (!isRegistered) return null;
     return Get.find<ProfileRenderCoordinator>();
   }
 
-  static ProfileRenderCoordinator _ensureService() {
+  static ProfileRenderCoordinator ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ProfileRenderCoordinator(), permanent: true);
-  }
-
-  static ProfileRenderCoordinator ensure() {
-    return _ensureService();
   }
 
   List<Map<String, dynamic>> buildMergedEntries({

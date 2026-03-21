@@ -29,20 +29,6 @@ class _AppHealthDashboardState extends State<AppHealthDashboard> {
     _ensureDashboardServices();
   }
 
-  T _ensureService<T>(T Function() create) {
-    if (Get.isRegistered<T>()) {
-      return Get.find<T>();
-    }
-    return Get.put<T>(create());
-  }
-
-  T? _maybeFindService<T>() {
-    if (!Get.isRegistered<T>()) {
-      return null;
-    }
-    return Get.find<T>();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,22 +66,21 @@ class _AppHealthDashboardState extends State<AppHealthDashboard> {
   }
 
   void _ensureDashboardServices() {
-    _ensureService<ErrorHandlingService>(() => ErrorHandlingService());
-    _ensureService<NetworkAwarenessService>(() => NetworkAwarenessService());
-    _ensureService<UploadQueueService>(() => UploadQueueService());
-    _ensureService<DraftService>(() => DraftService());
-    _ensureService<PostEditingService>(() => PostEditingService());
-    _ensureService<MediaEnhancementService>(() => MediaEnhancementService());
-    _ensureService<StorageBudgetManager>(() => StorageBudgetManager());
-    _ensureService<PlaybackKpiService>(() => PlaybackKpiService());
-    _ensureService<PlaybackPolicyEngine>(() => PlaybackPolicyEngine());
+    ErrorHandlingService.ensure();
+    NetworkAwarenessService.ensure();
+    UploadQueueService.ensure();
+    DraftService.ensure();
+    PostEditingService.ensure();
+    MediaEnhancementService.ensure();
+    StorageBudgetManager.ensure();
+    PlaybackKpiService.ensure();
+    PlaybackPolicyEngine.ensure();
   }
 
   Widget _buildPlaybackIntelligenceCard() {
-    final budgetManager =
-        _ensureService<StorageBudgetManager>(() => StorageBudgetManager());
+    final budgetManager = StorageBudgetManager.ensure();
     final profile = budgetManager.currentProfile;
-    final cacheManager = _maybeFindService<SegmentCacheManager>();
+    final cacheManager = SegmentCacheManager.maybeFind();
     final usage = cacheManager != null
         ? StorageBudgetManager.usageSnapshotForProfile(
             profile,
@@ -107,8 +92,8 @@ class _AppHealthDashboardState extends State<AppHealthDashboard> {
       profile,
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );
-    final policy = _maybeFindService<PlaybackPolicyEngine>()?.snapshot();
-    final kpiService = _maybeFindService<PlaybackKpiService>();
+    final policy = PlaybackPolicyEngine.maybeFind()?.snapshot();
+    final kpiService = PlaybackKpiService.maybeFind();
     final recentEvents = kpiService?.recentEvents ?? const <PlaybackKpiEvent>[];
     final feedCacheSummary = kpiService?.summarizeCacheFirst(
       surfaceKeyPrefix: 'feed_',
@@ -145,7 +130,7 @@ class _AppHealthDashboardState extends State<AppHealthDashboard> {
         break;
       }
     }
-    final scheduler = _maybeFindService<PrefetchScheduler>();
+    final scheduler = PrefetchScheduler.maybeFind();
     final pressureLabel = usage == null
         ? null
         : usage.crossedHardStop

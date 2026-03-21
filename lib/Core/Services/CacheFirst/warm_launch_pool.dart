@@ -15,18 +15,15 @@ class WarmLaunchPool extends GetxService {
   final IndexPoolStore _delegate;
 
   static WarmLaunchPool? maybeFind() {
-    if (!Get.isRegistered<WarmLaunchPool>()) return null;
+    final isRegistered = Get.isRegistered<WarmLaunchPool>();
+    if (!isRegistered) return null;
     return Get.find<WarmLaunchPool>();
   }
 
-  static WarmLaunchPool _ensureService() {
+  static WarmLaunchPool ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(WarmLaunchPool(), permanent: true);
-  }
-
-  static WarmLaunchPool ensure() {
-    return _ensureService();
   }
 
   Future<void> init() => _delegate.init();

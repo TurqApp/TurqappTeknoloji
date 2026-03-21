@@ -10,6 +10,21 @@ import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class FamilyInfoController extends GetxController {
+  static FamilyInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(FamilyInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static FamilyInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<FamilyInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<FamilyInfoController>(tag: tag);
+  }
+
   static const String _selectValue = "Seçiniz";
   static const String _selectHomeOwnership = "Seçim Yap";
   static const String _selectJob = "Meslek Seç";
@@ -52,8 +67,7 @@ class FamilyInfoController extends GetxController {
   bool _matchesValue(String value, Set<String> variants) =>
       variants.contains(value.trim());
 
-  bool _isSelectValue(String value) =>
-      _matchesValue(value, const <String>{
+  bool _isSelectValue(String value) => _matchesValue(value, const <String>{
         _selectValue,
         'Select',
         'Auswählen',
@@ -61,8 +75,7 @@ class FamilyInfoController extends GetxController {
         'Seleziona',
         'Выбрать',
       });
-  bool _isSelectJobValue(String value) =>
-      _matchesValue(value, const <String>{
+  bool _isSelectJobValue(String value) => _matchesValue(value, const <String>{
         _selectJob,
         'Select Job',
         'Beruf wählen',
@@ -79,8 +92,7 @@ class FamilyInfoController extends GetxController {
         'Seleziona',
         'Выбрать',
       });
-  bool _isYesValue(String value) =>
-      _matchesValue(value, const <String>{
+  bool _isYesValue(String value) => _matchesValue(value, const <String>{
         _yesValue,
         'Yes',
         'Ja',
@@ -365,7 +377,8 @@ class FamilyInfoController extends GetxController {
     // Baba hayatta ise validasyon
     if (_isYesValue(fatherLiving.value)) {
       if (fatherName.value.text.isEmpty) {
-        AppSnackbar('common.warning'.tr, 'scholarship.applicant.father_name'.tr);
+        AppSnackbar(
+            'common.warning'.tr, 'scholarship.applicant.father_name'.tr);
         return;
       }
       if (fatherSurname.value.text.isEmpty) {
@@ -402,7 +415,8 @@ class FamilyInfoController extends GetxController {
     // Anne hayatta ise validasyon
     if (_isYesValue(motherLiving.value)) {
       if (motherName.value.text.isEmpty) {
-        AppSnackbar('common.warning'.tr, 'scholarship.applicant.mother_name'.tr);
+        AppSnackbar(
+            'common.warning'.tr, 'scholarship.applicant.mother_name'.tr);
         return;
       }
       if (motherSurname.value.text.isEmpty) {
@@ -442,7 +456,8 @@ class FamilyInfoController extends GetxController {
       return;
     }
     if (_isSelectHomeOwnershipValue(evMulkiyeti.value)) {
-      AppSnackbar('common.warning'.tr, 'scholarship.applicant.home_ownership'.tr);
+      AppSnackbar(
+          'common.warning'.tr, 'scholarship.applicant.home_ownership'.tr);
       return;
     }
     if (city.value.isEmpty) {
@@ -471,36 +486,32 @@ class FamilyInfoController extends GetxController {
               "familyInfo": familyInfo.value,
               "fatherName":
                   _isYesValue(fatherLiving.value) ? fatherName.value.text : "",
-              "fatherSurname":
-                  _isYesValue(fatherLiving.value)
-                      ? fatherSurname.value.text
-                      : "",
+              "fatherSurname": _isYesValue(fatherLiving.value)
+                  ? fatherSurname.value.text
+                  : "",
               "fatherJob":
                   _isYesValue(fatherLiving.value) ? fatherJob.value : "",
               "fatherPhone": _isYesValue(fatherLiving.value)
                   ? fatherPhoneNumber.value.text
                   : "",
               "fatherLiving": fatherLiving.value,
-              "fatherSalary":
-                  _isYesValue(fatherLiving.value)
-                      ? fatherSalary.value.text
-                      : "",
+              "fatherSalary": _isYesValue(fatherLiving.value)
+                  ? fatherSalary.value.text
+                  : "",
               "motherName":
                   _isYesValue(motherLiving.value) ? motherName.value.text : "",
-              "motherSurname":
-                  _isYesValue(motherLiving.value)
-                      ? motherSurname.value.text
-                      : "",
+              "motherSurname": _isYesValue(motherLiving.value)
+                  ? motherSurname.value.text
+                  : "",
               "motherJob":
                   _isYesValue(motherLiving.value) ? motherJob.value : "",
               "motherPhone": _isYesValue(motherLiving.value)
                   ? motherPhoneNumber.value.text
                   : "",
               "motherLiving": motherLiving.value,
-              "motherSalary":
-                  _isYesValue(motherLiving.value)
-                      ? motherSalary.value.text
-                      : "",
+              "motherSalary": _isYesValue(motherLiving.value)
+                  ? motherSalary.value.text
+                  : "",
               "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
               "evMulkiyeti": evMulkiyeti.value,
             },

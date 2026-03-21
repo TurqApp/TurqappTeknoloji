@@ -13,7 +13,8 @@ class BiographyMakerController extends GetxController {
   }
 
   static BiographyMakerController? maybeFind() {
-    if (!Get.isRegistered<BiographyMakerController>()) return null;
+    final isRegistered = Get.isRegistered<BiographyMakerController>();
+    if (!isRegistered) return null;
     return Get.find<BiographyMakerController>();
   }
 

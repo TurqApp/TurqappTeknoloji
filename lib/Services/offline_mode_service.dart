@@ -23,7 +23,8 @@ class OfflineModeService extends GetxController {
   }
 
   static OfflineModeService? maybeFind() {
-    if (!Get.isRegistered<OfflineModeService>()) return null;
+    final isRegistered = Get.isRegistered<OfflineModeService>();
+    if (!isRegistered) return null;
     return Get.find<OfflineModeService>();
   }
 

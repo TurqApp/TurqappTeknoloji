@@ -16,7 +16,8 @@ class MyBookletResultsController extends GetxController {
   }
 
   static MyBookletResultsController? maybeFind() {
-    if (!Get.isRegistered<MyBookletResultsController>()) return null;
+    final isRegistered = Get.isRegistered<MyBookletResultsController>();
+    if (!isRegistered) return null;
     return Get.find<MyBookletResultsController>();
   }
 

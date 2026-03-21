@@ -30,9 +30,9 @@ class CreateTestQuestionContentController extends GetxController {
   }
 
   static CreateTestQuestionContentController? maybeFind({String? tag}) {
-    if (!Get.isRegistered<CreateTestQuestionContentController>(tag: tag)) {
-      return null;
-    }
+    final isRegistered =
+        Get.isRegistered<CreateTestQuestionContentController>(tag: tag);
+    if (!isRegistered) return null;
     return Get.find<CreateTestQuestionContentController>(tag: tag);
   }
 

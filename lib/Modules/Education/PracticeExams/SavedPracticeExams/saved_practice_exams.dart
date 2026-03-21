@@ -19,20 +19,15 @@ class _SavedPracticeExamsState extends State<SavedPracticeExams> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SavedPracticeExamsController>()) {
-      controller = Get.find<SavedPracticeExamsController>();
-      _ownsController = false;
-    } else {
-      controller = Get.put(SavedPracticeExamsController());
-      _ownsController = true;
-    }
+    final existing = SavedPracticeExamsController.maybeFind();
+    _ownsController = existing == null;
+    controller = existing ?? SavedPracticeExamsController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SavedPracticeExamsController>() &&
-        identical(Get.find<SavedPracticeExamsController>(), controller)) {
+        identical(SavedPracticeExamsController.maybeFind(), controller)) {
       Get.delete<SavedPracticeExamsController>();
     }
     super.dispose();
