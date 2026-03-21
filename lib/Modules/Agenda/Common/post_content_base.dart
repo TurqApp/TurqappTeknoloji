@@ -11,6 +11,7 @@ import '../../../Core/Services/video_state_manager.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
+import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
 import '../../Explore/explore_controller.dart';
 import '../../Profile/MyProfile/profile_controller.dart';
@@ -406,27 +407,51 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         child: ColoredBox(
           color: Colors.black.withValues(alpha: 0.28),
           child: Center(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => unawaited(replayVideoFromStart()),
-              child: Container(
-                width: 148,
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Tekrar izle',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontFamily: 'MontserratSemiBold',
-                      height: 1.0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: AspectRatio(
+                  aspectRatio: 9 / 16,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        const AdmobKare(),
+                        ColoredBox(
+                          color: Colors.black.withValues(alpha: 0.18),
+                        ),
+                        Center(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => unawaited(replayVideoFromStart()),
+                            child: Container(
+                              width: 148,
+                              height: 44,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 18),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Tekrar izle',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 14,
+                                    fontFamily: 'MontserratSemiBold',
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -486,9 +511,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('archives_') &&
-        Get.isRegistered<ArchiveController>()) {
-      final archiveController = Get.find<ArchiveController>();
+    if (surfaceTag.startsWith('archives_')) {
+      final archiveController = ArchiveController.maybeFind();
+      if (archiveController == null) return;
       final archiveIndex = archiveController.list
           .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
@@ -503,9 +528,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('liked_post_') &&
-        Get.isRegistered<LikedPostControllers>()) {
-      final likedController = Get.find<LikedPostControllers>();
+    if (surfaceTag.startsWith('liked_post_')) {
+      final likedController = LikedPostControllers.maybeFind();
+      if (likedController == null) return;
       final likedIndex =
           likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
@@ -518,9 +543,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('top_tag_') &&
-        Get.isRegistered<TopTagsController>()) {
-      final topTagsController = Get.find<TopTagsController>();
+    if (surfaceTag.startsWith('top_tag_')) {
+      final topTagsController = TopTagsController.maybeFind();
+      if (topTagsController == null) return;
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
       if (topTagsIndex >= 0) {
@@ -535,9 +560,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('tag_post_') &&
-        Get.isRegistered<TagPostsController>()) {
-      final tagPostsController = Get.find<TagPostsController>();
+    if (surfaceTag.startsWith('tag_post_')) {
+      final tagPostsController = TagPostsController.maybeFind();
+      if (tagPostsController == null) return;
       final tagPostIndex = tagPostsController.list
           .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
@@ -552,9 +577,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('flood_') &&
-        Get.isRegistered<FloodListingController>()) {
-      final floodController = Get.find<FloodListingController>();
+    if (surfaceTag.startsWith('flood_')) {
+      final floodController = FloodListingController.maybeFind();
+      if (floodController == null) return;
       final floodIndex = floodController.floods
           .indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
