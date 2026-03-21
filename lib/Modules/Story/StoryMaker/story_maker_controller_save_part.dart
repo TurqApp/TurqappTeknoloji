@@ -5,8 +5,8 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishStory)) {
       return;
     }
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    if (uid.isEmpty) {
       AppSnackbar("common.error".tr, "story.no_user".tr);
       return;
     }
@@ -46,7 +46,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     Get.back();
 
     _saveStoryBackground(
-      user,
+      uid,
       elementsSnapshot,
       colorSnapshot,
       musicSnapshot,
@@ -59,8 +59,8 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishStory)) {
       return;
     }
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    if (uid.isEmpty) {
       AppSnackbar("common.error".tr, "story.no_user".tr);
       return;
     }
@@ -78,7 +78,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     Get.back();
 
     _saveStoryBackground(
-      user,
+      uid,
       elementsSnapshot,
       colorSnapshot,
       musicSnapshot,
@@ -87,7 +87,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
   }
 
   Future<void> _saveStoryBackground(
-    User user,
+    String uid,
     List<StoryElement> elementsSnapshot,
     Color colorSnapshot,
     String musicSnapshot, {
@@ -123,7 +123,6 @@ extension StoryMakerControllerSavePart on StoryMakerController {
             continue;
           }
           final ts = DateTime.now().millisecondsSinceEpoch;
-          final uid = user.uid;
           if (e.type == StoryElementType.video) {
             final ext = path.extension(file.path);
             final ref =
@@ -180,7 +179,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       final storyData = <String, dynamic>{
-        'userId': user.uid,
+        'userId': uid,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': colorSnapshot.toARGB32(),
         'musicId': selectedMusicSnapshot?.docID ?? '',
@@ -202,7 +201,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           StoryMusicLibraryService.instance.recordStoryUsage(
             track: selectedMusicSnapshot,
             storyId: storyId,
-            userId: user.uid,
+            userId: uid,
             createdAt: storyData['createdDate'] as int? ??
                 DateTime.now().millisecondsSinceEpoch,
           ),

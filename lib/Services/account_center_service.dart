@@ -121,7 +121,7 @@ class AccountCenterService extends GetxService {
 
       if (resolvedEmail.isEmpty && isCurrentUserId(account.uid)) {
         resolvedEmail =
-            normalizeEmailAddress(FirebaseAuth.instance.currentUser?.email);
+            normalizeEmailAddress(CurrentUserService.instance.effectiveEmail);
       }
 
       if (resolvedEmail.isEmpty) continue;
@@ -168,7 +168,7 @@ class AccountCenterService extends GetxService {
 
   Future<void> reconcileWithAuthSession() async {
     await _ensurePrefs();
-    final authUid = CurrentUserService.instance.userId.trim();
+    final authUid = CurrentUserService.instance.effectiveUserId.trim();
     if (authUid.isEmpty) {
       if (activeUid.value.isNotEmpty) {
         activeUid.value = '';
@@ -263,7 +263,7 @@ class AccountCenterService extends GetxService {
   }
 
   Future<void> refreshCurrentAccountMetadata() async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = CurrentUserService.instance.currentAuthUser;
     if (firebaseUser == null) return;
 
     final currentUser = CurrentUserService.instance.currentUser;
@@ -347,7 +347,7 @@ class AccountCenterService extends GetxService {
   }
 
   Future<void> setSingleDeviceSessionEnabled(bool enabled) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
     if (uid.isEmpty) return;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final deviceKey =
@@ -367,10 +367,7 @@ class AccountCenterService extends GetxService {
   }
 
   Future<void> registerCurrentDeviceSessionIfEnabled() async {
-    final uid = (CurrentUserService.instance.userId.trim().isNotEmpty
-            ? CurrentUserService.instance.userId
-            : FirebaseAuth.instance.currentUser?.uid ?? '')
-        .trim();
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
     if (uid.isEmpty) return;
     final raw = await UserRepository.ensure().getUserRaw(
       uid,

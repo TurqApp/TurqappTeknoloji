@@ -68,14 +68,15 @@ extension SignInControllerAuthPart on SignInController {
 
     wait.value = true;
     try {
-      final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final userService = CurrentUserService.instance;
+      final currentUid = userService.authUserId;
       if (currentUid.isNotEmpty && currentUid != account.uid) {
         try {
           await _userRepository.updateUserFields(currentUid, {'token': ''});
         } catch (_) {}
         try {
-          await CurrentUserService.instance.logout();
-          await FirebaseAuth.instance.signOut();
+          await userService.logout();
+          await userService.signOutAuth();
         } catch (_) {}
       }
 
@@ -83,7 +84,7 @@ extension SignInControllerAuthPart on SignInController {
         email: credential.email,
         password: credential.password,
       );
-      final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final signedUid = CurrentUserService.instance.authUserId;
       if (signedUid.isNotEmpty) {
         DeviceSessionService.instance.beginSessionClaim(signedUid);
       }
@@ -367,7 +368,7 @@ extension SignInControllerAuthPart on SignInController {
         email: _resolvedSignInEmail(),
         password: password.value,
       );
-      final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final signedUid = CurrentUserService.instance.authUserId;
       if (signedUid.isNotEmpty) {
         DeviceSessionService.instance.beginSessionClaim(signedUid);
         try {
@@ -414,7 +415,7 @@ extension SignInControllerAuthPart on SignInController {
       return false;
     } catch (_) {
       wait.value = false;
-      if (authSucceeded || FirebaseAuth.instance.currentUser != null) {
+      if (authSucceeded || CurrentUserService.instance.hasAuthUser) {
         try {
           TextInput.finishAutofillContext(shouldSave: true);
         } catch (_) {}
@@ -471,7 +472,7 @@ extension SignInControllerAuthPart on SignInController {
       final search = normalizeEmailAddress(emailcontroller.text);
       if (search.length < 2) return;
 
-      if (FirebaseAuth.instance.currentUser == null) {
+      if (!CurrentUserService.instance.hasAuthUser) {
         signInEmail.value = search.contains("@") ? search : "";
         return;
       }

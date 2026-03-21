@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,6 +21,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/music_model.dart';
 import 'package:turqappv2/Modules/SpotifySelector/spotify_selector.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:video_player/video_player.dart';
 
 import 'drawing_screen.dart';

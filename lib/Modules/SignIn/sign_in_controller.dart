@@ -165,8 +165,9 @@ class SignInController extends GetxController
   }
 
   Future<void> _trackCurrentAccountForDevice() async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    final currentUser = CurrentUserService.instance.currentUser;
+    final userService = CurrentUserService.instance;
+    final firebaseUser = userService.currentAuthUser;
+    final currentUser = userService.currentUser;
     if (firebaseUser == null) return;
     if (kDebugMode) {
       debugPrint(
@@ -231,8 +232,10 @@ class SignInController extends GetxController
     String? email,
     String? password,
   }) async {
-    final authUser = FirebaseAuth.instance.currentUser;
-    final resolvedEmail = normalizeEmailAddress(email ?? authUser?.email);
+    final userService = CurrentUserService.instance;
+    final authUser = userService.currentAuthUser;
+    final resolvedEmail =
+        normalizeEmailAddress(email ?? userService.effectiveEmail);
     final resolvedPassword = (password ?? '').trim();
     if (authUser == null || resolvedEmail.isEmpty || resolvedPassword.isEmpty) {
       return;

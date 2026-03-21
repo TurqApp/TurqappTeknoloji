@@ -11,28 +11,15 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
   }
 
   Future<String?> _ensureStorageUploadAuthReady() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      try {
-        user = await FirebaseAuth.instance.authStateChanges().firstWhere(
-              (candidate) => candidate != null,
-            );
-      } catch (_) {
-        user = FirebaseAuth.instance.currentUser;
-      }
-    }
-    if (user == null) return null;
-    try {
-      await user.getIdToken(true);
-    } catch (_) {
-      // Best effort refresh only.
-    }
-    return user.uid;
+    return CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+    );
   }
 
   Future<void> _refreshAuthTokenIfNeeded() async {
     try {
-      await _ensureStorageUploadAuthReady();
+      await CurrentUserService.instance.refreshAuthTokenIfNeeded();
     } catch (_) {
       // Best effort refresh only.
     }

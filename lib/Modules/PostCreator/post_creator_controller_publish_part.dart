@@ -634,10 +634,11 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         try {
           final me = _currentUid;
           if (me.isNotEmpty) {
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(me)
-                .update({'counterOfPosts': FieldValue.increment(1)});
+            await UserRepository.ensure().updateUserFields(
+              me,
+              {'counterOfPosts': FieldValue.increment(1)},
+              mergeIntoCache: false,
+            );
           }
         } catch (_) {}
       }

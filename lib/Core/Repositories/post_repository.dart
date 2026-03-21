@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 
@@ -320,9 +321,13 @@ class PostRepository extends GetxService {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final isVisible = (model.timeStamp <= nowMs) && !model.flood;
     if (me != null && model.userID == me && isVisible) {
-      await _firestore.collection('users').doc(me).update({
-        'counterOfPosts': FieldValue.increment(archived ? -1 : 1),
-      });
+      await UserRepository.ensure().updateUserFields(
+        me,
+        {
+          'counterOfPosts': FieldValue.increment(archived ? -1 : 1),
+        },
+        mergeIntoCache: false,
+      );
     }
 
     final state = _states[model.docID];

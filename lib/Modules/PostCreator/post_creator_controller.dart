@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -131,11 +130,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   String _sharedOriginalUserID = "";
   String _sharedOriginalPostID = "";
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   String _requireCurrentUid() {
     final uid = _currentUid;

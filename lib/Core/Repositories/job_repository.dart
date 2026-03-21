@@ -493,16 +493,21 @@ class JobRepository extends GetxService {
     batch.update(jobDocRef, {
       'applicationCount': FieldValue.increment(1),
     });
-    batch.set(ownerNotificationRef, {
-      'type': 'job_application',
-      'fromUserID': userId,
-      'postID': jobDocId,
-      'timeStamp': now,
-      'read': false,
-      'title': applicantName.isNotEmpty ? applicantName : 'Bir kullanıcı',
-      'body': '$jobTitle ilanina basvuru yapti',
-      'thumbnail': applicantPfImage,
-    });
+    NotificationsRepository.ensure().queueCreateInboxItem(
+      batch,
+      ownerUserId,
+      {
+        'type': 'job_application',
+        'fromUserID': userId,
+        'postID': jobDocId,
+        'timeStamp': now,
+        'read': false,
+        'title': applicantName.isNotEmpty ? applicantName : 'Bir kullanıcı',
+        'body': '$jobTitle ilanina basvuru yapti',
+        'thumbnail': applicantPfImage,
+      },
+      docId: ownerNotificationRef.id,
+    );
     await batch.commit();
     _boolMemory['application:$jobDocId:$userId'] = _TimedBool(
       value: true,
@@ -567,15 +572,20 @@ class JobRepository extends GetxService {
       },
       SetOptions(merge: true),
     );
-    batch.set(notificationRef, {
-      'type': 'job_application',
-      'fromUserID': actorUid,
-      'postID': jobDocId,
-      'timeStamp': now,
-      'read': false,
-      'title': 'Başvuru durumu güncellendi',
-      'body': _statusBody(newStatus, title, companyName),
-    });
+    NotificationsRepository.ensure().queueCreateInboxItem(
+      batch,
+      applicantUserId,
+      {
+        'type': 'job_application',
+        'fromUserID': actorUid,
+        'postID': jobDocId,
+        'timeStamp': now,
+        'read': false,
+        'title': 'Başvuru durumu güncellendi',
+        'body': _statusBody(newStatus, title, companyName),
+      },
+      docId: notificationRef.id,
+    );
     await batch.commit();
     await _invalidateListCache('applications:$jobDocId');
   }

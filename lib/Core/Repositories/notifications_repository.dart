@@ -35,20 +35,40 @@ class NotificationsRepository extends GetxService {
         : _notificationsRef(trimmedUid).doc(docId.trim());
   }
 
+  Map<String, dynamic> normalizeInboxPayload(
+    String uid,
+    Map<String, dynamic> payload,
+  ) {
+    final trimmedUid = uid.trim();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return <String, dynamic>{
+      ...payload,
+      'userID': trimmedUid,
+      'timeStamp': payload['timeStamp'] ?? now,
+      'read': payload['read'] ?? false,
+      'isRead': payload['isRead'] ?? payload['read'] ?? false,
+    };
+  }
+
+  void queueCreateInboxItem(
+    WriteBatch batch,
+    String uid,
+    Map<String, dynamic> payload, {
+    String? docId,
+  }) {
+    if (uid.trim().isEmpty || payload.isEmpty) return;
+    batch.set(
+      inboxDoc(uid.trim(), docId: docId),
+      normalizeInboxPayload(uid, payload),
+    );
+  }
+
   Future<void> createInboxItem(
     String uid,
     Map<String, dynamic> payload,
   ) async {
     if (uid.trim().isEmpty || payload.isEmpty) return;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final data = <String, dynamic>{
-      'userID': uid.trim(),
-      'timeStamp': payload['timeStamp'] ?? now,
-      'read': payload['read'] ?? false,
-      'isRead': payload['isRead'] ?? payload['read'] ?? false,
-      ...payload,
-    };
-    await inboxDoc(uid.trim()).set(data);
+    await inboxDoc(uid.trim()).set(normalizeInboxPayload(uid, payload));
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> watchSettings(String uid) {

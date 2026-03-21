@@ -321,16 +321,21 @@ class TutoringRepository extends GetxService {
     batch.update(educatorDocRef, {
       'applicationCount': FieldValue.increment(1),
     });
-    batch.set(ownerNotificationRef, {
-      'type': 'tutoring_application',
-      'fromUserID': userId,
-      'postID': tutoringId,
-      'timeStamp': now,
-      'read': false,
-      'title': applicantLabel,
-      'body': '$tutoringTitle ilanina basvuru yapti',
-      'thumbnail': applicantImage,
-    });
+    NotificationsRepository.ensure().queueCreateInboxItem(
+      batch,
+      ownerUid,
+      {
+        'type': 'tutoring_application',
+        'fromUserID': userId,
+        'postID': tutoringId,
+        'timeStamp': now,
+        'read': false,
+        'title': applicantLabel,
+        'body': '$tutoringTitle ilanina basvuru yapti',
+        'thumbnail': applicantImage,
+      },
+      docId: ownerNotificationRef.id,
+    );
     await batch.commit();
     return true;
   }

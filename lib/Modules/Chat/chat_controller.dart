@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -237,8 +236,8 @@ class ChatController extends GetxController {
       _ChatControllerConversationX(this).jumpToMessageByRawId(rawId);
 
   Future<void> archiveCurrentChat() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
     try {
       final convDoc = await _conversationRepository.getConversation(
         chatID,

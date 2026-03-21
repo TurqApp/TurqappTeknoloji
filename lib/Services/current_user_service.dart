@@ -120,6 +120,116 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   /// Current user ID (shortcut)
   String get userId => _currentUser?.userID ?? '';
 
+  /// Auth fallback dahil efektif kullanıcı ID'si.
+  String get effectiveUserId {
+    final serviceUid = userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return authUserId;
+  }
+
+  User? get currentAuthUser => FirebaseAuth.instance.currentUser;
+
+  bool get hasAuthUser => currentAuthUser != null;
+
+  String get authUserId => currentAuthUser?.uid.trim() ?? '';
+
+  String get authEmail => currentAuthUser?.email?.trim() ?? '';
+
+  String get authDisplayName => currentAuthUser?.displayName?.trim() ?? '';
+
+  String get effectiveEmail {
+    final cached = email.trim();
+    if (cached.isNotEmpty) return cached;
+    return authEmail;
+  }
+
+  String get effectivePhoneNumber {
+    final cached = phoneNumber.trim();
+    if (cached.isNotEmpty) return cached;
+    return currentAuthUser?.phoneNumber?.trim() ?? '';
+  }
+
+  String get effectiveDisplayName {
+    final cachedFullName = fullName.trim();
+    if (cachedFullName.isNotEmpty) return cachedFullName;
+    final cachedNickname = nickname.trim();
+    if (cachedNickname.isNotEmpty) return cachedNickname;
+    return authDisplayName;
+  }
+
+  Stream<User?> authStateChanges() => FirebaseAuth.instance.authStateChanges();
+
+  Future<User?> resolveAuthUser({
+    bool waitForAuthState = false,
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    final existing = currentAuthUser;
+    if (existing != null) return existing;
+    if (!waitForAuthState) return null;
+    try {
+      return await authStateChanges()
+          .firstWhere((candidate) => candidate != null)
+          .timeout(timeout);
+    } catch (_) {
+      return currentAuthUser;
+    }
+  }
+
+  Future<User?> reloadCurrentAuthUser() async {
+    final user = currentAuthUser;
+    if (user == null) return null;
+    await user.reload();
+    return currentAuthUser;
+  }
+
+  Future<String?> ensureAuthReady({
+    bool waitForAuthState = false,
+    bool forceTokenRefresh = false,
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    final user = await resolveAuthUser(
+      waitForAuthState: waitForAuthState,
+      timeout: timeout,
+    );
+    if (user == null) return null;
+    if (forceTokenRefresh) {
+      try {
+        await user.getIdToken(true);
+      } catch (_) {
+        // Best effort refresh only.
+      }
+    }
+    final uid = user.uid.trim();
+    return uid.isEmpty ? null : uid;
+  }
+
+  Future<void> refreshAuthTokenIfNeeded({
+    bool waitForAuthState = true,
+  }) async {
+    try {
+      await ensureAuthReady(
+        waitForAuthState: waitForAuthState,
+        forceTokenRefresh: true,
+      );
+    } catch (_) {
+      // Best effort only.
+    }
+  }
+
+  Future<void> signOutAuth() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
+  Future<void> deleteAuthUserIfPresent() async {
+    final user = currentAuthUser;
+    if (user == null) return;
+    try {
+      await user.delete();
+    } catch (_) {
+      rethrow;
+    }
+  }
+
   /// Current user nickname (shortcut)
   String get nickname => _currentUser?.nickname ?? '';
 
@@ -231,7 +341,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     try {
       _prefs ??= await SharedPreferences.getInstance();
 
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+      final firebaseUser = currentAuthUser;
       if (firebaseUser == null) {
         _purgeUserScopedCaches(_currentUser?.userID);
         _isInitialized = true;
@@ -288,7 +398,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   /// Force refresh from Firebase (bypasses cache)
   Future<void> forceRefresh() async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = currentAuthUser;
     if (firebaseUser == null) return;
 
     try {
@@ -322,7 +432,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   Future<void> _startFirebaseSync() async {
     if (_isSyncing) return;
 
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = currentAuthUser;
     if (firebaseUser == null) return;
 
     try {
@@ -367,7 +477,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _adoptFreshSessionKeyIfNeeded() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = authUserId;
     if (uid.isEmpty) return;
     if (!DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) return;
     try {
@@ -877,7 +987,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     String initialIdentifier = '',
   }) async {
     await logout();
-    await FirebaseAuth.instance.signOut();
+    await signOutAuth();
     if (Get.key.currentContext == null) return;
     await Get.offAll(
       () => SignIn(
@@ -979,7 +1089,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = authUserId;
     if (uid.isEmpty) return;
     unawaited(_validateExclusiveSessionFromServer(uid));
   }

@@ -197,7 +197,7 @@ class AdminPushRepository extends GetxService {
           .limit(pageSize);
     }
 
-    final senderUid = CurrentUserService.instance.userId;
+    final senderUid = CurrentUserService.instance.effectiveUserId;
     return targets
         .where((targetUid) => targetUid.isNotEmpty && targetUid != senderUid)
         .toList(growable: false);
@@ -210,8 +210,8 @@ class AdminPushRepository extends GetxService {
     required List<String> targetUids,
   }) async {
     if (targetUids.isEmpty) return;
-    final senderUid = CurrentUserService.instance.userId.isNotEmpty
-        ? CurrentUserService.instance.userId
+    final senderUid = CurrentUserService.instance.effectiveUserId.isNotEmpty
+        ? CurrentUserService.instance.effectiveUserId
         : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     const batchSize = 400;
@@ -220,18 +220,21 @@ class AdminPushRepository extends GetxService {
       final batch = FirebaseFirestore.instance.batch();
       final chunk = targetUids.skip(i).take(batchSize);
       for (final targetUid in chunk) {
-        final docRef = NotificationsRepository.ensure().inboxDoc(targetUid);
-        batch.set(docRef, {
-          'type': type,
-          'title': title,
-          'body': body,
-          'fromUserID': senderUid,
-          'postID': 'admin-manual-push',
-          'adminPush': true,
-          'hideInAppInbox': true,
-          'timeStamp': nowMs,
-          'read': false,
-        });
+        NotificationsRepository.ensure().queueCreateInboxItem(
+          batch,
+          targetUid,
+          {
+            'type': type,
+            'title': title,
+            'body': body,
+            'fromUserID': senderUid,
+            'postID': 'admin-manual-push',
+            'adminPush': true,
+            'hideInAppInbox': true,
+            'timeStamp': nowMs,
+            'read': false,
+          },
+        );
       }
       await batch.commit();
     }
@@ -247,8 +250,8 @@ class AdminPushRepository extends GetxService {
     final targetUids = await resolveTargetUids(filters: filters);
     if (targetUids.isEmpty) return 0;
 
-    final senderUid = CurrentUserService.instance.userId.isNotEmpty
-        ? CurrentUserService.instance.userId
+    final senderUid = CurrentUserService.instance.effectiveUserId.isNotEmpty
+        ? CurrentUserService.instance.effectiveUserId
         : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     const batchSize = 400;
@@ -258,20 +261,23 @@ class AdminPushRepository extends GetxService {
       final batch = FirebaseFirestore.instance.batch();
       final chunk = targetUids.skip(i).take(batchSize);
       for (final targetUid in chunk) {
-        final docRef = NotificationsRepository.ensure().inboxDoc(targetUid);
-        batch.set(docRef, {
-          'type': 'posts',
-          'fromUserID': senderUid,
-          'postID': postId,
-          if (imageUrl != null && imageUrl.trim().isNotEmpty)
-            'imageUrl': imageUrl,
-          'adminPush': true,
-          'hideInAppInbox': true,
-          'timeStamp': nowMs,
-          'read': false,
-          'title': title,
-          'body': body,
-        });
+        NotificationsRepository.ensure().queueCreateInboxItem(
+          batch,
+          targetUid,
+          {
+            'type': 'posts',
+            'fromUserID': senderUid,
+            'postID': postId,
+            if (imageUrl != null && imageUrl.trim().isNotEmpty)
+              'imageUrl': imageUrl,
+            'adminPush': true,
+            'hideInAppInbox': true,
+            'timeStamp': nowMs,
+            'read': false,
+            'title': title,
+            'body': body,
+          },
+        );
         written++;
       }
       await batch.commit();

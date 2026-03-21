@@ -332,10 +332,11 @@ extension _ProfileViewGridsPart on _ProfileViewState {
       if (isVisible) {
         final me = _myUserId;
         if (me.isNotEmpty) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(me)
-              .update({'counterOfPosts': FieldValue.increment(-1)});
+          await UserRepository.ensure().updateUserFields(
+            me,
+            {'counterOfPosts': FieldValue.increment(-1)},
+            mergeIntoCache: false,
+          );
         }
       }
     } catch (_) {}

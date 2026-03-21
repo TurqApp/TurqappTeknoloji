@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,6 +21,7 @@ import '../../../Services/post_delete_service.dart';
 import '../../../Core/Services/admin_access_service.dart';
 import '../../../Core/Repositories/post_repository.dart';
 import '../../../Core/Repositories/admin_push_repository.dart';
+import '../../../Core/Repositories/user_repository.dart';
 import '../../../Core/Services/user_summary_resolver.dart';
 import '../../../Core/Services/typesense_post_service.dart';
 import '../../../Services/current_user_service.dart';
@@ -119,11 +119,7 @@ class PhotoShortsContentController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _reshareDocSub;
   StreamSubscription<DocumentSnapshot>? _postDocSub;
   Worker? _interactionWorker;
-  String get _currentUserId {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   // Reactive count variables using centralized manager
   RxInt get likeCount => countManager.getLikeCount(model.docID);
@@ -817,10 +813,11 @@ class PhotoShortsContentController extends GetxController {
 
       // Kök ve görünür bir gönderi olarak say (counterOfPosts +=1)
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .update({'counterOfPosts': FieldValue.increment(1)});
+        await UserRepository.ensure().updateUserFields(
+          uid,
+          {'counterOfPosts': FieldValue.increment(1)},
+          mergeIntoCache: false,
+        );
       } catch (_) {}
 
       await FirebaseFirestore.instance

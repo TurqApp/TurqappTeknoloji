@@ -1,34 +1,21 @@
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class WebpUploadService {
   static const int defaultMaxImageDimension = 600;
 
   static Future<String?> _ensureUploadAuthReady() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      try {
-        user = await FirebaseAuth.instance.authStateChanges().firstWhere(
-          (candidate) => candidate != null,
-        );
-      } catch (_) {
-        user = FirebaseAuth.instance.currentUser;
-      }
-    }
-    if (user == null) return null;
-    try {
-      await user.getIdToken(true);
-    } catch (_) {
-      // Best effort token refresh.
-    }
-    return user.uid;
+    return CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: true,
+    );
   }
 
   static bool _isAuthRetryable(FirebaseException e) {
@@ -38,7 +25,7 @@ class WebpUploadService {
 
   static Future<void> _refreshAuthTokenIfPossible() async {
     try {
-      await _ensureUploadAuthReady();
+      await CurrentUserService.instance.refreshAuthTokenIfNeeded();
     } catch (_) {
       // Best effort refresh; if it fails, original upload error will surface.
     }

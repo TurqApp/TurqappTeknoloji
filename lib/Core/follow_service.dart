@@ -26,7 +26,7 @@ class FollowService {
         limitReached: false,
       );
     }
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty || currentUserID == otherUserID) {
       return const FollowToggleOutcome(
           nowFollowing: false, limitReached: false);
@@ -67,7 +67,7 @@ class FollowService {
     )) {
       return false;
     }
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty || currentUserID == otherUserID) return false;
 
     final created = await FollowRepository.ensure().ensureRelation(
@@ -83,5 +83,51 @@ class FollowService {
       agenda.followingIDs.add(otherUserID);
     }
     return created;
+  }
+
+  static Future<void> createRelationPair(
+    String otherUserID, {
+    String? currentUid,
+    int? timestampMs,
+    bool enforceModerationGuard = true,
+  }) async {
+    if (enforceModerationGuard &&
+        !UserModerationGuard.ensureAllowed(
+          RestrictedAction.follow,
+          showMessage: false,
+        )) {
+      return;
+    }
+    final me =
+        (currentUid ?? CurrentUserService.instance.effectiveUserId).trim();
+    final other = otherUserID.trim();
+    if (me.isEmpty || other.isEmpty || me == other) return;
+    await FollowRepository.ensure().createRelationPair(
+      currentUid: me,
+      otherUid: other,
+      timestampMs: timestampMs,
+    );
+    final agenda = AgendaController.maybeFind();
+    if (agenda != null && me == CurrentUserService.instance.effectiveUserId) {
+      agenda.followingIDs.add(other);
+    }
+  }
+
+  static Future<void> deleteRelationPair(
+    String otherUserID, {
+    String? currentUid,
+  }) async {
+    final me =
+        (currentUid ?? CurrentUserService.instance.effectiveUserId).trim();
+    final other = otherUserID.trim();
+    if (me.isEmpty || other.isEmpty || me == other) return;
+    await FollowRepository.ensure().deleteRelationPair(
+      currentUid: me,
+      otherUid: other,
+    );
+    final agenda = AgendaController.maybeFind();
+    if (agenda != null && me == CurrentUserService.instance.effectiveUserId) {
+      agenda.followingIDs.remove(other);
+    }
   }
 }

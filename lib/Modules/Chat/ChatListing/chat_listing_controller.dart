@@ -46,7 +46,7 @@ class ChatListingController extends GetxController {
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
-  String get _uid => CurrentUserService.instance.userId;
+  String get _uid => CurrentUserService.instance.effectiveUserId;
   Duration get _syncInterval {
     if (_isOffline) return const Duration(seconds: 25);
     return _isOnWiFi
@@ -65,7 +65,7 @@ class ChatListingController extends GetxController {
   }
 
   String get _cacheKey {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     return uid.isEmpty ? '' : 'chat_listing_cache_$uid';
   }
 
@@ -315,7 +315,7 @@ class ChatListingController extends GetxController {
     required bool cacheOnly,
   }) async {
     final tempList = <ChatListingModel>[];
-    final uid = CurrentUserService.instance.userId;
+    final uid = _uid;
     final prefs = await SharedPreferences.getInstance();
     final docs = await _conversationRepository.fetchUserConversations(
       uid,
@@ -390,6 +390,9 @@ class ChatListingController extends GetxController {
       final unreadMap = data["unread"] is Map
           ? Map<String, dynamic>.from(data["unread"] as Map)
           : <String, dynamic>{};
+      final deletedMap = data["deletedAt"] is Map
+          ? Map<String, dynamic>.from(data["deletedAt"] as Map)
+          : <String, dynamic>{};
       final rawUnread = unreadMap[uid];
       final serverUnread = rawUnread is num
           ? rawUnread.toInt()
@@ -408,6 +411,11 @@ class ChatListingController extends GetxController {
       final localUnread =
           lastSenderId.isNotEmpty && lastSenderId != uid && ts > seenTs;
       final seenCoversLatestMessage = ts > 0 && seenTs >= ts;
+      final rawDeletedCutoff = deletedMap[uid];
+      final deletedCutoff = rawDeletedCutoff is num
+          ? rawDeletedCutoff.toInt()
+          : int.tryParse("$rawDeletedCutoff") ?? 0;
+      final isDeleted = deletedCutoff > 0 && ts > 0 && ts <= deletedCutoff;
       final unreadCount = seenCoversLatestMessage
           ? 0
           : math.max(serverUnread, localUnread ? 1 : 0);
@@ -416,7 +424,10 @@ class ChatListingController extends GetxController {
         chatID: doc.id,
         userID: otherUserId,
         timeStamp: ts.toString(),
-        deleted: isArchived ? const ["__archived__"] : const [],
+        deleted: [
+          if (isArchived) "__archived__",
+          if (isDeleted) "__deleted__",
+        ],
         nickname: (userData["nickname"] ??
                 userData["username"] ??
                 userData["displayName"] ??
@@ -441,7 +452,7 @@ class ChatListingController extends GetxController {
   }
 
   void startConversationListener() {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _uid;
     _syncTimer?.cancel();
     _conversationsSub?.cancel();
     if (uid.isEmpty) return;

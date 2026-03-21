@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../Models/posts_model.dart';
 import '../Core/Repositories/post_repository.dart';
+import '../Core/Repositories/user_repository.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
 import '../Core/Services/agenda_shuffle_cache_service.dart';
 import '../Core/Services/typesense_post_service.dart';
@@ -49,13 +50,14 @@ class PostDeleteService {
 
     // 2) Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts -=1
     try {
-      final me = CurrentUserService.instance.userId.trim();
+      final me = CurrentUserService.instance.effectiveUserId;
       final isVisibleRoot = (model.timeStamp <= nowMs) && !model.flood;
       if (me.isNotEmpty && model.userID == me && isVisibleRoot) {
-        await firestore
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(-1)});
+        await UserRepository.ensure().updateUserFields(
+          me,
+          {'counterOfPosts': FieldValue.increment(-1)},
+          mergeIntoCache: false,
+        );
       }
     } catch (_) {}
 

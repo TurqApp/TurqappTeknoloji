@@ -314,7 +314,7 @@ class SocialProfileController extends GetxController {
 
   Future<void> _logProfileVisitIfNeeded() async {
     try {
-      final current = CurrentUserService.instance.userId;
+      final current = CurrentUserService.instance.effectiveUserId;
       if (current.isEmpty) return;
       if (current == userID) return; // kendi profili
       final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -411,7 +411,7 @@ class SocialProfileController extends GetxController {
   }
 
   Future<void> isFollowingCheck() async {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     if (currentUid.isEmpty) return;
     _pruneCaches();
     final cacheKey = '$currentUid:$userID';
@@ -805,7 +805,7 @@ class SocialProfileController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       // Reconcile with server outcome
       takipEdiyorum.value = outcome.nowFollowing;
-      final currentUid = CurrentUserService.instance.userId;
+      final currentUid = CurrentUserService.instance.effectiveUserId;
       if (currentUid.isNotEmpty) {
         _followCheckCache['$currentUid:$userID'] = _SocialFollowCheckCacheEntry(
           isFollowing: outcome.nowFollowing,
@@ -849,7 +849,7 @@ class SocialProfileController extends GetxController {
       cancelText: 'common.cancel'.tr,
       yesText: 'common.block'.tr,
       onYesPressed: () async {
-        final currentUid = CurrentUserService.instance.userId;
+        final currentUid = CurrentUserService.instance.effectiveUserId;
 
         // 1) Engellenenler listesine ekle (canonical subcollection + legacy array)
         await _userSubcollectionRepository.upsertEntry(
@@ -863,13 +863,13 @@ class SocialProfileController extends GetxController {
         );
 
         // 2) Takip ilişkilerini temizle
-        await _followRepository.deleteRelationPair(
+        await FollowService.deleteRelationPair(
+          userID,
           currentUid: currentUid,
-          otherUid: userID,
         );
-        await _followRepository.deleteRelationPair(
+        await FollowService.deleteRelationPair(
+          currentUid,
           currentUid: userID,
-          otherUid: currentUid,
         );
 
         // 3) Veri yenileme
@@ -889,7 +889,7 @@ class SocialProfileController extends GetxController {
       yesText: 'blocked_users.unblock'.tr,
       onYesPressed: () async {
         // 1) Engellenenler listesinden kaldır
-        final currentUid = CurrentUserService.instance.userId;
+        final currentUid = CurrentUserService.instance.effectiveUserId;
         await _userSubcollectionRepository.deleteEntry(
           currentUid,
           subcollection: 'blockedUsers',

@@ -8,7 +8,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   void startEdit(MessageModel model) {
-    if (model.userID != CurrentUserService.instance.userId) return;
+    if (model.userID != CurrentUserService.instance.effectiveUserId) return;
     if (model.metin.trim().isEmpty) return;
     editingMessage.value = model;
     replyingTo.value = null;
@@ -85,7 +85,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   Future<void> deleteSelectedMessages() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty || selectedMessageIds.isEmpty) return;
     try {
       final convRef =
@@ -117,7 +117,7 @@ extension ChatControllerActionsPart on ChatController {
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
     required bool replace,
   }) {
-    final currentUID = CurrentUserService.instance.userId;
+    final currentUID = CurrentUserService.instance.effectiveUserId;
     if (replace) _conversationMessages.clear();
     final List<String> unseenRawDocIds = [];
     final List<String> undeliveredRawDocIds = [];
@@ -188,7 +188,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   String get _localChatWindowKey {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return "chat_window_cache_guest_$chatID";
     return "chat_window_cache_${uid}_$chatID";
   }
@@ -306,7 +306,7 @@ extension ChatControllerActionsPart on ChatController {
   }
 
   Future<String?> _resolveCounterpartUserId() async {
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (currentUid.isEmpty) return null;
 
     final candidates = <String>{};
@@ -420,7 +420,7 @@ extension ChatControllerActionsPart on ChatController {
     required String previewText,
     required int nowMs,
   }) async {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     final participants = [currentUid, targetUserId]..sort();
     final convRef =
         FirebaseFirestore.instance.collection("conversations").doc(chatID);
@@ -606,7 +606,8 @@ extension ChatControllerActionsPart on ChatController {
       final replyTextFinal = (replyTextOverride ?? "").trim();
       final replyTypeFinal = (replyTypeOverride ?? "text").trim();
       final replySenderFinal =
-          (replySenderIdOverride ?? CurrentUserService.instance.userId).trim();
+          (replySenderIdOverride ?? CurrentUserService.instance.effectiveUserId)
+              .trim();
       final replyMessageFinal =
           (replyMessageIdOverride ?? "preview_${now.microsecondsSinceEpoch}")
               .trim();
@@ -658,10 +659,10 @@ extension ChatControllerActionsPart on ChatController {
       );
 
       final conversationMessageData = {
-        "senderId": CurrentUserService.instance.userId,
+        "senderId": CurrentUserService.instance.effectiveUserId,
         "text": text,
         "createdDate": now.millisecondsSinceEpoch,
-        "seenBy": [CurrentUserService.instance.userId],
+        "seenBy": [CurrentUserService.instance.effectiveUserId],
         "type": messageType,
         "mediaUrls": gif != null ? [gif] : (imageUrls ?? []),
         "likes": <String>[],
@@ -721,7 +722,7 @@ extension ChatControllerActionsPart on ChatController {
       );
 
       try {
-        final currentUid = CurrentUserService.instance.userId;
+        final currentUid = CurrentUserService.instance.effectiveUserId;
         final resolvedTargetUid = await _resolveCounterpartUserId();
         final targetUidForConversation = resolvedTargetUid ?? userID;
         final convRef =
@@ -766,8 +767,7 @@ extension ChatControllerActionsPart on ChatController {
               if (full.isNotEmpty) return full;
               final nick = CurrentUserService.instance.nickname.trim();
               if (nick.isNotEmpty) return nick;
-              final authName =
-                  FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+              final authName = CurrentUserService.instance.authDisplayName;
               if (authName.isNotEmpty) return authName;
               return 'app.name'.tr;
             })();

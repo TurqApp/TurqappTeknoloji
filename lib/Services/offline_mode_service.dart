@@ -9,7 +9,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class OfflineModeService extends GetxController {
@@ -66,7 +66,8 @@ class OfflineModeService extends GetxController {
     await _loadDeadLetterActions();
     _loadStats();
     _startConnectivityListener();
-    _authSubscription ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+    _authSubscription ??=
+        CurrentUserService.instance.authStateChanges().listen((_) {
       unawaited(_reloadForActiveUser());
     });
   }
@@ -83,7 +84,7 @@ class OfflineModeService extends GetxController {
   }
 
   String get _activeUid {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     return uid.isEmpty ? 'guest' : uid;
   }
 
@@ -592,9 +593,10 @@ class PendingAction {
     final targetUid = data['targetUid'] as String?;
     final currentUid = data['currentUid'] as String?;
     if (targetUid == null || currentUid == null) return;
-    await FollowRepository.ensure().createRelationPair(
+    await FollowService.createRelationPair(
+      targetUid,
       currentUid: currentUid,
-      otherUid: targetUid,
+      enforceModerationGuard: false,
     );
   }
 }

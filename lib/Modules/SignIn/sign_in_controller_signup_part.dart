@@ -7,7 +7,7 @@ extension SignInControllerSignupPart on SignInController {
     wait.value = true;
     var accountProvisioned = false;
     try {
-      final authUser = FirebaseAuth.instance.currentUser;
+      final authUser = CurrentUserService.instance.currentAuthUser;
       if (authUser == null) {
         throw Exception('auth-user-null-after-create');
       }
@@ -127,7 +127,7 @@ extension SignInControllerSignupPart on SignInController {
       Get.off(() => NavBarView());
     } on PhoneAccountLimitReached catch (e) {
       try {
-        await FirebaseAuth.instance.currentUser?.delete();
+        await CurrentUserService.instance.deleteAuthUserIfPresent();
       } catch (_) {}
       AppSnackbar(
         'signup.limit_title'.tr,
@@ -136,7 +136,7 @@ extension SignInControllerSignupPart on SignInController {
       wait.value = false;
     } on UsernameAlreadyTaken catch (e) {
       try {
-        await FirebaseAuth.instance.currentUser?.delete();
+        await CurrentUserService.instance.deleteAuthUserIfPresent();
       } catch (_) {}
       AppSnackbar(
         'signup.username_taken_title'.tr,
@@ -151,7 +151,7 @@ extension SignInControllerSignupPart on SignInController {
         return;
       }
       try {
-        await FirebaseAuth.instance.currentUser?.delete();
+        await CurrentUserService.instance.deleteAuthUserIfPresent();
       } catch (_) {}
       AppSnackbar(
         'signup.failed_title'.tr,

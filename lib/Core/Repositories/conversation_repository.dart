@@ -89,6 +89,70 @@ class ConversationRepository extends GetxService {
     return result;
   }
 
+  String _resolveOtherUidFromConversationDoc(
+    String currentUid,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final participants = List<String>.from(data["participants"] ?? const []);
+    final otherFromParticipants = participants.firstWhere(
+      (value) => value != currentUid,
+      orElse: () => '',
+    );
+    if (otherFromParticipants.isNotEmpty) return otherFromParticipants;
+
+    final userId1 = (data["userID1"] ?? "").toString().trim();
+    final userId2 = (data["userID2"] ?? "").toString().trim();
+    if (userId1.isNotEmpty && userId1 != currentUid) return userId1;
+    if (userId2.isNotEmpty && userId2 != currentUid) return userId2;
+    return '';
+  }
+
+  Map<String, bool> deriveArchiveOverridesFromConversationDocs(
+    String currentUid,
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final map = <String, bool>{};
+    for (final doc in docs) {
+      final data = doc.data();
+      final otherUid = _resolveOtherUidFromConversationDoc(currentUid, doc);
+      if (otherUid.isEmpty) continue;
+      final archivedMap = data["archived"];
+      if (archivedMap is! Map) continue;
+      final raw = archivedMap[currentUid];
+      if (raw is bool) {
+        map[otherUid] = raw;
+      } else if (raw is num) {
+        map[otherUid] = raw != 0;
+      }
+    }
+    return map;
+  }
+
+  Map<String, int> deriveDeletedOverridesFromConversationDocs(
+    String currentUid,
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final map = <String, int>{};
+    for (final doc in docs) {
+      final data = doc.data();
+      final otherUid = _resolveOtherUidFromConversationDoc(currentUid, doc);
+      if (otherUid.isEmpty) continue;
+      final deletedMap = data["deletedAt"];
+      if (deletedMap is! Map) continue;
+      final raw = deletedMap[currentUid];
+      final deletedAt = raw is int
+          ? raw
+          : raw is num
+              ? raw.toInt()
+              : int.tryParse("$raw") ?? 0;
+      if (deletedAt > 0) {
+        map[otherUid] = deletedAt;
+      }
+    }
+    return map;
+  }
+
   DocumentReference<Map<String, dynamic>> _messageRef(
     String chatId,
     String messageId,
@@ -219,6 +283,7 @@ class ConversationRepository extends GetxService {
     required int deletedAt,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    final conversationRef = _firestore.collection("conversations").doc(chatId);
     await _firestore
         .collection("users")
         .doc(currentUid)
@@ -241,6 +306,11 @@ class ConversationRepository extends GetxService {
       "chatID": chatId,
       "archived": false,
       "updatedDate": now,
+    }, SetOptions(merge: true));
+
+    await conversationRef.set({
+      "deletedAt.$currentUid": deletedAt,
+      "archived.$currentUid": false,
     }, SetOptions(merge: true));
   }
 

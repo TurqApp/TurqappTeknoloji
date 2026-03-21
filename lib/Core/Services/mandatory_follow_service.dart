@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MandatoryFollowService {
@@ -31,7 +30,7 @@ class MandatoryFollowService {
   }
 
   Future<void> _enforceInternal() async {
-    final me = CurrentUserService.instance.userId.trim();
+    final me = CurrentUserService.instance.effectiveUserId.trim();
     if (me.isEmpty) return;
 
     final required = await _loadRequiredUids();
@@ -98,9 +97,10 @@ class MandatoryFollowService {
     required String me,
     required String other,
   }) async {
-    await FollowRepository.ensure().createRelationPair(
+    await FollowService.createRelationPair(
+      other,
       currentUid: me,
-      otherUid: other,
+      enforceModerationGuard: false,
     );
   }
 }

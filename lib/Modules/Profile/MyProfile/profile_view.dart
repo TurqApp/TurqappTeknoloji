@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18,6 +17,7 @@ import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -94,11 +94,7 @@ class _ProfileViewState extends State<ProfileView> {
   bool _ownsHighlightsController = false;
   Worker? _marketUserWorker;
 
-  String get _myUserId {
-    final serviceUserId = userService.userId.trim();
-    if (serviceUserId.isNotEmpty) return serviceUserId;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _myUserId => userService.effectiveUserId;
 
   String get _myNickname => userService.nickname;
   String get _myIosSafeNickname {
@@ -470,10 +466,10 @@ class _ProfileViewState extends State<ProfileView> {
                                                     );
                                                   },
                                                   child: Obx(() {
-                                                    final isCentered = controller
-                                                            .centeredIndex
-                                                            .value ==
-                                                        actualIndex;
+                                                    final isCentered =
+                                                        controller.centeredIndex
+                                                                .value ==
+                                                            actualIndex;
                                                     return Padding(
                                                       padding: EdgeInsets.only(
                                                           top: actualIndex == 0

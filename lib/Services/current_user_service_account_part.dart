@@ -2,7 +2,7 @@ part of 'current_user_service.dart';
 
 extension CurrentUserServiceAccountPart on CurrentUserService {
   Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = currentAuthUser;
     if (firebaseUser == null) return;
 
     try {
@@ -41,7 +41,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   }
 
   Future<void> updateFields(Map<String, dynamic> fields) async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = currentAuthUser;
     if (firebaseUser == null) return;
 
     try {
@@ -344,8 +344,8 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   bool get isEmailVerified => emailVerifiedRx.value;
 
   String? _emailPromptTimestampKey() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return null;
+    final uid = authUserId;
+    if (uid.isEmpty) return null;
     return '${CurrentUserService._emailPromptTimestampKeyPrefix}:$uid';
   }
 
@@ -389,14 +389,13 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   Future<void> refreshEmailVerificationStatus(
       {bool reloadAuthUser = true}) async {
     try {
-      var user = FirebaseAuth.instance.currentUser;
+      var user = currentAuthUser;
       if (user == null) {
         emailVerifiedRx.value = true;
         return;
       }
       if (reloadAuthUser) {
-        await user.reload();
-        user = FirebaseAuth.instance.currentUser;
+        user = await reloadCurrentAuthUser();
       }
       var isVerified = user?.emailVerified ?? false;
       if (!isVerified) {
@@ -413,15 +412,14 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       emailVerifiedRx.value = isVerified;
     } catch (e, st) {
       _logSilently('email.verify.refresh', e, st);
-      final authVerified =
-          FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+      final authVerified = currentAuthUser?.emailVerified ?? false;
       if (authVerified) {
         emailVerifiedRx.value = true;
         return;
       }
       try {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid != null && uid.isNotEmpty) {
+        final uid = authUserId;
+        if (uid.isNotEmpty) {
           final data = await _readRootUserData(uid, preferCache: true);
           emailVerifiedRx.value = data['emailVerified'] == true;
           return;
@@ -434,7 +432,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   }
 
   Future<void> sendVerificationEmailIfNeeded({bool force = false}) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = currentAuthUser;
     if (user == null) return;
     await refreshEmailVerificationStatus(reloadAuthUser: true);
     if (!force && isEmailVerified) return;

@@ -128,8 +128,7 @@ class UploadQueueService extends GetxController {
 
   String _resolveActiveUserId([Map<String, dynamic>? postDataMap]) {
     return _firstNonEmptyValue([
-      CurrentUserService.instance.userId,
-      FirebaseAuth.instance.currentUser?.uid,
+      CurrentUserService.instance.effectiveUserId,
       postDataMap?['userID'],
     ]);
   }
@@ -141,7 +140,7 @@ class UploadQueueService extends GetxController {
 
   Future<void> _refreshAuthTokenIfNeeded() async {
     try {
-      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      await CurrentUserService.instance.refreshAuthTokenIfNeeded();
     } catch (_) {
       // Best effort only.
     }
@@ -170,7 +169,7 @@ class UploadQueueService extends GetxController {
     super.onInit();
     _loadQueueFromStorage();
     _listenToConnectivity();
-    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+    _authSub ??= CurrentUserService.instance.authStateChanges().listen((_) {
       unawaited(_loadQueueFromStorage());
     });
   }
