@@ -14,9 +14,11 @@ import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
 import '../../Explore/explore_controller.dart';
+import '../../NavBar/nav_bar_controller.dart';
 import '../../Profile/MyProfile/profile_controller.dart';
 import '../../Profile/Archives/archives_controller.dart';
 import '../../Profile/LikedPosts/liked_posts_controller.dart';
+import '../../Profile/Settings/settings_controller.dart';
 import '../../SocialProfile/social_profile_controller.dart';
 import '../../Agenda/TopTags/top_tags_contoller.dart';
 import '../../Agenda/TagPosts/tag_posts_controller.dart';
@@ -74,10 +76,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       ValueNotifier(const HLSVideoValue());
 
   AgendaController _resolveAgendaController() {
-    if (Get.isRegistered<AgendaController>()) {
-      return Get.find<AgendaController>();
-    }
-    return Get.put(AgendaController());
+    return AgendaController.ensure();
   }
 
   /// videoController benzeri erişim — mevcut widget'lar uyumlu çalışır
@@ -111,6 +110,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isStandalonePostInstance =>
       (widget.instanceTag ?? '').startsWith('single_');
 
+  bool get _isProfileSurfaceInstance =>
+      (widget.instanceTag ?? '').startsWith('profile_');
+
+  bool get _isSurfacePlaybackAllowed {
+    if (isStandalonePostInstance) return true;
+    if (!_isProfileSurfaceInstance) return true;
+    final nav = NavBarController.maybeFind();
+    final settings = Get.isRegistered<SettingsController>()
+        ? Get.find<SettingsController>()
+        : null;
+    final hasEducation = settings?.educationScreenIsOn.value ?? false;
+    final profileIndex = hasEducation ? 4 : 3;
+    return nav?.selectedIndex.value == profileIndex;
+  }
+
   bool get shouldLoopVideo => isStandalonePostInstance;
 
   @override
@@ -136,7 +150,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           : const Duration(milliseconds: 150);
       _lazyInitTimer = Timer(delay, () {
         if (!mounted) return;
-        if (widget.shouldPlay) {
+        if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
           _initVideoController();
           if (isStandalonePostInstance) {
             Future.delayed(const Duration(milliseconds: 220), () {
@@ -176,7 +190,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _videoAdapter = adapterPool.acquire(
       cacheKey: playbackHandleKey,
       url: widget.model.playbackUrl,
-      autoPlay: widget.shouldPlay,
+      // Feed/SinglePost playback tek yerden (_startPlayback) yönetilsin.
+      // Native autoPlay + sonradan gelen play() dalgası Android'de
+      // ses sürerken görüntü freeze davranışı üretebiliyor.
+      autoPlay: false,
       loop: shouldLoopVideo,
     );
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
@@ -308,7 +325,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     // İlk kez ready olduğunda ses ayarla
     if (v.isInitialized && !_hasAutoPlayed) {
-      if (widget.shouldPlay) {
+      if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
         _startPlayback();
       } else {
         _applyPlaybackVolume();
@@ -354,11 +371,22 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _startPlayback() {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    if (!_isSurfacePlaybackAllowed) return;
     unawaited(adapter.setLooping(shouldLoopVideo));
     _applyPlaybackVolume();
     _hasAutoPlayed = true;
     unawaited(adapter.play());
-    videoStateManager.playOnlyThis(playbackHandleKey);
+    if (isStandalonePostInstance) {
+      videoStateManager.playOnlyThis(playbackHandleKey);
+    } else {
+      // Feed card already issues adapter.play() above. Using requestPlayVideo
+      // here avoids VideoStateManager's delayed second play wave, which can
+      // stall the renderer while audio keeps flowing on some Android devices.
+      videoStateManager.requestPlayVideo(
+        playbackHandleKey,
+        HLSAdapterPlaybackHandle(adapter),
+      );
+    }
     _syncRuntimeHints(
       isAudible: _currentIsAudible(),
       hasStableFocus: true,
@@ -473,9 +501,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final surfaceTag = widget.instanceTag ?? '';
     if (visibleFraction < 0.55) return;
 
-    if (surfaceTag.startsWith('profile_') &&
-        Get.isRegistered<ProfileController>()) {
-      final profileController = Get.find<ProfileController>();
+    final profileController = ProfileController.maybeFind();
+    if (surfaceTag.startsWith('profile_') && profileController != null) {
       final profileIndex = profileController.indexOfMergedEntry(
         docId: widget.model.docID,
         isReshare: widget.isReshared,
@@ -492,9 +519,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('social_') &&
-        Get.isRegistered<SocialProfileController>()) {
-      final socialProfileController = Get.find<SocialProfileController>();
+    final socialProfileController = SocialProfileController.maybeFind();
+    if (surfaceTag.startsWith('social_') && socialProfileController != null) {
       final socialIndex = socialProfileController.indexOfCombinedEntry(
         docId: widget.model.docID,
         isReshare: widget.isReshared,
@@ -592,9 +618,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
 
-    if (surfaceTag.startsWith('explore_series_') &&
-        Get.isRegistered<ExploreController>()) {
-      final exploreController = Get.find<ExploreController>();
+    final exploreController = ExploreController.maybeFind();
+    if (surfaceTag.startsWith('explore_series_') && exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
           .indexWhere((p) => p.docID == widget.model.docID);
       if (exploreIndex >= 0) {

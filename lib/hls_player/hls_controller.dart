@@ -68,6 +68,13 @@ class HLSController {
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
 
+  bool get _isAtPlaybackEnd {
+    if (!_duration.isFinite || _duration <= 0) return false;
+    if (!_currentPosition.isFinite) return false;
+    final remaining = _duration - _currentPosition;
+    return remaining <= 0.35;
+  }
+
   void cancelPendingResume() {
     _pendingReattachSeekSeconds = null;
     _pendingReattachShouldPlay = false;
@@ -408,7 +415,11 @@ class HLSController {
             break;
 
           case 'pause':
-            _updateState(PlayerState.paused);
+            if (_state == PlayerState.completed || _isAtPlaybackEnd) {
+              _updateState(PlayerState.completed);
+            } else {
+              _updateState(PlayerState.paused);
+            }
             break;
 
           case 'buffering':
@@ -443,6 +454,12 @@ class HLSController {
             if (!_hasRenderedFirstFrame && position > 0) {
               _markFirstFrameRendered();
             }
+            if (_state != PlayerState.completed &&
+                duration.isFinite &&
+                duration > 0 &&
+                (duration - position) <= 0.2) {
+              _updateState(PlayerState.completed);
+            }
             // Native tarafında 'ready/play' eventi erken kaçarsa timeUpdate ile state'i toparla.
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
               _updateState(
@@ -455,6 +472,14 @@ class HLSController {
               _telemetry.onCompleted(_telemetryVideoId!);
             }
             _updateState(PlayerState.completed);
+            break;
+
+          case 'rendererStall':
+            if (kDebugMode && !_suppressHlsSmokeLogs) {
+              debugPrint(
+                '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] rendererStall payload=$event url=$_currentUrl',
+              );
+            }
             break;
 
           case 'stopped':

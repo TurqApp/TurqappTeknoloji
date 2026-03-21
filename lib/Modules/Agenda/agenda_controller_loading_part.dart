@@ -79,6 +79,11 @@ extension AgendaControllerLoadingPart on AgendaController {
             ContentScreenKind.feed,
             hasLocalContent: true,
           )) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+            primeInitialCenteredPost();
+          }
+        });
         return;
       }
     }

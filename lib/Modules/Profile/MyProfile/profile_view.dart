@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/empty_row.dart';
@@ -323,6 +324,9 @@ class _ProfileViewState extends State<ProfileView> {
       controller.fetchPhotos();
       controller.fetchVideos();
     }
+    if (controller.postSelection.value == 0) {
+      return;
+    }
     final merged = controller.mergedPosts;
     if (merged.isEmpty) return;
 
@@ -372,7 +376,7 @@ class _ProfileViewState extends State<ProfileView> {
       final uid = _myUserId;
       final tag = uid.isEmpty ? '' : 'highlights_$uid';
       if (tag.isNotEmpty &&
-          Get.isRegistered<StoryHighlightsController>(tag: tag)) {
+          StoryHighlightsController.maybeFind(tag: tag) != null) {
         Get.delete<StoryHighlightsController>(tag: tag, force: true);
       }
     }
@@ -452,40 +456,51 @@ class _ProfileViewState extends State<ProfileView> {
                                             padding: EdgeInsets.only(bottom: 5),
                                             child: Column(
                                               children: [
-                                                Obx(() {
-                                                  final isCentered = controller
-                                                          .centeredIndex
-                                                          .value ==
-                                                      actualIndex;
-                                                  return Padding(
-                                                    padding: EdgeInsets.only(
-                                                        top: actualIndex == 0
-                                                            ? 12
-                                                            : 0),
-                                                    child: AgendaContent(
-                                                      key: itemKey,
-                                                      model: model,
-                                                      isPreview: false,
-                                                      shouldPlay: !controller
-                                                              .pausetheall
-                                                              .value &&
-                                                          !controller
-                                                              .showPfImage
-                                                              .value &&
-                                                          isCentered,
-                                                      instanceTag: controller
-                                                          .agendaInstanceTag(
-                                                        docId: model.docID,
-                                                        isReshare: isReshare,
+                                                VisibilityDetector(
+                                                  key: Key(
+                                                      'profile-visibility-${controller.mergedEntryIdentity(docId: model.docID, isReshare: isReshare)}'),
+                                                  onVisibilityChanged: (info) {
+                                                    controller
+                                                        .onPostVisibilityChanged(
+                                                      actualIndex,
+                                                      info.visibleFraction,
+                                                    );
+                                                  },
+                                                  child: Obx(() {
+                                                    final isCentered = controller
+                                                            .centeredIndex
+                                                            .value ==
+                                                        actualIndex;
+                                                    return Padding(
+                                                      padding: EdgeInsets.only(
+                                                          top: actualIndex == 0
+                                                              ? 12
+                                                              : 0),
+                                                      child: AgendaContent(
+                                                        key: itemKey,
+                                                        model: model,
+                                                        isPreview: false,
+                                                        shouldPlay: !controller
+                                                                .pausetheall
+                                                                .value &&
+                                                            !controller
+                                                                .showPfImage
+                                                                .value &&
+                                                            isCentered,
+                                                        instanceTag: controller
+                                                            .agendaInstanceTag(
+                                                          docId: model.docID,
+                                                          isReshare: isReshare,
+                                                        ),
+                                                        isYenidenPaylasilanPost:
+                                                            isReshare,
+                                                        reshareUserID: isReshare
+                                                            ? _myUserId
+                                                            : null,
                                                       ),
-                                                      isYenidenPaylasilanPost:
-                                                          isReshare,
-                                                      reshareUserID: isReshare
-                                                          ? _myUserId
-                                                          : null,
-                                                    ),
-                                                  );
-                                                }),
+                                                    );
+                                                  }),
+                                                ),
                                                 SizedBox(
                                                   height: 2,
                                                   child: Divider(

@@ -25,19 +25,16 @@ import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ProfileController extends GetxController {
   static ProfileController _ensureController() {
-    if (Get.isRegistered<ProfileController>()) {
-      return Get.find<ProfileController>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ProfileController());
   }
 
   static ProfileController ensure() => _ensureController();
 
   static ProfileController? maybeFind() {
-    if (Get.isRegistered<ProfileController>()) {
-      return Get.find<ProfileController>();
-    }
-    return null;
+    if (!Get.isRegistered<ProfileController>()) return null;
+    return Get.find<ProfileController>();
   }
 
   // 🎯 Using CurrentUserService for optimized user data access
@@ -73,6 +70,8 @@ class ProfileController extends GetxController {
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
   String? _pendingCenteredIdentity;
+  final Map<int, double> _visibleFractions = <int, double>{};
+  Timer? _visibilityDebounce;
 
   var followerCount = 0.obs;
   var followingCount = 0.obs;
@@ -126,7 +125,7 @@ class ProfileController extends GetxController {
 
   final RxList<PostsModel> reshares = <PostsModel>[].obs;
   StreamSubscription<List<UserPostReference>>? _resharesSub;
-  final UserPostLinkService _linkService = Get.put(UserPostLinkService());
+  final UserPostLinkService _linkService = UserPostLinkService.ensure();
   List<UserPostReference> _latestReshareRefs = const [];
   final Map<String, GlobalKey> _postKeys = {};
 
@@ -397,6 +396,9 @@ class ProfileController extends GetxController {
   void _rebuildMergedPosts() {
     if (allPosts.isEmpty && reshares.isEmpty) {
       mergedPosts.clear();
+      _visibleFractions.clear();
+      centeredIndex.value = -1;
+      currentVisibleIndex.value = -1;
       return;
     }
 
@@ -410,6 +412,138 @@ class ProfileController extends GetxController {
       next: combined,
     );
     _profileRenderCoordinator.applyPatch(mergedPosts, patch);
+    _visibleFractions.removeWhere((index, _) => index >= mergedPosts.length);
+    if (centeredIndex.value < 0 || centeredIndex.value >= mergedPosts.length) {
+      final target = _resolveInitialCenteredIndex();
+      if (target >= 0) {
+        centeredIndex.value = target;
+        currentVisibleIndex.value = target;
+        lastCenteredIndex = target;
+      }
+    }
+  }
+
+  int _resolveInitialCenteredIndex() {
+    if (mergedPosts.isEmpty) return -1;
+    final pendingIdentity = _pendingCenteredIdentity;
+    if (pendingIdentity != null && pendingIdentity.isNotEmpty) {
+      final pendingIndex = mergedPosts.indexWhere((entry) {
+        final entryDocId = ((entry['docID'] as String?) ?? '').trim();
+        final entryIsReshare = entry['isReshare'] == true;
+        return mergedEntryIdentity(
+              docId: entryDocId,
+              isReshare: entryIsReshare,
+            ) ==
+            pendingIdentity;
+      });
+      if (pendingIndex >= 0) return pendingIndex;
+    }
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < mergedPosts.length) {
+      return lastCenteredIndex!;
+    }
+    final firstVideo = mergedPosts.indexWhere(_canAutoplayMergedEntry);
+    if (firstVideo >= 0) return firstVideo;
+    return 0;
+  }
+
+  bool _canAutoplayMergedEntry(Map<String, dynamic> entry) {
+    final post = entry['post'];
+    if (post is! PostsModel) return false;
+    if (post.deletedPost) return false;
+    if (post.arsiv) return false;
+    return post.hasPlayableVideo;
+  }
+
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
+    if (postSelection.value != 0) return;
+    if (pausetheall.value || showPfImage.value) return;
+    if (modelIndex < 0 || modelIndex >= mergedPosts.length) return;
+    if (!_canAutoplayMergedEntry(mergedPosts[modelIndex])) return;
+
+    final prev = _visibleFractions[modelIndex];
+    if (GetPlatform.isAndroid &&
+        prev != null &&
+        (prev - visibleFraction).abs() < 0.08) {
+      return;
+    }
+
+    if (visibleFraction <= 0.01) {
+      _visibleFractions.remove(modelIndex);
+    } else {
+      _visibleFractions[modelIndex] = visibleFraction;
+    }
+
+    _scheduleVisibilityEvaluation();
+  }
+
+  void _scheduleVisibilityEvaluation() {
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(
+      GetPlatform.isAndroid
+          ? const Duration(milliseconds: 24)
+          : const Duration(milliseconds: 40),
+      _evaluateCenteredPlayback,
+    );
+  }
+
+  void _evaluateCenteredPlayback() {
+    if (mergedPosts.isEmpty) return;
+    final current = centeredIndex.value;
+    var bestIndex = -1;
+    var bestFraction = 0.0;
+    var fallbackIndex = -1;
+    var fallbackFraction = 0.0;
+    const double playThreshold = 0.80;
+    final double secondaryThreshold = GetPlatform.isAndroid ? 0.55 : 0.62;
+    final double lingerThreshold = GetPlatform.isAndroid ? 0.14 : 0.40;
+    final double hysteresis = GetPlatform.isAndroid ? 0.10 : 0.06;
+
+    _visibleFractions.forEach((index, fraction) {
+      if (index < 0 || index >= mergedPosts.length) return;
+      if (!_canAutoplayMergedEntry(mergedPosts[index])) return;
+      if (fraction > fallbackFraction) {
+        fallbackFraction = fraction;
+        fallbackIndex = index;
+      }
+      if (fraction < playThreshold) return;
+      if (fraction > bestFraction) {
+        bestFraction = fraction;
+        bestIndex = index;
+      }
+    });
+
+    if (bestIndex >= 0) {
+      final currentFraction =
+          current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
+      final shouldSwitch = current == -1 ||
+          current == bestIndex ||
+          currentFraction < playThreshold ||
+          bestFraction >= currentFraction + hysteresis;
+      if (shouldSwitch && centeredIndex.value != bestIndex) {
+        centeredIndex.value = bestIndex;
+        currentVisibleIndex.value = bestIndex;
+        lastCenteredIndex = bestIndex;
+      }
+      return;
+    }
+
+    if (fallbackIndex >= 0 && fallbackFraction >= secondaryThreshold) {
+      if (centeredIndex.value != fallbackIndex) {
+        centeredIndex.value = fallbackIndex;
+        currentVisibleIndex.value = fallbackIndex;
+        lastCenteredIndex = fallbackIndex;
+      }
+      return;
+    }
+
+    if (current >= 0) {
+      final currentFraction = _visibleFractions[current] ?? 0.0;
+      if (currentFraction < lingerThreshold) {
+        centeredIndex.value = -1;
+      }
+    }
   }
 
   void _schedulePersistPostCaches() {
@@ -699,7 +833,7 @@ class ProfileController extends GetxController {
       agendaInstanceTag(docId: docID, isReshare: true),
     };
     for (final tag in tags) {
-      if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      if (AgendaContentController.maybeFind(tag: tag) != null) {
         Get.delete<AgendaContentController>(tag: tag, force: true);
       }
     }

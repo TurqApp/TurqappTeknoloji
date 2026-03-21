@@ -46,6 +46,20 @@ class _AgendaSourcePage {
 }
 
 class AgendaController extends GetxController {
+  static AgendaController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      AgendaController(),
+      permanent: permanent,
+    );
+  }
+
+  static AgendaController? maybeFind() {
+    if (!Get.isRegistered<AgendaController>()) return null;
+    return Get.find<AgendaController>();
+  }
+
   final scrollController = ScrollController();
   UserProfileCacheService get _profileCache => UserProfileCacheService.ensure();
   UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
@@ -99,6 +113,8 @@ class AgendaController extends GetxController {
     if (!post.hasVideoSignal) return true; // text/photo post
     return post.hasRenderableVideoCard;
   }
+
+  bool canAutoplayInTests(PostsModel post) => _canAutoplayVideoPost(post);
 
   bool _isBlurredIzBirakVideo(PostsModel post, [int? nowMs]) {
     final scheduled = post.scheduledAt.toInt();

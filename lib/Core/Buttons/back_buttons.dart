@@ -11,6 +11,7 @@ class BackButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         AppBackButton(
           onTap: () {
@@ -19,7 +20,8 @@ class BackButtons extends StatelessWidget {
         )
             ,
         const SizedBox(width: 8),
-        Expanded(
+        Flexible(
+          fit: FlexFit.loose,
           child: AppPageTitle(
             text,
             fontSize: TextStyles.headerTextStyle.fontSize ?? 20,

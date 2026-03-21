@@ -15,6 +15,7 @@ import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -63,6 +64,10 @@ class ExoPlayerView(
     private var lastSurfaceHeight = 0
     private var stableSurfacePasses = 0
     private var isBufferingDispatched = false
+    private var lastVideoFrameAtMs = 0L
+    private var lastWatchdogPositionMs = 0L
+    private var stallRecoveries = 0
+    private var stallWatchdogRunnable: Runnable? = null
 
     init {
         val layoutRes = R.layout.turq_texture_player_view
@@ -174,6 +179,11 @@ class ExoPlayerView(
                     // Audio focus'u native katmanda zorla alma.
                     // Feed/SinglePost geçişinde focus churn sesi sıfırlayabiliyor.
                     setAudioAttributes(audioAttributes, false)
+                    setVideoFrameMetadataListener(
+                        VideoFrameMetadataListener { _, _, _, _ ->
+                            lastVideoFrameAtMs = System.currentTimeMillis()
+                        }
+                    )
                 }
         } else {
             existing
@@ -190,6 +200,9 @@ class ExoPlayerView(
         lastSurfaceHeight = 0
         stableSurfacePasses = 0
         isBufferingDispatched = false
+        lastVideoFrameAtMs = 0L
+        lastWatchdogPositionMs = 0L
+        stallRecoveries = 0
         resetSurfaceVisibility()
 
         if (existing == null) {
@@ -202,12 +215,14 @@ class ExoPlayerView(
                             sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
                         }
                         isPlayerReady = true
+                        lastWatchdogPositionMs = activePlayer.currentPosition
                         scheduleSurfaceReveal()
                         sendEvent(mapOf(
                             "event" to "ready",
                             "duration" to (activePlayer.duration / 1000.0)
                         ))
                         startPositionUpdates()
+                        startStallWatchdog()
                     }
                     Player.STATE_ENDED -> {
                         if (isBufferingDispatched) {
@@ -216,12 +231,14 @@ class ExoPlayerView(
                         }
                         sendEvent(mapOf("event" to "completed"))
                         stopPositionUpdates()
+                        stopStallWatchdog()
                     }
                     Player.STATE_BUFFERING -> {
                         if (!isBufferingDispatched) {
                             isBufferingDispatched = true
                             sendEvent(mapOf("event" to "buffering", "isBuffering" to true))
                         }
+                        stopStallWatchdog()
                     }
                     Player.STATE_IDLE -> {}
                 }
@@ -235,11 +252,13 @@ class ExoPlayerView(
                     }
                     sendEvent(mapOf("event" to "play"))
                     startPositionUpdates()
+                    startStallWatchdog()
                 } else {
                     val state = activePlayer.playbackState
                     if (state != Player.STATE_ENDED && state != Player.STATE_BUFFERING) {
                         sendEvent(mapOf("event" to "pause"))
                     }
+                    stopStallWatchdog()
                 }
             }
 
@@ -250,6 +269,7 @@ class ExoPlayerView(
                     "message" to (error.message ?: "Unknown playback error")
                 ))
                 stopPositionUpdates()
+                stopStallWatchdog()
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
@@ -259,6 +279,7 @@ class ExoPlayerView(
 
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
+                lastVideoFrameAtMs = System.currentTimeMillis()
                 scheduleSurfaceReveal()
                 sendEvent(mapOf("event" to "firstFrame"))
             }
@@ -297,12 +318,14 @@ class ExoPlayerView(
                 isSoftHeld = false
             }
             p.play()
+            startStallWatchdog()
         }
     }
 
     fun pause() {
         isSoftHeld = false
         player?.pause()
+        stopStallWatchdog()
     }
 
     fun softHold() {
@@ -314,6 +337,7 @@ class ExoPlayerView(
             p.volume = 0f
             isSoftHeld = true
         }
+        stopStallWatchdog()
     }
 
     fun seek(seconds: Double) {
@@ -363,6 +387,7 @@ class ExoPlayerView(
     /// Player view hayatta kalır, tekrar loadVideo ile yüklenebilir.
     fun stopPlayback() {
         stopPositionUpdates()
+        stopStallWatchdog()
         player?.stop()
         player?.clearMediaItems()
         sendEvent(mapOf("event" to "stopped"))
@@ -397,6 +422,70 @@ class ExoPlayerView(
     private fun stopPositionUpdates() {
         positionRunnable?.let { handler.removeCallbacks(it) }
         positionRunnable = null
+    }
+
+    private fun startStallWatchdog() {
+        stopStallWatchdog()
+        val runnable = object : Runnable {
+            override fun run() {
+                val p = player
+                if (p == null || !p.isPlaying || isSoftHeld) {
+                    stopStallWatchdog()
+                    return
+                }
+                if (p.playbackState != Player.STATE_READY || isBufferingDispatched) {
+                    handler.postDelayed(this, 1200)
+                    return
+                }
+
+                val now = System.currentTimeMillis()
+                val positionMs = p.currentPosition
+                val advancedMs = positionMs - lastWatchdogPositionMs
+                val frameSilenceMs = if (lastVideoFrameAtMs <= 0L) 0L else now - lastVideoFrameAtMs
+
+                if (didRenderFirstFrame && advancedMs >= 900L && frameSilenceMs >= 2200L) {
+                    sendEvent(
+                        mapOf(
+                            "event" to "rendererStall",
+                            "position" to (positionMs / 1000.0),
+                            "frameSilenceMs" to frameSilenceMs,
+                            "recoveryAttempt" to (stallRecoveries + 1),
+                        )
+                    )
+                    recoverFromRendererStall()
+                }
+
+                lastWatchdogPositionMs = p.currentPosition
+                handler.postDelayed(this, 1200)
+            }
+        }
+        stallWatchdogRunnable = runnable
+        handler.postDelayed(runnable, 1200)
+    }
+
+    private fun stopStallWatchdog() {
+        stallWatchdogRunnable?.let { handler.removeCallbacks(it) }
+        stallWatchdogRunnable = null
+    }
+
+    private fun recoverFromRendererStall() {
+        val p = player ?: return
+        if (stallRecoveries >= 2) return
+        stallRecoveries += 1
+        val currentPosition = p.currentPosition
+        handler.post {
+            try {
+                playerView.player = null
+                playerView.player = p
+                revealSurface(immediate = true)
+                p.seekTo(currentPosition)
+                p.playWhenReady = true
+                p.play()
+                lastVideoFrameAtMs = System.currentTimeMillis()
+                lastWatchdogPositionMs = p.currentPosition
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     private fun sendEvent(data: Map<String, Any>) {
@@ -466,6 +555,7 @@ class ExoPlayerView(
 
     private fun releasePlayer(fully: Boolean) {
         stopPositionUpdates()
+        stopStallWatchdog()
         player?.pause()
         resetSurfaceVisibility()
         if (fully) {
