@@ -184,7 +184,13 @@ class DenemeGrid extends StatelessWidget {
     return '${'practice.application_count'.tr}: $value';
   }
 
+  bool get _isOwner =>
+      model.userID == FirebaseAuth.instance.currentUser?.uid;
+
   Color _ctaColor(DenemeGridController controller) {
+    if (_isOwner) {
+      return Colors.indigo;
+    }
     if (controller.currentTime.value <
         controller.examTime.value - controller.fifteenMinutes) {
       return Colors.green;
@@ -202,6 +208,9 @@ class DenemeGrid extends StatelessWidget {
   }
 
   String _ctaLabel(DenemeGridController controller) {
+    if (_isOwner) {
+      return 'common.view'.tr;
+    }
     if (controller.currentTime.value <
         controller.examTime.value - controller.fifteenMinutes) {
       return 'practice.apply_now'.tr;
