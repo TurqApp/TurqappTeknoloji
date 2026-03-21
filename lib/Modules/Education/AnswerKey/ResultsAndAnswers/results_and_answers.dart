@@ -5,14 +5,52 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/ResultsAndAnswers/results_and_answers_controller.dart';
 
-class ResultsAndAnswers extends StatelessWidget {
+class ResultsAndAnswers extends StatefulWidget {
   final OpticalFormModel model;
 
   const ResultsAndAnswers({super.key, required this.model});
 
   @override
+  State<ResultsAndAnswers> createState() => _ResultsAndAnswersState();
+}
+
+class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final ResultsAndAnswersController controller;
+
+  OpticalFormModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'results_and_answers_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<ResultsAndAnswersController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(ResultsAndAnswersController(model), tag: _controllerTag)
+        : Get.find<ResultsAndAnswersController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ResultsAndAnswersController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<ResultsAndAnswersController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<ResultsAndAnswersController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ResultsAndAnswersController(model));
 
     return Scaffold(
       body: SafeArea(

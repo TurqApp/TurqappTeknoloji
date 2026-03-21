@@ -28,6 +28,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
     final Map<String, dynamic> userData =
         (scholarshipData['userData'] as Map<String, dynamic>?) ??
             <String, dynamic>{};
+    final bool isOwnScholarship =
+        userData['userID']?.toString() == CurrentUserService.instance.userId;
     final userImage = (userData['avatarUrl'] ?? '').toString();
     final userNick = (userData['displayName'] ??
             userData['username'] ??
@@ -58,40 +60,78 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                     Expanded(
                       child: BackButtons(text: 'scholarship.detail_title'.tr),
                     ),
-                    EducationFeedShareIconButton(
-                      onTap: () => shareService.shareScholarship(
-                        scholarshipData,
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: AppHeaderActionButton(
+                        onTap: () => shareService.shareScholarship(
+                          scholarshipData,
+                        ),
+                        child: Icon(
+                          CupertinoIcons.share,
+                          color: Colors.black,
+                          size: 20,
+                        ),
                       ),
-                      size: AppIconSurface.kSize,
-                      iconSize: AppIconSurface.kIconSize,
                     ),
-                    if (isCurrentUserId(userData['userID']?.toString() ?? ''))
+                    if (!isOwnScholarship && scholarshipDocId.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(left: 4, right: 10),
-                        child: AppHeaderActionButton(
-                          child: const Icon(
-                            CupertinoIcons.trash,
-                            color: Colors.red,
-                            size: 20,
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Obx(
+                          () => AppHeaderActionButton(
+                            onTap: () => scholarshipsController
+                                .toggleBookmark(scholarshipDocId, type),
+                            child: Icon(
+                              (scholarshipsController
+                                          .bookmarkedScholarships[
+                                      scholarshipDocId] ??
+                                  false)
+                                  ? CupertinoIcons.bookmark_fill
+                                  : CupertinoIcons.bookmark,
+                              color: (scholarshipsController
+                                          .bookmarkedScholarships[
+                                      scholarshipDocId] ??
+                                  false)
+                                  ? Colors.orange
+                                  : Colors.black,
+                              size: 20,
+                            ),
                           ),
-                          onTap: () {
-                            noYesAlert(
-                              title: 'scholarship.delete_title'.tr,
-                              message: 'scholarship.delete_confirm'.tr,
-                              onYesPressed: () async {
-                                await controller.deleteScholarship(
-                                  scholarshipData['docId'] ??
-                                      scholarshipData['scholarshipId'] ??
-                                      '',
-                                  type,
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 10),
+                      child: PullDownButton(
+                        itemBuilder: (context) => [
+                          if (isOwnScholarship)
+                            PullDownMenuItem(
+                              onTap: () {
+                                noYesAlert(
+                                  title: 'scholarship.delete_title'.tr,
+                                  message: 'scholarship.delete_confirm'.tr,
+                                  onYesPressed: () async {
+                                    await controller.deleteScholarship(
+                                      scholarshipDocId,
+                                      type,
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
+                              title: 'common.delete'.tr,
+                              icon: CupertinoIcons.trash,
+                              isDestructive: true,
+                            ),
+                        ],
+                        buttonBuilder: (context, showMenu) =>
+                            AppHeaderActionButton(
+                          onTap: showMenu,
+                          child: Icon(
+                            AppIcons.ellipsisVertical,
+                            color: Colors.black,
+                            size: 20,
+                          ),
                         ),
-                      )
-                    else
-                      10.pw,
+                      ),
+                    ),
                   ],
                 ),
                 Expanded(

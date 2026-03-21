@@ -25,4 +25,10 @@ class CreateChatController extends GetxController {
       }
     }, time: const Duration(milliseconds: 300));
   }
+
+  @override
+  void onClose() {
+    search.dispose();
+    super.onClose();
+  }
 }

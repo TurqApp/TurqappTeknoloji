@@ -9,10 +9,19 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'story_content_profile_controller.dart';
 
-class StoryContentProfiles extends StatelessWidget {
+class StoryContentProfiles extends StatefulWidget {
   final String userID;
 
-  StoryContentProfiles({super.key, required this.userID});
+  const StoryContentProfiles({super.key, required this.userID});
+
+  @override
+  State<StoryContentProfiles> createState() => _StoryContentProfilesState();
+}
+
+class _StoryContentProfilesState extends State<StoryContentProfiles> {
+  late final StoryContentProfileController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
 
   String get _currentUserId {
     final serviceUid = CurrentUserService.instance.userId.trim();
@@ -21,16 +30,45 @@ class StoryContentProfiles extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'story_content_profile_${widget.userID}_${identityHashCode(this)}';
+    if (Get.isRegistered<StoryContentProfileController>(tag: _controllerTag)) {
+      controller =
+          Get.find<StoryContentProfileController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        StoryContentProfileController(),
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
+    controller.getUserData(widget.userID);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<StoryContentProfileController>(tag: _controllerTag)) {
+      Get.delete<StoryContentProfileController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StoryContentProfileController(), tag: userID);
-    controller.getUserData(userID);
     return Obx(() {
       return Column(
         children: [
           GestureDetector(
             onTap: () {
-              if (userID != _currentUserId) {
-                Get.to(() => SocialProfile(userID: userID));
+              if (widget.userID != _currentUserId) {
+                Get.to(() => SocialProfile(userID: widget.userID));
               }
             },
             child: Container(
@@ -72,7 +110,7 @@ class StoryContentProfiles extends StatelessWidget {
                                     fontSize: 15,
                                     fontFamily: "MontserratMedium"),
                               ),
-                              RozetContent(size: 13, userID: userID)
+                              RozetContent(size: 13, userID: widget.userID)
                             ],
                           ),
                           Text(

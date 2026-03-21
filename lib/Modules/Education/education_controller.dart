@@ -151,6 +151,64 @@ class EducationController extends GetxController {
 
   bool get hasVisibleTabs => visibleTabIndexes.isNotEmpty;
 
+  void _resetTrackedScrollController(ScrollController? controller) {
+    if (controller == null) return;
+
+    void resetNow() {
+      if (!controller.hasClients) return;
+      try {
+        controller.jumpTo(0);
+      } catch (_) {}
+    }
+
+    resetNow();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      resetNow();
+    });
+  }
+
+  void resetActivePasajSurfaceToTop() {
+    switch (titles[selectedTab.value]) {
+      case PasajTabIds.market:
+        if (Get.isRegistered<MarketController>()) {
+          final market = Get.find<MarketController>();
+          _resetTrackedScrollController(market.scrollController);
+          market.scrollOffset.value = 0;
+        }
+        break;
+      case PasajTabIds.scholarships:
+        if (Get.isRegistered<ScholarshipsController>()) {
+          final scholarships = Get.find<ScholarshipsController>();
+          _resetTrackedScrollController(scholarships.scrollController);
+          scholarships.scrollOffset.value = 0;
+        }
+        break;
+      case PasajTabIds.onlineExam:
+        if (Get.isRegistered<DenemeSinavlariController>()) {
+          final exams = Get.find<DenemeSinavlariController>();
+          _resetTrackedScrollController(exams.scrollController);
+          exams.scrollOffset.value = 0;
+        }
+        break;
+      case PasajTabIds.answerKey:
+        if (Get.isRegistered<AnswerKeyController>()) {
+          final answerKey = Get.find<AnswerKeyController>();
+          _resetTrackedScrollController(answerKey.scrollController);
+          answerKey.scrollOffset.value = 0;
+        }
+        break;
+      case PasajTabIds.tutoring:
+        if (Get.isRegistered<TutoringController>()) {
+          final tutoring = Get.find<TutoringController>();
+          _resetTrackedScrollController(tutoring.scrollController);
+          tutoring.scrollOffset.value = 0;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   void _syncTabBarPosition(int visibleIndex) {
     if (!tabScrollController.hasClients) return;
     const tabStep = 120.0;
@@ -216,6 +274,7 @@ class EducationController extends GetxController {
     pageController.jumpToPage(visibleIndex);
     _syncTabBarPosition(visibleIndex);
     _restoreSearchForTab(actualIndex);
+    resetActivePasajSurfaceToTop();
   }
 
   void onPageChanged(int visibleIndex) {
@@ -223,6 +282,7 @@ class EducationController extends GetxController {
     selectedTab.value = actualIndex;
     _syncTabBarPosition(visibleIndex);
     _restoreSearchForTab(actualIndex);
+    resetActivePasajSurfaceToTop();
   }
 
   bool get canExitToFeed =>

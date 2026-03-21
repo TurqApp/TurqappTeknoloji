@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -30,7 +31,9 @@ class SupportMessageRepository extends GetxService {
   }) async {
     final currentService = CurrentUserService.instance;
     final current = currentService.currentUser;
-    final uid = currentService.userId;
+    final uid = currentService.userId.trim().isNotEmpty
+        ? currentService.userId.trim()
+        : (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
     if (uid.trim().isEmpty) {
       throw Exception('not_authenticated');
     }

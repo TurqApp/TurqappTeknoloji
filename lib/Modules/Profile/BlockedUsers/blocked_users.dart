@@ -7,9 +7,44 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/BlockedUsers/blocked_users_controller.dart';
 
-class BlockedUsers extends StatelessWidget {
-  BlockedUsers({super.key});
-  final controller = Get.put(BlockedUsersController());
+class BlockedUsers extends StatefulWidget {
+  const BlockedUsers({super.key});
+
+  @override
+  State<BlockedUsers> createState() => _BlockedUsersState();
+}
+
+class _BlockedUsersState extends State<BlockedUsers> {
+  late final String _controllerTag;
+  late final BlockedUsersController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'profile_blocked_users_${identityHashCode(this)}';
+    if (Get.isRegistered<BlockedUsersController>(tag: _controllerTag)) {
+      controller = Get.find<BlockedUsersController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(BlockedUsersController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<BlockedUsersController>(tag: _controllerTag) &&
+        identical(
+          Get.find<BlockedUsersController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<BlockedUsersController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

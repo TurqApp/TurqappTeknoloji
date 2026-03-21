@@ -8,17 +8,47 @@ import '../../../Models/recommended_user_model.dart';
 import 'recommended_user_content_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
-class RecommendedUserContent extends StatelessWidget {
+class RecommendedUserContent extends StatefulWidget {
   final RecommendedUserModel model;
 
-  RecommendedUserContent({super.key, required this.model});
+  const RecommendedUserContent({super.key, required this.model});
+
+  @override
+  State<RecommendedUserContent> createState() => _RecommendedUserContentState();
+}
+
+class _RecommendedUserContentState extends State<RecommendedUserContent> {
   late final RecommendedUserContentController controller;
+  late final String _controllerTag;
+
+  RecommendedUserModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'recommended_user_${model.userID}_${identityHashCode(this)}';
+    controller = Get.put(
+      RecommendedUserContentController(userID: model.userID),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<RecommendedUserContentController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<RecommendedUserContentController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(RecommendedUserContentController(userID: model.userID),
-        tag: model.userID);
-    controller.getTakipStatus();
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =

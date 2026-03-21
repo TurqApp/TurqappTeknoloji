@@ -5,9 +5,44 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contant_controller.dart';
 
-class ProfileContact extends StatelessWidget {
-  ProfileContact({super.key});
-  final controller = Get.put(ProfileContactController());
+class ProfileContact extends StatefulWidget {
+  const ProfileContact({super.key});
+
+  @override
+  State<ProfileContact> createState() => _ProfileContactState();
+}
+
+class _ProfileContactState extends State<ProfileContact> {
+  late final String _controllerTag;
+  late final ProfileContactController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'profile_contact_${identityHashCode(this)}';
+    if (Get.isRegistered<ProfileContactController>(tag: _controllerTag)) {
+      controller = Get.find<ProfileContactController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(ProfileContactController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ProfileContactController>(tag: _controllerTag) &&
+        identical(
+          Get.find<ProfileContactController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ProfileContactController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

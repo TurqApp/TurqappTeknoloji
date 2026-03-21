@@ -7,17 +7,53 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test_controller.dart';
 
-class SolveTest extends StatelessWidget {
+class SolveTest extends StatefulWidget {
   final String testID;
   final Function showSucces;
 
   const SolveTest({super.key, required this.testID, required this.showSucces});
 
   @override
+  State<SolveTest> createState() => _SolveTestState();
+}
+
+class _SolveTestState extends State<SolveTest> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SolveTestController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'solve_test_${widget.testID}_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<SolveTestController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(
+            SolveTestController(
+              testID: widget.testID,
+              showSucces: widget.showSucces,
+            ),
+            tag: _controllerTag,
+          )
+        : Get.find<SolveTestController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SolveTestController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<SolveTestController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<SolveTestController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-      SolveTestController(testID: testID, showSucces: showSucces),
-    );
 
     return Scaffold(
       body: SafeArea(

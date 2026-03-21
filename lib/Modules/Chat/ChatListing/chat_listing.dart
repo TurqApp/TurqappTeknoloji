@@ -12,13 +12,43 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'chat_listing_controller.dart';
 
-class ChatListing extends StatelessWidget {
-  ChatListing({super.key});
-  final controller = Get.put(ChatListingController());
+class ChatListing extends StatefulWidget {
+  const ChatListing({super.key});
+
+  @override
+  State<ChatListing> createState() => _ChatListingState();
+}
+
+class _ChatListingState extends State<ChatListing> {
+  late final ChatListingController controller;
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
   final ValueNotifier<String?> _openedChatId = ValueNotifier<String?>(null);
+  bool _ownsController = false;
+
   String get _uid => CurrentUserService.instance.userId;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<ChatListingController>()) {
+      controller = Get.find<ChatListingController>();
+    } else {
+      controller = Get.put(ChatListingController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _openedChatId.dispose();
+    if (_ownsController &&
+        Get.isRegistered<ChatListingController>() &&
+        identical(Get.find<ChatListingController>(), controller)) {
+      Get.delete<ChatListingController>(force: true);
+    }
+    super.dispose();
+  }
 
   Future<void> _archiveChat(ChatListingModel item) async {
     await _conversationRepository.setArchived(

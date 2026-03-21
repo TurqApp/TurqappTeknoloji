@@ -10,13 +10,21 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class FollowerContent extends StatelessWidget {
+class FollowerContent extends StatefulWidget {
   final String userID;
   @override
   final ValueKey key;
 
   const FollowerContent({required this.userID, required this.key})
       : super(key: key);
+
+  @override
+  State<FollowerContent> createState() => _FollowerContentState();
+}
+
+class _FollowerContentState extends State<FollowerContent> {
+  late final String _followTag;
+  late final FollowerController controller;
 
   String get _currentUid {
     final serviceUid = CurrentUserService.instance.userId.trim();
@@ -25,17 +33,27 @@ class FollowerContent extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      FollowerController(),
-      tag: userID, // Use userID as unique tag
-    );
-
-    if (!controller.isLoaded.value) {
-      controller.getData(userID);
-      controller.followControl(userID);
+  void initState() {
+    super.initState();
+    _followTag =
+        'follower_content_${widget.userID}_${identityHashCode(this)}';
+    controller = Get.put(FollowerController(), tag: _followTag);
+    controller.getData(widget.userID);
+    if (widget.userID != _currentUid) {
+      controller.followControl(widget.userID);
     }
+  }
 
+  @override
+  void dispose() {
+    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+      Get.delete<FollowerController>(tag: _followTag, force: true);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(() {
       return Padding(
         padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
@@ -43,9 +61,9 @@ class FollowerContent extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () {
-                if (userID != _currentUid) {
-                  Get.to(() => SocialProfile(userID: userID))!.then((v) {
-                    controller.followControl(userID);
+                if (widget.userID != _currentUid) {
+                  Get.to(() => SocialProfile(userID: widget.userID))!.then((v) {
+                    controller.followControl(widget.userID);
                   });
                 }
               },
@@ -74,9 +92,9 @@ class FollowerContent extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          Get.to(() => SocialProfile(userID: userID))!
+                          Get.to(() => SocialProfile(userID: widget.userID))!
                               .then((v) {
-                            controller.followControl(userID);
+                            controller.followControl(widget.userID);
                           });
                         },
                         child: Text(
@@ -89,13 +107,13 @@ class FollowerContent extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      RozetContent(size: 15, userID: userID),
+                      RozetContent(size: 15, userID: widget.userID),
                     ],
                   ),
                   GestureDetector(
                     onTap: () {
-                      Get.to(() => SocialProfile(userID: userID))!.then((v) {
-                        controller.followControl(userID);
+                      Get.to(() => SocialProfile(userID: widget.userID))!.then((v) {
+                        controller.followControl(widget.userID);
                       });
                     },
                     child: Text(
@@ -113,7 +131,7 @@ class FollowerContent extends StatelessWidget {
             SizedBox(
               width: 12,
             ),
-            if (controller.isLoaded.value && userID != _currentUid)
+            if (controller.isLoaded.value && widget.userID != _currentUid)
               Column(
                 children: [
                   if (controller.isFollowed.value == false)
@@ -122,7 +140,7 @@ class FollowerContent extends StatelessWidget {
                       onPressed: controller.followLoading.value
                           ? null
                           : () {
-                              controller.follow(userID);
+                              controller.follow(widget.userID);
                             },
                       child: Container(
                         height: 28,
@@ -168,7 +186,7 @@ class FollowerContent extends StatelessWidget {
                                 cancelText: "common.cancel".tr,
                                 yesText: "following.unfollow_title".tr,
                                 onYesPressed: () {
-                                  controller.follow(userID);
+                                  controller.follow(widget.userID);
                                 },
                               );
                             },

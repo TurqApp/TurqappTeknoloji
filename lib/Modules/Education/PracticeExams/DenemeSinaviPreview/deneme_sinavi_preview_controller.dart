@@ -302,15 +302,20 @@ class DenemeSinaviPreviewController extends GetxController {
   }
 
   Future<void> syncSavedState() async {
-    final savedController = Get.put(SavedPracticeExamsController());
-    if (savedController.savedExamIds.isEmpty && !savedController.isLoading.value) {
+    final savedController = Get.isRegistered<SavedPracticeExamsController>()
+        ? Get.find<SavedPracticeExamsController>()
+        : Get.put(SavedPracticeExamsController());
+    if (savedController.savedExamIds.isEmpty &&
+        !savedController.isLoading.value) {
       await savedController.loadSavedExams();
     }
     isSaved.value = savedController.savedExamIds.contains(model.docID);
   }
 
   Future<void> toggleSaved() async {
-    final savedController = Get.put(SavedPracticeExamsController());
+    final savedController = Get.isRegistered<SavedPracticeExamsController>()
+        ? Get.find<SavedPracticeExamsController>()
+        : Get.put(SavedPracticeExamsController());
     await savedController.toggleSavedExam(model.docID);
     isSaved.value = savedController.savedExamIds.contains(model.docID);
   }

@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/scholarship_applications_content.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsList/scholarship_applications_list_controller.dart';
 
-class ScholarshipApplicationsList extends StatelessWidget {
+class ScholarshipApplicationsList extends StatefulWidget {
   final String docID;
   final List<String> basvuranlar;
 
@@ -16,13 +16,55 @@ class ScholarshipApplicationsList extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      ScholarshipApplicationsListController(
-        docID: docID,
-        basvuranlar: basvuranlar,
-      ),
+  State<ScholarshipApplicationsList> createState() =>
+      _ScholarshipApplicationsListState();
+}
+
+class _ScholarshipApplicationsListState
+    extends State<ScholarshipApplicationsList> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final ScholarshipApplicationsListController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'scholarship_applications_${widget.docID}_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<ScholarshipApplicationsListController>(
+      tag: _controllerTag,
     );
+    controller = _ownsController
+        ? Get.put(
+            ScholarshipApplicationsListController(
+              docID: widget.docID,
+              basvuranlar: widget.basvuranlar,
+            ),
+            tag: _controllerTag,
+          )
+        : Get.find<ScholarshipApplicationsListController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ScholarshipApplicationsListController>(
+          tag: _controllerTag,
+        )) {
+      final registeredController =
+          Get.find<ScholarshipApplicationsListController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<ScholarshipApplicationsListController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
 
     return Scaffold(
       body: SafeArea(
@@ -31,10 +73,10 @@ class ScholarshipApplicationsList extends StatelessWidget {
           children: [
             BackButtons(
                 text: 'scholarship.applications_title'.trParams({
-              'count': '${basvuranlar.length}',
+              'count': '${widget.basvuranlar.length}',
             })),
             Expanded(
-              child: basvuranlar.isEmpty
+              child: widget.basvuranlar.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -59,10 +101,10 @@ class ScholarshipApplicationsList extends StatelessWidget {
                   : RefreshIndicator(
                       onRefresh: controller.onRefresh,
                       child: ListView.builder(
-                        itemCount: basvuranlar.length,
+                        itemCount: widget.basvuranlar.length,
                         itemBuilder: (context, index) {
                           return ScholarshipApplicationsContent(
-                            userID: basvuranlar[index],
+                            userID: widget.basvuranlar[index],
                           );
                         },
                       ),

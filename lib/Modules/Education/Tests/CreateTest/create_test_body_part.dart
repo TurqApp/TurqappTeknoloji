@@ -1,6 +1,6 @@
 part of 'create_test.dart';
 
-extension CreateTestBodyPart on CreateTest {
+extension CreateTestBodyPart on _CreateTestState {
   Widget testHazirla(BuildContext context, CreateTestController controller) {
     final coverSelectButtonWidth =
         (MediaQuery.of(context).size.width * 0.52).clamp(160.0, 200.0);

@@ -6,14 +6,56 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultPreview/booklet_result_preview_controller.dart';
 
-class BookletResultPreview extends StatelessWidget {
+class BookletResultPreview extends StatefulWidget {
   final BookletResultModel model;
 
   const BookletResultPreview({super.key, required this.model});
 
   @override
+  State<BookletResultPreview> createState() => _BookletResultPreviewState();
+}
+
+class _BookletResultPreviewState extends State<BookletResultPreview> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final BookletResultPreviewController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'booklet_result_preview_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<BookletResultPreviewController>(
+      tag: _controllerTag,
+    );
+    controller = _ownsController
+        ? Get.put(
+            BookletResultPreviewController(widget.model),
+            tag: _controllerTag,
+          )
+        : Get.find<BookletResultPreviewController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<BookletResultPreviewController>(
+          tag: _controllerTag,
+        )) {
+      final registeredController =
+          Get.find<BookletResultPreviewController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<BookletResultPreviewController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(BookletResultPreviewController(model));
 
     return Scaffold(
       body: SafeArea(
@@ -42,7 +84,7 @@ class BookletResultPreview extends StatelessWidget {
               child: Container(
                 color: Colors.white,
                 child: ListView.builder(
-                  itemCount: model.dogruCevaplar.length + 1,
+                  itemCount: widget.model.dogruCevaplar.length + 1,
                   itemBuilder: (context, index) {
                     final realindex = index - 1;
                     if (index == 0) {
@@ -122,7 +164,7 @@ class BookletResultPreview extends StatelessWidget {
                                                     ),
                                                   ),
                                                   Text(
-                                                    model.baslik,
+                                                    widget.model.baslik,
                                                     maxLines: 1,
                                                     style: const TextStyle(
                                                       color: Colors.indigo,
@@ -162,7 +204,7 @@ class BookletResultPreview extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
-                                          model.dogru.toString(),
+                                          widget.model.dogru.toString(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -191,7 +233,7 @@ class BookletResultPreview extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
-                                          model.yanlis.toString(),
+                                          widget.model.yanlis.toString(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -220,7 +262,7 @@ class BookletResultPreview extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
-                                          model.bos.toString(),
+                                          widget.model.bos.toString(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -262,25 +304,25 @@ class BookletResultPreview extends StatelessWidget {
                                   width: 40,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: model.cevaplar[realindex] == ""
-                                        ? (model.dogruCevaplar[realindex] ==
+                                    color: widget.model.cevaplar[realindex] == ""
+                                        ? (widget.model.dogruCevaplar[realindex] ==
                                                 item
                                             ? Colors.green
                                             : Colors.orange)
-                                        : model.cevaplar[realindex] ==
-                                                    model.dogruCevaplar[
+                                        : widget.model.cevaplar[realindex] ==
+                                                    widget.model.dogruCevaplar[
                                                         realindex] &&
-                                                model.cevaplar[realindex] ==
+                                                widget.model.cevaplar[realindex] ==
                                                     item
                                             ? Colors.green
-                                            : model.cevaplar[realindex] !=
-                                                        model.dogruCevaplar[
+                                            : widget.model.cevaplar[realindex] !=
+                                                        widget.model.dogruCevaplar[
                                                             realindex] &&
-                                                    model.dogruCevaplar[
+                                                    widget.model.dogruCevaplar[
                                                             realindex] ==
                                                         item
                                                 ? Colors.green
-                                                : model.cevaplar[realindex] ==
+                                                : widget.model.cevaplar[realindex] ==
                                                         item
                                                     ? Colors.red
                                                     : Colors.white,
@@ -289,8 +331,8 @@ class BookletResultPreview extends StatelessWidget {
                                   child: Text(
                                     item,
                                     style: TextStyle(
-                                      color: model.cevaplar[realindex] == "" ||
-                                              model.cevaplar[realindex] == item
+                                      color: widget.model.cevaplar[realindex] == "" ||
+                                              widget.model.cevaplar[realindex] == item
                                           ? Colors.white
                                           : Colors.black,
                                       fontSize: 20,

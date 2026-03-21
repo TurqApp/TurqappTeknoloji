@@ -7,14 +7,41 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 
-class SavedTutorings extends StatelessWidget {
+class SavedTutorings extends StatefulWidget {
   const SavedTutorings({super.key});
 
   @override
+  State<SavedTutorings> createState() => _SavedTutoringsState();
+}
+
+class _SavedTutoringsState extends State<SavedTutorings> {
+  late final SavedTutoringsController savedController;
+  late final bool _ownsSavedController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SavedTutoringsController>()) {
+      savedController = Get.find<SavedTutoringsController>();
+      _ownsSavedController = false;
+    } else {
+      savedController = Get.put(SavedTutoringsController());
+      _ownsSavedController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsSavedController &&
+        Get.isRegistered<SavedTutoringsController>() &&
+        identical(Get.find<SavedTutoringsController>(), savedController)) {
+      Get.delete<SavedTutoringsController>();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final SavedTutoringsController savedController = Get.put(
-      SavedTutoringsController(),
-    );
     final ViewModeController viewModeController =
         Get.find<ViewModeController>();
     final TutoringController tutoringController =

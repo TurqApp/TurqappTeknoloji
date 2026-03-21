@@ -13,6 +13,7 @@ import 'dart:async';
 import '../Short/short_controller.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Explore/explore_controller.dart';
+import '../Education/education_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';
@@ -20,6 +21,7 @@ import '../../Core/Services/integration_test_mode.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Services/current_user_service.dart';
+import '../Profile/Settings/settings_controller.dart';
 
 typedef TextUpdate = String;
 
@@ -268,6 +270,10 @@ class NavBarController extends GetxController
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_isDisposed) return;
+    final hasEducation = Get.isRegistered<SettingsController>()
+        ? Get.find<SettingsController>().educationScreenIsOn.value
+        : false;
+    final educationIndex = hasEducation ? 3 : -1;
 
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -291,10 +297,23 @@ class NavBarController extends GetxController
         }
       } catch (_) {}
     }
+    if (state == AppLifecycleState.resumed &&
+        educationIndex >= 0 &&
+        selectedIndex.value == educationIndex) {
+      try {
+        if (Get.isRegistered<EducationController>()) {
+          Get.find<EducationController>().resetActivePasajSurfaceToTop();
+        }
+      } catch (_) {}
+    }
   }
 
   void changeIndex(int index) {
     final previous = selectedIndex.value;
+    final hasEducation = Get.isRegistered<SettingsController>()
+        ? Get.find<SettingsController>().educationScreenIsOn.value
+        : false;
+    final educationIndex = hasEducation ? 3 : -1;
     selectedIndex.value = index;
     unawaited(_persistSelectedIndex(index));
 
@@ -315,6 +334,17 @@ class NavBarController extends GetxController
         try {
           if (Get.isRegistered<AgendaController>()) {
             Get.find<AgendaController>().resumeFeedPlayback();
+          }
+        } catch (_) {}
+      });
+    }
+
+    if (educationIndex >= 0 && index == educationIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_isDisposed) return;
+        try {
+          if (Get.isRegistered<EducationController>()) {
+            Get.find<EducationController>().resetActivePasajSurfaceToTop();
           }
         } catch (_) {}
       });

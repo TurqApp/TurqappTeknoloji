@@ -62,11 +62,14 @@ class SocialProfile extends StatefulWidget {
 
 class _SocialProfileState extends State<SocialProfile> {
   late SocialProfileController controller;
+  late ChatListingController chatListingController;
   final Map<int, ScrollController> _scrollControllers =
       <int, ScrollController>{};
   bool _scrollProbeScheduled = false;
+  bool _ownsController = false;
+  bool _ownsHighlightsController = false;
+  bool _ownsChatListingController = false;
   final userService = CurrentUserService.instance;
-  final chatListingController = Get.put(ChatListingController());
   final ShortLinkService _shortLinkService = ShortLinkService();
 
   ScrollController _scrollControllerForSelection(int selection) {
@@ -94,15 +97,29 @@ class _SocialProfileState extends State<SocialProfile> {
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
-    controller = Get.put(
-      SocialProfileController(userID: widget.userID),
-      tag: widget.userID,
-    );
-    // Story Highlights controller
-    Get.put(
-      StoryHighlightsController(userId: widget.userID),
-      tag: 'highlights_${widget.userID}',
-    );
+    if (Get.isRegistered<ChatListingController>()) {
+      chatListingController = Get.find<ChatListingController>();
+    } else {
+      chatListingController = Get.put(ChatListingController());
+      _ownsChatListingController = true;
+    }
+    if (Get.isRegistered<SocialProfileController>(tag: widget.userID)) {
+      controller = Get.find<SocialProfileController>(tag: widget.userID);
+    } else {
+      controller = Get.put(
+        SocialProfileController(userID: widget.userID),
+        tag: widget.userID,
+      );
+      _ownsController = true;
+    }
+    final highlightsTag = 'highlights_${widget.userID}';
+    if (!Get.isRegistered<StoryHighlightsController>(tag: highlightsTag)) {
+      Get.put(
+        StoryHighlightsController(userId: widget.userID),
+        tag: highlightsTag,
+      );
+      _ownsHighlightsController = true;
+    }
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
       _scrollControllerForSelection(selection);
     }
@@ -250,6 +267,28 @@ class _SocialProfileState extends State<SocialProfile> {
   void dispose() {
     for (final scrollController in _scrollControllers.values) {
       scrollController.dispose();
+    }
+    if (_ownsHighlightsController) {
+      final highlightsTag = 'highlights_${widget.userID}';
+      if (Get.isRegistered<StoryHighlightsController>(tag: highlightsTag)) {
+        Get.delete<StoryHighlightsController>(
+          tag: highlightsTag,
+          force: true,
+        );
+      }
+    }
+    if (_ownsController &&
+        Get.isRegistered<SocialProfileController>(tag: widget.userID) &&
+        identical(
+          Get.find<SocialProfileController>(tag: widget.userID),
+          controller,
+        )) {
+      Get.delete<SocialProfileController>(tag: widget.userID, force: true);
+    }
+    if (_ownsChatListingController &&
+        Get.isRegistered<ChatListingController>() &&
+        identical(Get.find<ChatListingController>(), chatListingController)) {
+      Get.delete<ChatListingController>(force: true);
     }
     super.dispose();
   }

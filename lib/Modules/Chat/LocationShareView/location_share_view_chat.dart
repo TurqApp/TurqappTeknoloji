@@ -6,14 +6,43 @@ import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'location_share_controller.dart';
 
-class LocationShareViewChat extends StatelessWidget {
+class LocationShareViewChat extends StatefulWidget {
   final String chatID;
-  LocationShareViewChat({super.key, required this.chatID});
+  const LocationShareViewChat({super.key, required this.chatID});
+
+  @override
+  State<LocationShareViewChat> createState() => _LocationShareViewChatState();
+}
+
+class _LocationShareViewChatState extends State<LocationShareViewChat> {
   late final LocationShareController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'location_share_${widget.chatID}_${identityHashCode(this)}';
+    controller = Get.put(
+      LocationShareController(chatID: widget.chatID),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<LocationShareController>(tag: _controllerTag) &&
+        identical(
+          Get.find<LocationShareController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<LocationShareController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(LocationShareController(chatID: chatID));
     return Scaffold(
       body: Obx(() {
         final pos = controller.currentPosition.value;

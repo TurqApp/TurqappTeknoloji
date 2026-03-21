@@ -17,15 +17,22 @@ class OpticsAndBooksPublished extends StatefulWidget {
 }
 
 class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
-  final controller = Get.put(OpticsAndBooksPublishedController());
+  late final OpticsAndBooksPublishedController controller;
   final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
   late final String _pageLineBarTag =
       'OpticsAndBooksPublished_${identityHashCode(this)}';
+  bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<OpticsAndBooksPublishedController>()) {
+      controller = Get.find<OpticsAndBooksPublishedController>();
+    } else {
+      controller = Get.put(OpticsAndBooksPublishedController());
+      _ownsController = true;
+    }
     controller.refreshOnOpen();
     _scrollController.addListener(() {
       controller.scrollOffset.value = _scrollController.offset;
@@ -34,6 +41,11 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
 
   @override
   void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<OpticsAndBooksPublishedController>() &&
+        Get.find<OpticsAndBooksPublishedController>() == controller) {
+      Get.delete<OpticsAndBooksPublishedController>(force: true);
+    }
     _scrollController.dispose();
     _pageController.dispose();
     super.dispose();

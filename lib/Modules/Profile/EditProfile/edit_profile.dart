@@ -33,13 +33,27 @@ class EditProfile extends StatefulWidget {
 
 class _EditProfileState extends State<EditProfile> {
   late final EditProfileController controller;
+  late final String _controllerTag;
   final CurrentUserService currentUserService = CurrentUserService.instance;
   bool _updating = false;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(EditProfileController());
+    _controllerTag = 'edit_profile_${identityHashCode(this)}';
+    controller = Get.put(EditProfileController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<EditProfileController>(tag: _controllerTag) &&
+        identical(
+          Get.find<EditProfileController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<EditProfileController>(tag: _controllerTag);
+    }
+    super.dispose();
   }
 
   String get _avatarUrl => currentUserService.avatarUrl.trim();

@@ -9,14 +9,41 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dar
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class TutoringSearch extends StatelessWidget {
+class TutoringSearch extends StatefulWidget {
   const TutoringSearch({super.key});
 
   @override
+  State<TutoringSearch> createState() => _TutoringSearchState();
+}
+
+class _TutoringSearchState extends State<TutoringSearch> {
+  late final TutoringSearchController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<TutoringSearchController>()) {
+      controller = Get.find<TutoringSearchController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(TutoringSearchController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<TutoringSearchController>() &&
+        identical(Get.find<TutoringSearchController>(), controller)) {
+      Get.delete<TutoringSearchController>();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final TutoringSearchController controller = Get.put(
-      TutoringSearchController(),
-    );
     final ViewModeController viewModeController =
         Get.find<ViewModeController>();
 

@@ -28,6 +28,12 @@ class AddressSelectorController extends GetxController {
     });
   }
 
+  @override
+  void onClose() {
+    addressController.dispose();
+    super.onClose();
+  }
+
   Future<void> setData() async {
     await _userRepository.updateUserFields(
       CurrentUserService.instance.userId,

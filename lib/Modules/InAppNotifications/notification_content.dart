@@ -13,24 +13,81 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'notification_content_controller.dart';
 
-class NotificationContent extends StatelessWidget {
+class NotificationContent extends StatefulWidget {
   final NotificationModel model;
   final VoidCallback? onOpen;
   final VoidCallback? onCardTap;
-  late final NotificationContentController controller;
-  NotificationContent({
+  const NotificationContent({
     super.key,
     required this.model,
     this.onOpen,
     this.onCardTap,
-  }) {
+  });
+
+  @override
+  State<NotificationContent> createState() => _NotificationContentState();
+}
+
+class _NotificationContentState extends State<NotificationContent> {
+  late NotificationContentController controller;
+  late String _controllerTag;
+
+  NotificationModel get model => widget.model;
+  VoidCallback? get onOpen => widget.onOpen;
+  VoidCallback? get onCardTap => widget.onCardTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _bindController();
+    _primePostData();
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.docID != widget.model.docID ||
+        oldWidget.model.postID != widget.model.postID ||
+        oldWidget.model.userID != widget.model.userID ||
+        oldWidget.model.postType != widget.model.postType) {
+      _disposeController();
+      _bindController();
+    }
+    _primePostData();
+  }
+
+  @override
+  void dispose() {
+    _disposeController();
+    super.dispose();
+  }
+
+  void _bindController() {
+    _controllerTag =
+        'notification_content_${widget.model.docID}_${identityHashCode(this)}';
     controller = Get.put(
       NotificationContentController(
-        userID: model.userID,
-        notification: model,
+        userID: widget.model.userID,
+        notification: widget.model,
       ),
-      tag: model.docID,
+      tag: _controllerTag,
     );
+  }
+
+  void _disposeController() {
+    if (Get.isRegistered<NotificationContentController>(tag: _controllerTag)) {
+      Get.delete<NotificationContentController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+  }
+
+  void _primePostData() {
+    if (model.postType == kNotificationPostTypePosts &&
+        controller.model.value.docID != model.postID) {
+      controller.getPostData(model.postID);
+    }
   }
 
   String _buildPrimaryText() {
@@ -44,10 +101,6 @@ class NotificationContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (model.postType == kNotificationPostTypePosts &&
-        controller.model.value.docID != model.postID) {
-      controller.getPostData(model.postID);
-    }
     // FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).collection("Bildirimler").doc(model.docID).update(
     //     {
     //       "postID" : "f4932ae6-19e8-4633-91bf-9f0d5d35f388"

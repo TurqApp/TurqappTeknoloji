@@ -5,13 +5,41 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 
-class SavedPracticeExams extends StatelessWidget {
+class SavedPracticeExams extends StatefulWidget {
   const SavedPracticeExams({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(SavedPracticeExamsController());
+  State<SavedPracticeExams> createState() => _SavedPracticeExamsState();
+}
 
+class _SavedPracticeExamsState extends State<SavedPracticeExams> {
+  late final SavedPracticeExamsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SavedPracticeExamsController>()) {
+      controller = Get.find<SavedPracticeExamsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(SavedPracticeExamsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SavedPracticeExamsController>() &&
+        identical(Get.find<SavedPracticeExamsController>(), controller)) {
+      Get.delete<SavedPracticeExamsController>();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

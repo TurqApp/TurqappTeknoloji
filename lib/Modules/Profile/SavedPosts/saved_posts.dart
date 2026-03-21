@@ -21,18 +21,24 @@ class SavedPosts extends StatefulWidget {
 
 class _SavedPostsState extends State<SavedPosts> {
   late SavedPostsController controller;
+  bool _ownsController = false;
   late final String _pageLineBarTag =
       '${kSavedPostsPageLineBarTag}_${identityHashCode(this)}';
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(SavedPostsController());
+    if (Get.isRegistered<SavedPostsController>()) {
+      controller = Get.find<SavedPostsController>();
+    } else {
+      controller = Get.put(SavedPostsController());
+      _ownsController = true;
+    }
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<SavedPostsController>()) {
+    if (_ownsController && Get.isRegistered<SavedPostsController>()) {
       Get.delete<SavedPostsController>(force: true);
     }
     super.dispose();

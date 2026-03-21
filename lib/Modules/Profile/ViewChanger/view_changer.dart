@@ -6,18 +6,44 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 import 'view_changer_controller.dart';
 
-class ViewChanger extends StatelessWidget {
-  ViewChanger({super.key});
+class ViewChanger extends StatefulWidget {
+  const ViewChanger({super.key});
+
+  @override
+  State<ViewChanger> createState() => _ViewChangerState();
+}
+
+class _ViewChangerState extends State<ViewChanger> {
   final userService = CurrentUserService.instance;
   late final ViewChangerController controller;
+
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'view_changer_${identityHashCode(this)}';
+    final initialSelection = (userService.currentUser?.viewSelection ?? 1).obs;
+    controller = Get.put(
+      ViewChangerController(selection: initialSelection),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<ViewChangerController>(tag: _controllerTag) &&
+        identical(
+          Get.find<ViewChangerController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ViewChangerController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<ViewChangerController>()) {
-      final initialSelection =
-          (userService.currentUser?.viewSelection ?? 1).obs;
-      Get.put(ViewChangerController(selection: initialSelection));
-    }
-    controller = Get.find<ViewChangerController>();
     return Scaffold(
       body: SafeArea(
         bottom: false,

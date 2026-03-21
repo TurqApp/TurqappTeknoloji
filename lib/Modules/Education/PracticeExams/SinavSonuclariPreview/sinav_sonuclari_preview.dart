@@ -11,15 +11,52 @@ import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class SinavSonuclariPreview extends StatelessWidget {
+class SinavSonuclariPreview extends StatefulWidget {
   final SinavModel model;
 
   const SinavSonuclariPreview({super.key, required this.model});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(SinavSonuclariPreviewController(model: model));
+  State<SinavSonuclariPreview> createState() => _SinavSonuclariPreviewState();
+}
 
+class _SinavSonuclariPreviewState extends State<SinavSonuclariPreview> {
+  late final String _tag;
+  late final SinavSonuclariPreviewController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'practice_results_preview_${widget.model.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<SinavSonuclariPreviewController>(tag: _tag)) {
+      controller = Get.find<SinavSonuclariPreviewController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        SinavSonuclariPreviewController(model: widget.model),
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SinavSonuclariPreviewController>(tag: _tag) &&
+        identical(
+          Get.find<SinavSonuclariPreviewController>(tag: _tag),
+          controller,
+        )) {
+      Get.delete<SinavSonuclariPreviewController>(tag: _tag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(

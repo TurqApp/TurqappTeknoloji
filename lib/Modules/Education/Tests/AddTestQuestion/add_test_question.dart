@@ -6,7 +6,7 @@ import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_question_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTestQuestionContent/create_test_question_content.dart';
 
-class AddTestQuestion extends StatelessWidget {
+class AddTestQuestion extends StatefulWidget {
   final List<TestReadinessModel> soruList;
   final String testID;
   final String testTuru;
@@ -21,15 +21,49 @@ class AddTestQuestion extends StatelessWidget {
   });
 
   @override
+  State<AddTestQuestion> createState() => _AddTestQuestionState();
+}
+
+class _AddTestQuestionState extends State<AddTestQuestion> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final AddTestQuestionController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'add_test_question_${widget.testID}_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<AddTestQuestionController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(
+            AddTestQuestionController(
+              initialSoruList: widget.soruList,
+              testID: widget.testID,
+              testTuru: widget.testTuru,
+              onUpdate: widget.update,
+            ),
+            tag: _controllerTag,
+          )
+        : Get.find<AddTestQuestionController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<AddTestQuestionController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<AddTestQuestionController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<AddTestQuestionController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-      AddTestQuestionController(
-        initialSoruList: soruList,
-        testID: testID,
-        testTuru: testTuru,
-        onUpdate: update,
-      ),
-    );
 
     return Scaffold(
       backgroundColor: Colors.black,

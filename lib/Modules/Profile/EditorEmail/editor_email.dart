@@ -4,9 +4,38 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email_controller.dart';
 
-class EditorEmail extends StatelessWidget {
-  EditorEmail({super.key});
-  final controller = Get.put(EditorEmailController());
+class EditorEmail extends StatefulWidget {
+  const EditorEmail({super.key});
+
+  @override
+  State<EditorEmail> createState() => _EditorEmailState();
+}
+
+class _EditorEmailState extends State<EditorEmail> {
+  late final EditorEmailController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<EditorEmailController>()) {
+      controller = Get.find<EditorEmailController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(EditorEmailController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<EditorEmailController>() &&
+        identical(Get.find<EditorEmailController>(), controller)) {
+      Get.delete<EditorEmailController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

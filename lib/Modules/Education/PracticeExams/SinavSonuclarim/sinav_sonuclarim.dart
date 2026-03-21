@@ -5,15 +5,41 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGecmisSonucContent/deneme_gecmis_sonuc_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_sonuclarim_controller.dart';
 
-class SinavSonuclarim extends StatelessWidget {
+class SinavSonuclarim extends StatefulWidget {
   const SinavSonuclarim({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final SinavSonuclarimController controller = Get.put(
-      SinavSonuclarimController(),
-    );
+  State<SinavSonuclarim> createState() => _SinavSonuclarimState();
+}
 
+class _SinavSonuclarimState extends State<SinavSonuclarim> {
+  late final SinavSonuclarimController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SinavSonuclarimController>()) {
+      controller = Get.find<SinavSonuclarimController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(SinavSonuclarimController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SinavSonuclarimController>() &&
+        identical(Get.find<SinavSonuclarimController>(), controller)) {
+      Get.delete<SinavSonuclarimController>();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

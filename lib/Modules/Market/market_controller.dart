@@ -35,7 +35,6 @@ class MarketController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
       'pasaj_market_listing_selection';
   static const List<String> _preferredCategoryOrder = <String>[
-    'Emlak',
     'Telefon',
     'Elektronik',
     'Ev & Yaşam',
@@ -211,7 +210,10 @@ class MarketController extends GetxController {
     try {
       await _schemaService.loadSchema();
       final loadedCategories =
-          _schemaService.categories().toList(growable: true)
+          _schemaService
+              .categories()
+              .where(_isVisibleCategory)
+              .toList(growable: true)
             ..sort(
               (a, b) => _compareCategoryPriority(
                 (a['label'] ?? '').toString(),
@@ -250,7 +252,10 @@ class MarketController extends GetxController {
     try {
       await _schemaService.loadSchema();
       final loadedCategories =
-          _schemaService.categories().toList(growable: true)
+          _schemaService
+              .categories()
+              .where(_isVisibleCategory)
+              .toList(growable: true)
             ..sort(
               (a, b) => _compareCategoryPriority(
                 (a['label'] ?? '').toString(),
@@ -341,6 +346,11 @@ class MarketController extends GetxController {
       default:
         return normalized;
     }
+  }
+
+  bool _isVisibleCategory(Map<String, dynamic> category) {
+    final key = (category['key'] ?? '').toString().trim().toLowerCase();
+    return key != 'emlak';
   }
 
   void toggleListingSelection() {

@@ -5,13 +5,41 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SearchDeneme/search_deneme_controller.dart';
 
-class SearchDeneme extends StatelessWidget {
+class SearchDeneme extends StatefulWidget {
   const SearchDeneme({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final SearchDenemeController controller = Get.put(SearchDenemeController());
+  State<SearchDeneme> createState() => _SearchDenemeState();
+}
 
+class _SearchDenemeState extends State<SearchDeneme> {
+  late final SearchDenemeController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SearchDenemeController>()) {
+      controller = Get.find<SearchDenemeController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(SearchDenemeController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SearchDenemeController>() &&
+        identical(Get.find<SearchDenemeController>(), controller)) {
+      Get.delete<SearchDenemeController>();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

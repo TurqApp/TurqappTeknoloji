@@ -13,10 +13,41 @@ import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class FamilyInfoView extends StatelessWidget {
+class FamilyInfoView extends StatefulWidget {
   FamilyInfoView({super.key});
 
-  final FamilyInfoController controller = Get.put(FamilyInfoController());
+  @override
+  State<FamilyInfoView> createState() => _FamilyInfoViewState();
+}
+
+class _FamilyInfoViewState extends State<FamilyInfoView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final FamilyInfoController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_family_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<FamilyInfoController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(FamilyInfoController(), tag: _controllerTag)
+        : Get.find<FamilyInfoController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<FamilyInfoController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<FamilyInfoController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<FamilyInfoController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
 
   Widget _buildCustomHeader() {
     return Row(

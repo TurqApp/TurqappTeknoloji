@@ -9,13 +9,42 @@ import 'package:turqappv2/Themes/app_icons.dart';
 
 import 'social_qr_code_controller.dart';
 
-class SocialQrCode extends StatelessWidget {
+class SocialQrCode extends StatefulWidget {
   final String userID;
-  SocialQrCode({super.key, required this.userID});
+  const SocialQrCode({super.key, required this.userID});
+
+  @override
+  State<SocialQrCode> createState() => _SocialQrCodeState();
+}
+
+class _SocialQrCodeState extends State<SocialQrCode> {
   late final SocialQrCodeController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'social_qr_${widget.userID}_${identityHashCode(this)}';
+    controller = Get.put(
+      SocialQrCodeController(userID: widget.userID),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<SocialQrCodeController>(tag: _controllerTag) &&
+        identical(
+          Get.find<SocialQrCodeController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SocialQrCodeController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(SocialQrCodeController(userID: userID));
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -90,7 +119,7 @@ class SocialQrCode extends StatelessWidget {
                                 child: QrImageView(
                                   data: controller.profileLink.value.isNotEmpty
                                       ? controller.profileLink.value
-                                      : userID,
+                                      : widget.userID,
                                   version: QrVersions.auto,
                                   size: 250.0,
                                   backgroundColor: Colors.white,

@@ -7,10 +7,37 @@ import 'package:turqappv2/Core/empty_row.dart';
 import '../../Agenda/AgendaContent/agenda_content.dart';
 import 'archives_controller.dart';
 
-class Archives extends StatelessWidget {
-  Archives({super.key});
+class Archives extends StatefulWidget {
+  const Archives({super.key});
 
-  final ArchiveController controller = Get.put(ArchiveController());
+  @override
+  State<Archives> createState() => _ArchivesState();
+}
+
+class _ArchivesState extends State<Archives> {
+  late final ArchiveController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<ArchiveController>()) {
+      controller = Get.find<ArchiveController>();
+    } else {
+      controller = Get.put(ArchiveController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ArchiveController>() &&
+        identical(Get.find<ArchiveController>(), controller)) {
+      Get.delete<ArchiveController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

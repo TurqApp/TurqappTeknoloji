@@ -19,6 +19,7 @@ class LikedPosts extends StatefulWidget {
 
 class _LikedPostsState extends State<LikedPosts> {
   late LikedPostControllers controller;
+  bool _ownsController = false;
   final scrollController = ScrollController();
   late final String _pageLineBarTag =
       '${kLikedPostsPageLineBarTag}_${identityHashCode(this)}';
@@ -41,7 +42,12 @@ class _LikedPostsState extends State<LikedPosts> {
   @override
   void initState() {
     super.initState();
-    controller = Get.put(LikedPostControllers());
+    if (Get.isRegistered<LikedPostControllers>()) {
+      controller = Get.find<LikedPostControllers>();
+    } else {
+      controller = Get.put(LikedPostControllers());
+      _ownsController = true;
+    }
 
     scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
@@ -51,7 +57,7 @@ class _LikedPostsState extends State<LikedPosts> {
   void dispose() {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
-    if (Get.isRegistered<LikedPostControllers>()) {
+    if (_ownsController && Get.isRegistered<LikedPostControllers>()) {
       Get.delete<LikedPostControllers>(force: true);
     }
     super.dispose();

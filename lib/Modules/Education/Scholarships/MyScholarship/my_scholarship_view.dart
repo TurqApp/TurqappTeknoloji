@@ -12,13 +12,53 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class MyScholarshipView extends StatelessWidget {
+class MyScholarshipView extends StatefulWidget {
   MyScholarshipView({super.key});
 
-  final MyScholarshipController controller = Get.put(MyScholarshipController());
-  final ScholarshipDetailController detailController = Get.put(
-    ScholarshipDetailController(),
-  );
+  @override
+  State<MyScholarshipView> createState() => _MyScholarshipViewState();
+}
+
+class _MyScholarshipViewState extends State<MyScholarshipView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final MyScholarshipController controller;
+  late final bool _ownsDetailController;
+  late final ScholarshipDetailController detailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_my_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<MyScholarshipController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(MyScholarshipController(), tag: _controllerTag)
+        : Get.find<MyScholarshipController>(tag: _controllerTag);
+    _ownsDetailController = !Get.isRegistered<ScholarshipDetailController>();
+    detailController = _ownsDetailController
+        ? Get.put(ScholarshipDetailController())
+        : Get.find<ScholarshipDetailController>();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyScholarshipController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<MyScholarshipController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<MyScholarshipController>(tag: _controllerTag, force: true);
+      }
+    }
+    if (_ownsDetailController && Get.isRegistered<ScholarshipDetailController>()) {
+      final registeredController = Get.find<ScholarshipDetailController>();
+      if (identical(registeredController, detailController)) {
+        Get.delete<ScholarshipDetailController>(force: true);
+      }
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

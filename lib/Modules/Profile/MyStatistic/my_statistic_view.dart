@@ -10,10 +10,16 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class MyStatisticView extends StatelessWidget {
-  MyStatisticView({super.key});
+class MyStatisticView extends StatefulWidget {
+  const MyStatisticView({super.key});
 
-  final MyStatisticController controller = Get.put(MyStatisticController());
+  @override
+  State<MyStatisticView> createState() => _MyStatisticViewState();
+}
+
+class _MyStatisticViewState extends State<MyStatisticView> {
+  late final MyStatisticController controller;
+  late final String _controllerTag;
   final userService = CurrentUserService.instance;
   static const List<Color> _statColors = [
     Color(0xFF1E88E5),
@@ -37,6 +43,25 @@ class MyStatisticView extends StatelessWidget {
   ];
 
   String get _currentUid => userService.userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'my_statistic_${identityHashCode(this)}';
+    controller = Get.put(MyStatisticController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<MyStatisticController>(tag: _controllerTag) &&
+        identical(
+          Get.find<MyStatisticController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyStatisticController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

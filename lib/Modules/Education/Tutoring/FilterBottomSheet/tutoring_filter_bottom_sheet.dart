@@ -12,9 +12,10 @@ class TutoringFilterBottomSheet extends StatelessWidget {
   final TutoringController controller;
 
   TutoringFilterBottomSheet({super.key, required this.controller});
-  final TutoringFilterController filterController = Get.put(
-    TutoringFilterController(),
-  );
+  final TutoringFilterController filterController =
+      Get.isRegistered<TutoringFilterController>()
+          ? Get.find<TutoringFilterController>()
+          : Get.put(TutoringFilterController());
 
   String _branchLabel(String value) {
     const map = {

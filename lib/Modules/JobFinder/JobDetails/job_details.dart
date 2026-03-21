@@ -35,14 +35,32 @@ part 'job_details_reviews_part.dart';
 part 'job_details_body_part.dart';
 part 'job_details_actions_part.dart';
 
-class JobDetails extends StatelessWidget {
+class JobDetails extends StatefulWidget {
   final JobModel model;
-  JobDetails({super.key, required this.model});
+  const JobDetails({super.key, required this.model});
+
+  @override
+  State<JobDetails> createState() => _JobDetailsState();
+}
+
+class _JobDetailsState extends State<JobDetails> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final JobDetailsController controller;
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
 
-  JobDetailsController get controller =>
-      Get.find<JobDetailsController>(tag: model.docID);
+  JobModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'job_details_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<JobDetailsController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(JobDetailsController(model: model), tag: _controllerTag)
+        : Get.find<JobDetailsController>(tag: _controllerTag);
+  }
 
   String get _currentUid {
     final serviceUid = CurrentUserService.instance.userId.trim();
@@ -59,6 +77,19 @@ class JobDetails extends StatelessWidget {
     if (targetUid.isNotEmpty && targetUid != _currentUid) {
       await Get.to(() => SocialProfile(userID: targetUid));
     }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<JobDetailsController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<JobDetailsController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<JobDetailsController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
   }
 
   @override

@@ -2,9 +2,10 @@ part of 'tutoring_detail.dart';
 
 extension TutoringDetailBodyPart on TutoringDetail {
   Widget buildContent(BuildContext context) {
-    final TutoringDetailController controller = Get.put(
-      TutoringDetailController(),
-    );
+    final TutoringDetailController controller =
+        Get.isRegistered<TutoringDetailController>()
+            ? Get.find<TutoringDetailController>()
+            : Get.put(TutoringDetailController());
     final SavedTutoringsController savedController =
         Get.isRegistered<SavedTutoringsController>()
             ? Get.find<SavedTutoringsController>()

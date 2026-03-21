@@ -154,7 +154,9 @@ class JobContent extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              _workTypeText,
+                              model.ilanBasligi.isNotEmpty
+                                  ? model.ilanBasligi
+                                  : model.meslek,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: PasajCardStyles.lineTwo,
@@ -167,9 +169,7 @@ class JobContent extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              model.ilanBasligi.isNotEmpty
-                                  ? model.ilanBasligi
-                                  : model.meslek,
+                              _workTypeText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: PasajCardStyles.detail,
@@ -319,13 +319,13 @@ class JobContent extends StatelessWidget {
           style: PasajCardStyles.lineOne,
         ),
         Text(
-          _workTypeText,
+          model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: PasajCardStyles.gridLineTwo(PasajCardStyles.lineTwoColor),
         ),
         Text(
-          model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
+          _workTypeText,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: PasajCardStyles.detail,

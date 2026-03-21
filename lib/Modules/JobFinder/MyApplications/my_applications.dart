@@ -7,9 +7,38 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'my_applications_controller.dart';
 
-class MyApplications extends StatelessWidget {
-  MyApplications({super.key});
-  final controller = Get.put(MyApplicationsController());
+class MyApplications extends StatefulWidget {
+  const MyApplications({super.key});
+
+  @override
+  State<MyApplications> createState() => _MyApplicationsState();
+}
+
+class _MyApplicationsState extends State<MyApplications> {
+  late final MyApplicationsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<MyApplicationsController>()) {
+      controller = Get.find<MyApplicationsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(MyApplicationsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyApplicationsController>() &&
+        identical(Get.find<MyApplicationsController>(), controller)) {
+      Get.delete<MyApplicationsController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

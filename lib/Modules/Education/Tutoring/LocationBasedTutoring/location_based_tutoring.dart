@@ -9,14 +9,41 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dar
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class LocationBasedTutoring extends StatelessWidget {
+class LocationBasedTutoring extends StatefulWidget {
   const LocationBasedTutoring({super.key});
 
   @override
+  State<LocationBasedTutoring> createState() => _LocationBasedTutoringState();
+}
+
+class _LocationBasedTutoringState extends State<LocationBasedTutoring> {
+  late final LocationBasedTutoringController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<LocationBasedTutoringController>()) {
+      controller = Get.find<LocationBasedTutoringController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(LocationBasedTutoringController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<LocationBasedTutoringController>() &&
+        identical(Get.find<LocationBasedTutoringController>(), controller)) {
+      Get.delete<LocationBasedTutoringController>();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final LocationBasedTutoringController controller = Get.put(
-      LocationBasedTutoringController(),
-    );
     final ViewModeController viewModeController =
         Get.find<ViewModeController>();
 

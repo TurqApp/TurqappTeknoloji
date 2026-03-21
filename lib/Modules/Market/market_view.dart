@@ -573,11 +573,11 @@ class MarketView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            height: metrics.detailRowHeight,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
                                 item.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,

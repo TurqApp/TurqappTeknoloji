@@ -6,14 +6,42 @@ import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid
 import 'package:turqappv2/Modules/Education/PracticeExams/MyPracticeExams/my_practice_exams_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class MyPracticeExams extends StatelessWidget {
+class MyPracticeExams extends StatefulWidget {
   const MyPracticeExams({super.key});
+
+  @override
+  State<MyPracticeExams> createState() => _MyPracticeExamsState();
+}
+
+class _MyPracticeExamsState extends State<MyPracticeExams> {
+  late final MyPracticeExamsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<MyPracticeExamsController>()) {
+      controller = Get.find<MyPracticeExamsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(MyPracticeExamsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyPracticeExamsController>() &&
+        identical(Get.find<MyPracticeExamsController>(), controller)) {
+      Get.delete<MyPracticeExamsController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final uid = CurrentUserService.instance.userId;
-    final MyPracticeExamsController controller =
-        Get.put(MyPracticeExamsController());
 
     if (uid.isEmpty) {
       return Scaffold(

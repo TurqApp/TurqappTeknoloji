@@ -5,12 +5,37 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
-class PasajSettingsView extends StatelessWidget {
-  PasajSettingsView({super.key});
+class PasajSettingsView extends StatefulWidget {
+  const PasajSettingsView({super.key});
 
-  final SettingsController controller = Get.isRegistered<SettingsController>()
-      ? Get.find<SettingsController>()
-      : Get.put(SettingsController());
+  @override
+  State<PasajSettingsView> createState() => _PasajSettingsViewState();
+}
+
+class _PasajSettingsViewState extends State<PasajSettingsView> {
+  late final SettingsController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SettingsController>()) {
+      controller = Get.find<SettingsController>();
+    } else {
+      controller = Get.put(SettingsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SettingsController>() &&
+        identical(Get.find<SettingsController>(), controller)) {
+      Get.delete<SettingsController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

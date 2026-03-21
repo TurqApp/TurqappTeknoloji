@@ -4,9 +4,39 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import '../../../Core/Buttons/turq_app_button.dart';
 import 'address_selector_controller.dart';
 
-class AddressSelector extends StatelessWidget {
-  AddressSelector({super.key});
-  final controller = Get.put(AddressSelectorController());
+class AddressSelector extends StatefulWidget {
+  const AddressSelector({super.key});
+
+  @override
+  State<AddressSelector> createState() => _AddressSelectorState();
+}
+
+class _AddressSelectorState extends State<AddressSelector> {
+  late final AddressSelectorController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<AddressSelectorController>()) {
+      controller = Get.find<AddressSelectorController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(AddressSelectorController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<AddressSelectorController>() &&
+        identical(Get.find<AddressSelectorController>(), controller)) {
+      Get.delete<AddressSelectorController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

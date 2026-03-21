@@ -4,7 +4,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview_controller.dart';
 
-class OpticalPreview extends StatelessWidget {
+class OpticalPreview extends StatefulWidget {
   final OpticalFormModel model;
   final Function? update;
 
@@ -15,11 +15,43 @@ class OpticalPreview extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      OpticalPreviewController(model, update),
-    );
+  State<OpticalPreview> createState() => _OpticalPreviewState();
+}
 
+class _OpticalPreviewState extends State<OpticalPreview> {
+  late final OpticalPreviewController controller;
+  late final String _controllerTag;
+
+  OpticalFormModel get model => widget.model;
+  Function? get update => widget.update;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'optical_preview_${widget.model.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<OpticalPreviewController>(tag: _controllerTag)
+        ? Get.find<OpticalPreviewController>(tag: _controllerTag)
+        : Get.put(
+            OpticalPreviewController(widget.model, widget.update),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<OpticalPreviewController>(tag: _controllerTag) &&
+        identical(
+          Get.find<OpticalPreviewController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<OpticalPreviewController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

@@ -12,12 +12,44 @@ import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/schol
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class PersonalizedView extends StatelessWidget {
+class PersonalizedView extends StatefulWidget {
   const PersonalizedView({super.key});
 
   @override
+  State<PersonalizedView> createState() => _PersonalizedViewState();
+}
+
+class _PersonalizedViewState extends State<PersonalizedView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final PersonalizedController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_personalized_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<PersonalizedController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(PersonalizedController(), tag: _controllerTag)
+        : Get.find<PersonalizedController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<PersonalizedController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<PersonalizedController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<PersonalizedController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final PersonalizedController controller = Get.put(PersonalizedController());
 
     return Scaffold(
       body: SafeArea(
@@ -217,7 +249,6 @@ class PersonalizedView extends StatelessWidget {
 
   Future<void> _navigateToIndividualDetail(
       IndividualScholarshipsModel item) async {
-    final controller = Get.find<PersonalizedController>();
     final docId = controller.docIdByTimestamp[item.timeStamp] ?? '';
     final scholarshipData = {
       'model': item,

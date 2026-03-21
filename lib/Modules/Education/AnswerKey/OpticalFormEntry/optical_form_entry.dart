@@ -6,12 +6,47 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'optical_form_entry_controller.dart';
 
-class OpticalFormEntry extends StatelessWidget {
+class OpticalFormEntry extends StatefulWidget {
   const OpticalFormEntry({super.key});
 
   @override
+  State<OpticalFormEntry> createState() => _OpticalFormEntryState();
+}
+
+class _OpticalFormEntryState extends State<OpticalFormEntry> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final OpticalFormEntryController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'optical_form_entry_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<OpticalFormEntryController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(OpticalFormEntryController(), tag: _controllerTag)
+        : Get.find<OpticalFormEntryController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<OpticalFormEntryController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<OpticalFormEntryController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<OpticalFormEntryController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(OpticalFormEntryController());
 
     return Scaffold(
       body: SafeArea(

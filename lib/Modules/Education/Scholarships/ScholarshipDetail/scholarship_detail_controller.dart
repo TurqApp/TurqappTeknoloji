@@ -38,7 +38,7 @@ class ScholarshipDetailController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    checkUserApplicationReadiness();
+    checkUserApplicationReadiness(showErrors: false);
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData != null) {
       final scholarshipId =
@@ -47,7 +47,7 @@ class ScholarshipDetailController extends GetxController {
       if (scholarshipId.isNotEmpty) {
         _loadFullScholarship(scholarshipId);
       }
-      checkIfUserAlreadyApplied(scholarshipData);
+      checkIfUserAlreadyApplied(scholarshipData, showErrors: false);
       _incrementViewCount(scholarshipData);
     }
   }
@@ -85,11 +85,13 @@ class ScholarshipDetailController extends GetxController {
     }).catchError((_) {});
   }
 
-  Future<void> checkUserApplicationReadiness() async {
+  Future<void> checkUserApplicationReadiness({bool showErrors = true}) async {
     final currentUserId = CurrentUserService.instance.userId;
     if (currentUserId.isEmpty) {
       applyReady.value = false;
-      AppSnackbar("common.error".tr, "scholarship.login_required".tr);
+      if (showErrors) {
+        AppSnackbar("common.error".tr, "scholarship.login_required".tr);
+      }
       return;
     }
 
@@ -183,14 +185,18 @@ class ScholarshipDetailController extends GetxController {
             isFamilyInfoComplete;
       } else {
         applyReady.value = false;
-        AppSnackbar(
-          "common.error".tr,
-          "scholarship.user_data_missing".tr,
-        );
+        if (showErrors) {
+          AppSnackbar(
+            "common.error".tr,
+            "scholarship.user_data_missing".tr,
+          );
+        }
       }
     } catch (e) {
       print('Kullanıcı hazırlık kontrolü hatası: $e');
-      AppSnackbar("common.error".tr, "scholarship.check_info_failed".tr);
+      if (showErrors) {
+        AppSnackbar("common.error".tr, "scholarship.check_info_failed".tr);
+      }
       applyReady.value = false;
     } finally {
       isLoading.value = false;
@@ -198,7 +204,9 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> checkIfUserAlreadyApplied(
-      Map<String, dynamic> scholarshipData) async {
+    Map<String, dynamic> scholarshipData, {
+    bool showErrors = true,
+  }) async {
     final currentUserId = CurrentUserService.instance.userId;
     if (currentUserId.isEmpty) {
       allreadyApplied.value = false;
@@ -218,10 +226,12 @@ class ScholarshipDetailController extends GetxController {
         allreadyApplied.value = false;
       }
     } catch (e) {
-      AppSnackbar(
-        "common.error".tr,
-        "scholarship.application_check_failed".tr,
-      );
+      if (showErrors) {
+        AppSnackbar(
+          "common.error".tr,
+          "scholarship.application_check_failed".tr,
+        );
+      }
       allreadyApplied.value = false;
     }
   }

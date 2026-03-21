@@ -5,12 +5,44 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyTestResults/my_test_results_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestPastResultContent/test_past_result_content.dart';
 
-class MyTestResults extends StatelessWidget {
+class MyTestResults extends StatefulWidget {
   const MyTestResults({super.key});
 
   @override
+  State<MyTestResults> createState() => _MyTestResultsState();
+}
+
+class _MyTestResultsState extends State<MyTestResults> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final MyTestResultsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'tests_results_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<MyTestResultsController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(MyTestResultsController(), tag: _controllerTag)
+        : Get.find<MyTestResultsController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyTestResultsController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<MyTestResultsController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<MyTestResultsController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(MyTestResultsController());
 
     return Scaffold(
       body: SafeArea(

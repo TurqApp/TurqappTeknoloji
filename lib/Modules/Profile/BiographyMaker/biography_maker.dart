@@ -4,9 +4,39 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'biography_maker_controller.dart';
 
-class BiographyMaker extends StatelessWidget {
-  BiographyMaker({super.key});
-  final controller = Get.put(BiographyMakerController());
+class BiographyMaker extends StatefulWidget {
+  const BiographyMaker({super.key});
+
+  @override
+  State<BiographyMaker> createState() => _BiographyMakerState();
+}
+
+class _BiographyMakerState extends State<BiographyMaker> {
+  late final BiographyMakerController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<BiographyMakerController>()) {
+      controller = Get.find<BiographyMakerController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(BiographyMakerController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<BiographyMakerController>() &&
+        identical(Get.find<BiographyMakerController>(), controller)) {
+      Get.delete<BiographyMakerController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

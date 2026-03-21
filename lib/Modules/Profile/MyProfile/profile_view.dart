@@ -25,7 +25,6 @@ import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post.dart';
@@ -81,19 +80,17 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
-  final ProfileController controller = Get.isRegistered<ProfileController>()
-      ? Get.find<ProfileController>()
-      : Get.put(ProfileController());
-  final SocialMediaController socialMediaController =
-      Get.isRegistered<SocialMediaController>()
-          ? Get.find<SocialMediaController>()
-          : Get.put(SocialMediaController());
+  late final ProfileController controller;
+  late final SocialMediaController socialMediaController;
   final userService = CurrentUserService.instance;
   final PostRepository _postRepository = PostRepository.ensure();
   final MarketRepository _marketRepository = MarketRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
   bool _scrollProbeScheduled = false;
+  bool _ownsController = false;
+  bool _ownsSocialMediaController = false;
+  bool _ownsHighlightsController = false;
   Worker? _marketUserWorker;
 
   String get _myUserId {
@@ -179,6 +176,18 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<ProfileController>()) {
+      controller = Get.find<ProfileController>();
+    } else {
+      controller = Get.put(ProfileController());
+      _ownsController = true;
+    }
+    if (Get.isRegistered<SocialMediaController>()) {
+      socialMediaController = Get.find<SocialMediaController>();
+    } else {
+      socialMediaController = Get.put(SocialMediaController());
+      _ownsSocialMediaController = true;
+    }
     try {
       VideoStateManager.instance.pauseAllVideos(force: true);
     } catch (_) {}
@@ -201,6 +210,7 @@ class _ProfileViewState extends State<ProfileView> {
         Get.find<StoryHighlightsController>(tag: tag).loadHighlights();
       } else {
         Get.put(StoryHighlightsController(userId: uid), tag: tag);
+        _ownsHighlightsController = true;
       }
     }
   }
@@ -332,6 +342,24 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void dispose() {
     _marketUserWorker?.dispose();
+    if (_ownsHighlightsController) {
+      final uid = _myUserId;
+      final tag = uid.isEmpty ? '' : 'highlights_$uid';
+      if (tag.isNotEmpty &&
+          Get.isRegistered<StoryHighlightsController>(tag: tag)) {
+        Get.delete<StoryHighlightsController>(tag: tag, force: true);
+      }
+    }
+    if (_ownsSocialMediaController &&
+        Get.isRegistered<SocialMediaController>() &&
+        identical(Get.find<SocialMediaController>(), socialMediaController)) {
+      Get.delete<SocialMediaController>(force: true);
+    }
+    if (_ownsController &&
+        Get.isRegistered<ProfileController>() &&
+        identical(Get.find<ProfileController>(), controller)) {
+      Get.delete<ProfileController>(force: true);
+    }
     super.dispose();
   }
 

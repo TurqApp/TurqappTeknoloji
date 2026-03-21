@@ -10,9 +10,9 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding
 import 'social_media_links_controller.dart';
 
 class AddSocialMediaBottomSheet extends StatelessWidget {
-  final controller = Get.put(SocialMediaController());
-
-  AddSocialMediaBottomSheet({super.key});
+  AddSocialMediaBottomSheet({super.key})
+      : controller = Get.find<SocialMediaController>();
+  final SocialMediaController controller;
 
   @override
   Widget build(BuildContext context) {

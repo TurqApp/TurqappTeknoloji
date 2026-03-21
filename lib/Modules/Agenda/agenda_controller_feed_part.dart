@@ -205,7 +205,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _prefetchThumbnailBatches() {
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
-    final targetCount = min(((current ~/ 10) + 1) * 10, agendaList.length);
+    final targetCount =
+        min(max(30, ((current ~/ 10) + 1) * 10), agendaList.length);
     if (targetCount <= _prefetchedThumbnailPostCount) return;
 
     for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {

@@ -5,22 +5,46 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'share_grid_controller.dart';
 
-class ShareGrid extends StatelessWidget {
+class ShareGrid extends StatefulWidget {
   final String postID;
   final String postType;
-  final String _tag;
 
-  ShareGrid({super.key, required this.postID, required this.postType})
-      : _tag = 'ShareGrid_${postType}_$postID';
+  const ShareGrid({super.key, required this.postID, required this.postType});
 
-  ShareGridController get controller {
+  @override
+  State<ShareGrid> createState() => _ShareGridState();
+}
+
+class _ShareGridState extends State<ShareGrid> {
+  late final String _tag;
+  late final ShareGridController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'ShareGrid_${widget.postType}_${widget.postID}_${identityHashCode(this)}';
     if (Get.isRegistered<ShareGridController>(tag: _tag)) {
-      return Get.find<ShareGridController>(tag: _tag);
+      controller = Get.find<ShareGridController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        ShareGridController(postType: widget.postType, postID: widget.postID),
+        tag: _tag,
+      );
+      _ownsController = true;
     }
-    return Get.put(
-      ShareGridController(postType: postType, postID: postID),
-      tag: _tag,
-    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ShareGridController>(tag: _tag) &&
+        identical(Get.find<ShareGridController>(tag: _tag), controller)) {
+      Get.delete<ShareGridController>(tag: _tag);
+    }
+    super.dispose();
   }
 
   @override

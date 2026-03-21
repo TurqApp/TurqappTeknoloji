@@ -14,16 +14,25 @@ import '../../../../../Models/story_comment_model.dart';
 import '../../../../SocialProfile/social_profile.dart';
 import 'story_comment_user_controller.dart';
 
-class StoryCommentUser extends StatelessWidget {
+class StoryCommentUser extends StatefulWidget {
   final StoryCommentModel model;
   final String storyID;
   final bool isMyStory;
 
-  StoryCommentUser(
+  const StoryCommentUser(
       {super.key,
       required this.model,
       required this.storyID,
       required this.isMyStory});
+
+  @override
+  State<StoryCommentUser> createState() => _StoryCommentUserState();
+}
+
+class _StoryCommentUserState extends State<StoryCommentUser> {
+  late final StoryCommentUserController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
 
   String get _currentUserId {
     final serviceUid = CurrentUserService.instance.userId.trim();
@@ -32,9 +41,37 @@ class StoryCommentUser extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'story_comment_user_${widget.model.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<StoryCommentUserController>(tag: _controllerTag)) {
+      controller = Get.find<StoryCommentUserController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        StoryCommentUserController(),
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
+    controller.getUserData(widget.model.userID);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<StoryCommentUserController>(tag: _controllerTag)) {
+      Get.delete<StoryCommentUserController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StoryCommentUserController(), tag: model.userID);
-    controller.getUserData(model.userID);
     return Obx(() {
       return Column(
         children: [
@@ -48,8 +85,8 @@ class StoryCommentUser extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      if (model.userID != _currentUserId) {
-                        Get.to(() => SocialProfile(userID: model.userID));
+                      if (widget.model.userID != _currentUserId) {
+                        Get.to(() => SocialProfile(userID: widget.model.userID));
                       }
                     },
                     child: ClipOval(
@@ -80,9 +117,9 @@ class StoryCommentUser extends StatelessWidget {
                           children: [
                             GestureDetector(
                               onTap: () {
-                                if (model.userID != _currentUserId) {
+                                if (widget.model.userID != _currentUserId) {
                                   Get.to(() =>
-                                      SocialProfile(userID: model.userID));
+                                      SocialProfile(userID: widget.model.userID));
                                 }
                               },
                               child: Text(
@@ -91,13 +128,16 @@ class StoryCommentUser extends StatelessWidget {
                                     color: Colors.black,
                                     fontSize: 14,
                                     fontFamily: "MontserratBold"),
+                                ),
                               ),
+                            RozetContent(
+                              size: 14,
+                              userID: widget.model.userID,
                             ),
-                            RozetContent(size: 14, userID: model.userID),
                             Padding(
                               padding: const EdgeInsets.only(left: 4),
                               child: Text(
-                                timeAgoMetin(model.timeStamp),
+                                timeAgoMetin(widget.model.timeStamp),
                                 style: TextStyle(
                                     color: Colors.grey,
                                     fontSize: 13,
@@ -106,20 +146,20 @@ class StoryCommentUser extends StatelessWidget {
                             )
                           ],
                         ),
-                        if (model.metin.trim().isNotEmpty)
+                        if (widget.model.metin.trim().isNotEmpty)
                           Text(
-                            model.metin,
+                            widget.model.metin,
                             style: TextStyle(
                                 color: Colors.black,
                                 fontSize: 14,
                                 fontFamily: "MontserratMedium"),
                           ),
-                        if (model.gif.trim().isNotEmpty) ...[
+                        if (widget.model.gif.trim().isNotEmpty) ...[
                           SizedBox(height: 6),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: CachedNetworkImage(
-                              imageUrl: model.gif.trim(),
+                              imageUrl: widget.model.gif.trim(),
                               cacheManager: TurqImageCacheManager.instance,
                               width: 120,
                               height: 120,
@@ -155,7 +195,7 @@ class StoryCommentUser extends StatelessWidget {
                   SizedBox(
                     width: 6,
                   ),
-                  if (isMyStory || model.userID == _currentUserId)
+                  if (widget.isMyStory || widget.model.userID == _currentUserId)
                     Transform.translate(
                       offset: Offset(0, -10),
                       child: IconButton(
@@ -166,13 +206,13 @@ class StoryCommentUser extends StatelessWidget {
                                   'story.comment_delete_message'.tr,
                               onYesPressed: () {
                                 final store = Get.find<StoryCommentsController>(
-                                    tag: storyID);
-                                final index = store.list.indexOf(model);
+                                    tag: widget.storyID);
+                                final index = store.list.indexOf(widget.model);
                                 store.list.removeAt(index);
                                 store.totalComment.value--;
                                 StoryRepository.ensure().deleteStoryComment(
-                                  storyID,
-                                  commentId: model.docID,
+                                  widget.storyID,
+                                  commentId: widget.model.docID,
                                 );
                               });
                         },

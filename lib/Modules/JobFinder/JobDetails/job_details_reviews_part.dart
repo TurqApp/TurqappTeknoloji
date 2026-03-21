@@ -1,6 +1,6 @@
 part of 'job_details.dart';
 
-extension JobDetailsReviewsPart on JobDetails {
+extension JobDetailsReviewsPart on _JobDetailsState {
   void _showJobReviewBottomSheet(JobDetailsController controller) {
     final currentUserId = _currentUid;
     final existingReview = controller.reviews

@@ -6,12 +6,44 @@ import 'package:turqappv2/Modules/Education/Tests/SearchTests/search_tests_contr
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class SearchTests extends StatelessWidget {
+class SearchTests extends StatefulWidget {
   const SearchTests({super.key});
 
   @override
+  State<SearchTests> createState() => _SearchTestsState();
+}
+
+class _SearchTestsState extends State<SearchTests> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SearchTestsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'tests_search_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<SearchTestsController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(SearchTestsController(), tag: _controllerTag)
+        : Get.find<SearchTestsController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SearchTestsController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<SearchTestsController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<SearchTestsController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SearchTestsController());
 
     return Scaffold(
       body: SafeArea(

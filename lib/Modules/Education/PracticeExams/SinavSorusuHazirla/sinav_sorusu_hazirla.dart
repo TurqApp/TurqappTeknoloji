@@ -6,7 +6,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sin
 import 'package:turqappv2/Modules/Education/PracticeExams/SoruContent/soru_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
-class SinavSorusuHazirla extends StatelessWidget {
+class SinavSorusuHazirla extends StatefulWidget {
   final String docID;
   final String sinavTuru;
   final List<String> tumDersler;
@@ -23,17 +23,52 @@ class SinavSorusuHazirla extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      SinavSorusuHazirlaController(
-        docID: docID,
-        sinavTuru: sinavTuru,
-        tumDersler: tumDersler,
-        derslerinSoruSayilari: derslerinSoruSayilari,
-        complated: complated,
-      ),
-    );
+  State<SinavSorusuHazirla> createState() => _SinavSorusuHazirlaState();
+}
 
+class _SinavSorusuHazirlaState extends State<SinavSorusuHazirla> {
+  late final String _tag;
+  late final SinavSorusuHazirlaController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'practice_question_prepare_${widget.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<SinavSorusuHazirlaController>(tag: _tag)) {
+      controller = Get.find<SinavSorusuHazirlaController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        SinavSorusuHazirlaController(
+          docID: widget.docID,
+          sinavTuru: widget.sinavTuru,
+          tumDersler: widget.tumDersler,
+          derslerinSoruSayilari: widget.derslerinSoruSayilari,
+          complated: widget.complated,
+        ),
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SinavSorusuHazirlaController>(tag: _tag) &&
+        identical(
+          Get.find<SinavSorusuHazirlaController>(tag: _tag),
+          controller,
+        )) {
+      Get.delete<SinavSorusuHazirlaController>(tag: _tag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     Widget buildQuestionSection(String ders, List<SoruModel> questions) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,13 +111,13 @@ class SinavSorusuHazirla extends StatelessWidget {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(top: 20),
-                              child: SoruContent(
-                                model: entry.value,
-                                sinavTuru: sinavTuru,
-                                mainID: docID,
-                                index: entry.key,
-                                ders: entry.value.ders,
-                              ),
+                                child: SoruContent(
+                                  model: entry.value,
+                                  sinavTuru: widget.sinavTuru,
+                                  mainID: widget.docID,
+                                  index: entry.key,
+                                  ders: entry.value.ders,
+                                ),
                             ),
                             Positioned(
                               top: 10,
@@ -146,7 +181,7 @@ class SinavSorusuHazirla extends StatelessWidget {
                                   children: [
                                     Column(
                                       children: [
-                                        for (var ders in tumDersler)
+                                        for (var ders in widget.tumDersler)
                                           Obx(
                                             () => buildQuestionSection(
                                               ders,

@@ -5,10 +5,10 @@ List<VerifiedAccountModel> verifiedAccountData = [
       title: "Mavi",
       desc:
           "Bireysel kullanıcılarımız için tasarlanmıştır.\nProfilin doğrulandığını ve güvenilir olduğunu belirtir."),
-  VerifiedAccountModel(
-      title: "Kırmızı",
-      desc:
-          "Öğrenci ve Öğretmenler için tasarlanmıştır.\nEğitimle ilgili doğrulanmış bir kimlik temsil eder."),
+  // VerifiedAccountModel(
+  //     title: "Kırmızı",
+  //     desc:
+  //         "Öğrenci ve Öğretmenler için tasarlanmıştır.\nEğitimle ilgili doğrulanmış bir kimlik temsil eder."),
   VerifiedAccountModel(
       title: "Sarı",
       desc:

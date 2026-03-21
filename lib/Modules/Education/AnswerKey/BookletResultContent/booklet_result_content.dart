@@ -6,18 +6,50 @@ import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultPreview/booklet_result_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultContent/booklet_result_content_controller.dart';
 
-class BookletResultContent extends StatelessWidget {
+class BookletResultContent extends StatefulWidget {
   final BookletResultModel model;
 
   const BookletResultContent({super.key, required this.model});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      BookletResultContentController(model),
-      tag: model.kitapcikID,
-    );
+  State<BookletResultContent> createState() => _BookletResultContentState();
+}
 
+class _BookletResultContentState extends State<BookletResultContent> {
+  late final BookletResultContentController controller;
+  late final String _controllerTag;
+
+  BookletResultModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'booklet_result_content_${widget.model.kitapcikID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<BookletResultContentController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<BookletResultContentController>(tag: _controllerTag)
+        : Get.put(
+            BookletResultContentController(widget.model),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<BookletResultContentController>(tag: _controllerTag) &&
+        identical(
+          Get.find<BookletResultContentController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<BookletResultContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15),
       child: GestureDetector(

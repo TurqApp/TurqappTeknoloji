@@ -3,30 +3,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv_controller.dart';
 
-class Cv extends StatelessWidget {
-  final CvController controller = Get.put(CvController());
+class Cv extends StatefulWidget {
+  const Cv({super.key});
 
-  Cv({super.key});
+  @override
+  State<Cv> createState() => _CvState();
+}
+
+class _CvState extends State<Cv> {
+  late final CvController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'cv_${identityHashCode(this)}';
+    controller = Get.put(CvController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<CvController>(tag: _controllerTag) &&
+        identical(
+          Get.find<CvController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<CvController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
-          'cv.title'.tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: "MontserratBold",
-          ),
-        ),
+        scrolledUnderElevation: 0,
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle('cv.title'.tr),
       ),
       body: SafeArea(
         top: false,

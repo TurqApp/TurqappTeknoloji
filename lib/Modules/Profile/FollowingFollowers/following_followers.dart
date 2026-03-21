@@ -8,7 +8,7 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_content.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 
-class FollowingFollowers extends StatelessWidget {
+class FollowingFollowers extends StatefulWidget {
   final int selection;
   final String userId;
 
@@ -18,18 +18,56 @@ class FollowingFollowers extends StatelessWidget {
     required this.userId,
   });
 
-  String get _pageLineBarTag => '${kFollowersPageLineBarTag}_$userId';
+  @override
+  State<FollowingFollowers> createState() => _FollowingFollowersState();
+}
+
+class _FollowingFollowersState extends State<FollowingFollowers> {
+  late final FollowingFollowersController controller;
+  late final ScrollController _scrollController;
+  bool _ownsController = false;
+
+  String get _pageLineBarTag =>
+      '${kFollowersPageLineBarTag}_${widget.userId}';
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<FollowingFollowersController>(tag: widget.userId)) {
+      controller = Get.find<FollowingFollowersController>(tag: widget.userId);
+    } else {
+      controller = Get.put(
+        FollowingFollowersController(
+          userId: widget.userId,
+          initialPage: widget.selection,
+        ),
+        tag: widget.userId,
+      );
+      _ownsController = true;
+    }
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    if (_ownsController &&
+        Get.isRegistered<FollowingFollowersController>(tag: widget.userId) &&
+        identical(
+          Get.find<FollowingFollowersController>(tag: widget.userId),
+          controller,
+        )) {
+      Get.delete<FollowingFollowersController>(
+        tag: widget.userId,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-      FollowingFollowersController(userId: userId, initialPage: selection),
-      tag: userId, // Use userId as unique tag to prevent controller reuse
-    );
-
     // PageLineBarController is created inside PageLineBar; initial index is passed below.
-
-    final scrollController = ScrollController();
 
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenFollowingFollowers),
@@ -49,7 +87,7 @@ class FollowingFollowers extends StatelessWidget {
                       'following.following_tab'.tr,
                     ],
                     pageName: _pageLineBarTag,
-                    initialIndex: selection,
+                    initialIndex: widget.selection,
                     pageController: controller.pageController,
                   );
                 }),
@@ -64,14 +102,14 @@ class FollowingFollowers extends StatelessWidget {
                           list: controller.takipciler,
                           isLoading: () => controller.isLoadingFollowers,
                           hasMore: () => controller.hasMoreFollowers,
-                          scrollController: scrollController,
+                          scrollController: _scrollController,
                           loadMore: () =>
                               controller.getFollowers(initial: false)),
                       _buildList(context,
                           list: controller.takipEdilenler,
                           isLoading: () => controller.isLoadingFollowing,
                           hasMore: () => controller.hasMoreFollowing,
-                          scrollController: scrollController,
+                          scrollController: _scrollController,
                           loadMore: () =>
                               controller.getFollowing(initial: false)),
                     ],
@@ -84,7 +122,7 @@ class FollowingFollowers extends StatelessWidget {
               right: 20,
               child: GestureDetector(
                 onTap: () {
-                  scrollController.animateTo(0,
+                  _scrollController.animateTo(0,
                       duration: Duration(milliseconds: 300),
                       curve: Curves.bounceIn);
                 },

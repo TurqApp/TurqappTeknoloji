@@ -16,14 +16,30 @@ class MyBookletResults extends StatefulWidget {
 }
 
 class _MyBookletResultsState extends State<MyBookletResults> {
-  final MyBookletResultsController controller =
-      Get.put(MyBookletResultsController());
+  late final MyBookletResultsController controller;
   final PageController _pageController = PageController();
   late final String _pageLineBarTag =
       'MyBookletResults_${identityHashCode(this)}';
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<MyBookletResultsController>()) {
+      controller = Get.find<MyBookletResultsController>();
+    } else {
+      controller = Get.put(MyBookletResultsController());
+      _ownsController = true;
+    }
+  }
 
   @override
   void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyBookletResultsController>() &&
+        Get.find<MyBookletResultsController>() == controller) {
+      Get.delete<MyBookletResultsController>(force: true);
+    }
     _pageController.dispose();
     super.dispose();
   }

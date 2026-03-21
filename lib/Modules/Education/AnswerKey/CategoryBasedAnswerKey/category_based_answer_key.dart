@@ -8,21 +8,55 @@ import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_pre
 import 'package:turqappv2/Modules/Education/AnswerKey/CategoryBasedAnswerKey/category_based_answer_key_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class CategoryBasedAnswerKey extends StatelessWidget {
+class CategoryBasedAnswerKey extends StatefulWidget {
   final String sinavTuru;
 
   const CategoryBasedAnswerKey({super.key, required this.sinavTuru});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(CategoryBasedAnswerKeyController(sinavTuru));
+  State<CategoryBasedAnswerKey> createState() => _CategoryBasedAnswerKeyState();
+}
 
+class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
+  late final CategoryBasedAnswerKeyController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'category_answer_key_${widget.sinavTuru.hashCode}_${identityHashCode(this)}';
+    controller = Get.isRegistered<CategoryBasedAnswerKeyController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<CategoryBasedAnswerKeyController>(tag: _controllerTag)
+        : Get.put(
+            CategoryBasedAnswerKeyController(widget.sinavTuru),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<CategoryBasedAnswerKeyController>(
+            tag: _controllerTag) &&
+        identical(
+          Get.find<CategoryBasedAnswerKeyController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<CategoryBasedAnswerKeyController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: sinavTuru),
+            BackButtons(text: widget.sinavTuru),
             Expanded(
               child: Container(
                 color: Colors.white,

@@ -6,14 +6,49 @@ import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateAnswerKey/create_answer_key_controller.dart';
 
-class CreateAnswerKey extends StatelessWidget {
+class CreateAnswerKey extends StatefulWidget {
   final Function onBack;
 
   const CreateAnswerKey({required this.onBack, super.key});
 
   @override
+  State<CreateAnswerKey> createState() => _CreateAnswerKeyState();
+}
+
+class _CreateAnswerKeyState extends State<CreateAnswerKey> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final CreateAnswerKeyController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'create_answer_key_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<CreateAnswerKeyController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(CreateAnswerKeyController(widget.onBack), tag: _controllerTag)
+        : Get.find<CreateAnswerKeyController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<CreateAnswerKeyController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<CreateAnswerKeyController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<CreateAnswerKeyController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(CreateAnswerKeyController(onBack));
 
     return Scaffold(
       body: SafeArea(

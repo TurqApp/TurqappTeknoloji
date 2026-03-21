@@ -36,7 +36,10 @@ part 'tutoring_detail_sections_part.dart';
 class TutoringDetail extends StatelessWidget {
   TutoringDetail({super.key});
 
-  final chatListingController = Get.put(ChatListingController());
+  final ChatListingController chatListingController =
+      Get.isRegistered<ChatListingController>()
+          ? Get.find<ChatListingController>()
+          : Get.put(ChatListingController());
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
 

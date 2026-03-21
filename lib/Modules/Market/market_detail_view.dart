@@ -397,7 +397,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _secondaryButton(
-                      label: 'pasaj.market.custom_offer'.tr,
+                      label: 'pasaj.market.offer_count'.tr,
                       onTap: () => _showOfferSheet(context),
                     ),
                   ),
@@ -612,13 +612,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
 
   Future<void> _showOfferSheet(BuildContext context) async {
     final double basePrice = item.price <= 0 ? 0.0 : item.price;
-    final suggestionRates = <double>[0.90, 0.80, 0.70];
+    final suggestionRates = <double>[0.70, 0.80, 0.90];
     final List<double> suggestions = suggestionRates
         .map((rate) => _normalizeOfferPrice(basePrice * rate))
         .where((value) => value > 0)
         .toSet()
-        .toList()
-      ..sort();
+        .toList();
     double? selectedOffer =
         suggestions.length > 1 ? suggestions[1] : suggestions.firstOrNull;
     bool customMode = false;
@@ -695,7 +694,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'pasaj.market.custom_offer'.tr,
+                      'pasaj.market.offer_count'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -781,8 +780,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'pasaj.market.discount'
-                                        .trParams({'value': '$discount'}),
+                                    '$discount% indirim',
                                     style: TextStyle(
                                       color: selected
                                           ? Colors.white
@@ -807,7 +805,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                         decimal: true,
                       ),
                       decoration:
-                          _inputDecoration('pasaj.market.custom_offer'.tr),
+                          _inputDecoration('pasaj.market.offer_count'.tr),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -824,7 +822,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                         ),
                       ),
                       child: Text(
-                        'pasaj.market.custom_offer'.tr,
+                        'pasaj.market.offer_count'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -846,7 +844,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                       });
                     },
                     child: Text(
-                      'pasaj.market.custom_offer'.tr,
+                      'pasaj.market.offer_count'.tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 16,

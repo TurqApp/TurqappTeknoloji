@@ -16,7 +16,8 @@ class FloodListing extends StatefulWidget {
 }
 
 class _FloodListingState extends State<FloodListing> {
-  final FloodListingController controller = Get.put(FloodListingController());
+  late final FloodListingController controller;
+  late final bool _ownsController;
   static const double _chainLineWidth = 2.0;
   static const Color _chainLineColor = Color(0xFFD7DCE2);
   static const double _headerHeight = 52;
@@ -32,8 +33,25 @@ class _FloodListingState extends State<FloodListing> {
   @override
   void initState() {
     super.initState();
+    if (Get.isRegistered<FloodListingController>()) {
+      controller = Get.find<FloodListingController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(FloodListingController());
+      _ownsController = true;
+    }
     controller.getFloods(widget.mainModel.floodCount.toInt(),
         widget.mainModel.docID); // floodCount: 10 örnek
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<FloodListingController>() &&
+        identical(Get.find<FloodListingController>(), controller)) {
+      Get.delete<FloodListingController>(force: true);
+    }
+    super.dispose();
   }
 
   @override

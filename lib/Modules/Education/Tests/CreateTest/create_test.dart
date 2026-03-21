@@ -14,15 +14,48 @@ import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_control
 
 part 'create_test_body_part.dart';
 
-class CreateTest extends StatelessWidget {
+class CreateTest extends StatefulWidget {
   final TestsModel? model;
 
   const CreateTest({super.key, this.model});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(CreateTestController(model));
+  State<CreateTest> createState() => _CreateTestState();
+}
 
+class _CreateTestState extends State<CreateTest> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final CreateTestController controller;
+
+  TestsModel? get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'create_test_${widget.model?.docID ?? 'new'}_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<CreateTestController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(CreateTestController(model), tag: _controllerTag)
+        : Get.find<CreateTestController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<CreateTestController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<CreateTestController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<CreateTestController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

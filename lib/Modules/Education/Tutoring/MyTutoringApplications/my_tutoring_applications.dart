@@ -7,9 +7,38 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 import 'my_tutoring_applications_controller.dart';
 
-class MyTutoringApplications extends StatelessWidget {
-  MyTutoringApplications({super.key});
-  final controller = Get.put(MyTutoringApplicationsController());
+class MyTutoringApplications extends StatefulWidget {
+  const MyTutoringApplications({super.key});
+
+  @override
+  State<MyTutoringApplications> createState() => _MyTutoringApplicationsState();
+}
+
+class _MyTutoringApplicationsState extends State<MyTutoringApplications> {
+  late final MyTutoringApplicationsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<MyTutoringApplicationsController>()) {
+      controller = Get.find<MyTutoringApplicationsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(MyTutoringApplicationsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyTutoringApplicationsController>() &&
+        identical(Get.find<MyTutoringApplicationsController>(), controller)) {
+      Get.delete<MyTutoringApplicationsController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

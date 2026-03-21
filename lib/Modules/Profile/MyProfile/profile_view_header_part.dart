@@ -8,24 +8,29 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
           Padding(
             padding: const EdgeInsets.only(left: 15, right: 15, bottom: 8),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          _suspendProfileFeedForRoute();
-                          Get.to(() => AboutProfile(
-                              userID: _myUserId))?.then((_) {
-                            _resumeProfileFeedAfterRoute();
-                          });
-                        },
-                        child: Text(
-                          _myIosSafeNickname,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 20,
-                            fontFamily: AppFontFamilies.mbold,
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: () {
+                            _suspendProfileFeedForRoute();
+                            Get.to(() => AboutProfile(
+                                userID: _myUserId))?.then((_) {
+                              _resumeProfileFeedAfterRoute();
+                            });
+                          },
+                          child: Text(
+                            _myIosSafeNickname,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 20,
+                              fontFamily: AppFontFamilies.mbold,
+                            ),
                           ),
                         ),
                       ),
@@ -48,47 +53,56 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     ],
                   ),
                 ),
-                AppHeaderActionButton(
-                  onTap: () {
-                    _suspendProfileFeedForRoute();
-                    Get.to(() => MyQRCode())?.then((_) {
-                      _resumeProfileFeedAfterRoute();
-                    });
-                  },
-                  child: Icon(
-                    CupertinoIcons.qrcode,
-                    color: AppColors.textBlack,
-                    size: AppIconSurface.kIconSize,
-                  ),
-                ),
-                AppIconSurface.kGap.pw,
-                AppHeaderActionButton(
-                  onTap: () {
-                    _suspendProfileFeedForRoute();
-                    Get.to(() => ChatListing())?.then((_) {
-                      _resumeProfileFeedAfterRoute();
-                    });
-                  },
-                  child: Icon(
-                    CupertinoIcons.mail,
-                    color: AppColors.textBlack,
-                    size: AppIconSurface.kIconSize,
-                  ),
-                ),
-                AppIconSurface.kGap.pw,
-                AppHeaderActionButton(
-                  onTap: () {
-                    _suspendProfileFeedForRoute();
-                    Get.to(() => SettingsView())?.then((_) {
-                      _resumeProfileFeedAfterRoute();
-                      _refreshUserState();
-                    });
-                  },
-                  child: Icon(
-                    CupertinoIcons.gear,
-                    color: AppColors.textBlack,
-                    size: AppIconSurface.kIconSize,
-                  ),
+                const SizedBox(width: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppHeaderActionButton(
+                      size: 36,
+                      onTap: () {
+                        _suspendProfileFeedForRoute();
+                        Get.to(() => MyQRCode())?.then((_) {
+                          _resumeProfileFeedAfterRoute();
+                        });
+                      },
+                      child: Icon(
+                        CupertinoIcons.qrcode,
+                        color: AppColors.textBlack,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    AppHeaderActionButton(
+                      size: 36,
+                      onTap: () {
+                        _suspendProfileFeedForRoute();
+                        Get.to(() => ChatListing())?.then((_) {
+                          _resumeProfileFeedAfterRoute();
+                        });
+                      },
+                      child: Icon(
+                        CupertinoIcons.mail,
+                        color: AppColors.textBlack,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    AppHeaderActionButton(
+                      size: 36,
+                      onTap: () {
+                        _suspendProfileFeedForRoute();
+                        Get.to(() => SettingsView())?.then((_) {
+                          _resumeProfileFeedAfterRoute();
+                          _refreshUserState();
+                        });
+                      },
+                      child: Icon(
+                        CupertinoIcons.gear,
+                        color: AppColors.textBlack,
+                        size: 18,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -367,199 +381,122 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
   }
 
   Widget counters() {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              controller.setPostSelection(0);
-            },
-            child: Container(
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(color: Colors.white),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      NumberFormatter.format(_myTotalPosts),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                    Text(
-                      "profile.posts".tr,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    final items = <Widget>[
+      _buildCounterTile(
+        value: NumberFormatter.format(_myTotalPosts),
+        label: "profile.posts".tr,
+        onTap: () => controller.setPostSelection(0),
+      ),
+      _buildCounterTile(
+        value: NumberFormatter.format(controller.followerCount.value),
+        label: "profile.followers".tr,
+        onTap: () {
+          _suspendProfileFeedForRoute();
+          Get.to(() => FollowingFollowers(selection: 0, userId: _myUserId))
+              ?.then((_) {
+            _resumeProfileFeedAfterRoute();
+          });
+        },
+        semanticsLabel: IntegrationTestKeys.profileFollowersCounter,
+        valueKey: const ValueKey(IntegrationTestKeys.profileFollowersCounter),
+      ),
+      _buildCounterTile(
+        value: NumberFormatter.format(controller.followingCount.value),
+        label: "profile.following".tr,
+        onTap: () {
+          _suspendProfileFeedForRoute();
+          Get.to(() => FollowingFollowers(selection: 1, userId: _myUserId))
+              ?.then((_) {
+            _resumeProfileFeedAfterRoute();
+          });
+        },
+        semanticsLabel: IntegrationTestKeys.profileFollowingCounter,
+        valueKey: const ValueKey(IntegrationTestKeys.profileFollowingCounter),
+      ),
+      _buildCounterTile(
+        value: NumberFormatter.format(_myTotalLikes),
+        label: "profile.likes".tr,
+      ),
+      _buildCounterTile(
+        value: NumberFormatter.format(_myTotalMarket),
+        label: "profile.listings".tr,
+        onTap: () => controller.setPostSelection(4),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 390;
+        final tileWidth = compact
+            ? (constraints.maxWidth - 30) / 3
+            : constraints.maxWidth / 5;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            runSpacing: compact ? 4 : 0,
+            children: items
+                .map((item) => SizedBox(width: tileWidth, child: item))
+                .toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCounterTile({
+    required String value,
+    required String label,
+    VoidCallback? onTap,
+    String? semanticsLabel,
+    Key? valueKey,
+  }) {
+    Widget tile = Container(
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(color: Colors.white),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontFamily: "MontserratBold",
             ),
           ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              _suspendProfileFeedForRoute();
-              Get.to(() => FollowingFollowers(
-                  selection: 0,
-                  userId: _myUserId))?.then((_) {
-                _resumeProfileFeedAfterRoute();
-              });
-            },
-            child: Semantics(
-              label: IntegrationTestKeys.profileFollowersCounter,
-              button: true,
-              child: Container(
-                key: const ValueKey(IntegrationTestKeys.profileFollowersCounter),
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(color: Colors.white),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        NumberFormatter.format(controller.followerCount.value),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                      Text(
-                        "profile.followers".tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          Text(
+            label,
+            key: valueKey,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 13,
+              fontFamily: "MontserratMedium",
+              height: 1.15,
             ),
           ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              _suspendProfileFeedForRoute();
-              Get.to(() => FollowingFollowers(
-                  selection: 1,
-                  userId: _myUserId))?.then((_) {
-                _resumeProfileFeedAfterRoute();
-              });
-            },
-            child: Semantics(
-              label: IntegrationTestKeys.profileFollowingCounter,
-              button: true,
-              child: Container(
-                key: const ValueKey(IntegrationTestKeys.profileFollowingCounter),
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(color: Colors.white),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        NumberFormatter.format(controller.followingCount.value),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                      Text(
-                        "profile.following".tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(color: Colors.white),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    NumberFormatter.format(_myTotalLikes),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                  Text(
-                    "profile.likes".tr,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: "MontserratMedium",
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              controller.setPostSelection(4);
-            },
-            child: Container(
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(color: Colors.white),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      NumberFormatter.format(_myTotalMarket),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                    Text(
-                      "profile.listings".tr,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
+    );
+
+    if (semanticsLabel != null) {
+      tile = Semantics(
+        label: semanticsLabel,
+        button: onTap != null,
+        child: tile,
+      );
+    }
+
+    if (onTap == null) return tile;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: tile,
     );
   }
 

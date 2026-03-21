@@ -98,6 +98,7 @@ class JobCreatorController extends GetxController {
 
   final String loaderTag = "job_creator_loader";
   final timeStamp = DateTime.now().millisecondsSinceEpoch;
+  bool _ownsLoader = false;
 
   final JobModel? existingJob;
   JobCreatorController({this.existingJob});
@@ -135,6 +136,7 @@ class JobCreatorController extends GetxController {
     super.onInit();
     if (!Get.isRegistered<GlobalLoaderController>(tag: loaderTag)) {
       Get.put(GlobalLoaderController(), tag: loaderTag);
+      _ownsLoader = true;
     }
 
     if (existingJob != null) {
@@ -178,6 +180,25 @@ class JobCreatorController extends GetxController {
         );
       });
     }
+  }
+
+  @override
+  void onClose() {
+    brand.dispose();
+    about.dispose();
+    isTanimi.dispose();
+    maas1.dispose();
+    maas2.dispose();
+    calismaSaatiBaslangic.dispose();
+    calismaSaatiBitis.dispose();
+    basvuruSayisi.dispose();
+    ilanBasligi.dispose();
+    pozisyonSayisi.dispose();
+    if (_ownsLoader &&
+        Get.isRegistered<GlobalLoaderController>(tag: loaderTag)) {
+      Get.delete<GlobalLoaderController>(tag: loaderTag);
+    }
+    super.onClose();
   }
 
   Future<void> pickImage({required ImageSource source}) async {

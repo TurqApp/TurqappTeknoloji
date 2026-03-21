@@ -7,14 +7,57 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyPastTestResultsPreview.dart/my_past_test_results_preview_controller.dart';
 
-class MyPastTestResultsPreview extends StatelessWidget {
+class MyPastTestResultsPreview extends StatefulWidget {
   final TestsModel model;
 
   const MyPastTestResultsPreview({super.key, required this.model});
 
   @override
+  State<MyPastTestResultsPreview> createState() =>
+      _MyPastTestResultsPreviewState();
+}
+
+class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final MyPastTestResultsPreviewController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'test_results_preview_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<MyPastTestResultsPreviewController>(
+      tag: _controllerTag,
+    );
+    controller = _ownsController
+        ? Get.put(
+            MyPastTestResultsPreviewController(widget.model),
+            tag: _controllerTag,
+          )
+        : Get.find<MyPastTestResultsPreviewController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyPastTestResultsPreviewController>(
+          tag: _controllerTag,
+        )) {
+      final registeredController =
+          Get.find<MyPastTestResultsPreviewController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<MyPastTestResultsPreviewController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(MyPastTestResultsPreviewController(model));
 
     return Scaffold(
       body: SafeArea(

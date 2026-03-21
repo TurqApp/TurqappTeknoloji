@@ -11,12 +11,46 @@ import 'package:turqappv2/Models/job_model.dart';
 
 import 'job_creator_controller.dart';
 
-class JobCreator extends StatelessWidget {
-  JobCreator({super.key, this.existingJob});
+class JobCreator extends StatefulWidget {
+  const JobCreator({super.key, this.existingJob});
 
   final JobModel? existingJob;
-  late final controller =
-      Get.put(JobCreatorController(existingJob: existingJob));
+
+  @override
+  State<JobCreator> createState() => _JobCreatorState();
+}
+
+class _JobCreatorState extends State<JobCreator> {
+  late final String _tag;
+  late final JobCreatorController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'job_creator_${widget.existingJob?.docID ?? 'new'}_${identityHashCode(this)}';
+    if (Get.isRegistered<JobCreatorController>(tag: _tag)) {
+      controller = Get.find<JobCreatorController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        JobCreatorController(existingJob: widget.existingJob),
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<JobCreatorController>(tag: _tag) &&
+        identical(Get.find<JobCreatorController>(tag: _tag), controller)) {
+      Get.delete<JobCreatorController>(tag: _tag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +64,7 @@ class JobCreator extends StatelessWidget {
         titleSpacing: 8,
         leading: const AppBackButton(),
         title: AppPageTitle(
-          existingJob == null
+          widget.existingJob == null
               ? 'pasaj.job_finder.create_add_title'.tr
               : 'pasaj.job_finder.create_edit_title'.tr,
         ),
@@ -294,7 +328,7 @@ class JobCreator extends StatelessWidget {
                           ),
                         )
                       : Text(
-                          existingJob == null
+                          widget.existingJob == null
                               ? 'common.publish'.tr
                               : 'common.update'.tr,
                           style: const TextStyle(
@@ -317,7 +351,7 @@ class JobCreator extends StatelessWidget {
     controller.isSubmitting.value = true;
     try {
       if (controller.croppedImage.value == null &&
-          (existingJob?.logo.isEmpty ?? true)) {
+          (widget.existingJob?.logo.isEmpty ?? true)) {
         AppSnackbar(
           'pasaj.job_finder.create.missing_field'.tr,
           'pasaj.job_finder.create.logo_required'.tr,
@@ -416,14 +450,14 @@ class JobCreator extends StatelessWidget {
           child: Image.memory(bytes, fit: BoxFit.cover),
         ),
       );
-    } else if ((existingJob?.logo.isNotEmpty ?? false)) {
+    } else if ((widget.existingJob?.logo.isNotEmpty ?? false)) {
       preview = ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: SizedBox(
           width: 112,
           height: 112,
           child: CachedNetworkImage(
-            imageUrl: existingJob!.logo,
+            imageUrl: widget.existingJob!.logo,
             fit: BoxFit.cover,
           ),
         ),

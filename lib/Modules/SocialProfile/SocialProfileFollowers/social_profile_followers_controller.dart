@@ -118,6 +118,12 @@ class SocialProfileFollowersController extends GetxController {
       _relationCache.remove(entries[i].key);
     }
   }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
+  }
 }
 
 class _RelationListCacheEntry {

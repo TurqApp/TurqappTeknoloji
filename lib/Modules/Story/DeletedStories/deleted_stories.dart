@@ -24,16 +24,30 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
   late final DeletedStoriesController controller;
   late final String _pageLineBarTag =
       '${kDeletedStoriesPageLineBarTag}_${identityHashCode(this)}';
+  bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.isRegistered<DeletedStoriesController>()
-        ? Get.find<DeletedStoriesController>()
-        : Get.put(DeletedStoriesController());
+    if (Get.isRegistered<DeletedStoriesController>()) {
+      controller = Get.find<DeletedStoriesController>();
+    } else {
+      controller = Get.put(DeletedStoriesController());
+      _ownsController = true;
+    }
     Future<void>.delayed(Duration.zero, () {
       controller.fetch(initial: false, forceRemote: true);
     });
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<DeletedStoriesController>() &&
+        Get.find<DeletedStoriesController>() == controller) {
+      Get.delete<DeletedStoriesController>(force: true);
+    }
+    super.dispose();
   }
 
   @override

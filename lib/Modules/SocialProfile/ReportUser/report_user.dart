@@ -9,20 +9,53 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import '../../../Core/strings.dart';
 import 'report_user_controller.dart';
 
-class ReportUser extends StatelessWidget {
+class ReportUser extends StatefulWidget {
   final String userID;
   final String postID;
   final String commentID;
-  ReportUser(
+  const ReportUser(
       {super.key,
       required this.userID,
       required this.postID,
       required this.commentID});
+
+  @override
+  State<ReportUser> createState() => _ReportUserState();
+}
+
+class _ReportUserState extends State<ReportUser> {
   late final ReportUserController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'report_user_${widget.userID}_${widget.postID}_${widget.commentID}_${identityHashCode(this)}';
+    controller = Get.put(
+      ReportUserController(
+        userID: widget.userID,
+        postID: widget.postID,
+        commentID: widget.commentID,
+      ),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<ReportUserController>(tag: _controllerTag) &&
+        identical(
+          Get.find<ReportUserController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ReportUserController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(ReportUserController(
-        userID: userID, postID: postID, commentID: commentID));
     return Scaffold(
       body: SafeArea(
         bottom: false,

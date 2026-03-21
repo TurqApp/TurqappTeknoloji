@@ -1,6 +1,6 @@
 part of 'job_details.dart';
 
-extension JobDetailsMetaPart on JobDetails {
+extension JobDetailsMetaPart on _JobDetailsState {
   bool _hasValidCoordinates(JobModel job) {
     if (!job.lat.isFinite || !job.long.isFinite) return false;
     if (job.lat == 0 || job.long == 0) return false;

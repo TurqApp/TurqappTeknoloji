@@ -2,9 +2,8 @@ part of 'sinav_hazirla.dart';
 
 const _sinavHazirlaKpssType = 'KPSS';
 
-extension SinavHazirlaBodyPart on SinavHazirla {
+extension SinavHazirlaBodyPart on _SinavHazirlaState {
   Widget buildContent(BuildContext context) {
-    final controller = Get.put(SinavHazirlaController(sinavModel: sinavModel));
     final soruSayisiFieldWidth =
         (MediaQuery.of(context).size.width * 0.26).clamp(82.0, 100.0);
     final coverSelectButtonWidth =

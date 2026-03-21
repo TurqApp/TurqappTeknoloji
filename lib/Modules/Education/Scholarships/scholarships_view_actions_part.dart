@@ -7,10 +7,12 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       padding: EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(child: _buildUserInfo(type, userData, firmaData)),
-          if (_shouldShowFollowButton(userData)) _buildFollowButton(userData),
+          if (_shouldShowFollowButton(userData)) ...[
+            8.pw,
+            _buildFollowButton(userData),
+          ],
         ],
       ),
     );
@@ -26,38 +28,35 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
           _buildUserAvatar(type, userData, firmaData),
           6.pw,
           Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 0,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    isIndividualScholarshipType(type) && userId.isNotEmpty
-                        ? '${_truncateLabel(_getUserDisplayName(type, userData, firmaData), maxChars: 34)} '
-                        : _truncateLabel(
-                            _getUserDisplayName(type, userData, firmaData),
-                            maxChars: 34,
-                          ),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    _truncateLabel(
+                      _getUserDisplayName(type, userData, firmaData),
+                      maxChars: 30,
+                    ),
                     style: TextStyle(
                       fontSize: 15,
                       fontFamily: "MontserratBold",
                       color: Colors.black,
                     ),
                     maxLines: 1,
-                    overflow: TextOverflow.clip,
+                    overflow: TextOverflow.ellipsis,
                     softWrap: false,
                   ),
-                  if (isIndividualScholarshipType(type) &&
-                      userId.isNotEmpty)
-                    RozetContent(
-                      size: 13,
-                      userID: userId,
-                      leftSpacing: 0,
-                      rozetValue: userData?['rozet']?.toString(),
-                    ),
+                ),
+                if (isIndividualScholarshipType(type) &&
+                    userId.isNotEmpty) ...[
+                  4.pw,
+                  RozetContent(
+                    size: 13,
+                    userID: userId,
+                    leftSpacing: 0,
+                    rozetValue: userData?['rozet']?.toString(),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ],
@@ -129,13 +128,14 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     return Obx(
       () {
         final isLoading = controller.followLoading[userId] ?? false;
-        return Transform.translate(
-          offset: const Offset(5, 0),
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 86),
           child: ScaleTap(
             enabled: !isLoading,
             onPressed: isLoading ? null : () => _handleFollowTap(userData),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: _getFollowButtonColor(userData),
                 border: Border.all(width: 1, color: Colors.black),
@@ -154,6 +154,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                     )
                   : Text(
                       _getFollowButtonText(userData),
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
                       style: TextStyle(
                         color: _getFollowButtonTextColor(userData),
                         fontSize: 12,
@@ -584,8 +586,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       spacing: 8,
       children: [
         _buildLikeButton(scholarshipData, docId, type),
-        _buildBookmarkButton(scholarshipData, docId, type),
         _buildShareButton(scholarshipData),
+        _buildBookmarkButton(scholarshipData, docId, type),
       ],
     );
   }

@@ -19,7 +19,10 @@ class ShareGridController extends GetxController {
   RxList<OgrenciModel> followings = <OgrenciModel>[].obs;
   var selectedUser = Rx<OgrenciModel?>(null);
   Rx<FocusNode> searchFocus = FocusNode().obs;
-  final chatListingController = Get.put(ChatListingController());
+  late final ChatListingController chatListingController =
+      Get.isRegistered<ChatListingController>()
+          ? Get.find<ChatListingController>()
+          : Get.put(ChatListingController());
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ConversationRepository _conversationRepository =
@@ -32,6 +35,13 @@ class ShareGridController extends GetxController {
     super.onInit();
     searchFocus.value.addListener(() => searchFocus.refresh());
     getFolowers();
+  }
+
+  @override
+  void onClose() {
+    search.dispose();
+    searchFocus.value.dispose();
+    super.onClose();
   }
 
   Future<void> getFolowers() async {

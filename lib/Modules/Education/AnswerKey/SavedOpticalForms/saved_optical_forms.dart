@@ -5,12 +5,47 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/SavedOpticalForms/saved_optical_forms_controller.dart';
 
-class SavedOpticalForms extends StatelessWidget {
+class SavedOpticalForms extends StatefulWidget {
   const SavedOpticalForms({super.key});
 
   @override
+  State<SavedOpticalForms> createState() => _SavedOpticalFormsState();
+}
+
+class _SavedOpticalFormsState extends State<SavedOpticalForms> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SavedOpticalFormsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'saved_optical_forms_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<SavedOpticalFormsController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(SavedOpticalFormsController(), tag: _controllerTag)
+        : Get.find<SavedOpticalFormsController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SavedOpticalFormsController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<SavedOpticalFormsController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<SavedOpticalFormsController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SavedOpticalFormsController());
 
     return Scaffold(
       body: SafeArea(

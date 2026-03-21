@@ -6,10 +6,38 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 import 'career_profile_controller.dart';
 
-class CareerProfile extends StatelessWidget {
-  CareerProfile({super.key});
+class CareerProfile extends StatefulWidget {
+  const CareerProfile({super.key});
 
-  final controller = Get.put(CareerProfileController());
+  @override
+  State<CareerProfile> createState() => _CareerProfileState();
+}
+
+class _CareerProfileState extends State<CareerProfile> {
+  late final CareerProfileController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<CareerProfileController>()) {
+      controller = Get.find<CareerProfileController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(CareerProfileController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<CareerProfileController>() &&
+        identical(Get.find<CareerProfileController>(), controller)) {
+      Get.delete<CareerProfileController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -4,9 +4,38 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number_controller.dart';
 
-class EditorPhoneNumber extends StatelessWidget {
-  EditorPhoneNumber({super.key});
-  final controller = Get.put(EditorPhoneNumberController());
+class EditorPhoneNumber extends StatefulWidget {
+  const EditorPhoneNumber({super.key});
+
+  @override
+  State<EditorPhoneNumber> createState() => _EditorPhoneNumberState();
+}
+
+class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
+  late final EditorPhoneNumberController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<EditorPhoneNumberController>()) {
+      controller = Get.find<EditorPhoneNumberController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(EditorPhoneNumberController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<EditorPhoneNumberController>() &&
+        identical(Get.find<EditorPhoneNumberController>(), controller)) {
+      Get.delete<EditorPhoneNumberController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

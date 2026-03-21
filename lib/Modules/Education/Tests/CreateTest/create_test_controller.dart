@@ -53,6 +53,12 @@ class CreateTestController extends GetxController {
     initializeData();
   }
 
+  @override
+  void onClose() {
+    aciklama.dispose();
+    super.onClose();
+  }
+
   void initializeData() async {
     isLoading.value = true;
     if (model != null) {

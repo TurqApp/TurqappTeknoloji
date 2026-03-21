@@ -10,14 +10,68 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../Profile/FollowingFollowers/following_followers_controller.dart';
 
-class CreateChat extends StatelessWidget {
-  CreateChat({super.key});
-  final followersFollowing = Get.put(
-    FollowingFollowersController(
-        initialPage: 0, userId: CurrentUserService.instance.userId),
-  );
-  final controllerr = Get.put(CreateChatController());
-  final chatListingController = Get.find<ChatListingController>();
+class CreateChat extends StatefulWidget {
+  const CreateChat({super.key});
+
+  @override
+  State<CreateChat> createState() => _CreateChatState();
+}
+
+class _CreateChatState extends State<CreateChat> {
+  late final FollowingFollowersController followersFollowing;
+  late final CreateChatController controllerr;
+  late final ChatListingController chatListingController;
+  bool _ownsFollowersController = false;
+  bool _ownsCreateChatController = false;
+  bool _ownsChatListingController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<FollowingFollowersController>()) {
+      followersFollowing = Get.find<FollowingFollowersController>();
+    } else {
+      followersFollowing = Get.put(
+        FollowingFollowersController(
+          initialPage: 0,
+          userId: CurrentUserService.instance.userId,
+        ),
+      );
+      _ownsFollowersController = true;
+    }
+    if (Get.isRegistered<CreateChatController>()) {
+      controllerr = Get.find<CreateChatController>();
+    } else {
+      controllerr = Get.put(CreateChatController());
+      _ownsCreateChatController = true;
+    }
+    if (Get.isRegistered<ChatListingController>()) {
+      chatListingController = Get.find<ChatListingController>();
+    } else {
+      chatListingController = Get.put(ChatListingController());
+      _ownsChatListingController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsFollowersController &&
+        Get.isRegistered<FollowingFollowersController>() &&
+        identical(Get.find<FollowingFollowersController>(), followersFollowing)) {
+      Get.delete<FollowingFollowersController>(force: true);
+    }
+    if (_ownsCreateChatController &&
+        Get.isRegistered<CreateChatController>() &&
+        identical(Get.find<CreateChatController>(), controllerr)) {
+      Get.delete<CreateChatController>(force: true);
+    }
+    if (_ownsChatListingController &&
+        Get.isRegistered<ChatListingController>() &&
+        identical(Get.find<ChatListingController>(), chatListingController)) {
+      Get.delete<ChatListingController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

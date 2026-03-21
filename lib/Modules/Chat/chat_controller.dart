@@ -172,6 +172,10 @@ class ChatController extends GetxController {
     _typingDebounce?.cancel();
     _recordingTimer?.cancel();
     _audioRecorder.dispose();
+    textEditingController.dispose();
+    scrollController.dispose();
+    pageController.dispose();
+    focus.dispose();
     _clearTyping();
     super.onClose();
   }

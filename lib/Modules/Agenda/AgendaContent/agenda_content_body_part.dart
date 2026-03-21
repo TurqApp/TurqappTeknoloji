@@ -213,7 +213,6 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       }
                                     },
                                     child: Builder(builder: (_) {
-                                      final thumb = widget.model.thumbnail;
                                       if (_shouldBlurIzBirakPost) {
                                         return _buildVideoThumbnail();
                                       }
@@ -237,36 +236,15 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
-                                              if (v.hasRenderedFirstFrame) {
+                                              if (v.hasRenderedFirstFrame &&
+                                                  !v.isCompleted) {
                                                 return const SizedBox.shrink();
                                               }
                                               return child!;
                                             },
-                                            child: thumb.isNotEmpty
-                                                ? CachedNetworkImage(
-                                                    imageUrl: thumb,
-                                                    fit: BoxFit.cover,
-                                                    memCacheWidth:
-                                                        _feedCacheWidth,
-                                                    memCacheHeight:
-                                                        _feedCacheHeightForAspectRatio(
-                                                      displayAspect,
-                                                    ),
-                                                    placeholder: (_, __) =>
-                                                        const ColoredBox(
-                                                      color: _AgendaContentState
-                                                          ._videoFallbackColor,
-                                                    ),
-                                                    errorWidget: (_, __, ___) =>
-                                                        const ColoredBox(
-                                                      color: _AgendaContentState
-                                                          ._videoFallbackColor,
-                                                    ),
-                                                  )
-                                                : const ColoredBox(
-                                                    color: _AgendaContentState
-                                                        ._videoFallbackColor,
-                                                  ),
+                                            child: _buildVideoThumbnail(
+                                              aspectRatio: displayAspect,
+                                            ),
                                           ),
                                           Positioned(
                                             top: 8,

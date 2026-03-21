@@ -18,42 +18,77 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_category.dart';
 
 import 'create_tutoring_controller.dart';
 
-class CreateTutoringView extends StatelessWidget {
+class CreateTutoringView extends StatefulWidget {
   const CreateTutoringView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final CreateTutoringController controller = Get.put(
-      CreateTutoringController(),
-    );
-    final TutoringModel? initialData = Get.arguments as TutoringModel?;
+  State<CreateTutoringView> createState() => _CreateTutoringViewState();
+}
 
-    if (initialData != null &&
-        controller.titleController.text.isEmpty &&
-        controller.descriptionController.text.isEmpty &&
-        controller.branchController.text.isEmpty &&
-        controller.images.isEmpty) {
-      controller.titleController.text = initialData.baslik;
-      controller.descriptionController.text = initialData.aciklama;
-      controller.branchController.text = initialData.brans;
-      controller.priceController.text = initialData.fiyat.toString();
-      controller.cityController.text = initialData.sehir;
-      controller.districtController.text = initialData.ilce;
-      controller.selectedLessonPlace.value =
-          initialData.dersYeri.isNotEmpty ? initialData.dersYeri.first : '';
-      controller.selectedGender.value = initialData.cinsiyet;
-      controller.city.value = initialData.sehir;
-      controller.town = initialData.ilce;
-      controller.isPhoneOpen.value = initialData.telefon;
-      controller.selectedBranch.value = initialData.brans;
-      if (initialData.imgs != null && initialData.imgs!.isNotEmpty) {
-        controller.images.assignAll(initialData.imgs!);
-      }
-      if (initialData.availability != null) {
-        controller.availability.assignAll(initialData.availability!);
-      }
+class _CreateTutoringViewState extends State<CreateTutoringView> {
+  late final String _tag;
+  late final CreateTutoringController controller;
+  late final bool _ownsController;
+  late final TutoringModel? _initialData;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag = 'create_tutoring_${identityHashCode(this)}';
+    _initialData = Get.arguments as TutoringModel?;
+    if (Get.isRegistered<CreateTutoringController>(tag: _tag)) {
+      controller = Get.find<CreateTutoringController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(CreateTutoringController(), tag: _tag);
+      _ownsController = true;
+    }
+    _hydrateInitialData();
+  }
+
+  void _hydrateInitialData() {
+    final initialData = _initialData;
+    if (initialData == null) return;
+    if (controller.titleController.text.isNotEmpty ||
+        controller.descriptionController.text.isNotEmpty ||
+        controller.branchController.text.isNotEmpty ||
+        controller.images.isNotEmpty) {
+      return;
     }
 
+    controller.titleController.text = initialData.baslik;
+    controller.descriptionController.text = initialData.aciklama;
+    controller.branchController.text = initialData.brans;
+    controller.priceController.text = initialData.fiyat.toString();
+    controller.cityController.text = initialData.sehir;
+    controller.districtController.text = initialData.ilce;
+    controller.selectedLessonPlace.value =
+        initialData.dersYeri.isNotEmpty ? initialData.dersYeri.first : '';
+    controller.selectedGender.value = initialData.cinsiyet;
+    controller.city.value = initialData.sehir;
+    controller.town = initialData.ilce;
+    controller.isPhoneOpen.value = initialData.telefon;
+    controller.selectedBranch.value = initialData.brans;
+    if (initialData.imgs != null && initialData.imgs!.isNotEmpty) {
+      controller.images.assignAll(initialData.imgs!);
+    }
+    if (initialData.availability != null) {
+      controller.availability.assignAll(initialData.availability!);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<CreateTutoringController>(tag: _tag) &&
+        identical(Get.find<CreateTutoringController>(tag: _tag), controller)) {
+      Get.delete<CreateTutoringController>(tag: _tag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -64,7 +99,7 @@ class CreateTutoringView extends StatelessWidget {
         titleSpacing: 8,
         leading: const AppBackButton(),
         title: AppPageTitle(
-          initialData == null
+          _initialData == null
               ? 'tutoring.create_listing'.tr
               : 'common.update'.tr,
         ),
@@ -75,7 +110,7 @@ class CreateTutoringView extends StatelessWidget {
           () => ListView(
             padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
             children: [
-              _buildImagePicker(context, controller, initialData),
+              _buildImagePicker(context, controller, _initialData),
               const SizedBox(height: 18),
               _sectionTitle('scholarship.basic_info'.tr),
               const SizedBox(height: 8),
@@ -218,8 +253,8 @@ class CreateTutoringView extends StatelessWidget {
                   onPressed: controller.isLoading.value
                       ? null
                       : () {
-                          if (initialData != null) {
-                            controller.updateTutoring(initialData.docID);
+                          if (_initialData != null) {
+                            controller.updateTutoring(_initialData.docID);
                           } else {
                             controller.saveTutoring();
                           }
@@ -234,7 +269,7 @@ class CreateTutoringView extends StatelessWidget {
                   child: controller.isLoading.value
                       ? const CupertinoActivityIndicator(color: Colors.white)
                       : Text(
-                          initialData == null
+                          _initialData == null
                               ? 'common.publish'.tr
                               : 'common.update'.tr,
                           style: const TextStyle(

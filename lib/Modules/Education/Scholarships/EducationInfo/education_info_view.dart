@@ -15,12 +15,43 @@ import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class EducationInfoView extends StatelessWidget {
+class EducationInfoView extends StatefulWidget {
   EducationInfoView({super.key});
 
-  final EducationInfoController controller = Get.put(EducationInfoController());
+  @override
+  State<EducationInfoView> createState() => _EducationInfoViewState();
+}
+
+class _EducationInfoViewState extends State<EducationInfoView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final EducationInfoController controller;
   final UserRepository _userRepository = UserRepository.ensure();
   final CurrentUserService _currentUserService = CurrentUserService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_education_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<EducationInfoController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(EducationInfoController(), tag: _controllerTag)
+        : Get.find<EducationInfoController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<EducationInfoController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<EducationInfoController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<EducationInfoController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

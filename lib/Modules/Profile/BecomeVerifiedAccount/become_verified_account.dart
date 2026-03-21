@@ -10,9 +10,36 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Core/extension.dart';
 
-class BecomeVerifiedAccount extends StatelessWidget {
-  BecomeVerifiedAccount({super.key});
-  final controller = Get.put(BecomeVerifiedAccountController());
+class BecomeVerifiedAccount extends StatefulWidget {
+  const BecomeVerifiedAccount({super.key});
+
+  @override
+  State<BecomeVerifiedAccount> createState() => _BecomeVerifiedAccountState();
+}
+
+class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
+  late final BecomeVerifiedAccountController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'become_verified_${identityHashCode(this)}';
+    controller =
+        Get.put(BecomeVerifiedAccountController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<BecomeVerifiedAccountController>(tag: _controllerTag) &&
+        identical(
+          Get.find<BecomeVerifiedAccountController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<BecomeVerifiedAccountController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -5,9 +5,39 @@ import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'top_tags_contoller.dart';
 
-class TopTags extends StatelessWidget {
-  TopTags({super.key});
-  final TopTagsController controller = Get.put(TopTagsController());
+class TopTags extends StatefulWidget {
+  const TopTags({super.key});
+
+  @override
+  State<TopTags> createState() => _TopTagsState();
+}
+
+class _TopTagsState extends State<TopTags> {
+  late final TopTagsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<TopTagsController>()) {
+      controller = Get.find<TopTagsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(TopTagsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<TopTagsController>() &&
+        identical(Get.find<TopTagsController>(), controller)) {
+      Get.delete<TopTagsController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

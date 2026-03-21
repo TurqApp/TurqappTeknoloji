@@ -6,15 +6,48 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 import 'post_like_listing_controller.dart';
 
-class PostLikeListing extends StatelessWidget {
+class PostLikeListing extends StatefulWidget {
   final String postID;
-  PostLikeListing({super.key, required this.postID});
+  const PostLikeListing({super.key, required this.postID});
+
+  @override
+  State<PostLikeListing> createState() => _PostLikeListingState();
+}
+
+class _PostLikeListingState extends State<PostLikeListing> {
+  late final PostLikeListingController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<PostLikeListingController>(tag: widget.postID)) {
+      controller = Get.find<PostLikeListingController>(tag: widget.postID);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        PostLikeListingController(postID: widget.postID),
+        tag: widget.postID,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<PostLikeListingController>(tag: widget.postID) &&
+        identical(
+          Get.find<PostLikeListingController>(tag: widget.postID),
+          controller,
+        )) {
+      Get.delete<PostLikeListingController>(tag: widget.postID, force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.isRegistered<PostLikeListingController>(tag: postID)
-        ? Get.find<PostLikeListingController>(tag: postID)
-        : Get.put(PostLikeListingController(postID: postID), tag: postID);
     final screenHeight = MediaQuery.of(context).size.height;
     final safeTop = MediaQuery.of(context).padding.top;
     final safeBottom = MediaQuery.of(context).padding.bottom;

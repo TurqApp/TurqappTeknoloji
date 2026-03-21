@@ -7,9 +7,39 @@ import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 
 import 'finding_job_apply_controller.dart';
 
-class FindingJobApply extends StatelessWidget {
-  FindingJobApply({super.key});
-  final controller = Get.put(FindingJobApplyController());
+class FindingJobApply extends StatefulWidget {
+  const FindingJobApply({super.key});
+
+  @override
+  State<FindingJobApply> createState() => _FindingJobApplyState();
+}
+
+class _FindingJobApplyState extends State<FindingJobApply> {
+  late final FindingJobApplyController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<FindingJobApplyController>()) {
+      controller = Get.find<FindingJobApplyController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(FindingJobApplyController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<FindingJobApplyController>() &&
+        identical(Get.find<FindingJobApplyController>(), controller)) {
+      Get.delete<FindingJobApplyController>();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

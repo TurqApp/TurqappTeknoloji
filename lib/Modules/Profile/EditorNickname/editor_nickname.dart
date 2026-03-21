@@ -8,10 +8,40 @@ import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class EditorNickname extends StatelessWidget {
-  EditorNickname({super.key});
-  final controller = Get.put(EditorNicknameController());
+class EditorNickname extends StatefulWidget {
+  const EditorNickname({super.key});
+
+  @override
+  State<EditorNickname> createState() => _EditorNicknameState();
+}
+
+class _EditorNicknameState extends State<EditorNickname> {
+  late final EditorNicknameController controller;
+  late final bool _ownsController;
   final userService = CurrentUserService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<EditorNicknameController>()) {
+      controller = Get.find<EditorNicknameController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(EditorNicknameController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<EditorNicknameController>() &&
+        identical(Get.find<EditorNicknameController>(), controller)) {
+      Get.delete<EditorNicknameController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

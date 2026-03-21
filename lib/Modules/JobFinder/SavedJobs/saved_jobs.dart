@@ -6,9 +6,39 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/SavedJobs/saved_job_controller.dart';
 
-class SavedJobs extends StatelessWidget {
-  SavedJobs({super.key});
-  final controller = Get.put(SavedJobsController());
+class SavedJobs extends StatefulWidget {
+  const SavedJobs({super.key});
+
+  @override
+  State<SavedJobs> createState() => _SavedJobsState();
+}
+
+class _SavedJobsState extends State<SavedJobs> {
+  late final SavedJobsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SavedJobsController>()) {
+      controller = Get.find<SavedJobsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(SavedJobsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SavedJobsController>() &&
+        identical(Get.find<SavedJobsController>(), controller)) {
+      Get.delete<SavedJobsController>();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

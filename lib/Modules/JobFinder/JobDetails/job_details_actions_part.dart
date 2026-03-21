@@ -1,6 +1,6 @@
 part of 'job_details.dart';
 
-extension JobDetailsActionsPart on JobDetails {
+extension JobDetailsActionsPart on _JobDetailsState {
   Widget _buildBottomActionSection(JobDetailsController controller) {
     return Obx(() {
       return Padding(

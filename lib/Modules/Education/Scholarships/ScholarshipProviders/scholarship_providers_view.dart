@@ -10,12 +10,46 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class ScholarshipProvidersView extends StatelessWidget {
+class ScholarshipProvidersView extends StatefulWidget {
   ScholarshipProvidersView({super.key});
 
-  final ScholarshipProvidersController controller = Get.put(
-    ScholarshipProvidersController(),
-  );
+  @override
+  State<ScholarshipProvidersView> createState() =>
+      _ScholarshipProvidersViewState();
+}
+
+class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final ScholarshipProvidersController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_providers_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<ScholarshipProvidersController>(
+      tag: _controllerTag,
+    );
+    controller = _ownsController
+        ? Get.put(ScholarshipProvidersController(), tag: _controllerTag)
+        : Get.find<ScholarshipProvidersController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ScholarshipProvidersController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<ScholarshipProvidersController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<ScholarshipProvidersController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
 
   String get _currentUid {
     final serviceUid = CurrentUserService.instance.userId.trim();

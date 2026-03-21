@@ -150,4 +150,10 @@ class DeletedStoriesController extends GetxController {
       curve: Curves.easeInOut,
     );
   }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
+  }
 }

@@ -1,27 +1,51 @@
 part of 'classic_content.dart';
 
 extension _ClassicContentMediaPart on _ClassicContentState {
+  Widget _buildVideoPosterFallback({double? aspectRatio}) {
+    final fallback = DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF18181B),
+            Color(0xFF27272A),
+            Color(0xFF3F3F46),
+          ],
+        ),
+      ),
+      child: const SizedBox.expand(),
+    );
+    if (aspectRatio == null) return fallback;
+    return AspectRatio(aspectRatio: aspectRatio, child: fallback);
+  }
+
   Widget _buildVideoThumbnail({double? aspectRatio}) {
-    final thumb = widget.model.thumbnail.trim();
-    const fallback = ColoredBox(color: Colors.transparent);
+    final thumb = widget.model.thumbnail.trim().isNotEmpty
+        ? widget.model.thumbnail.trim()
+        : (widget.model.img.isNotEmpty
+            ? widget.model.img.first.trim()
+            : '');
+    final fallback = _buildVideoPosterFallback(aspectRatio: aspectRatio);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
         ? CachedNetworkImage(
             imageUrl: thumb,
+            cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            placeholderFadeInDuration: Duration.zero,
             placeholder: (_, __) => fallback,
             errorWidget: (_, __, ___) => fallback,
           )
         : fallback;
     if (aspectRatio == null) return image;
-    return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: image,
-    );
+    return image;
   }
 
   void _pauseFeedBeforeFullscreen() {

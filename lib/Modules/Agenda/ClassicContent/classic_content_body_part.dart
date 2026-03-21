@@ -550,7 +550,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      if (v.hasRenderedFirstFrame) {
+                      if (v.hasRenderedFirstFrame && !v.isCompleted) {
                         return const SizedBox.shrink();
                       }
                       return child!;
@@ -570,9 +570,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     builder: (_, v, __) => buildFeedReplayOverlay(v),
                   ),
                 ] else
-                  widget.model.thumbnail.isEmpty
-                      ? const SizedBox.expand()
-                      : _buildVideoThumbnail(),
+                  _buildVideoThumbnail(aspectRatio: frameAspectRatio),
                 if (videoController == null)
                   Positioned(
                     top: 8,

@@ -6,7 +6,7 @@ import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalFormContent/optical_form_content_controller.dart';
 
-class OpticalFormContent extends StatelessWidget {
+class OpticalFormContent extends StatefulWidget {
   final OpticalFormModel model;
   final Function() update;
 
@@ -17,12 +17,45 @@ class OpticalFormContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      OpticalFormContentController(model),
-      tag: model.docID,
-    );
+  State<OpticalFormContent> createState() => _OpticalFormContentState();
+}
 
+class _OpticalFormContentState extends State<OpticalFormContent> {
+  late final OpticalFormContentController controller;
+  late final String _controllerTag;
+
+  OpticalFormModel get model => widget.model;
+  Function() get update => widget.update;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'optical_form_content_${widget.model.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<OpticalFormContentController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<OpticalFormContentController>(tag: _controllerTag)
+        : Get.put(
+            OpticalFormContentController(widget.model),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<OpticalFormContentController>(tag: _controllerTag) &&
+        identical(
+          Get.find<OpticalFormContentController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<OpticalFormContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15, top: 15),
       child: Dismissible(
@@ -122,8 +155,8 @@ class OpticalFormContent extends StatelessWidget {
                         () => Row(
                           children: [
                             Text(
-                              "answer_key.participant_count"
-                                  .trParams({'count': '${controller.total.value}'}),
+                              "answer_key.participant_count".trParams(
+                                  {'count': '${controller.total.value}'}),
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,

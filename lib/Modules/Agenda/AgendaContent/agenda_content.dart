@@ -20,6 +20,7 @@ import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/Services/relative_time_tick_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
@@ -106,7 +107,7 @@ class _AgendaContentState extends State<AgendaContent>
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
-  static const Color _videoFallbackColor = Colors.transparent;
+  static const Color _videoFallbackColor = Colors.black;
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
   final arsivController = Get.put(ArchiveController());

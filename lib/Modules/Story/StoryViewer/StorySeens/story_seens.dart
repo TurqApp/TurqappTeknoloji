@@ -5,13 +5,48 @@ import 'package:turqappv2/Modules/Story/StoryViewer/StoryContentProfiles/story_c
 import 'package:turqappv2/Modules/Story/StoryViewer/StorySeens/story_seens_controller.dart';
 import '../../../../Core/empty_row.dart';
 
-class StorySeens extends StatelessWidget {
+class StorySeens extends StatefulWidget {
   final String storyID;
-  StorySeens({super.key, required this.storyID});
+  const StorySeens({super.key, required this.storyID});
+
+  @override
+  State<StorySeens> createState() => _StorySeensState();
+}
+
+class _StorySeensState extends State<StorySeens> {
+  late final String _controllerTag;
+  late final StorySeensController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'story_seens_${widget.storyID}_${identityHashCode(this)}';
+    if (Get.isRegistered<StorySeensController>(tag: _controllerTag)) {
+      controller = Get.find<StorySeensController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(StorySeensController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+    controller.getData(widget.storyID);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<StorySeensController>(tag: _controllerTag) &&
+        identical(
+          Get.find<StorySeensController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<StorySeensController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StorySeensController(), tag: storyID);
-    controller.getData(storyID);
     return SafeArea(
       child: Obx(() {
         return Column(

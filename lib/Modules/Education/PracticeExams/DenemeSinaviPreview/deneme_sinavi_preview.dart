@@ -19,12 +19,50 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class DenemeSinaviPreview extends StatelessWidget {
+class DenemeSinaviPreview extends StatefulWidget {
   const DenemeSinaviPreview({super.key, required this.model});
 
   final SinavModel model;
+  @override
+  State<DenemeSinaviPreview> createState() => _DenemeSinaviPreviewState();
+}
+
+class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
+  late final String _tag;
+  late final DenemeSinaviPreviewController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'practice_exam_preview_${widget.model.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<DenemeSinaviPreviewController>(tag: _tag)) {
+      controller = Get.find<DenemeSinaviPreviewController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        DenemeSinaviPreviewController(model: widget.model),
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<DenemeSinaviPreviewController>(tag: _tag) &&
+        identical(
+          Get.find<DenemeSinaviPreviewController>(tag: _tag),
+          controller,
+        )) {
+      Get.delete<DenemeSinaviPreviewController>(tag: _tag);
+    }
+    super.dispose();
+  }
 
   Future<void> _handlePrimaryAction(
     DenemeSinaviPreviewController controller,
@@ -381,8 +419,6 @@ class DenemeSinaviPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(DenemeSinaviPreviewController(model: model));
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -401,7 +437,7 @@ class DenemeSinaviPreview extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 2),
             child: EducationFeedShareIconButton(
-              onTap: () => shareService.sharePracticeExam(model),
+              onTap: () => shareService.sharePracticeExam(widget.model),
               size: 36,
               iconSize: 20,
             ),
@@ -410,7 +446,7 @@ class DenemeSinaviPreview extends StatelessWidget {
             padding: const EdgeInsets.only(right: 2),
             child: Obx(
               () => AppHeaderActionButton(
-                onTap: controller.toggleSaved,
+              onTap: controller.toggleSaved,
                 child: Icon(
                   controller.isSaved.value
                       ? CupertinoIcons.bookmark_fill

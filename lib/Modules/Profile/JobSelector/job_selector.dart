@@ -5,9 +5,38 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'job_selector_controller.dart';
 
-class JobSelector extends StatelessWidget {
-  JobSelector({super.key});
-  final controller = Get.put(JobSelectorController());
+class JobSelector extends StatefulWidget {
+  const JobSelector({super.key});
+
+  @override
+  State<JobSelector> createState() => _JobSelectorState();
+}
+
+class _JobSelectorState extends State<JobSelector> {
+  late final JobSelectorController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<JobSelectorController>()) {
+      controller = Get.find<JobSelectorController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(JobSelectorController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<JobSelectorController>() &&
+        identical(Get.find<JobSelectorController>(), controller)) {
+      Get.delete<JobSelectorController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

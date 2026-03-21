@@ -1,10 +1,7 @@
 part of 'job_details.dart';
 
-extension JobDetailsBodyPart on JobDetails {
+extension JobDetailsBodyPart on _JobDetailsState {
   Widget buildContent(BuildContext context) {
-    final controller =
-        Get.put(JobDetailsController(model: model), tag: model.docID);
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

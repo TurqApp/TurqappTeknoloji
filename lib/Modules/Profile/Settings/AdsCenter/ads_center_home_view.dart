@@ -20,18 +20,27 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   late final AdsCenterController _controller;
+  bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 6, vsync: this);
-    _controller = Get.isRegistered<AdsCenterController>()
-        ? Get.find<AdsCenterController>()
-        : Get.put(AdsCenterController());
+    if (Get.isRegistered<AdsCenterController>()) {
+      _controller = Get.find<AdsCenterController>();
+    } else {
+      _controller = Get.put(AdsCenterController());
+      _ownsController = true;
+    }
   }
 
   @override
   void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<AdsCenterController>() &&
+        identical(Get.find<AdsCenterController>(), _controller)) {
+      Get.delete<AdsCenterController>(force: true);
+    }
     _tabController.dispose();
     super.dispose();
   }

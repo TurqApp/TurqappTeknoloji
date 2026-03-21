@@ -13,10 +13,46 @@ import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class BookletPreview extends StatelessWidget {
+class BookletPreview extends StatefulWidget {
   const BookletPreview({required this.model, super.key});
 
   final BookletModel model;
+
+  @override
+  State<BookletPreview> createState() => _BookletPreviewState();
+}
+
+class _BookletPreviewState extends State<BookletPreview> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final BookletPreviewController controller;
+
+  BookletModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'booklet_preview_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<BookletPreviewController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(BookletPreviewController(model), tag: _controllerTag)
+        : Get.find<BookletPreviewController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<BookletPreviewController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<BookletPreviewController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<BookletPreviewController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
 
   Widget _infoRow(String label, String value) {
     return Padding(
@@ -240,8 +276,6 @@ class BookletPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(BookletPreviewController(model));
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

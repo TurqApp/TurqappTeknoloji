@@ -10,7 +10,7 @@ import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_controller
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_view.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
-class PostReshareContent extends StatelessWidget {
+class PostReshareContent extends StatefulWidget {
   const PostReshareContent({
     super.key,
     required this.item,
@@ -19,16 +19,42 @@ class PostReshareContent extends StatelessWidget {
   final ReshareUserItem item;
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.isRegistered<FollowerController>(tag: item.userID)
-        ? Get.find<FollowerController>(tag: item.userID)
-        : Get.put(FollowerController(), tag: item.userID);
+  State<PostReshareContent> createState() => _PostReshareContentState();
+}
 
-    if (!controller.isLoaded.value) {
-      controller.getData(item.userID);
-      controller.followControl(item.userID);
+class _PostReshareContentState extends State<PostReshareContent> {
+  late final String _followTag;
+  FollowerController? _followController;
+
+  ReshareUserItem get item => widget.item;
+
+  @override
+  void initState() {
+    super.initState();
+    _followTag =
+        'post_reshare_follow_${item.userID}_${DateTime.now().microsecondsSinceEpoch}';
+    if (!isCurrentUserId(item.userID)) {
+      _followController = Get.put(FollowerController(), tag: _followTag);
+      _refreshFollowState();
     }
+  }
 
+  @override
+  void dispose() {
+    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+      Get.delete<FollowerController>(tag: _followTag, force: true);
+    }
+    super.dispose();
+  }
+
+  Future<void> _refreshFollowState() async {
+    if (_followController == null) return;
+    await _followController!.getData(item.userID);
+    await _followController!.followControl(item.userID);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isMe = isCurrentUserId(item.userID);
     final displayNickname = item.nickname.trim().isEmpty
         ? item.fullName.trim()
@@ -98,7 +124,8 @@ class PostReshareContent extends StatelessWidget {
           ),
           if (!isMe) ...[
             const SizedBox(width: 12),
-            Obx(() => _followButton(controller)),
+            if (_followController != null)
+              Obx(() => _followButton(_followController!)),
           ],
         ],
       ),
@@ -175,7 +202,6 @@ class PostReshareContent extends StatelessWidget {
       return;
     }
     await Get.to(() => SocialProfile(userID: item.userID));
-    final controller = Get.find<FollowerController>(tag: item.userID);
-    controller.followControl(item.userID);
+    await _refreshFollowState();
   }
 }

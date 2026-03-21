@@ -18,12 +18,19 @@ class TagPosts extends StatefulWidget {
 
 class _TagPostsState extends State<TagPosts> {
   late TagPostsController controller;
+  late final bool _ownsController;
   final ScrollController scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(TagPostsController(tag: widget.tag));
+    if (Get.isRegistered<TagPostsController>()) {
+      controller = Get.find<TagPostsController>();
+      _ownsController = false;
+    } else {
+      controller = Get.put(TagPostsController(tag: widget.tag));
+      _ownsController = true;
+    }
     scrollController.addListener(_onScroll);
   }
 
@@ -31,6 +38,11 @@ class _TagPostsState extends State<TagPosts> {
   void dispose() {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
+    if (_ownsController &&
+        Get.isRegistered<TagPostsController>() &&
+        identical(Get.find<TagPostsController>(), controller)) {
+      Get.delete<TagPostsController>(force: true);
+    }
     super.dispose();
   }
 

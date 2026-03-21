@@ -6,12 +6,44 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Modules/Education/Tests/SavedTests/saved_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
-class SavedTests extends StatelessWidget {
+class SavedTests extends StatefulWidget {
   const SavedTests({super.key});
 
   @override
+  State<SavedTests> createState() => _SavedTestsState();
+}
+
+class _SavedTestsState extends State<SavedTests> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SavedTestsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'tests_saved_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<SavedTestsController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(SavedTestsController(), tag: _controllerTag)
+        : Get.find<SavedTestsController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SavedTestsController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<SavedTestsController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<SavedTestsController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SavedTestsController());
 
     return Scaffold(
       body: SafeArea(

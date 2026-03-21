@@ -10,14 +10,39 @@ import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'my_q_r_code_controller.dart';
 
-class MyQRCode extends StatelessWidget {
-  MyQRCode({super.key});
+class MyQRCode extends StatefulWidget {
+  const MyQRCode({super.key});
+
+  @override
+  State<MyQRCode> createState() => _MyQRCodeState();
+}
+
+class _MyQRCodeState extends State<MyQRCode> {
   late final MyQRCodeController controller;
+  late final String _controllerTag;
   final userService = CurrentUserService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'my_qr_code_${identityHashCode(this)}';
+    controller = Get.put(MyQRCodeController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<MyQRCodeController>(tag: _controllerTag) &&
+        identical(
+          Get.find<MyQRCodeController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyQRCodeController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    Get.put(MyQRCodeController());
-    controller = Get.find<MyQRCodeController>();
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(

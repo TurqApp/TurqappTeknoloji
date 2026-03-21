@@ -46,7 +46,7 @@ class PasajListCardMetrics {
 
   static const PasajListCardMetrics regular = PasajListCardMetrics(
     mediaSize: 88,
-    railWidth: 108,
+    railWidth: 100,
     railHeight: 96,
     actionButtonSize: 32,
     actionIconSize: 18,
@@ -55,7 +55,7 @@ class PasajListCardMetrics {
     ctaHeight: 30,
     ctaFontSize: 13,
     contentGap: 6,
-    railActionGap: 6,
+    railActionGap: 4,
     railSectionGap: 10,
   );
 

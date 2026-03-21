@@ -44,6 +44,8 @@ class PhotoShortContent extends StatefulWidget {
 class _PhotoShortContentState extends State<PhotoShortContent> {
   late final PhotoShortsContentController controller;
   late final PageController _pageController;
+  late final String _controllerTag;
+  late final bool _ownsController;
   int _currentPage = 0;
   String get _currentUserId {
     final serviceUid = CurrentUserService.instance.userId.trim();
@@ -53,10 +55,18 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   @override
   void initState() {
     super.initState();
-    controller = Get.put(
-      PhotoShortsContentController(model: widget.model),
-      tag: widget.model.userID,
-    );
+    _controllerTag = 'PhotoShortContent_${widget.model.docID}';
+    if (Get.isRegistered<PhotoShortsContentController>(tag: _controllerTag)) {
+      controller =
+          Get.find<PhotoShortsContentController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        PhotoShortsContentController(model: widget.model),
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
     controller.fetchUserData(widget.model.userID);
     _pageController = PageController(initialPage: 0);
   }
@@ -64,6 +74,13 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   @override
   void dispose() {
     _pageController.dispose();
+    if (_ownsController &&
+        Get.isRegistered<PhotoShortsContentController>(tag: _controllerTag)) {
+      Get.delete<PhotoShortsContentController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
   }
 

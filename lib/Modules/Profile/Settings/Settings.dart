@@ -61,10 +61,18 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
 
-class SettingsView extends StatelessWidget {
-  SettingsView({super.key});
-  final controller = Get.put(SettingsController());
-  final scholarshipsController = Get.put(ScholarshipsController());
+class SettingsView extends StatefulWidget {
+  const SettingsView({super.key});
+
+  @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  late final SettingsController controller;
+  late final ScholarshipsController scholarshipsController;
+  bool _ownsSettingsController = false;
+  bool _ownsScholarshipsController = false;
   final UserRepository _userRepository = UserRepository.ensure();
   final VerifiedAccountRepository _verifiedAccountRepository =
       VerifiedAccountRepository.ensure();
@@ -76,6 +84,38 @@ class SettingsView extends StatelessWidget {
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SettingsController>()) {
+      controller = Get.find<SettingsController>();
+    } else {
+      controller = Get.put(SettingsController());
+      _ownsSettingsController = true;
+    }
+    if (Get.isRegistered<ScholarshipsController>()) {
+      scholarshipsController = Get.find<ScholarshipsController>();
+    } else {
+      scholarshipsController = Get.put(ScholarshipsController());
+      _ownsScholarshipsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsScholarshipsController &&
+        Get.isRegistered<ScholarshipsController>() &&
+        identical(Get.find<ScholarshipsController>(), scholarshipsController)) {
+      Get.delete<ScholarshipsController>(force: true);
+    }
+    if (_ownsSettingsController &&
+        Get.isRegistered<SettingsController>() &&
+        identical(Get.find<SettingsController>(), controller)) {
+      Get.delete<SettingsController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -617,9 +657,6 @@ class SettingsView extends StatelessWidget {
   }
 
   void _ensureDiagnosticsServices() {
-    if (!Get.isRegistered<SettingsController>()) {
-      Get.put(SettingsController());
-    }
     if (!Get.isRegistered<ErrorHandlingService>()) {
       Get.put(ErrorHandlingService());
     }

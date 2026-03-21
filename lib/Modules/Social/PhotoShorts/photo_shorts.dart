@@ -18,11 +18,20 @@ class PhotoShorts extends StatefulWidget {
 class _PhotoShortsState extends State<PhotoShorts> {
   late final PhotoShortsController controller;
   late final PageController pageController;
+  late final String _controllerTag;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(PhotoShortsController());
+    _controllerTag = 'PhotoShorts_${identityHashCode(this)}';
+    if (Get.isRegistered<PhotoShortsController>(tag: _controllerTag)) {
+      controller = Get.find<PhotoShortsController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(PhotoShortsController(), tag: _controllerTag);
+      _ownsController = true;
+    }
 
     // fetchedList'i kopyala ve gerekirse startModel'i başa ekle
     final List<PostsModel> initialList =
@@ -46,6 +55,10 @@ class _PhotoShortsState extends State<PhotoShorts> {
   @override
   void dispose() {
     pageController.dispose();
+    if (_ownsController &&
+        Get.isRegistered<PhotoShortsController>(tag: _controllerTag)) {
+      Get.delete<PhotoShortsController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
   }
 

@@ -7,20 +7,64 @@ import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'tutoring_application_review_controller.dart';
 
-class TutoringApplicationReview extends StatelessWidget {
+class TutoringApplicationReview extends StatefulWidget {
   final String tutoringDocID;
   final String tutoringTitle;
 
-  TutoringApplicationReview({
+  const TutoringApplicationReview({
     super.key,
     required this.tutoringDocID,
     required this.tutoringTitle,
   });
 
-  late final controller = Get.put(
-    TutoringApplicationReviewController(tutoringDocID: tutoringDocID),
-    tag: tutoringDocID,
-  );
+  @override
+  State<TutoringApplicationReview> createState() =>
+      _TutoringApplicationReviewState();
+}
+
+class _TutoringApplicationReviewState extends State<TutoringApplicationReview> {
+  late final TutoringApplicationReviewController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<TutoringApplicationReviewController>(
+      tag: widget.tutoringDocID,
+    )) {
+      controller = Get.find<TutoringApplicationReviewController>(
+        tag: widget.tutoringDocID,
+      );
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        TutoringApplicationReviewController(
+          tutoringDocID: widget.tutoringDocID,
+        ),
+        tag: widget.tutoringDocID,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<TutoringApplicationReviewController>(
+          tag: widget.tutoringDocID,
+        ) &&
+        identical(
+          Get.find<TutoringApplicationReviewController>(
+            tag: widget.tutoringDocID,
+          ),
+          controller,
+        )) {
+      Get.delete<TutoringApplicationReviewController>(
+        tag: widget.tutoringDocID,
+      );
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

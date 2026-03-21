@@ -13,11 +13,41 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/BankInfo/bank_info_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class BankInfoView extends StatelessWidget {
+class BankInfoView extends StatefulWidget {
   BankInfoView({super.key});
 
-  final BankInfoController controller = Get.put(BankInfoController());
+  @override
+  State<BankInfoView> createState() => _BankInfoViewState();
+}
+
+class _BankInfoViewState extends State<BankInfoView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final BankInfoController controller;
   final UserRepository _userRepository = UserRepository.ensure();
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_bank_${identityHashCode(this)}';
+    _ownsController = !Get.isRegistered<BankInfoController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(BankInfoController(), tag: _controllerTag)
+        : Get.find<BankInfoController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<BankInfoController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<BankInfoController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<BankInfoController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

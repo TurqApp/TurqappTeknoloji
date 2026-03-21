@@ -10,10 +10,41 @@ import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 
-class ApplicationsView extends StatelessWidget {
+class ApplicationsView extends StatefulWidget {
   ApplicationsView({super.key});
 
-  final ApplicationsController controller = Get.put(ApplicationsController());
+  @override
+  State<ApplicationsView> createState() => _ApplicationsViewState();
+}
+
+class _ApplicationsViewState extends State<ApplicationsView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final ApplicationsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_applications_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<ApplicationsController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(ApplicationsController(), tag: _controllerTag)
+        : Get.find<ApplicationsController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ApplicationsController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<ApplicationsController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<ApplicationsController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

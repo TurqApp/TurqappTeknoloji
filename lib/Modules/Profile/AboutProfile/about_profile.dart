@@ -7,14 +7,48 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile_controller.dart';
 
-class AboutProfile extends StatelessWidget {
+class AboutProfile extends StatefulWidget {
   final String userID;
-  AboutProfile({super.key, required this.userID});
-  final controller = Get.put(AboutProfileController());
+  const AboutProfile({super.key, required this.userID});
+
+  @override
+  State<AboutProfile> createState() => _AboutProfileState();
+}
+
+class _AboutProfileState extends State<AboutProfile> {
+  late final AboutProfileController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'about_profile_${widget.userID}_${identityHashCode(this)}';
+    controller = Get.put(AboutProfileController(), tag: _controllerTag);
+    controller.getUserData(widget.userID);
+  }
+
+  @override
+  void didUpdateWidget(covariant AboutProfile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userID != widget.userID) {
+      controller.getUserData(widget.userID);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<AboutProfileController>(tag: _controllerTag) &&
+        identical(
+          Get.find<AboutProfileController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<AboutProfileController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller.getUserData(userID);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -43,7 +77,7 @@ class AboutProfile extends StatelessWidget {
                                     ),
                                   )),
                       ),
-                      RozetContent(size: 20, userID: userID)
+                      RozetContent(size: 20, userID: widget.userID)
                     ],
                   )
                 ],

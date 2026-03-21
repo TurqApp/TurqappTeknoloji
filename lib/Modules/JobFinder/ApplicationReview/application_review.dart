@@ -9,20 +9,54 @@ import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'application_review_controller.dart';
 
-class ApplicationReview extends StatelessWidget {
+class ApplicationReview extends StatefulWidget {
   final String jobDocID;
   final String jobTitle;
 
-  ApplicationReview({
+  const ApplicationReview({
     super.key,
     required this.jobDocID,
     required this.jobTitle,
   });
 
-  late final controller = Get.put(
-    ApplicationReviewController(jobDocID: jobDocID),
-    tag: jobDocID,
-  );
+  @override
+  State<ApplicationReview> createState() => _ApplicationReviewState();
+}
+
+class _ApplicationReviewState extends State<ApplicationReview> {
+  late final String _tag;
+  late final ApplicationReviewController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'job_application_review_${widget.jobDocID}_${identityHashCode(this)}';
+    if (Get.isRegistered<ApplicationReviewController>(tag: _tag)) {
+      controller = Get.find<ApplicationReviewController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        ApplicationReviewController(jobDocID: widget.jobDocID),
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<ApplicationReviewController>(tag: _tag) &&
+        identical(
+          Get.find<ApplicationReviewController>(tag: _tag),
+          controller,
+        )) {
+      Get.delete<ApplicationReviewController>(tag: _tag);
+    }
+    super.dispose();
+  }
 
   String _localizedCvLanguage(dynamic rawValue) {
     final raw = (rawValue ?? '').toString().trim();

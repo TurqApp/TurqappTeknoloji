@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -17,6 +19,7 @@ class OpticalPreviewController extends GetxController {
   final selection = 0.obs;
   final fullName = TextEditingController();
   final ogrenciNo = TextEditingController();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   OpticalPreviewController(this.model, this.onUpdate) {
     _initialize();
@@ -30,13 +33,16 @@ class OpticalPreviewController extends GetxController {
 
   @override
   void onClose() {
+    _connectivitySubscription?.cancel();
     fullName.dispose();
     ogrenciNo.dispose();
     super.onClose();
   }
 
   void checkInternetConnection() {
-    Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
       isConnected.value = results.any((r) => r != ConnectivityResult.none);
     });
   }

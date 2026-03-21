@@ -9,12 +9,44 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/SearchAnswerKey/search_answer_key_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class SearchAnswerKey extends StatelessWidget {
+class SearchAnswerKey extends StatefulWidget {
   const SearchAnswerKey({super.key});
 
   @override
+  State<SearchAnswerKey> createState() => _SearchAnswerKeyState();
+}
+
+class _SearchAnswerKeyState extends State<SearchAnswerKey> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SearchAnswerKeyController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'answer_key_search_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<SearchAnswerKeyController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(SearchAnswerKeyController(), tag: _controllerTag)
+        : Get.find<SearchAnswerKeyController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SearchAnswerKeyController>(tag: _controllerTag)) {
+      final registeredController =
+          Get.find<SearchAnswerKeyController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<SearchAnswerKeyController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SearchAnswerKeyController());
 
     return Scaffold(
       body: SafeArea(

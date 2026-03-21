@@ -9,9 +9,37 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_co
 
 import '../../../Models/social_media_model.dart';
 
-class SocialMediaLinks extends StatelessWidget {
-  SocialMediaLinks({super.key});
-  final controller = Get.put(SocialMediaController());
+class SocialMediaLinks extends StatefulWidget {
+  const SocialMediaLinks({super.key});
+
+  @override
+  State<SocialMediaLinks> createState() => _SocialMediaLinksState();
+}
+
+class _SocialMediaLinksState extends State<SocialMediaLinks> {
+  late final SocialMediaController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<SocialMediaController>()) {
+      controller = Get.find<SocialMediaController>();
+    } else {
+      controller = Get.put(SocialMediaController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<SocialMediaController>() &&
+        identical(Get.find<SocialMediaController>(), controller)) {
+      Get.delete<SocialMediaController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

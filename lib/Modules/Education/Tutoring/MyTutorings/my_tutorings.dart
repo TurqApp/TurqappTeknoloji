@@ -45,7 +45,10 @@ class _MyTutoringsState extends State<MyTutorings> {
 
   @override
   Widget build(BuildContext context) {
-    final ViewModeController viewModeController = Get.put(ViewModeController());
+    final ViewModeController viewModeController =
+        Get.isRegistered<ViewModeController>()
+            ? Get.find<ViewModeController>()
+            : Get.put(ViewModeController());
 
     return Obx(
       () {

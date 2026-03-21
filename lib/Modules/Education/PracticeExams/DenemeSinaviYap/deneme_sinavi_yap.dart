@@ -10,7 +10,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
 const _practiceExamLgsType = 'LGS';
 
-class DenemeSinaviYap extends StatelessWidget {
+class DenemeSinaviYap extends StatefulWidget {
   final SinavModel model;
   final Function sinaviBitir;
   final Function showGecersizAlert;
@@ -23,6 +23,15 @@ class DenemeSinaviYap extends StatelessWidget {
     required this.showGecersizAlert,
     required this.uyariAtla,
   });
+
+  @override
+  State<DenemeSinaviYap> createState() => _DenemeSinaviYapState();
+}
+
+class _DenemeSinaviYapState extends State<DenemeSinaviYap> {
+  late final String _tag;
+  late final DenemeSinaviYapController controller;
+  late final bool _ownsController;
 
   Widget buildQuestionCard(
     SoruModel soru,
@@ -131,8 +140,7 @@ class DenemeSinaviYap extends StatelessWidget {
     );
   }
 
-  Widget buildRulesSection() {
-    final controller = Get.find<DenemeSinaviYapController>();
+  Widget buildRulesSection(DenemeSinaviYapController controller) {
     return Container(
       color: Colors.white,
       child: Padding(
@@ -282,16 +290,38 @@ class DenemeSinaviYap extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      DenemeSinaviYapController(
-        model: model,
-        sinaviBitir: sinaviBitir,
-        showGecersizAlert: showGecersizAlert,
-        uyariAtla: uyariAtla,
-      ),
-    );
+  void initState() {
+    super.initState();
+    _tag = 'practice_exam_solve_${widget.model.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<DenemeSinaviYapController>(tag: _tag)) {
+      controller = Get.find<DenemeSinaviYapController>(tag: _tag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(
+        DenemeSinaviYapController(
+          model: widget.model,
+          sinaviBitir: widget.sinaviBitir,
+          showGecersizAlert: widget.showGecersizAlert,
+          uyariAtla: widget.uyariAtla,
+        ),
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
 
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<DenemeSinaviYapController>(tag: _tag) &&
+        identical(Get.find<DenemeSinaviYapController>(tag: _tag), controller)) {
+      Get.delete<DenemeSinaviYapController>(tag: _tag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -436,7 +466,7 @@ class DenemeSinaviYap extends StatelessWidget {
                         ),
                       ],
                     )
-                  : buildRulesSection(),
+                  : buildRulesSection(controller),
             ),
           ],
         ),

@@ -3,14 +3,55 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyCreatingOption/answer_key_creating_option_controller.dart';
 
-class AnswerKeyCreatingOption extends StatelessWidget {
+class AnswerKeyCreatingOption extends StatefulWidget {
   final Function onBack;
 
   const AnswerKeyCreatingOption({required this.onBack, super.key});
 
   @override
+  State<AnswerKeyCreatingOption> createState() =>
+      _AnswerKeyCreatingOptionState();
+}
+
+class _AnswerKeyCreatingOptionState extends State<AnswerKeyCreatingOption> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final AnswerKeyCreatingOptionController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'answer_key_option_${identityHashCode(this)}';
+    _ownsController =
+        !Get.isRegistered<AnswerKeyCreatingOptionController>(tag: _controllerTag);
+    controller = _ownsController
+        ? Get.put(
+            AnswerKeyCreatingOptionController(widget.onBack),
+            tag: _controllerTag,
+          )
+        : Get.find<AnswerKeyCreatingOptionController>(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<AnswerKeyCreatingOptionController>(
+          tag: _controllerTag,
+        )) {
+      final registeredController =
+          Get.find<AnswerKeyCreatingOptionController>(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<AnswerKeyCreatingOptionController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AnswerKeyCreatingOptionController(onBack));
 
     return Scaffold(
       body: SafeArea(
