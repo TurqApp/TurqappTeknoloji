@@ -613,6 +613,7 @@ Aktif faz:
 - Son tamamlanan Android cevap anahtari sonucu: `Cevap Anahtari` listesi temiz acildi; `Kitap Detayi` ve alt `Cevap Anahtarlari` preview bolumu Android cihazda temiz doğrulandi.
 - Son tamamlanan Android market sonucu: `Mabil Pazar` liste acilisi, `Ilan Detayi -> liste` geri donusu ve owner `Tekliflerim` ekrani Android cihazda temiz dogrulandi.
 - Son tamamlanan Android burs/soru bankasi sonucu: `Burslar` liste ve `Burs Detayi` Android cihazda temiz acildi. `Soru Bankasi` icin LGS/YKS vb. kartlara test hook eklendi ve `LGS` karti Android cihazda acildi. Kalan acik arama barı focus'unun klavyeyi agresif tutmasi.
+- Son tamamlanan Android denemeler sonucu: `Denemeler` tip listesinde `LGS` karti Android cihazda acildi ve `LGS Testleri` ekrani temiz dogrulandi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
