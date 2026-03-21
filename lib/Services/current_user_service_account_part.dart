@@ -84,9 +84,20 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
 
     bool isDeleteMarker(dynamic value) => value is FieldValue;
 
+    dynamic fieldValue(String key, {List<String> aliases = const []}) {
+      if (normalizedFields.containsKey(key)) {
+        return normalizedFields[key];
+      }
+      for (final alias in aliases) {
+        if (normalizedFields.containsKey(alias)) {
+          return normalizedFields[alias];
+        }
+      }
+      return null;
+    }
+
     String stringValue(String key, String fallback) {
-      if (!normalizedFields.containsKey(key)) return fallback;
-      final raw = normalizedFields[key];
+      final raw = fieldValue(key);
       if (raw == null || isDeleteMarker(raw)) return fallback;
       return raw.toString();
     }
@@ -100,12 +111,28 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       return int.tryParse(raw.toString()) ?? fallback;
     }
 
-    bool boolValue(String key, bool fallback) {
-      if (!normalizedFields.containsKey(key)) return fallback;
-      final raw = normalizedFields[key];
+    bool boolValue(
+      String key,
+      bool fallback, {
+      List<String> aliases = const [],
+    }) {
+      final raw = fieldValue(key, aliases: aliases);
       if (raw is bool) return raw;
       if (raw == null || isDeleteMarker(raw)) return fallback;
       return parseAccountFlag(raw, fallback: fallback);
+    }
+
+    List<String> listValue(
+      String key,
+      List<String> fallback, {
+      List<String> aliases = const [],
+    }) {
+      final raw = fieldValue(key, aliases: aliases);
+      if (raw == null || isDeleteMarker(raw)) return fallback;
+      if (raw is List) {
+        return raw.map((e) => e.toString()).toList(growable: false);
+      }
+      return fallback;
     }
 
     String avatarValue() {
@@ -129,6 +156,13 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
         stringValue('badge', current.rozet),
       ),
       viewSelection: intValue('viewSelection', current.viewSelection),
+      ilgialanlari: listValue(
+        'ilgialanlari',
+        current.ilgialanlari,
+        aliases: const ['preferences.ilgialanlari'],
+      ),
+      meslekKategori:
+          stringValue('meslekKategori', current.meslekKategori).trim(),
       counterOfFollowers:
           intValue('counterOfFollowers', current.counterOfFollowers),
       counterOfFollowings:
@@ -137,6 +171,16 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       counterOfLikes: intValue('counterOfLikes', current.counterOfLikes),
       gizliHesap: boolValue('isPrivate', current.gizliHesap),
       hesapOnayi: boolValue('isApproved', current.hesapOnayi),
+      aramaIzin: boolValue(
+        'aramaIzin',
+        current.aramaIzin,
+        aliases: const ['preferences.aramaIzin'],
+      ),
+      mailIzin: boolValue(
+        'mailIzin',
+        current.mailIzin,
+        aliases: const ['preferences.mailIzin'],
+      ),
     );
 
     await _updateUser(patched);
@@ -267,6 +311,13 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
         'mulkiyet',
         'totalLiving',
         'yurt',
+      ],
+    );
+    mapRootFields(
+      scope: 'preferences',
+      keys: const [
+        'ilgialanlari',
+        'favoriMuzikler',
       ],
     );
 

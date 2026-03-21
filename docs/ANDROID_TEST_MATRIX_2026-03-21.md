@@ -75,7 +75,7 @@ Bu dosya, Android cihaz smoke turlari icin kanonik checklist olarak kullanilsin.
 | Notifications | `InAppNotifications`, `notification_content` | smoke + manuel | `MANUEL_YESIL` | empty state Android cihazda temiz acildi; uzun liste + route return + content derinligi icin ikinci sweep gerekli |
 | My Profile | `MyProfile`, `LikedPosts`, `Archives`, `MyStatistic`, `MyQRCode` | manuel | `MANUEL_YESIL` | profil video sekmesi acildi, video detail acildi ve geri donuste ayni video gridine temiz dondu |
 | Social Profile | `SocialProfile`, followers, report, qr | manuel | `MANUEL_YESIL` | feed'den baska kullanici profili acildi ve geri donuste feed'e temiz dondu |
-| Profile settings | `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Policies`, `DeleteAccount`, `Cv`, `BiographyMaker`, `Editor*`, `LangSelector`, `ViewChanger`, `SocialMediaLinks`, `BecomeVerifiedAccount`, `ProfileContact` | manuel parcali | `KAPSAM_BEKLIYOR` | bunlarin bir kismi bilincli raw; warm-open ve form state Android sweep'i eksik |
+| Profile settings | `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Policies`, `DeleteAccount`, `Cv`, `BiographyMaker`, `Editor*`, `LangSelector`, `ViewChanger`, `SocialMediaLinks`, `BecomeVerifiedAccount`, `ProfileContact` | manuel parcali | `ANDROID_ACIK` | `JobSelector`, `Interests`, `AboutProfile`, `BiographyMaker`, `Cv` kod tarafinda warm-open/state sync hattina cekildi. Kalan acik: Android cihazda acilis hizi, save sonrasi geri donus ve profil header/state yansimasi turu |
 | Saved profile surfaces | `SavedPosts`, `BlockedUsers`, `FollowingFollowers` | parcali manuel | `MANUEL_YESIL` | `SavedPosts`, `BlockedUsers` ve `FollowingFollowers` Android cihazda temiz acildi; relation counters icin test hook eklendi ve liste acilisi dogrulandi |
 | Market | `Market`, `detail`, `search`, `saved`, `offers`, `my items`, `create`, `filter` | manuel | `MANUEL_YESIL` | ilk acilis stabil; `Ilan Detayi -> liste` geri donusu temiz, owner `Tekliflerim` ekrani veriyle acildi, `Kaydettiklerim` ve `Ilanlarim` yuzeyleri Android cihazda veriyle dogrulandi. `Ilan Ekle` akisi sehir seciciye kadar acildi; `filter` sheet `Sehir / Fiyat Araligi / Siralama / Temizle / Uygula` ile temiz acildi |
 | Job | `JobContent`, `JobDetails`, `SavedJobs`, `MyApplications`, `MyJobAds`, `CareerProfile`, `FindingJobApply`, `JobCreator`, `ApplicationReview` | manuel + omurga sweep | `ANDROID_ACIK` | ana liste stabil; owner `JobDetails` ve listeye geri donus temiz. Gercek applicant hesabi ile `Basvur` akis sweep'i eksik |
@@ -143,6 +143,23 @@ Durum:
 - `Story`
 - `PostCreator`
 - `Settings/raw-form` ekranlari
+
+## Settings / Raw-Form Android Kabul Kriterleri
+
+- `Settings -> Profili Duzenle -> Meslek`
+  cold/warm open'da mevcut meslek secili gelmeli; kaydet sonrasi geri donuste profil header/text ayni turda guncellenmeli
+- `Settings -> Ilgi Alanlari`
+  current-user secimleri aninda gelmeli; secim limiti/snackbar bozulmamali; kaydet sonrasi geri donuste secimler korunmali
+- `Settings -> Hakkinda`
+  ayni kullanicida tekrarli yukleme/jank olmamali; baska kullanicida avatar/nickname hizli gelmeli, `createdDate` varsa tarih satiri dolmali
+- `Settings -> Biyografi`
+  acilista mevcut bio ve sayac dogru gelmeli; hizli cift tap ile duplicate save olmamali; kaydet sonrasi profil bio alani hemen yansimali
+- `Settings -> CV`
+  ad/soyad/email/telefon/about alanlari warm seed almali; `linkedin` kaybolmamali; kaydet sonrasi `CareerProfile` ve ilgili CV preview yuzeylerinde ayni veri gorulmeli
+- `Settings -> Iletisim Tercihleri`
+  mail/arama gorunurlugu toggle'lari anlik degismeli ve ekran yeniden acilinca korunmali
+- Genel geri donus
+  her alt formdan `back` veya `save` sonrasi `EditProfile/Settings/MyProfile` akisi bos state'e dusmemeli; ekstra spinner/flicker olmamali
 
 ## Bu Dosya Ile Master Plan Iliskisi
 

@@ -1,7 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/jobs.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -10,9 +7,8 @@ class JobSelectorController extends GetxController {
   static const _studentJob = 'öğrenci';
   var job = "".obs;
   var filteredJobs = <String>[].obs;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
   late final List<String> _initialJobs;
-  bool _userInteracted = false;
 
   List<String> _buildInitialJobs() {
     final idx = jobs.indexWhere(
@@ -40,25 +36,11 @@ class JobSelectorController extends GetxController {
     super.onInit();
     _initialJobs = _buildInitialJobs();
     filteredJobs.assignAll(_initialJobs);
-    final current = CurrentUserService.instance.currentUser;
-    if (!_userInteracted &&
-        current != null &&
-        isCurrentUserId(current.userID)) {
-      job.value = current.meslekKategori.trim();
-      filteredJobs.assignAll(_initialWithSelected());
-    }
-    _userRepository
-        .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
-        .then((data) {
-      if (!_userInteracted) {
-        job.value = ((data ?? const {})["meslekKategori"] ?? "").toString();
-      }
-      filteredJobs.assignAll(_initialWithSelected());
-    });
+    job.value = _userService.meslekKategori.trim();
+    filteredJobs.assignAll(_initialWithSelected());
   }
 
   void selectJob(String value) {
-    _userInteracted = true;
     job.value = value;
     filteredJobs.refresh();
   }
@@ -79,10 +61,7 @@ class JobSelectorController extends GetxController {
     if (selected.isEmpty) {
       return;
     }
-    await _userRepository.updateUserFields(
-      FirebaseAuth.instance.currentUser!.uid,
-      {"meslekKategori": selected},
-    );
+    await _userService.updateFields({"meslekKategori": selected});
 
     Get.back();
   }

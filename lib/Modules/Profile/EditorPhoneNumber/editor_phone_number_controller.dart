@@ -20,6 +20,7 @@ class EditorPhoneNumberController extends GetxController {
   final isCodeSent = false.obs;
   final isBusy = false.obs;
   final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   Timer? _timer;
 
@@ -39,7 +40,7 @@ class EditorPhoneNumberController extends GetxController {
   }
 
   void _seedFromCurrentUser() {
-    final currentUser = CurrentUserService.instance.currentUser;
+    final currentUser = _userService.currentUser;
     if (currentUser == null) return;
     final phone = currentUser.phoneNumber.trim();
     if (phone.isEmpty) return;
@@ -48,10 +49,18 @@ class EditorPhoneNumberController extends GetxController {
   }
 
   Future<void> _loadInitialPhone() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final data = await _userRepository.getUserRaw(uid);
-    phoneController.text = (data ?? const {})["phoneNumber"]?.toString() ?? "";
-    phoneValue.value = phoneController.text;
+    final uid = _userService.userId;
+    if (uid.isEmpty) return;
+    final data = await _userRepository.getUserRaw(
+      uid,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    final rawPhone = (data ?? const {})["phoneNumber"]?.toString().trim() ?? "";
+    if (rawPhone.isNotEmpty) {
+      phoneController.text = rawPhone;
+      phoneValue.value = rawPhone;
+    }
   }
 
   @override
@@ -75,11 +84,12 @@ class EditorPhoneNumberController extends GetxController {
     if (authEmail.isNotEmpty) return authEmail;
 
     final currentUserEmail =
-        normalizeEmailAddress(CurrentUserService.instance.currentUser?.email);
+        normalizeEmailAddress(_userService.currentUser?.email);
     if (currentUserEmail.isNotEmpty) return currentUserEmail;
 
     final data = await _userRepository.getUserRaw(current.uid);
-    return normalizeEmailAddress((((data ?? const {})["email"]) ?? "").toString());
+    return normalizeEmailAddress(
+        (((data ?? const {})["email"]) ?? "").toString());
   }
 
   Future<void> sendEmailApproval() async {

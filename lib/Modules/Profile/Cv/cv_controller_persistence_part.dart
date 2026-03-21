@@ -283,8 +283,8 @@ extension CvControllerPersistencePart on CvController {
   // ── Data Operations ──
 
   Future<void> setData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = _userService.userId;
+    if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'cv.not_signed_in'.tr);
       return;
     }
@@ -294,6 +294,7 @@ extension CvControllerPersistencePart on CvController {
       final payload = {
         "firstName": firstName.text.trim(),
         "lastName": lastName.text.trim(),
+        "linkedin": linkedin.text.trim(),
         "mail": mail.text.trim(),
         "phone": phoneNumber.text.trim(),
         "about": onYazi.text.trim(),
@@ -307,6 +308,7 @@ extension CvControllerPersistencePart on CvController {
       };
       await FirebaseFirestore.instance.collection("CV").doc(uid).set(payload);
       await _cvRepository.setCv(uid, payload);
+      await _syncCurrentUserFieldsFromCvPayload(payload);
       Get.back();
       AppSnackbar('cv.created_title'.tr, 'cv.created_body'.tr);
     } catch (e) {
@@ -317,8 +319,8 @@ extension CvControllerPersistencePart on CvController {
   }
 
   Future<void> loadDataFromFirestore({bool forceRefresh = false}) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = _userService.userId;
+    if (uid.isEmpty) return;
     try {
       final data = await _cvRepository.getCv(
         uid,
@@ -336,6 +338,7 @@ extension CvControllerPersistencePart on CvController {
   Future<void> loadFromModel(CvModel model) async {
     firstName.text = model.firstName;
     lastName.text = model.lastName;
+    linkedin.text = model.linkedin;
     mail.text = model.mail;
     phoneNumber.text = model.phone;
     onYazi.text = model.about;
@@ -350,5 +353,32 @@ extension CvControllerPersistencePart on CvController {
 
   void okulSil(int index) {
     okullar.removeAt(index);
+  }
+
+  Future<void> _syncCurrentUserFieldsFromCvPayload(
+    Map<String, dynamic> payload,
+  ) async {
+    final current = _userService.currentUser;
+    if (current == null) return;
+
+    final nextFirstName = (payload['firstName'] ?? '').toString().trim();
+    final nextLastName = (payload['lastName'] ?? '').toString().trim();
+    final nextBio = (payload['about'] ?? '').toString().trim();
+
+    final userPatch = <String, dynamic>{};
+    if (nextFirstName.isNotEmpty && nextFirstName != current.firstName.trim()) {
+      userPatch['firstName'] = nextFirstName;
+    }
+    if (nextLastName.isNotEmpty && nextLastName != current.lastName.trim()) {
+      userPatch['lastName'] = nextLastName;
+    }
+    if (nextBio != current.bio.trim()) {
+      userPatch['bio'] = nextBio;
+    }
+    if (userPatch.isEmpty) return;
+
+    try {
+      await _userService.updateFields(userPatch);
+    } catch (_) {}
   }
 }

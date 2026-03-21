@@ -13,7 +13,11 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
     String? rozet,
     bool? hesapOnayi,
     bool? gizliHesap,
+    bool? aramaIzin,
+    bool? mailIzin,
     int? viewSelection,
+    List<String>? ilgialanlari,
+    String? meslekKategori,
     int? counterOfFollowers,
     int? counterOfFollowings,
     int? counterOfPosts,
@@ -28,6 +32,8 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
     List<String>? readStories,
     Map<String, int>? readStoriesTimes,
   }) {
+    final resolvedAramaIzin = aramaIzin ?? this.aramaIzin;
+    final resolvedMailIzin = mailIzin ?? this.mailIzin;
     return CurrentUserModel(
       userID: userID ?? this.userID,
       nickname: nickname ?? this.nickname,
@@ -44,9 +50,9 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
       hesapOnayi: hesapOnayi ?? this.hesapOnayi,
       gizliHesap: gizliHesap ?? this.gizliHesap,
       viewSelection: viewSelection ?? this.viewSelection,
-      ilgialanlari: ilgialanlari,
+      ilgialanlari: ilgialanlari ?? this.ilgialanlari,
       favoriMuzikler: favoriMuzikler,
-      meslekKategori: meslekKategori,
+      meslekKategori: meslekKategori ?? this.meslekKategori,
       calismaDurumu: calismaDurumu,
       medeniHal: medeniHal,
       counterOfFollowers: counterOfFollowers ?? this.counterOfFollowers,
@@ -135,8 +141,8 @@ extension CurrentUserModelUtilsPart on CurrentUserModel {
       token: token,
       createdDate: createdDate,
       bildirim: bildirim,
-      aramaIzin: aramaIzin,
-      mailIzin: mailIzin,
+      aramaIzin: resolvedAramaIzin,
+      mailIzin: resolvedMailIzin,
       whatsappIzin: whatsappIzin,
       rehber: rehber,
       settings: settings,

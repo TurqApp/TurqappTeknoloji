@@ -1,36 +1,25 @@
-import 'dart:async';
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ProfileContactController extends GetxController {
   var isEmailVisible = false.obs;
   var isCallVisible = false.obs;
   final userService = CurrentUserService.instance;
-  final UserRepository _userRepository = UserRepository.ensure();
-  StreamSubscription<Map<String, dynamic>?>? _userSub;
+  Worker? _userWorker;
 
   @override
   void onInit() {
     super.onInit();
-    _bindVisibility();
+    _syncFromCurrentUser();
+    _userWorker = ever(userService.currentUserRx, (_) {
+      _syncFromCurrentUser();
+    });
   }
 
-  void _bindVisibility() {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    _userSub?.cancel();
-    _userSub = _userRepository.watchUserRaw(uid).listen((data) {
-      if (data == null) return;
-      final preferences = (data["preferences"] is Map)
-          ? Map<String, dynamic>.from(data["preferences"] as Map)
-          : const <String, dynamic>{};
-      isEmailVisible.value =
-          (data["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
-      isCallVisible.value =
-          (data["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
-    });
+  void _syncFromCurrentUser() {
+    final current = userService.currentUser;
+    isEmailVisible.value = current?.mailIzin == true;
+    isCallVisible.value = current?.aramaIzin == true;
   }
 
   Future<void> toggleEmailVisibility() async {
@@ -53,7 +42,7 @@ class ProfileContactController extends GetxController {
 
   @override
   void onClose() {
-    _userSub?.cancel();
+    _userWorker?.dispose();
     super.onClose();
   }
 }

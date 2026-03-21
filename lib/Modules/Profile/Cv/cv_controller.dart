@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +24,7 @@ part 'cv_controller_persistence_part.dart';
 
 class CvController extends GetxController {
   final CvRepository _cvRepository = CvRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   static const List<String> languageOptionKeys = <String>[
     'cv.language.english',
@@ -106,8 +106,8 @@ class CvController extends GetxController {
 
   Future<void> pickCvPhoto(BuildContext context) async {
     if (isUploadingPhoto.value) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final uid = CurrentUserService.instance.userId;
+    if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'cv.not_signed_in'.tr);
       return;
     }
@@ -153,14 +153,14 @@ class CvController extends GetxController {
 
   void ensureDefaultPhoto() {
     if (photoUrl.value.trim().isNotEmpty) return;
-    final currentAvatar = CurrentUserService.instance.avatarUrl.trim();
+    final currentAvatar = _userService.avatarUrl.trim();
     if (currentAvatar.isNotEmpty) {
       photoUrl.value = currentAvatar;
     }
   }
 
   void _seedFromCurrentUser() {
-    final currentUser = CurrentUserService.instance.currentUser;
+    final currentUser = _userService.currentUser;
     if (currentUser == null) return;
 
     if (firstName.text.trim().isEmpty) {
@@ -175,11 +175,14 @@ class CvController extends GetxController {
     if (phoneNumber.text.trim().isEmpty) {
       phoneNumber.text = currentUser.phoneNumber.trim();
     }
+    if (onYazi.text.trim().isEmpty) {
+      onYazi.text = currentUser.bio.trim();
+    }
   }
 
   Future<void> _bootstrapCvData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = _userService.userId;
+    if (uid.isEmpty) return;
     final cached = await _cvRepository.getCv(
       uid,
       preferCache: true,
@@ -202,6 +205,7 @@ class CvController extends GetxController {
   void _applyCvData(Map<String, dynamic> data) {
     firstName.text = data["firstName"] ?? firstName.text;
     lastName.text = data["lastName"] ?? lastName.text;
+    linkedin.text = data["linkedin"] ?? linkedin.text;
     mail.text = data["mail"] ?? data["email"] ?? mail.text;
     phoneNumber.text = data["phone"] ?? data["phoneNumber"] ?? phoneNumber.text;
     onYazi.text = data["about"] ?? onYazi.text;

@@ -660,7 +660,7 @@ Aktif faz:
 1. `Online Sinav gercek Basvur`
    owner degil, ayri applicant hesapla
 2. `Profile settings/raw forms`
-   `Settings -> Profili Duzenle -> Adres` Android cihazda acildi; kalan `JobSelector`, `Interests`, `AboutProfile`, `Cv`, `BiographyMaker`
+   `Settings -> Profili Duzenle -> Adres` Android cihazda acildi; `JobSelector` ve `Interests` current-user/optimistic patch hattina cekildi; `AboutProfile` tekrarli fetch'ten arindirildi ve summary-once kalibina cekildi; `BiographyMaker` idempotent save + initial counter ile toparlandi; `Cv` about alani current-user bio ile warm-seed aliyor, save sonrasi ortak profil alanlari current-user ile senkronlaniyor ve `linkedin` alaninin dusmesi engellendi; `ProfileContact` toggle'lari raw watcher yerine current-user optimistic state ile akiyor; `EditorEmail` ve `EditorPhoneNumber` warm-open tarafinda cache-only/current-user seed cizgisine yaklasti; kalan agirlikli sweep Android cihaz dogrulamasi
 3. `Story`
    `StoryRow`, `StoryViewer`, `StoryMaker`, `StoryMusic`, `Highlights`, `DeletedStories`
 4. `Chat`
@@ -677,7 +677,7 @@ Aktif faz:
 - `Practice exams`
   ayri applicant hesapla gercek `Basvur`
 - `Profile settings/raw forms`
-  `Settings -> Profili Duzenle -> Adres` acildi; kalan raw form sweep
+  `Settings -> Profili Duzenle -> Adres` acildi; `JobSelector` ve `Interests` current-user/optimistic patch hattina cekildi, `AboutProfile` tekrarli fetch'ten arindirildi, `BiographyMaker` save akisi sertlestirildi, `Cv` about warm-seed + current-user sync + `linkedin` preserve duzeltmesi eklendi, `ProfileContact` current-user optimistic hatta cekildi; kalan raw form sweep agirlikla Android cihaz dogrulamasi
 - `Story`
   tam Android sweep
 - `Chat`

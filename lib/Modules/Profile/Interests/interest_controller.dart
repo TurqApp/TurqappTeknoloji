@@ -1,7 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
-import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
@@ -12,10 +9,9 @@ class InterestsController extends GetxController {
   final RxList<String> selecteds = <String>[].obs;
   final RxString searchText = "".obs;
   final RxBool isReady = false.obs;
-  final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
   static const int minSelection = 3;
   static const int maxSelection = 15;
-  bool _userInteracted = false;
   bool _selectionLimitShown = false;
 
   String _norm(String value) {
@@ -42,35 +38,15 @@ class InterestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final currentUser = CurrentUserService.instance.currentUser;
-    if (!_userInteracted &&
-        currentUser != null &&
-        isCurrentUserId(currentUser.userID) &&
-        currentUser.ilgialanlari.isNotEmpty) {
-      selecteds.value = currentUser.ilgialanlari
-          .map((e) => _canonicalize(e.toString()))
-          .toList();
-    }
-    _userRepository
-        .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
-        .then((data) {
-      final safeData = data ?? const <String, dynamic>{};
-      final raw = userField(
-        safeData,
-        key: "ilgialanlari",
-        scope: "preferences",
-      );
-      if (!_userInteracted && raw is List) {
-        selecteds.value = raw.map((e) => _canonicalize(e.toString())).toList();
-      }
-      isReady.value = true;
-    }).catchError((_) {
-      isReady.value = true;
-    });
+    final currentSelections =
+        _userService.currentUser?.ilgialanlari ?? const [];
+    selecteds.value = currentSelections
+        .map((e) => _canonicalize(e.toString()))
+        .toList(growable: false);
+    isReady.value = true;
   }
 
   void select(String selection) {
-    _userInteracted = true;
     final canonical = _canonicalize(selection);
     final idx = selecteds.indexWhere((e) => _norm(e) == _norm(canonical));
     if (idx >= 0) {
@@ -114,11 +90,10 @@ class InterestsController extends GetxController {
       return;
     }
 
-    await _userRepository.updateUserFields(
-      FirebaseAuth.instance.currentUser!.uid,
+    await _userService.updateFields(
       scopedUserUpdate(
         scope: 'preferences',
-        values: {"ilgialanlari": selecteds},
+        values: {"ilgialanlari": selecteds.toList(growable: false)},
       ),
     );
 

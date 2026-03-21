@@ -20,6 +20,7 @@ class EditorEmailController extends GetxController {
 
   Timer? _timer;
   final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   @override
   void onInit() {
@@ -38,7 +39,7 @@ class EditorEmailController extends GetxController {
 
   void _seedFromCurrentSources() {
     final authUser = FirebaseAuth.instance.currentUser;
-    final currentUser = CurrentUserService.instance.currentUser;
+    final currentUser = _userService.currentUser;
     final seededEmail = currentUser?.email.trim().isNotEmpty == true
         ? currentUser!.email.trim()
         : (authUser?.email ?? '').trim();
@@ -46,15 +47,23 @@ class EditorEmailController extends GetxController {
       emailController.text = seededEmail;
     }
     isEmailConfirmed.value = (currentUser?.email.isNotEmpty == true &&
-            CurrentUserService.instance.emailVerifiedRx.value) ||
+            _userService.emailVerifiedRx.value) ||
         authUser?.emailVerified == true;
   }
 
   Future<void> fetchAndSetUserData() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final data = await _userRepository.getUserRaw(uid);
+    final uid = _userService.userId;
+    if (uid.isEmpty) return;
+    final data = await _userRepository.getUserRaw(
+      uid,
+      preferCache: true,
+      cacheOnly: true,
+    );
     if (data != null) {
-      emailController.text = data["email"]?.toString() ?? "";
+      final rawEmail = data["email"]?.toString().trim() ?? "";
+      if (rawEmail.isNotEmpty) {
+        emailController.text = rawEmail;
+      }
       final firestoreVerified = data["emailVerified"] == true;
       final authVerified =
           FirebaseAuth.instance.currentUser?.emailVerified == true;
@@ -156,7 +165,7 @@ class EditorEmailController extends GetxController {
           .call({"idToken": idToken});
 
       await FirebaseAuth.instance.currentUser?.reload();
-      await CurrentUserService.instance.refreshEmailVerificationStatus(
+      await _userService.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );
       await AccountCenterService.ensure().refreshCurrentAccountMetadata();

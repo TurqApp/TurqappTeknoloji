@@ -73,8 +73,15 @@ class BiographyMaker extends StatelessWidget {
                       SizedBox(
                         height: 12,
                       ),
-                      TurqAppButton(onTap: () {
-                        controller.setData();
+                      Obx(() {
+                        return AbsorbPointer(
+                          absorbing: controller.isSaving.value,
+                          child: TurqAppButton(
+                            onTap: () {
+                              controller.setData();
+                            },
+                          ),
+                        );
                       }),
                       SizedBox(
                         height: 12,

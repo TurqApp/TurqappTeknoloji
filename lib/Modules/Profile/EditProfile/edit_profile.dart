@@ -41,19 +41,17 @@ class _EditProfileState extends State<EditProfile> {
     controller = Get.put(EditProfileController());
   }
 
-  String get _avatarUrl =>
-      (currentUserService.currentUserRx.value?.avatarUrl ?? '').trim();
-  String get _nickname =>
-      currentUserService.currentUserRx.value?.nickname ?? '';
+  String get _avatarUrl => currentUserService.avatarUrl.trim();
+  String get _nickname => currentUserService.nickname;
   String get _email {
-    final primary = (currentUserService.currentUserRx.value?.email ?? '').trim();
+    final primary = currentUserService.email.trim();
     if (primary.isNotEmpty) return primary;
     return controller.email.value;
   }
-  String get _phoneNumber =>
-      (currentUserService.currentUserRx.value?.phoneNumber ?? '').trim().isNotEmpty
-          ? (currentUserService.currentUserRx.value?.phoneNumber ?? '').trim()
-          : controller.phoneNumber.value;
+
+  String get _phoneNumber => currentUserService.phoneNumber.trim().isNotEmpty
+      ? currentUserService.phoneNumber.trim()
+      : controller.phoneNumber.value;
 
   @override
   Widget build(BuildContext context) {
@@ -69,214 +67,117 @@ class _EditProfileState extends State<EditProfile> {
                   padding: const EdgeInsets.all(15),
                   child: Column(
                     children: [
-                      Obx(() {
-                        return Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Stack(
-                                  alignment: Alignment.bottomRight,
-                                  children: [
-                                    Obx(() {
-                                      final preview =
-                                          controller.croppedImage.value;
+                      Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Stack(
+                                alignment: Alignment.bottomRight,
+                                children: [
+                                  Obx(() {
+                                    final preview =
+                                        controller.croppedImage.value;
 
-                                      return ClipOval(
-                                        child: SizedBox(
-                                          width: (Get.width * 0.31)
-                                              .clamp(96.0, 120.0),
-                                          height: (Get.width * 0.31)
-                                              .clamp(96.0, 120.0),
-                                          child: preview != null
-                                              ? Image.memory(
-                                                  preview,
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : (_avatarUrl.isNotEmpty
-                                                  ? CachedNetworkImage(
-                                                      memCacheHeight: 400,
-                                                      imageUrl: _avatarUrl,
-                                                      fit: BoxFit.cover,
-                                                    )
-                                                  : const Center(
-                                                      child: DefaultAvatar(
-                                                        radius: 56,
-                                                      ),
-                                                    )),
+                                    return ClipOval(
+                                      child: SizedBox(
+                                        width: (Get.width * 0.31)
+                                            .clamp(96.0, 120.0),
+                                        height: (Get.width * 0.31)
+                                            .clamp(96.0, 120.0),
+                                        child: preview != null
+                                            ? Image.memory(
+                                                preview,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : (_avatarUrl.isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    memCacheHeight: 400,
+                                                    imageUrl: _avatarUrl,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : const Center(
+                                                    child: DefaultAvatar(
+                                                      radius: 56,
+                                                    ),
+                                                  )),
+                                      ),
+                                    );
+                                  }),
+                                  PullDownButton(
+                                    key: ValueKey(_avatarUrl),
+                                    itemBuilder: (context) => [
+                                      PullDownMenuItem(
+                                        onTap: () => controller.pickImage(
+                                          source: ImageSource.camera,
                                         ),
-                                      );
-                                    }),
-                                    PullDownButton(
-                                      key: ValueKey(_avatarUrl),
-                                      itemBuilder: (context) => [
+                                        title: 'profile_photo.camera'.tr,
+                                        icon: CupertinoIcons.camera,
+                                      ),
+                                      PullDownMenuItem(
+                                        onTap: () => controller.pickImage(
+                                          source: ImageSource.gallery,
+                                        ),
+                                        title: 'profile_photo.gallery'.tr,
+                                        icon: CupertinoIcons.photo,
+                                      ),
+                                      if (controller.hasCustomProfilePhoto)
                                         PullDownMenuItem(
-                                          onTap: () => controller.pickImage(
-                                            source: ImageSource.camera,
-                                          ),
-                                          title: 'profile_photo.camera'.tr,
-                                          icon: CupertinoIcons.camera,
+                                          onTap: controller.removeProfilePhoto,
+                                          title: 'common.remove'.tr,
+                                          icon: CupertinoIcons.trash,
                                         ),
-                                        PullDownMenuItem(
-                                          onTap: () => controller.pickImage(
-                                            source: ImageSource.gallery,
-                                          ),
-                                          title: 'profile_photo.gallery'.tr,
-                                          icon: CupertinoIcons.photo,
+                                    ],
+                                    buttonBuilder: (context, showMenu) =>
+                                        GestureDetector(
+                                      onTap: showMenu,
+                                      child: Container(
+                                        width: 30,
+                                        height: 30,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: Colors.pink,
+                                          shape: BoxShape.circle,
                                         ),
-                                        if (controller.hasCustomProfilePhoto)
-                                          PullDownMenuItem(
-                                            onTap:
-                                                controller.removeProfilePhoto,
-                                            title: 'common.remove'.tr,
-                                            icon: CupertinoIcons.trash,
-                                          ),
-                                      ],
-                                      buttonBuilder: (context, showMenu) =>
-                                          GestureDetector(
-                                        onTap: showMenu,
-                                        child: Container(
-                                          width: 30,
-                                          height: 30,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            color: Colors.pink,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            CupertinoIcons.pencil,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            15.ph,
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                      color: Colors.grey.withAlpha(100)),
-                                ),
-                                12.pw,
-                                Text(
-                                  'edit_profile.personal_info'.tr,
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                                12.pw,
-                                Expanded(
-                                  child: Divider(
-                                      color: Colors.grey.withAlpha(100)),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    height: 50,
-                                    alignment: Alignment.centerLeft,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.03),
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(12),
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 15,
-                                      ),
-                                      child: TextField(
-                                        controller:
-                                            controller.firstNameController,
-                                        inputFormatters: [
-                                          LengthLimitingTextInputFormatter(20),
-                                          FilteringTextInputFormatter.allow(
-                                            RegExp(r'[A-Za-zÇçĞğİıÖöŞşÜü\s]'),
-                                          ),
-                                        ],
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              'edit_profile.first_name_hint'.tr,
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                          border: InputBorder.none,
-                                        ),
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
+                                        child: Icon(
+                                          CupertinoIcons.pencil,
+                                          color: Colors.white,
+                                          size: 18,
                                         ),
                                       ),
                                     ),
                                   ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          15.ph,
+                          Row(
+                            children: [
+                              Expanded(
+                                child:
+                                    Divider(color: Colors.grey.withAlpha(100)),
+                              ),
+                              12.pw,
+                              Text(
+                                'edit_profile.personal_info'.tr,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratBold",
                                 ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Container(
-                                    height: 50,
-                                    alignment: Alignment.centerLeft,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.03),
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(12),
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 15,
-                                      ),
-                                      child: TextField(
-                                        controller:
-                                            controller.lastNameController,
-                                        inputFormatters: [
-                                          LengthLimitingTextInputFormatter(20),
-                                          FilteringTextInputFormatter.allow(
-                                            RegExp(r'[A-Za-zÇçĞğİıÖöŞşÜü\s]'),
-                                          ),
-                                        ],
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              'edit_profile.last_name_hint'.tr,
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                          border: InputBorder.none,
-                                        ),
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12),
-                            Padding(
-                              padding: EdgeInsets.only(bottom: 12),
-                              child: GestureDetector(
-                                onTap: () {
-                                  Get.to(() => EditorNickname())?.then((_) {
-                                    currentUserService.forceRefresh();
-                                  });
-                                },
+                              ),
+                              12.pw,
+                              Expanded(
+                                child:
+                                    Divider(color: Colors.grey.withAlpha(100)),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
                                 child: Container(
                                   height: 50,
                                   alignment: Alignment.centerLeft,
@@ -290,38 +191,132 @@ class _EditProfileState extends State<EditProfile> {
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 15,
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          "@$_nickname",
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                        Text(
-                                          'common.change'.tr,
-                                          style: TextStyle(
-                                            color: Colors.blueAccent,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
+                                    child: TextField(
+                                      controller:
+                                          controller.firstNameController,
+                                      inputFormatters: [
+                                        LengthLimitingTextInputFormatter(20),
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'[A-Za-zÇçĞğİıÖöŞşÜü\s]'),
                                         ),
                                       ],
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'edit_profile.first_name_hint'.tr,
+                                        hintStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratMedium",
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  height: 50,
+                                  alignment: Alignment.centerLeft,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(12),
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                    ),
+                                    child: TextField(
+                                      controller: controller.lastNameController,
+                                      inputFormatters: [
+                                        LengthLimitingTextInputFormatter(20),
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'[A-Za-zÇçĞğİıÖöŞşÜü\s]'),
+                                        ),
+                                      ],
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'edit_profile.last_name_hint'.tr,
+                                        hintStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: GestureDetector(
+                              onTap: () {
+                                Get.to(() => EditorNickname())?.then((_) {
+                                  currentUserService.forceRefresh();
+                                });
+                              },
+                              child: Container(
+                                height: 50,
+                                alignment: Alignment.centerLeft,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(12),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 15,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "@$_nickname",
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 15,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                      ),
+                                      Text(
+                                        'common.change'.tr,
+                                        style: TextStyle(
+                                          color: Colors.blueAccent,
+                                          fontSize: 15,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                            Padding(
-                              padding: EdgeInsets.only(bottom: 12),
-                              child: GestureDetector(
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Obx(() {
+                              final verified =
+                                  currentUserService.emailVerifiedRx.value;
+                              return GestureDetector(
                                 onTap: () {
-                                  if (!currentUserService
-                                      .emailVerifiedRx.value) {
+                                  if (!verified) {
                                     Get.to(() => EditorEmail());
                                   }
                                 },
@@ -342,57 +337,60 @@ class _EditProfileState extends State<EditProfile> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          _email,
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
+                                        Expanded(
+                                          child: Text(
+                                            _email,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 15,
+                                              fontFamily: "MontserratMedium",
+                                            ),
                                           ),
                                         ),
-                                        Obx(() {
-                                          final verified = currentUserService
-                                              .emailVerifiedRx.value;
-                                          if (verified) {
-                                            return Row(
-                                              children: [
-                                                const Icon(
-                                                  CupertinoIcons
-                                                      .checkmark_seal_fill,
+                                        const SizedBox(width: 12),
+                                        if (verified)
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                CupertinoIcons
+                                                    .checkmark_seal_fill,
+                                                color: Colors.green,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                'common.verified'.tr,
+                                                style: const TextStyle(
                                                   color: Colors.green,
-                                                  size: 18,
+                                                  fontSize: 14,
+                                                  fontFamily:
+                                                      "MontserratMedium",
                                                 ),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  'common.verified'.tr,
-                                                  style: const TextStyle(
-                                                    color: Colors.green,
-                                                    fontSize: 14,
-                                                    fontFamily:
-                                                        "MontserratMedium",
-                                                  ),
-                                                ),
-                                              ],
-                                            );
-                                          }
-                                          return Text(
+                                              ),
+                                            ],
+                                          )
+                                        else
+                                          Text(
                                             'common.verify'.tr,
                                             style: const TextStyle(
                                               color: Colors.blueAccent,
                                               fontSize: 15,
                                               fontFamily: "MontserratMedium",
                                             ),
-                                          );
-                                        }),
+                                          ),
                                       ],
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.only(bottom: 12),
-                              child: GestureDetector(
+                              );
+                            }),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Obx(() {
+                              return GestureDetector(
                                 onTap: () {},
                                 child: Container(
                                   height: 50,
@@ -411,15 +409,20 @@ class _EditProfileState extends State<EditProfile> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          "+90$_phoneNumber",
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
+                                        Expanded(
+                                          child: Text(
+                                            "+90$_phoneNumber",
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 15,
+                                              fontFamily: "MontserratMedium",
+                                            ),
                                           ),
                                         ),
+                                        const SizedBox(width: 12),
                                         Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(
                                               CupertinoIcons
@@ -442,11 +445,11 @@ class _EditProfileState extends State<EditProfile> {
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
                       15.ph,
                       Row(
                         children: [
@@ -473,9 +476,7 @@ class _EditProfileState extends State<EditProfile> {
                         padding: EdgeInsets.only(bottom: 12),
                         child: GestureDetector(
                           onTap: () async {
-                            final currentPrivacy =
-                                currentUserService.currentUserRx.value?.isPrivate ??
-                                    false;
+                            final currentPrivacy = currentUserService.isPrivate;
                             await currentUserService
                                 .updateFields({"isPrivate": !currentPrivacy});
                           },
@@ -516,9 +517,9 @@ class _EditProfileState extends State<EditProfile> {
                                   ),
                                   Obx(
                                     () => TurqAppToggle(
-                                      isOn: currentUserService
-                                              .currentUserRx.value?.isPrivate ??
-                                          false,
+                                      isOn: currentUserService.currentUserRx
+                                              .value?.gizliHesap ==
+                                          true,
                                     ),
                                   ),
                                 ],
