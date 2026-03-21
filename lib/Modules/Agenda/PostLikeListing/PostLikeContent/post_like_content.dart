@@ -34,14 +34,17 @@ class _PostLikeContentState extends State<PostLikeContent> {
     _followTag =
         'post_like_follow_${item.userID}_${DateTime.now().microsecondsSinceEpoch}';
     if (!isCurrentUserId(item.userID)) {
-      _followController = Get.put(FollowerController(), tag: _followTag);
+      _followController = FollowerController.ensure(tag: _followTag);
       _refreshFollowState();
     }
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+    if (identical(
+      FollowerController.maybeFind(tag: _followTag),
+      _followController,
+    )) {
       Get.delete<FollowerController>(tag: _followTag, force: true);
     }
     super.dispose();
@@ -59,9 +62,8 @@ class _PostLikeContentState extends State<PostLikeContent> {
     final displayNickname = item.nickname.trim().isEmpty
         ? item.fullName.trim()
         : item.nickname.trim();
-    final displayName = item.fullName.trim().isEmpty
-        ? displayNickname
-        : item.fullName.trim();
+    final displayName =
+        item.fullName.trim().isEmpty ? displayNickname : item.fullName.trim();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -168,9 +170,7 @@ class _PostLikeContentState extends State<PostLikeContent> {
           color: isFollowing ? Colors.grey.withAlpha(40) : Colors.black,
           borderRadius: const BorderRadius.all(Radius.circular(11)),
           border: Border.all(
-            color: isFollowing
-                ? Colors.grey.withAlpha(40)
-                : Colors.black,
+            color: isFollowing ? Colors.grey.withAlpha(40) : Colors.black,
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),

@@ -22,10 +22,10 @@ import 'network_policy.dart';
 /// 2. Aktif videoda ilk 2 segment hazır
 /// 3. İzleme sırasında yalnızca 1 sonraki segment hazırlanır
 class PrefetchScheduler extends GetxController {
-  static PrefetchScheduler ensure() {
+  static PrefetchScheduler ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
-    return Get.put(PrefetchScheduler());
+    return Get.put(PrefetchScheduler(), permanent: permanent);
   }
 
   static PrefetchScheduler? maybeFind() {

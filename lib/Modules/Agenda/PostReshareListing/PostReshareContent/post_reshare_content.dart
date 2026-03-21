@@ -34,14 +34,17 @@ class _PostReshareContentState extends State<PostReshareContent> {
     _followTag =
         'post_reshare_follow_${item.userID}_${DateTime.now().microsecondsSinceEpoch}';
     if (!isCurrentUserId(item.userID)) {
-      _followController = Get.put(FollowerController(), tag: _followTag);
+      _followController = FollowerController.ensure(tag: _followTag);
       _refreshFollowState();
     }
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+    if (identical(
+      FollowerController.maybeFind(tag: _followTag),
+      _followController,
+    )) {
       Get.delete<FollowerController>(tag: _followTag, force: true);
     }
     super.dispose();
@@ -59,9 +62,8 @@ class _PostReshareContentState extends State<PostReshareContent> {
     final displayNickname = item.nickname.trim().isEmpty
         ? item.fullName.trim()
         : item.nickname.trim();
-    final displayName = item.fullName.trim().isEmpty
-        ? displayNickname
-        : item.fullName.trim();
+    final displayName =
+        item.fullName.trim().isEmpty ? displayNickname : item.fullName.trim();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -148,9 +150,8 @@ class _PostReshareContentState extends State<PostReshareContent> {
               noYesAlert(
                 title: 'profile.unfollow_title'.tr,
                 message: 'profile.unfollow_body'.trParams({
-                  'nickname': item.nickname.isEmpty
-                      ? item.fullName
-                      : item.nickname,
+                  'nickname':
+                      item.nickname.isEmpty ? item.fullName : item.nickname,
                 }),
                 cancelText: 'common.cancel'.tr,
                 yesText: 'profile.unfollow_confirm'.tr,

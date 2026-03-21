@@ -5,14 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ViewModeController extends GetxController {
-  static ViewModeController _ensureController({bool permanent = false}) {
+  static ViewModeController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ViewModeController(), permanent: permanent);
   }
-
-  static ViewModeController ensure({bool permanent = false}) =>
-      _ensureController(permanent: permanent);
 
   static ViewModeController? maybeFind() {
     if (!Get.isRegistered<ViewModeController>()) return null;

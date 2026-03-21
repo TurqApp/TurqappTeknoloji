@@ -151,8 +151,7 @@ class _SplashViewState extends State<SplashView> {
 
       // ⚡ Kalan işleri paralel başlat — en yavaş olan süreyi belirler
       late final bool isFirstLaunch;
-      final userService = CurrentUserService.instance;
-      Get.put(userService);
+      final userService = CurrentUserService.ensure();
       final accountCenter = AccountCenterService.ensure();
       await accountCenter.init();
 
@@ -404,9 +403,7 @@ class _SplashViewState extends State<SplashView> {
       await cache.init();
       await _applyGlobalMediaCacheQuota();
 
-      if (!Get.isRegistered<PrefetchScheduler>()) {
-        Get.put(PrefetchScheduler(), permanent: true);
-      }
+      PrefetchScheduler.ensure(permanent: true);
       _globalCacheProxyReady = true;
     } catch (_) {
       _globalCacheProxyReady = false;
@@ -420,11 +417,10 @@ class _SplashViewState extends State<SplashView> {
       final prefs = await SharedPreferences.getInstance();
       final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
       final quotaGb = (savedGb + 1).clamp(4, 7);
-      if (Get.isRegistered<StorageBudgetManager>()) {
-        await Get.find<StorageBudgetManager>().applyPlanGb(quotaGb);
-      }
-      if (!Get.isRegistered<SegmentCacheManager>()) return;
-      await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
+      final cache = SegmentCacheManager.maybeFind();
+      if (cache == null) return;
+      await cache.setUserLimitGB(quotaGb);
     } catch (_) {}
   }
 
@@ -463,10 +459,8 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => OfflineModeService.instance);
 
     GlobalLoaderController.ensure();
-    if (!Get.isRegistered<AdmobBannerWarmupService>()) {
-      Get.put(AdmobBannerWarmupService(), permanent: true);
-    }
-    Get.put(StoryInteractionOptimizer());
+    AdmobBannerWarmupService.ensure();
+    StoryInteractionOptimizer.ensure();
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());
     Get.lazyPut(() => ProfileController());
@@ -478,21 +472,15 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController(), fenix: true);
-    if (!Get.isRegistered<UploadQueueService>()) {
-      Get.put(UploadQueueService(), permanent: true);
-    }
+    UploadQueueService.ensure(permanent: true);
     if (!Platform.isIOS) {
       DeepLinkService.ensure();
     }
-    if (!Get.isRegistered<IndexPoolStore>()) {
-      Get.put(IndexPoolStore(), permanent: true);
-    }
+    IndexPoolStore.ensure(permanent: true);
     UserProfileCacheService.ensure();
     StorageBudgetManager.ensure();
     PlaybackPolicyEngine.ensure();
-    if (!Get.isRegistered<PlaybackKpiService>()) {
-      Get.put(PlaybackKpiService(), permanent: true);
-    }
+    PlaybackKpiService.ensure();
   }
 
   Future<void> _runCriticalWarmStartLoads({required bool isFirstLaunch}) async {
@@ -571,7 +559,7 @@ class _SplashViewState extends State<SplashView> {
 
       unawaited(() async {
         try {
-          final recommended = Get.find<RecommendedUserListController>();
+          final recommended = RecommendedUserListController.ensure();
           await recommended.ensureLoaded(
             limit: onWiFi
                 ? (isFirstLaunch ? 140 : 220)
@@ -610,7 +598,8 @@ class _SplashViewState extends State<SplashView> {
 
   void _primeShortVideoSegments(ShortController shorts) {
     try {
-      if (!Get.isRegistered<PrefetchScheduler>()) return;
+      final prefetch = PrefetchScheduler.maybeFind();
+      if (prefetch == null) return;
       final docIds = shorts.shorts
           .where((p) => p.hasPlayableVideo)
           .map((p) => p.docID)
@@ -618,13 +607,14 @@ class _SplashViewState extends State<SplashView> {
           .take(12)
           .toList();
       if (docIds.isEmpty) return;
-      unawaited(Get.find<PrefetchScheduler>().updateQueue(docIds, 0));
+      unawaited(prefetch.updateQueue(docIds, 0));
     } catch (_) {}
   }
 
   void _primeFeedVideoSegments(AgendaController agendaController) {
     try {
-      if (!Get.isRegistered<PrefetchScheduler>()) return;
+      final prefetch = PrefetchScheduler.maybeFind();
+      if (prefetch == null) return;
       final docIds = agendaController.agendaList
           .where((p) => p.hasPlayableVideo)
           .map((p) => p.docID)
@@ -632,7 +622,7 @@ class _SplashViewState extends State<SplashView> {
           .take(15)
           .toList();
       if (docIds.isEmpty) return;
-      unawaited(Get.find<PrefetchScheduler>().updateFeedQueue(docIds, 0));
+      unawaited(prefetch.updateFeedQueue(docIds, 0));
     } catch (_) {}
   }
 
@@ -778,7 +768,7 @@ class _SplashViewState extends State<SplashView> {
 
   bool _isOnWiFiNow() {
     try {
-      return Get.find<NetworkAwarenessService>().isOnWiFi;
+      return NetworkAwarenessService.ensure().isOnWiFi;
     } catch (_) {
       return false;
     }

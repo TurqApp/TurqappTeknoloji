@@ -91,13 +91,14 @@ class UploadQueueService extends GetxController {
     return Get.find<UploadQueueService>();
   }
 
-  static UploadQueueService _ensureService() {
+  static UploadQueueService _ensureService({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
-    return Get.put(UploadQueueService());
+    return Get.put(UploadQueueService(), permanent: permanent);
   }
 
-  static UploadQueueService ensure() => _ensureService();
+  static UploadQueueService ensure({bool permanent = false}) =>
+      _ensureService(permanent: permanent);
 
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   static const Duration _recentDuplicateWindow = Duration(minutes: 15);

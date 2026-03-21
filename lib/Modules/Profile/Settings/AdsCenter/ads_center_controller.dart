@@ -80,7 +80,7 @@ class AdsCenterController extends GetxController {
         return;
       }
 
-      await AdsFeatureFlagsService.to.init();
+      await AdsFeatureFlagsService.ensure().init();
 
       _bindCampaigns();
       _creativeSub = repository.watchCreatives().listen(

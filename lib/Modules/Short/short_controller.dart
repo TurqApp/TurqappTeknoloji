@@ -111,12 +111,8 @@ class ShortController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
       final quotaGb = (savedGb + 1).clamp(4, 7);
-      if (Get.isRegistered<StorageBudgetManager>()) {
-        await Get.find<StorageBudgetManager>().applyPlanGb(quotaGb);
-      }
-      if (Get.isRegistered<SegmentCacheManager>()) {
-        await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
-      }
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
+      await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
     } catch (e) {
       _log('Shorts cache quota apply error: $e');
     }
@@ -674,7 +670,7 @@ class ShortController extends GetxController {
 
     // 6. Wi-Fi prefetch tetikle
     try {
-      Get.find<PrefetchScheduler>().updateQueue(
+      PrefetchScheduler.maybeFind()?.updateQueue(
         shorts.map((s) => s.docID).toList(),
         currentIndex,
       );
@@ -707,8 +703,9 @@ class ShortController extends GetxController {
       final trimmableKeys = activeKeys
           .where((k) => !pinnedKeys.contains(k))
           .toList(growable: false);
-      final allowedTrimCount =
-          maxAttachedPlayers - pinnedKeys.length < 0 ? 0 : maxAttachedPlayers - pinnedKeys.length;
+      final allowedTrimCount = maxAttachedPlayers - pinnedKeys.length < 0
+          ? 0
+          : maxAttachedPlayers - pinnedKeys.length;
       for (int i = allowedTrimCount; i < trimmableKeys.length; i++) {
         final k = trimmableKeys[i];
         final adapter = cache[k];

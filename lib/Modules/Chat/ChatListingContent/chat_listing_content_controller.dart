@@ -4,6 +4,28 @@ import 'package:turqappv2/Models/message_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 
 class ChatListingContentController extends GetxController {
+  static ChatListingContentController ensure({
+    required String userID,
+    required ChatListingModel model,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ChatListingContentController(userID: userID, model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ChatListingContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ChatListingContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<ChatListingContentController>(tag: tag);
+  }
+
   String userID;
   ChatListingModel model;
   var notReadCounter = 0.obs;

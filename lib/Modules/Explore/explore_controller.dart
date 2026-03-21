@@ -798,11 +798,12 @@ class ExploreController extends GetxController {
   }
 
   List<PostsModel> _prioritizeCachedVideos(List<PostsModel> items) {
-    if (items.isEmpty || !Get.isRegistered<SegmentCacheManager>()) {
+    if (items.isEmpty) {
       return items;
     }
 
-    final cache = Get.find<SegmentCacheManager>();
+    final cache = SegmentCacheManager.maybeFind();
+    if (cache == null) return items;
     final sorted = List<PostsModel>.from(items);
 
     int cacheScore(PostsModel post) {
@@ -834,7 +835,8 @@ class ExploreController extends GetxController {
 
   void _scheduleExplorePrefetchFromPosts(List<PostsModel> source) {
     if (source.isEmpty) return;
-    if (!Get.isRegistered<PrefetchScheduler>()) return;
+    final prefetch = PrefetchScheduler.maybeFind();
+    if (prefetch == null) return;
 
     final docIds = source
         .where((p) => p.hasPlayableVideo)
@@ -844,7 +846,7 @@ class ExploreController extends GetxController {
         .toList();
     if (docIds.isEmpty) return;
 
-    unawaited(Get.find<PrefetchScheduler>().updateQueue(docIds, 0));
+    unawaited(prefetch.updateQueue(docIds, 0));
   }
 
   Future<dynamic> _callTypesenseCallable(

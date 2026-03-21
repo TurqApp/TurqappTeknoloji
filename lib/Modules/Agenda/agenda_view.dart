@@ -57,11 +57,7 @@ class AgendaView extends StatelessWidget {
   }
 
   AgendaController get controller {
-    if (Get.isRegistered<AgendaController>()) {
-      return Get.find<AgendaController>();
-    } else {
-      return Get.put(AgendaController());
-    }
+    return AgendaController.ensure();
   }
 
   GlobalLoaderController get loader {
@@ -156,8 +152,8 @@ class AgendaView extends StatelessWidget {
                           filteredEntries: filteredDisplay,
                         );
                         WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!Get.isRegistered<AgendaController>()) return;
-                          final agendaController = Get.find<AgendaController>();
+                          final agendaController = AgendaController.maybeFind();
+                          if (agendaController == null) return;
                           if (agendaController.feedViewMode.value !=
                               FeedViewMode.forYou) {
                             agendaController

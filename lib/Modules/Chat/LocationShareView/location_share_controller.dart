@@ -97,7 +97,8 @@ class LocationShareController extends GetxController {
       print("Konum paylaşıldı: ${pos.latitude}, ${pos.longitude}");
       print("Adres: ${currentAddress.value}");
 
-      final controller = Get.find<ChatController>(tag: chatID);
+      final controller = ChatController.maybeFind(tag: chatID);
+      if (controller == null) return;
       controller.textEditingController.text = currentAddress.value;
 
       controller.sendMessage(

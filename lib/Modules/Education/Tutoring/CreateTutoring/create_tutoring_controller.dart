@@ -638,22 +638,22 @@ class CreateTutoringController extends GetxController {
       }
     }
 
-    if (Get.isRegistered<MyTutoringsController>()) {
-      final controller = Get.find<MyTutoringsController>();
-      final ownerIndex = controller.myTutorings.indexWhere(
+    final myTutoringsController = MyTutoringsController.maybeFind();
+    if (myTutoringsController != null) {
+      final ownerIndex = myTutoringsController.myTutorings.indexWhere(
         (item) => item.docID == patchedModel.docID,
       );
       if (ownerIndex != -1) {
-        controller.myTutorings[ownerIndex] = patchedModel;
-        controller.myTutorings.refresh();
-        controller.updateTutoringsStatus();
+        myTutoringsController.myTutorings[ownerIndex] = patchedModel;
+        myTutoringsController.myTutorings.refresh();
+        myTutoringsController.updateTutoringsStatus();
       }
     }
 
-    if (Get.isRegistered<TutoringDetailController>()) {
-      final controller = Get.find<TutoringDetailController>();
-      if (controller.tutoring.value.docID == patchedModel.docID) {
-        controller.tutoring.value = patchedModel;
+    final tutoringDetailController = TutoringDetailController.maybeFind();
+    if (tutoringDetailController != null) {
+      if (tutoringDetailController.tutoring.value.docID == patchedModel.docID) {
+        tutoringDetailController.tutoring.value = patchedModel;
       }
     }
   }

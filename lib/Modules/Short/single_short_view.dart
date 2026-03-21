@@ -286,14 +286,16 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       // Cache state machine: playing olarak işaretle
       if (currentPage < shorts.length) {
         try {
-          final cm = Get.find<SegmentCacheManager>();
-          cm.markPlaying(shorts[currentPage].docID);
-          // -5 kuralı: gerideki 5 videonun cache'ini koru
-          for (var i = 1; i <= 5; i++) {
-            final behindIdx = currentPage - i;
-            if (behindIdx < 0) break;
-            if (behindIdx < shorts.length) {
-              cm.touchEntry(shorts[behindIdx].docID);
+          final cm = SegmentCacheManager.maybeFind();
+          if (cm != null) {
+            cm.markPlaying(shorts[currentPage].docID);
+            // -5 kuralı: gerideki 5 videonun cache'ini koru
+            for (var i = 1; i <= 5; i++) {
+              final behindIdx = currentPage - i;
+              if (behindIdx < 0) break;
+              if (behindIdx < shorts.length) {
+                cm.touchEntry(shorts[behindIdx].docID);
+              }
             }
           }
         } catch (_) {}
@@ -385,11 +387,13 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
         if (ctrl != null && ctrl.value.isInitialized) {
           // VideoStateManager'a kaydet
-          final videoStateManager = Get.find<VideoStateManager>();
-          videoStateManager.saveVideoState(
-            currentModel.docID,
-            HLSAdapterPlaybackHandle(ctrl),
-          );
+          final videoStateManager = VideoStateManager.maybeFind();
+          if (videoStateManager != null) {
+            videoStateManager.saveVideoState(
+              currentModel.docID,
+              HLSAdapterPlaybackHandle(ctrl),
+            );
+          }
         }
       }
     } catch (_) {}
@@ -720,9 +724,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             await _pauseAllControllers();
             final docID = widget.startModel?.docID ??
                 (shorts.isNotEmpty ? shorts[currentPage].docID : null);
-            final pos = vp.value.isInitialized
-                ? vp.value.position
-                : Duration.zero;
+            final pos =
+                vp.value.isInitialized ? vp.value.position : Duration.zero;
             if (!mounted) return;
             Navigator.of(context).pop({
               'docID': docID,

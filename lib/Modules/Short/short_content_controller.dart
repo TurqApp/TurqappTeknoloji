@@ -408,8 +408,8 @@ class ShortContentController extends GetxController {
     _deleteRemoveTimer = Timer(const Duration(seconds: 3), () {
       if (isClosed) return;
       // Short listeden kaldır
-      if (Get.isRegistered<ShortController>()) {
-        final shortController = Get.find<ShortController>();
+      final shortController = ShortController.maybeFind();
+      if (shortController != null) {
         final idx =
             shortController.shorts.indexWhere((e) => e.docID == model.docID);
         if (idx != -1) {

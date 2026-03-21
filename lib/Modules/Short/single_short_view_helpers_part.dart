@@ -88,9 +88,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           },
         );
       }
-      if (Get.isRegistered<PrefetchScheduler>()) {
+      final prefetch = PrefetchScheduler.maybeFind();
+      if (prefetch != null) {
         try {
-          Get.find<PrefetchScheduler>().updateQueue(
+          prefetch.updateQueue(
             shorts.map((s) => s.docID).toList(growable: false),
             currentPage,
           );
@@ -157,11 +158,14 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       final shouldPersist =
           shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 
-      if (shouldPersist && Get.isRegistered<SegmentCacheManager>()) {
+      if (shouldPersist) {
         try {
-          Get.find<SegmentCacheManager>().updateWatchProgress(docId, progress);
-          _lastProgressPersistAt = now;
-          _lastPersistedProgress = progress;
+          final cache = SegmentCacheManager.maybeFind();
+          if (cache != null) {
+            cache.updateWatchProgress(docId, progress);
+            _lastProgressPersistAt = now;
+            _lastPersistedProgress = progress;
+          }
         } catch (_) {}
       }
     }

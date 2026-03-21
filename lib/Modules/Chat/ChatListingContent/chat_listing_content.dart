@@ -258,9 +258,11 @@ class ChatListingContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(
-        ChatListingContentController(userID: model.userID, model: model),
-        tag: model.userID);
+    controller = ChatListingContentController.ensure(
+      userID: model.userID,
+      model: model,
+      tag: model.chatID,
+    );
     return Column(
       children: [
         Padding(

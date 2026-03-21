@@ -481,14 +481,16 @@ class _ShortViewState extends State<ShortView> {
       // Cache state machine: playing olarak işaretle
       if (page < _cachedShorts.length) {
         try {
-          final cm = Get.find<SegmentCacheManager>();
-          cm.markPlaying(_cachedShorts[page].docID);
-          // -5 kuralı: gerideki 5 videonun cache'ini koru
-          for (var i = 1; i <= 5; i++) {
-            final behindIdx = page - i;
-            if (behindIdx < 0) break;
-            if (behindIdx < _cachedShorts.length) {
-              cm.touchEntry(_cachedShorts[behindIdx].docID);
+          final cm = SegmentCacheManager.maybeFind();
+          if (cm != null) {
+            cm.markPlaying(_cachedShorts[page].docID);
+            // -5 kuralı: gerideki 5 videonun cache'ini koru
+            for (var i = 1; i <= 5; i++) {
+              final behindIdx = page - i;
+              if (behindIdx < 0) break;
+              if (behindIdx < _cachedShorts.length) {
+                cm.touchEntry(_cachedShorts[behindIdx].docID);
+              }
             }
           }
         } catch (_) {}
@@ -585,7 +587,7 @@ class _ShortViewState extends State<ShortView> {
         );
       }
       try {
-        Get.find<PrefetchScheduler>().updateQueue(
+        PrefetchScheduler.maybeFind()?.updateQueue(
           _cachedShorts.map((s) => s.docID).toList(growable: false),
           currentPage,
         );
@@ -645,12 +647,15 @@ class _ShortViewState extends State<ShortView> {
             shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 
         if (shouldPersist) {
-          Get.find<SegmentCacheManager>().updateWatchProgress(
-            _cachedShorts[currentPage].docID,
-            progress,
-          );
-          _lastProgressPersistAt = now;
-          _lastPersistedProgress = progress;
+          final cache = SegmentCacheManager.maybeFind();
+          if (cache != null) {
+            cache.updateWatchProgress(
+              _cachedShorts[currentPage].docID,
+              progress,
+            );
+            _lastProgressPersistAt = now;
+            _lastPersistedProgress = progress;
+          }
         }
       } catch (_) {}
 

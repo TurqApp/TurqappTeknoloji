@@ -78,6 +78,12 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     return Get.find<CurrentUserService>();
   }
 
+  static CurrentUserService ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(instance, permanent: permanent);
+  }
+
   CurrentUserService._internal() {
     WidgetsBinding.instance.addObserver(this);
   }

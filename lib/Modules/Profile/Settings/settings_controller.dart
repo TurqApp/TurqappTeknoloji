@@ -4,13 +4,11 @@ import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 
 class SettingsController extends GetxController {
-  static SettingsController _ensureController() {
+  static SettingsController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
-    return Get.put(SettingsController());
+    return Get.put(SettingsController(), permanent: permanent);
   }
-
-  static SettingsController ensure() => _ensureController();
 
   static SettingsController? maybeFind() {
     if (!Get.isRegistered<SettingsController>()) return null;

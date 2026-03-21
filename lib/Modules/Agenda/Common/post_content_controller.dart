@@ -38,6 +38,20 @@ class PostContentController extends GetxController {
   static final Map<String, _ReshareUsersCacheEntry> _reshareUsersCache = {};
   static const Duration _reshareUsersCacheTtl = Duration(minutes: 2);
 
+  static PostContentController ensure({
+    required String tag,
+    required PostContentController Function() create,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(create(), tag: tag);
+  }
+
+  static PostContentController? maybeFind({required String tag}) {
+    if (!Get.isRegistered<PostContentController>(tag: tag)) return null;
+    return Get.find<PostContentController>(tag: tag);
+  }
+
   static void invalidateUserProfileCache(String userId) {
     if (userId.trim().isEmpty) return;
     _userProfileCache.remove(userId);

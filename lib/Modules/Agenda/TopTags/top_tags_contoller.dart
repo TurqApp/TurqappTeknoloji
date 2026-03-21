@@ -7,13 +7,11 @@ import '../AgendaContent/agenda_content_controller.dart';
 import 'top_tags_repository.dart';
 
 class TopTagsController extends GetxController {
-  static TopTagsController _ensureController() {
+  static TopTagsController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(TopTagsController());
   }
-
-  static TopTagsController ensure() => _ensureController();
 
   static TopTagsController? maybeFind() {
     if (!Get.isRegistered<TopTagsController>()) return null;
@@ -24,9 +22,7 @@ class TopTagsController extends GetxController {
   TopTagsController({TopTagsRepository? repository})
       : _repo = repository ?? TopTagsRepository.ensure();
 
-  final navbar = Get.isRegistered<NavBarController>()
-      ? Get.find<NavBarController>()
-      : Get.put(NavBarController());
+  final navbar = NavBarController.ensure();
   ScrollController scrollController = ScrollController();
   double _lastOffset = 0;
   RxList<HashtagModel> tags = <HashtagModel>[].obs;
@@ -226,7 +222,7 @@ class TopTagsController extends GetxController {
 
   void disposeAgendaContentController(String docID) {
     final tag = agendaInstanceTag(docID);
-    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+    if (AgendaContentController.maybeFind(tag: tag) != null) {
       Get.delete<AgendaContentController>(tag: tag, force: true);
       print("Disposed AgendaContentController");
     }

@@ -85,9 +85,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isVideoFromCache {
     if (!widget.model.hasPlayableVideo) return false;
     try {
-      if (!Get.isRegistered<SegmentCacheManager>()) return false;
       final entry =
-          Get.find<SegmentCacheManager>().getEntry(widget.model.docID);
+          SegmentCacheManager.maybeFind()?.getEntry(widget.model.docID);
       if (entry == null) return false;
       return entry.cachedSegmentCount > 0;
     } catch (_) {
@@ -117,9 +116,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (isStandalonePostInstance) return true;
     if (!_isProfileSurfaceInstance) return true;
     final nav = NavBarController.maybeFind();
-    final settings = Get.isRegistered<SettingsController>()
-        ? Get.find<SettingsController>()
-        : null;
+    final settings = SettingsController.maybeFind();
     final hasEducation = settings?.educationScreenIsOn.value ?? false;
     final profileIndex = hasEducation ? 4 : 3;
     return nav?.selectedIndex.value == profileIndex;
@@ -131,11 +128,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void initState() {
     super.initState();
 
-    if (Get.isRegistered<PostContentController>(tag: controllerTag)) {
-      controller = Get.find<PostContentController>(tag: controllerTag);
-    } else {
-      controller = Get.put(widget.createController(), tag: controllerTag);
-    }
+    controller = PostContentController.ensure(
+      tag: controllerTag,
+      create: widget.createController,
+    );
 
     if (widget.showArchivePost) {
       controller.arsiv.value = false;
@@ -337,8 +333,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
       if (progress > 0) {
         try {
-          Get.find<SegmentCacheManager>()
-              .updateWatchProgress(widget.model.docID, progress);
+          SegmentCacheManager.maybeFind()
+              ?.updateWatchProgress(widget.model.docID, progress);
         } catch (_) {}
       }
     }
@@ -398,7 +394,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     });
     _trackPlaybackIntent();
     try {
-      Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
+      SegmentCacheManager.maybeFind()?.markPlaying(widget.model.docID);
     } catch (_) {}
   }
 

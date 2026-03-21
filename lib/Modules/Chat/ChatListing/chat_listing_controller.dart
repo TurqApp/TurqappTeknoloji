@@ -15,20 +15,15 @@ import '../../../Core/Services/user_profile_cache_service.dart';
 import '../CreateChat/create_chat.dart';
 
 class ChatListingController extends GetxController {
-  static ChatListingController _ensureController() {
-    if (Get.isRegistered<ChatListingController>()) {
-      return Get.find<ChatListingController>();
-    }
+  static ChatListingController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ChatListingController());
   }
 
-  static ChatListingController ensure() => _ensureController();
-
   static ChatListingController? maybeFind() {
-    if (Get.isRegistered<ChatListingController>()) {
-      return Get.find<ChatListingController>();
-    }
-    return null;
+    if (!Get.isRegistered<ChatListingController>()) return null;
+    return Get.find<ChatListingController>();
   }
 
   RxList<ChatListingModel> list = <ChatListingModel>[].obs;

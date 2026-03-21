@@ -12,15 +12,16 @@ class AdsFeatureFlagsService extends GetxService {
     return Get.find<AdsFeatureFlagsService>();
   }
 
-  static AdsFeatureFlagsService _ensureService() {
+  static AdsFeatureFlagsService ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
-    return Get.put(AdsFeatureFlagsService());
+    return Get.put(
+      AdsFeatureFlagsService(),
+      permanent: permanent,
+    );
   }
 
-  static AdsFeatureFlagsService ensure() => _ensureService();
-
-  static AdsFeatureFlagsService get to => _ensureService();
+  static AdsFeatureFlagsService get to => ensure();
 
   final Rx<AdFeatureFlags> flags = AdFeatureFlags.defaults.obs;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sub;

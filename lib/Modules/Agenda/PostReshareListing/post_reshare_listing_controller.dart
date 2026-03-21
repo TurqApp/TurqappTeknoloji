@@ -23,6 +23,17 @@ class PostReshareListingController extends GetxController {
 
   static const int _pageSize = 20;
 
+  static PostReshareListingController ensure({required String tag}) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(PostReshareListingController(postID: tag), tag: tag);
+  }
+
+  static PostReshareListingController? maybeFind({required String tag}) {
+    if (!Get.isRegistered<PostReshareListingController>(tag: tag)) return null;
+    return Get.find<PostReshareListingController>(tag: tag);
+  }
+
   final String postID;
   final PostRepository _postRepository = PostRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();

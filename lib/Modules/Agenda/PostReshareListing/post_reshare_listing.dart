@@ -18,25 +18,23 @@ class PostReshareListing extends StatefulWidget {
 
 class _PostReshareListingState extends State<PostReshareListing> {
   late final PostReshareListingController controller;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<PostReshareListingController>(tag: widget.postID)) {
-      Get.delete<PostReshareListingController>(
-        tag: widget.postID,
-        force: true,
-      );
-    }
-    controller = Get.put(
-      PostReshareListingController(postID: widget.postID),
-      tag: widget.postID,
-    );
+    final existing = PostReshareListingController.maybeFind(tag: widget.postID);
+    controller = PostReshareListingController.ensure(tag: widget.postID);
+    _ownsController = existing == null;
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<PostReshareListingController>(tag: widget.postID)) {
+    if (_ownsController &&
+        identical(
+          PostReshareListingController.maybeFind(tag: widget.postID),
+          controller,
+        )) {
       Get.delete<PostReshareListingController>(
         tag: widget.postID,
         force: true,
@@ -118,7 +116,8 @@ class _PostReshareListingState extends State<PostReshareListing> {
                             isLoading: controller.isLoadingReshares,
                             isLoadingMore: controller.isLoadingMoreReshares,
                             emptyText: 'profile.no_reshares'.tr,
-                            scrollController: controller.reshareScrollController,
+                            scrollController:
+                                controller.reshareScrollController,
                           ),
                           _buildList(
                             users: controller.quoteUsers,

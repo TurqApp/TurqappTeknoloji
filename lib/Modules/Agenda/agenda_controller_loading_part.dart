@@ -417,9 +417,9 @@ extension AgendaControllerLoadingPart on AgendaController {
             !validPostIds.contains(p.docID) || !validUserIds.contains(p.userID))
         .map((p) => p.docID)
         .toList();
-    if (invalidIds.isNotEmpty && Get.isRegistered<IndexPoolStore>()) {
-      await Get.find<IndexPoolStore>()
-          .removePosts(IndexPoolKind.feed, invalidIds);
+    final indexPool = IndexPoolStore.maybeFind();
+    if (invalidIds.isNotEmpty && indexPool != null) {
+      await indexPool.removePosts(IndexPoolKind.feed, invalidIds);
     }
 
     return valid;
@@ -443,7 +443,8 @@ extension AgendaControllerLoadingPart on AgendaController {
   Future<void> persistWarmLaunchCache() async {
     try {
       if (agendaList.isEmpty) return;
-      if (!Get.isRegistered<IndexPoolStore>()) return;
+      final indexPool = IndexPoolStore.maybeFind();
+      if (indexPool == null) return;
 
       final posts = agendaList.take(40).toList(growable: false);
       if (posts.isEmpty) return;

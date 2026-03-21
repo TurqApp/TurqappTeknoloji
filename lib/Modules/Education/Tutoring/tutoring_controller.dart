@@ -12,14 +12,11 @@ import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutori
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
-  static TutoringController _ensureController({bool permanent = false}) {
+  static TutoringController ensure({bool permanent = false}) {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(TutoringController(), permanent: permanent);
   }
-
-  static TutoringController ensure({bool permanent = false}) =>
-      _ensureController(permanent: permanent);
 
   static TutoringController? maybeFind() {
     if (!Get.isRegistered<TutoringController>()) return null;

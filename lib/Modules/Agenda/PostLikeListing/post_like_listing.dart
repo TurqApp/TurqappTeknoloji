@@ -21,24 +21,16 @@ class _PostLikeListingState extends State<PostLikeListing> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<PostLikeListingController>(tag: widget.postID)) {
-      controller = Get.find<PostLikeListingController>(tag: widget.postID);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        PostLikeListingController(postID: widget.postID),
-        tag: widget.postID,
-      );
-      _ownsController = true;
-    }
+    final existing = PostLikeListingController.maybeFind(tag: widget.postID);
+    controller = PostLikeListingController.ensure(tag: widget.postID);
+    _ownsController = existing == null;
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<PostLikeListingController>(tag: widget.postID) &&
         identical(
-          Get.find<PostLikeListingController>(tag: widget.postID),
+          PostLikeListingController.maybeFind(tag: widget.postID),
           controller,
         )) {
       Get.delete<PostLikeListingController>(tag: widget.postID, force: true);
@@ -80,8 +72,7 @@ class _PostLikeListingState extends State<PostLikeListing> {
                     width: 56,
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.15),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(12)),
+                      borderRadius: const BorderRadius.all(Radius.circular(12)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -125,8 +116,8 @@ class _PostLikeListingState extends State<PostLikeListing> {
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.only(bottom: 18),
-                        itemCount:
-                            items.length + (controller.isLoadingMore.value ? 1 : 0),
+                        itemCount: items.length +
+                            (controller.isLoadingMore.value ? 1 : 0),
                         itemBuilder: (context, index) {
                           if (index >= items.length) {
                             return const Padding(
@@ -137,8 +128,8 @@ class _PostLikeListingState extends State<PostLikeListing> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(Colors.black),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.black),
                                   ),
                                 ),
                               ),
