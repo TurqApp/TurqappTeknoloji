@@ -62,15 +62,12 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(left: 4),
-                      child: AppHeaderActionButton(
+                      child: EducationFeedShareIconButton(
                         onTap: () => shareService.shareScholarship(
                           scholarshipData,
                         ),
-                        child: Icon(
-                          CupertinoIcons.share,
-                          color: Colors.black,
-                          size: 20,
-                        ),
+                        size: 36,
+                        iconSize: 20,
                       ),
                     ),
                     if (!isOwnScholarship && scholarshipDocId.isNotEmpty)

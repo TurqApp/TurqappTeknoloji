@@ -424,24 +424,13 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 390;
-        final tileWidth = compact
-            ? (constraints.maxWidth - 30) / 3
-            : constraints.maxWidth / 5;
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            runSpacing: compact ? 4 : 0,
-            children: items
-                .map((item) => SizedBox(width: tileWidth, child: item))
-                .toList(),
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Row(
+        children: items
+            .map((item) => Expanded(child: item))
+            .toList(growable: false),
+      ),
     );
   }
 
@@ -455,7 +444,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
     Widget tile = Container(
       alignment: Alignment.center,
       decoration: const BoxDecoration(color: Colors.white),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -463,7 +452,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
             value,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 18,
+              fontSize: 17,
               fontFamily: "MontserratBold",
             ),
           ),
@@ -471,13 +460,13 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
             label,
             key: valueKey,
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.black,
-              fontSize: 13,
+              fontSize: 11,
               fontFamily: "MontserratMedium",
-              height: 1.15,
+              height: 1.0,
             ),
           ),
         ],

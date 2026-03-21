@@ -409,20 +409,30 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
               behavior: HitTestBehavior.opaque,
               onTap: () => unawaited(replayVideoFromStart()),
               child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 42,
+                  maxWidth: 148,
+                ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
-                  vertical: 10,
+                  vertical: 8,
                 ),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
                 ),
-                child: const Text(
-                  'Tekrar izle',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 14,
-                    fontFamily: 'MontserratSemiBold',
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Tekrar izle',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontFamily: 'MontserratSemiBold',
+                      height: 1.0,
+                    ),
                   ),
                 ),
               ),
