@@ -190,7 +190,7 @@ class _ProfileViewState extends State<ProfileView> {
   Future<void> _refreshProfileSurfaceMeta({bool force = false}) async {
     final uid = _myUserId.trim();
     if (uid.isEmpty) return;
-    await controller.refreshAll();
+    await controller.refreshAll(forceSync: force);
     await socialMediaController.getData(
       silent: !force,
       forceRefresh: force,
@@ -233,10 +233,10 @@ class _ProfileViewState extends State<ProfileView> {
     } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_refreshProfileSurfaceMeta(force: true));
+      unawaited(_refreshProfileSurfaceMeta(force: false));
     });
     _marketUserWorker = ever(userService.currentUserRx, (_) {
-      unawaited(_refreshProfileSurfaceMeta(force: true));
+      unawaited(_refreshProfileSurfaceMeta(force: false));
     });
 
     final highlightsController = _ensureProfileHighlightsController();
@@ -410,7 +410,7 @@ class _ProfileViewState extends State<ProfileView> {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      await controller.refreshAll();
+                      await controller.refreshAll(forceSync: true);
                       await _loadMarketItems(force: true);
                       socialMediaController.getData();
                     },

@@ -310,7 +310,7 @@ class ProfileController extends GetxController {
     getCounters();
     _listenToCounterChanges();
     _bindResharesRealtime();
-    await _loadInitialPrimaryBuckets();
+    unawaited(_loadInitialPrimaryBuckets());
     getReshares();
   }
 
@@ -939,14 +939,14 @@ class ProfileController extends GetxController {
     reshares.removeWhere((post) => post.docID == postId);
   }
 
-  Future<void> refreshAll() async {
+  Future<void> refreshAll({bool forceSync = false}) async {
     try {
       await _bootstrapHeaderFromTypesense();
       // Sayaçlar
       await getCounters();
 
       await Future.wait([
-        _loadInitialPrimaryBuckets(forceSync: true),
+        _loadInitialPrimaryBuckets(forceSync: forceSync),
         getReshares(),
       ]);
     } catch (e) {
