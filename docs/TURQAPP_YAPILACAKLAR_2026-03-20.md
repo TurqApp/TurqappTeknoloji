@@ -657,35 +657,27 @@ Aktif faz:
 
 ## Haftalik Limit Sonrasi Net Devam Sirasi
 
-1. `Market create/filter`
-   `Kaydettiklerim`, `Ilanlarim`, `Tekliflerim` kapandi; kalan sadece `create` ve `filter`
-2. `Soru Bankasi focus`
-   arama alaninin klavyeyi agresif tutmasini duzelt
-3. `Online Sinav gercek Basvur`
+1. `Online Sinav gercek Basvur`
    owner degil, ayri applicant hesapla
-4. `Profile settings/raw forms`
-   `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Cv`, `BiographyMaker`
-6. `Story`
+2. `Profile settings/raw forms`
+   `Settings -> Profili Duzenle -> Adres` Android cihazda acildi; kalan `JobSelector`, `Interests`, `AboutProfile`, `Cv`, `BiographyMaker`
+3. `Story`
    `StoryRow`, `StoryViewer`, `StoryMaker`, `StoryMusic`, `Highlights`, `DeletedStories`
-7. `Chat`
+4. `Chat`
    `ChatListing`, `CreateChat`, `MessageContent`, `LocationShareView`
-8. `Post creation`
+5. `Post creation`
    `PostCreator`, `EditPost`, `UrlPostMaker`, text/hashtag akislar
-9. `AdmobKare`
+6. `AdmobKare`
    reuse/pool kararini kalici hale getir
-10. `Telemetry/Alert`
+7. `Telemetry/Alert`
    webhook/config ile gercek alarm dogrulamasi
 
 ## Kesin Kalan Isler
 
-- `Market`
-  `create`, `filter`
-- `QuestionBank`
-  search focus/keyboard davranisi
 - `Practice exams`
   ayri applicant hesapla gercek `Basvur`
 - `Profile settings/raw forms`
-  genis Android sweep
+  `Settings -> Profili Duzenle -> Adres` acildi; kalan raw form sweep
 - `Story`
   tam Android sweep
 - `Chat`
