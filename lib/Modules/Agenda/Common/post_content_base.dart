@@ -65,6 +65,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _hasAutoPlayed = false;
   bool _skipNextPause = false;
   bool _blockPause = false;
+  bool _replayOverlayLatched = false;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
   Timer? _lazyInitTimer;
@@ -319,6 +320,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!mounted) return;
     final v = _videoAdapter!.value;
 
+    if (v.isCompleted) {
+      if (!_replayOverlayLatched) {
+        _replayOverlayLatched = true;
+        if (!isStandalonePostInstance) {
+          unawaited(AdmobKare.warmupPool(targetCount: 3));
+        }
+      }
+    } else if (_replayOverlayLatched &&
+        (v.isPlaying || v.position == Duration.zero)) {
+      _replayOverlayLatched = false;
+    }
+
     // İlk kez ready olduğunda ses ayarla
     if (v.isInitialized && !_hasAutoPlayed) {
       if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
@@ -422,6 +435,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Future<void> replayVideoFromStart() async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    _replayOverlayLatched = false;
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
     _startPlayback();
@@ -429,7 +443,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   Widget buildFeedReplayOverlay(HLSVideoValue value) {
     if (isStandalonePostInstance) return const SizedBox.shrink();
-    if (!value.isCompleted) return const SizedBox.shrink();
+    if (!_replayOverlayLatched && !value.isCompleted) {
+      return const SizedBox.shrink();
+    }
     return Positioned.fill(
       child: IgnorePointer(
         ignoring: false,

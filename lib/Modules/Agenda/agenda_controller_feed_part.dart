@@ -219,6 +219,18 @@ extension AgendaControllerFeedPart on AgendaController {
     }
 
     _prefetchedThumbnailPostCount = targetCount;
+    _warmReplayAdsForPreparedWindow(targetCount);
+  }
+
+  void _warmReplayAdsForPreparedWindow(int preparedPostCount) {
+    if (preparedPostCount <= 0) return;
+    final targetAds = min(6, max(3, (preparedPostCount / 10).ceil()));
+    unawaited(
+      AdmobBannerWarmupService.ensure().warmForSurfaceEntry(
+        surfaceKey: 'feed:replay_overlay',
+        targetCount: targetAds,
+      ),
+    );
   }
 
   void ensureFeedCacheWarm() {

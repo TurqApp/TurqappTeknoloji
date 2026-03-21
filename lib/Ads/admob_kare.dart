@@ -39,7 +39,7 @@ class _AdmobKareState extends State<AdmobKare> {
     debugPrint('[AdmobKare] $message');
   }
 
-  static bool get _supportsSharedPool => false;
+  static bool get _supportsSharedPool => true;
   static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
 
   static String _resolveAdUnitId() {
