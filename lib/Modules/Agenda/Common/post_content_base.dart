@@ -391,6 +391,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       isAudible: _currentIsAudible(),
       hasStableFocus: true,
     );
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
+      if (!_isSurfacePlaybackAllowed) return;
+      _applyPlaybackVolume();
+    });
     _trackPlaybackIntent();
     try {
       Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);

@@ -443,9 +443,12 @@ class ProfileController extends GetxController {
         lastCenteredIndex! < mergedPosts.length) {
       return lastCenteredIndex!;
     }
-    final firstVideo = mergedPosts.indexWhere(_canAutoplayMergedEntry);
-    if (firstVideo >= 0) return firstVideo;
-    return 0;
+    // Profile surface starts with a large header above the feed. Picking the
+    // first playable post here can autoplay an offscreen video under the
+    // header, which then steals playback/audio from the actually visible card.
+    // Let VisibilityDetector choose the first centered video once a feed card
+    // is truly visible.
+    return -1;
   }
 
   bool _canAutoplayMergedEntry(Map<String, dynamic> entry) {
