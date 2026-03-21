@@ -184,26 +184,31 @@ class EducationView extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
     bool active = false,
+    String? semanticsLabel,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: active ? Colors.pink.withValues(alpha: 0.12) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: active
-                ? Colors.pink.withValues(alpha: 0.35)
-                : Colors.black.withValues(alpha: 0.08),
+    return Semantics(
+      label: semanticsLabel,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? Colors.pink.withValues(alpha: 0.12) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: active
+                  ? Colors.pink.withValues(alpha: 0.35)
+                  : Colors.black.withValues(alpha: 0.08),
+            ),
           ),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 19,
-          color: active ? Colors.pink : Colors.black,
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 19,
+            color: active ? Colors.pink : Colors.black,
+          ),
         ),
       ),
     );
@@ -777,17 +782,23 @@ class EducationView extends StatelessWidget {
                                 ? Icons.view_agenda_outlined
                                 : Icons.grid_view_rounded,
                             onTap: marketController.toggleListingSelection,
+                            semanticsLabel:
+                                IntegrationTestKeys.marketTopActionViewMode,
                           ),
                           const SizedBox(width: 6),
                           _marketTopActionButton(
                             icon: Icons.swap_vert_rounded,
                             onTap: () =>
                                 _openMarketSortSheet(context, marketController),
+                            semanticsLabel:
+                                IntegrationTestKeys.marketTopActionSort,
                           ),
                           const SizedBox(width: 6),
                           _marketTopActionButton(
                             icon: Icons.filter_alt_outlined,
                             active: marketController.hasAdvancedFilters,
+                            semanticsLabel:
+                                IntegrationTestKeys.marketTopActionFilter,
                             onTap: () => showModalBottomSheet<void>(
                               context: context,
                               isScrollControlled: true,

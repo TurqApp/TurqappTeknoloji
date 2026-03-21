@@ -30,4 +30,8 @@ class IntegrationTestKeys {
 
   static String educationActionMenu(String tabId) =>
       'it-education-action-menu-$tabId';
+
+  static const String marketTopActionViewMode = 'it-market-top-action-view';
+  static const String marketTopActionSort = 'it-market-top-action-sort';
+  static const String marketTopActionFilter = 'it-market-top-action-filter';
 }
