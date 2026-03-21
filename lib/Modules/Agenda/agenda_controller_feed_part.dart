@@ -33,6 +33,7 @@ extension AgendaControllerFeedPart on AgendaController {
   void _updateFeedPrefetchQueue() {
     if (agendaList.isEmpty) return;
 
+    _prefetchThumbnailBatches();
     _prefetchUpcomingImages();
 
     final videoPosts =
@@ -200,6 +201,25 @@ extension AgendaControllerFeedPart on AgendaController {
         TurqImageCacheManager.instance.getSingleFile(post.thumbnail).ignore();
       }
     }
+  }
+
+  void _prefetchThumbnailBatches() {
+    final current = centeredIndex.value.clamp(0, agendaList.length - 1);
+    final targetCount = min(((current ~/ 10) + 1) * 10, agendaList.length);
+    if (targetCount <= _prefetchedThumbnailPostCount) return;
+
+    for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
+      final post = agendaList[i];
+      final thumbnail = post.thumbnail.trim();
+      final fallbackImage =
+          post.img.isNotEmpty ? post.img.first.trim() : '';
+      final previewUrl =
+          thumbnail.isNotEmpty ? thumbnail : fallbackImage;
+      if (previewUrl.isEmpty) continue;
+      TurqImageCacheManager.instance.getSingleFile(previewUrl).ignore();
+    }
+
+    _prefetchedThumbnailPostCount = targetCount;
   }
 
   void ensureFeedCacheWarm() {

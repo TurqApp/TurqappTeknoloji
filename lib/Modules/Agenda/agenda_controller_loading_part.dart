@@ -53,6 +53,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       lastDoc = null;
       _usePrimaryFeedPaging = true;
       hasMore.value = true;
+      _prefetchedThumbnailPostCount = 0;
       agendaList.clear();
       _shuffleCache.clear();
       // Eski yeniden paylaşım meta verilerini sıfırla

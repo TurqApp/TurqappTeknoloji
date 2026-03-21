@@ -95,6 +95,7 @@ class AgendaController extends GetxController {
   final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
   String? _lastPlaybackWindowSignature;
   String? _pendingCenteredDocId;
+  int _prefetchedThumbnailPostCount = 0;
 
   // Video içerik thumbnail ile render edilebilir; autoplay sadece HLS hazırsa başlar.
   bool _isRenderablePost(PostsModel post) {
