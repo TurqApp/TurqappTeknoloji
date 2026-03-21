@@ -76,8 +76,10 @@ class PostContentController extends GetxController {
       ? Get.find<ShortController>()
       : Get.put(ShortController());
 
+  bool _canSendAdminPush = AdminAccessService.isKnownAdminSync();
+
   bool get canSendAdminPush {
-    return AdminAccessService.isKnownAdminSync();
+    return _canSendAdminPush || AdminAccessService.isKnownAdminSync();
   }
 
   ({String title, String body}) _buildPostPushCopy() {
@@ -221,6 +223,7 @@ class PostContentController extends GetxController {
     super.onInit();
     _postRepository = PostRepository.ensure();
     _adminPushRepository = AdminPushRepository.ensure();
+    unawaited(_hydrateAdminPushPermission());
     // Delay reactive counter hydration until after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed) return;
@@ -249,6 +252,13 @@ class PostContentController extends GetxController {
     });
 
     onPostInitialized();
+  }
+
+  Future<void> _hydrateAdminPushPermission() async {
+    final allowed = await AdminAccessService.canAccessTask('admin_push');
+    if (_canSendAdminPush == allowed) return;
+    _canSendAdminPush = allowed;
+    update();
   }
 
   @override

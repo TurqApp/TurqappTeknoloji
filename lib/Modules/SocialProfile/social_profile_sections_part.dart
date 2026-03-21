@@ -732,7 +732,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             child: Container(
               alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -743,7 +743,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       ),
                       style: const TextStyle(
                         color: Colors.black,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontFamily: "MontserratBold",
                       ),
                     ),
@@ -751,9 +751,12 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       'profile.posts'.tr,
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 13,
+                        fontSize: 11,
                         fontFamily: "MontserratMedium",
+                        height: 1.0,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -774,7 +777,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             child: Container(
               alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -785,7 +788,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       ),
                       style: const TextStyle(
                         color: Colors.black,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontFamily: "MontserratBold",
                       ),
                     ),
@@ -793,9 +796,12 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       'profile.followers'.tr,
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 13,
+                        fontSize: 11,
                         fontFamily: "MontserratMedium",
+                        height: 1.0,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -816,7 +822,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             child: Container(
               alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -827,7 +833,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       ),
                       style: const TextStyle(
                         color: Colors.black,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontFamily: "MontserratBold",
                       ),
                     ),
@@ -835,9 +841,12 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       'profile.following'.tr,
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 13,
+                        fontSize: 11,
                         fontFamily: "MontserratMedium",
+                        height: 1.0,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -849,7 +858,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           child: Container(
             alignment: Alignment.center,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -860,7 +869,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     ),
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 18,
+                      fontSize: 17,
                       fontFamily: "MontserratBold",
                     ),
                   ),
@@ -868,9 +877,12 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     'profile.likes'.tr,
                     style: TextStyle(
                       color: Colors.black,
-                      fontSize: 13,
+                      fontSize: 11,
                       fontFamily: "MontserratMedium",
+                      height: 1.0,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -885,7 +897,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
             child: Container(
               alignment: Alignment.center,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -896,7 +908,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       ),
                       style: const TextStyle(
                         color: Colors.black,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontFamily: "MontserratBold",
                       ),
                     ),
@@ -904,9 +916,12 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                       'profile.listings'.tr,
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 13,
+                        fontSize: 11,
                         fontFamily: "MontserratMedium",
+                        height: 1.0,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
