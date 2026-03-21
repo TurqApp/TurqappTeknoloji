@@ -611,6 +611,8 @@ Aktif faz:
 - Son tamamlanan Android egitim/pasaj sonucu: `Job` listesi, owner `JobDetails` ve listeye geri donus temiz; `Özel Ders` detail ekranı temiz acildi; `Online Sınav` liste, owner detail modal ve CTA Android cihazda dogrulandi. Owner kartlarda yanlis `Hemen Basvur` etiketi `Goruntule` olarak duzeltildi.
 - Son tamamlanan Android profile relation sonucu: `FollowingFollowers` test hook uzerinden Android cihazda temiz acildi; `SavedPosts`, `BlockedUsers` ve `cached_user_avatar` sweep'leri de yesil kapandi.
 - Son tamamlanan Android cevap anahtari sonucu: `Cevap Anahtari` listesi temiz acildi; `Kitap Detayi` ve alt `Cevap Anahtarlari` preview bolumu Android cihazda temiz doğrulandi.
+- Son tamamlanan Android market sonucu: `Mabil Pazar` liste acilisi, `Ilan Detayi -> liste` geri donusu ve owner `Tekliflerim` ekrani Android cihazda temiz dogrulandi.
+- Son tamamlanan Android burs sonucu: `Burslar` liste ve `Burs Detayi` Android cihazda temiz acildi. `Soru Bankasi` ana liste acildi, ancak arama barı focus'u klavyeyi agresif tuttugu icin kategori/detail sweep'i icin kucuk hook/focus duzeltmesi gerekiyor.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
