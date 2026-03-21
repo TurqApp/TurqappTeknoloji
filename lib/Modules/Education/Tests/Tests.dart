@@ -47,18 +47,13 @@ class _TestsState extends State<Tests> {
     super.initState();
     _controllerTag =
         'tests_${embedded ? 'embedded' : 'root'}_${identityHashCode(this)}';
-    controller = Get.isRegistered<TestsController>(tag: _controllerTag)
-        ? Get.find<TestsController>(tag: _controllerTag)
-        : Get.put(TestsController(), tag: _controllerTag);
+    controller = TestsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<TestsController>(tag: _controllerTag) &&
-        identical(
-          Get.find<TestsController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = TestsController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<TestsController>(tag: _controllerTag);
     }
     super.dispose();

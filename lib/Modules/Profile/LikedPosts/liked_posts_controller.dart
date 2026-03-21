@@ -34,7 +34,7 @@ class LikedPostControllers extends GetxController {
   int? lastCenteredIndex;
   String? _pendingCenteredDocId;
 
-  final UserPostLinkService _linkService = Get.put(UserPostLinkService());
+  final UserPostLinkService _linkService = UserPostLinkService.ensure();
   StreamSubscription<User?>? _authSub;
   StreamSubscription<List<UserPostReference>>? _likedSub;
   final Map<String, GlobalKey> _postKeys = {};
@@ -152,7 +152,7 @@ class LikedPostControllers extends GetxController {
 
   void disposeAgendaContentController(String docId) {
     final tag = agendaInstanceTag(docId);
-    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+    if (AgendaContentController.maybeFind(tag: tag) != null) {
       Get.delete<AgendaContentController>(tag: tag, force: true);
     }
   }

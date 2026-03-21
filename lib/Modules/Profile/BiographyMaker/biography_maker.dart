@@ -18,11 +18,12 @@ class _BiographyMakerState extends State<BiographyMaker> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<BiographyMakerController>()) {
-      controller = Get.find<BiographyMakerController>();
+    final existingController = BiographyMakerController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(BiographyMakerController());
+      controller = BiographyMakerController.ensure();
       _ownsController = true;
     }
   }
@@ -30,8 +31,7 @@ class _BiographyMakerState extends State<BiographyMaker> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<BiographyMakerController>() &&
-        identical(Get.find<BiographyMakerController>(), controller)) {
+        identical(BiographyMakerController.maybeFind(), controller)) {
       Get.delete<BiographyMakerController>(force: true);
     }
     super.dispose();

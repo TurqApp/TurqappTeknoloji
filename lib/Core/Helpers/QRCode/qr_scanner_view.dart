@@ -23,10 +23,12 @@ class _QrScannerViewState extends State<QrScannerView> {
   void initState() {
     super.initState();
     _controllerTag = 'qr_scanner_${identityHashCode(this)}';
-    if (Get.isRegistered<QrScannerController>(tag: _controllerTag)) {
-      controller = Get.find<QrScannerController>(tag: _controllerTag);
+    final existingController =
+        QrScannerController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(QrScannerController(), tag: _controllerTag);
+      controller = QrScannerController.ensure(tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -34,9 +36,8 @@ class _QrScannerViewState extends State<QrScannerView> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<QrScannerController>(tag: _controllerTag) &&
         identical(
-          Get.find<QrScannerController>(tag: _controllerTag),
+          QrScannerController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<QrScannerController>(tag: _controllerTag);

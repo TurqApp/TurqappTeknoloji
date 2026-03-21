@@ -106,9 +106,7 @@ class TutoringController extends GetxController {
   }
 
   Future<void> _bootstrapTutoringData() async {
-    final savedController = Get.isRegistered<SavedTutoringsController>()
-        ? Get.find<SavedTutoringsController>()
-        : Get.put(SavedTutoringsController(), permanent: true);
+    final savedController = SavedTutoringsController.ensure(permanent: true);
     await savedController.loadSavedTutorings();
     final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();

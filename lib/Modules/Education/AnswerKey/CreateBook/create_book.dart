@@ -37,11 +37,23 @@ class CevapAnahtariHazirlikModel {
   });
 }
 
-class CreateBook extends StatelessWidget {
+class CreateBook extends StatefulWidget {
   final Function? onBack;
   final BookletModel? existingBook;
 
   const CreateBook({required this.onBack, this.existingBook, super.key});
+
+  @override
+  State<CreateBook> createState() => _CreateBookState();
+}
+
+class _CreateBookState extends State<CreateBook> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final CreateBookController controller;
+
+  Function? get onBack => widget.onBack;
+  BookletModel? get existingBook => widget.existingBook;
 
   double _coverWidth(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -54,11 +66,34 @@ class CreateBook extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      CreateBookController(onBack, existingBook: existingBook),
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'create_book_${existingBook?.docID ?? 'new'}_${identityHashCode(this)}';
+    _ownsController =
+        CreateBookController.maybeFind(tag: _controllerTag) == null;
+    controller = CreateBookController.ensure(
+      onBack,
+      existingBook: existingBook,
+      tag: _controllerTag,
     );
+  }
 
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = CreateBookController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<CreateBookController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -492,7 +527,7 @@ class CreateBook extends StatelessWidget {
   }
 }
 
-class CreateBookAnswerKey extends StatelessWidget {
+class CreateBookAnswerKey extends StatefulWidget {
   final CevapAnahtariHazirlikModel model;
   final Function onBack;
 
@@ -503,9 +538,49 @@ class CreateBookAnswerKey extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(CreateBookAnswerKeyController(model, onBack));
+  State<CreateBookAnswerKey> createState() => _CreateBookAnswerKeyState();
+}
 
+class _CreateBookAnswerKeyState extends State<CreateBookAnswerKey> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final CreateBookAnswerKeyController controller;
+
+  CevapAnahtariHazirlikModel get model => widget.model;
+  Function get onBack => widget.onBack;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'create_book_answer_key_${model.sira}_${identityHashCode(this)}';
+    _ownsController =
+        CreateBookAnswerKeyController.maybeFind(tag: _controllerTag) == null;
+    controller = CreateBookAnswerKeyController.ensure(
+      model,
+      onBack,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = CreateBookAnswerKeyController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<CreateBookAnswerKeyController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

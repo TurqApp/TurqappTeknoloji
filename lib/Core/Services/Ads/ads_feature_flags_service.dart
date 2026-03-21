@@ -7,10 +7,14 @@ import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 
 class AdsFeatureFlagsService extends GetxService {
+  static AdsFeatureFlagsService? maybeFind() {
+    if (!Get.isRegistered<AdsFeatureFlagsService>()) return null;
+    return Get.find<AdsFeatureFlagsService>();
+  }
+
   static AdsFeatureFlagsService _ensureService() {
-    if (Get.isRegistered<AdsFeatureFlagsService>()) {
-      return Get.find<AdsFeatureFlagsService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AdsFeatureFlagsService());
   }
 

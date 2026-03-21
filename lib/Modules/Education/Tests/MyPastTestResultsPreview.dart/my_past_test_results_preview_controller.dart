@@ -8,6 +8,27 @@ import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class MyPastTestResultsPreviewController extends GetxController {
+  static MyPastTestResultsPreviewController ensure(
+    TestsModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyPastTestResultsPreviewController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyPastTestResultsPreviewController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyPastTestResultsPreviewController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<MyPastTestResultsPreviewController>(tag: tag);
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final yanitlar = <String>[].obs;

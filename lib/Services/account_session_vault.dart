@@ -28,7 +28,13 @@ class AccountSessionCredential {
 class AccountSessionVault {
   AccountSessionVault._();
 
-  static final AccountSessionVault instance = AccountSessionVault._();
+  static AccountSessionVault? _instance;
+  static AccountSessionVault? maybeFind() => _instance;
+
+  static AccountSessionVault ensure() =>
+      maybeFind() ?? (_instance = AccountSessionVault._());
+
+  static AccountSessionVault get instance => ensure();
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -46,9 +52,7 @@ class AccountSessionVault {
   }) async {
     final normalizedUid = uid.trim();
     final normalizedEmail = normalizeEmailAddress(email);
-    if (normalizedUid.isEmpty ||
-        normalizedEmail.isEmpty ||
-        password.isEmpty) {
+    if (normalizedUid.isEmpty || normalizedEmail.isEmpty || password.isEmpty) {
       return;
     }
     final payload = jsonEncode(

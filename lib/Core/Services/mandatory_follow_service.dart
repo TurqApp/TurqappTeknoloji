@@ -7,7 +7,13 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class MandatoryFollowService {
   MandatoryFollowService._();
-  static final MandatoryFollowService instance = MandatoryFollowService._();
+  static MandatoryFollowService? _instance;
+  static MandatoryFollowService? maybeFind() => _instance;
+
+  static MandatoryFollowService ensure() =>
+      maybeFind() ?? (_instance = MandatoryFollowService._());
+
+  static MandatoryFollowService get instance => ensure();
 
   static const String _primaryDocId = 'forceFollow';
   Future<void>? _inFlight;
@@ -39,8 +45,7 @@ class MandatoryFollowService {
         // Transaction/rule edge-case durumlarında takip ilişkisini yine de kur.
         try {
           await _fallbackEnsureFollowing(me: me, other: uid);
-        } catch (_) {
-        }
+        } catch (_) {}
       }
     }
   }

@@ -9,8 +9,15 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     return '';
   }
 
-  Future<({String nickname, String username, String fullName, String displayName, String avatarUrl, String rozet})>
-      _resolveAuthorSummary() async {
+  Future<
+      ({
+        String nickname,
+        String username,
+        String fullName,
+        String displayName,
+        String avatarUrl,
+        String rozet
+      })> _resolveAuthorSummary() async {
     final current = CurrentUserService.instance;
     final uid = current.userId;
     final userRaw = uid.isNotEmpty
@@ -80,10 +87,10 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
 
   void _initializeServices() {
     try {
-      _errorService = Get.put(ErrorHandlingService());
-      _networkService = Get.put(NetworkAwarenessService());
-      _uploadQueueService = Get.put(UploadQueueService());
-      _draftService = Get.put(DraftService());
+      _errorService = ErrorHandlingService.ensure();
+      _networkService = NetworkAwarenessService.ensure();
+      _uploadQueueService = UploadQueueService.ensure();
+      _draftService = DraftService.ensure();
     } catch (_) {}
   }
 
@@ -247,7 +254,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         return;
       }
 
-      final progressController = Get.find<UploadProgressController>();
+      final progressController = UploadProgressController.ensure();
       final allImages = <File>[];
       final allVideos = <File>[];
 

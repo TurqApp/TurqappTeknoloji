@@ -25,6 +25,7 @@ class CreateTestQuestionContent extends StatefulWidget {
 class _CreateTestQuestionContentState extends State<CreateTestQuestionContent> {
   late final CreateTestQuestionContentController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   TestReadinessModel get model => widget.model;
   String get testID => widget.testID;
@@ -35,30 +36,25 @@ class _CreateTestQuestionContentState extends State<CreateTestQuestionContent> {
     super.initState();
     _controllerTag =
         'test_question_${widget.testID}_${widget.model.docID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<CreateTestQuestionContentController>(
+    _ownsController =
+        CreateTestQuestionContentController.maybeFind(tag: _controllerTag) ==
+            null;
+    controller = CreateTestQuestionContentController.ensure(
+      model: widget.model,
+      testID: widget.testID,
+      index: widget.index,
       tag: _controllerTag,
-    )
-        ? Get.find<CreateTestQuestionContentController>(tag: _controllerTag)
-        : Get.put(
-            CreateTestQuestionContentController(
-              model: widget.model,
-              testID: widget.testID,
-              index: widget.index,
-            ),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<CreateTestQuestionContentController>(
-          tag: _controllerTag,
-        ) &&
-        identical(
-          Get.find<CreateTestQuestionContentController>(tag: _controllerTag),
-          controller,
-        )) {
-      Get.delete<CreateTestQuestionContentController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController =
+          CreateTestQuestionContentController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<CreateTestQuestionContentController>(tag: _controllerTag);
+      }
     }
     super.dispose();
   }

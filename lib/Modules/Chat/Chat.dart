@@ -43,15 +43,14 @@ class ChatView extends StatelessWidget {
     this.isNewChat,
     this.openKeyboard,
   });
-  ChatController get controller => Get.isRegistered<ChatController>(tag: chatID)
-      ? Get.find<ChatController>(tag: chatID)
-      : Get.put(
-          ChatController(chatID: chatID, userID: userID),
-          tag: chatID,
-        );
+  ChatController get controller => ChatController.ensure(
+        chatID: chatID,
+        userID: userID,
+        tag: chatID,
+      );
 
   void _disposeChatControllerIfAny() {
-    if (Get.isRegistered<ChatController>(tag: chatID)) {
+    if (ChatController.maybeFind(tag: chatID) != null) {
       Get.delete<ChatController>(tag: chatID, force: true);
     }
   }
@@ -130,7 +129,7 @@ class _ChatTextFieldState extends State<_ChatTextField> {
     await showPullDownMenu(
       context: context,
       position: position,
-        items: [
+      items: [
         PullDownMenuItem(
           title: 'chat.attach_photos'.tr,
           icon: CupertinoIcons.photo_on_rectangle,
@@ -206,8 +205,7 @@ class _ChatTextFieldState extends State<_ChatTextField> {
                           fontSize: 15,
                           fontFamily: "Montserrat",
                         ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 9),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 9),
                         isDense: true,
                       ),
                       style: const TextStyle(

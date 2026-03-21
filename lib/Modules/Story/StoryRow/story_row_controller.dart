@@ -18,19 +18,16 @@ class StoryRowController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
   static StoryRowController _ensureController() {
-    if (Get.isRegistered<StoryRowController>()) {
-      return Get.find<StoryRowController>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(StoryRowController());
   }
 
   static StoryRowController ensure() => _ensureController();
 
   static StoryRowController? maybeFind() {
-    if (Get.isRegistered<StoryRowController>()) {
-      return Get.find<StoryRowController>();
-    }
-    return null;
+    if (!Get.isRegistered<StoryRowController>()) return null;
+    return Get.find<StoryRowController>();
   }
 
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;

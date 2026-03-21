@@ -21,11 +21,7 @@ class _PreviousQuestionsState extends State<PreviousQuestions> {
   void initState() {
     super.initState();
     _controllerTag = 'previous_questions_${identityHashCode(this)}';
-    controller = Get.isRegistered<PreviousQuestionsController>(
-      tag: _controllerTag,
-    )
-        ? Get.find<PreviousQuestionsController>(tag: _controllerTag)
-        : Get.put(PreviousQuestionsController(), tag: _controllerTag);
+    controller = PreviousQuestionsController.ensure(tag: _controllerTag);
   }
 
   @override
@@ -45,11 +41,10 @@ class _PreviousQuestionsState extends State<PreviousQuestions> {
 
   @override
   void dispose() {
-    if (Get.isRegistered<PreviousQuestionsController>(tag: _controllerTag) &&
-        identical(
-          Get.find<PreviousQuestionsController>(tag: _controllerTag),
-          controller,
-        )) {
+    final registeredController = PreviousQuestionsController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (identical(registeredController, controller)) {
       Get.delete<PreviousQuestionsController>(tag: _controllerTag);
     }
     super.dispose();

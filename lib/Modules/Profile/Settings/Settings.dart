@@ -80,17 +80,10 @@ class _SettingsViewState extends State<SettingsView> {
       AdminTaskAssignmentRepository.ensure();
   final AdminApprovalRepository _adminApprovalRepository =
       AdminApprovalRepository.ensure();
-  final AppLanguageService _languageService = Get.find<AppLanguageService>();
+  final AppLanguageService _languageService = AppLanguageService.ensure();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
-
-  T _ensureService<T>(T Function() create) {
-    if (Get.isRegistered<T>()) {
-      return Get.find<T>();
-    }
-    return Get.put<T>(create());
-  }
 
   @override
   void initState() {
@@ -555,8 +548,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showDataUsageDialog() {
-    final networkService = _ensureService<NetworkAwarenessService>(
-        () => NetworkAwarenessService());
+    final networkService = NetworkAwarenessService.ensure();
     final stats = networkService.getNetworkStats();
     final usage = networkService.dataUsage;
     final now = DateTime.now();
@@ -565,15 +557,12 @@ class _SettingsViewState extends State<SettingsView> {
         (now.difference(resetStart).inMinutes / 60).clamp(1.0, 99999.0);
     final monthlyTotalMB = (stats['monthlyUsageMB'] as num?)?.toDouble() ?? 0.0;
     final monthlyAvgPerHour = monthlyTotalMB / resetHours;
-    final hasCache = Get.isRegistered<SegmentCacheManager>();
-    final cacheEntryCount =
-        hasCache ? Get.find<SegmentCacheManager>().entryCount : 0;
-    final cacheSizeText = hasCache
-        ? CacheMetrics.formatBytes(
-            Get.find<SegmentCacheManager>().totalSizeBytes)
+    final cacheManager = SegmentCacheManager.maybeFind();
+    final cacheEntryCount = cacheManager?.entryCount ?? 0;
+    final cacheSizeText = cacheManager != null
+        ? CacheMetrics.formatBytes(cacheManager.totalSizeBytes)
         : "settings.diagnostics.unknown".tr;
-    final offline =
-        _ensureService<OfflineModeService>(() => OfflineModeService.instance);
+    final offline = OfflineModeService.ensure();
     final queueStats = offline.getQueueStats();
     final queueLastSyncMs = (queueStats['lastSyncAt'] as int?) ?? 0;
     final queueLastSyncText = queueLastSyncMs <= 0
@@ -687,13 +676,13 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _ensureDiagnosticsServices() {
-    _ensureService<ErrorHandlingService>(() => ErrorHandlingService());
-    _ensureService<NetworkAwarenessService>(() => NetworkAwarenessService());
-    _ensureService<UploadQueueService>(() => UploadQueueService());
-    _ensureService<DraftService>(() => DraftService());
-    _ensureService<PostEditingService>(() => PostEditingService());
-    _ensureService<MediaEnhancementService>(() => MediaEnhancementService());
-    _ensureService<OfflineModeService>(() => OfflineModeService.instance);
+    ErrorHandlingService.ensure();
+    NetworkAwarenessService.ensure();
+    UploadQueueService.ensure();
+    DraftService.ensure();
+    PostEditingService.ensure();
+    MediaEnhancementService.ensure();
+    OfflineModeService.ensure();
   }
 
   void _showSystemDiagnosticsMenu() {
@@ -856,9 +845,7 @@ class _SettingsViewState extends State<SettingsView> {
                 title: Text("settings.diagnostics.reset_data_counters".tr),
                 onTap: () async {
                   Get.back();
-                  await _ensureService<NetworkAwarenessService>(
-                    () => NetworkAwarenessService(),
-                  ).resetDataUsage();
+                  await NetworkAwarenessService.ensure().resetDataUsage();
                   AppSnackbar("common.success".tr,
                       "settings.diagnostics.data_counters_reset".tr);
                 },
@@ -900,8 +887,9 @@ class _SettingsViewState extends State<SettingsView> {
                 title: Text("settings.diagnostics.pause_prefetch".tr),
                 onTap: () {
                   Get.back();
-                  if (Get.isRegistered<PrefetchScheduler>()) {
-                    Get.find<PrefetchScheduler>().pause();
+                  final prefetch = PrefetchScheduler.maybeFind();
+                  if (prefetch != null) {
+                    prefetch.pause();
                     AppSnackbar("common.success".tr,
                         "settings.diagnostics.prefetch_paused".tr);
                   } else {
@@ -915,8 +903,9 @@ class _SettingsViewState extends State<SettingsView> {
                 title: Text("settings.diagnostics.resume_prefetch".tr),
                 onTap: () {
                   Get.back();
-                  if (Get.isRegistered<PrefetchScheduler>()) {
-                    Get.find<PrefetchScheduler>().resume();
+                  final prefetch = PrefetchScheduler.maybeFind();
+                  if (prefetch != null) {
+                    prefetch.resume();
                     AppSnackbar("common.success".tr,
                         "settings.diagnostics.prefetch_resumed".tr);
                   } else {
@@ -933,8 +922,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showOfflineQueueDetails() {
-    final offline =
-        _ensureService<OfflineModeService>(() => OfflineModeService.instance);
+    final offline = OfflineModeService.ensure();
 
     Get.dialog(
       AlertDialog(
@@ -1065,8 +1053,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showLastErrorSummary() {
-    final errorService =
-        _ensureService<ErrorHandlingService>(() => ErrorHandlingService());
+    final errorService = ErrorHandlingService.ensure();
     final last = errorService.getLastErrorSummary();
 
     Get.dialog(

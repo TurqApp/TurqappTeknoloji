@@ -20,30 +20,27 @@ class CategoryBasedAnswerKey extends StatefulWidget {
 class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
   late final CategoryBasedAnswerKeyController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
     _controllerTag =
         'category_answer_key_${widget.sinavTuru.hashCode}_${identityHashCode(this)}';
-    controller = Get.isRegistered<CategoryBasedAnswerKeyController>(
+    _ownsController =
+        CategoryBasedAnswerKeyController.maybeFind(tag: _controllerTag) == null;
+    controller = CategoryBasedAnswerKeyController.ensure(
+      widget.sinavTuru,
       tag: _controllerTag,
-    )
-        ? Get.find<CategoryBasedAnswerKeyController>(tag: _controllerTag)
-        : Get.put(
-            CategoryBasedAnswerKeyController(widget.sinavTuru),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<CategoryBasedAnswerKeyController>(
-            tag: _controllerTag) &&
-        identical(
-          Get.find<CategoryBasedAnswerKeyController>(tag: _controllerTag),
-          controller,
-        )) {
+    final registeredController = CategoryBasedAnswerKeyController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
       Get.delete<CategoryBasedAnswerKeyController>(tag: _controllerTag);
     }
     super.dispose();

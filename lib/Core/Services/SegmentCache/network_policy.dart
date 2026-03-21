@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import '../PlaybackIntelligence/playback_policy_engine.dart';
 import '../network_awareness_service.dart';
 
@@ -10,13 +9,7 @@ import '../network_awareness_service.dart';
 /// - Cellular: arka plan prefetch kapalı, on-demand segment fetch açık
 /// - Offline: sadece cache'den serv et
 class CacheNetworkPolicy {
-  static PlaybackPolicyEngine? get _engine {
-    try {
-      return Get.find<PlaybackPolicyEngine>();
-    } catch (_) {
-      return null;
-    }
-  }
+  static PlaybackPolicyEngine? get _engine => PlaybackPolicyEngine.maybeFind();
 
   /// Wi-Fi'de mi? Prefetch sadece Wi-Fi'de çalışır.
   static bool get canPrefetch {
@@ -24,11 +17,7 @@ class CacheNetworkPolicy {
     if (engine != null) {
       return engine.snapshot().allowBackgroundPrefetch;
     }
-    try {
-      return Get.find<NetworkAwarenessService>().isOnWiFi;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;
   }
 
   static PlaybackPolicySnapshot? get currentSnapshot {
@@ -46,20 +35,19 @@ class CacheNetworkPolicy {
     if (engine != null) {
       return engine.snapshot().allowOnDemandSegmentFetch;
     }
-    try {
-      final net = Get.find<NetworkAwarenessService>();
-      if (net.isOnWiFi) return true;
-
-      // Mobilde oynatma akışını kilitlememek için on-demand segment'e izin ver.
-      if (net.isOnCellular) {
-        return net.isConnected;
-      }
-      // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
-      return net.isConnected;
-    } catch (_) {
+    final net = NetworkAwarenessService.maybeFind();
+    if (net == null) {
       // Fail-open: policy servisleri geç yüklenirse oynatma kilitlenmesin.
       return true;
     }
+    if (net.isOnWiFi) return true;
+
+    // Mobilde oynatma akışını kilitlememek için on-demand segment'e izin ver.
+    if (net.isOnCellular) {
+      return net.isConnected;
+    }
+    // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
+    return net.isConnected;
   }
 
   /// Playlist fetch izni — playlist'ler küçük olduğu için cellular'da da izin ver.
@@ -69,11 +57,7 @@ class CacheNetworkPolicy {
     if (engine != null) {
       return engine.snapshot().allowPlaylistFetch;
     }
-    try {
-      return Get.find<NetworkAwarenessService>().isConnected;
-    } catch (_) {
-      return true;
-    }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? true;
   }
 
   /// Cache-only mod: offline veya kullanici mobil veride durdurduysa segment CDN fetch yapma.
@@ -82,17 +66,14 @@ class CacheNetworkPolicy {
     if (engine != null) {
       return engine.snapshot().cacheOnlyMode;
     }
-    try {
-      final net = Get.find<NetworkAwarenessService>();
-      if (!net.isConnected) return true;
-      if (net.isOnWiFi) return false;
-      if (net.isOnCellular) {
-        return net.settings.pauseOnCellular;
-      }
-      return false;
-    } catch (_) {
-      return true;
+    final net = NetworkAwarenessService.maybeFind();
+    if (net == null) return true;
+    if (!net.isConnected) return true;
+    if (net.isOnWiFi) return false;
+    if (net.isOnCellular) {
+      return net.settings.pauseOnCellular;
     }
+    return false;
   }
 
   static String get playlistFetchBlockedReason {
@@ -127,19 +108,11 @@ class CacheNetworkPolicy {
 
   /// Mobil veri mi?
   static bool get isOnCellular {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnCellular;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
   }
 
   /// Herhangi bir bağlantı var mı? (wifi, cellular, vs)
   static bool get isConnected {
-    try {
-      return Get.find<NetworkAwarenessService>().isConnected;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 }

@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
@@ -41,8 +40,8 @@ class FollowService {
     );
 
     // Agenda'nın followingIDs listesini lokal olarak güncelle (SWR)
-    if (Get.isRegistered<AgendaController>()) {
-      final agenda = Get.find<AgendaController>();
+    final agenda = AgendaController.maybeFind();
+    if (agenda != null) {
       if (result.nowFollowing) {
         agenda.followingIDs.add(otherUserID);
       } else {
@@ -79,8 +78,8 @@ class FollowService {
       todayKey: _todayKey(),
     );
 
-    if (created && Get.isRegistered<AgendaController>()) {
-      final agenda = Get.find<AgendaController>();
+    final agenda = AgendaController.maybeFind();
+    if (created && agenda != null) {
       agenda.followingIDs.add(otherUserID);
     }
     return created;

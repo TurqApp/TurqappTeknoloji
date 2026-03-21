@@ -9,7 +9,7 @@ class AdsCampaignListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<AdsCenterController>();
+    final controller = AdsCenterController.ensure();
 
     return Column(
       children: [
@@ -123,7 +123,9 @@ class AdsCampaignListView extends StatelessWidget {
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     title: Text(
-                      c.name.isEmpty ? 'ads_center.untitled_campaign'.tr : c.name,
+                      c.name.isEmpty
+                          ? 'ads_center.untitled_campaign'.tr
+                          : c.name,
                       style: const TextStyle(
                         fontFamily: 'MontserratBold',
                         fontSize: 14,
@@ -172,8 +174,7 @@ class AdsCampaignListView extends StatelessWidget {
                             value: 'activate',
                             child: Text('ads_center.activate'.tr)),
                         PopupMenuItem(
-                            value: 'pause',
-                            child: Text('ads_center.pause'.tr)),
+                            value: 'pause', child: Text('ads_center.pause'.tr)),
                       ],
                     ),
                   ),

@@ -18,10 +18,14 @@ class RecommendedUsersRepository extends GetxService {
   bool _initialized = false;
   StreamSubscription<User?>? _authSub;
 
+  static RecommendedUsersRepository? maybeFind() {
+    if (!Get.isRegistered<RecommendedUsersRepository>()) return null;
+    return Get.find<RecommendedUsersRepository>();
+  }
+
   static RecommendedUsersRepository _ensureService() {
-    if (Get.isRegistered<RecommendedUsersRepository>()) {
-      return Get.find<RecommendedUsersRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(RecommendedUsersRepository(), permanent: true);
   }
 

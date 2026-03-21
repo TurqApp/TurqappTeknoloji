@@ -16,10 +16,14 @@ class MarketRepository extends GetxService {
   final Map<String, _TimedMarketItems> _memory = <String, _TimedMarketItems>{};
   SharedPreferences? _prefs;
 
+  static MarketRepository? maybeFind() {
+    if (!Get.isRegistered<MarketRepository>()) return null;
+    return Get.find<MarketRepository>();
+  }
+
   static MarketRepository _ensureService() {
-    if (Get.isRegistered<MarketRepository>()) {
-      return Get.find<MarketRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(MarketRepository(), permanent: true);
   }
 

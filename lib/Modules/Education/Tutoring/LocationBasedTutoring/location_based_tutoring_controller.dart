@@ -12,6 +12,26 @@ import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class LocationBasedTutoringController extends GetxController {
+  static LocationBasedTutoringController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      LocationBasedTutoringController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static LocationBasedTutoringController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<LocationBasedTutoringController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<LocationBasedTutoringController>(tag: tag);
+  }
+
   static const String _cacheKey = 'location_tutoring_cache_v1';
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();

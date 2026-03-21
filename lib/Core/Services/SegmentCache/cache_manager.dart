@@ -26,10 +26,14 @@ import 'models.dart';
 /// ```
 class SegmentCacheManager extends GetxController {
   static SegmentCacheManager? maybeFind() {
-    if (Get.isRegistered<SegmentCacheManager>()) {
-      return Get.find<SegmentCacheManager>();
-    }
-    return null;
+    if (!Get.isRegistered<SegmentCacheManager>()) return null;
+    return Get.find<SegmentCacheManager>();
+  }
+
+  static SegmentCacheManager ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SegmentCacheManager(), permanent: true);
   }
 
   late String _cacheDir;
@@ -88,23 +92,15 @@ class SegmentCacheManager extends GetxController {
       CacheIndex.maxSizeBytes;
   int get _recentPlayCount {
     final remoteFloor = _remote?.cacheRecentProtectCount ?? 3;
-    if (!Get.isRegistered<StorageBudgetManager>()) {
-      return remoteFloor;
-    }
-
-    final budgetManager = Get.find<StorageBudgetManager>();
+    final budgetManager = StorageBudgetManager.maybeFind();
+    if (budgetManager == null) return remoteFloor;
     return budgetManager.recentProtectionWindow(
       streamUsageBytes: _index.totalSizeBytes,
       remoteFloor: remoteFloor,
     );
   }
 
-  VideoRemoteConfigService? get _remote {
-    if (Get.isRegistered<VideoRemoteConfigService>()) {
-      return Get.find<VideoRemoteConfigService>();
-    }
-    return null;
-  }
+  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
 
   // ──────────────────────────── Cache Okuma ────────────────────────────
 

@@ -13,10 +13,14 @@ class UsernameLookupRepository extends GetxService {
   final Map<String, _UsernameCacheEntry> _cache =
       <String, _UsernameCacheEntry>{};
 
+  static UsernameLookupRepository? maybeFind() {
+    if (!Get.isRegistered<UsernameLookupRepository>()) return null;
+    return Get.find<UsernameLookupRepository>();
+  }
+
   static UsernameLookupRepository _ensureService() {
-    if (Get.isRegistered<UsernameLookupRepository>()) {
-      return Get.find<UsernameLookupRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UsernameLookupRepository(), permanent: true);
   }
 

@@ -22,21 +22,16 @@ class _SavedJobsState extends State<SavedJobs> {
   void initState() {
     super.initState();
     _controllerTag = 'saved_jobs_${identityHashCode(this)}';
-    if (Get.isRegistered<SavedJobsController>(tag: _controllerTag)) {
-      controller = Get.find<SavedJobsController>(tag: _controllerTag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(SavedJobsController(), tag: _controllerTag);
-      _ownsController = true;
-    }
+    _ownsController =
+        SavedJobsController.maybeFind(tag: _controllerTag) == null;
+    controller = SavedJobsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SavedJobsController>(tag: _controllerTag) &&
         identical(
-          Get.find<SavedJobsController>(tag: _controllerTag),
+          SavedJobsController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<SavedJobsController>(tag: _controllerTag);

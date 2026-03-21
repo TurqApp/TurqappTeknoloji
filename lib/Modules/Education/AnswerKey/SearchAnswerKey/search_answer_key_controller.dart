@@ -9,6 +9,24 @@ import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_pre
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchAnswerKeyController extends GetxController {
+  static SearchAnswerKeyController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SearchAnswerKeyController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SearchAnswerKeyController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SearchAnswerKeyController>(tag: tag)) return null;
+    return Get.find<SearchAnswerKeyController>(tag: tag);
+  }
+
   final searchController = TextEditingController();
   final filteredList = <BookletModel>[].obs;
   final isLoading = false.obs;

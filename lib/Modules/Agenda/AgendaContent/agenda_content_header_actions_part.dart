@@ -19,8 +19,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<ProfileController>()) {
-      final profileController = Get.find<ProfileController>();
+    final profileController = ProfileController.maybeFind();
+    if (profileController != null) {
       final profileIndex = profileController.indexOfMergedEntry(
         docId: widget.model.docID,
         isReshare: widget.isReshared,
@@ -33,8 +33,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<SocialProfileController>()) {
-      final socialProfileController = Get.find<SocialProfileController>();
+    final socialProfileController = SocialProfileController.maybeFind();
+    if (socialProfileController != null) {
       final socialIndex = socialProfileController.indexOfCombinedEntry(
         docId: widget.model.docID,
         isReshare: widget.isReshared,
@@ -93,8 +93,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<ExploreController>()) {
-      final exploreController = Get.find<ExploreController>();
+    final exploreController = ExploreController.maybeFind();
+    if (exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
           .indexWhere((p) => p.docID == widget.model.docID);
       if (exploreIndex >= 0) {
@@ -118,8 +118,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<ProfileController>()) {
-      final profileController = Get.find<ProfileController>();
+    final profileController = ProfileController.maybeFind();
+    if (profileController != null) {
       final profileIndex = profileController.indexOfMergedEntry(
         docId: widget.model.docID,
         isReshare: widget.isReshared,
@@ -132,8 +132,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<SocialProfileController>()) {
-      final socialProfileController = Get.find<SocialProfileController>();
+    final socialProfileController = SocialProfileController.maybeFind();
+    if (socialProfileController != null) {
       final socialIndex = socialProfileController.indexOfCombinedEntry(
         docId: widget.model.docID,
         isReshare: widget.isReshared,
@@ -193,8 +193,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       }
     }
 
-    if (Get.isRegistered<ExploreController>()) {
-      final exploreController = Get.find<ExploreController>();
+    final exploreController = ExploreController.maybeFind();
+    if (exploreController != null) {
       final exploreIndex = exploreController.exploreFloods
           .indexWhere((p) => p.docID == widget.model.docID);
       if (exploreIndex >= 0) {

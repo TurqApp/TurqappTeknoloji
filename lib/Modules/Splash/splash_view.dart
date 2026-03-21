@@ -390,23 +390,17 @@ class _SplashViewState extends State<SplashView> {
 
   Future<void> _initCacheProxyInternal() async {
     try {
-      final remote = Get.isRegistered<VideoRemoteConfigService>()
-          ? Get.find<VideoRemoteConfigService>()
-          : Get.put(VideoRemoteConfigService(), permanent: true);
+      final remote = VideoRemoteConfigService.ensure();
       if (!remote.isReady) {
         await remote.initialize();
       }
 
-      final server = Get.isRegistered<HLSProxyServer>()
-          ? Get.find<HLSProxyServer>()
-          : Get.put(HLSProxyServer(), permanent: true);
+      final server = HLSProxyServer.ensure(permanent: true);
       if (!server.isStarted) {
         await server.start();
       }
 
-      final cache = Get.isRegistered<SegmentCacheManager>()
-          ? Get.find<SegmentCacheManager>()
-          : Get.put(SegmentCacheManager(), permanent: true);
+      final cache = SegmentCacheManager.ensure();
       await cache.init();
       await _applyGlobalMediaCacheQuota();
 
@@ -487,19 +481,15 @@ class _SplashViewState extends State<SplashView> {
     if (!Get.isRegistered<UploadQueueService>()) {
       Get.put(UploadQueueService(), permanent: true);
     }
-    if (!Platform.isIOS && !Get.isRegistered<DeepLinkService>()) {
-      Get.put(DeepLinkService(), permanent: true);
+    if (!Platform.isIOS) {
+      DeepLinkService.ensure();
     }
     if (!Get.isRegistered<IndexPoolStore>()) {
       Get.put(IndexPoolStore(), permanent: true);
     }
     UserProfileCacheService.ensure();
-    if (!Get.isRegistered<StorageBudgetManager>()) {
-      Get.put(StorageBudgetManager(), permanent: true);
-    }
-    if (!Get.isRegistered<PlaybackPolicyEngine>()) {
-      Get.put(PlaybackPolicyEngine(), permanent: true);
-    }
+    StorageBudgetManager.ensure();
+    PlaybackPolicyEngine.ensure();
     if (!Get.isRegistered<PlaybackKpiService>()) {
       Get.put(PlaybackKpiService(), permanent: true);
     }
@@ -510,7 +500,7 @@ class _SplashViewState extends State<SplashView> {
       final bool onWiFi = _isOnWiFiNow();
       final storyController = StoryRowController.maybeFind();
       if (storyController == null) return;
-      final agendaController = Get.find<AgendaController>();
+      final agendaController = AgendaController.ensure();
 
       // Paralel: shorts + story + feed + recommended aynı anda başlasın
       await Future.wait([
@@ -734,8 +724,7 @@ class _SplashViewState extends State<SplashView> {
   }
 
   bool _isFeedReady() {
-    if (!Get.isRegistered<AgendaController>()) return false;
-    return Get.find<AgendaController>().agendaList.length >=
+    return (AgendaController.maybeFind()?.agendaList.length ?? 0) >=
         _minFeedPostsForNav;
   }
 

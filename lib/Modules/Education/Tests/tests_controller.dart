@@ -8,6 +8,24 @@ import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class TestsController extends GetxController {
+  static TestsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TestsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TestsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<TestsController>(tag: tag)) return null;
+    return Get.find<TestsController>(tag: tag);
+  }
+
   final TestRepository _testRepository = TestRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;

@@ -18,12 +18,20 @@ class AboutProfile extends StatefulWidget {
 class _AboutProfileState extends State<AboutProfile> {
   late final AboutProfileController controller;
   late final String _controllerTag;
+  bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
     _controllerTag = 'about_profile_${widget.userID}_${identityHashCode(this)}';
-    controller = Get.put(AboutProfileController(), tag: _controllerTag);
+    final existingController =
+        AboutProfileController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = AboutProfileController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
     controller.getUserData(widget.userID);
   }
 
@@ -37,9 +45,9 @@ class _AboutProfileState extends State<AboutProfile> {
 
   @override
   void dispose() {
-    if (Get.isRegistered<AboutProfileController>(tag: _controllerTag) &&
+    if (_ownsController &&
         identical(
-          Get.find<AboutProfileController>(tag: _controllerTag),
+          AboutProfileController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<AboutProfileController>(tag: _controllerTag);

@@ -94,6 +94,25 @@ class Reply {
 }
 
 class AntremanCommentsController extends GetxController {
+  static AntremanCommentsController ensure({
+    required QuestionBankModel question,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AntremanCommentsController(question),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AntremanCommentsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AntremanCommentsController>(tag: tag)) return null;
+    return Get.find<AntremanCommentsController>(tag: tag);
+  }
+
   final QuestionBankModel question;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
@@ -548,8 +567,8 @@ class AntremanCommentsController extends GetxController {
       // NSFW tespiti (OptimizedNSFWService)
       final r = await OptimizedNSFWService.checkImage(file);
       if (r.isNSFW) {
-        AppSnackbar('training.upload_failed_title'.tr,
-            'training.upload_failed_body'.tr,
+        AppSnackbar(
+            'training.upload_failed_title'.tr, 'training.upload_failed_body'.tr,
             backgroundColor: Colors.red.withValues(alpha: 0.7));
         return;
       }

@@ -3,6 +3,24 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 
 class PoliciesController extends GetxController {
+  static PoliciesController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PoliciesController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PoliciesController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PoliciesController>(tag: tag)) return null;
+    return Get.find<PoliciesController>(tag: tag);
+  }
+
   var privacyPolicy = "".obs;
   var eula = "".obs;
   var ad = "".obs;

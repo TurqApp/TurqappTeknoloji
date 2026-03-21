@@ -31,6 +31,7 @@ class PostComments extends StatefulWidget {
 class _PostCommentsState extends State<PostComments> {
   late final PostCommentController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
   final user = CurrentUserService.instance;
   final emojis = ["😂", "😍", "🔥", "👏", "👍", "🙏", "😅", "❤️"];
   final textEditingController = TextEditingController();
@@ -40,17 +41,15 @@ class _PostCommentsState extends State<PostComments> {
   void initState() {
     super.initState();
     _controllerTag = 'post_comments_${widget.postID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<PostCommentController>(tag: _controllerTag)
-        ? Get.find<PostCommentController>(tag: _controllerTag)
-        : Get.put(
-            PostCommentController(
-              postID: widget.postID,
-              userID: widget.userID,
-              collection: widget.collection,
-              onCommentCountChange: widget.onCommentCountChange,
-            ),
-            tag: _controllerTag,
-          );
+    _ownsController =
+        PostCommentController.maybeFind(tag: _controllerTag) == null;
+    controller = PostCommentController.ensure(
+      postID: widget.postID,
+      userID: widget.userID,
+      collection: widget.collection,
+      onCommentCountChange: widget.onCommentCountChange,
+      tag: _controllerTag,
+    );
 
     focusNode.requestFocus();
   }
@@ -59,9 +58,9 @@ class _PostCommentsState extends State<PostComments> {
   void dispose() {
     textEditingController.dispose();
     focusNode.dispose();
-    if (Get.isRegistered<PostCommentController>(tag: _controllerTag) &&
+    if (_ownsController &&
         identical(
-          Get.find<PostCommentController>(tag: _controllerTag),
+          PostCommentController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostCommentController>(tag: _controllerTag);

@@ -8,6 +8,25 @@ import 'package:turqappv2/Models/post_sharers_model.dart';
 class PostSharersController extends GetxController {
   static const int _pageSize = 20;
 
+  static PostSharersController ensure({
+    required String postID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PostSharersController(postID: postID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PostSharersController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PostSharersController>(tag: tag)) return null;
+    return Get.find<PostSharersController>(tag: tag);
+  }
+
   final String postID;
 
   PostSharersController({required this.postID});

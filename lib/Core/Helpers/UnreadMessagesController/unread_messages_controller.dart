@@ -8,19 +8,16 @@ import '../../Services/network_awareness_service.dart';
 
 class UnreadMessagesController extends GetxController {
   static UnreadMessagesController _ensureController() {
-    if (Get.isRegistered<UnreadMessagesController>()) {
-      return Get.find<UnreadMessagesController>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UnreadMessagesController());
   }
 
   static UnreadMessagesController ensure() => _ensureController();
 
   static UnreadMessagesController? maybeFind() {
-    if (Get.isRegistered<UnreadMessagesController>()) {
-      return Get.find<UnreadMessagesController>();
-    }
-    return null;
+    if (!Get.isRegistered<UnreadMessagesController>()) return null;
+    return Get.find<UnreadMessagesController>();
   }
 
   final totalUnreadCount = 0.obs;

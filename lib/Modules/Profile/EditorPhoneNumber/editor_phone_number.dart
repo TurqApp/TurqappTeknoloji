@@ -18,11 +18,12 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<EditorPhoneNumberController>()) {
-      controller = Get.find<EditorPhoneNumberController>();
+    final existingController = EditorPhoneNumberController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(EditorPhoneNumberController());
+      controller = EditorPhoneNumberController.ensure();
       _ownsController = true;
     }
   }
@@ -30,8 +31,7 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<EditorPhoneNumberController>() &&
-        identical(Get.find<EditorPhoneNumberController>(), controller)) {
+        identical(EditorPhoneNumberController.maybeFind(), controller)) {
       Get.delete<EditorPhoneNumberController>(force: true);
     }
     super.dispose();
@@ -105,8 +105,8 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
                     },
                     bgColor: canSend ? Colors.black : Colors.grey,
                     text: controller.countdown.value > 0
-                        ? 'editor_phone.resend_in'
-                            .trParams({'seconds': '${controller.countdown.value}'})
+                        ? 'editor_phone.resend_in'.trParams(
+                            {'seconds': '${controller.countdown.value}'})
                         : 'editor_phone.send_approval'.tr,
                   ),
                   if (controller.isCodeSent.value) ...[

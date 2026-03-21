@@ -10,10 +10,14 @@ class AnswerKeySnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'answer_key_home_snapshot';
   static const String _searchSurfaceKey = 'answer_key_search_snapshot';
 
+  static AnswerKeySnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<AnswerKeySnapshotRepository>()) return null;
+    return Get.find<AnswerKeySnapshotRepository>();
+  }
+
   static AnswerKeySnapshotRepository _ensureService() {
-    if (Get.isRegistered<AnswerKeySnapshotRepository>()) {
-      return Get.find<AnswerKeySnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AnswerKeySnapshotRepository(), permanent: true);
   }
 

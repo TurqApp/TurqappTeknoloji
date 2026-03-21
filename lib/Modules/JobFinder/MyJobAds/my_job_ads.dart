@@ -16,26 +16,25 @@ class MyJobAds extends StatefulWidget {
 
 class _MyJobAdsState extends State<MyJobAds> {
   late final MyJobAdsController controller;
+  late final String _controllerTag = 'my_job_ads_${identityHashCode(this)}';
   late final String _pageLineBarTag = 'MyJobAds_${identityHashCode(this)}';
   bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<MyJobAdsController>()) {
-      controller = Get.find<MyJobAdsController>();
-    } else {
-      controller = Get.put(MyJobAdsController());
-      _ownsController = true;
-    }
+    _ownsController = MyJobAdsController.maybeFind(tag: _controllerTag) == null;
+    controller = MyJobAdsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<MyJobAdsController>() &&
-        Get.find<MyJobAdsController>() == controller) {
-      Get.delete<MyJobAdsController>(force: true);
+        identical(
+          MyJobAdsController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyJobAdsController>(tag: _controllerTag, force: true);
     }
     super.dispose();
   }

@@ -13,6 +13,20 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorNicknameController extends GetxController {
+  static EditorNicknameController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      EditorNicknameController(),
+      permanent: permanent,
+    );
+  }
+
+  static EditorNicknameController? maybeFind() {
+    if (!Get.isRegistered<EditorNicknameController>()) return null;
+    return Get.find<EditorNicknameController>();
+  }
+
   final TextEditingController nicknameController = TextEditingController();
 
   final uid = CurrentUserService.instance.userId;

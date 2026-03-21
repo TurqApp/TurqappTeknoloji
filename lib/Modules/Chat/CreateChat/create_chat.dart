@@ -28,21 +28,21 @@ class _CreateChatState extends State<CreateChat> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<FollowingFollowersController>()) {
-      followersFollowing = Get.find<FollowingFollowersController>();
+    final existingFollowers = FollowingFollowersController.maybeFind();
+    if (existingFollowers != null) {
+      followersFollowing = existingFollowers;
     } else {
-      followersFollowing = Get.put(
-        FollowingFollowersController(
-          initialPage: 0,
-          userId: CurrentUserService.instance.userId,
-        ),
+      followersFollowing = FollowingFollowersController.ensure(
+        initialPage: 0,
+        userId: CurrentUserService.instance.userId,
       );
       _ownsFollowersController = true;
     }
-    if (Get.isRegistered<CreateChatController>()) {
-      controllerr = Get.find<CreateChatController>();
+    final existingCreateChat = CreateChatController.maybeFind();
+    if (existingCreateChat != null) {
+      controllerr = existingCreateChat;
     } else {
-      controllerr = Get.put(CreateChatController());
+      controllerr = CreateChatController.ensure();
       _ownsCreateChatController = true;
     }
     final existingChatListing = ChatListingController.maybeFind();
@@ -57,14 +57,12 @@ class _CreateChatState extends State<CreateChat> {
   @override
   void dispose() {
     if (_ownsFollowersController &&
-        Get.isRegistered<FollowingFollowersController>() &&
         identical(
-            Get.find<FollowingFollowersController>(), followersFollowing)) {
+            FollowingFollowersController.maybeFind(), followersFollowing)) {
       Get.delete<FollowingFollowersController>(force: true);
     }
     if (_ownsCreateChatController &&
-        Get.isRegistered<CreateChatController>() &&
-        identical(Get.find<CreateChatController>(), controllerr)) {
+        identical(CreateChatController.maybeFind(), controllerr)) {
       Get.delete<CreateChatController>(force: true);
     }
     if (_ownsChatListingController &&

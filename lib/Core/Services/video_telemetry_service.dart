@@ -101,8 +101,13 @@ class ActiveVideoSessionSnapshot {
 }
 
 class VideoTelemetryService {
-  static final VideoTelemetryService instance =
-      VideoTelemetryService._internal();
+  static VideoTelemetryService? _instance;
+  static VideoTelemetryService? maybeFind() => _instance;
+
+  static VideoTelemetryService ensure() =>
+      maybeFind() ?? (_instance = VideoTelemetryService._internal());
+
+  static VideoTelemetryService get instance => ensure();
   VideoTelemetryService._internal();
 
   final _userService = CurrentUserService.instance;

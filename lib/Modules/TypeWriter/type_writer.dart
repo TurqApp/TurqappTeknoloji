@@ -29,18 +29,16 @@ class _TypewriterTextState extends State<TypewriterText> {
     super.initState();
     _controllerTag =
         'typewriter_${widget.text.hashCode}_${identityHashCode(this)}';
-    controller = Get.isRegistered<TypewriterController>(tag: _controllerTag)
-        ? Get.find<TypewriterController>(tag: _controllerTag)
-        : Get.put(TypewriterController(widget.text), tag: _controllerTag);
+    controller = TypewriterController.ensure(
+      fullText: widget.text,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<TypewriterController>(tag: _controllerTag) &&
-        identical(
-          Get.find<TypewriterController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = TypewriterController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<TypewriterController>(tag: _controllerTag);
     }
     super.dispose();

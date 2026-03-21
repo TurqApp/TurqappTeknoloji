@@ -49,9 +49,7 @@ class TutoringView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<SavedTutoringsController>()) {
-      Get.put(SavedTutoringsController(), permanent: true);
-    }
+    SavedTutoringsController.ensure(permanent: true);
     final bodyContent = Expanded(
       child: RefreshIndicator(
         color: Colors.white,

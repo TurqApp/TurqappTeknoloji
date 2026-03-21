@@ -8,7 +8,13 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summar
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class UserAnalyticsService {
-  static final UserAnalyticsService instance = UserAnalyticsService._internal();
+  static UserAnalyticsService? _instance;
+  static UserAnalyticsService? maybeFind() => _instance;
+
+  static UserAnalyticsService ensure() =>
+      maybeFind() ?? (_instance = UserAnalyticsService._internal());
+
+  static UserAnalyticsService get instance => ensure();
   UserAnalyticsService._internal();
 
   final _userService = CurrentUserService.instance;

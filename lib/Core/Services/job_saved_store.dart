@@ -15,6 +15,11 @@ class SavedJobRecord {
 
 class JobSavedStore {
   JobSavedStore._();
+  static JobSavedStore? _instance;
+  static JobSavedStore? maybeFind() => _instance;
+
+  static JobSavedStore ensure() =>
+      maybeFind() ?? (_instance = JobSavedStore._());
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _prefsPrefix = 'job_saved_store_v1:';

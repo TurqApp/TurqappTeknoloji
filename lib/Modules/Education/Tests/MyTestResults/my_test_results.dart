@@ -21,19 +21,18 @@ class _MyTestResultsState extends State<MyTestResults> {
   void initState() {
     super.initState();
     _controllerTag = 'tests_results_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<MyTestResultsController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(MyTestResultsController(), tag: _controllerTag)
-        : Get.find<MyTestResultsController>(tag: _controllerTag);
+    final existing = MyTestResultsController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? MyTestResultsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<MyTestResultsController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<MyTestResultsController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = MyTestResultsController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<MyTestResultsController>(tag: _controllerTag, force: true);
       }
@@ -43,7 +42,6 @@ class _MyTestResultsState extends State<MyTestResults> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

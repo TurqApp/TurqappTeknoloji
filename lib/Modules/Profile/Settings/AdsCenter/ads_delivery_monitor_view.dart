@@ -8,7 +8,7 @@ class AdsDeliveryMonitorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<AdsCenterController>();
+    final controller = AdsCenterController.ensure();
 
     return Obx(() {
       final logs = controller.deliveryLogs;
@@ -61,10 +61,12 @@ class AdsDeliveryMonitorView extends StatelessWidget {
                       '${'ads_center.geo'.tr}: ${(l['country'] ?? '')}/${(l['city'] ?? '')} ${'ads_center.age_short'.tr}:${l['age'] ?? '-'}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
-                  Text('${'ads_center.campaign'.tr}: ${l['selectedCampaignId'] ?? '-'}',
+                  Text(
+                      '${'ads_center.campaign'.tr}: ${l['selectedCampaignId'] ?? '-'}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
-                  Text('${'ads_center.creative'.tr}: ${l['selectedCreativeId'] ?? '-'}',
+                  Text(
+                      '${'ads_center.creative'.tr}: ${l['selectedCreativeId'] ?? '-'}',
                       style: const TextStyle(
                           fontFamily: 'MontserratMedium', fontSize: 12)),
                   if (decisions.isNotEmpty) ...[

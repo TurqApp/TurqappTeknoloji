@@ -12,6 +12,24 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/job_model.dart';
 
 class MyJobAdsController extends GetxController {
+  static MyJobAdsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyJobAdsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyJobAdsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyJobAdsController>(tag: tag)) return null;
+    return Get.find<MyJobAdsController>(tag: tag);
+  }
+
   final JobRepository _jobRepository = JobRepository.ensure();
   final pageController = PageController();
   final isLoadingActive = true.obs;

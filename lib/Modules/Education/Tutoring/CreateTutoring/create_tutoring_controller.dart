@@ -23,6 +23,24 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class CreateTutoringController extends GetxController {
+  static CreateTutoringController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateTutoringController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateTutoringController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateTutoringController>(tag: tag)) return null;
+    return Get.find<CreateTutoringController>(tag: tag);
+  }
+
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   var carouselCurrentIndex = 0.obs;

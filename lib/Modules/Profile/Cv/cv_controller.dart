@@ -24,6 +24,24 @@ part 'cv_controller_sections_part.dart';
 part 'cv_controller_persistence_part.dart';
 
 class CvController extends GetxController {
+  static CvController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CvController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CvController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CvController>(tag: tag)) return null;
+    return Get.find<CvController>(tag: tag);
+  }
+
   final CvRepository _cvRepository = CvRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

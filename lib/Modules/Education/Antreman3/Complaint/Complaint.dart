@@ -36,6 +36,24 @@ class Complaint {
 }
 
 class ComplaintController extends GetxController {
+  static ComplaintController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ComplaintController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ComplaintController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ComplaintController>(tag: tag)) return null;
+    return Get.find<ComplaintController>(tag: tag);
+  }
+
   final RxString selectedSikayet = ''.obs;
   final String userID = CurrentUserService.instance.userId;
 
@@ -84,19 +102,13 @@ class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
     super.initState();
     _controllerTag =
         'complaint_${widget.question.docID}_${identityHashCode(this)}';
-    sikayetController =
-        Get.isRegistered<ComplaintController>(tag: _controllerTag)
-            ? Get.find<ComplaintController>(tag: _controllerTag)
-            : Get.put(ComplaintController(), tag: _controllerTag);
+    sikayetController = ComplaintController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<ComplaintController>(tag: _controllerTag) &&
-        identical(
-          Get.find<ComplaintController>(tag: _controllerTag),
-          sikayetController,
-        )) {
+    final existing = ComplaintController.maybeFind(tag: _controllerTag);
+    if (identical(existing, sikayetController)) {
       Get.delete<ComplaintController>(tag: _controllerTag);
     }
     super.dispose();

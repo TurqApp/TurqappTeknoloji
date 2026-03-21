@@ -9,6 +9,33 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 
 class CreateTestQuestionContentController extends GetxController {
+  static CreateTestQuestionContentController ensure({
+    required TestReadinessModel model,
+    required String testID,
+    required int index,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateTestQuestionContentController(
+        model: model,
+        testID: testID,
+        index: index,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateTestQuestionContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateTestQuestionContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<CreateTestQuestionContentController>(tag: tag);
+  }
+
   final TestReadinessModel model;
   final String testID;
   final int index;

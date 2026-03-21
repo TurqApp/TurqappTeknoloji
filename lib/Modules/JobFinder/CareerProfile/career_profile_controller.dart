@@ -8,6 +8,24 @@ import 'package:turqappv2/Models/CVModels/school_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class CareerProfileController extends GetxController {
+  static CareerProfileController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CareerProfileController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CareerProfileController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CareerProfileController>(tag: tag)) return null;
+    return Get.find<CareerProfileController>(tag: tag);
+  }
+
   final CvRepository _cvRepository = CvRepository.ensure();
   var cvVar = false.obs;
   var isFindingJob = false.obs;

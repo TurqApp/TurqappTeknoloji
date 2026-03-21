@@ -8,10 +8,10 @@ class RelativeTimeTickService {
   }
 
   static RelativeTimeTickService? _instance;
+  static RelativeTimeTickService? maybeFind() => _instance;
 
-  static RelativeTimeTickService ensure() {
-    return _instance ??= RelativeTimeTickService._();
-  }
+  static RelativeTimeTickService ensure() =>
+      maybeFind() ?? (_instance = RelativeTimeTickService._());
 
   final RxInt tick = DateTime.now().millisecondsSinceEpoch.obs;
   Timer? _alignTimer;

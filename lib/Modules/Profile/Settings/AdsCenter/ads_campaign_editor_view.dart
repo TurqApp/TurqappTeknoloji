@@ -45,6 +45,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
     final localeTag = Get.locale?.toLanguageTag();
     return DateFormat.yMd(localeTag).format(date);
   }
+
   AdBudgetType _budgetType = AdBudgetType.daily;
   AdBidType _bidType = AdBidType.cpm;
   AdCreativeType _creativeType = AdCreativeType.image;
@@ -58,7 +59,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   @override
   void initState() {
     super.initState();
-    _controller = Get.find<AdsCenterController>();
+    _controller = AdsCenterController.ensure();
 
     final c = widget.initialCampaign;
     _name = TextEditingController(text: c?.name ?? '');
@@ -176,17 +177,17 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
               children: [
                 Expanded(
                     child: _txt(
-                      _totalBudget,
-                      'ads_center.total_budget'.tr,
-                      numOnly: true,
-                    )),
+                  _totalBudget,
+                  'ads_center.total_budget'.tr,
+                  numOnly: true,
+                )),
                 const SizedBox(width: 8),
                 Expanded(
                     child: _txt(
-                      _dailyBudget,
-                      'ads_center.daily_budget'.tr,
-                      numOnly: true,
-                    )),
+                  _dailyBudget,
+                  'ads_center.daily_budget'.tr,
+                  numOnly: true,
+                )),
               ],
             ),
             const SizedBox(height: 8),
@@ -194,17 +195,17 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
               children: [
                 Expanded(
                     child: _txt(
-                      _bidAmount,
-                      'ads_center.bid_amount'.tr,
-                      numOnly: true,
-                    )),
+                  _bidAmount,
+                  'ads_center.bid_amount'.tr,
+                  numOnly: true,
+                )),
                 const SizedBox(width: 8),
                 Expanded(
                     child: _txt(
-                      _priority,
-                      'ads_center.priority'.tr,
-                      numOnly: true,
-                    )),
+                  _priority,
+                  'ads_center.priority'.tr,
+                  numOnly: true,
+                )),
               ],
             ),
             const SizedBox(height: 10),
@@ -223,10 +224,12 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
             Row(
               children: [
                 Expanded(
-                    child: _txt(_minAge, 'ads_center.min_age'.tr, numOnly: true)),
+                    child:
+                        _txt(_minAge, 'ads_center.min_age'.tr, numOnly: true)),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: _txt(_maxAge, 'ads_center.max_age'.tr, numOnly: true)),
+                    child:
+                        _txt(_maxAge, 'ads_center.max_age'.tr, numOnly: true)),
               ],
             ),
             const SizedBox(height: 8),
@@ -251,10 +254,10 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
                 const SizedBox(width: 8),
                 Expanded(
                     child: _txt(
-                      _creativeDuration,
-                      'ads_center.duration_seconds'.tr,
-                      numOnly: true,
-                    )),
+                  _creativeDuration,
+                  'ads_center.duration_seconds'.tr,
+                  numOnly: true,
+                )),
               ],
             ),
             const SizedBox(height: 8),

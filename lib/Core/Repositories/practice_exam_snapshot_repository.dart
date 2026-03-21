@@ -10,10 +10,14 @@ class PracticeExamSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'practice_exam_home_snapshot';
   static const String _searchSurfaceKey = 'practice_exam_search_snapshot';
 
+  static PracticeExamSnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<PracticeExamSnapshotRepository>()) return null;
+    return Get.find<PracticeExamSnapshotRepository>();
+  }
+
   static PracticeExamSnapshotRepository _ensureService() {
-    if (Get.isRegistered<PracticeExamSnapshotRepository>()) {
-      return Get.find<PracticeExamSnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(PracticeExamSnapshotRepository(), permanent: true);
   }
 

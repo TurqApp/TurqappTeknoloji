@@ -2,6 +2,26 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ProfileContactController extends GetxController {
+  static ProfileContactController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ProfileContactController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ProfileContactController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ProfileContactController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<ProfileContactController>(tag: tag);
+  }
+
   var isEmailVisible = false.obs;
   var isCallVisible = false.obs;
   final userService = CurrentUserService.instance;

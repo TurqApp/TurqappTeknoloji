@@ -8,6 +8,24 @@ import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringSearchController extends GetxController {
+  static TutoringSearchController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TutoringSearchController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TutoringSearchController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<TutoringSearchController>(tag: tag)) return null;
+    return Get.find<TutoringSearchController>(tag: tag);
+  }
+
   final TutoringSnapshotRepository _tutoringSnapshotRepository =
       TutoringSnapshotRepository.ensure();
   final TextEditingController searchController = TextEditingController();

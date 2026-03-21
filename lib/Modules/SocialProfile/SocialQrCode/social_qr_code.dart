@@ -25,17 +25,17 @@ class _SocialQrCodeState extends State<SocialQrCode> {
   void initState() {
     super.initState();
     _controllerTag = 'social_qr_${widget.userID}_${identityHashCode(this)}';
-    controller = Get.put(
-      SocialQrCodeController(userID: widget.userID),
+    controller = SocialQrCodeController.ensure(
+      userID: widget.userID,
       tag: _controllerTag,
     );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<SocialQrCodeController>(tag: _controllerTag) &&
+    if (SocialQrCodeController.maybeFind(tag: _controllerTag) != null &&
         identical(
-          Get.find<SocialQrCodeController>(tag: _controllerTag),
+          SocialQrCodeController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<SocialQrCodeController>(tag: _controllerTag);

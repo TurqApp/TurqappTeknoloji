@@ -7,7 +7,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 class DeviceSessionService {
   DeviceSessionService._();
 
-  static final DeviceSessionService instance = DeviceSessionService._();
+  static DeviceSessionService? _instance;
+  static DeviceSessionService? maybeFind() => _instance;
+
+  static DeviceSessionService ensure() =>
+      maybeFind() ?? (_instance = DeviceSessionService._());
+
+  static DeviceSessionService get instance => ensure();
 
   static const String _deviceKeyPref = 'device_session.device_key';
   static const String _secureKey = 'device_session.secure_device_key';
@@ -20,12 +26,39 @@ class DeviceSessionService {
   DateTime? _pendingClaimUntil;
   static const Duration _pendingClaimWindow = Duration(seconds: 20);
   bool _freshKeyGeneratedThisLaunch = false;
+  final Map<String, int> _ownershipClaimAtByUid = <String, int>{};
 
   void beginSessionClaim(String uid) {
     final normalized = uid.trim();
     if (normalized.isEmpty) return;
+    _ownershipClaimAtByUid[normalized] = DateTime.now().millisecondsSinceEpoch;
     _pendingClaimUid = normalized;
     _pendingClaimUntil = DateTime.now().add(_pendingClaimWindow);
+  }
+
+  bool hasOwnershipGuard(String uid) {
+    final normalized = uid.trim();
+    if (normalized.isEmpty) return false;
+    final claimedAt = _ownershipClaimAtByUid[normalized];
+    if (claimedAt == null || claimedAt <= 0) return false;
+    final expiresAt = claimedAt + _pendingClaimWindow.inMilliseconds;
+    if (DateTime.now().millisecondsSinceEpoch > expiresAt) {
+      clearOwnershipGuard(normalized);
+      return false;
+    }
+    return true;
+  }
+
+  int getOwnershipClaimAt(String uid) {
+    final normalized = uid.trim();
+    if (normalized.isEmpty) return 0;
+    return _ownershipClaimAtByUid[normalized] ?? 0;
+  }
+
+  void clearOwnershipGuard(String uid) {
+    final normalized = uid.trim();
+    if (normalized.isEmpty) return;
+    _ownershipClaimAtByUid.remove(normalized);
   }
 
   bool hasPendingSessionClaim(String uid) {
@@ -48,7 +81,8 @@ class DeviceSessionService {
   }
 
   Future<String> getOrCreateDeviceKey() async {
-    final secureExisting = (await _storage.read(key: _secureKeyV2) ?? '').trim();
+    final secureExisting =
+        (await _storage.read(key: _secureKeyV2) ?? '').trim();
     if (secureExisting.isNotEmpty) return secureExisting;
 
     final generated = await _generateDeviceScopedKey();
@@ -62,6 +96,12 @@ class DeviceSessionService {
     final value = _freshKeyGeneratedThisLaunch;
     _freshKeyGeneratedThisLaunch = false;
     return value;
+  }
+
+  bool hasFreshKeyGenerationFlag() => _freshKeyGeneratedThisLaunch;
+
+  void clearFreshKeyGenerationFlag() {
+    _freshKeyGeneratedThisLaunch = false;
   }
 
   Future<String?> getLegacyDeviceKey() async {

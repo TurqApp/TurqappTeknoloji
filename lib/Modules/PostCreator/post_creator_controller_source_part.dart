@@ -99,10 +99,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     await _hydrateQuotedSourceIfNeeded();
 
     const tag = '0';
-    if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-      Get.put(CreatorContentController(), tag: tag);
-    }
-    final c = Get.find<CreatorContentController>(tag: tag);
+    final c = CreatorContentController.ensure(tag: tag);
     if (cleanUrl.isNotEmpty) {
       await c.setReusedVideoSource(
         videoUrl: cleanUrl,
@@ -135,10 +132,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     paylasimSelection.value = editPost.paylasimVisibility;
 
     const tag = '0';
-    if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-      Get.put(CreatorContentController(), tag: tag);
-    }
-    final c = Get.find<CreatorContentController>(tag: tag);
+    final c = CreatorContentController.ensure(tag: tag);
     c.textEdit.text = editPost.metin;
     c.textEdit.selection = TextSelection.fromPosition(
       TextPosition(offset: c.textEdit.text.length),
@@ -157,15 +151,14 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     }
 
     const tag = '0';
-    if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
+    final c = CreatorContentController.maybeFind(tag: tag);
+    if (c == null) {
       AppSnackbar(
         'common.error'.tr,
         'post_creator.edit_content_missing'.tr,
       );
       return false;
     }
-
-    final c = Get.find<CreatorContentController>(tag: tag);
     final text = c.textEdit.text.trim();
     final now = DateTime.now().millisecondsSinceEpoch;
     final yorumVisible = commentVisibility.value.clamp(0, 3);
@@ -204,8 +197,8 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
             .update(update);
       }
 
-      if (Get.isRegistered<AgendaController>()) {
-        final agenda = Get.find<AgendaController>();
+      final agenda = AgendaController.maybeFind();
+      if (agenda != null) {
         final idx = agenda.agendaList
             .indexWhere((e) => e.docID == docID || e.docID == targetDocID);
         if (idx != -1) {

@@ -11,6 +11,20 @@ import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_utils.dart';
 
 class AdsCenterController extends GetxController {
+  static AdsCenterController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      AdsCenterController(),
+      permanent: permanent,
+    );
+  }
+
+  static AdsCenterController? maybeFind() {
+    if (!Get.isRegistered<AdsCenterController>()) return null;
+    return Get.find<AdsCenterController>();
+  }
+
   final AdsRepositoryService repository;
   final AdsDeliveryService deliveryService;
   final AdsTargetingService targetingService;

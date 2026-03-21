@@ -165,7 +165,10 @@ class ChatListingContent extends StatelessWidget {
       },
     );
     if (!confirmed) return;
-    await Get.find<ChatListingController>().deleteChat(model);
+    final chatListing = ChatListingController.maybeFind();
+    if (chatListing != null) {
+      await chatListing.deleteChat(model);
+    }
     AppSnackbar('chat.deleted_title'.tr, 'chat.deleted_body'.tr);
   }
 

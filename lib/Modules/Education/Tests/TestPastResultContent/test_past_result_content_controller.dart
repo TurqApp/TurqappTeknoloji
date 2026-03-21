@@ -7,6 +7,27 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TestPastResultContentController extends GetxController {
+  static TestPastResultContentController ensure(
+    TestsModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TestPastResultContentController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TestPastResultContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<TestPastResultContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<TestPastResultContentController>(tag: tag);
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final count = 0.obs;

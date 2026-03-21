@@ -9,7 +9,13 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class GifLibraryService {
   GifLibraryService._();
 
-  static final GifLibraryService instance = GifLibraryService._();
+  static GifLibraryService? _instance;
+  static GifLibraryService? maybeFind() => _instance;
+
+  static GifLibraryService ensure() =>
+      maybeFind() ?? (_instance = GifLibraryService._());
+
+  static GifLibraryService get instance => ensure();
   Future<void>? _warmTopCacheFuture;
   static const String _manifestKey = 'giphyGif.globalManifest.v1';
 

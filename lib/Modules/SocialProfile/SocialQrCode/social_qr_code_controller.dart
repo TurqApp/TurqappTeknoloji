@@ -12,6 +12,25 @@ import 'package:turqappv2/Core/Utils/url_utils.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
 class SocialQrCodeController extends GetxController {
+  static SocialQrCodeController ensure({
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SocialQrCodeController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SocialQrCodeController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SocialQrCodeController>(tag: tag)) return null;
+    return Get.find<SocialQrCodeController>(tag: tag);
+  }
+
   String userID;
   SocialQrCodeController({required this.userID});
   var nickname = "".obs;

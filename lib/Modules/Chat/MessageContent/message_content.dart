@@ -117,9 +117,16 @@ class MessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(MessageContentController(model: model, mainID: mainID),
-        tag: model.docID);
-    chatController = Get.find<ChatController>(tag: mainID);
+    controller = MessageContentController.ensure(
+      model: model,
+      mainID: mainID,
+      tag: model.docID,
+    );
+    chatController = ChatController.ensure(
+      chatID: mainID,
+      userID: model.userID,
+      tag: mainID,
+    );
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
       child: Column(

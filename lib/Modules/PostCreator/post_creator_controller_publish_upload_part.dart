@@ -45,7 +45,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
 
           await _networkService.trackDataUsage(uploadMB: totalUploadMB);
 
-          final agendaController = Get.find<AgendaController>();
+          final agendaController = AgendaController.maybeFind();
           await Future.delayed(const Duration(milliseconds: 150));
 
           final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -60,17 +60,18 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             );
           }
 
-          if (nowPosts.isNotEmpty) {
+          if (agendaController != null && nowPosts.isNotEmpty) {
             final ids = nowPosts.map((e) => e.docID).toList();
             agendaController.markHighlighted(ids);
             agendaController.addUploadedPostsAtTop(nowPosts);
           }
 
-          if (agendaController.scrollController.hasClients) {
+          if (agendaController != null &&
+              agendaController.scrollController.hasClients) {
             agendaController.scrollController.jumpTo(0);
           }
 
-          Get.find<ProfileController>().getLastPostAndAddToAllPosts();
+          ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
           progressController.complete('post_creator.upload_success'.tr);
         } else {
           await _errorService.handleError(

@@ -30,19 +30,16 @@ part 'explore_controller_recent_search_part.dart';
 
 class ExploreController extends GetxController {
   static ExploreController _ensureController() {
-    if (Get.isRegistered<ExploreController>()) {
-      return Get.find<ExploreController>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ExploreController());
   }
 
   static ExploreController ensure() => _ensureController();
 
   static ExploreController? maybeFind() {
-    if (Get.isRegistered<ExploreController>()) {
-      return Get.find<ExploreController>();
-    }
-    return null;
+    if (!Get.isRegistered<ExploreController>()) return null;
+    return Get.find<ExploreController>();
   }
 
   static const double _verticalExploreAspectMax = 0.7;
@@ -389,8 +386,8 @@ class ExploreController extends GetxController {
   }
 
   Future<void> _tryQuickFillExploreFromPool() async {
-    if (!Get.isRegistered<IndexPoolStore>()) return;
-    final pool = Get.find<IndexPoolStore>();
+    final pool = IndexPoolStore.maybeFind();
+    if (pool == null) return;
     final fromPool = await pool.loadPosts(
       IndexPoolKind.explore,
       limit: ContentPolicy.initialPoolLimit(ContentScreenKind.explore),
@@ -446,8 +443,7 @@ class ExploreController extends GetxController {
 
   Future<void> _saveExplorePostsToPool(List<PostsModel> posts) async {
     if (posts.isEmpty) return;
-    if (!Get.isRegistered<IndexPoolStore>()) return;
-    await Get.find<IndexPoolStore>().savePosts(IndexPoolKind.explore, posts);
+    await IndexPoolStore.maybeFind()?.savePosts(IndexPoolKind.explore, posts);
   }
 
   bool _isEligibleExplorePost(PostsModel post) {
@@ -476,7 +472,8 @@ class ExploreController extends GetxController {
   Future<List<PostsModel>> _validatePoolPostsAndPrune(
       List<PostsModel> posts) async {
     if (posts.isEmpty) return const <PostsModel>[];
-    if (!Get.isRegistered<IndexPoolStore>()) return posts;
+    final pool = IndexPoolStore.maybeFind();
+    if (pool == null) return posts;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final postIds =
@@ -517,8 +514,7 @@ class ExploreController extends GetxController {
           .map((p) => p.docID)
           .toList();
       if (invalidIds.isNotEmpty) {
-        await Get.find<IndexPoolStore>()
-            .removePosts(IndexPoolKind.explore, invalidIds);
+        await pool.removePosts(IndexPoolKind.explore, invalidIds);
       }
     }
     return valid;

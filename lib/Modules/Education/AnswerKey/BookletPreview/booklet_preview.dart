@@ -35,18 +35,16 @@ class _BookletPreviewState extends State<BookletPreview> {
     _controllerTag =
         'booklet_preview_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<BookletPreviewController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(BookletPreviewController(model), tag: _controllerTag)
-        : Get.find<BookletPreviewController>(tag: _controllerTag);
+        BookletPreviewController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletPreviewController.ensure(model, tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<BookletPreviewController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<BookletPreviewController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = BookletPreviewController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<BookletPreviewController>(tag: _controllerTag, force: true);
       }
@@ -178,7 +176,8 @@ class _BookletPreviewState extends State<BookletPreview> {
       child: GestureDetector(
         onTap: isCurrentUserId(controller.model.userID)
             ? null
-            : () => Get.to(() => SocialProfile(userID: controller.model.userID)),
+            : () =>
+                Get.to(() => SocialProfile(userID: controller.model.userID)),
         child: Row(
           children: [
             CircleAvatar(
@@ -330,7 +329,8 @@ class _BookletPreviewState extends State<BookletPreview> {
                     fit: BoxFit.cover,
                     placeholder: (context, url) =>
                         const Center(child: CupertinoActivityIndicator()),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.error),
                   ),
                 ),
               ),
@@ -356,7 +356,8 @@ class _BookletPreviewState extends State<BookletPreview> {
               _infoCard(
                 title: 'answer_key.book_info'.tr,
                 children: [
-                  _infoRow('answer_key.exam_type'.tr, controller.model.sinavTuru),
+                  _infoRow(
+                      'answer_key.exam_type'.tr, controller.model.sinavTuru),
                   _infoRow(
                     'answer_key.publisher_hint'.tr,
                     controller.model.yayinEvi,
@@ -369,7 +370,8 @@ class _BookletPreviewState extends State<BookletPreview> {
                     'common.language'.tr,
                     controller.model.dil.isEmpty ? '-' : controller.model.dil,
                   ),
-                  _infoRow('common.views'.tr, controller.model.viewCount.toString()),
+                  _infoRow(
+                      'common.views'.tr, controller.model.viewCount.toString()),
                 ],
               ),
               const SizedBox(height: 18),

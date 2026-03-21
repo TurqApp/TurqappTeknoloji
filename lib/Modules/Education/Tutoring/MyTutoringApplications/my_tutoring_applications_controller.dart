@@ -8,6 +8,26 @@ import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyTutoringApplicationsController extends GetxController {
+  static MyTutoringApplicationsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyTutoringApplicationsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyTutoringApplicationsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyTutoringApplicationsController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<MyTutoringApplicationsController>(tag: tag);
+  }
+
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();

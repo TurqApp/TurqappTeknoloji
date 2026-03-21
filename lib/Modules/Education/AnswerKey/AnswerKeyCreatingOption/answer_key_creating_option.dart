@@ -23,23 +23,19 @@ class _AnswerKeyCreatingOptionState extends State<AnswerKeyCreatingOption> {
     super.initState();
     _controllerTag = 'answer_key_option_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<AnswerKeyCreatingOptionController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(
-            AnswerKeyCreatingOptionController(widget.onBack),
-            tag: _controllerTag,
-          )
-        : Get.find<AnswerKeyCreatingOptionController>(tag: _controllerTag);
+        AnswerKeyCreatingOptionController.maybeFind(tag: _controllerTag) ==
+            null;
+    controller = AnswerKeyCreatingOptionController.ensure(
+      widget.onBack,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<AnswerKeyCreatingOptionController>(
-          tag: _controllerTag,
-        )) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<AnswerKeyCreatingOptionController>(tag: _controllerTag);
+          AnswerKeyCreatingOptionController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<AnswerKeyCreatingOptionController>(
           tag: _controllerTag,
@@ -52,7 +48,6 @@ class _AnswerKeyCreatingOptionState extends State<AnswerKeyCreatingOption> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

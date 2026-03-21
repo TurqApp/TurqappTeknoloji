@@ -29,32 +29,21 @@ class _TutoringApplicationReviewState extends State<TutoringApplicationReview> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<TutoringApplicationReviewController>(
+    _ownsController = TutoringApplicationReviewController.maybeFind(
+          tag: widget.tutoringDocID,
+        ) ==
+        null;
+    controller = TutoringApplicationReviewController.ensure(
+      tutoringDocID: widget.tutoringDocID,
       tag: widget.tutoringDocID,
-    )) {
-      controller = Get.find<TutoringApplicationReviewController>(
-        tag: widget.tutoringDocID,
-      );
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        TutoringApplicationReviewController(
-          tutoringDocID: widget.tutoringDocID,
-        ),
-        tag: widget.tutoringDocID,
-      );
-      _ownsController = true;
-    }
+    );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<TutoringApplicationReviewController>(
-          tag: widget.tutoringDocID,
-        ) &&
         identical(
-          Get.find<TutoringApplicationReviewController>(
+          TutoringApplicationReviewController.maybeFind(
             tag: widget.tutoringDocID,
           ),
           controller,
@@ -127,15 +116,15 @@ class _TutoringApplicationReviewState extends State<TutoringApplicationReview> {
             .trim();
         final name = fetchedName.isNotEmpty
             ? fetchedName
-                : app.tutorName.isNotEmpty
-                    ? app.tutorName
-                    : fetchedNickname.isNotEmpty
-                        ? fetchedNickname
-                : 'common.unknown_user'.tr;
-        final avatarUrl = (profile?['avatarUrl'] as String?)?.trim().isNotEmpty ==
-                true
-            ? (profile?['avatarUrl'] as String).trim()
-            : app.tutorImage;
+            : app.tutorName.isNotEmpty
+                ? app.tutorName
+                : fetchedNickname.isNotEmpty
+                    ? fetchedNickname
+                    : 'common.unknown_user'.tr;
+        final avatarUrl =
+            (profile?['avatarUrl'] as String?)?.trim().isNotEmpty == true
+                ? (profile?['avatarUrl'] as String).trim()
+                : app.tutorImage;
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),

@@ -47,18 +47,13 @@ class _MyStatisticViewState extends State<MyStatisticView> {
   void initState() {
     super.initState();
     _controllerTag = 'antreman_my_statistics_${identityHashCode(this)}';
-    controller = Get.isRegistered<MyStatisticController>(tag: _controllerTag)
-        ? Get.find<MyStatisticController>(tag: _controllerTag)
-        : Get.put(MyStatisticController(), tag: _controllerTag);
+    controller = MyStatisticController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<MyStatisticController>(tag: _controllerTag) &&
-        identical(
-          Get.find<MyStatisticController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = MyStatisticController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<MyStatisticController>(tag: _controllerTag);
     }
     super.dispose();

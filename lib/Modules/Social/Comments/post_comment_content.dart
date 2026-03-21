@@ -40,6 +40,7 @@ class PostCommentContent extends StatefulWidget {
 class _PostCommentContentState extends State<PostCommentContent> {
   late final PostCommentContentController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   PostCommentModel get model => widget.model;
   String get postID => widget.postID;
@@ -53,25 +54,21 @@ class _PostCommentContentState extends State<PostCommentContent> {
     super.initState();
     _controllerTag =
         'post_comment_content_${widget.postID}_${widget.model.docID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<PostCommentContentController>(
+    _ownsController =
+        PostCommentContentController.maybeFind(tag: _controllerTag) == null;
+    controller = PostCommentContentController.ensure(
+      model: widget.model,
+      postID: widget.postID,
+      commentControllerTag: widget.commentControllerTag,
       tag: _controllerTag,
-    )
-        ? Get.find<PostCommentContentController>(tag: _controllerTag)
-        : Get.put(
-            PostCommentContentController(
-              model: widget.model,
-              postID: widget.postID,
-              commentControllerTag: widget.commentControllerTag,
-            ),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<PostCommentContentController>(tag: _controllerTag) &&
+    if (_ownsController &&
         identical(
-          Get.find<PostCommentContentController>(tag: _controllerTag),
+          PostCommentContentController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<PostCommentContentController>(tag: _controllerTag);

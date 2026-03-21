@@ -22,18 +22,16 @@ class _SavedOpticalFormsState extends State<SavedOpticalForms> {
     super.initState();
     _controllerTag = 'saved_optical_forms_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<SavedOpticalFormsController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(SavedOpticalFormsController(), tag: _controllerTag)
-        : Get.find<SavedOpticalFormsController>(tag: _controllerTag);
+        SavedOpticalFormsController.maybeFind(tag: _controllerTag) == null;
+    controller = SavedOpticalFormsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<SavedOpticalFormsController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<SavedOpticalFormsController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = SavedOpticalFormsController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<SavedOpticalFormsController>(
           tag: _controllerTag,
@@ -46,7 +44,6 @@ class _SavedOpticalFormsState extends State<SavedOpticalForms> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

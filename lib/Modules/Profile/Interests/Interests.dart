@@ -23,11 +23,13 @@ class _InterestsState extends State<Interests> {
   void initState() {
     super.initState();
     _controllerTag = 'profile_interests_${identityHashCode(this)}';
-    if (Get.isRegistered<InterestsController>(tag: _controllerTag)) {
-      controller = Get.find<InterestsController>(tag: _controllerTag);
+    final existingController =
+        InterestsController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(InterestsController(), tag: _controllerTag);
+      controller = InterestsController.ensure(tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -35,9 +37,8 @@ class _InterestsState extends State<Interests> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<InterestsController>(tag: _controllerTag) &&
         identical(
-          Get.find<InterestsController>(tag: _controllerTag),
+          InterestsController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<InterestsController>(tag: _controllerTag, force: true);

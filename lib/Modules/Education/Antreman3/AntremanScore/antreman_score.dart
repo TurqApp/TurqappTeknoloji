@@ -27,19 +27,14 @@ class _AntremanScoreState extends State<AntremanScore> {
   void initState() {
     super.initState();
     _controllerTag = 'antreman_score_${identityHashCode(this)}';
-    controller = Get.isRegistered<AntremanScoreController>(tag: _controllerTag)
-        ? Get.find<AntremanScoreController>(tag: _controllerTag)
-        : Get.put(AntremanScoreController(), tag: _controllerTag);
+    controller = AntremanScoreController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    if (Get.isRegistered<AntremanScoreController>(tag: _controllerTag) &&
-        identical(
-          Get.find<AntremanScoreController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = AntremanScoreController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<AntremanScoreController>(tag: _controllerTag);
     }
     super.dispose();

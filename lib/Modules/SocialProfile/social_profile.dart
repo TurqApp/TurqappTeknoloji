@@ -104,11 +104,13 @@ class _SocialProfileState extends State<SocialProfile> {
       chatListingController = ChatListingController.ensure();
       _ownsChatListingController = true;
     }
-    if (Get.isRegistered<SocialProfileController>(tag: widget.userID)) {
-      controller = Get.find<SocialProfileController>(tag: widget.userID);
+    final existingController =
+        SocialProfileController.maybeFind(tag: widget.userID);
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(
-        SocialProfileController(userID: widget.userID),
+      controller = SocialProfileController.ensure(
+        userID: widget.userID,
         tag: widget.userID,
       );
       _ownsController = true;
@@ -271,7 +273,7 @@ class _SocialProfileState extends State<SocialProfile> {
     }
     if (_ownsHighlightsController) {
       final highlightsTag = 'highlights_${widget.userID}';
-      if (Get.isRegistered<StoryHighlightsController>(tag: highlightsTag)) {
+      if (StoryHighlightsController.maybeFind(tag: highlightsTag) != null) {
         Get.delete<StoryHighlightsController>(
           tag: highlightsTag,
           force: true,
@@ -279,9 +281,8 @@ class _SocialProfileState extends State<SocialProfile> {
       }
     }
     if (_ownsController &&
-        Get.isRegistered<SocialProfileController>(tag: widget.userID) &&
         identical(
-          Get.find<SocialProfileController>(tag: widget.userID),
+          SocialProfileController.maybeFind(tag: widget.userID),
           controller,
         )) {
       Get.delete<SocialProfileController>(tag: widget.userID, force: true);

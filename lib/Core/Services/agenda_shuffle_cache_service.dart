@@ -12,10 +12,14 @@ class AgendaShuffleCacheService extends GetxService {
   int _index = 0;
   DateTime? _cachedAt;
 
+  static AgendaShuffleCacheService? maybeFind() {
+    if (!Get.isRegistered<AgendaShuffleCacheService>()) return null;
+    return Get.find<AgendaShuffleCacheService>();
+  }
+
   static AgendaShuffleCacheService _ensureService() {
-    if (Get.isRegistered<AgendaShuffleCacheService>()) {
-      return Get.find<AgendaShuffleCacheService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AgendaShuffleCacheService(), permanent: true);
   }
 

@@ -34,13 +34,13 @@ class _StoryContentProfilesState extends State<StoryContentProfiles> {
     super.initState();
     _controllerTag =
         'story_content_profile_${widget.userID}_${identityHashCode(this)}';
-    if (Get.isRegistered<StoryContentProfileController>(tag: _controllerTag)) {
-      controller =
-          Get.find<StoryContentProfileController>(tag: _controllerTag);
+    final existingController =
+        StoryContentProfileController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(
-        StoryContentProfileController(),
+      controller = StoryContentProfileController.ensure(
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -51,7 +51,10 @@ class _StoryContentProfilesState extends State<StoryContentProfiles> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<StoryContentProfileController>(tag: _controllerTag)) {
+        identical(
+          StoryContentProfileController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<StoryContentProfileController>(
         tag: _controllerTag,
         force: true,

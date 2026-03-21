@@ -8,6 +8,24 @@ import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class FollowerController extends GetxController {
+  static FollowerController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      FollowerController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static FollowerController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<FollowerController>(tag: tag)) return null;
+    return Get.find<FollowerController>(tag: tag);
+  }
+
   var avatarUrl = "".obs;
   var nickname = "".obs;
   var fullname = "".obs;

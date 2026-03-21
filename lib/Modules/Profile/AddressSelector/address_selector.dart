@@ -18,11 +18,12 @@ class _AddressSelectorState extends State<AddressSelector> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<AddressSelectorController>()) {
-      controller = Get.find<AddressSelectorController>();
+    final existingController = AddressSelectorController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(AddressSelectorController());
+      controller = AddressSelectorController.ensure();
       _ownsController = true;
     }
   }
@@ -30,8 +31,7 @@ class _AddressSelectorState extends State<AddressSelector> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<AddressSelectorController>() &&
-        identical(Get.find<AddressSelectorController>(), controller)) {
+        identical(AddressSelectorController.maybeFind(), controller)) {
       Get.delete<AddressSelectorController>(force: true);
     }
     super.dispose();

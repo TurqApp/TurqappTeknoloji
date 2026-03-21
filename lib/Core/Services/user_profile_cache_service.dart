@@ -26,19 +26,16 @@ class UserProfileCacheService extends GetxService {
   bool _dirty = false;
 
   static UserProfileCacheService _ensureService() {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      return Get.find<UserProfileCacheService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UserProfileCacheService(), permanent: true);
   }
 
   static UserProfileCacheService ensure() => _ensureService();
 
   static UserProfileCacheService? maybeFind() {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      return Get.find<UserProfileCacheService>();
-    }
-    return null;
+    if (!Get.isRegistered<UserProfileCacheService>()) return null;
+    return Get.find<UserProfileCacheService>();
   }
 
   static Future<void> invalidateIfRegistered(String uid) async {

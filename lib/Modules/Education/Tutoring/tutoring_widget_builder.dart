@@ -76,13 +76,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final savedController = Get.isRegistered<SavedTutoringsController>()
-        ? Get.find<SavedTutoringsController>()
-        : Get.put(SavedTutoringsController());
+    final savedController = SavedTutoringsController.ensure();
     final tutoringController = TutoringController.ensure();
-    final myTutoringsController = Get.isRegistered<MyTutoringsController>()
-        ? Get.find<MyTutoringsController>()
-        : null;
+    final myTutoringsController = MyTutoringsController.maybeFind();
     final currentUserId = getCurrentUserId();
 
     if (tutoringList.isEmpty) {

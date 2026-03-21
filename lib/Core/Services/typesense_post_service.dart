@@ -20,7 +20,13 @@ class _CachedPostCardsResult {
 class TypesensePostService {
   TypesensePostService._();
 
-  static final TypesensePostService instance = TypesensePostService._();
+  static TypesensePostService? _instance;
+  static TypesensePostService? maybeFind() => _instance;
+
+  static TypesensePostService ensure() =>
+      maybeFind() ?? (_instance = TypesensePostService._());
+
+  static TypesensePostService get instance => ensure();
   static const Duration _ttl = Duration(minutes: 15);
   static const String _prefsPrefix = 'typesense_post_cards_v1';
 
@@ -41,8 +47,7 @@ class TypesensePostService {
   SharedPreferences? _prefs;
 
   Future<Map<String, Map<String, dynamic>>> getPostCardsByIds(
-    List<String> ids,
-  {
+    List<String> ids, {
     bool preferCache = true,
     bool forceRefresh = false,
     bool cacheOnly = false,
@@ -75,7 +80,8 @@ class TypesensePostService {
         final hits = (data['hits'] as List<dynamic>?) ?? const <dynamic>[];
         final out = <String, Map<String, dynamic>>{};
         for (final rawHit in hits) {
-          final hitMap = rawHit is Map ? Map<String, dynamic>.from(rawHit) : null;
+          final hitMap =
+              rawHit is Map ? Map<String, dynamic>.from(rawHit) : null;
           if (hitMap == null) continue;
           final id = (hitMap['id'] ?? hitMap['docID'] ?? '').toString().trim();
           if (id.isEmpty) continue;

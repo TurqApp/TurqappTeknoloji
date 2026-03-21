@@ -34,14 +34,14 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<FollowingFollowersController>(tag: widget.userId)) {
-      controller = Get.find<FollowingFollowersController>(tag: widget.userId);
+    final existingController =
+        FollowingFollowersController.maybeFind(tag: widget.userId);
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(
-        FollowingFollowersController(
-          userId: widget.userId,
-          initialPage: widget.selection,
-        ),
+      controller = FollowingFollowersController.ensure(
+        userId: widget.userId,
+        initialPage: widget.selection,
         tag: widget.userId,
       );
       _ownsController = true;
@@ -56,9 +56,8 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
     _followersScrollController.dispose();
     _followingScrollController.dispose();
     if (_ownsController &&
-        Get.isRegistered<FollowingFollowersController>(tag: widget.userId) &&
         identical(
-          Get.find<FollowingFollowersController>(tag: widget.userId),
+          FollowingFollowersController.maybeFind(tag: widget.userId),
           controller,
         )) {
       Get.delete<FollowingFollowersController>(

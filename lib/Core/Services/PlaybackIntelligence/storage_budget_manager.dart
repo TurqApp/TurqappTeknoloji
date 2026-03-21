@@ -64,6 +64,17 @@ class StorageBudgetUsageSnapshot {
 }
 
 class StorageBudgetManager extends GetxService {
+  static StorageBudgetManager? maybeFind() {
+    if (!Get.isRegistered<StorageBudgetManager>()) return null;
+    return Get.find<StorageBudgetManager>();
+  }
+
+  static StorageBudgetManager ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(StorageBudgetManager(), permanent: true);
+  }
+
   static const int _mb = 1024 * 1024;
   static const int _maxRecentProtectionWindow = 50;
   final RxInt _selectedPlanGb = 4.obs;

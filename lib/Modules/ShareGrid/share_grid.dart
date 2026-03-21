@@ -25,12 +25,14 @@ class _ShareGridState extends State<ShareGrid> {
     super.initState();
     _tag =
         'ShareGrid_${widget.postType}_${widget.postID}_${identityHashCode(this)}';
-    if (Get.isRegistered<ShareGridController>(tag: _tag)) {
-      controller = Get.find<ShareGridController>(tag: _tag);
+    final existingController = ShareGridController.maybeFind(tag: _tag);
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(
-        ShareGridController(postType: widget.postType, postID: widget.postID),
+      controller = ShareGridController.ensure(
+        postType: widget.postType,
+        postID: widget.postID,
         tag: _tag,
       );
       _ownsController = true;
@@ -40,8 +42,7 @@ class _ShareGridState extends State<ShareGrid> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<ShareGridController>(tag: _tag) &&
-        identical(Get.find<ShareGridController>(tag: _tag), controller)) {
+        identical(ShareGridController.maybeFind(tag: _tag), controller)) {
       Get.delete<ShareGridController>(tag: _tag);
     }
     super.dispose();

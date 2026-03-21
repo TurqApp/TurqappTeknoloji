@@ -25,18 +25,19 @@ class _CreateAnswerKeyState extends State<CreateAnswerKey> {
     super.initState();
     _controllerTag = 'create_answer_key_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<CreateAnswerKeyController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(CreateAnswerKeyController(widget.onBack), tag: _controllerTag)
-        : Get.find<CreateAnswerKeyController>(tag: _controllerTag);
+        CreateAnswerKeyController.maybeFind(tag: _controllerTag) == null;
+    controller = CreateAnswerKeyController.ensure(
+      widget.onBack,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<CreateAnswerKeyController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<CreateAnswerKeyController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = CreateAnswerKeyController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<CreateAnswerKeyController>(
           tag: _controllerTag,
@@ -49,7 +50,6 @@ class _CreateAnswerKeyState extends State<CreateAnswerKey> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -188,8 +188,7 @@ class _CreateAnswerKeyState extends State<CreateAnswerKey> {
             Expanded(
               child: Obx(
                 () => PasajSelectionChip(
-                  label: "answer_key.option_answers"
-                      .trParams({"count": "5"}),
+                  label: "answer_key.option_answers".trParams({"count": "5"}),
                   selected: controller.selection.value == 5,
                   onTap: () => controller.setSelection(5),
                   height: 50,
@@ -201,8 +200,7 @@ class _CreateAnswerKeyState extends State<CreateAnswerKey> {
             Expanded(
               child: Obx(
                 () => PasajSelectionChip(
-                  label: "answer_key.option_answers"
-                      .trParams({"count": "4"}),
+                  label: "answer_key.option_answers".trParams({"count": "4"}),
                   selected: controller.selection.value == 4,
                   onTap: () => controller.setSelection(4),
                   height: 50,

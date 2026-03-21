@@ -21,10 +21,14 @@ class TutoringRepository extends GetxService {
   SharedPreferences? _prefs;
   static const int _thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
 
+  static TutoringRepository? maybeFind() {
+    if (!Get.isRegistered<TutoringRepository>()) return null;
+    return Get.find<TutoringRepository>();
+  }
+
   static TutoringRepository _ensureService() {
-    if (Get.isRegistered<TutoringRepository>()) {
-      return Get.find<TutoringRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(TutoringRepository(), permanent: true);
   }
 

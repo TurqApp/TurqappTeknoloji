@@ -21,6 +21,7 @@ class TestsGrid extends StatefulWidget {
 class _TestsGridState extends State<TestsGrid> {
   late final TestsGridController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   TestsModel get model => widget.model;
   Function? get update => widget.update;
@@ -32,20 +33,23 @@ class _TestsGridState extends State<TestsGrid> {
     super.initState();
     _controllerTag =
         'tests_grid_${widget.model.docID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<TestsGridController>(tag: _controllerTag)
-        ? Get.find<TestsGridController>(tag: _controllerTag)
-        : Get.put(TestsGridController(widget.model, widget.update),
-            tag: _controllerTag);
+    _ownsController =
+        TestsGridController.maybeFind(tag: _controllerTag) == null;
+    controller = TestsGridController.ensure(
+      widget.model,
+      onUpdate: widget.update,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<TestsGridController>(tag: _controllerTag) &&
-        identical(
-          Get.find<TestsGridController>(tag: _controllerTag),
-          controller,
-        )) {
-      Get.delete<TestsGridController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController =
+          TestsGridController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<TestsGridController>(tag: _controllerTag);
+      }
     }
     super.dispose();
   }

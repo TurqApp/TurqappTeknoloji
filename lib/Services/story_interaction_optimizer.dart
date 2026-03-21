@@ -5,10 +5,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryInteractionOptimizer extends GetxService {
+  static StoryInteractionOptimizer? maybeFind() {
+    if (!Get.isRegistered<StoryInteractionOptimizer>()) return null;
+    return Get.find<StoryInteractionOptimizer>();
+  }
+
   static StoryInteractionOptimizer _ensureService() {
-    if (Get.isRegistered<StoryInteractionOptimizer>()) {
-      return Get.find<StoryInteractionOptimizer>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(StoryInteractionOptimizer(), permanent: true);
   }
 

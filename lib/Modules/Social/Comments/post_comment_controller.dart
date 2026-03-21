@@ -12,6 +12,33 @@ import '../../../Services/current_user_service.dart';
 import '../../../Services/post_interaction_service.dart';
 
 class PostCommentController extends GetxController {
+  static PostCommentController ensure({
+    required String postID,
+    required String userID,
+    required String collection,
+    Function(bool increment)? onCommentCountChange,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PostCommentController(
+        postID: postID,
+        userID: userID,
+        collection: collection,
+        onCommentCountChange: onCommentCountChange,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PostCommentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PostCommentController>(tag: tag)) return null;
+    return Get.find<PostCommentController>(tag: tag);
+  }
+
   PostCommentController({
     required this.postID,
     required this.userID,

@@ -16,10 +16,14 @@ class OpticalFormRepository extends GetxService {
       <String, _TimedValue<dynamic>>{};
   SharedPreferences? _prefs;
 
+  static OpticalFormRepository? maybeFind() {
+    if (!Get.isRegistered<OpticalFormRepository>()) return null;
+    return Get.find<OpticalFormRepository>();
+  }
+
   static OpticalFormRepository _ensureService() {
-    if (Get.isRegistered<OpticalFormRepository>()) {
-      return Get.find<OpticalFormRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(OpticalFormRepository(), permanent: true);
   }
 

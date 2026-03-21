@@ -7,6 +7,24 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedTestsController extends GetxController {
+  static SavedTestsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SavedTestsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SavedTestsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SavedTestsController>(tag: tag)) return null;
+    return Get.find<SavedTestsController>(tag: tag);
+  }
+
   final TestRepository _testRepository = TestRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;

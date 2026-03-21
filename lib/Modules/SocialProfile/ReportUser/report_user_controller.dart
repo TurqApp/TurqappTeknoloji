@@ -7,6 +7,31 @@ import 'package:turqappv2/Models/report_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReportUserController extends GetxController {
+  static ReportUserController ensure({
+    required String userID,
+    required String postID,
+    required String commentID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ReportUserController(
+        userID: userID,
+        postID: postID,
+        commentID: commentID,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ReportUserController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ReportUserController>(tag: tag)) return null;
+    return Get.find<ReportUserController>(tag: tag);
+  }
+
   String userID;
   String postID;
   String commentID;

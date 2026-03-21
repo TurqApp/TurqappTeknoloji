@@ -9,7 +9,7 @@ class LanguageSettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final languageService = Get.find<AppLanguageService>();
+    final languageService = AppLanguageService.ensure();
 
     return Scaffold(
       body: SafeArea(

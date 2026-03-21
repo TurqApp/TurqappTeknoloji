@@ -65,24 +65,34 @@ class PlaybackPolicySnapshot {
 }
 
 class PlaybackPolicyEngine extends GetxService {
+  static PlaybackPolicyEngine? maybeFind() {
+    if (!Get.isRegistered<PlaybackPolicyEngine>()) return null;
+    return Get.find<PlaybackPolicyEngine>();
+  }
+
+  static PlaybackPolicyEngine ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(PlaybackPolicyEngine(), permanent: true);
+  }
+
   PlaybackPolicySnapshot snapshot({
     bool isBootstrap = false,
     int visibleReadyCount = 0,
     int visibleWindowCount = 0,
   }) {
-    final network = Get.find<NetworkAwarenessService>();
-    final budgetProfile = Get.isRegistered<StorageBudgetManager>()
-        ? Get.find<StorageBudgetManager>().currentProfile
-        : null;
+    final network = NetworkAwarenessService.maybeFind();
+    final budgetProfile = StorageBudgetManager.maybeFind()?.currentProfile;
 
     return resolve(
       PlaybackPolicyContext(
-        isConnected: network.isConnected,
-        isOnWiFi: network.isOnWiFi,
-        isOnCellular: network.isOnCellular,
-        pauseOnCellular: network.settings.pauseOnCellular,
-        cellularDataMode: network.settings.cellularDataMode,
-        wifiDataMode: network.settings.wifiDataMode,
+        isConnected: network?.isConnected ?? false,
+        isOnWiFi: network?.isOnWiFi ?? false,
+        isOnCellular: network?.isOnCellular ?? false,
+        pauseOnCellular: network?.settings.pauseOnCellular ?? false,
+        cellularDataMode:
+            network?.settings.cellularDataMode ?? DataUsageMode.normal,
+        wifiDataMode: network?.settings.wifiDataMode ?? DataUsageMode.normal,
         isBootstrap: isBootstrap,
         visibleReadyCount: visibleReadyCount,
         visibleWindowCount: visibleWindowCount,

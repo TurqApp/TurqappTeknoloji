@@ -22,11 +22,13 @@ class _StorySeensState extends State<StorySeens> {
   void initState() {
     super.initState();
     _controllerTag = 'story_seens_${widget.storyID}_${identityHashCode(this)}';
-    if (Get.isRegistered<StorySeensController>(tag: _controllerTag)) {
-      controller = Get.find<StorySeensController>(tag: _controllerTag);
+    final existingController =
+        StorySeensController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(StorySeensController(), tag: _controllerTag);
+      controller = StorySeensController.ensure(tag: _controllerTag);
       _ownsController = true;
     }
     controller.getData(widget.storyID);
@@ -35,9 +37,8 @@ class _StorySeensState extends State<StorySeens> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<StorySeensController>(tag: _controllerTag) &&
         identical(
-          Get.find<StorySeensController>(tag: _controllerTag),
+          StorySeensController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<StorySeensController>(tag: _controllerTag, force: true);

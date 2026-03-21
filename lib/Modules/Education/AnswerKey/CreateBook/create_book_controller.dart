@@ -16,6 +16,26 @@ import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dar
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class CreateBookController extends GetxController {
+  static CreateBookController ensure(
+    Function? onBack, {
+    BookletModel? existingBook,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateBookController(onBack, existingBook: existingBook),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateBookController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateBookController>(tag: tag)) return null;
+    return Get.find<CreateBookController>(tag: tag);
+  }
+
   final Function? onBack;
   final BookletModel? existingBook;
   final baslikController = TextEditingController();
@@ -269,6 +289,28 @@ class CreateBookController extends GetxController {
 }
 
 class CreateBookAnswerKeyController extends GetxController {
+  static CreateBookAnswerKeyController ensure(
+    CevapAnahtariHazirlikModel model,
+    Function onBack, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateBookAnswerKeyController(model, onBack),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateBookAnswerKeyController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateBookAnswerKeyController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<CreateBookAnswerKeyController>(tag: tag);
+  }
+
   final CevapAnahtariHazirlikModel model;
   final Function onBack;
   final baslikController = TextEditingController();

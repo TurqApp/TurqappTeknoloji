@@ -35,9 +35,8 @@ class _FollowerContentState extends State<FollowerContent> {
   @override
   void initState() {
     super.initState();
-    _followTag =
-        'follower_content_${widget.userID}_${identityHashCode(this)}';
-    controller = Get.put(FollowerController(), tag: _followTag);
+    _followTag = 'follower_content_${widget.userID}_${identityHashCode(this)}';
+    controller = FollowerController.ensure(tag: _followTag);
     controller.getData(widget.userID);
     if (widget.userID != _currentUid) {
       controller.followControl(widget.userID);
@@ -46,7 +45,8 @@ class _FollowerContentState extends State<FollowerContent> {
 
   @override
   void dispose() {
-    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+    final existing = FollowerController.maybeFind(tag: _followTag);
+    if (identical(existing, controller)) {
       Get.delete<FollowerController>(tag: _followTag, force: true);
     }
     super.dispose();
@@ -112,7 +112,8 @@ class _FollowerContentState extends State<FollowerContent> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Get.to(() => SocialProfile(userID: widget.userID))!.then((v) {
+                      Get.to(() => SocialProfile(userID: widget.userID))!
+                          .then((v) {
                         controller.followControl(widget.userID);
                       });
                     },

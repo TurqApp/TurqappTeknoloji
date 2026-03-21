@@ -2,6 +2,24 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 
 class StorySeensController extends GetxController {
+  static StorySeensController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      StorySeensController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static StorySeensController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<StorySeensController>(tag: tag)) return null;
+    return Get.find<StorySeensController>(tag: tag);
+  }
+
   RxList<String> list = <String>[].obs;
   var totalSeen = 0.obs;
   final StoryRepository _storyRepository = StoryRepository.ensure();

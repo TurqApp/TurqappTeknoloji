@@ -13,6 +13,20 @@ import 'package:turqappv2/Services/user_post_link_service.dart';
 class SavedPostsController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
+  static SavedPostsController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      SavedPostsController(),
+      permanent: permanent,
+    );
+  }
+
+  static SavedPostsController? maybeFind() {
+    if (!Get.isRegistered<SavedPostsController>()) return null;
+    return Get.find<SavedPostsController>();
+  }
+
   final RxList<PostsModel> savedAgendas = <PostsModel>[].obs;
   final RxList<PostsModel> savedPostsOnly = <PostsModel>[].obs;
   final RxList<PostsModel> savedSeries = <PostsModel>[].obs;
@@ -22,7 +36,7 @@ class SavedPostsController extends GetxController {
 
   StreamSubscription<User?>? _authSub;
   StreamSubscription<List<UserPostReference>>? _savedPostsSub;
-  final UserPostLinkService _linkService = Get.put(UserPostLinkService());
+  final UserPostLinkService _linkService = UserPostLinkService.ensure();
   final PostRepository _postRepository = PostRepository.ensure();
 
   String? _currentUserId;
@@ -198,6 +212,7 @@ class SavedPostsController extends GetxController {
     savedPostsOnly.assignAll(nextPostsOnly);
     savedSeries.assignAll(nextSeries);
   }
+
   @override
   void onClose() {
     _savedPostsSub?.cancel();

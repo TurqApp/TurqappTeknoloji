@@ -23,6 +23,26 @@ class AnswerKeyContentController extends GetxController {
       <String, Set<String>>{};
   static final Map<String, Future<Set<String>>> _savedIdsLoaders =
       <String, Future<Set<String>>>{};
+  static AnswerKeyContentController ensure(
+    BookletModel model,
+    Function(bool) onUpdate, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AnswerKeyContentController(model, onUpdate),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AnswerKeyContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AnswerKeyContentController>(tag: tag)) return null;
+    return Get.find<AnswerKeyContentController>(tag: tag);
+  }
+
   BookletModel model;
   final Function(bool) onUpdate;
 

@@ -37,20 +37,15 @@ class _SignInState extends State<SignIn> {
   void initState() {
     super.initState();
     _controllerTag = 'sign_in_${identityHashCode(this)}';
-    controller = Get.isRegistered<SignInController>(tag: _controllerTag)
-        ? Get.find<SignInController>(tag: _controllerTag)
-        : Get.put(SignInController(), tag: _controllerTag);
+    controller = SignInController.ensure(tag: _controllerTag);
     controller.prepareSignInPrefill(widget.initialIdentifier);
     controller.prepareStoredAccountContext(widget.storedAccountUid);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<SignInController>(tag: _controllerTag) &&
-        identical(
-          Get.find<SignInController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = SignInController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<SignInController>(tag: _controllerTag);
     }
     super.dispose();

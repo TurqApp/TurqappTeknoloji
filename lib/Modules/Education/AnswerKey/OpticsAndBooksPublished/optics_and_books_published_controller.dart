@@ -10,6 +10,17 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticsAndBooksPublishedController extends GetxController {
+  static OpticsAndBooksPublishedController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(OpticsAndBooksPublishedController(), permanent: permanent);
+  }
+
+  static OpticsAndBooksPublishedController? maybeFind() {
+    if (!Get.isRegistered<OpticsAndBooksPublishedController>()) return null;
+    return Get.find<OpticsAndBooksPublishedController>();
+  }
+
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();

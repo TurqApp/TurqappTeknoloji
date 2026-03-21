@@ -35,18 +35,16 @@ class _CreateTestState extends State<CreateTest> {
     super.initState();
     _controllerTag =
         'create_test_${widget.model?.docID ?? 'new'}_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<CreateTestController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(CreateTestController(model), tag: _controllerTag)
-        : Get.find<CreateTestController>(tag: _controllerTag);
+    _ownsController =
+        CreateTestController.maybeFind(tag: _controllerTag) == null;
+    controller = CreateTestController.ensure(model, tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<CreateTestController>(tag: _controllerTag)) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<CreateTestController>(tag: _controllerTag);
+          CreateTestController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<CreateTestController>(tag: _controllerTag, force: true);
       }

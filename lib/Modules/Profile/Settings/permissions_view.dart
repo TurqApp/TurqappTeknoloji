@@ -136,12 +136,8 @@ class _PermissionsViewState extends State<PermissionsView> {
     final prefs = await SharedPreferences.getInstance();
     final saved = _normalizeDisplayQuota(prefs.getInt(_quotaKey) ?? 3);
     final effectiveQuota = _effectiveQuotaGb(saved);
-    if (Get.isRegistered<StorageBudgetManager>()) {
-      await Get.find<StorageBudgetManager>().applyPlanGb(effectiveQuota);
-    }
-    if (Get.isRegistered<SegmentCacheManager>()) {
-      await Get.find<SegmentCacheManager>().setUserLimitGB(effectiveQuota);
-    }
+    await StorageBudgetManager.maybeFind()?.applyPlanGb(effectiveQuota);
+    await SegmentCacheManager.maybeFind()?.setUserLimitGB(effectiveQuota);
     if (!mounted) return;
     setState(() => _selectedQuota = saved);
   }
@@ -152,12 +148,8 @@ class _PermissionsViewState extends State<PermissionsView> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_quotaKey, displayQuota);
     try {
-      if (Get.isRegistered<StorageBudgetManager>()) {
-        await Get.find<StorageBudgetManager>().applyPlanGb(effectiveQuota);
-      }
-      if (Get.isRegistered<SegmentCacheManager>()) {
-        await Get.find<SegmentCacheManager>().setUserLimitGB(effectiveQuota);
-      }
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(effectiveQuota);
+      await SegmentCacheManager.maybeFind()?.setUserLimitGB(effectiveQuota);
     } catch (_) {}
     if (!mounted) return;
     setState(() => _selectedQuota = displayQuota);
@@ -266,12 +258,13 @@ class _PermissionsViewState extends State<PermissionsView> {
   Widget _buildQuotaBreakdown() {
     final profile = StorageBudgetManager.profileForPlanGb(
         _effectiveQuotaGb(_selectedQuota));
-    final usage = Get.isRegistered<SegmentCacheManager>()
-        ? StorageBudgetManager.usageSnapshotForProfile(
+    final cacheManager = SegmentCacheManager.maybeFind();
+    final usage = cacheManager == null
+        ? null
+        : StorageBudgetManager.usageSnapshotForProfile(
             profile,
-            streamUsageBytes: Get.find<SegmentCacheManager>().totalSizeBytes,
-          )
-        : null;
+            streamUsageBytes: cacheManager.totalSizeBytes,
+          );
     final recentProtectionWindow =
         StorageBudgetManager.recentProtectionWindowForUsage(
       profile,

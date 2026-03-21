@@ -12,6 +12,24 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/material.dart';
 
 class MyTutoringsController extends GetxController {
+  static MyTutoringsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyTutoringsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyTutoringsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyTutoringsController>(tag: tag)) return null;
+    return Get.find<MyTutoringsController>(tag: tag);
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -181,7 +199,9 @@ class MyTutoringsController extends GetxController {
       if (tutoring.ended == true) continue;
       if (tutoring.timeStamp < thirtyDaysAgo) {
         batch.update(
-          FirebaseFirestore.instance.collection('educators').doc(tutoring.docID),
+          FirebaseFirestore.instance
+              .collection('educators')
+              .doc(tutoring.docID),
           {'ended': true, 'endedAt': now},
         );
         changed = true;

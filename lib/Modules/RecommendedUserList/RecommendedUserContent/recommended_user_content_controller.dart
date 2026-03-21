@@ -6,6 +6,27 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserContentController extends GetxController {
+  static RecommendedUserContentController ensure({
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      RecommendedUserContentController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static RecommendedUserContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<RecommendedUserContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<RecommendedUserContentController>(tag: tag);
+  }
+
   String userID;
   var isFollowing = false.obs;
   var followLoading = false.obs;

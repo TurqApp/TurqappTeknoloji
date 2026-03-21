@@ -85,11 +85,15 @@ class PostDraft {
 }
 
 class DraftService extends GetxController {
+  static DraftService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DraftService());
+  }
+
   static DraftService? maybeFind() {
-    if (Get.isRegistered<DraftService>()) {
-      return Get.find<DraftService>();
-    }
-    return null;
+    if (!Get.isRegistered<DraftService>()) return null;
+    return Get.find<DraftService>();
   }
 
   final RxList<PostDraft> _drafts = <PostDraft>[].obs;

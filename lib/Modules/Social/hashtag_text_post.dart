@@ -5,6 +5,35 @@ import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../../Themes/app_fonts.dart';
 
 class HashtagTextVideoPostController extends GetxController {
+  static HashtagTextVideoPostController ensure({
+    required String text,
+    String? nickname,
+    required Color color,
+    required void Function(bool) volume,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      HashtagTextVideoPostController(
+        text: text,
+        nickname: nickname,
+        color: color,
+        volume: volume,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static HashtagTextVideoPostController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<HashtagTextVideoPostController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<HashtagTextVideoPostController>(tag: tag);
+  }
+
   final String text;
   final String? nickname;
   final Color color;
@@ -167,13 +196,11 @@ class HashtagTextVideoPost extends StatelessWidget {
     String colorKey(Color c) => c.toARGB32().toRadixString(16);
     final tag =
         'htvp_${text.hashCode}_${colorKey(color)}_${nickname?.hashCode ?? 0}';
-    final ctrl = Get.put(
-      HashtagTextVideoPostController(
-        text: text,
-        nickname: nickname,
-        color: color,
-        volume: volume,
-      ),
+    final ctrl = HashtagTextVideoPostController.ensure(
+      text: text,
+      nickname: nickname,
+      color: color,
+      volume: volume,
       tag: tag,
     );
 
@@ -192,7 +219,7 @@ class HashtagTextVideoPost extends StatelessWidget {
       )..layout(maxWidth: constraints.maxWidth);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Get.isRegistered<HashtagTextVideoPostController>(tag: tag)) {
+        if (HashtagTextVideoPostController.maybeFind(tag: tag) != null) {
           ctrl.checkOverflow(tp);
         }
       });

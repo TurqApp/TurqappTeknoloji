@@ -23,18 +23,15 @@ class _TestEntryState extends State<TestEntry> {
     super.initState();
     _controllerTag = 'test_entry_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<TestEntryController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(TestEntryController(), tag: _controllerTag)
-        : Get.find<TestEntryController>(tag: _controllerTag);
+        TestEntryController.maybeFind(tag: _controllerTag) == null;
+    controller = TestEntryController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<TestEntryController>(tag: _controllerTag)) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<TestEntryController>(tag: _controllerTag);
+          TestEntryController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<TestEntryController>(tag: _controllerTag, force: true);
       }
@@ -44,7 +41,6 @@ class _TestEntryState extends State<TestEntry> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -170,10 +166,11 @@ class _TestEntryState extends State<TestEntry> {
                                                                 .img
                                                                 .isNotEmpty
                                                             ? CachedNetworkImage(
-                                                                imageUrl: controller
-                                                                    .model
-                                                                    .value!
-                                                                    .img,
+                                                                imageUrl:
+                                                                    controller
+                                                                        .model
+                                                                        .value!
+                                                                        .img,
                                                                 fit: BoxFit
                                                                     .cover,
                                                                 placeholder: (
@@ -257,7 +254,8 @@ class _TestEntryState extends State<TestEntry> {
                                                           Text(
                                                             controller
                                                                 .localizedLessons(
-                                                              controller.model
+                                                              controller
+                                                                  .model
                                                                   .value!
                                                                   .dersler,
                                                             ),

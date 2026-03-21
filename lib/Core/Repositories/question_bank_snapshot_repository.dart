@@ -8,10 +8,14 @@ class QuestionBankSnapshotRepository extends GetxService {
 
   static const String _searchSurfaceKey = 'workout_search_snapshot';
 
+  static QuestionBankSnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<QuestionBankSnapshotRepository>()) return null;
+    return Get.find<QuestionBankSnapshotRepository>();
+  }
+
   static QuestionBankSnapshotRepository _ensureService() {
-    if (Get.isRegistered<QuestionBankSnapshotRepository>()) {
-      return Get.find<QuestionBankSnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(QuestionBankSnapshotRepository(), permanent: true);
   }
 

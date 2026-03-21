@@ -51,8 +51,8 @@ class PostCreator extends StatelessWidget {
     this.editMode = false,
     this.editPost,
   });
-  final controller = Get.put(PostCreatorController());
-  final progressController = Get.put(UploadProgressController());
+  final controller = PostCreatorController.ensure();
+  final progressController = UploadProgressController.ensure();
 
   @override
   Widget build(BuildContext context) {
@@ -93,29 +93,29 @@ class PostCreator extends StatelessWidget {
           editPost: editPost,
         );
         return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Obx(() {
-          return Stack(
-            children: [
-              Column(
+          body: SafeArea(
+            bottom: false,
+            child: Obx(() {
+              return Stack(
                 children: [
-                  header(context),
-                  postBody(),
-                  toolbar(),
+                  Column(
+                    children: [
+                      header(context),
+                      postBody(),
+                      toolbar(),
+                    ],
+                  ),
+                  // Upload progress overlay
+                  Positioned.fill(
+                    child: UploadProgressWidget(
+                      controller: progressController,
+                    ),
+                  ),
+                  // Media processing overlay removed
                 ],
-              ),
-              // Upload progress overlay
-              Positioned.fill(
-                child: UploadProgressWidget(
-                  controller: progressController,
-                ),
-              ),
-              // Media processing overlay removed
-            ],
-          );
-        }),
-      ),
+              );
+            }),
+          ),
         );
       },
     );
@@ -209,9 +209,7 @@ class PostCreator extends StatelessWidget {
             final postModel = controller.postList[index];
             // Ensure controller for this index is registered
             final tag = postModel.index.toString();
-            if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-              Get.put(CreatorContentController(), tag: tag);
-            }
+            CreatorContentController.ensure(tag: tag);
             return GestureDetector(
               key: ValueKey('composer-${postModel.index}'),
               behavior: HitTestBehavior.deferToChild,
@@ -512,16 +510,7 @@ class PostCreator extends StatelessWidget {
                         controller.selectedIndex.value =
                             controller.postList.length - 1;
                         final nextController =
-                            Get.isRegistered<CreatorContentController>(
-                          tag: newTag,
-                        )
-                                ? Get.find<CreatorContentController>(
-                                    tag: newTag,
-                                  )
-                                : Get.put(
-                                    CreatorContentController(),
-                                    tag: newTag,
-                                  );
+                            CreatorContentController.ensure(tag: newTag);
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!nextController.focus.hasFocus) {
                             nextController.focus.requestFocus();

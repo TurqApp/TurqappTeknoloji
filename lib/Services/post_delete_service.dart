@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:get/get.dart';
 
 import '../Models/posts_model.dart';
 import '../Core/Repositories/post_repository.dart';
@@ -22,7 +21,13 @@ import '../Services/current_user_service.dart';
 ///   (yalnızca runtime; Firestore'a yazmaz) ve listeleri refresh eder.
 class PostDeleteService {
   PostDeleteService._();
-  static final PostDeleteService instance = PostDeleteService._();
+  static PostDeleteService? _instance;
+  static PostDeleteService? maybeFind() => _instance;
+
+  static PostDeleteService ensure() =>
+      maybeFind() ?? (_instance = PostDeleteService._());
+
+  static PostDeleteService get instance => ensure();
 
   Future<void> softDelete(PostsModel model) async {
     final firestore = FirebaseFirestore.instance;
@@ -179,8 +184,8 @@ class PostDeleteService {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // Agenda akışı
-    if (Get.isRegistered<AgendaController>()) {
-      final agenda = Get.find<AgendaController>();
+    final agenda = AgendaController.maybeFind();
+    if (agenda != null) {
       agenda.agendaList.removeWhere((e) => e.docID == docID);
       agenda.mergedFeedEntries
           .removeWhere((entry) => (entry['postId'] ?? entry['docID']) == docID);
@@ -250,8 +255,8 @@ class PostDeleteService {
     if (ids.isEmpty) return;
 
     try {
-      if (Get.isRegistered<IndexPoolStore>()) {
-        final pool = Get.find<IndexPoolStore>();
+      final pool = IndexPoolStore.maybeFind();
+      if (pool != null) {
         for (final kind in const <IndexPoolKind>[
           IndexPoolKind.feed,
           IndexPoolKind.explore,
@@ -263,14 +268,12 @@ class PostDeleteService {
     } catch (_) {}
 
     try {
-      if (Get.isRegistered<AgendaShuffleCacheService>()) {
-        Get.find<AgendaShuffleCacheService>().removePosts(ids);
-      }
+      AgendaShuffleCacheService.maybeFind()?.removePosts(ids);
     } catch (_) {}
 
     for (final docId in ids) {
       try {
-        await TypesensePostService.instance.invalidatePostId(docId);
+        await TypesensePostService.ensure().invalidatePostId(docId);
       } catch (_) {}
     }
   }

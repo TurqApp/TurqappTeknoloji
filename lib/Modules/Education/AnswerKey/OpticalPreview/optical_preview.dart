@@ -21,6 +21,7 @@ class OpticalPreview extends StatefulWidget {
 class _OpticalPreviewState extends State<OpticalPreview> {
   late final OpticalPreviewController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   OpticalFormModel get model => widget.model;
   Function? get update => widget.update;
@@ -30,21 +31,21 @@ class _OpticalPreviewState extends State<OpticalPreview> {
     super.initState();
     _controllerTag =
         'optical_preview_${widget.model.docID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<OpticalPreviewController>(tag: _controllerTag)
-        ? Get.find<OpticalPreviewController>(tag: _controllerTag)
-        : Get.put(
-            OpticalPreviewController(widget.model, widget.update),
-            tag: _controllerTag,
-          );
+    _ownsController =
+        OpticalPreviewController.maybeFind(tag: _controllerTag) == null;
+    controller = OpticalPreviewController.ensure(
+      widget.model,
+      widget.update,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<OpticalPreviewController>(tag: _controllerTag) &&
-        identical(
-          Get.find<OpticalPreviewController>(tag: _controllerTag),
-          controller,
-        )) {
+    final registeredController = OpticalPreviewController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
       Get.delete<OpticalPreviewController>(tag: _controllerTag);
     }
     super.dispose();

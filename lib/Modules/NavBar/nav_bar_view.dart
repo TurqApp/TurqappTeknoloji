@@ -34,26 +34,22 @@ class NavBarView extends StatelessWidget {
   NavBarView({super.key}) {
     _ensureControllersReady();
   }
-  final NavBarController controller = Get.isRegistered<NavBarController>()
-      ? Get.find<NavBarController>()
-      : Get.put(NavBarController());
+  final NavBarController controller = NavBarController.ensure();
   final SettingsController settingController = SettingsController.ensure();
   final DeepLinkService? deepLinkService = DeepLinkService.maybeFind();
 
   // Ensure controllers are available
   void _ensureControllersReady() {
     final isIOS = GetPlatform.isIOS;
-    if (!Get.isRegistered<AgendaController>()) {
-      Get.put(AgendaController());
-    }
+    AgendaController.ensure();
     if (!isIOS) {
       StoryRowController.ensure();
     }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.
     // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
-    if (!isIOS && Get.isRegistered<DeepLinkService>()) {
-      Get.find<DeepLinkService>().start();
+    if (!isIOS) {
+      DeepLinkService.maybeFind()?.start();
     }
 
     // Controller registration should always be enforced (Android lifecycle can dispose lazies).
@@ -113,10 +109,8 @@ class NavBarView extends StatelessWidget {
     final educationIndex = hasEducation ? 3 : 0;
 
     if (hasEducation && controller.selectedIndex.value == educationIndex) {
-      if (!Get.isRegistered<EducationController>()) {
-        return false;
-      }
-      final educationController = Get.find<EducationController>();
+      final educationController = EducationController.maybeFind();
+      if (educationController == null) return false;
       if (educationController.canExitToFeed) {
         controller.changeIndex(0);
       } else {
@@ -279,32 +273,29 @@ class NavBarView extends StatelessWidget {
                                                 controller
                                                         .selectedIndex.value ==
                                                     0) {
-                                              if (Get.isRegistered<
-                                                  AgendaController>()) {
-                                                final agendaCtrl = Get.find<
-                                                    AgendaController>();
-                                                if (agendaCtrl.scrollController
-                                                    .hasClients) {
+                                              final agendaCtrl =
+                                                  AgendaController.maybeFind();
+                                              if (agendaCtrl != null &&
                                                   agendaCtrl.scrollController
-                                                      .animateTo(
-                                                    0,
-                                                    duration: const Duration(
-                                                      milliseconds: 500,
-                                                    ),
-                                                    curve: Curves.easeOut,
-                                                  );
-                                                  return;
-                                                }
+                                                      .hasClients) {
+                                                agendaCtrl.scrollController
+                                                    .animateTo(
+                                                  0,
+                                                  duration: const Duration(
+                                                    milliseconds: 500,
+                                                  ),
+                                                  curve: Curves.easeOut,
+                                                );
+                                                return;
                                               }
                                             }
                                             if (i == 1 &&
                                                 controller
                                                         .selectedIndex.value ==
                                                     1) {
-                                              if (Get.isRegistered<
-                                                  ExploreController>()) {
-                                                final explore = Get.find<
-                                                    ExploreController>();
+                                              final explore =
+                                                  ExploreController.maybeFind();
+                                              if (explore != null) {
                                                 final tab =
                                                     maybeFindPageLineBarController(
                                                           kExplorePageLineBarTag,
@@ -349,10 +340,10 @@ class NavBarView extends StatelessWidget {
                                                 controller
                                                         .selectedIndex.value ==
                                                     profileIndex) {
-                                              if (Get.isRegistered<
-                                                  ProfileController>()) {
-                                                await Get.find<
-                                                        ProfileController>()
+                                              final profile =
+                                                  ProfileController.maybeFind();
+                                              if (profile != null) {
+                                                await profile
                                                     .animateCurrentSelectionToTop();
                                                 return;
                                               }

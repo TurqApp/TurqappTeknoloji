@@ -32,10 +32,14 @@ class MarketSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'market_home_snapshot';
   static const String _searchSurfaceKey = 'market_search_snapshot';
 
+  static MarketSnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<MarketSnapshotRepository>()) return null;
+    return Get.find<MarketSnapshotRepository>();
+  }
+
   static MarketSnapshotRepository _ensureService() {
-    if (Get.isRegistered<MarketSnapshotRepository>()) {
-      return Get.find<MarketSnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(MarketSnapshotRepository(), permanent: true);
   }
 

@@ -9,6 +9,25 @@ import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answ
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class BookletPreviewController extends GetxController {
+  static BookletPreviewController ensure(
+    BookletModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BookletPreviewController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BookletPreviewController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<BookletPreviewController>(tag: tag)) return null;
+    return Get.find<BookletPreviewController>(tag: tag);
+  }
+
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   final UserSubcollectionRepository _subcollectionRepository =
@@ -47,8 +66,7 @@ class BookletPreviewController extends GetxController {
         preferCache: true,
       );
       isBookmarked.value = savedDoc != null;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> fetchAnswerKeys() async {
@@ -82,8 +100,7 @@ class BookletPreviewController extends GetxController {
       }
       newList.sort((a, b) => a.sira.compareTo(b.sira));
       answerKeys.assignAll(newList);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> fetchUserData() async {
@@ -99,8 +116,7 @@ class BookletPreviewController extends GetxController {
       if (fullName.value.isEmpty) {
         fullName.value = nickname.value;
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> toggleBookmark() async {
@@ -134,8 +150,7 @@ class BookletPreviewController extends GetxController {
         },
       );
       isBookmarked.value = true;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void navigateToAnswerKey(BuildContext context, AnswerKeySubModel subModel) {

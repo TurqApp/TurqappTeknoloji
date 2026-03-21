@@ -67,6 +67,31 @@ class FollowingFollowersController extends GetxController {
   final VisibilityPolicyService _visibilityPolicy =
       VisibilityPolicyService.ensure();
 
+  static FollowingFollowersController ensure({
+    required String userId,
+    required int initialPage,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      FollowingFollowersController(
+        userId: userId,
+        initialPage: initialPage,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static FollowingFollowersController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<FollowingFollowersController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<FollowingFollowersController>(tag: tag);
+  }
+
   FollowingFollowersController(
       {required this.userId, required int initialPage}) {
     selection.value = initialPage;
@@ -343,16 +368,18 @@ class FollowingFollowersController extends GetxController {
       );
     }
 
-    if (Get.isRegistered<FollowingFollowersController>(tag: currentUid)) {
-      final c = Get.find<FollowingFollowersController>(tag: currentUid);
+    final currentController = maybeFind(tag: currentUid);
+    if (currentController != null) {
+      final c = currentController;
       c._applyLocalMutation(
         currentUid: currentUid,
         otherUserID: otherUserID,
         nowFollowing: nowFollowing,
       );
     }
-    if (Get.isRegistered<FollowingFollowersController>(tag: otherUserID)) {
-      final c = Get.find<FollowingFollowersController>(tag: otherUserID);
+    final otherController = maybeFind(tag: otherUserID);
+    if (otherController != null) {
+      final c = otherController;
       c._applyLocalMutation(
         currentUid: currentUid,
         otherUserID: otherUserID,

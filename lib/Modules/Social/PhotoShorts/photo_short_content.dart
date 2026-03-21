@@ -52,21 +52,17 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
     if (serviceUid.isNotEmpty) return serviceUid;
     return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   }
+
   @override
   void initState() {
     super.initState();
     _controllerTag = 'PhotoShortContent_${widget.model.docID}';
-    if (Get.isRegistered<PhotoShortsContentController>(tag: _controllerTag)) {
-      controller =
-          Get.find<PhotoShortsContentController>(tag: _controllerTag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        PhotoShortsContentController(model: widget.model),
-        tag: _controllerTag,
-      );
-      _ownsController = true;
-    }
+    _ownsController =
+        PhotoShortsContentController.maybeFind(tag: _controllerTag) == null;
+    controller = PhotoShortsContentController.ensure(
+      model: widget.model,
+      tag: _controllerTag,
+    );
     controller.fetchUserData(widget.model.userID);
     _pageController = PageController(initialPage: 0);
   }
@@ -75,7 +71,10 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   void dispose() {
     _pageController.dispose();
     if (_ownsController &&
-        Get.isRegistered<PhotoShortsContentController>(tag: _controllerTag)) {
+        identical(
+          PhotoShortsContentController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<PhotoShortsContentController>(
         tag: _controllerTag,
         force: true,

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';
 import '../Core/Services/SegmentCache/hls_proxy_server.dart';
@@ -55,12 +54,9 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// CDN URL'yi proxy URL'ye çevir. Proxy başlamadıysa orijinal URL döner.
   static String _resolveToProxy(String originalUrl) {
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
-    try {
-      final proxy = Get.find<HLSProxyServer>();
-      return proxy.resolveUrl(originalUrl);
-    } catch (_) {
-      return originalUrl;
-    }
+    final proxy = HLSProxyServer.maybeFind();
+    if (proxy == null) return originalUrl;
+    return proxy.resolveUrl(originalUrl);
   }
 
   HLSVideoValue _value = const HLSVideoValue();
@@ -318,6 +314,11 @@ class HLSVideoAdapter extends ChangeNotifier {
     if (_disposed) return Future.value();
     if (_viewReady) return _hls.setLoop(v);
     return Future.value();
+  }
+
+  Future<bool> isMutedNative() {
+    if (_disposed) return Future.value(false);
+    return _hls.isMutedNative();
   }
 
   Future<void> seekTo(Duration pos) {

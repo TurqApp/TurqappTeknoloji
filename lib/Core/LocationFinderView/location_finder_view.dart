@@ -31,23 +31,16 @@ class _LocationFinderViewState extends State<LocationFinderView> {
   void initState() {
     super.initState();
     _controllerTag = 'location_finder_${identityHashCode(this)}';
-    if (Get.isRegistered<LocationFinderViewController>(tag: _controllerTag)) {
-      controller = Get.find<LocationFinderViewController>(tag: _controllerTag);
-    } else {
-      controller = Get.put(
-        LocationFinderViewController(),
-        tag: _controllerTag,
-      );
-      _ownsController = true;
-    }
+    _ownsController =
+        LocationFinderViewController.maybeFind(tag: _controllerTag) == null;
+    controller = LocationFinderViewController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<LocationFinderViewController>(tag: _controllerTag) &&
         identical(
-          Get.find<LocationFinderViewController>(tag: _controllerTag),
+          LocationFinderViewController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<LocationFinderViewController>(tag: _controllerTag);

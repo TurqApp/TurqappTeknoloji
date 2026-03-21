@@ -26,14 +26,14 @@ class _MyQRCodeState extends State<MyQRCode> {
   void initState() {
     super.initState();
     _controllerTag = 'my_qr_code_${identityHashCode(this)}';
-    controller = Get.put(MyQRCodeController(), tag: _controllerTag);
+    controller = MyQRCodeController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<MyQRCodeController>(tag: _controllerTag) &&
+    if (MyQRCodeController.maybeFind(tag: _controllerTag) != null &&
         identical(
-          Get.find<MyQRCodeController>(tag: _controllerTag),
+          MyQRCodeController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<MyQRCodeController>(tag: _controllerTag);
@@ -103,7 +103,8 @@ class _MyQRCodeState extends State<MyQRCode> {
                                   alignment: Alignment.center,
                                   children: [
                                     QrImageView(
-                                      data: controller.profileLink.value.isNotEmpty
+                                      data: controller
+                                              .profileLink.value.isNotEmpty
                                           ? controller.profileLink.value
                                           : userService.userId,
                                       version: QrVersions.auto,

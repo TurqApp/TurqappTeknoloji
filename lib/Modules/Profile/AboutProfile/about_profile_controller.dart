@@ -5,6 +5,24 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AboutProfileController extends GetxController {
+  static AboutProfileController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AboutProfileController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AboutProfileController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AboutProfileController>(tag: tag)) return null;
+    return Get.find<AboutProfileController>(tag: tag);
+  }
+
   // 🎯 Using CurrentUserService for optimized access
   final userService = CurrentUserService.instance;
   final UserRepository _userRepository = UserRepository.ensure();

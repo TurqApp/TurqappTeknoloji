@@ -81,7 +81,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         CupertinoDialogAction(
                           onPressed: () async {
                             Get.back();
-                            final store = Get.find<ProfileController>();
+                            final store = ProfileController.ensure();
                             store.allPosts
                                 .removeWhere((e) => e.docID == model.docID);
                             store.photos
@@ -241,7 +241,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         CupertinoDialogAction(
                           onPressed: () async {
                             Get.back();
-                            final store = Get.find<ProfileController>();
+                            final store = ProfileController.ensure();
                             store.allPosts
                                 .removeWhere((e) => e.docID == model.docID);
                             store.videos
@@ -343,32 +343,38 @@ extension _ProfileViewGridsPart on _ProfileViewState {
     final shortController = ShortController.maybeFind();
     final index = shortController?.shorts.indexOf(model) ?? -1;
     if (index >= 0) shortController!.shorts[index].arsiv = true;
-    final exploreController = Get.find<ExploreController>();
+    final exploreController = ExploreController.maybeFind();
 
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].arsiv = true;
+    final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) {
+      exploreController!.explorePosts[index3].arsiv = true;
+    }
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = true;
+    final index4 = exploreController?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) {
+      exploreController!.explorePhotos[index4].arsiv = true;
+    }
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = true;
+    final index5 = exploreController?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) {
+      exploreController!.exploreVideos[index5].arsiv = true;
+    }
 
-    if (Get.isRegistered<AgendaController>()) {
-      final store8 = Get.find<AgendaController>();
+    final store8 = AgendaController.maybeFind();
+    if (store8 != null) {
       final index8 = store8.agendaList.indexOf(model);
       if (index8 >= 0) store8.agendaList[index8].arsiv = true;
     }
 
-    final store9 = Get.find<ProfileController>();
+    final store9 = ProfileController.ensure();
     final index9 = store9.allPosts.indexOf(model);
     if (index9 >= 0) store9.allPosts[index9].arsiv = true;
 
-    final store10 = Get.find<ProfileController>();
+    final store10 = ProfileController.ensure();
     final index10 = store10.videos.indexOf(model);
     if (index10 >= 0) store10.videos[index10].arsiv = true;
 
-    final store11 = Get.find<ProfileController>();
+    final store11 = ProfileController.ensure();
     final index11 = store11.photos.indexOf(model);
     if (index11 >= 0) store11.photos[index11].arsiv = true;
 
@@ -425,7 +431,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       title: "profile.remove_reshare_title".tr,
                       message: "profile.remove_reshare_body".tr,
                       onYesPressed: () {
-                        final store = Get.find<ProfileController>();
+                        final store = ProfileController.ensure();
                         final index = store.reshares.indexOf(model);
                         if (index >= 0) store.reshares.removeAt(index);
                         PostDeleteService.instance.softDelete(model);

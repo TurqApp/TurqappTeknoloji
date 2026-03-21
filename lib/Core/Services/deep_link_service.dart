@@ -29,11 +29,15 @@ import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class DeepLinkService extends GetxService {
+  static DeepLinkService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DeepLinkService(), permanent: true);
+  }
+
   static DeepLinkService? maybeFind() {
-    if (Get.isRegistered<DeepLinkService>()) {
-      return Get.find<DeepLinkService>();
-    }
-    return null;
+    if (!Get.isRegistered<DeepLinkService>()) return null;
+    return Get.find<DeepLinkService>();
   }
 
   final ShortLinkService _shortLinkService = ShortLinkService();
@@ -60,10 +64,10 @@ class DeepLinkService extends GetxService {
   final RxBool initialLinkResolved = false.obs;
 
   T _ensureController<T>(T Function() create) {
-    if (Get.isRegistered<T>()) {
-      return Get.find<T>();
+    if (!Get.isRegistered<T>()) {
+      return Get.put<T>(create());
     }
-    return Get.put<T>(create());
+    return Get.find<T>();
   }
 
   Future<_PostLookupCache> _getPostLookup(String postId) async {

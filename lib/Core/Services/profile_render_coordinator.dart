@@ -4,10 +4,14 @@ import 'package:turqappv2/Core/Services/render_list_patch.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class ProfileRenderCoordinator extends GetxService {
+  static ProfileRenderCoordinator? maybeFind() {
+    if (!Get.isRegistered<ProfileRenderCoordinator>()) return null;
+    return Get.find<ProfileRenderCoordinator>();
+  }
+
   static ProfileRenderCoordinator _ensureService() {
-    if (Get.isRegistered<ProfileRenderCoordinator>()) {
-      return Get.find<ProfileRenderCoordinator>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ProfileRenderCoordinator(), permanent: true);
   }
 

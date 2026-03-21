@@ -33,24 +33,18 @@ class _ApplicationReviewState extends State<ApplicationReview> {
     super.initState();
     _tag =
         'job_application_review_${widget.jobDocID}_${identityHashCode(this)}';
-    if (Get.isRegistered<ApplicationReviewController>(tag: _tag)) {
-      controller = Get.find<ApplicationReviewController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        ApplicationReviewController(jobDocID: widget.jobDocID),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+    _ownsController = ApplicationReviewController.maybeFind(tag: _tag) == null;
+    controller = ApplicationReviewController.ensure(
+      jobDocID: widget.jobDocID,
+      tag: _tag,
+    );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<ApplicationReviewController>(tag: _tag) &&
         identical(
-          Get.find<ApplicationReviewController>(tag: _tag),
+          ApplicationReviewController.maybeFind(tag: _tag),
           controller,
         )) {
       Get.delete<ApplicationReviewController>(tag: _tag);

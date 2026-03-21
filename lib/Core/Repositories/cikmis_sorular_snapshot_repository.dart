@@ -9,10 +9,14 @@ class CikmisSorularSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'past_question_home_snapshot';
   static const String _searchSurfaceKey = 'past_question_search_snapshot';
 
+  static CikmisSorularSnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<CikmisSorularSnapshotRepository>()) return null;
+    return Get.find<CikmisSorularSnapshotRepository>();
+  }
+
   static CikmisSorularSnapshotRepository _ensureService() {
-    if (Get.isRegistered<CikmisSorularSnapshotRepository>()) {
-      return Get.find<CikmisSorularSnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(CikmisSorularSnapshotRepository(), permanent: true);
   }
 

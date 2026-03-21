@@ -159,10 +159,7 @@ class PostContentController extends GetxController {
   final yenidenPaylasildiMi = false.obs;
 
   AgendaController _resolveAgendaController() {
-    if (Get.isRegistered<AgendaController>()) {
-      return Get.find<AgendaController>();
-    }
-    return Get.put(AgendaController());
+    return AgendaController.ensure();
   }
 
   late final AgendaController agendaController = _resolveAgendaController();

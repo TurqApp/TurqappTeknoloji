@@ -12,6 +12,33 @@ import 'dart:io';
 const _addQuestionMiddleSchoolType = 'Ortaokul';
 
 class AddTestQuestionController extends GetxController {
+  static AddTestQuestionController ensure({
+    required List<TestReadinessModel> initialSoruList,
+    required String testID,
+    required String testTuru,
+    required Function onUpdate,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AddTestQuestionController(
+        initialSoruList: initialSoruList,
+        testID: testID,
+        testTuru: testTuru,
+        onUpdate: onUpdate,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AddTestQuestionController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AddTestQuestionController>(tag: tag)) return null;
+    return Get.find<AddTestQuestionController>(tag: tag);
+  }
+
   final List<TestReadinessModel> initialSoruList;
   final String testID;
   final String testTuru;

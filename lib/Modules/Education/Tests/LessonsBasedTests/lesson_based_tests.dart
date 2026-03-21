@@ -17,6 +17,7 @@ class LessonBasedTests extends StatefulWidget {
 class _LessonBasedTestsState extends State<LessonBasedTests> {
   late final LessonBasedTestsController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   String get testTuru => widget.testTuru;
 
@@ -25,24 +26,22 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
     super.initState();
     _controllerTag =
         'lesson_based_tests_${widget.testTuru.hashCode}_${identityHashCode(this)}';
-    controller = Get.isRegistered<LessonBasedTestsController>(
+    _ownsController =
+        LessonBasedTestsController.maybeFind(tag: _controllerTag) == null;
+    controller = LessonBasedTestsController.ensure(
+      widget.testTuru,
       tag: _controllerTag,
-    )
-        ? Get.find<LessonBasedTestsController>(tag: _controllerTag)
-        : Get.put(
-            LessonBasedTestsController(widget.testTuru),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<LessonBasedTestsController>(tag: _controllerTag) &&
-        identical(
-          Get.find<LessonBasedTestsController>(tag: _controllerTag),
-          controller,
-        )) {
-      Get.delete<LessonBasedTestsController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController =
+          LessonBasedTestsController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<LessonBasedTestsController>(tag: _controllerTag);
+      }
     }
     super.dispose();
   }

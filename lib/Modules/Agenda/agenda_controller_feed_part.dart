@@ -212,10 +212,8 @@ extension AgendaControllerFeedPart on AgendaController {
     for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
       final post = agendaList[i];
       final thumbnail = post.thumbnail.trim();
-      final fallbackImage =
-          post.img.isNotEmpty ? post.img.first.trim() : '';
-      final previewUrl =
-          thumbnail.isNotEmpty ? thumbnail : fallbackImage;
+      final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+      final previewUrl = thumbnail.isNotEmpty ? thumbnail : fallbackImage;
       if (previewUrl.isEmpty) continue;
       TurqImageCacheManager.instance.getSingleFile(previewUrl).ignore();
     }
@@ -266,7 +264,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void disposeAgendaContentController(String docID) {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
+    if (AgendaContentController.maybeFind(tag: docID) != null) {
       Get.delete<AgendaContentController>(tag: docID, force: true);
       print("Disposed AgendaContentController");
     }

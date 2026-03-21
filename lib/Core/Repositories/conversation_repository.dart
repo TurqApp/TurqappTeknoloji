@@ -6,10 +6,14 @@ import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Chat/chat_constants.dart';
 
 class ConversationRepository extends GetxService {
+  static ConversationRepository? maybeFind() {
+    if (!Get.isRegistered<ConversationRepository>()) return null;
+    return Get.find<ConversationRepository>();
+  }
+
   static ConversationRepository _ensureService() {
-    if (Get.isRegistered<ConversationRepository>()) {
-      return Get.find<ConversationRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ConversationRepository(), permanent: true);
   }
 

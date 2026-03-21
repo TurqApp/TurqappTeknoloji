@@ -3,9 +3,25 @@ import 'package:get/get.dart';
 
 class PostCountManager extends GetxController {
   static PostCountManager? _instance;
+
+  static PostCountManager? maybeFind() {
+    if (!Get.isRegistered<PostCountManager>()) return null;
+    return Get.find<PostCountManager>();
+  }
+
+  static PostCountManager ensure() {
+    final existing = maybeFind();
+    if (existing != null) {
+      _instance = existing;
+      return existing;
+    }
+    final created = Get.put(PostCountManager());
+    _instance = created;
+    return created;
+  }
+
   static PostCountManager get instance {
-    _instance ??= Get.put(PostCountManager());
-    return _instance!;
+    return _instance ??= ensure();
   }
 
   final Map<String, RxInt> _likeCounts = {};

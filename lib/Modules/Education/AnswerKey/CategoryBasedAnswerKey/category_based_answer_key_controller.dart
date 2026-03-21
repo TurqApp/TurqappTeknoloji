@@ -9,6 +9,27 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class CategoryBasedAnswerKeyController extends GetxController {
+  static CategoryBasedAnswerKeyController ensure(
+    String sinavTuru, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CategoryBasedAnswerKeyController(sinavTuru),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CategoryBasedAnswerKeyController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CategoryBasedAnswerKeyController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<CategoryBasedAnswerKeyController>(tag: tag);
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String sinavTuru;
   final list = <BookletModel>[].obs;

@@ -330,6 +330,20 @@ class HLSController {
     }
   }
 
+  Future<bool> isMutedNative() async {
+    if (_viewId == null) return false;
+
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isMuted', {
+        'viewId': _viewId,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      _handleError('Failed to get mute state: ${e.message}');
+      return false;
+    }
+  }
+
   // Toggle play/pause
   Future<void> togglePlayPause() async {
     if (_state == PlayerState.playing) {

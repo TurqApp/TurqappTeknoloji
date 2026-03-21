@@ -30,6 +30,25 @@ import '../../../Models/job_model.dart';
 import '../job_localization_utils.dart';
 
 class JobCreatorController extends GetxController {
+  static JobCreatorController ensure({
+    JobModel? existingJob,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      JobCreatorController(existingJob: existingJob),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static JobCreatorController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<JobCreatorController>(tag: tag)) return null;
+    return Get.find<JobCreatorController>(tag: tag);
+  }
+
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
   var selection = 0.obs;
@@ -45,6 +64,7 @@ class JobCreatorController extends GetxController {
     if (serviceUid.isNotEmpty) return serviceUid;
     return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   }
+
   TextEditingController calismaSaatiBaslangic = TextEditingController();
   TextEditingController calismaSaatiBitis = TextEditingController();
   TextEditingController basvuruSayisi = TextEditingController(text: "0");
@@ -831,7 +851,8 @@ class JobCreatorController extends GetxController {
     try {
       await uploadCroppedImageToFirebase(docID);
     } catch (e) {
-      AppSnackbar('common.error'.tr, e.toString().replaceFirst('Exception: ', ''));
+      AppSnackbar(
+          'common.error'.tr, e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }

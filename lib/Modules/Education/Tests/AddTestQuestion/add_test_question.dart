@@ -35,26 +35,21 @@ class _AddTestQuestionState extends State<AddTestQuestion> {
     _controllerTag =
         'add_test_question_${widget.testID}_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<AddTestQuestionController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(
-            AddTestQuestionController(
-              initialSoruList: widget.soruList,
-              testID: widget.testID,
-              testTuru: widget.testTuru,
-              onUpdate: widget.update,
-            ),
-            tag: _controllerTag,
-          )
-        : Get.find<AddTestQuestionController>(tag: _controllerTag);
+        AddTestQuestionController.maybeFind(tag: _controllerTag) == null;
+    controller = AddTestQuestionController.ensure(
+      initialSoruList: widget.soruList,
+      testID: widget.testID,
+      testTuru: widget.testTuru,
+      onUpdate: widget.update,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<AddTestQuestionController>(tag: _controllerTag)) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<AddTestQuestionController>(tag: _controllerTag);
+          AddTestQuestionController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<AddTestQuestionController>(tag: _controllerTag, force: true);
       }
@@ -64,7 +59,6 @@ class _AddTestQuestionState extends State<AddTestQuestion> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(

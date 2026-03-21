@@ -1,6 +1,13 @@
+import 'package:get/get.dart';
+
 import '../Common/post_content_controller.dart';
 
 class AgendaContentController extends PostContentController {
+  static AgendaContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AgendaContentController>(tag: tag)) return null;
+    return Get.find<AgendaContentController>(tag: tag);
+  }
+
   AgendaContentController({required super.model});
 
   @override

@@ -51,10 +51,14 @@ class ProfileRepository extends GetxService {
   final Map<String, PostsModel?> _latestResharePostMemory =
       <String, PostsModel?>{};
 
+  static ProfileRepository? maybeFind() {
+    if (!Get.isRegistered<ProfileRepository>()) return null;
+    return Get.find<ProfileRepository>();
+  }
+
   static ProfileRepository _ensureService() {
-    if (Get.isRegistered<ProfileRepository>()) {
-      return Get.find<ProfileRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ProfileRepository(), permanent: true);
   }
 

@@ -3,8 +3,13 @@ import 'package:cloud_functions/cloud_functions.dart';
 class TypesenseMarketAdminService {
   TypesenseMarketAdminService._();
 
-  static final TypesenseMarketAdminService instance =
-      TypesenseMarketAdminService._();
+  static TypesenseMarketAdminService? _instance;
+  static TypesenseMarketAdminService? maybeFind() => _instance;
+
+  static TypesenseMarketAdminService ensure() =>
+      maybeFind() ?? (_instance = TypesenseMarketAdminService._());
+
+  static TypesenseMarketAdminService get instance => ensure();
 
   final FirebaseFunctions _functions =
       FirebaseFunctions.instanceFor(region: 'us-central1');

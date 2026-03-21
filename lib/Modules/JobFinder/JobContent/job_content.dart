@@ -12,16 +12,22 @@ import 'package:turqappv2/Themes/app_icons.dart';
 
 import '../job_finder_controller.dart';
 
-class JobContent extends StatelessWidget {
+class JobContent extends StatefulWidget {
   final bool isGrid;
   final JobModel model;
-  JobContent({super.key, required this.model, required this.isGrid});
+  const JobContent({super.key, required this.model, required this.isGrid});
 
-  String get _controllerTag {
-    final docId = model.docID.trim();
-    if (docId.isNotEmpty) return docId;
-    return 'job_fallback_${model.timeStamp}_${model.brand.hashCode}_${model.logo.hashCode}_${model.meslek.hashCode}';
-  }
+  @override
+  State<JobContent> createState() => _JobContentState();
+}
+
+class _JobContentState extends State<JobContent> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final JobContentController controller;
+
+  bool get isGrid => widget.isGrid;
+  JobModel get model => widget.model;
 
   String get _workTypeText {
     if (model.calismaTuru.isEmpty) {
@@ -39,6 +45,46 @@ class JobContent extends StatelessWidget {
     if (city.isNotEmpty) return city;
     if (town.isNotEmpty) return town;
     return 'pasaj.market.location_missing'.tr;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'job_content_${_baseTag}_${identityHashCode(this)}';
+    _ownsController =
+        JobContentController.maybeFind(tag: _controllerTag) == null;
+    controller = JobContentController.ensure(tag: _controllerTag);
+    _primeSavedState();
+  }
+
+  @override
+  void didUpdateWidget(covariant JobContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.docID != model.docID) {
+      _primeSavedState();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+            JobContentController.maybeFind(tag: _controllerTag), controller)) {
+      Get.delete<JobContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  String get _baseTag {
+    final docId = model.docID.trim();
+    if (docId.isNotEmpty) return docId;
+    return 'job_fallback_${model.timeStamp}_${model.brand.hashCode}_${model.logo.hashCode}_${model.meslek.hashCode}';
+  }
+
+  void _primeSavedState() {
+    if (model.docID.trim().isNotEmpty) {
+      controller.primeSavedState(model.docID);
+    }
   }
 
   Widget _buildLogo({
@@ -82,13 +128,6 @@ class JobContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller =
-        Get.isRegistered<JobContentController>(tag: _controllerTag)
-            ? Get.find<JobContentController>(tag: _controllerTag)
-            : Get.put(JobContentController(), tag: _controllerTag);
-    if (model.docID.trim().isNotEmpty) {
-      controller.primeSavedState(model.docID);
-    }
     return isGrid ? gridView(controller) : listingView(controller);
   }
 
@@ -101,8 +140,10 @@ class JobContent extends StatelessWidget {
         child: GestureDetector(
           onTap: () async {
             await Get.to(() => JobDetails(model: model));
-            final finderController = Get.find<JobFinderController>();
-            await finderController.refreshJob(model.docID);
+            final finderController = JobFinderController.maybeFind();
+            if (finderController != null) {
+              await finderController.refreshJob(model.docID);
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(10),
@@ -241,8 +282,10 @@ class JobContent extends StatelessWidget {
                           onTap: () async {
                             await Get.to(() => JobDetails(model: model));
                             final finderController =
-                                Get.find<JobFinderController>();
-                            await finderController.refreshJob(model.docID);
+                                JobFinderController.maybeFind();
+                            if (finderController != null) {
+                              await finderController.refreshJob(model.docID);
+                            }
                           },
                           child: Container(
                             height: metrics.ctaHeight,

@@ -27,24 +27,19 @@ class _SolveTestState extends State<SolveTest> {
     super.initState();
     _controllerTag = 'solve_test_${widget.testID}_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<SolveTestController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(
-            SolveTestController(
-              testID: widget.testID,
-              showSucces: widget.showSucces,
-            ),
-            tag: _controllerTag,
-          )
-        : Get.find<SolveTestController>(tag: _controllerTag);
+        SolveTestController.maybeFind(tag: _controllerTag) == null;
+    controller = SolveTestController.ensure(
+      testID: widget.testID,
+      showSucces: widget.showSucces,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<SolveTestController>(tag: _controllerTag)) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<SolveTestController>(tag: _controllerTag);
+          SolveTestController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<SolveTestController>(tag: _controllerTag, force: true);
       }
@@ -54,7 +49,6 @@ class _SolveTestState extends State<SolveTest> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -188,7 +182,8 @@ class _SolveTestState extends State<SolveTest> {
                                                 height: 40,
                                                 alignment: Alignment.centerLeft,
                                                 child: Text(
-                                                  "tests.question_number".trParams({
+                                                  "tests.question_number"
+                                                      .trParams({
                                                     'index': index.toString(),
                                                   }),
                                                   style: TextStyle(

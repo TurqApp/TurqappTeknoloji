@@ -23,18 +23,15 @@ class _SearchTestsState extends State<SearchTests> {
     super.initState();
     _controllerTag = 'tests_search_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<SearchTestsController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(SearchTestsController(), tag: _controllerTag)
-        : Get.find<SearchTestsController>(tag: _controllerTag);
+        SearchTestsController.maybeFind(tag: _controllerTag) == null;
+    controller = SearchTestsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<SearchTestsController>(tag: _controllerTag)) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<SearchTestsController>(tag: _controllerTag);
+          SearchTestsController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<SearchTestsController>(tag: _controllerTag, force: true);
       }
@@ -44,7 +41,6 @@ class _SearchTestsState extends State<SearchTests> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

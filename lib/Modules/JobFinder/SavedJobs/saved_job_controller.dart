@@ -12,6 +12,24 @@ import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedJobsController extends GetxController {
+  static SavedJobsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SavedJobsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SavedJobsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SavedJobsController>(tag: tag)) return null;
+    return Get.find<SavedJobsController>(tag: tag);
+  }
+
   final JobRepository _jobRepository = JobRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<JobModel> list = <JobModel>[].obs;

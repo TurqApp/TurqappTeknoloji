@@ -8,7 +8,10 @@ class AntremanRepository {
   AntremanRepository._();
 
   static AntremanRepository? _instance;
-  static AntremanRepository ensure() => _instance ??= AntremanRepository._();
+  static AntremanRepository? maybeFind() => _instance;
+
+  static AntremanRepository ensure() =>
+      maybeFind() ?? (_instance = AntremanRepository._());
 
   static const String _scoreCollection = 'questionBankSkor';
 
@@ -81,7 +84,8 @@ class AntremanRepository {
     }
     final snapshot = await query.get();
     return snapshot.docs
-        .map((doc) => <String, dynamic>{...doc.data(), 'userID': doc.id, '_doc': doc})
+        .map((doc) =>
+            <String, dynamic>{...doc.data(), 'userID': doc.id, '_doc': doc})
         .toList(growable: false);
   }
 
@@ -104,7 +108,8 @@ class AntremanRepository {
     for (final doc in snapshot.docs) {
       final data = Map<String, dynamic>.from(doc.data());
       data['docID'] = doc.id;
-      data['categoryKey'] = data['categoryKey'] ?? '$anaBaslik|$sinavTuru|$ders';
+      data['categoryKey'] =
+          data['categoryKey'] ?? '$anaBaslik|$sinavTuru|$ders';
       data['active'] = data['active'] ?? true;
       if (data['active'] == false) continue;
       models.add(QuestionBankModel.fromJson(data));
@@ -126,9 +131,11 @@ class AntremanRepository {
         now.difference(_uniqueFieldsCachedAt!) <= _uniqueFieldsTtl;
     if (!forceRefresh && preferCache && hasFreshCache) {
       return {
-        'anaBaslik': List<String>.from(_uniqueFieldsCache!['anaBaslik'] ?? const []),
+        'anaBaslik':
+            List<String>.from(_uniqueFieldsCache!['anaBaslik'] ?? const []),
         'ders': List<String>.from(_uniqueFieldsCache!['ders'] ?? const []),
-        'sinavTuru': List<String>.from(_uniqueFieldsCache!['sinavTuru'] ?? const []),
+        'sinavTuru':
+            List<String>.from(_uniqueFieldsCache!['sinavTuru'] ?? const []),
       };
     }
 
@@ -183,7 +190,8 @@ class AntremanRepository {
     final out = <String, String>{};
     if (userId.isEmpty || docIds.isEmpty) return out;
     for (int i = 0; i < docIds.length; i += 10) {
-      final chunk = docIds.sublist(i, (i + 10) > docIds.length ? docIds.length : i + 10);
+      final chunk =
+          docIds.sublist(i, (i + 10) > docIds.length ? docIds.length : i + 10);
       final snap = await _firestore
           .collection('users')
           .doc(userId)
@@ -204,7 +212,8 @@ class AntremanRepository {
     final out = <String>{};
     if (userId.isEmpty || docIds.isEmpty) return out;
     for (int i = 0; i < docIds.length; i += 10) {
-      final chunk = docIds.sublist(i, (i + 10) > docIds.length ? docIds.length : i + 10);
+      final chunk =
+          docIds.sublist(i, (i + 10) > docIds.length ? docIds.length : i + 10);
       final snap = await _firestore
           .collection('users')
           .doc(userId)
@@ -326,7 +335,8 @@ class AntremanRepository {
     int newAntPoint = isCorrect ? currentAntPoint + 10 : currentAntPoint - 3;
     if (newAntPoint < 0) newAntPoint = 0;
 
-    final questionRef = _firestore.collection('questionBank').doc(question.docID);
+    final questionRef =
+        _firestore.collection('questionBank').doc(question.docID);
     final userRef = _firestore.collection('users').doc(userId);
     final scoreRef = _firestore
         .collection(_scoreCollection)
@@ -423,7 +433,8 @@ class AntremanRepository {
     return List<Comment>.from(comments);
   }
 
-  Future<List<Reply>> fetchReplies(String questionId, String commentDocId) async {
+  Future<List<Reply>> fetchReplies(
+      String questionId, String commentDocId) async {
     final cacheKey = '$questionId::$commentDocId';
     if (_repliesCache.containsKey(cacheKey)) {
       return List<Reply>.from(_repliesCache[cacheKey]!);
@@ -437,9 +448,8 @@ class AntremanRepository {
         .orderBy('timeStamp', descending: true)
         .get();
 
-    final replies = snapshot.docs
-        .map((doc) => Reply.fromJson(doc.id, doc.data()))
-        .toList();
+    final replies =
+        snapshot.docs.map((doc) => Reply.fromJson(doc.id, doc.data())).toList();
     _repliesCache[cacheKey] = replies;
     return List<Reply>.from(replies);
   }

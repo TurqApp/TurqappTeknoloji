@@ -23,21 +23,28 @@ class PostSharers extends StatefulWidget {
 class _PostSharersState extends State<PostSharers> {
   late final String _controllerTag;
   late final PostSharersController controller;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
     _controllerTag =
         'post_sharers_${widget.postID}_${DateTime.now().microsecondsSinceEpoch}';
-    controller = Get.put(
-      PostSharersController(postID: widget.postID),
+    _ownsController =
+        PostSharersController.maybeFind(tag: _controllerTag) == null;
+    controller = PostSharersController.ensure(
+      postID: widget.postID,
       tag: _controllerTag,
     );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<PostSharersController>(tag: _controllerTag)) {
+    if (_ownsController &&
+        identical(
+          PostSharersController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<PostSharersController>(tag: _controllerTag, force: true);
     }
     super.dispose();
@@ -142,6 +149,7 @@ class _PostSharerTileState extends State<_PostSharerTile> {
   late final String _followTag;
   FollowerController? _followController;
   bool _followStateReady = false;
+  bool _ownsFollowController = false;
 
   String get _currentUid => CurrentUserService.instance.userId;
 
@@ -151,14 +159,20 @@ class _PostSharerTileState extends State<_PostSharerTile> {
     _followTag =
         'post_sharer_follow_${widget.sharer.userID}_${DateTime.now().microsecondsSinceEpoch}';
     if (widget.sharer.userID != _currentUid) {
-      _followController = Get.put(FollowerController(), tag: _followTag);
+      _ownsFollowController =
+          FollowerController.maybeFind(tag: _followTag) == null;
+      _followController = FollowerController.ensure(tag: _followTag);
       _refreshFollowState();
     }
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+    if (_ownsFollowController &&
+        identical(
+          FollowerController.maybeFind(tag: _followTag),
+          _followController,
+        )) {
       Get.delete<FollowerController>(tag: _followTag, force: true);
     }
     super.dispose();

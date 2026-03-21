@@ -6,6 +6,29 @@ import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SolveTestController extends GetxController {
+  static SolveTestController ensure({
+    required String testID,
+    required Function showSucces,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SolveTestController(
+        testID: testID,
+        showSucces: showSucces,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SolveTestController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SolveTestController>(tag: tag)) return null;
+    return Get.find<SolveTestController>(tag: tag);
+  }
+
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TestRepository _testRepository = TestRepository.ensure();
   final String testID;
@@ -84,10 +107,10 @@ class SolveTestController extends GetxController {
   void testiBitir() {
     _testRepository
         .submitAnswers(
-      testID,
-      userId: CurrentUserService.instance.userId,
-      answers: cevaplar.toList(growable: false),
-    )
+          testID,
+          userId: CurrentUserService.instance.userId,
+          answers: cevaplar.toList(growable: false),
+        )
         .catchError((error) {});
     Get.back();
     showSucces();

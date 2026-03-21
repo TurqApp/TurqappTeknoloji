@@ -7,6 +7,11 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class MarketOfferService {
   MarketOfferService._();
+  static MarketOfferService? _instance;
+  static MarketOfferService? maybeFind() => _instance;
+
+  static MarketOfferService ensure() =>
+      maybeFind() ?? (_instance = MarketOfferService._());
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -213,7 +218,8 @@ class MarketOfferService {
       tx.set(
         itemRef,
         {
-          'status': status == kMarketOfferStatusAccepted ? 'reserved' : 'active',
+          'status':
+              status == kMarketOfferStatusAccepted ? 'reserved' : 'active',
           'acceptedOfferId':
               status == kMarketOfferStatusAccepted ? offer.id : '',
           'updatedAt': now,

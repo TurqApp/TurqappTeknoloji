@@ -7,6 +7,24 @@ import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_control
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
 
 class TestEntryController extends GetxController {
+  static TestEntryController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TestEntryController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TestEntryController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<TestEntryController>(tag: tag)) return null;
+    return Get.find<TestEntryController>(tag: tag);
+  }
+
   final textController = TextEditingController();
   final focusNode = FocusNode();
   final model = Rx<TestsModel?>(null);
@@ -82,7 +100,8 @@ class TestEntryController extends GetxController {
 
   String localizedTestType(String raw) => _helper.localizedTestType(raw);
 
-  String localizedLessons(List<String> lessons) => _helper.localizedLessons(lessons);
+  String localizedLessons(List<String> lessons) =>
+      _helper.localizedLessons(lessons);
 
   void showAlert() {
     showAlertDialog(

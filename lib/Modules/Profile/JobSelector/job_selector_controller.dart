@@ -4,6 +4,20 @@ import 'package:turqappv2/Core/jobs.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class JobSelectorController extends GetxController {
+  static JobSelectorController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      JobSelectorController(),
+      permanent: permanent,
+    );
+  }
+
+  static JobSelectorController? maybeFind() {
+    if (!Get.isRegistered<JobSelectorController>()) return null;
+    return Get.find<JobSelectorController>();
+  }
+
   static const _studentJob = 'öğrenci';
   var job = "".obs;
   var filteredJobs = <String>[].obs;

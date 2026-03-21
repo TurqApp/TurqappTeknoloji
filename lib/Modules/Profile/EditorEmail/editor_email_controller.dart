@@ -10,6 +10,20 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorEmailController extends GetxController {
+  static EditorEmailController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      EditorEmailController(),
+      permanent: permanent,
+    );
+  }
+
+  static EditorEmailController? maybeFind() {
+    if (!Get.isRegistered<EditorEmailController>()) return null;
+    return Get.find<EditorEmailController>();
+  }
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController codeController = TextEditingController();
 

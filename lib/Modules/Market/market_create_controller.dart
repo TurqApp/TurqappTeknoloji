@@ -71,6 +71,25 @@ class MarketCategoryNode {
 }
 
 class MarketCreateController extends GetxController {
+  static MarketCreateController ensure({
+    MarketItemModel? initialItem,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MarketCreateController(initialItem: initialItem),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MarketCreateController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MarketCreateController>(tag: tag)) return null;
+    return Get.find<MarketCreateController>(tag: tag);
+  }
+
   MarketCreateController({this.initialItem});
 
   final MarketSchemaService _schemaService = MarketSchemaService.ensure();
@@ -117,9 +136,8 @@ class MarketCreateController extends GetxController {
   String get draftActionLabel => isEditing
       ? 'pasaj.market.create.update_draft'.tr
       : 'pasaj.market.status.draft'.tr;
-  String get publishActionLabel => isEditing
-      ? 'common.update'.tr
-      : 'common.publish'.tr;
+  String get publishActionLabel =>
+      isEditing ? 'common.update'.tr : 'common.publish'.tr;
   String get selectedCategoryPathText =>
       selectedLeaf.value?.pathTextWithoutTop ?? '';
 
@@ -465,16 +483,18 @@ class MarketCreateController extends GetxController {
       'status': _nextStatus(publish),
       'seller': {
         'userId': userId,
-        'displayName':
-            displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
+        'displayName': displayName.isEmpty
+            ? 'pasaj.market.default_seller'.tr
+            : displayName,
         'nickname': nickname,
         'avatarUrl': avatarUrl,
         'rozet': current?.rozet ?? '',
         'phoneNumber': phoneNumber,
         'isApproved': current?.hesapOnayi == true,
         // Geriye uyumlu alanlar
-        'name':
-            displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
+        'name': displayName.isEmpty
+            ? 'pasaj.market.default_seller'.tr
+            : displayName,
         'username': nickname,
         'photoUrl': avatarUrl,
         'verified': current?.hesapOnayi == true,

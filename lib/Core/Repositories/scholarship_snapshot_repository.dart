@@ -23,10 +23,14 @@ class ScholarshipSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'scholarship_home_snapshot';
   static const String _searchSurfaceKey = 'scholarship_search_snapshot';
 
+  static ScholarshipSnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<ScholarshipSnapshotRepository>()) return null;
+    return Get.find<ScholarshipSnapshotRepository>();
+  }
+
   static ScholarshipSnapshotRepository _ensureService() {
-    if (Get.isRegistered<ScholarshipSnapshotRepository>()) {
-      return Get.find<ScholarshipSnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ScholarshipSnapshotRepository(), permanent: true);
   }
 

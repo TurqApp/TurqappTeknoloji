@@ -4,6 +4,17 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 
 class CreateChatController extends GetxController {
+  static CreateChatController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(CreateChatController(), permanent: permanent);
+  }
+
+  static CreateChatController? maybeFind() {
+    if (!Get.isRegistered<CreateChatController>()) return null;
+    return Get.find<CreateChatController>();
+  }
+
   TextEditingController search = TextEditingController();
   var selected = "".obs;
   final RxString query = ''.obs;
@@ -14,8 +25,8 @@ class CreateChatController extends GetxController {
     // Debounce arama: 300ms sonra tetikle
     debounce<String>(query, (val) async {
       final q = normalizeSearchText(val);
-      if (!Get.isRegistered<FollowingFollowersController>()) return;
-      final followers = Get.find<FollowingFollowersController>();
+      final followers = FollowingFollowersController.maybeFind();
+      if (followers == null) return;
       followers.searchTakipEdilenController.text = q;
       if (q.length >= 2) {
         await followers.searchTakipEdilenler();

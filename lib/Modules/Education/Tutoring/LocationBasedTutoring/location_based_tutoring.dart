@@ -23,20 +23,14 @@ class _LocationBasedTutoringState extends State<LocationBasedTutoring> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<LocationBasedTutoringController>()) {
-      controller = Get.find<LocationBasedTutoringController>();
-      _ownsController = false;
-    } else {
-      controller = Get.put(LocationBasedTutoringController());
-      _ownsController = true;
-    }
+    _ownsController = LocationBasedTutoringController.maybeFind() == null;
+    controller = LocationBasedTutoringController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<LocationBasedTutoringController>() &&
-        identical(Get.find<LocationBasedTutoringController>(), controller)) {
+        identical(LocationBasedTutoringController.maybeFind(), controller)) {
       Get.delete<LocationBasedTutoringController>();
     }
     super.dispose();

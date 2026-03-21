@@ -609,7 +609,10 @@ class ShortController extends GetxController {
   /// HOT  (current-2 ... current+3) : Native player yüklü, ~2 segment buffered
   /// WARM (current-5 ... current-3) : Adapter hayatta, player stopped (network yok)
   /// COLD (geri kalan)              : Tamamen dispose
-  Future<void> updateCacheTiers(int currentIndex) async {
+  Future<void> updateCacheTiers(
+    int currentIndex, {
+    bool suppressWarmPause = false,
+  }) async {
     if (shorts.isEmpty) return;
     final window = _playbackCoordinator.buildWindow(shorts, currentIndex);
     final hotIndices = window.hotIndices;
@@ -646,7 +649,9 @@ class ShortController extends GetxController {
     // Uzak videolar COLD aşamasında dispose edildiğinden toplam yük yine kontrol altında.
     for (final i in warmIndices) {
       if (cache.containsKey(i) && _tiers[i] != _CacheTier.warm) {
-        await _downgradeAdapterForWarmTier(cache[i]!);
+        if (!suppressWarmPause) {
+          await _downgradeAdapterForWarmTier(cache[i]!);
+        }
         _tiers[i] = _CacheTier.warm;
       }
     }
@@ -677,6 +682,11 @@ class ShortController extends GetxController {
   }
 
   void _enforceMaxPlayers(int currentIndex, int maxAttachedPlayers) {
+    final pinnedKeys = <int>{};
+    if (defaultTargetPlatform == TargetPlatform.android && currentIndex <= 1) {
+      if (cache.containsKey(0)) pinnedKeys.add(0);
+      if (cache.containsKey(1)) pinnedKeys.add(1);
+    }
     final activeKeys = cache.keys.where((k) => !cache[k]!.isStopped).toList()
       ..sort((a, b) =>
           (a - currentIndex).abs().compareTo((b - currentIndex).abs()));
@@ -694,8 +704,13 @@ class ShortController extends GetxController {
     );
 
     if (activeKeys.length > maxAttachedPlayers) {
-      for (int i = maxAttachedPlayers; i < activeKeys.length; i++) {
-        final k = activeKeys[i];
+      final trimmableKeys = activeKeys
+          .where((k) => !pinnedKeys.contains(k))
+          .toList(growable: false);
+      final allowedTrimCount =
+          maxAttachedPlayers - pinnedKeys.length < 0 ? 0 : maxAttachedPlayers - pinnedKeys.length;
+      for (int i = allowedTrimCount; i < trimmableKeys.length; i++) {
+        final k = trimmableKeys[i];
         final adapter = cache[k];
         cache.remove(k);
         _tiers.remove(k);

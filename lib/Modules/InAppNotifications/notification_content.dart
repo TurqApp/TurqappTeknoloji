@@ -31,6 +31,7 @@ class NotificationContent extends StatefulWidget {
 class _NotificationContentState extends State<NotificationContent> {
   late NotificationContentController controller;
   late String _controllerTag;
+  bool _ownsController = false;
 
   NotificationModel get model => widget.model;
   VoidCallback? get onOpen => widget.onOpen;
@@ -65,17 +66,21 @@ class _NotificationContentState extends State<NotificationContent> {
   void _bindController() {
     _controllerTag =
         'notification_content_${widget.model.docID}_${identityHashCode(this)}';
-    controller = Get.put(
-      NotificationContentController(
-        userID: widget.model.userID,
-        notification: widget.model,
-      ),
+    _ownsController =
+        NotificationContentController.maybeFind(tag: _controllerTag) == null;
+    controller = NotificationContentController.ensure(
+      userID: widget.model.userID,
+      notification: widget.model,
       tag: _controllerTag,
     );
   }
 
   void _disposeController() {
-    if (Get.isRegistered<NotificationContentController>(tag: _controllerTag)) {
+    if (_ownsController &&
+        identical(
+          NotificationContentController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<NotificationContentController>(
         tag: _controllerTag,
         force: true,

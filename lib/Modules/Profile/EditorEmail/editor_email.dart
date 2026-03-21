@@ -18,11 +18,12 @@ class _EditorEmailState extends State<EditorEmail> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<EditorEmailController>()) {
-      controller = Get.find<EditorEmailController>();
+    final existingController = EditorEmailController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(EditorEmailController());
+      controller = EditorEmailController.ensure();
       _ownsController = true;
     }
   }
@@ -30,8 +31,7 @@ class _EditorEmailState extends State<EditorEmail> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<EditorEmailController>() &&
-        identical(Get.find<EditorEmailController>(), controller)) {
+        identical(EditorEmailController.maybeFind(), controller)) {
       Get.delete<EditorEmailController>(force: true);
     }
     super.dispose();
@@ -91,8 +91,8 @@ class _EditorEmailState extends State<EditorEmail> {
                     },
                     bgColor: canSend ? Colors.black : Colors.grey,
                     text: controller.countdown.value > 0
-                        ? 'editor_email.resend_in'
-                            .trParams({'seconds': '${controller.countdown.value}'})
+                        ? 'editor_email.resend_in'.trParams(
+                            {'seconds': '${controller.countdown.value}'})
                         : 'editor_email.send_code'.tr,
                   ),
                   const SizedBox(height: 10),

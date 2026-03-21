@@ -36,8 +36,13 @@ extension _EntityName on EducationTypesenseEntity {
 class TypesenseEducationSearchService {
   TypesenseEducationSearchService._();
 
-  static final TypesenseEducationSearchService instance =
-      TypesenseEducationSearchService._();
+  static TypesenseEducationSearchService? _instance;
+  static TypesenseEducationSearchService? maybeFind() => _instance;
+
+  static TypesenseEducationSearchService ensure() =>
+      maybeFind() ?? (_instance = TypesenseEducationSearchService._());
+
+  static TypesenseEducationSearchService get instance => ensure();
   static const Duration _ttl = Duration(minutes: 15);
   static const String _prefsPrefix = 'typesense_education_search_v1';
 

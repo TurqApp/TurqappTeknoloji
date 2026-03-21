@@ -9,6 +9,26 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticalPreviewController extends GetxController {
+  static OpticalPreviewController ensure(
+    OpticalFormModel model,
+    Function? onUpdate, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      OpticalPreviewController(model, onUpdate),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static OpticalPreviewController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<OpticalPreviewController>(tag: tag)) return null;
+    return Get.find<OpticalPreviewController>(tag: tag);
+  }
+
   final OpticalFormModel model;
   final Function? onUpdate;
   final OpticalFormRepository _opticalFormRepository =

@@ -25,19 +25,14 @@ class _MyBookletResultsState extends State<MyBookletResults> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<MyBookletResultsController>()) {
-      controller = Get.find<MyBookletResultsController>();
-    } else {
-      controller = Get.put(MyBookletResultsController());
-      _ownsController = true;
-    }
+    _ownsController = MyBookletResultsController.maybeFind() == null;
+    controller = MyBookletResultsController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<MyBookletResultsController>() &&
-        Get.find<MyBookletResultsController>() == controller) {
+        identical(MyBookletResultsController.maybeFind(), controller)) {
       Get.delete<MyBookletResultsController>(force: true);
     }
     _pageController.dispose();

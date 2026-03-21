@@ -14,14 +14,16 @@ class MarketSchemaService extends GetxService {
   final RxMap<String, dynamic> schema = <String, dynamic>{}.obs;
   SharedPreferences? _prefs;
 
-  static MarketSchemaService _ensureService() {
-    if (Get.isRegistered<MarketSchemaService>()) {
-      return Get.find<MarketSchemaService>();
-    }
-    return Get.put(MarketSchemaService(), permanent: true);
+  static MarketSchemaService? maybeFind() {
+    if (!Get.isRegistered<MarketSchemaService>()) return null;
+    return Get.find<MarketSchemaService>();
   }
 
-  static MarketSchemaService ensure() => _ensureService();
+  static MarketSchemaService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(MarketSchemaService(), permanent: true);
+  }
 
   @override
   void onInit() {

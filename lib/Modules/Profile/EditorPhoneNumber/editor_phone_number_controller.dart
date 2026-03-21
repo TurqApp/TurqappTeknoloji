@@ -11,6 +11,20 @@ import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorPhoneNumberController extends GetxController {
+  static EditorPhoneNumberController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      EditorPhoneNumberController(),
+      permanent: permanent,
+    );
+  }
+
+  static EditorPhoneNumberController? maybeFind() {
+    if (!Get.isRegistered<EditorPhoneNumberController>()) return null;
+    return Get.find<EditorPhoneNumberController>();
+  }
+
   final phoneController = TextEditingController();
   final codeController = TextEditingController();
 

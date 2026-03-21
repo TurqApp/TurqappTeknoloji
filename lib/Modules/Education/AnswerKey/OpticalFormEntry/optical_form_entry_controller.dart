@@ -9,6 +9,24 @@ import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_pre
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticalFormEntryController extends GetxController {
+  static OpticalFormEntryController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      OpticalFormEntryController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static OpticalFormEntryController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<OpticalFormEntryController>(tag: tag)) return null;
+    return Get.find<OpticalFormEntryController>(tag: tag);
+  }
+
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();

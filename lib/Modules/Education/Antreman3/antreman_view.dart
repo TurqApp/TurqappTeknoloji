@@ -25,8 +25,8 @@ class AntremanView2 extends StatelessWidget {
       AntremanController.ensure(permanent: true);
 
   void _dismissSharedEducationSearchFocus() {
-    if (!Get.isRegistered<EducationController>()) return;
-    final educationController = Get.find<EducationController>();
+    final educationController = EducationController.maybeFind();
+    if (educationController == null) return;
     if (educationController.searchFocus.hasFocus) {
       educationController.searchFocus.unfocus();
     }

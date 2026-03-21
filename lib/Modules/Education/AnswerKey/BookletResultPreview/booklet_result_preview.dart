@@ -25,25 +25,20 @@ class _BookletResultPreviewState extends State<BookletResultPreview> {
     super.initState();
     _controllerTag =
         'booklet_result_preview_${widget.model.docID}_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<BookletResultPreviewController>(
+    _ownsController =
+        BookletResultPreviewController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletResultPreviewController.ensure(
+      widget.model,
       tag: _controllerTag,
     );
-    controller = _ownsController
-        ? Get.put(
-            BookletResultPreviewController(widget.model),
-            tag: _controllerTag,
-          )
-        : Get.find<BookletResultPreviewController>(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<BookletResultPreviewController>(
-          tag: _controllerTag,
-        )) {
-      final registeredController =
-          Get.find<BookletResultPreviewController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = BookletResultPreviewController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<BookletResultPreviewController>(
           tag: _controllerTag,
@@ -56,7 +51,6 @@ class _BookletResultPreviewState extends State<BookletResultPreview> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -117,9 +111,8 @@ class _BookletResultPreviewState extends State<BookletResultPreview> {
                                                   .anaModel.value!.cover,
                                               fit: BoxFit.contain,
                                               height: 50,
-                                              placeholder:
-                                                  (context, url) =>
-                                                      const SizedBox(
+                                              placeholder: (context, url) =>
+                                                  const SizedBox(
                                                 height: 50,
                                                 child: Center(
                                                   child:
@@ -304,7 +297,8 @@ class _BookletResultPreviewState extends State<BookletResultPreview> {
                                   width: 40,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: widget.model.cevaplar[realindex] == ""
+                                    color: widget.model.cevaplar[realindex] ==
+                                            ""
                                         ? (widget.model.dogruCevaplar[realindex] ==
                                                 item
                                             ? Colors.green
@@ -322,8 +316,7 @@ class _BookletResultPreviewState extends State<BookletResultPreview> {
                                                             realindex] ==
                                                         item
                                                 ? Colors.green
-                                                : widget.model.cevaplar[realindex] ==
-                                                        item
+                                                : widget.model.cevaplar[realindex] == item
                                                     ? Colors.red
                                                     : Colors.white,
                                     shape: BoxShape.circle,
@@ -331,8 +324,11 @@ class _BookletResultPreviewState extends State<BookletResultPreview> {
                                   child: Text(
                                     item,
                                     style: TextStyle(
-                                      color: widget.model.cevaplar[realindex] == "" ||
-                                              widget.model.cevaplar[realindex] == item
+                                      color: widget.model.cevaplar[realindex] ==
+                                                  "" ||
+                                              widget.model
+                                                      .cevaplar[realindex] ==
+                                                  item
                                           ? Colors.white
                                           : Colors.black,
                                       fontSize: 20,

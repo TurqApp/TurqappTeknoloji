@@ -67,6 +67,8 @@ class ShortsContent extends StatefulWidget {
 
 class _ShortsContentState extends State<ShortsContent> {
   late final ShortContentController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
 
   PostsModel get model => widget.model;
   HLSVideoAdapter get videoPlayerController => widget.videoPlayerController;
@@ -86,20 +88,25 @@ class _ShortsContentState extends State<ShortsContent> {
   @override
   void initState() {
     super.initState();
-    controller = Get.isRegistered<ShortContentController>(tag: model.docID)
-        ? Get.find<ShortContentController>(tag: model.docID)
-        : Get.put(
-            ShortContentController(postID: model.docID, model: model),
-            tag: model.docID,
-          );
+    _controllerTag = model.docID;
+    _ownsController =
+        ShortContentController.maybeFind(tag: _controllerTag) == null;
+    controller = ShortContentController.ensure(
+      postID: model.docID,
+      model: model,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    final tag = model.docID;
     Future.microtask(() {
-      if (Get.isRegistered<ShortContentController>(tag: tag)) {
-        Get.delete<ShortContentController>(tag: tag);
+      if (_ownsController &&
+          identical(
+            ShortContentController.maybeFind(tag: _controllerTag),
+            controller,
+          )) {
+        Get.delete<ShortContentController>(tag: _controllerTag);
       }
     });
     super.dispose();

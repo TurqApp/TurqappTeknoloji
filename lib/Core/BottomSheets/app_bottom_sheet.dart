@@ -61,12 +61,9 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
   void initState() {
     super.initState();
     _controllerTag = 'app_bottom_sheet_${identityHashCode(this)}';
-    if (Get.isRegistered<AppBottomSheetController>(tag: _controllerTag)) {
-      controller = Get.find<AppBottomSheetController>(tag: _controllerTag);
-    } else {
-      controller = Get.put(AppBottomSheetController(), tag: _controllerTag);
-      _ownsController = true;
-    }
+    _ownsController =
+        AppBottomSheetController.maybeFind(tag: _controllerTag) == null;
+    controller = AppBottomSheetController.ensure(tag: _controllerTag);
     controller.initSelection(widget.list, widget.startSelection);
   }
 
@@ -82,9 +79,8 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<AppBottomSheetController>(tag: _controllerTag) &&
         identical(
-          Get.find<AppBottomSheetController>(tag: _controllerTag),
+          AppBottomSheetController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<AppBottomSheetController>(tag: _controllerTag);
@@ -172,6 +168,24 @@ class _AppBottomSheetState extends State<AppBottomSheet> {
 }
 
 class AppBottomSheetController extends GetxController {
+  static AppBottomSheetController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AppBottomSheetController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AppBottomSheetController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AppBottomSheetController>(tag: tag)) return null;
+    return Get.find<AppBottomSheetController>(tag: tag);
+  }
+
   final list = <dynamic>[].obs;
   final startSelection = "".obs;
 

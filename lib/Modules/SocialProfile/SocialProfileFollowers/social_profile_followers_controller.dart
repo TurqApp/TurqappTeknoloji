@@ -25,6 +25,31 @@ class SocialProfileFollowersController extends GetxController {
   final VisibilityPolicyService _visibilityPolicy =
       VisibilityPolicyService.ensure();
 
+  static SocialProfileFollowersController ensure({
+    required int initialPage,
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SocialProfileFollowersController(
+        initialPage: initialPage,
+        userID: userID,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SocialProfileFollowersController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SocialProfileFollowersController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<SocialProfileFollowersController>(tag: tag);
+  }
+
   SocialProfileFollowersController(
       {required int initialPage, required this.userID}) {
     selection.value = initialPage;
@@ -43,7 +68,8 @@ class SocialProfileFollowersController extends GetxController {
     final followersCacheKey = 'followers:$userID';
     final cachedFollowers = _relationCache[followersCacheKey];
     if (cachedFollowers != null &&
-        DateTime.now().difference(cachedFollowers.cachedAt) <= _relationCacheTtl) {
+        DateTime.now().difference(cachedFollowers.cachedAt) <=
+            _relationCacheTtl) {
       takipciler.value = List<String>.from(cachedFollowers.ids);
       hasMoreFollowers = false;
       return;
@@ -72,7 +98,8 @@ class SocialProfileFollowersController extends GetxController {
     final followingsCacheKey = 'followings:$userID';
     final cachedFollowings = _relationCache[followingsCacheKey];
     if (cachedFollowings != null &&
-        DateTime.now().difference(cachedFollowings.cachedAt) <= _relationCacheTtl) {
+        DateTime.now().difference(cachedFollowings.cachedAt) <=
+            _relationCacheTtl) {
       takipEdilenler.value = List<String>.from(cachedFollowings.ids);
       hasMoreFollowing = false;
       return;

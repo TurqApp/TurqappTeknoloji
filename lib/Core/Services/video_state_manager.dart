@@ -8,10 +8,14 @@ import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 /// Instagram tarzı akıcı video deneyimi için video durumu yöneticisi
 /// Her videonun oynatma pozisyonunu ve durumunu bellekte tutar
 class VideoStateManager extends GetxController {
+  static VideoStateManager? maybeFind() {
+    if (!Get.isRegistered<VideoStateManager>()) return null;
+    return Get.find<VideoStateManager>();
+  }
+
   static VideoStateManager _ensureController() {
-    if (Get.isRegistered<VideoStateManager>()) {
-      return Get.find<VideoStateManager>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(VideoStateManager());
   }
 

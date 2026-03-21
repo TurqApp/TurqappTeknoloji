@@ -26,21 +26,20 @@ class _BookletAnswerState extends State<BookletAnswer> {
     _controllerTag =
         'booklet_answer_${widget.anaModel.docID}_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<BookletAnswerController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(
-            BookletAnswerController(widget.model, widget.anaModel),
-            tag: _controllerTag,
-          )
-        : Get.find<BookletAnswerController>(tag: _controllerTag);
+        BookletAnswerController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletAnswerController.ensure(
+      widget.model,
+      widget.anaModel,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<BookletAnswerController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<BookletAnswerController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = BookletAnswerController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<BookletAnswerController>(tag: _controllerTag, force: true);
       }
@@ -50,7 +49,6 @@ class _BookletAnswerState extends State<BookletAnswer> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,

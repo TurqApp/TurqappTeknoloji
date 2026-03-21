@@ -23,20 +23,14 @@ class _TutoringSearchState extends State<TutoringSearch> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<TutoringSearchController>()) {
-      controller = Get.find<TutoringSearchController>();
-      _ownsController = false;
-    } else {
-      controller = Get.put(TutoringSearchController());
-      _ownsController = true;
-    }
+    _ownsController = TutoringSearchController.maybeFind() == null;
+    controller = TutoringSearchController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<TutoringSearchController>() &&
-        identical(Get.find<TutoringSearchController>(), controller)) {
+        identical(TutoringSearchController.maybeFind(), controller)) {
       Get.delete<TutoringSearchController>();
     }
     super.dispose();

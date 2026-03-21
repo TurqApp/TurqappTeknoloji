@@ -5,10 +5,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class IzBirakSubscriptionService extends GetxService {
+  static IzBirakSubscriptionService? maybeFind() {
+    if (!Get.isRegistered<IzBirakSubscriptionService>()) return null;
+    return Get.find<IzBirakSubscriptionService>();
+  }
+
   static IzBirakSubscriptionService _ensureService() {
-    if (Get.isRegistered<IzBirakSubscriptionService>()) {
-      return Get.find<IzBirakSubscriptionService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(IzBirakSubscriptionService(), permanent: true);
   }
 

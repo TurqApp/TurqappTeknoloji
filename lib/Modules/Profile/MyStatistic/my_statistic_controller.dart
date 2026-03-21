@@ -5,6 +5,24 @@ import 'package:turqappv2/Core/Repositories/profile_stats_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyStatisticController extends GetxController {
+  static MyStatisticController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyStatisticController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyStatisticController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyStatisticController>(tag: tag)) return null;
+    return Get.find<MyStatisticController>(tag: tag);
+  }
+
   final ProfileStatsRepository _statsRepository =
       ProfileStatsRepository.ensure();
   final isLoading = true.obs;
@@ -178,8 +196,7 @@ class MyStatisticController extends GetxController {
       posts30d.value = result['posts30d'] ?? 0;
       totalPostViews.value = result['totalPostViews'] ?? 0;
       postViews30d.value = result['postViews30d'] ?? 0;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadStoryViewsAndVisits(String uid) async {
@@ -188,8 +205,7 @@ class MyStatisticController extends GetxController {
       stories30d.value = result['stories30d'] ?? 0;
       profileVisitsApprox.value = result['profileVisitsApprox'] ?? 0;
       totalStoryViews.value = result['totalStoryViews'] ?? 0;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _computeDerived() {

@@ -10,6 +10,27 @@ import 'package:turqappv2/Models/job_application_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ApplicationReviewController extends GetxController {
+  static ApplicationReviewController ensure({
+    required String jobDocID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ApplicationReviewController(jobDocID: jobDocID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ApplicationReviewController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ApplicationReviewController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<ApplicationReviewController>(tag: tag);
+  }
+
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final CvRepository _cvRepository = CvRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();

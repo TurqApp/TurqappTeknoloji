@@ -26,27 +26,33 @@ class ReportUser extends StatefulWidget {
 class _ReportUserState extends State<ReportUser> {
   late final ReportUserController controller;
   late final String _controllerTag;
+  bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
     _controllerTag =
         'report_user_${widget.userID}_${widget.postID}_${widget.commentID}_${identityHashCode(this)}';
-    controller = Get.put(
-      ReportUserController(
+    final existingController =
+        ReportUserController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = ReportUserController.ensure(
         userID: widget.userID,
         postID: widget.postID,
         commentID: widget.commentID,
-      ),
-      tag: _controllerTag,
-    );
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<ReportUserController>(tag: _controllerTag) &&
+    if (_ownsController &&
         identical(
-          Get.find<ReportUserController>(tag: _controllerTag),
+          ReportUserController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ReportUserController>(tag: _controllerTag);

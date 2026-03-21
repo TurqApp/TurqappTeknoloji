@@ -39,10 +39,10 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _feedSnapshot() {
-    if (!Get.isRegistered<AgendaController>()) {
+    final controller = AgendaController.maybeFind();
+    if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final controller = Get.find<AgendaController>();
     final centeredIndex = controller.centeredIndex.value;
     final items = controller.agendaList;
     return <String, dynamic>{
@@ -77,10 +77,10 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _profileSnapshot() {
-    if (!Get.isRegistered<ProfileController>()) {
+    final controller = ProfileController.maybeFind();
+    if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final controller = Get.find<ProfileController>();
     final index = controller.centeredIndex.value;
     final items = controller.mergedPosts;
     return <String, dynamic>{
@@ -99,10 +99,10 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _socialProfileSnapshot() {
-    if (!Get.isRegistered<SocialProfileController>()) {
+    final controller = SocialProfileController.maybeFind();
+    if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final controller = Get.find<SocialProfileController>();
     final index = controller.centeredIndex.value;
     final items = controller.allPosts;
     return <String, dynamic>{
@@ -118,10 +118,10 @@ class IntegrationTestStateProbe {
   }
 
   static Map<String, dynamic> _notificationsSnapshot() {
-    if (!Get.isRegistered<InAppNotificationsController>()) {
+    final controller = InAppNotificationsController.maybeFind();
+    if (controller == null) {
       return const <String, dynamic>{'registered': false};
     }
-    final controller = Get.find<InAppNotificationsController>();
     return <String, dynamic>{
       'registered': true,
       'count': controller.list.length,

@@ -25,15 +25,15 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
   void initState() {
     super.initState();
     _controllerTag = 'become_verified_${identityHashCode(this)}';
-    controller =
-        Get.put(BecomeVerifiedAccountController(), tag: _controllerTag);
+    controller = BecomeVerifiedAccountController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<BecomeVerifiedAccountController>(tag: _controllerTag) &&
+    if (BecomeVerifiedAccountController.maybeFind(tag: _controllerTag) !=
+            null &&
         identical(
-          Get.find<BecomeVerifiedAccountController>(tag: _controllerTag),
+          BecomeVerifiedAccountController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<BecomeVerifiedAccountController>(tag: _controllerTag);
@@ -677,9 +677,11 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
         SizedBox(
           height: 20,
         ),
-        TurqAppButton(onTap: () {
-          controller.bodySelection.value++;
-        }, text: "common.continue".tr),
+        TurqAppButton(
+            onTap: () {
+              controller.bodySelection.value++;
+            },
+            text: "common.continue".tr),
         SizedBox(
           height: 20,
         ),
@@ -706,7 +708,9 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
         Text("become_verified.step_requested_username".tr,
             style: const TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
         const SizedBox(height: 12),
-        _buildCustomInput(controller.nickname, "become_verified.requested_username_hint".tr,
+        _buildCustomInput(
+            controller.nickname,
+            "become_verified.requested_username_hint".tr,
             controller.setNicknameDefault),
         const SizedBox(height: 25),
         Text("become_verified.step_social_confirmation".tr,
@@ -762,8 +766,8 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
         15.ph,
         Obx(
           () => GestureDetector(
-            onTap: () => controller
-                .toggleConsent(!controller.hasAcceptedConsent.value),
+            onTap: () =>
+                controller.toggleConsent(!controller.hasAcceptedConsent.value),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -798,10 +802,11 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
             children: [
               const SizedBox(height: 25),
               Text("become_verified.step_barcode".tr,
-                  style: const TextStyle(fontSize: 18, fontFamily: "MontserratBold")),
+                  style: const TextStyle(
+                      fontSize: 18, fontFamily: "MontserratBold")),
               const SizedBox(height: 12),
-              _buildCustomInput(
-                  controller.eDevletBarcodeNo, "become_verified.barcode_hint".tr),
+              _buildCustomInput(controller.eDevletBarcodeNo,
+                  "become_verified.barcode_hint".tr),
             ],
           ),
         if (controller.canSubmitApplication.value)

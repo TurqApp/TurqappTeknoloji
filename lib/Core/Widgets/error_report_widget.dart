@@ -8,7 +8,7 @@ class ErrorReportWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final errorService = Get.find<ErrorHandlingService>();
+    final errorService = ErrorHandlingService.ensure();
 
     return Scaffold(
       appBar: AppBar(
@@ -318,13 +318,15 @@ class ErrorReportWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildDetailRow('error_report.error_code'.tr, error.code),
-                _buildDetailRow('error_report.category'.tr, error.category.label),
-                _buildDetailRow('error_report.severity'.tr, error.severity.label),
                 _buildDetailRow(
-                    'error_report.retryable'.tr,
+                    'error_report.category'.tr, error.category.label),
+                _buildDetailRow(
+                    'error_report.severity'.tr, error.severity.label),
+                _buildDetailRow('error_report.retryable'.tr,
                     error.isRetryable ? 'common.yes'.tr : 'common.no'.tr),
                 if (error.metadata.isNotEmpty)
-                  _buildDetailRow('error_report.metadata'.tr, error.metadata.toString()),
+                  _buildDetailRow(
+                      'error_report.metadata'.tr, error.metadata.toString()),
                 if (error.stackTrace != null) ...[
                   const SizedBox(height: 10),
                   Text(

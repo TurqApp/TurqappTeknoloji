@@ -29,6 +29,25 @@ import '../Profile/SocialMediaLinks/social_media_links_controller.dart';
 import '../Story/StoryRow/story_user_model.dart';
 
 class SocialProfileController extends GetxController {
+  static SocialProfileController ensure({
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SocialProfileController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SocialProfileController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SocialProfileController>(tag: tag)) return null;
+    return Get.find<SocialProfileController>(tag: tag);
+  }
+
   var totalMarket = 0.obs;
   var totalPosts = 0.obs;
   var totalLikes = 0.obs;
@@ -53,7 +72,7 @@ class SocialProfileController extends GetxController {
   final StoryRepository _storyRepository = StoryRepository.ensure();
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
-  final UserPostLinkService _linkService = Get.put(UserPostLinkService());
+  final UserPostLinkService _linkService = UserPostLinkService.ensure();
   final Map<String, GlobalKey> _postKeys = {};
   var showPfImage = false.obs;
 
@@ -529,7 +548,7 @@ class SocialProfileController extends GetxController {
       agendaInstanceTag(docId: docID, isReshare: true),
     };
     for (final tag in tags) {
-      if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      if (AgendaContentController.maybeFind(tag: tag) != null) {
         Get.delete<AgendaContentController>(tag: tag, force: true);
       }
     }

@@ -91,10 +91,14 @@ class NotifyLookupRepository extends GetxService {
   final Map<String, NotifyMarketLookup> _marketLookupCache =
       <String, NotifyMarketLookup>{};
 
+  static NotifyLookupRepository? maybeFind() {
+    if (!Get.isRegistered<NotifyLookupRepository>()) return null;
+    return Get.find<NotifyLookupRepository>();
+  }
+
   static NotifyLookupRepository _ensureService() {
-    if (Get.isRegistered<NotifyLookupRepository>()) {
-      return Get.find<NotifyLookupRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(NotifyLookupRepository(), permanent: true);
   }
 

@@ -143,11 +143,15 @@ class MediaEdit {
 }
 
 class MediaEnhancementService extends GetxController {
+  static MediaEnhancementService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(MediaEnhancementService());
+  }
+
   static MediaEnhancementService? maybeFind() {
-    if (Get.isRegistered<MediaEnhancementService>()) {
-      return Get.find<MediaEnhancementService>();
-    }
-    return null;
+    if (!Get.isRegistered<MediaEnhancementService>()) return null;
+    return Get.find<MediaEnhancementService>();
   }
 
   final RxList<MediaEdit> _currentEdits = <MediaEdit>[].obs;

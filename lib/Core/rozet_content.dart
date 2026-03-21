@@ -25,6 +25,25 @@ Color mapRozetToColor(String rozetRaw) {
 }
 
 class RozetController extends GetxController {
+  static RozetController ensure(
+    String userID, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      RozetController(userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static RozetController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<RozetController>(tag: tag)) return null;
+    return Get.find<RozetController>(tag: tag);
+  }
+
   final String userID;
   RozetController(this.userID);
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -130,20 +149,15 @@ class _RozetContentState extends State<RozetContent> {
   void initState() {
     super.initState();
     _controllerTag = 'rozet_${widget.userID}_${identityHashCode(this)}';
-    if (Get.isRegistered<RozetController>(tag: _controllerTag)) {
-      controller = Get.find<RozetController>(tag: _controllerTag);
-    } else {
-      controller = Get.put(RozetController(widget.userID), tag: _controllerTag);
-      _ownsController = true;
-    }
+    _ownsController = RozetController.maybeFind(tag: _controllerTag) == null;
+    controller = RozetController.ensure(widget.userID, tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<RozetController>(tag: _controllerTag) &&
         identical(
-          Get.find<RozetController>(tag: _controllerTag),
+          RozetController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<RozetController>(tag: _controllerTag);

@@ -57,9 +57,7 @@ class _StoryCircleState extends State<StoryCircle> {
             children: [
               GestureDetector(
                 onTap: () {
-                  final cont = Get.isRegistered<AgendaController>()
-                      ? Get.find<AgendaController>()
-                      : null;
+                  final cont = AgendaController.maybeFind();
                   final prevIndex = cont?.lastCenteredIndex;
                   cont?.lastCenteredIndex = prevIndex;
                   cont?.centeredIndex.value = -1;
@@ -105,9 +103,7 @@ class _StoryCircleState extends State<StoryCircle> {
                   final isMe = myId.isNotEmpty && widget.model.userID == myId;
                   if (isMe) {
                     // Uzun basınca silinmiş hikayeler – arka plan videolarını durdur
-                    final agenda = Get.isRegistered<AgendaController>()
-                        ? Get.find<AgendaController>()
-                        : null;
+                    final agenda = AgendaController.maybeFind();
                     final prevIndex = agenda?.lastCenteredIndex;
                     if (agenda != null) {
                       agenda.lastCenteredIndex = prevIndex;
@@ -246,9 +242,7 @@ class _StoryCircleState extends State<StoryCircle> {
                       ? GestureDetector(
                           onTap: () {
                             // Agenda'daki oynatmayi durdur ve StoryMaker'a git
-                            final cont = Get.isRegistered<AgendaController>()
-                                ? Get.find<AgendaController>()
-                                : null;
+                            final cont = AgendaController.maybeFind();
                             final prevIndex = cont?.lastCenteredIndex;
                             cont?.lastCenteredIndex = prevIndex;
                             cont?.centeredIndex.value = -1;

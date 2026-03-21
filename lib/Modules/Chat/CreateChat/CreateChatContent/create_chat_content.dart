@@ -22,22 +22,19 @@ class _CreateChatContentState extends State<CreateChatContent> {
   @override
   void initState() {
     super.initState();
-    cont = Get.find<CreateChatController>();
+    cont = CreateChatController.ensure();
     _controllerTag =
         'create_chat_content_${widget.userID}_${identityHashCode(this)}';
-    controller = Get.put(
-      CreateChatContentController(userID: widget.userID),
+    controller = CreateChatContentController.ensure(
+      userID: widget.userID,
       tag: _controllerTag,
     );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<CreateChatContentController>(tag: _controllerTag) &&
-        identical(
-          Get.find<CreateChatContentController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = CreateChatContentController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<CreateChatContentController>(tag: _controllerTag);
     }
     super.dispose();

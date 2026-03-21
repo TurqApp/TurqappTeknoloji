@@ -30,23 +30,17 @@ class _JobCreatorState extends State<JobCreator> {
     super.initState();
     _tag =
         'job_creator_${widget.existingJob?.docID ?? 'new'}_${identityHashCode(this)}';
-    if (Get.isRegistered<JobCreatorController>(tag: _tag)) {
-      controller = Get.find<JobCreatorController>(tag: _tag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        JobCreatorController(existingJob: widget.existingJob),
-        tag: _tag,
-      );
-      _ownsController = true;
-    }
+    _ownsController = JobCreatorController.maybeFind(tag: _tag) == null;
+    controller = JobCreatorController.ensure(
+      existingJob: widget.existingJob,
+      tag: _tag,
+    );
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<JobCreatorController>(tag: _tag) &&
-        identical(Get.find<JobCreatorController>(tag: _tag), controller)) {
+        identical(JobCreatorController.maybeFind(tag: _tag), controller)) {
       Get.delete<JobCreatorController>(tag: _tag);
     }
     super.dispose();
@@ -119,8 +113,8 @@ class _JobCreatorState extends State<JobCreator> {
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(100),
                 ],
-                decoration:
-                    _inputDecoration('pasaj.job_finder.create.listing_title'.tr),
+                decoration: _inputDecoration(
+                    'pasaj.job_finder.create.listing_title'.tr),
               ),
               const SizedBox(height: 8),
               _selectionField(

@@ -4,6 +4,25 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class CreateAnswerKeyController extends GetxController {
+  static CreateAnswerKeyController ensure(
+    Function onBack, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateAnswerKeyController(onBack),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateAnswerKeyController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateAnswerKeyController>(tag: tag)) return null;
+    return Get.find<CreateAnswerKeyController>(tag: tag);
+  }
+
   final Function onBack;
   final nameController = TextEditingController();
   final selections = <String>["A"].obs;

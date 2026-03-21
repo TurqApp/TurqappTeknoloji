@@ -21,20 +21,16 @@ class _HashtaglisterState extends State<Hashtaglister> {
   void initState() {
     super.initState();
     _controllerTag = 'hashtag_lister_${identityHashCode(this)}';
-    if (Get.isRegistered<HashtagListerController>(tag: _controllerTag)) {
-      controller = Get.find<HashtagListerController>(tag: _controllerTag);
-    } else {
-      controller = Get.put(HashtagListerController(), tag: _controllerTag);
-      _ownsController = true;
-    }
+    _ownsController =
+        HashtagListerController.maybeFind(tag: _controllerTag) == null;
+    controller = HashtagListerController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<HashtagListerController>(tag: _controllerTag) &&
         identical(
-          Get.find<HashtagListerController>(tag: _controllerTag),
+          HashtagListerController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<HashtagListerController>(tag: _controllerTag);

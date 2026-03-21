@@ -17,10 +17,14 @@ class TestRepository extends GetxService {
   final Map<String, _TimedTests> _memory = <String, _TimedTests>{};
   SharedPreferences? _prefs;
 
+  static TestRepository? maybeFind() {
+    if (!Get.isRegistered<TestRepository>()) return null;
+    return Get.find<TestRepository>();
+  }
+
   static TestRepository _ensureService() {
-    if (Get.isRegistered<TestRepository>()) {
-      return Get.find<TestRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(TestRepository(), permanent: true);
   }
 

@@ -15,6 +15,26 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TestsGridController extends GetxController {
+  static TestsGridController ensure(
+    TestsModel model, {
+    Function? onUpdate,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TestsGridController(model, onUpdate),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TestsGridController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<TestsGridController>(tag: tag)) return null;
+    return Get.find<TestsGridController>(tag: tag);
+  }
+
   final TestsModel model;
   final Function? onUpdate;
 

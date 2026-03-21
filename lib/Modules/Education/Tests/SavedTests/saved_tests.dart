@@ -22,19 +22,17 @@ class _SavedTestsState extends State<SavedTests> {
   void initState() {
     super.initState();
     _controllerTag = 'tests_saved_${identityHashCode(this)}';
-    _ownsController =
-        !Get.isRegistered<SavedTestsController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(SavedTestsController(), tag: _controllerTag)
-        : Get.find<SavedTestsController>(tag: _controllerTag);
+    final existing = SavedTestsController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? SavedTestsController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<SavedTestsController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<SavedTestsController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = SavedTestsController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<SavedTestsController>(tag: _controllerTag, force: true);
       }
@@ -44,7 +42,6 @@ class _SavedTestsState extends State<SavedTests> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -66,8 +63,7 @@ class _SavedTestsState extends State<SavedTests> {
                           ? Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                EmptyRow(
-                                    text: "tests.saved_empty".tr),
+                                EmptyRow(text: "tests.saved_empty".tr),
                               ],
                             )
                           : Padding(

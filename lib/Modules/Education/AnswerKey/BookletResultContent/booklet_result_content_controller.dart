@@ -4,6 +4,27 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 
 class BookletResultContentController extends GetxController {
+  static BookletResultContentController ensure(
+    BookletResultModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BookletResultContentController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BookletResultContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<BookletResultContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<BookletResultContentController>(tag: tag);
+  }
+
   final BookletResultModel model;
   final anaModel = Rx<BookletModel?>(null);
   final BookletRepository _bookletRepository = BookletRepository.ensure();

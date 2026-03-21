@@ -8,7 +8,7 @@ class AdsCreativeReviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<AdsCenterController>();
+    final controller = AdsCenterController.ensure();
 
     return Obx(() {
       final list = controller.creatives;
@@ -75,11 +75,10 @@ class AdsCreativeReviewView extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () async {
-                            final note =
-                                await _askNote(
-                                  context,
-                                  title: 'ads_center.reject_note'.tr,
-                                );
+                            final note = await _askNote(
+                              context,
+                              title: 'ads_center.reject_note'.tr,
+                            );
                             if (note == null) return;
                             await controller.reviewCreative(
                               creativeId: c.id,
@@ -94,11 +93,10 @@ class AdsCreativeReviewView extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
-                            final note =
-                                await _askNote(
-                                  context,
-                                  title: 'ads_center.approve_note'.tr,
-                                );
+                            final note = await _askNote(
+                              context,
+                              title: 'ads_center.approve_note'.tr,
+                            );
                             if (note == null) return;
                             await controller.reviewCreative(
                               creativeId: c.id,

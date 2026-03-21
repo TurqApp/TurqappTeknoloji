@@ -12,10 +12,14 @@ class JobHomeSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'jobs_home_snapshot';
   static const String _searchSurfaceKey = 'jobs_search_snapshot';
 
+  static JobHomeSnapshotRepository? maybeFind() {
+    if (!Get.isRegistered<JobHomeSnapshotRepository>()) return null;
+    return Get.find<JobHomeSnapshotRepository>();
+  }
+
   static JobHomeSnapshotRepository _ensureService() {
-    if (Get.isRegistered<JobHomeSnapshotRepository>()) {
-      return Get.find<JobHomeSnapshotRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(JobHomeSnapshotRepository(), permanent: true);
   }
 

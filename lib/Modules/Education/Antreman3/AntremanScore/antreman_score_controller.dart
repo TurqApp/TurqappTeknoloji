@@ -10,6 +10,24 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AntremanScoreController extends GetxController {
+  static AntremanScoreController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AntremanScoreController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AntremanScoreController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<AntremanScoreController>(tag: tag)) return null;
+    return Get.find<AntremanScoreController>(tag: tag);
+  }
+
   static List<Map<String, dynamic>>? _cachedLeaderboard;
   static DateTime? _cachedAt;
   static String? _cachedMonthKey;
@@ -207,7 +225,8 @@ class AntremanScoreController extends GetxController {
     final currentLast = (entry['lastName'] ?? '').toString().trim();
     if (currentFirst.isNotEmpty && currentLast.isNotEmpty) return;
 
-    final parts = display.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    final parts =
+        display.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
     if (parts.isEmpty) return;
     if (currentFirst.isEmpty) {
       entry['firstName'] = parts.first;
@@ -238,8 +257,7 @@ class AntremanScoreController extends GetxController {
         if (page.isEmpty) break;
 
         for (final entry in page) {
-          final data = Map<String, dynamic>.from(entry)
-            ..remove('_doc');
+          final data = Map<String, dynamic>.from(entry)..remove('_doc');
           final userId = (data['userID'] ?? '').toString();
           if (_isEligibleEntry(data) &&
               !tempLeaderboard.any((user) => user['userID'] == userId)) {

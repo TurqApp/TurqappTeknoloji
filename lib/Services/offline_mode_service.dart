@@ -15,11 +15,16 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class OfflineModeService extends GetxController {
   static final OfflineModeService instance = OfflineModeService._internal();
   OfflineModeService._internal();
+
+  static OfflineModeService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(instance, permanent: true);
+  }
+
   static OfflineModeService? maybeFind() {
-    if (Get.isRegistered<OfflineModeService>()) {
-      return Get.find<OfflineModeService>();
-    }
-    return null;
+    if (!Get.isRegistered<OfflineModeService>()) return null;
+    return Get.find<OfflineModeService>();
   }
 
   static const int _maxRetryAttempts = 5;

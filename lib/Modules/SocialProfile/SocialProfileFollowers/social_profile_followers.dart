@@ -29,16 +29,14 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SocialProfileFollowersController>(
-        tag: widget.userID)) {
-      controller =
-          Get.find<SocialProfileFollowersController>(tag: widget.userID);
+    final existingController =
+        SocialProfileFollowersController.maybeFind(tag: widget.userID);
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(
-        SocialProfileFollowersController(
-          initialPage: widget.selection,
-          userID: widget.userID,
-        ),
+      controller = SocialProfileFollowersController.ensure(
+        initialPage: widget.selection,
+        userID: widget.userID,
         tag: widget.userID,
       );
       _ownsController = true;
@@ -48,10 +46,8 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SocialProfileFollowersController>(
-            tag: widget.userID) &&
         identical(
-          Get.find<SocialProfileFollowersController>(tag: widget.userID),
+          SocialProfileFollowersController.maybeFind(tag: widget.userID),
           controller,
         )) {
       Get.delete<SocialProfileFollowersController>(

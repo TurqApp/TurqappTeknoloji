@@ -8,6 +8,29 @@ import 'package:turqappv2/Models/story_comment_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryCommentsController extends GetxController {
+  static StoryCommentsController ensure({
+    required String nickname,
+    required String storyID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      StoryCommentsController(
+        nickname: nickname,
+        storyID: storyID,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static StoryCommentsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<StoryCommentsController>(tag: tag)) return null;
+    return Get.find<StoryCommentsController>(tag: tag);
+  }
+
   final StoryRepository _storyRepository = StoryRepository.ensure();
   RxList<StoryCommentModel> list = <StoryCommentModel>[].obs;
   FocusNode commentFocus = FocusNode();

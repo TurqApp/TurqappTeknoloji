@@ -21,10 +21,14 @@ class CvRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedCv> _memory = {};
 
+  static CvRepository? maybeFind() {
+    if (!Get.isRegistered<CvRepository>()) return null;
+    return Get.find<CvRepository>();
+  }
+
   static CvRepository _ensureService() {
-    if (Get.isRegistered<CvRepository>()) {
-      return Get.find<CvRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(CvRepository(), permanent: true);
   }
 

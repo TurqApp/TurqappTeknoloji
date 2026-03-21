@@ -23,10 +23,14 @@ class ProfileStatsRepository extends GetxService {
   final Map<String, _CachedProfileStats> _memory = {};
   final FollowRepository _followRepository = FollowRepository.ensure();
 
+  static ProfileStatsRepository? maybeFind() {
+    if (!Get.isRegistered<ProfileStatsRepository>()) return null;
+    return Get.find<ProfileStatsRepository>();
+  }
+
   static ProfileStatsRepository _ensureService() {
-    if (Get.isRegistered<ProfileStatsRepository>()) {
-      return Get.find<ProfileStatsRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ProfileStatsRepository(), permanent: true);
   }
 

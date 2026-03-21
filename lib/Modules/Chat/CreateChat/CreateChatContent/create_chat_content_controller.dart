@@ -4,6 +4,25 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class CreateChatContentController extends GetxController {
+  static CreateChatContentController ensure({
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateChatContentController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateChatContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateChatContentController>(tag: tag)) return null;
+    return Get.find<CreateChatContentController>(tag: tag);
+  }
+
   var nickname = "".obs;
   var fullName = "".obs;
   var avatarUrl = "".obs;

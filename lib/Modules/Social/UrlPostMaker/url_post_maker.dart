@@ -41,7 +41,7 @@ class _UrlPostMakerState extends State<UrlPostMaker> {
   void initState() {
     super.initState();
     _tag = UniqueKey().toString();
-    controller = Get.put(UrlPostMakerController(), tag: _tag);
+    controller = UrlPostMakerController.ensure(tag: _tag);
     controller.textEditingController.text = widget.initialText;
     if (widget.video.isNotEmpty) {
       controller.getReadyVideoPlayer(widget.video);
@@ -50,7 +50,8 @@ class _UrlPostMakerState extends State<UrlPostMaker> {
 
   @override
   void dispose() {
-    if (Get.isRegistered<UrlPostMakerController>(tag: _tag)) {
+    final existing = UrlPostMakerController.maybeFind(tag: _tag);
+    if (identical(existing, controller)) {
       Get.delete<UrlPostMakerController>(tag: _tag);
     }
     super.dispose();

@@ -3,6 +3,20 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class BiographyMakerController extends GetxController {
+  static BiographyMakerController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      BiographyMakerController(),
+      permanent: permanent,
+    );
+  }
+
+  static BiographyMakerController? maybeFind() {
+    if (!Get.isRegistered<BiographyMakerController>()) return null;
+    return Get.find<BiographyMakerController>();
+  }
+
   final bioController = TextEditingController();
   var currentLength = 0.obs;
   var isSaving = false.obs;

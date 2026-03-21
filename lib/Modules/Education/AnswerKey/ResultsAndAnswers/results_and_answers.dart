@@ -27,18 +27,19 @@ class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
     _controllerTag =
         'results_and_answers_${widget.model.docID}_${identityHashCode(this)}';
     _ownsController =
-        !Get.isRegistered<ResultsAndAnswersController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(ResultsAndAnswersController(model), tag: _controllerTag)
-        : Get.find<ResultsAndAnswersController>(tag: _controllerTag);
+        ResultsAndAnswersController.maybeFind(tag: _controllerTag) == null;
+    controller = ResultsAndAnswersController.ensure(
+      model,
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<ResultsAndAnswersController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<ResultsAndAnswersController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = ResultsAndAnswersController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<ResultsAndAnswersController>(
           tag: _controllerTag,
@@ -51,7 +52,6 @@ class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -311,15 +311,48 @@ class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
   }
 }
 
-class Speedometer extends StatelessWidget {
+class Speedometer extends StatefulWidget {
   final double targetValue;
 
   const Speedometer({super.key, required this.targetValue});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(SpeedometerController(targetValue));
+  State<Speedometer> createState() => _SpeedometerState();
+}
 
+class _SpeedometerState extends State<Speedometer> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SpeedometerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'speedometer_${widget.targetValue}_${identityHashCode(this)}';
+    _ownsController =
+        SpeedometerController.maybeFind(tag: _controllerTag) == null;
+    controller = SpeedometerController.ensure(
+      widget.targetValue,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = SpeedometerController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<SpeedometerController>(tag: _controllerTag);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(
       () => CustomPaint(
         size: Size(MediaQuery.of(context).size.width, 200),
@@ -331,6 +364,25 @@ class Speedometer extends StatelessWidget {
 
 class SpeedometerController extends GetxController
     with GetSingleTickerProviderStateMixin {
+  static SpeedometerController ensure(
+    double targetValue, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SpeedometerController(targetValue),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SpeedometerController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SpeedometerController>(tag: tag)) return null;
+    return Get.find<SpeedometerController>(tag: tag);
+  }
+
   final double targetValue;
   final currentValue = 0.0.obs;
   late AnimationController _controller;

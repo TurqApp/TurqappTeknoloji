@@ -66,9 +66,9 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 class EducationView extends StatelessWidget {
   EducationView({super.key});
 
-  final EducationController controller = Get.isRegistered<EducationController>()
-      ? Get.find<EducationController>()
-      : Get.put(EducationController(), permanent: true);
+  final EducationController controller = EducationController.ensure(
+    permanent: true,
+  );
 
   String _tabIdForIndex(int actualIndex) => controller.titles[actualIndex];
 

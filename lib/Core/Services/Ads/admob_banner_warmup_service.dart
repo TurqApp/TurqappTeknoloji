@@ -21,10 +21,14 @@ class AdmobBannerWarmupService extends GetxService {
   bool _sdkReady = false;
   final Map<String, DateTime> _lastWarmupAtBySurface = <String, DateTime>{};
 
+  static AdmobBannerWarmupService? maybeFind() {
+    if (!Get.isRegistered<AdmobBannerWarmupService>()) return null;
+    return Get.find<AdmobBannerWarmupService>();
+  }
+
   static AdmobBannerWarmupService _ensureService() {
-    if (Get.isRegistered<AdmobBannerWarmupService>()) {
-      return Get.find<AdmobBannerWarmupService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AdmobBannerWarmupService(), permanent: true);
   }
 

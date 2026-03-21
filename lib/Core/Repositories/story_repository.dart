@@ -107,13 +107,17 @@ class StoryRepository extends GetxService {
   }
 
   static StoryRepository _ensureService() {
-    if (Get.isRegistered<StoryRepository>()) {
-      return Get.find<StoryRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(StoryRepository(), permanent: true);
   }
 
   static StoryRepository ensure() => _ensureService();
+
+  static StoryRepository? maybeFind() {
+    if (!Get.isRegistered<StoryRepository>()) return null;
+    return Get.find<StoryRepository>();
+  }
 
   Future<void> _ensureInitialized() async {
     _prefs ??= await SharedPreferences.getInstance();

@@ -21,10 +21,14 @@ class UserSubdocRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedUserSubdoc> _memory = {};
 
+  static UserSubdocRepository? maybeFind() {
+    if (!Get.isRegistered<UserSubdocRepository>()) return null;
+    return Get.find<UserSubdocRepository>();
+  }
+
   static UserSubdocRepository _ensureService() {
-    if (Get.isRegistered<UserSubdocRepository>()) {
-      return Get.find<UserSubdocRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UserSubdocRepository(), permanent: true);
   }
 

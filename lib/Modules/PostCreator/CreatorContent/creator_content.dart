@@ -46,7 +46,7 @@ class CreatorContent extends StatelessWidget {
 
   CreatorContent({super.key, required this.model, required this.isSelected});
   late final CreatorContentController controller;
-  final mainController = Get.find<PostCreatorController>();
+  final mainController = PostCreatorController.ensure();
 
   double get _singleImagePreviewAspect {
     final reused = controller.reusedImageAspectRatio.value;
@@ -380,9 +380,10 @@ class CreatorContent extends StatelessWidget {
                             mainController.selectedIndex.value;
                         if (indexInList == 0) {
                           for (final post in mainController.postList) {
-                            if (Get.isRegistered<CreatorContentController>(
-                              tag: post.index.toString(),
-                            )) {
+                            if (CreatorContentController.maybeFind(
+                                  tag: post.index.toString(),
+                                ) !=
+                                null) {
                               Get.delete<CreatorContentController>(
                                 tag: post.index.toString(),
                                 force: true,
@@ -396,9 +397,10 @@ class CreatorContent extends StatelessWidget {
                           mainController.resetComposerItemIndexSeed(1);
                           mainController.selectedIndex.value = 0;
                         } else {
-                          if (Get.isRegistered<CreatorContentController>(
-                            tag: model.index.toString(),
-                          )) {
+                          if (CreatorContentController.maybeFind(
+                                tag: model.index.toString(),
+                              ) !=
+                              null) {
                             Get.delete<CreatorContentController>(
                               tag: model.index.toString(),
                               force: true,

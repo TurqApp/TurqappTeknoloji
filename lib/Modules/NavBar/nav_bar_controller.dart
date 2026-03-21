@@ -177,9 +177,7 @@ class NavBarController extends GetxController
       }
 
       try {
-        if (Get.isRegistered<AgendaController>()) {
-          Get.find<AgendaController>().ensureFeedCacheWarm();
-        }
+        AgendaController.maybeFind()?.ensureFeedCacheWarm();
       } catch (_) {}
 
       try {
@@ -291,18 +289,14 @@ class NavBarController extends GetxController
         _scheduleRatingPrompt(const Duration(seconds: 12));
       }
       try {
-        if (Get.isRegistered<AgendaController>()) {
-          Get.find<AgendaController>().resumeFeedPlayback();
-        }
+        AgendaController.maybeFind()?.resumeFeedPlayback();
       } catch (_) {}
     }
     if (state == AppLifecycleState.resumed &&
         educationIndex >= 0 &&
         selectedIndex.value == educationIndex) {
       try {
-        if (Get.isRegistered<EducationController>()) {
-          Get.find<EducationController>().resetActivePasajSurfaceToTop();
-        }
+        EducationController.maybeFind()?.resetActivePasajSurfaceToTop();
       } catch (_) {}
     }
   }
@@ -330,9 +324,7 @@ class NavBarController extends GetxController
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
         try {
-          if (Get.isRegistered<AgendaController>()) {
-            Get.find<AgendaController>().resumeFeedPlayback();
-          }
+          AgendaController.maybeFind()?.resumeFeedPlayback();
         } catch (_) {}
       });
     }
@@ -341,9 +333,7 @@ class NavBarController extends GetxController
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
         try {
-          if (Get.isRegistered<EducationController>()) {
-            Get.find<EducationController>().resetActivePasajSurfaceToTop();
-          }
+          EducationController.maybeFind()?.resetActivePasajSurfaceToTop();
         } catch (_) {}
       });
     }

@@ -73,6 +73,11 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     return _instance!;
   }
 
+  static CurrentUserService? maybeFind() {
+    if (!Get.isRegistered<CurrentUserService>()) return null;
+    return Get.find<CurrentUserService>();
+  }
+
   CurrentUserService._internal() {
     WidgetsBinding.instance.addObserver(this);
   }
@@ -175,7 +180,8 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
       Duration(seconds: 10);
 
   static const String _cacheKeyPrefix = 'cached_current_user';
-  static const String _cacheTimestampKeyPrefix = 'cached_current_user_timestamp';
+  static const String _cacheTimestampKeyPrefix =
+      'cached_current_user_timestamp';
   static const String _activeCacheUidKey = 'cached_current_user_active_uid';
   static const String _viewSelectionPrefKeyPrefix =
       'preferred_feed_view_selection';
@@ -358,7 +364,8 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     if (uid.isEmpty) return;
     if (!DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) return;
     try {
-      await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+      await AccountCenterService.ensure()
+          .registerCurrentDeviceSessionIfEnabled();
     } catch (_) {}
   }
 
@@ -792,13 +799,15 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     if (activeDeviceKey == localDeviceKey) return false;
     if (DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) {
       try {
-        await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+        await AccountCenterService.ensure()
+            .registerCurrentDeviceSessionIfEnabled();
         return false;
       } catch (_) {}
     }
     if (DeviceSessionService.instance.hasPendingSessionClaim(uid)) {
       try {
-        await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+        await AccountCenterService.ensure()
+            .registerCurrentDeviceSessionIfEnabled();
         return false;
       } catch (_) {}
     }
@@ -806,7 +815,8 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
         (await DeviceSessionService.instance.getLegacyDeviceKey() ?? '').trim();
     if (legacyDeviceKey.isNotEmpty && activeDeviceKey == legacyDeviceKey) {
       try {
-        await AccountCenterService.ensure().registerCurrentDeviceSessionIfEnabled();
+        await AccountCenterService.ensure()
+            .registerCurrentDeviceSessionIfEnabled();
         return false;
       } catch (_) {}
     }
@@ -919,9 +929,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
       await _stopFirebaseSync();
       await _clearCache(oldUid);
       _purgeUserScopedCaches(oldUid);
-      if (Get.isRegistered<FollowRepository>()) {
-        await Get.find<FollowRepository>().clearAll();
-      }
+      await FollowRepository.maybeFind()?.clearAll();
       _silentLogAt.clear();
 
       // Cancel pending cache writes
@@ -981,8 +989,9 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
       'isSyncing': _isSyncing,
       'userId': userId,
       'nickname': nickname,
-      'cacheExists':
-          userId.isNotEmpty ? (_prefs?.containsKey(_cacheKey(userId)) ?? false) : false,
+      'cacheExists': userId.isNotEmpty
+          ? (_prefs?.containsKey(_cacheKey(userId)) ?? false)
+          : false,
     };
   }
 
@@ -996,5 +1005,4 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
     });
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
-
 }

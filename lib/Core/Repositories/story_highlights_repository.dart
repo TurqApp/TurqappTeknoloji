@@ -22,10 +22,14 @@ class StoryHighlightsRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedStoryHighlights> _memory = {};
 
+  static StoryHighlightsRepository? maybeFind() {
+    if (!Get.isRegistered<StoryHighlightsRepository>()) return null;
+    return Get.find<StoryHighlightsRepository>();
+  }
+
   static StoryHighlightsRepository _ensureService() {
-    if (Get.isRegistered<StoryHighlightsRepository>()) {
-      return Get.find<StoryHighlightsRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(StoryHighlightsRepository(), permanent: true);
   }
 

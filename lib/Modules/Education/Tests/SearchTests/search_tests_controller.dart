@@ -8,6 +8,24 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class SearchTestsController extends GetxController {
+  static SearchTestsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SearchTestsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SearchTestsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SearchTestsController>(tag: tag)) return null;
+    return Get.find<SearchTestsController>(tag: tag);
+  }
+
   final TestRepository _testRepository = TestRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;

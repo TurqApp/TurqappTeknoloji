@@ -20,10 +20,14 @@ class CityDirectoryService extends GetxService {
   List<String>? _cachedSortedCities;
   Future<List<CitiesModel>>? _loadingFuture;
 
+  static CityDirectoryService? maybeFind() {
+    if (!Get.isRegistered<CityDirectoryService>()) return null;
+    return Get.find<CityDirectoryService>();
+  }
+
   static CityDirectoryService _ensureService() {
-    if (Get.isRegistered<CityDirectoryService>()) {
-      return Get.find<CityDirectoryService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(CityDirectoryService(), permanent: true);
   }
 

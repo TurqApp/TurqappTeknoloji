@@ -16,8 +16,13 @@ class _CachedMarketSearchResult {
 class TypesenseMarketSearchService {
   TypesenseMarketSearchService._();
 
-  static final TypesenseMarketSearchService instance =
-      TypesenseMarketSearchService._();
+  static TypesenseMarketSearchService? _instance;
+  static TypesenseMarketSearchService? maybeFind() => _instance;
+
+  static TypesenseMarketSearchService ensure() =>
+      maybeFind() ?? (_instance = TypesenseMarketSearchService._());
+
+  static TypesenseMarketSearchService get instance => ensure();
   static const Duration _ttl = Duration(minutes: 15);
   static const String _prefsPrefix = 'typesense_market_search_v1';
 
@@ -264,7 +269,8 @@ class TypesenseMarketSearchService {
         return true;
       }
       if (key.startsWith('doc:')) return false;
-      if (normalizedDocId.isNotEmpty && key.contains('docId=$normalizedDocId')) {
+      if (normalizedDocId.isNotEmpty &&
+          key.contains('docId=$normalizedDocId')) {
         return true;
       }
       if (normalizedUserId.isNotEmpty &&
@@ -322,7 +328,8 @@ class TypesenseMarketSearchService {
       if (DateTime.now().difference(cachedAt) > _ttl) return null;
       final items = payload
           .whereType<Map>()
-          .map((raw) => MarketItemModel.fromJson(Map<String, dynamic>.from(raw)))
+          .map(
+              (raw) => MarketItemModel.fromJson(Map<String, dynamic>.from(raw)))
           .toList(growable: false);
       return _CachedMarketSearchResult(
         items: items,

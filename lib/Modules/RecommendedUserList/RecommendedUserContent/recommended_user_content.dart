@@ -28,17 +28,18 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
     super.initState();
     _controllerTag =
         'recommended_user_${model.userID}_${identityHashCode(this)}';
-    controller = Get.put(
-      RecommendedUserContentController(userID: model.userID),
+    controller = RecommendedUserContentController.ensure(
+      userID: model.userID,
       tag: _controllerTag,
     );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<RecommendedUserContentController>(
+    final existing = RecommendedUserContentController.maybeFind(
       tag: _controllerTag,
-    )) {
+    );
+    if (identical(existing, controller)) {
       Get.delete<RecommendedUserContentController>(
         tag: _controllerTag,
         force: true,

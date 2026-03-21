@@ -31,10 +31,14 @@ class UserSubcollectionRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedUserSubcollection> _memory = {};
 
+  static UserSubcollectionRepository? maybeFind() {
+    if (!Get.isRegistered<UserSubcollectionRepository>()) return null;
+    return Get.find<UserSubcollectionRepository>();
+  }
+
   static UserSubcollectionRepository _ensureService() {
-    if (Get.isRegistered<UserSubcollectionRepository>()) {
-      return Get.find<UserSubcollectionRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UserSubcollectionRepository(), permanent: true);
   }
 

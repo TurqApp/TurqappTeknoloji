@@ -5,10 +5,14 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class AdminApprovalRepository extends GetxService {
   static const String _adminConfigDocId = 'admin';
 
+  static AdminApprovalRepository? maybeFind() {
+    if (!Get.isRegistered<AdminApprovalRepository>()) return null;
+    return Get.find<AdminApprovalRepository>();
+  }
+
   static AdminApprovalRepository _ensureService() {
-    if (Get.isRegistered<AdminApprovalRepository>()) {
-      return Get.find<AdminApprovalRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AdminApprovalRepository(), permanent: true);
   }
 

@@ -42,23 +42,16 @@ class _AntremanCommentsState extends State<AntremanComments> {
     super.initState();
     _controllerTag =
         'antreman_comments_${widget.question.docID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<AntremanCommentsController>(
+    controller = AntremanCommentsController.ensure(
+      question: widget.question,
       tag: _controllerTag,
-    )
-        ? Get.find<AntremanCommentsController>(tag: _controllerTag)
-        : Get.put(
-            AntremanCommentsController(widget.question),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<AntremanCommentsController>(tag: _controllerTag) &&
-        identical(
-          Get.find<AntremanCommentsController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = AntremanCommentsController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
       Get.delete<AntremanCommentsController>(tag: _controllerTag);
     }
     super.dispose();

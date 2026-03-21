@@ -146,21 +146,18 @@ class DataUsageStats {
 }
 
 class NetworkAwarenessService extends GetxController {
+  static NetworkAwarenessService? maybeFind() {
+    if (!Get.isRegistered<NetworkAwarenessService>()) return null;
+    return Get.find<NetworkAwarenessService>();
+  }
+
   static NetworkAwarenessService _ensureService() {
-    if (Get.isRegistered<NetworkAwarenessService>()) {
-      return Get.find<NetworkAwarenessService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(NetworkAwarenessService(), permanent: true);
   }
 
   static NetworkAwarenessService ensure() => _ensureService();
-
-  static NetworkAwarenessService? maybeFind() {
-    if (Get.isRegistered<NetworkAwarenessService>()) {
-      return Get.find<NetworkAwarenessService>();
-    }
-    return null;
-  }
 
   final Rx<NetworkType> _currentNetwork = NetworkType.none.obs;
   final Rx<NetworkSettings> _settings = NetworkSettings().obs;
@@ -226,14 +223,13 @@ class NetworkAwarenessService extends GetxController {
     }
 
     // Prefetch scheduler'ı bilgilendir
-    try {
-      final scheduler = Get.find<PrefetchScheduler>();
-      if (_currentNetwork.value == NetworkType.wifi) {
-        scheduler.resume();
-      } else {
-        scheduler.pause();
-      }
-    } catch (_) {}
+    final scheduler = PrefetchScheduler.maybeFind();
+    if (scheduler == null) return;
+    if (_currentNetwork.value == NetworkType.wifi) {
+      scheduler.resume();
+    } else {
+      scheduler.pause();
+    }
   }
 
   /// Get optimal compression quality based on network

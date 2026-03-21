@@ -16,10 +16,14 @@ class BookletRepository extends GetxService {
   final Map<String, _TimedBooklets> _memory = <String, _TimedBooklets>{};
   SharedPreferences? _prefs;
 
+  static BookletRepository? maybeFind() {
+    if (!Get.isRegistered<BookletRepository>()) return null;
+    return Get.find<BookletRepository>();
+  }
+
   static BookletRepository _ensureService() {
-    if (Get.isRegistered<BookletRepository>()) {
-      return Get.find<BookletRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(BookletRepository(), permanent: true);
   }
 

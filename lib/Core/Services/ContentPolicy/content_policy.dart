@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 enum ContentScreenKind {
@@ -18,27 +17,15 @@ class ContentPolicy {
   static const int mobileAheadSegments = 3; // n + 3
 
   static bool get isOnWiFi {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnWiFi;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;
   }
 
   static bool get isOnCellular {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnCellular;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
   }
 
   static bool get isConnected {
-    try {
-      return Get.find<NetworkAwarenessService>().isConnected;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 
   // Kullanıcı kararı: mobilde arka plan güncelleme olmasın.

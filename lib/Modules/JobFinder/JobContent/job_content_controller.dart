@@ -15,6 +15,24 @@ import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class JobContentController extends GetxController {
+  static JobContentController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      JobContentController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static JobContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<JobContentController>(tag: tag)) return null;
+    return Get.find<JobContentController>(tag: tag);
+  }
+
   final JobRepository _jobRepository = JobRepository.ensure();
   static final Map<String, Set<String>> _savedIdsByUser =
       <String, Set<String>>{};
@@ -115,8 +133,9 @@ class JobContentController extends GetxController {
       "timeStamp": now,
     });
 
-    if (Get.isRegistered<MyJobAdsController>()) {
-      await Get.find<MyJobAdsController>().getActive();
+    final myJobAdsController = MyJobAdsController.maybeFind();
+    if (myJobAdsController != null) {
+      await myJobAdsController.getActive();
     }
     final finder = JobFinderController.maybeFind();
     if (finder != null) {

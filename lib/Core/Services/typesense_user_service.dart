@@ -3,7 +3,13 @@ import 'package:cloud_functions/cloud_functions.dart';
 class TypesenseUserService {
   TypesenseUserService._();
 
-  static final TypesenseUserService instance = TypesenseUserService._();
+  static TypesenseUserService? _instance;
+  static TypesenseUserService? maybeFind() => _instance;
+
+  static TypesenseUserService ensure() =>
+      maybeFind() ?? (_instance = TypesenseUserService._());
+
+  static TypesenseUserService get instance => ensure();
 
   final List<({String label, FirebaseFunctions fn})> _targets =
       <({String label, FirebaseFunctions fn})>[
@@ -39,7 +45,8 @@ class TypesenseUserService {
         final hits = (data['hits'] as List<dynamic>?) ?? const <dynamic>[];
         final out = <String, Map<String, dynamic>>{};
         for (final rawHit in hits) {
-          final hitMap = rawHit is Map ? Map<String, dynamic>.from(rawHit) : null;
+          final hitMap =
+              rawHit is Map ? Map<String, dynamic>.from(rawHit) : null;
           if (hitMap == null) continue;
           final id = (hitMap['id'] ?? '').toString().trim();
           if (id.isEmpty) continue;

@@ -28,10 +28,14 @@ class RuntimeInvariantViolation {
 }
 
 class RuntimeInvariantGuard extends GetxService {
+  static RuntimeInvariantGuard? maybeFind() {
+    if (!Get.isRegistered<RuntimeInvariantGuard>()) return null;
+    return Get.find<RuntimeInvariantGuard>();
+  }
+
   static RuntimeInvariantGuard _ensureService() {
-    if (Get.isRegistered<RuntimeInvariantGuard>()) {
-      return Get.find<RuntimeInvariantGuard>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(RuntimeInvariantGuard(), permanent: true);
   }
 

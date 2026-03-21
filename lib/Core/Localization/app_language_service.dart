@@ -17,6 +17,24 @@ class AppLanguageOption {
 class AppLanguageService extends GetxService {
   static const String _prefKey = 'appLanguageCode';
 
+  static AppLanguageService ensure({bool permanent = true}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(AppLanguageService(), permanent: permanent);
+  }
+
+  static AppLanguageService? maybeFind() {
+    if (!Get.isRegistered<AppLanguageService>()) return null;
+    return Get.find<AppLanguageService>();
+  }
+
+  static Future<AppLanguageService> ensureInitialized() async {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    final service = await AppLanguageService().init();
+    return Get.put(service, permanent: true);
+  }
+
   static const Locale fallbackLocale = Locale('tr', 'TR');
   static const List<Locale> supportedLocales = <Locale>[
     Locale('tr', 'TR'),

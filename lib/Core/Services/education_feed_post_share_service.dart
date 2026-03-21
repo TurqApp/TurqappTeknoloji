@@ -20,13 +20,6 @@ import 'package:uuid/uuid.dart';
 class EducationFeedPostShareService {
   const EducationFeedPostShareService();
 
-  T _ensureService<T>(T Function() create) {
-    if (Get.isRegistered<T>()) {
-      return Get.find<T>();
-    }
-    return Get.put<T>(create());
-  }
-
   Future<void> shareScholarship(
     Map<String, dynamic> scholarshipData,
   ) async {
@@ -187,8 +180,7 @@ class EducationFeedPostShareService {
     }
 
     await ShareActionGuard.run(() async {
-      final loader = _ensureService<GlobalLoaderController>(
-          () => GlobalLoaderController());
+      final loader = GlobalLoaderController.ensure();
       loader.isOn.value = true;
 
       try {
@@ -304,8 +296,8 @@ class EducationFeedPostShareService {
           yorumMap: const {'visibility': 0},
         );
 
-        if (Get.isRegistered<AgendaController>()) {
-          final agendaController = Get.find<AgendaController>();
+        final agendaController = AgendaController.maybeFind();
+        if (agendaController != null) {
           agendaController.addUploadedPostsAtTop([newPost]);
           if (agendaController.scrollController.hasClients) {
             await agendaController.scrollController.animateTo(

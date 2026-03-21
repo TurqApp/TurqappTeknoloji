@@ -121,10 +121,14 @@ class UserRepository extends GetxService {
   final Map<String, _TimedUserLookup<Map<String, dynamic>?>> _queryCache =
       <String, _TimedUserLookup<Map<String, dynamic>?>>{};
 
+  static UserRepository? maybeFind() {
+    if (!Get.isRegistered<UserRepository>()) return null;
+    return Get.find<UserRepository>();
+  }
+
   static UserRepository _ensureService() {
-    if (Get.isRegistered<UserRepository>()) {
-      return Get.find<UserRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UserRepository(), permanent: true);
   }
 

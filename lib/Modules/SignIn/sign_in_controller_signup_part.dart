@@ -99,11 +99,7 @@ extension SignInControllerSignupPart on SignInController {
 
       late AgendaController agendaController;
       try {
-        if (Get.isRegistered<AgendaController>()) {
-          agendaController = Get.find<AgendaController>();
-        } else {
-          agendaController = Get.put(AgendaController());
-        }
+        agendaController = AgendaController.ensure();
 
         await agendaController.refreshAgenda();
 
@@ -116,7 +112,7 @@ extension SignInControllerSignupPart on SignInController {
           retries++;
         }
       } catch (_) {
-        agendaController = Get.put(AgendaController());
+        agendaController = AgendaController.ensure();
       }
 
       try {

@@ -7,6 +7,24 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringDetailController extends GetxController {
+  static TutoringDetailController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TutoringDetailController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TutoringDetailController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<TutoringDetailController>(tag: tag)) return null;
+    return Get.find<TutoringDetailController>(tag: tag);
+  }
+
   var isLoading = true.obs;
   var tutoring = TutoringModel(
     docID: '',
@@ -68,8 +86,7 @@ class TutoringDetailController extends GetxController {
       if (summary != null) {
         users[userID] = summary.toMap();
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> fetchTutoringDetail(String docID) async {
@@ -160,8 +177,7 @@ class TutoringDetailController extends GetxController {
     final docId = tutoring.value.docID;
     try {
       await _tutoringRepository.unpublish(docId);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // ── Similar ──
@@ -188,8 +204,7 @@ class TutoringDetailController extends GetxController {
       }
 
       similarList.assignAll(items);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // ── Reviews ──
@@ -213,8 +228,7 @@ class TutoringDetailController extends GetxController {
       }
 
       reviews.assignAll(items);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> submitReview(String docID, int rating, String comment) async {
@@ -229,8 +243,7 @@ class TutoringDetailController extends GetxController {
         comment: comment,
       );
       await fetchReviews(docID);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> deleteReview(String docID, String reviewID) async {
@@ -240,7 +253,6 @@ class TutoringDetailController extends GetxController {
         reviewId: reviewID,
       );
       await fetchReviews(docID);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 }

@@ -15,9 +15,8 @@ import '../../Models/notification_model.dart';
 
 class NotifyReaderController extends GetxController {
   static NotifyReaderController _ensureController({String? tag}) {
-    if (Get.isRegistered<NotifyReaderController>(tag: tag)) {
-      return Get.find<NotifyReaderController>(tag: tag);
-    }
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
     return Get.put(NotifyReaderController(), tag: tag);
   }
 
@@ -25,10 +24,8 @@ class NotifyReaderController extends GetxController {
       _ensureController(tag: tag);
 
   static NotifyReaderController? maybeFind({String? tag}) {
-    if (Get.isRegistered<NotifyReaderController>(tag: tag)) {
-      return Get.find<NotifyReaderController>(tag: tag);
-    }
-    return null;
+    if (!Get.isRegistered<NotifyReaderController>(tag: tag)) return null;
+    return Get.find<NotifyReaderController>(tag: tag);
   }
 
   final NotifyLookupRepository _lookupRepository =

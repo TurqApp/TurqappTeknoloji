@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -58,6 +59,17 @@ class IndexPoolEntry {
 }
 
 class IndexPoolStore {
+  static IndexPoolStore? maybeFind() {
+    if (!Get.isRegistered<IndexPoolStore>()) return null;
+    return Get.find<IndexPoolStore>();
+  }
+
+  static IndexPoolStore ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(IndexPoolStore(), permanent: permanent);
+  }
+
   static const int _schemaVersion = 4;
   static const int _maxEntriesPerKind = 250;
   static const Duration _poolFileTtl = Duration(hours: 24);

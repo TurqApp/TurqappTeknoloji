@@ -28,10 +28,14 @@ class ReportReasonItem {
 }
 
 class ReportRepository extends GetxService {
+  static ReportRepository? maybeFind() {
+    if (!Get.isRegistered<ReportRepository>()) return null;
+    return Get.find<ReportRepository>();
+  }
+
   static ReportRepository _ensureService() {
-    if (Get.isRegistered<ReportRepository>()) {
-      return Get.find<ReportRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ReportRepository(), permanent: true);
   }
 

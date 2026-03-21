@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Profile/Policies/policy_content.dart';
+import 'package:turqappv2/Modules/Profile/Policies/policies_controller.dart';
 
 class Policies extends StatefulWidget {
   const Policies({super.key, this.initialPolicyId});
@@ -15,6 +16,9 @@ class Policies extends StatefulWidget {
 class _PoliciesState extends State<Policies>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  late final String _controllerTag = 'policies_${identityHashCode(this)}';
+  late final PoliciesController _controller;
+  late final bool _ownsController;
 
   List<PolicyDocument> get _policies =>
       localizedTurqAppPolicies(Get.locale?.languageCode);
@@ -29,6 +33,8 @@ class _PoliciesState extends State<Policies>
   @override
   void initState() {
     super.initState();
+    _ownsController = PoliciesController.maybeFind(tag: _controllerTag) == null;
+    _controller = PoliciesController.ensure(tag: _controllerTag);
     _tabController = TabController(
       length: _policies.length,
       vsync: this,
@@ -38,6 +44,11 @@ class _PoliciesState extends State<Policies>
 
   @override
   void dispose() {
+    if (_ownsController &&
+        identical(
+            PoliciesController.maybeFind(tag: _controllerTag), _controller)) {
+      Get.delete<PoliciesController>(tag: _controllerTag);
+    }
     _tabController.dispose();
     super.dispose();
   }

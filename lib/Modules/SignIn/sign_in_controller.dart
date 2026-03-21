@@ -35,6 +35,24 @@ part 'sign_in_controller_signup_part.dart';
 
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
+  static SignInController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SignInController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SignInController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SignInController>(tag: tag)) return null;
+    return Get.find<SignInController>(tag: tag);
+  }
+
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSubdocRepository _userSubdocRepository =
       UserSubdocRepository.ensure();

@@ -118,6 +118,24 @@ class StoryElement {
 }
 
 class StoryMakerController extends GetxController {
+  static StoryMakerController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      StoryMakerController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static StoryMakerController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<StoryMakerController>(tag: tag)) return null;
+    return Get.find<StoryMakerController>(tag: tag);
+  }
+
   static const List<String> supportedMediaLookPresets = <String>[
     'original',
     'clear',

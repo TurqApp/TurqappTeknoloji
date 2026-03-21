@@ -72,16 +72,9 @@ Future<void> main() async {
   await firebaseBootstrapFuture;
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
-  if (!Get.isRegistered<VideoStateManager>()) {
-    Get.put(VideoStateManager(), permanent: true);
-  }
-  if (!Get.isRegistered<NetworkAwarenessService>()) {
-    Get.put(NetworkAwarenessService(), permanent: true);
-  }
-  if (!Get.isRegistered<AppLanguageService>()) {
-    final languageService = await AppLanguageService().init();
-    Get.put(languageService, permanent: true);
-  }
+  VideoStateManager.instance;
+  NetworkAwarenessService.ensure();
+  await AppLanguageService.ensureInitialized();
 
   runApp(const MyApp());
 
@@ -122,8 +115,9 @@ void _reportStartupFallbackError(FlutterErrorDetails details) {
 
 void _clearConsumedCacheIfNeeded() {
   try {
-    if (Get.isRegistered<SegmentCacheManager>()) {
-      unawaited(Get.find<SegmentCacheManager>().clearConsumedCache());
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager != null) {
+      unawaited(cacheManager.clearConsumedCache());
     }
   } catch (_) {}
 }
@@ -131,13 +125,12 @@ void _clearConsumedCacheIfNeeded() {
 void _handleAppBackgroundTransition() {
   _clearConsumedCacheIfNeeded();
   try {
-    if (Get.isRegistered<VideoStateManager>()) {
-      Get.find<VideoStateManager>().pauseAllVideos(force: true);
-    }
+    VideoStateManager.maybeFind()?.pauseAllVideos(force: true);
   } catch (_) {}
   try {
-    if (Get.isRegistered<AgendaController>()) {
-      unawaited(Get.find<AgendaController>().persistWarmLaunchCache());
+    final agendaController = AgendaController.maybeFind();
+    if (agendaController != null) {
+      unawaited(agendaController.persistWarmLaunchCache());
     }
   } catch (_) {}
   try {
@@ -227,7 +220,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final languageService = Get.find<AppLanguageService>();
+    final languageService = AppLanguageService.maybeFind();
     return GetMaterialApp(
       navigatorKey: navigatorKey,
       navigatorObservers: [routeObserver],
@@ -239,7 +232,7 @@ class MyApp extends StatelessWidget {
       },
       defaultTransition: Transition.fade,
       translations: AppTranslations(),
-      locale: languageService.currentLocale,
+      locale: languageService?.currentLocale ?? AppLanguageService.fallbackLocale,
       fallbackLocale: AppLanguageService.fallbackLocale,
       supportedLocales: AppLanguageService.supportedLocales,
       localizationsDelegates: const [

@@ -125,24 +125,24 @@ extension CreatorContentQuotedPart on CreatorContent {
   Widget _buildQuotedRemoveButton() {
     return GestureDetector(
       onTap: () {
-        final tag =
-            Get.find<PostCreatorController>().selectedIndex.value.toString();
-        final controller = Get.find<CreatorContentController>(tag: tag);
-        controller.selectedImages.clear();
-        controller.croppedImages.clear();
-        controller.reusedImageUrls.clear();
-        if (controller.videoPlayerController != null) {
-          controller.videoPlayerController!.pause();
-          controller.videoPlayerController!.dispose();
-          controller.rxVideoPlayerController.value = null;
+        final tag = mainController.selectedIndex.value.toString();
+        final targetController = CreatorContentController.maybeFind(tag: tag);
+        if (targetController == null) return;
+        targetController.selectedImages.clear();
+        targetController.croppedImages.clear();
+        targetController.reusedImageUrls.clear();
+        if (targetController.videoPlayerController != null) {
+          targetController.videoPlayerController!.pause();
+          targetController.videoPlayerController!.dispose();
+          targetController.rxVideoPlayerController.value = null;
         }
-        controller.selectedVideo.value = null;
-        controller.reusedVideoUrl.value = '';
-        controller.reusedVideoThumbnail.value = '';
-        controller.reusedVideoAspectRatio.value = 0.0;
-        controller.waitingVideo.value = false;
-        controller.isPlaying.value = false;
-        controller.hasVideo.value = false;
+        targetController.selectedVideo.value = null;
+        targetController.reusedVideoUrl.value = '';
+        targetController.reusedVideoThumbnail.value = '';
+        targetController.reusedVideoAspectRatio.value = 0.0;
+        targetController.waitingVideo.value = false;
+        targetController.isPlaying.value = false;
+        targetController.hasVideo.value = false;
       },
       child: Container(
         padding: const EdgeInsets.all(5),

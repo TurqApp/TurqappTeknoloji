@@ -27,6 +27,27 @@ import '../../../Core/Services/typesense_post_service.dart';
 import '../../../Services/current_user_service.dart';
 
 class PhotoShortsContentController extends GetxController {
+  static PhotoShortsContentController ensure({
+    required PostsModel model,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PhotoShortsContentController(model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PhotoShortsContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PhotoShortsContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<PhotoShortsContentController>(tag: tag);
+  }
+
   PostsModel model;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
@@ -87,7 +108,7 @@ class PhotoShortsContentController extends GetxController {
   RxBool isSaved = false.obs;
   RxBool isReshared = false.obs;
   RxBool isReported = false.obs;
-  final agendaController = Get.find<AgendaController>();
+  final agendaController = AgendaController.ensure();
   final countManager = PostCountManager.instance;
   late final PostInteractionService _interactionService;
   late final PostRepository _postRepository;
@@ -251,13 +272,9 @@ class PhotoShortsContentController extends GetxController {
     try {
       final status = await _postRepository.toggleReshare(model);
       if (status) {
-        try {
-          Get.find<ProfileController>().getResharesSingle();
-        } catch (_) {}
+        ProfileController.maybeFind()?.getResharesSingle();
       } else {
-        try {
-          Get.find<ProfileController>().removeReshare(model.docID);
-        } catch (_) {}
+        ProfileController.maybeFind()?.removeReshare(model.docID);
       }
     } catch (e) {
       AppSnackbar('common.error'.tr, 'post.reshare_failed'.tr);
@@ -285,62 +302,72 @@ class PhotoShortsContentController extends GetxController {
   }
 
   Future<void> gizle() async {
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].gizlendi = true;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].gizlendi = true;
 
-    final exploreController = Get.find<ExploreController>();
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].gizlendi = true;
+    final exploreController = ExploreController.maybeFind();
+    final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) {
+      exploreController!.explorePosts[index3].gizlendi = true;
+    }
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].gizlendi = true;
+    final index4 = exploreController?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) {
+      exploreController!.explorePhotos[index4].gizlendi = true;
+    }
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].gizlendi = true;
+    final index5 = exploreController?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) {
+      exploreController!.exploreVideos[index5].gizlendi = true;
+    }
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].gizlendi = true;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].gizlendi = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].gizlendi = true;
+    final profile = ProfileController.maybeFind();
+    final index9 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index9 >= 0) profile!.allPosts[index9].gizlendi = true;
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].gizlendi = true;
+    final index10 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index10 >= 0) profile!.allPosts[index10].gizlendi = true;
 
     gizlendi.value = true;
   }
 
   Future<void> gizlemeyiGeriAl() async {
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].gizlendi = false;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].gizlendi = false;
 
-    final exploreController = Get.find<ExploreController>();
+    final exploreController = ExploreController.maybeFind();
 
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].gizlendi = false;
+    final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) {
+      exploreController!.explorePosts[index3].gizlendi = false;
+    }
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].gizlendi = false;
+    final index4 = exploreController?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) {
+      exploreController!.explorePhotos[index4].gizlendi = false;
+    }
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].gizlendi = false;
+    final index5 = exploreController?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) {
+      exploreController!.exploreVideos[index5].gizlendi = false;
+    }
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].gizlendi = false;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].gizlendi = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].gizlendi = false;
+    final profile = ProfileController.maybeFind();
+    final index9 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index9 >= 0) profile!.allPosts[index9].gizlendi = false;
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].gizlendi = false;
+    final index10 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index10 >= 0) profile!.allPosts[index10].gizlendi = false;
 
     gizlendi.value = false;
   }
@@ -349,31 +376,30 @@ class PhotoShortsContentController extends GetxController {
     await _postRepository.setArchived(model, true);
 
     // Tüm ilgili store ve listeleri güncelle
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].arsiv = true;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].arsiv = true;
 
-    final exploreController = Get.find<ExploreController>();
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].arsiv = true;
+    final exploreController = ExploreController.maybeFind();
+    final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) exploreController!.explorePosts[index3].arsiv = true;
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = true;
+    final index4 = exploreController?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) exploreController!.explorePhotos[index4].arsiv = true;
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = true;
+    final index5 = exploreController?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) exploreController!.exploreVideos[index5].arsiv = true;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = true;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].arsiv = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
+    final profile = ProfileController.maybeFind();
+    final index9 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index9 >= 0) profile!.allPosts[index9].arsiv = false;
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final index10 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index10 >= 0) profile!.allPosts[index10].arsiv = false;
 
     arsiv.value = true;
   }
@@ -382,31 +408,30 @@ class PhotoShortsContentController extends GetxController {
     await _postRepository.setArchived(model, false);
 
     // Tüm ilgili store ve listeleri güncelle
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].arsiv = false;
-    final exploreController = Get.find<ExploreController>();
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].arsiv = false;
+    final exploreController = ExploreController.maybeFind();
 
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].arsiv = false;
+    final index3 = exploreController?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) exploreController!.explorePosts[index3].arsiv = false;
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = false;
+    final index4 = exploreController?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) exploreController!.explorePhotos[index4].arsiv = false;
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = false;
+    final index5 = exploreController?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) exploreController!.exploreVideos[index5].arsiv = false;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = false;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].arsiv = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
+    final profile = ProfileController.maybeFind();
+    final index9 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index9 >= 0) profile!.allPosts[index9].arsiv = false;
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final index10 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index10 >= 0) profile!.allPosts[index10].arsiv = false;
 
     arsiv.value = false;
   }
@@ -423,8 +448,8 @@ class PhotoShortsContentController extends GetxController {
     // 3 sn sonra overlay'i kaldır ve uygun listelerden çıkar
     Future.delayed(const Duration(seconds: 3), () {
       // Explore listeleri
-      if (Get.isRegistered<ExploreController>()) {
-        final explore = Get.find<ExploreController>();
+      final explore = ExploreController.maybeFind();
+      if (explore != null) {
         final i1 =
             explore.explorePhotos.indexWhere((e) => e.docID == model.docID);
         if (i1 != -1) {
@@ -440,8 +465,8 @@ class PhotoShortsContentController extends GetxController {
       }
 
       // Agenda listesi
-      if (Get.isRegistered<AgendaController>()) {
-        final agenda = Get.find<AgendaController>();
+      final agenda = AgendaController.maybeFind();
+      if (agenda != null) {
         final idx = agenda.agendaList.indexWhere((e) => e.docID == model.docID);
         if (idx != -1) {
           agenda.agendaList.removeAt(idx);
@@ -812,9 +837,7 @@ class PhotoShortsContentController extends GetxController {
 
       // Profildeki gönderiler listesine en üstten eklemeyi dene
       try {
-        if (Get.isRegistered<ProfileController>()) {
-          Get.find<ProfileController>().getLastPostAndAddToAllPosts();
-        }
+        ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
       } catch (_) {}
     } else {
       // Daha önce paylaşılmış -> sil

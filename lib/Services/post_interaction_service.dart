@@ -58,10 +58,14 @@ class PostInteractionService extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
+  static PostInteractionService? maybeFind() {
+    if (!Get.isRegistered<PostInteractionService>()) return null;
+    return Get.find<PostInteractionService>();
+  }
+
   static PostInteractionService _ensureService() {
-    if (Get.isRegistered<PostInteractionService>()) {
-      return Get.find<PostInteractionService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(PostInteractionService());
   }
 

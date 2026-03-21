@@ -7,6 +7,26 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class BookletAnswerController extends GetxController {
+  static BookletAnswerController ensure(
+    AnswerKeySubModel model,
+    BookletModel anaModel, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BookletAnswerController(model, anaModel),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BookletAnswerController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<BookletAnswerController>(tag: tag)) return null;
+    return Get.find<BookletAnswerController>(tag: tag);
+  }
+
   final ConfigRepository _configRepository = ConfigRepository.ensure();
   final AnswerKeySubModel model;
   final BookletModel anaModel;
@@ -40,8 +60,7 @@ class BookletAnswerController extends GetxController {
       iosList.value = (doc?["iosFullReklamlar"] ?? '').toString();
       androidList.value = (doc?["androidFullReklamlar"] ?? '').toString();
       runAds();
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void runAds() {
@@ -94,7 +113,6 @@ class BookletAnswerController extends GetxController {
         "net": net,
       });
       completed.value = true;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 }

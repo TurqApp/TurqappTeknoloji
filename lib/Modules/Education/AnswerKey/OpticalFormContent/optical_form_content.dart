@@ -23,6 +23,7 @@ class OpticalFormContent extends StatefulWidget {
 class _OpticalFormContentState extends State<OpticalFormContent> {
   late final OpticalFormContentController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   OpticalFormModel get model => widget.model;
   Function() get update => widget.update;
@@ -32,23 +33,20 @@ class _OpticalFormContentState extends State<OpticalFormContent> {
     super.initState();
     _controllerTag =
         'optical_form_content_${widget.model.docID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<OpticalFormContentController>(
+    _ownsController =
+        OpticalFormContentController.maybeFind(tag: _controllerTag) == null;
+    controller = OpticalFormContentController.ensure(
+      widget.model,
       tag: _controllerTag,
-    )
-        ? Get.find<OpticalFormContentController>(tag: _controllerTag)
-        : Get.put(
-            OpticalFormContentController(widget.model),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<OpticalFormContentController>(tag: _controllerTag) &&
-        identical(
-          Get.find<OpticalFormContentController>(tag: _controllerTag),
-          controller,
-        )) {
+    final registeredController = OpticalFormContentController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
       Get.delete<OpticalFormContentController>(tag: _controllerTag);
     }
     super.dispose();

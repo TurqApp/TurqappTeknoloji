@@ -89,6 +89,17 @@ class PreparedPostModel {
 }
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
+  static PostCreatorController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(PostCreatorController(), permanent: permanent);
+  }
+
+  static PostCreatorController? maybeFind() {
+    if (!Get.isRegistered<PostCreatorController>()) return null;
+    return Get.find<PostCreatorController>();
+  }
+
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   static const int _maxScheduledWindowDays = 90;
   static int _lastModerationSnackbarAtMs = 0;
@@ -99,7 +110,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   final RxBool isKeyboardOpen = false.obs;
   final RxBool isPublishing = false.obs;
   var selectedIndex = 0.obs;
-  final agendaController = Get.find<AgendaController>();
+  final agendaController = AgendaController.ensure();
   var comment = true.obs;
   // 0: Herkes, 1: Onaylı hesaplar, 2: Takip ettiğin hesaplar
   var commentVisibility = 0.obs;
@@ -132,6 +143,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     }
     return uid;
   }
+
   String _sharedSourcePostID = "";
   bool _isQuotedPost = false;
   String _quotedOriginalText = "";
@@ -214,10 +226,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   CreatorContentController ensureComposerControllerFor(int composerIndex) {
     final tag = composerIndex.toString();
-    if (Get.isRegistered<CreatorContentController>(tag: tag)) {
-      return Get.find<CreatorContentController>(tag: tag);
-    }
-    return Get.put(CreatorContentController(), tag: tag);
+    return CreatorContentController.ensure(tag: tag);
   }
 
   @override
@@ -251,8 +260,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   Future<void> resetComposerState() async {
     for (final post in postList) {
       final tag = post.index.toString();
-      if (Get.isRegistered<CreatorContentController>(tag: tag)) {
-        await Get.find<CreatorContentController>(tag: tag).resetComposerState();
+      final controller = CreatorContentController.maybeFind(tag: tag);
+      if (controller != null) {
+        await controller.resetComposerState();
         Get.delete<CreatorContentController>(tag: tag, force: true);
       }
     }
@@ -380,7 +390,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   }
 
   void uploadAllPostsInBackground() async {
-    final progressController = Get.find<UploadProgressController>();
+    final progressController = UploadProgressController.ensure();
     // Comprehensive validation before upload
     final allImages = <File>[];
     final allVideos = <File>[];
@@ -388,10 +398,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     // Collect all content from posts
     for (final postModel in postList) {
       final tag = postModel.index.toString();
-      if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
-        Get.put(CreatorContentController(), tag: tag);
-      }
-      final c = Get.find<CreatorContentController>(tag: tag);
+      final c = CreatorContentController.ensure(tag: tag);
 
       // Collect images
       allImages.addAll(c.selectedImages);
@@ -443,21 +450,22 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final uploadedPosts = await uploadAllPosts(progressController);
 
       if (uploadedPosts.isNotEmpty) {
-        final agendaController = Get.find<AgendaController>();
+        final agendaController = AgendaController.maybeFind();
         await Future.delayed(const Duration(milliseconds: 150));
         // Sadece şu an yayınlananları (timeStamp <= now) öne ekle
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final nowPosts =
             uploadedPosts.where((e) => e.timeStamp <= nowMs).toList();
-        if (nowPosts.isNotEmpty) {
+        if (agendaController != null && nowPosts.isNotEmpty) {
           final ids = nowPosts.map((e) => e.docID).toList();
           agendaController.markHighlighted(ids);
           agendaController.addUploadedPostsAtTop(nowPosts);
         }
-        if (agendaController.scrollController.hasClients) {
+        if (agendaController != null &&
+            agendaController.scrollController.hasClients) {
           agendaController.scrollController.jumpTo(0);
         }
-        Get.find<ProfileController>().getLastPostAndAddToAllPosts();
+        ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
 
         // Complete progress
         progressController.complete('post_creator.upload_success'.tr);

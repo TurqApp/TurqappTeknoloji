@@ -5,6 +5,49 @@ import 'package:turqappv2/Themes/app_colors.dart';
 
 class ClickableTextController extends GetxController {
   static const double defaultCaptionFontSize = 13;
+  static ClickableTextController ensure({
+    required String text,
+    void Function(String url)? onUrlTap,
+    void Function(String hashtag)? onHashtagTap,
+    void Function(String mention)? onMentionTap,
+    void Function(String plain)? onPlainTextTap,
+    double? fontSize,
+    Color? fontColor,
+    Color? urlColor,
+    Color? mentionColor,
+    Color? hashtagColor,
+    bool startWith7line = false,
+    Color? interactiveColor,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ClickableTextController(
+        text: text,
+        onUrlTap: onUrlTap,
+        onHashtagTap: onHashtagTap,
+        onMentionTap: onMentionTap,
+        onPlainTextTap: onPlainTextTap,
+        fontSize: fontSize,
+        fontColor: fontColor,
+        urlColor: urlColor,
+        mentionColor: mentionColor,
+        hashtagColor: hashtagColor,
+        startWith7line: startWith7line,
+        interactiveColor: interactiveColor,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ClickableTextController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ClickableTextController>(tag: tag)) return null;
+    return Get.find<ClickableTextController>(tag: tag);
+  }
+
   final String text;
   final void Function(String url)? onUrlTap;
   final void Function(String hashtag)? onHashtagTap;
@@ -292,8 +335,10 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
     return '${signature}_${identityHashCode(this)}';
   }
 
-  ClickableTextController _createController() {
-    return ClickableTextController(
+  void _bindController() {
+    _ownsController =
+        ClickableTextController.maybeFind(tag: _controllerTag) == null;
+    controller = ClickableTextController.ensure(
       text: widget.text,
       onUrlTap: widget.onUrlTap,
       onHashtagTap: widget.onHashtagTap,
@@ -306,24 +351,14 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
       hashtagColor: widget.hashtagColor,
       startWith7line: widget.startWith7line,
       interactiveColor: widget.interactiveColor,
+      tag: _controllerTag,
     );
-  }
-
-  void _bindController() {
-    if (Get.isRegistered<ClickableTextController>(tag: _controllerTag)) {
-      controller = Get.find<ClickableTextController>(tag: _controllerTag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(_createController(), tag: _controllerTag);
-      _ownsController = true;
-    }
   }
 
   void _disposeOwnedController() {
     if (_ownsController &&
-        Get.isRegistered<ClickableTextController>(tag: _controllerTag) &&
         identical(
-          Get.find<ClickableTextController>(tag: _controllerTag),
+          ClickableTextController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ClickableTextController>(tag: _controllerTag);
@@ -366,7 +401,7 @@ class _ClickableTextContentState extends State<ClickableTextContent> {
       builder: (context, constraints) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          if (Get.isRegistered<ClickableTextController>(tag: _controllerTag)) {
+          if (ClickableTextController.maybeFind(tag: _controllerTag) != null) {
             controller.checkIfExceeds(constraints, baseStyle);
           }
         });

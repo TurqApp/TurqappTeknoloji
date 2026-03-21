@@ -24,6 +24,24 @@ import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/Services/optimized_nsfw_service.dart';
 
 class EditProfileController extends GetxController {
+  static EditProfileController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      EditProfileController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static EditProfileController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<EditProfileController>(tag: tag)) return null;
+    return Get.find<EditProfileController>(tag: tag);
+  }
+
   final CropController cropController = CropController();
   final ImagePicker picker = ImagePicker();
 

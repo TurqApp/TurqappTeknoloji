@@ -45,12 +45,13 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
     super.initState();
     _controllerTag =
         'story_comment_user_${widget.model.docID}_${identityHashCode(this)}';
-    if (Get.isRegistered<StoryCommentUserController>(tag: _controllerTag)) {
-      controller = Get.find<StoryCommentUserController>(tag: _controllerTag);
+    final existingController =
+        StoryCommentUserController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(
-        StoryCommentUserController(),
+      controller = StoryCommentUserController.ensure(
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -61,7 +62,10 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<StoryCommentUserController>(tag: _controllerTag)) {
+        identical(
+          StoryCommentUserController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<StoryCommentUserController>(
         tag: _controllerTag,
         force: true,
@@ -86,7 +90,8 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                   GestureDetector(
                     onTap: () {
                       if (widget.model.userID != _currentUserId) {
-                        Get.to(() => SocialProfile(userID: widget.model.userID));
+                        Get.to(
+                            () => SocialProfile(userID: widget.model.userID));
                       }
                     },
                     child: ClipOval(
@@ -118,8 +123,8 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                             GestureDetector(
                               onTap: () {
                                 if (widget.model.userID != _currentUserId) {
-                                  Get.to(() =>
-                                      SocialProfile(userID: widget.model.userID));
+                                  Get.to(() => SocialProfile(
+                                      userID: widget.model.userID));
                                 }
                               },
                               child: Text(
@@ -128,8 +133,8 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                                     color: Colors.black,
                                     fontSize: 14,
                                     fontFamily: "MontserratBold"),
-                                ),
                               ),
+                            ),
                             RozetContent(
                               size: 14,
                               userID: widget.model.userID,
@@ -202,14 +207,17 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                         onPressed: () {
                           noYesAlert(
                               title: 'common.delete'.tr,
-                              message:
-                                  'story.comment_delete_message'.tr,
+                              message: 'story.comment_delete_message'.tr,
                               onYesPressed: () {
-                                final store = Get.find<StoryCommentsController>(
-                                    tag: widget.storyID);
-                                final index = store.list.indexOf(widget.model);
-                                store.list.removeAt(index);
-                                store.totalComment.value--;
+                                final store = StoryCommentsController.maybeFind(
+                                  tag: widget.storyID,
+                                );
+                                final index =
+                                    store?.list.indexOf(widget.model) ?? -1;
+                                if (index >= 0) {
+                                  store!.list.removeAt(index);
+                                  store.totalComment.value--;
+                                }
                                 StoryRepository.ensure().deleteStoryComment(
                                   widget.storyID,
                                   commentId: widget.model.docID,

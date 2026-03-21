@@ -4,10 +4,14 @@ import 'package:turqappv2/Core/Services/typesense_user_card_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 class UserSummaryResolver extends GetxService {
+  static UserSummaryResolver? maybeFind() {
+    if (!Get.isRegistered<UserSummaryResolver>()) return null;
+    return Get.find<UserSummaryResolver>();
+  }
+
   static UserSummaryResolver _ensureService() {
-    if (Get.isRegistered<UserSummaryResolver>()) {
-      return Get.find<UserSummaryResolver>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(UserSummaryResolver(), permanent: true);
   }
 

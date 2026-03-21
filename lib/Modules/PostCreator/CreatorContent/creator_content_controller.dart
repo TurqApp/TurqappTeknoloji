@@ -25,6 +25,24 @@ import '../post_creator_controller.dart';
 
 class CreatorContentController extends GetxController
     with WidgetsBindingObserver {
+  static CreatorContentController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreatorContentController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreatorContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreatorContentController>(tag: tag)) return null;
+    return Get.find<CreatorContentController>(tag: tag);
+  }
+
   static const List<String> supportedVideoLookPresets = <String>[
     'original',
     'clear',
@@ -346,7 +364,7 @@ class CreatorContentController extends GetxController
       return;
     }
 
-    final postCreator = Get.find<PostCreatorController>();
+    final postCreator = PostCreatorController.ensure();
     final isSeries = postCreator.postList.length > 1;
     final existingCount = selectedImages.length;
     final maxImages = isSeries
@@ -433,7 +451,7 @@ class CreatorContentController extends GetxController
 
     try {
       // Compress images efficiently
-      final network = Get.find<NetworkAwarenessService>();
+      final network = NetworkAwarenessService.ensure();
       final optimalQuality = network.getOptimalCompressionQuality();
       final compressionResults = await MediaCompressionService.compressImages(
         imageFiles: files,
@@ -456,10 +474,7 @@ class CreatorContentController extends GetxController
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController =
-                Get.isRegistered<CreatorContentController>(tag: newTag)
-                    ? Get.find<CreatorContentController>(tag: newTag)
-                    : Get.put(CreatorContentController(), tag: newTag);
+            targetController = CreatorContentController.ensure(tag: newTag);
           }
 
           await targetController._replaceWithSingleImage(
@@ -609,7 +624,7 @@ class CreatorContentController extends GetxController
       //   backgroundColor: Colors.blue.withValues(alpha: 0.8),
       // );
 
-      final network = Get.find<NetworkAwarenessService>();
+      final network = NetworkAwarenessService.ensure();
       final compressionResult = await MediaCompressionService.compressImage(
         imageFile: file,
         targetQuality: network.getOptimalCompressionQuality(),
@@ -674,7 +689,7 @@ class CreatorContentController extends GetxController
   }
 
   Future<void> pickVideo({required ImageSource source}) async {
-    final postCreator = Get.find<PostCreatorController>();
+    final postCreator = PostCreatorController.ensure();
     final isSeries = postCreator.postList.length > 1;
 
     if (source != ImageSource.gallery &&
@@ -706,10 +721,7 @@ class CreatorContentController extends GetxController
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController =
-                Get.isRegistered<CreatorContentController>(tag: newTag)
-                    ? Get.find<CreatorContentController>(tag: newTag)
-                    : Get.put(CreatorContentController(), tag: newTag);
+            targetController = CreatorContentController.ensure(tag: newTag);
           }
 
           await targetController._replaceWithSingleVideo(file);
@@ -871,7 +883,7 @@ class CreatorContentController extends GetxController
     List<String> imageUrls, {
     double aspectRatio = 0.0,
   }) async {
-    final isThread = Get.find<PostCreatorController>().postList.length > 1;
+    final isThread = PostCreatorController.ensure().postList.length > 1;
     final uniqueUrls =
         imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (uniqueUrls.isEmpty) return;

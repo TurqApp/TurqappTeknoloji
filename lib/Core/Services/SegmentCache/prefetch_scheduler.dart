@@ -22,11 +22,15 @@ import 'network_policy.dart';
 /// 2. Aktif videoda ilk 2 segment hazır
 /// 3. İzleme sırasında yalnızca 1 sonraki segment hazırlanır
 class PrefetchScheduler extends GetxController {
+  static PrefetchScheduler ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(PrefetchScheduler());
+  }
+
   static PrefetchScheduler? maybeFind() {
-    if (Get.isRegistered<PrefetchScheduler>()) {
-      return Get.find<PrefetchScheduler>();
-    }
-    return null;
+    if (!Get.isRegistered<PrefetchScheduler>()) return null;
+    return Get.find<PrefetchScheduler>();
   }
 
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
@@ -125,12 +129,7 @@ class PrefetchScheduler extends GetxController {
           : _fallbackFeedPrepWindow)
       : _fallbackFeedPrepWindow;
 
-  VideoRemoteConfigService? get _remote {
-    if (Get.isRegistered<VideoRemoteConfigService>()) {
-      return Get.find<VideoRemoteConfigService>();
-    }
-    return null;
-  }
+  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
 
   /// Video listesi ve aktif index güncellendiğinde çağrılır.
   /// Sadece Wi-Fi'de prefetch kuyruğu oluşturur.
@@ -555,19 +554,14 @@ class PrefetchScheduler extends GetxController {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
-    try {
-      if (!Get.isRegistered<PlaybackPolicyEngine>()) {
-        return false;
-      }
-      return Get.find<PlaybackPolicyEngine>()
-          .snapshot(
-            visibleReadyCount: _lastFeedReadyCount,
-            visibleWindowCount: _lastFeedWindowCount,
-          )
-          .enableMobileSeedMode;
-    } catch (_) {
-      return false;
-    }
+    final policy = PlaybackPolicyEngine.maybeFind();
+    if (policy == null) return false;
+    return policy
+        .snapshot(
+          visibleReadyCount: _lastFeedReadyCount,
+          visibleWindowCount: _lastFeedWindowCount,
+        )
+        .enableMobileSeedMode;
   }
 
   Iterable<String> _pickMobileSeedSegments({
@@ -772,10 +766,9 @@ class PrefetchScheduler extends GetxController {
 
     _pendingDownloadBytes -= downloadMb * oneMb;
 
-    try {
-      final network = Get.find<NetworkAwarenessService>();
-      unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-    } catch (_) {}
+    final network = NetworkAwarenessService.maybeFind();
+    if (network == null) return;
+    unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
   }
 
   void _publishPrefetchHealthIfNeeded({bool force = false}) {
@@ -819,13 +812,7 @@ class PrefetchScheduler extends GetxController {
 
   // ──────────────────────────── Helpers ────────────────────────────
 
-  SegmentCacheManager? _getCacheManager() {
-    try {
-      return Get.find<SegmentCacheManager>();
-    } catch (_) {
-      return null;
-    }
-  }
+  SegmentCacheManager? _getCacheManager() => SegmentCacheManager.maybeFind();
 
   @override
   void onClose() {
@@ -834,10 +821,10 @@ class PrefetchScheduler extends GetxController {
     _worker?.stop();
     if (_pendingDownloadBytes > 0) {
       final int downloadMb = (_pendingDownloadBytes / (1024 * 1024)).ceil();
-      try {
-        final network = Get.find<NetworkAwarenessService>();
+      final network = NetworkAwarenessService.maybeFind();
+      if (network != null) {
         unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-      } catch (_) {}
+      }
       _pendingDownloadBytes = 0;
     }
     _httpClient.close();

@@ -13,8 +13,13 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class StoryMusicLibraryService {
   StoryMusicLibraryService._();
 
-  static final StoryMusicLibraryService instance =
-      StoryMusicLibraryService._();
+  static StoryMusicLibraryService? _instance;
+  static StoryMusicLibraryService? maybeFind() => _instance;
+
+  static StoryMusicLibraryService ensure() =>
+      maybeFind() ?? (_instance = StoryMusicLibraryService._());
+
+  static StoryMusicLibraryService get instance => ensure();
 
   static const String _cacheKey = 'storyMusic.library.v1';
   static const String _cacheTimeKey = 'storyMusic.library.updatedAt.v1';
@@ -167,7 +172,8 @@ class StoryMusicLibraryService {
     try {
       final doc = await _collection.doc(cleanId).get();
       if (!doc.exists) return null;
-      return MusicModel.fromMap(doc.data() ?? const <String, dynamic>{}, doc.id);
+      return MusicModel.fromMap(
+          doc.data() ?? const <String, dynamic>{}, doc.id);
     } catch (_) {
       return null;
     }
@@ -275,7 +281,11 @@ class StoryMusicLibraryService {
         'updatedAt': now,
       }, SetOptions(merge: true));
 
-      await _collection.doc(cleanMusicId).collection('stories').doc(cleanStoryId).set({
+      await _collection
+          .doc(cleanMusicId)
+          .collection('stories')
+          .doc(cleanStoryId)
+          .set({
         'storyId': cleanStoryId,
         'userId': cleanUserId,
         'createdAt': createdAt,
@@ -314,7 +324,11 @@ class StoryMusicLibraryService {
     if (cleanMusicId.isEmpty || cleanStoryId.isEmpty) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     try {
-      await _collection.doc(cleanMusicId).collection('stories').doc(cleanStoryId).delete();
+      await _collection
+          .doc(cleanMusicId)
+          .collection('stories')
+          .doc(cleanStoryId)
+          .delete();
       await _collection.doc(cleanMusicId).set({
         'storyCount': FieldValue.increment(-1),
         'updatedAt': now,
@@ -372,7 +386,11 @@ class StoryMusicLibraryService {
         'updatedAt': now,
         'isActive': true,
       }, SetOptions(merge: true));
-      await _collection.doc(cleanMusicId).collection('stories').doc(cleanStoryId).set({
+      await _collection
+          .doc(cleanMusicId)
+          .collection('stories')
+          .doc(cleanStoryId)
+          .set({
         'storyId': cleanStoryId,
         'userId': cleanUserId,
         'createdAt': createdAt,

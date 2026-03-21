@@ -10,6 +10,26 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/verified_account_model.dart';
 
 class BecomeVerifiedAccountController extends GetxController {
+  static BecomeVerifiedAccountController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BecomeVerifiedAccountController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BecomeVerifiedAccountController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<BecomeVerifiedAccountController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<BecomeVerifiedAccountController>(tag: tag);
+  }
+
   final VerifiedAccountRepository _verifiedAccountRepository =
       VerifiedAccountRepository.ensure();
   final RxString aciklamaText = "".obs;
@@ -41,8 +61,8 @@ class BecomeVerifiedAccountController extends GetxController {
     super.onInit();
     _verifiedAccountRepository
         .fetchApplicationState(
-          CurrentUserService.instance.userId,
-        )
+      CurrentUserService.instance.userId,
+    )
         .then((state) {
       existingApplicationStatus.value = state?.status ?? '';
       if (state?.isPending == true) {
@@ -90,11 +110,10 @@ class BecomeVerifiedAccountController extends GetxController {
         _hasMeaningfulHandle(website);
     final requiresBarcode = selectedColor.value == "F44336";
     final hasBarcode = eDevletBarcodeNo.text.trim().isNotEmpty;
-    canSubmitApplication.value =
-        hasNickname &&
-            hasSocial &&
-            hasAcceptedConsent.value &&
-            (!requiresBarcode || hasBarcode);
+    canSubmitApplication.value = hasNickname &&
+        hasSocial &&
+        hasAcceptedConsent.value &&
+        (!requiresBarcode || hasBarcode);
   }
 
   void toggleConsent(bool? value) {

@@ -10,6 +10,24 @@ import 'package:turqappv2/Models/job_application_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyApplicationsController extends GetxController {
+  static MyApplicationsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyApplicationsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyApplicationsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyApplicationsController>(tag: tag)) return null;
+    return Get.find<MyApplicationsController>(tag: tag);
+  }
+
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();

@@ -21,10 +21,14 @@ class PracticeExamRepository extends GetxService {
       <String, _TimedPracticeExamBool>{};
   SharedPreferences? _prefs;
 
+  static PracticeExamRepository? maybeFind() {
+    if (!Get.isRegistered<PracticeExamRepository>()) return null;
+    return Get.find<PracticeExamRepository>();
+  }
+
   static PracticeExamRepository _ensureService() {
-    if (Get.isRegistered<PracticeExamRepository>()) {
-      return Get.find<PracticeExamRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(PracticeExamRepository(), permanent: true);
   }
 

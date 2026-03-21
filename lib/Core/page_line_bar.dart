@@ -18,10 +18,7 @@ const String kFollowersSocialProfilePageLineBarTag =
     'followers_social_profile_page_line_bar';
 
 PageLineBarController? maybeFindPageLineBarController(String tag) {
-  if (!Get.isRegistered<PageLineBarController>(tag: tag)) {
-    return null;
-  }
-  return Get.find<PageLineBarController>(tag: tag);
+  return PageLineBarController.maybeFind(tag: tag);
 }
 
 void syncPageLineBarSelection(String tag, int index) {
@@ -86,16 +83,12 @@ class _PageLineBarState extends State<PageLineBar> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<PageLineBarController>(tag: widget.pageName)) {
-      controller = Get.find<PageLineBarController>(tag: widget.pageName);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        PageLineBarController(pageName: widget.pageName),
-        tag: widget.pageName,
-      );
-      _ownsController = true;
-    }
+    _ownsController =
+        PageLineBarController.maybeFind(tag: widget.pageName) == null;
+    controller = PageLineBarController.ensure(
+      pageName: widget.pageName,
+      tag: widget.pageName,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_didInit) return;
@@ -180,6 +173,25 @@ class _PageLineBarState extends State<PageLineBar> {
 }
 
 class PageLineBarController extends GetxController {
+  static PageLineBarController ensure({
+    required String pageName,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PageLineBarController(pageName: pageName),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PageLineBarController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PageLineBarController>(tag: tag)) return null;
+    return Get.find<PageLineBarController>(tag: tag);
+  }
+
   final String pageName;
   PageLineBarController({required this.pageName});
 

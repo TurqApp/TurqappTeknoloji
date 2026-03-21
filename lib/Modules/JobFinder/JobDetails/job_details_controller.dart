@@ -27,6 +27,25 @@ import '../JobCreator/job_creator.dart';
 import '../ApplicationReview/application_review.dart';
 
 class JobDetailsController extends GetxController {
+  static JobDetailsController ensure({
+    required JobModel model,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      JobDetailsController(model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static JobDetailsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<JobDetailsController>(tag: tag)) return null;
+    return Get.find<JobDetailsController>(tag: tag);
+  }
+
   final Rx<JobModel> model;
   final saved = false.obs;
   final basvuruldu = false.obs;

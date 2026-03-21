@@ -27,12 +27,8 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<OpticsAndBooksPublishedController>()) {
-      controller = Get.find<OpticsAndBooksPublishedController>();
-    } else {
-      controller = Get.put(OpticsAndBooksPublishedController());
-      _ownsController = true;
-    }
+    _ownsController = OpticsAndBooksPublishedController.maybeFind() == null;
+    controller = OpticsAndBooksPublishedController.ensure();
     controller.refreshOnOpen();
     _scrollController.addListener(() {
       controller.scrollOffset.value = _scrollController.offset;
@@ -42,8 +38,10 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<OpticsAndBooksPublishedController>() &&
-        Get.find<OpticsAndBooksPublishedController>() == controller) {
+        identical(
+          OpticsAndBooksPublishedController.maybeFind(),
+          controller,
+        )) {
       Get.delete<OpticsAndBooksPublishedController>(force: true);
     }
     _scrollController.dispose();

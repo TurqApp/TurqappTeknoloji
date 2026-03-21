@@ -9,7 +9,7 @@ class AdsDashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<AdsCenterController>();
+    final controller = AdsCenterController.ensure();
     final flagsService = AdsFeatureFlagsService.to;
 
     return RefreshIndicator(
@@ -30,21 +30,21 @@ class AdsDashboardView extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                _metricCard('ads_center.total_campaigns'.tr,
+                    '${m['totalCampaigns'] ?? 0}'),
                 _metricCard(
-                    'ads_center.total_campaigns'.tr, '${m['totalCampaigns'] ?? 0}'),
-                _metricCard('ads_center.active'.tr, '${m['activeCampaigns'] ?? 0}'),
+                    'ads_center.active'.tr, '${m['activeCampaigns'] ?? 0}'),
                 _metricCard(
                     'ads_center.paused'.tr, '${m['pausedCampaigns'] ?? 0}'),
-                _metricCard(
-                    'ads_center.impressions'.tr, '${m['totalImpressions'] ?? 0}'),
+                _metricCard('ads_center.impressions'.tr,
+                    '${m['totalImpressions'] ?? 0}'),
                 _metricCard('ads_center.reach'.tr, '${m['uniqueReach'] ?? 0}'),
                 _metricCard('ads_center.clicks'.tr, '${m['clicks'] ?? 0}'),
                 _metricCard('CTR', _percent(m['ctr'])),
                 _metricCard('ads_center.spend'.tr, _money(m['spend'])),
                 _metricCard('ads_center.avg_cpc'.tr, _money(m['avgCpc'])),
                 _metricCard('ads_center.avg_cpm'.tr, _money(m['avgCpm'])),
-                _metricCard(
-                    'ads_center.video_completion'.tr,
+                _metricCard('ads_center.video_completion'.tr,
                     _percent(m['videoCompletionRate'])),
               ],
             ),

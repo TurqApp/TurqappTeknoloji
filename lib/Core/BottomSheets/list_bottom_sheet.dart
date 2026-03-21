@@ -84,11 +84,12 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   void initState() {
     super.initState();
     _controllerTag = '${widget.title}_${identityHashCode(this)}';
-    if (Get.isRegistered<ListBottomSheetController>(tag: _controllerTag)) {
-      controller = Get.find<ListBottomSheetController>(tag: _controllerTag);
+    final existingController =
+        ListBottomSheetController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(
-        ListBottomSheetController(),
+      controller = ListBottomSheetController.ensure(
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -106,9 +107,8 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   void dispose() {
     // Temizlik
     if (_ownsController &&
-        Get.isRegistered<ListBottomSheetController>(tag: _controllerTag) &&
         identical(
-          Get.find<ListBottomSheetController>(tag: _controllerTag),
+          ListBottomSheetController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<ListBottomSheetController>(tag: _controllerTag);
@@ -299,6 +299,24 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
 }
 
 class ListBottomSheetController extends GetxController {
+  static ListBottomSheetController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ListBottomSheetController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ListBottomSheetController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ListBottomSheetController>(tag: tag)) return null;
+    return Get.find<ListBottomSheetController>(tag: tag);
+  }
+
   final list = <dynamic>[].obs;
   final selectedItems = <String>[].obs;
   final startSelection = "".obs;

@@ -44,6 +44,26 @@ part 'chat_controller_forwarding_part.dart';
 part 'chat_controller_media_part.dart';
 
 class ChatController extends GetxController {
+  static ChatController ensure({
+    required String chatID,
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ChatController(chatID: chatID, userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ChatController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ChatController>(tag: tag)) return null;
+    return Get.find<ChatController>(tag: tag);
+  }
+
   String chatID;
   String userID;
   var nickname = "".obs;

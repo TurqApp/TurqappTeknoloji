@@ -10,6 +10,31 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class NotificationContentController extends GetxController {
+  static NotificationContentController ensure({
+    required String userID,
+    required NotificationModel notification,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      NotificationContentController(
+        userID: userID,
+        notification: notification,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static NotificationContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<NotificationContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<NotificationContentController>(tag: tag);
+  }
+
   static const String _userType = kNotificationPostTypeUserLower;
   static const String _commentType = kNotificationPostTypeCommentLower;
   static const String _chatType = kNotificationPostTypeChatLower;
@@ -179,7 +204,8 @@ class NotificationContentController extends GetxController {
       return;
     }
     avatarUrl.value = user.avatarUrl;
-    nickname.value = user.nickname.isNotEmpty ? user.nickname : user.preferredName;
+    nickname.value =
+        user.nickname.isNotEmpty ? user.nickname : user.preferredName;
   }
 
   Future<void> _loadFollowingState() async {

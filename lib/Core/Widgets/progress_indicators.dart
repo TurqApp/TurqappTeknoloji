@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class UploadProgressController extends GetxController {
+  static UploadProgressController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(UploadProgressController(), permanent: permanent);
+  }
+
+  static UploadProgressController? maybeFind() {
+    if (!Get.isRegistered<UploadProgressController>()) return null;
+    return Get.find<UploadProgressController>();
+  }
+
   final RxDouble progress = 0.0.obs;
   final RxString status = ''.obs;
   final RxString currentFile = ''.obs;

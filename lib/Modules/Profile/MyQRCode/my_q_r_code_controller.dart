@@ -18,6 +18,24 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
 class MyQRCodeController extends GetxController {
+  static MyQRCodeController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyQRCodeController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyQRCodeController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MyQRCodeController>(tag: tag)) return null;
+    return Get.find<MyQRCodeController>(tag: tag);
+  }
+
   final CurrentUserService userService = CurrentUserService.instance;
   final ShortLinkService _shortLinkService = ShortLinkService();
   final RxString profileLink = ''.obs;
@@ -33,9 +51,7 @@ class MyQRCodeController extends GetxController {
     if (nickname.isNotEmpty) {
       return buildTurqAppProfileUrl(nickname);
     }
-    final uid = userService.userId.isNotEmpty
-        ? userService.userId
-        : '';
+    final uid = userService.userId.isNotEmpty ? userService.userId : '';
     if (uid.isNotEmpty) {
       return buildTurqAppProfileUrl(uid);
     }
@@ -49,9 +65,7 @@ class MyQRCodeController extends GetxController {
   Future<void> _prepareProfileLink() async {
     final link = _buildProfileLink();
     profileLink.value = link;
-    final uid = userService.userId.isNotEmpty
-        ? userService.userId
-        : '';
+    final uid = userService.userId.isNotEmpty ? userService.userId : '';
     final nickname = normalizeProfileSlug(userService.nickname);
     if (uid.isEmpty || nickname.isEmpty) return;
     try {

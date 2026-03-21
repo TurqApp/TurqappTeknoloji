@@ -22,6 +22,25 @@ const createTestTypeLanguage = 'Dil';
 const createTestTypeBranch = 'Branş';
 
 class CreateTestController extends GetxController {
+  static CreateTestController ensure(
+    TestsModel? model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateTestController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateTestController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<CreateTestController>(tag: tag)) return null;
+    return Get.find<CreateTestController>(tag: tag);
+  }
+
   final TestsModel? model;
   final aciklama = TextEditingController();
   final selectedDers = <String>[].obs;

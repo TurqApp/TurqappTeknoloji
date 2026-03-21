@@ -3,6 +3,17 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 class VideoRemoteConfigService extends GetxService {
+  static VideoRemoteConfigService? maybeFind() {
+    if (!Get.isRegistered<VideoRemoteConfigService>()) return null;
+    return Get.find<VideoRemoteConfigService>();
+  }
+
+  static VideoRemoteConfigService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(VideoRemoteConfigService(), permanent: true);
+  }
+
   final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
   final RxBool _ready = false.obs;
 

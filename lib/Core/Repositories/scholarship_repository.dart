@@ -19,10 +19,14 @@ class ScholarshipRepository extends GetxService {
       <String, _TimedScholarshipApply>{};
   SharedPreferences? _prefs;
 
+  static ScholarshipRepository? maybeFind() {
+    if (!Get.isRegistered<ScholarshipRepository>()) return null;
+    return Get.find<ScholarshipRepository>();
+  }
+
   static ScholarshipRepository _ensureService() {
-    if (Get.isRegistered<ScholarshipRepository>()) {
-      return Get.find<ScholarshipRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ScholarshipRepository(), permanent: true);
   }
 

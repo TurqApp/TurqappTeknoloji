@@ -55,11 +55,14 @@ class _JobDetailsState extends State<JobDetails> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = 'job_details_${widget.model.docID}_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<JobDetailsController>(tag: _controllerTag);
-    controller = _ownsController
-        ? Get.put(JobDetailsController(model: model), tag: _controllerTag)
-        : Get.find<JobDetailsController>(tag: _controllerTag);
+    _controllerTag =
+        'job_details_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        JobDetailsController.maybeFind(tag: _controllerTag) == null;
+    controller = JobDetailsController.ensure(
+      model: model,
+      tag: _controllerTag,
+    );
   }
 
   String get _currentUid {
@@ -81,10 +84,10 @@ class _JobDetailsState extends State<JobDetails> {
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<JobDetailsController>(tag: _controllerTag)) {
-      final registeredController =
-          Get.find<JobDetailsController>(tag: _controllerTag);
+    if (_ownsController) {
+      final registeredController = JobDetailsController.maybeFind(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<JobDetailsController>(tag: _controllerTag, force: true);
       }

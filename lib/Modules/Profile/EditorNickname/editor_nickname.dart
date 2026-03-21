@@ -23,11 +23,12 @@ class _EditorNicknameState extends State<EditorNickname> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<EditorNicknameController>()) {
-      controller = Get.find<EditorNicknameController>();
+    final existingController = EditorNicknameController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
       _ownsController = false;
     } else {
-      controller = Get.put(EditorNicknameController());
+      controller = EditorNicknameController.ensure();
       _ownsController = true;
     }
   }
@@ -35,8 +36,7 @@ class _EditorNicknameState extends State<EditorNickname> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<EditorNicknameController>() &&
-        identical(Get.find<EditorNicknameController>(), controller)) {
+        identical(EditorNicknameController.maybeFind(), controller)) {
       Get.delete<EditorNicknameController>(force: true);
     }
     super.dispose();
@@ -84,8 +84,7 @@ class _EditorNicknameState extends State<EditorNickname> {
                                           CustomNicknameFormatter(),
                                         ],
                                         decoration: InputDecoration(
-                                          hintText:
-                                              'editor_nickname.hint'.tr,
+                                          hintText: 'editor_nickname.hint'.tr,
                                           hintStyle: TextStyle(
                                               color: Colors.grey,
                                               fontFamily: "MontserratMedium"),

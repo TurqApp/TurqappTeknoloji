@@ -22,10 +22,14 @@ class ExploreRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
 
+  static ExploreRepository? maybeFind() {
+    if (!Get.isRegistered<ExploreRepository>()) return null;
+    return Get.find<ExploreRepository>();
+  }
+
   static ExploreRepository _ensureService() {
-    if (Get.isRegistered<ExploreRepository>()) {
-      return Get.find<ExploreRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ExploreRepository(), permanent: true);
   }
 

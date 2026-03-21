@@ -6,6 +6,26 @@ import 'package:turqappv2/Core/interests_list.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class InterestsController extends GetxController {
+  static InterestsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      InterestsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static InterestsController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<InterestsController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<InterestsController>(tag: tag);
+  }
+
   final RxList<String> selecteds = <String>[].obs;
   final RxString searchText = "".obs;
   final RxBool isReady = false.obs;

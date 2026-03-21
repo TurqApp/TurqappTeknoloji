@@ -9,6 +9,17 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyBookletResultsController extends GetxController {
+  static MyBookletResultsController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(MyBookletResultsController(), permanent: permanent);
+  }
+
+  static MyBookletResultsController? maybeFind() {
+    if (!Get.isRegistered<MyBookletResultsController>()) return null;
+    return Get.find<MyBookletResultsController>();
+  }
+
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();
   static const Duration _silentRefreshInterval = Duration(minutes: 5);

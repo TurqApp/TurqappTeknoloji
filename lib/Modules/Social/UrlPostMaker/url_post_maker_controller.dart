@@ -14,6 +14,24 @@ import '../../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../../Core/LocationFinderView/location_finder_view.dart';
 
 class UrlPostMakerController extends GetxController {
+  static UrlPostMakerController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      UrlPostMakerController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static UrlPostMakerController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<UrlPostMakerController>(tag: tag)) return null;
+    return Get.find<UrlPostMakerController>(tag: tag);
+  }
+
   TextEditingController textEditingController = TextEditingController();
   Rx<HLSVideoAdapter?> videoPlayerController = Rx<HLSVideoAdapter?>(null);
   RxBool isPlaying = false.obs;
@@ -224,8 +242,8 @@ class UrlPostMakerController extends GetxController {
         originalPostID: finalOriginalPostID,
       );
 
-      if (Get.isRegistered<AgendaController>()) {
-        final agendaController = Get.find<AgendaController>();
+      final agendaController = AgendaController.maybeFind();
+      if (agendaController != null) {
         agendaController.addUploadedPostsAtTop([newPost]);
 
         if (agendaController.scrollController.hasClients) {

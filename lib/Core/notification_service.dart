@@ -32,7 +32,13 @@ bool _shouldUseLocalNotifications() {
 
 class NotificationService {
   NotificationService._();
-  static final NotificationService instance = NotificationService._();
+  static NotificationService? _instance;
+  static NotificationService? maybeFind() => _instance;
+
+  static NotificationService ensure() =>
+      maybeFind() ?? (_instance = NotificationService._());
+
+  static NotificationService get instance => ensure();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =

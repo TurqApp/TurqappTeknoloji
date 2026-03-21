@@ -21,20 +21,17 @@ class _MyTutoringApplicationsState extends State<MyTutoringApplications> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<MyTutoringApplicationsController>()) {
-      controller = Get.find<MyTutoringApplicationsController>();
-      _ownsController = false;
-    } else {
-      controller = Get.put(MyTutoringApplicationsController());
-      _ownsController = true;
-    }
+    _ownsController = MyTutoringApplicationsController.maybeFind() == null;
+    controller = MyTutoringApplicationsController.ensure();
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<MyTutoringApplicationsController>() &&
-        identical(Get.find<MyTutoringApplicationsController>(), controller)) {
+        identical(
+          MyTutoringApplicationsController.maybeFind(),
+          controller,
+        )) {
       Get.delete<MyTutoringApplicationsController>();
     }
     super.dispose();

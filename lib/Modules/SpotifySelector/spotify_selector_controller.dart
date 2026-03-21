@@ -9,6 +9,18 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/music_model.dart';
 
 class SpotifySelectorController extends GetxController {
+  static SpotifySelectorController ensure({String? tag}) {
+    if (!Get.isRegistered<SpotifySelectorController>(tag: tag)) {
+      Get.put(SpotifySelectorController(), tag: tag);
+    }
+    return Get.find<SpotifySelectorController>(tag: tag);
+  }
+
+  static SpotifySelectorController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<SpotifySelectorController>(tag: tag)) return null;
+    return Get.find<SpotifySelectorController>(tag: tag);
+  }
+
   final RxList<MusicModel> library = <MusicModel>[].obs;
   final RxSet<String> savedTrackIds = <String>{}.obs;
   final RxBool isLoading = true.obs;

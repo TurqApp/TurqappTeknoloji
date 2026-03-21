@@ -18,6 +18,7 @@ class BookletResultContent extends StatefulWidget {
 class _BookletResultContentState extends State<BookletResultContent> {
   late final BookletResultContentController controller;
   late final String _controllerTag;
+  late final bool _ownsController;
 
   BookletResultModel get model => widget.model;
 
@@ -26,23 +27,20 @@ class _BookletResultContentState extends State<BookletResultContent> {
     super.initState();
     _controllerTag =
         'booklet_result_content_${widget.model.kitapcikID}_${identityHashCode(this)}';
-    controller = Get.isRegistered<BookletResultContentController>(
+    _ownsController =
+        BookletResultContentController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletResultContentController.ensure(
+      widget.model,
       tag: _controllerTag,
-    )
-        ? Get.find<BookletResultContentController>(tag: _controllerTag)
-        : Get.put(
-            BookletResultContentController(widget.model),
-            tag: _controllerTag,
-          );
+    );
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<BookletResultContentController>(tag: _controllerTag) &&
-        identical(
-          Get.find<BookletResultContentController>(tag: _controllerTag),
-          controller,
-        )) {
+    final registeredController = BookletResultContentController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
       Get.delete<BookletResultContentController>(tag: _controllerTag);
     }
     super.dispose();

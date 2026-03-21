@@ -18,6 +18,17 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
 class EducationController extends GetxController {
+  static EducationController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(EducationController(), permanent: permanent);
+  }
+
+  static EducationController? maybeFind() {
+    if (!Get.isRegistered<EducationController>()) return null;
+    return Get.find<EducationController>();
+  }
+
   final searchController = TextEditingController();
   final searchFocus = FocusNode();
   final isSearchMode = false.obs;

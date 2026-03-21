@@ -27,25 +27,20 @@ class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
     super.initState();
     _controllerTag =
         'test_results_preview_${widget.model.docID}_${identityHashCode(this)}';
-    _ownsController = !Get.isRegistered<MyPastTestResultsPreviewController>(
+    _ownsController =
+        MyPastTestResultsPreviewController.maybeFind(tag: _controllerTag) ==
+            null;
+    controller = MyPastTestResultsPreviewController.ensure(
+      widget.model,
       tag: _controllerTag,
     );
-    controller = _ownsController
-        ? Get.put(
-            MyPastTestResultsPreviewController(widget.model),
-            tag: _controllerTag,
-          )
-        : Get.find<MyPastTestResultsPreviewController>(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (_ownsController &&
-        Get.isRegistered<MyPastTestResultsPreviewController>(
-          tag: _controllerTag,
-        )) {
+    if (_ownsController) {
       final registeredController =
-          Get.find<MyPastTestResultsPreviewController>(tag: _controllerTag);
+          MyPastTestResultsPreviewController.maybeFind(tag: _controllerTag);
       if (identical(registeredController, controller)) {
         Get.delete<MyPastTestResultsPreviewController>(
           tag: _controllerTag,
@@ -58,7 +53,6 @@ class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -228,7 +222,8 @@ class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
                                                 top: 15,
                                               ),
                                               child: Text(
-                                                "tests.question_number".trParams({
+                                                "tests.question_number"
+                                                    .trParams({
                                                   'index':
                                                       (index + 1).toString(),
                                                 }),

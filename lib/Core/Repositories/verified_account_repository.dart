@@ -42,10 +42,14 @@ class VerifiedAccountRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedVerifiedAccountStatus> _memory = {};
 
+  static VerifiedAccountRepository? maybeFind() {
+    if (!Get.isRegistered<VerifiedAccountRepository>()) return null;
+    return Get.find<VerifiedAccountRepository>();
+  }
+
   static VerifiedAccountRepository _ensureService() {
-    if (Get.isRegistered<VerifiedAccountRepository>()) {
-      return Get.find<VerifiedAccountRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(VerifiedAccountRepository(), permanent: true);
   }
 

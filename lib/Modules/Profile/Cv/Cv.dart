@@ -21,14 +21,14 @@ class _CvState extends State<Cv> {
   void initState() {
     super.initState();
     _controllerTag = 'cv_${identityHashCode(this)}';
-    controller = Get.put(CvController(), tag: _controllerTag);
+    controller = CvController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<CvController>(tag: _controllerTag) &&
+    if (CvController.maybeFind(tag: _controllerTag) != null &&
         identical(
-          Get.find<CvController>(tag: _controllerTag),
+          CvController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<CvController>(tag: _controllerTag);
@@ -79,22 +79,19 @@ class _CvState extends State<Cv> {
                       AppSnackbar(
                           'cv.missing_field'.tr, 'cv.missing_last_name'.tr);
                     } else if (controller.mail.text.trim().isEmpty) {
-                      AppSnackbar(
-                          'cv.missing_field'.tr, 'cv.missing_email'.tr);
+                      AppSnackbar('cv.missing_field'.tr, 'cv.missing_email'.tr);
                     } else if (!controller
                         .validateEmail(controller.mail.text.trim())) {
                       AppSnackbar(
                           'cv.invalid_format'.tr, 'cv.invalid_email'.tr);
                     } else if (controller.phoneNumber.text.trim().isEmpty) {
-                      AppSnackbar(
-                          'cv.missing_field'.tr, 'cv.missing_phone'.tr);
+                      AppSnackbar('cv.missing_field'.tr, 'cv.missing_phone'.tr);
                     } else if (!controller
                         .validatePhone(controller.phoneNumber.text)) {
                       AppSnackbar(
                           'cv.invalid_format'.tr, 'cv.invalid_phone'.tr);
                     } else if (controller.onYazi.text.trim().isEmpty) {
-                      AppSnackbar(
-                          'cv.missing_field'.tr, 'cv.missing_about'.tr);
+                      AppSnackbar('cv.missing_field'.tr, 'cv.missing_about'.tr);
                     } else if (controller.okullar.isEmpty) {
                       AppSnackbar(
                           'cv.missing_field'.tr, 'cv.missing_school'.tr);
@@ -498,8 +495,9 @@ class _CvState extends State<Cv> {
                                           horizontal: 3),
                                       child: Text("-"),
                                     ),
-                                  Text(controller.localizedYearLabel(
-                                      model.lastYear),
+                                  Text(
+                                      controller
+                                          .localizedYearLabel(model.lastYear),
                                       style: TextStyle(
                                           color: Colors.pinkAccent,
                                           fontSize: 15,

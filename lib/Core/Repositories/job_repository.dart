@@ -21,10 +21,14 @@ class JobRepository extends GetxService {
   final Map<String, _TimedBool> _boolMemory = <String, _TimedBool>{};
   SharedPreferences? _prefs;
 
+  static JobRepository? maybeFind() {
+    if (!Get.isRegistered<JobRepository>()) return null;
+    return Get.find<JobRepository>();
+  }
+
   static JobRepository _ensureService() {
-    if (Get.isRegistered<JobRepository>()) {
-      return Get.find<JobRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(JobRepository(), permanent: true);
   }
 

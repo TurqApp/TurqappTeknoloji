@@ -7,6 +7,33 @@ import '../../../Services/post_interaction_service.dart';
 import 'post_comment_controller.dart';
 
 class PostCommentContentController extends GetxController {
+  static PostCommentContentController ensure({
+    required PostCommentModel model,
+    required String postID,
+    required String commentControllerTag,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PostCommentContentController(
+        model: model,
+        postID: postID,
+        commentControllerTag: commentControllerTag,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PostCommentContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PostCommentContentController>(tag: tag)) {
+      return null;
+    }
+    return Get.find<PostCommentContentController>(tag: tag);
+  }
+
   PostCommentContentController({
     required this.model,
     required this.postID,
@@ -56,7 +83,9 @@ class PostCommentContentController extends GetxController {
   }
 
   Future<bool> deleteComment() async {
-    return await Get.find<PostCommentController>(tag: commentControllerTag)
-        .deleteComment(model.docID);
+    final controller =
+        PostCommentController.maybeFind(tag: commentControllerTag);
+    if (controller == null) return false;
+    return controller.deleteComment(model.docID);
   }
 }

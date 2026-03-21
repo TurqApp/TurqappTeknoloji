@@ -12,6 +12,26 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../Chat/ChatListing/chat_listing_controller.dart';
 
 class ShareGridController extends GetxController {
+  static ShareGridController ensure({
+    required String postType,
+    required String postID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ShareGridController(postType: postType, postID: postID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ShareGridController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ShareGridController>(tag: tag)) return null;
+    return Get.find<ShareGridController>(tag: tag);
+  }
+
   String postID;
   String postType;
   ShareGridController({required this.postType, required this.postID});
@@ -20,9 +40,7 @@ class ShareGridController extends GetxController {
   var selectedUser = Rx<OgrenciModel?>(null);
   Rx<FocusNode> searchFocus = FocusNode().obs;
   late final ChatListingController chatListingController =
-      Get.isRegistered<ChatListingController>()
-          ? Get.find<ChatListingController>()
-          : Get.put(ChatListingController());
+      ChatListingController.maybeFind() ?? ChatListingController.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final ConversationRepository _conversationRepository =

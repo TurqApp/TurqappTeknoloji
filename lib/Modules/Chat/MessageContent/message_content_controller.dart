@@ -17,6 +17,26 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../Models/posts_model.dart';
 
 class MessageContentController extends GetxController {
+  static MessageContentController ensure({
+    required MessageModel model,
+    required String mainID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MessageContentController(model: model, mainID: mainID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MessageContentController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<MessageContentController>(tag: tag)) return null;
+    return Get.find<MessageContentController>(tag: tag);
+  }
+
   final MessageModel model;
   final String mainID;
 

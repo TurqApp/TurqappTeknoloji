@@ -4,6 +4,25 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ResultsAndAnswersController extends GetxController {
+  static ResultsAndAnswersController ensure(
+    OpticalFormModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ResultsAndAnswersController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ResultsAndAnswersController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<ResultsAndAnswersController>(tag: tag)) return null;
+    return Get.find<ResultsAndAnswersController>(tag: tag);
+  }
+
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();
   final OpticalFormModel model;

@@ -25,10 +25,14 @@ List<Map<String, dynamic>> _decodeObjectEntries(String response) {
 }
 
 class EducationReferenceDataService extends GetxService {
+  static EducationReferenceDataService? maybeFind() {
+    if (!Get.isRegistered<EducationReferenceDataService>()) return null;
+    return Get.find<EducationReferenceDataService>();
+  }
+
   static EducationReferenceDataService _ensureService() {
-    if (Get.isRegistered<EducationReferenceDataService>()) {
-      return Get.find<EducationReferenceDataService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(EducationReferenceDataService(), permanent: true);
   }
 

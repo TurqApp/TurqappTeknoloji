@@ -3,6 +3,11 @@ import 'package:turqappv2/Core/Repositories/market_repository.dart';
 
 class MarketSavedStore {
   MarketSavedStore._();
+  static MarketSavedStore? _instance;
+  static MarketSavedStore? maybeFind() => _instance;
+
+  static MarketSavedStore ensure() =>
+      maybeFind() ?? (_instance = MarketSavedStore._());
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

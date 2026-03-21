@@ -22,21 +22,16 @@ class _CareerProfileState extends State<CareerProfile> {
   void initState() {
     super.initState();
     _controllerTag = 'career_profile_${identityHashCode(this)}';
-    if (Get.isRegistered<CareerProfileController>(tag: _controllerTag)) {
-      controller = Get.find<CareerProfileController>(tag: _controllerTag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(CareerProfileController(), tag: _controllerTag);
-      _ownsController = true;
-    }
+    _ownsController =
+        CareerProfileController.maybeFind(tag: _controllerTag) == null;
+    controller = CareerProfileController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<CareerProfileController>(tag: _controllerTag) &&
         identical(
-          Get.find<CareerProfileController>(tag: _controllerTag),
+          CareerProfileController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<CareerProfileController>(tag: _controllerTag);
@@ -390,7 +385,7 @@ class _CareerProfileState extends State<CareerProfile> {
               child: ElevatedButton(
                 onPressed: () async {
                   await Get.to(() => Cv());
-                  await Get.find<CareerProfileController>().loadCvData();
+                  await controller.loadCvData();
                 },
                 child: Text('pasaj.job_finder.create_cv'.tr),
               ),

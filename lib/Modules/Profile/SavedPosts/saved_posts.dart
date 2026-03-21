@@ -28,17 +28,19 @@ class _SavedPostsState extends State<SavedPosts> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SavedPostsController>()) {
-      controller = Get.find<SavedPostsController>();
+    final existingController = SavedPostsController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(SavedPostsController());
+      controller = SavedPostsController.ensure();
       _ownsController = true;
     }
   }
 
   @override
   void dispose() {
-    if (_ownsController && Get.isRegistered<SavedPostsController>()) {
+    if (_ownsController &&
+        identical(SavedPostsController.maybeFind(), controller)) {
       Get.delete<SavedPostsController>(force: true);
     }
     super.dispose();

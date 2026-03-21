@@ -24,6 +24,25 @@ import '../Agenda/agenda_controller.dart';
 import '../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class EditPostController extends GetxController {
+  static EditPostController ensure({
+    required EditPostModel model,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      EditPostController(model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static EditPostController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<EditPostController>(tag: tag)) return null;
+    return Get.find<EditPostController>(tag: tag);
+  }
+
   final EditPostModel model;
   final TextEditingController text = TextEditingController();
   final rxVideoController = Rxn<dynamic>();
@@ -507,64 +526,66 @@ class EditPostController extends GetxController {
 
       // --- 5) Hafif yerel güncelleme: mevcut post'u listelerde tazele ---
       try {
-        final agendaCtrl = Get.find<AgendaController>();
-        final idx =
-            agendaCtrl.agendaList.indexWhere((e) => e.docID == model.docID);
-        if (idx != -1) {
-          final old = agendaCtrl.agendaList[idx];
-          final updated = old.copyWith(
-            editTime: DateTime.now().millisecondsSinceEpoch,
-            metin: text.text,
-            konum: adres.value,
-            yorum: yorum.value,
-            aspectRatio: aspectRatio,
-            img: contentIsVideoAfter ? <String>[] : finalImageUrls,
-            video: contentIsVideoAfter
-                ? (_newVideoSelected
-                    ? (newVideoDownloadUrl ?? old.video)
-                    : old.video)
-                : '',
-            thumbnail: contentIsVideoAfter
-                ? (_newVideoSelected
-                    ? (newThumbnailDownloadUrl ?? old.thumbnail)
-                    : old.thumbnail)
-                : '',
-          );
-          agendaCtrl.agendaList[idx] = updated;
-          agendaCtrl.agendaList.refresh();
-        }
-        // Update mounted content controllers across feed/profile side surfaces.
-        final editTimestamp = DateTime.now().millisecondsSinceEpoch;
-        final candidateTags = <String>{
-          model.docID,
-          'profile_post_${model.docID}',
-          'profile_reshare_${model.docID}',
-          'social_post_${model.docID}',
-          'social_reshare_${model.docID}',
-          'liked_post_${model.docID}',
-          'archives_${model.docID}',
-          'tag_post_${model.docID}',
-          'top_tag_${model.docID}',
-          'flood_${model.docID}',
-          'explore_series_${model.docID}',
-        };
-        for (final tag in candidateTags) {
-          if (!Get.isRegistered<AgendaContentController>(tag: tag)) {
-            continue;
+        final agendaCtrl = AgendaController.maybeFind();
+        if (agendaCtrl != null) {
+          final idx =
+              agendaCtrl.agendaList.indexWhere((e) => e.docID == model.docID);
+          if (idx != -1) {
+            final old = agendaCtrl.agendaList[idx];
+            final updated = old.copyWith(
+              editTime: DateTime.now().millisecondsSinceEpoch,
+              metin: text.text,
+              konum: adres.value,
+              yorum: yorum.value,
+              aspectRatio: aspectRatio,
+              img: contentIsVideoAfter ? <String>[] : finalImageUrls,
+              video: contentIsVideoAfter
+                  ? (_newVideoSelected
+                      ? (newVideoDownloadUrl ?? old.video)
+                      : old.video)
+                  : '',
+              thumbnail: contentIsVideoAfter
+                  ? (_newVideoSelected
+                      ? (newThumbnailDownloadUrl ?? old.thumbnail)
+                      : old.thumbnail)
+                  : '',
+            );
+            agendaCtrl.agendaList[idx] = updated;
+            agendaCtrl.agendaList.refresh();
           }
-          final contentCtrl = Get.find<AgendaContentController>(tag: tag);
-          contentCtrl.editTime.value = editTimestamp;
+          // Update mounted content controllers across feed/profile side surfaces.
+          final editTimestamp = DateTime.now().millisecondsSinceEpoch;
+          final candidateTags = <String>{
+            model.docID,
+            'profile_post_${model.docID}',
+            'profile_reshare_${model.docID}',
+            'social_post_${model.docID}',
+            'social_reshare_${model.docID}',
+            'liked_post_${model.docID}',
+            'archives_${model.docID}',
+            'tag_post_${model.docID}',
+            'top_tag_${model.docID}',
+            'flood_${model.docID}',
+            'explore_series_${model.docID}',
+          };
+          for (final tag in candidateTags) {
+            final contentCtrl = AgendaContentController.maybeFind(tag: tag);
+            if (contentCtrl == null) continue;
+            contentCtrl.editTime.value = editTimestamp;
+          }
         }
       } catch (_) {}
 
-      final profilecontroller = Get.find<ProfileController>();
-      // Profil listelerini hafif senkron tut: en azından ana listeyi tazele
-      profilecontroller.fetchPosts(isInitial: true);
-      // Tip değişimi olabileceği için medyaya özel listeleri ayrı ayrı yenile
-      if (contentIsVideoAfter) {
-        profilecontroller.fetchVideos(isInitial: true);
-      } else {
-        profilecontroller.fetchPhotos(isInitial: true);
+      final profilecontroller = ProfileController.maybeFind();
+      if (profilecontroller != null) {
+        // Profil listelerini hafif senkron tut: en azından ana listeyi tazele
+        profilecontroller.fetchPosts(isInitial: true);
+        // Tip değişimi olabileceği için medyaya özel listeleri ayrı ayrı yenile
+        if (contentIsVideoAfter) {
+          profilecontroller.fetchVideos(isInitial: true);
+        } else {
+          profilecontroller.fetchPhotos(isInitial: true);
+        }
       }
     } catch (_) {
     } finally {

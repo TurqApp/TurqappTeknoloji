@@ -34,11 +34,12 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     super.initState();
     _controllerTag =
         'market_create_${widget.initialItem?.id ?? 'new'}_${identityHashCode(this)}';
-    if (Get.isRegistered<MarketCreateController>(tag: _controllerTag)) {
-      controller = Get.find<MarketCreateController>(tag: _controllerTag);
+    final existing = MarketCreateController.maybeFind(tag: _controllerTag);
+    if (existing != null) {
+      controller = existing;
     } else {
-      controller = Get.put(
-        MarketCreateController(initialItem: widget.initialItem),
+      controller = MarketCreateController.ensure(
+        initialItem: widget.initialItem,
         tag: _controllerTag,
       );
       _ownsController = true;
@@ -48,12 +49,8 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   @override
   void dispose() {
     _imagePreviewController.dispose();
-    if (_ownsController &&
-        Get.isRegistered<MarketCreateController>(tag: _controllerTag) &&
-        identical(
-          Get.find<MarketCreateController>(tag: _controllerTag),
-          controller,
-        )) {
+    final existing = MarketCreateController.maybeFind(tag: _controllerTag);
+    if (_ownsController && identical(existing, controller)) {
       Get.delete<MarketCreateController>(tag: _controllerTag);
     }
     super.dispose();
@@ -252,8 +249,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   Future<void> _openTopCategorySheet() async {
     final displayToKey = <String, String>{
       for (final category in controller.topCategories)
-        _categoryLabel(category):
-            (category['key'] ?? '').toString(),
+        _categoryLabel(category): (category['key'] ?? '').toString(),
     };
     String? selectedDisplay;
     for (final entry in displayToKey.entries) {
@@ -518,7 +514,8 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     );
   }
 
-  List<Map<String, dynamic>> _visibleDynamicFields(List<Map<String, dynamic>> fields) {
+  List<Map<String, dynamic>> _visibleDynamicFields(
+      List<Map<String, dynamic>> fields) {
     final visible = <Map<String, dynamic>>[];
     for (final field in fields) {
       visible.add(field);
@@ -543,7 +540,8 @@ class _MarketCreateViewState extends State<MarketCreateView> {
         _buildLocationSelector(
           label: 'common.district'.tr,
           value: controller.selectedDistrict.value,
-          onTap: controller.selectedCity.value.isEmpty ? null : _openDistrictSheet,
+          onTap:
+              controller.selectedCity.value.isEmpty ? null : _openDistrictSheet,
         ),
       ],
     );
@@ -603,8 +601,9 @@ class _MarketCreateViewState extends State<MarketCreateView> {
       context: context,
       items: controller.cities,
       title: 'common.city'.tr,
-      selectedItem:
-          controller.selectedCity.value.isEmpty ? null : controller.selectedCity.value,
+      selectedItem: controller.selectedCity.value.isEmpty
+          ? null
+          : controller.selectedCity.value,
       onSelect: (selectedCity) {
         controller.setCity(selectedCity.toString());
         Future.delayed(const Duration(milliseconds: 180), _openDistrictSheet);

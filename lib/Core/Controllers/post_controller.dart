@@ -5,6 +5,24 @@ import '../../Models/posts_model.dart';
 
 /// Post etkileşimlerini yönetmek için controller
 class PostController extends GetxController {
+  static PostController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PostController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PostController? maybeFind({String? tag}) {
+    if (!Get.isRegistered<PostController>(tag: tag)) return null;
+    return Get.find<PostController>(tag: tag);
+  }
+
   late final PostInteractionService _interactionService;
 
   @override

@@ -113,11 +113,15 @@ class AppError {
 }
 
 class ErrorHandlingService extends GetxController {
+  static ErrorHandlingService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(ErrorHandlingService());
+  }
+
   static ErrorHandlingService? maybeFind() {
-    if (Get.isRegistered<ErrorHandlingService>()) {
-      return Get.find<ErrorHandlingService>();
-    }
-    return null;
+    if (!Get.isRegistered<ErrorHandlingService>()) return null;
+    return Get.find<ErrorHandlingService>();
   }
 
   final RxList<AppError> _errorHistory = <AppError>[].obs;

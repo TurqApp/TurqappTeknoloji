@@ -7,10 +7,14 @@ import 'package:turqappv2/Models/posts_model.dart';
 class FeedRenderCoordinator extends GetxService {
   static const int _mediaReadyWindow = 10;
 
+  static FeedRenderCoordinator? maybeFind() {
+    if (!Get.isRegistered<FeedRenderCoordinator>()) return null;
+    return Get.find<FeedRenderCoordinator>();
+  }
+
   static FeedRenderCoordinator _ensureService() {
-    if (Get.isRegistered<FeedRenderCoordinator>()) {
-      return Get.find<FeedRenderCoordinator>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(FeedRenderCoordinator(), permanent: true);
   }
 

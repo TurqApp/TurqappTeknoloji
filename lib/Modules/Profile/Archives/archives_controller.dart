@@ -10,19 +10,16 @@ import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ArchiveController extends GetxController {
   static ArchiveController _ensureController() {
-    if (Get.isRegistered<ArchiveController>()) {
-      return Get.find<ArchiveController>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(ArchiveController());
   }
 
   static ArchiveController ensure() => _ensureController();
 
   static ArchiveController? maybeFind() {
-    if (Get.isRegistered<ArchiveController>()) {
-      return Get.find<ArchiveController>();
-    }
-    return null;
+    if (!Get.isRegistered<ArchiveController>()) return null;
+    return Get.find<ArchiveController>();
   }
 
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
@@ -106,7 +103,7 @@ class ArchiveController extends GetxController {
 
   void disposeAgendaContentController(String docID) {
     final tag = agendaInstanceTag(docID);
-    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+    if (AgendaContentController.maybeFind(tag: tag) != null) {
       Get.delete<AgendaContentController>(tag: tag, force: true);
     }
   }

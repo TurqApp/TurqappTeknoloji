@@ -137,6 +137,7 @@ class _ShortViewState extends State<ShortView> {
   bool isManuallyPaused = false;
   bool _showOverlayControls = true;
   bool _didInitialAttach = false;
+  bool _didPrimeInitialPlayback = false;
   bool _isTransitioning = false;
   bool _manualSnapInProgress = false;
   List<PostsModel> _cachedShorts = [];
@@ -149,11 +150,13 @@ class _ShortViewState extends State<ShortView> {
   Timer? _playDebounce;
   Timer? _tierDebounce;
   Timer? _engagementRescoreTimer;
+  Timer? _playbackWatchdogTimer;
   static const Duration _playResumeDelay = Duration(milliseconds: 50);
   static const Duration _playResumeDelayAndroid = Duration.zero;
   static const Duration _scrollDebounceAndroid = Duration(milliseconds: 24);
   static const Duration _tierDebounceDelay = Duration(milliseconds: 70);
   static const Duration _engagementRescoreDelay = Duration(milliseconds: 2500);
+  static const Duration _playWatchdogDelay = Duration(milliseconds: 450);
   static const Duration _progressPersistInterval = Duration(seconds: 2);
   static const double _progressPersistDelta = 0.10;
 
@@ -163,6 +166,10 @@ class _ShortViewState extends State<ShortView> {
   // A10: Video telemetry — TTFF, buffering, position tracking
   bool _telemetryFirstFrame = false;
   HLSVideoAdapter? _telemetryAdapter;
+  int _playWatchdogRetries = 0;
+  Timer? _stallWatchdogTimer;
+  Duration _stallWatchdogLastPosition = Duration.zero;
+  int _stallWatchdogRetries = 0;
 
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;
@@ -175,6 +182,23 @@ class _ShortViewState extends State<ShortView> {
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await adapter.forceSilence();
+  }
+
+  Future<void> _quietBackgroundPlayback(HLSVideoAdapter adapter) async {
+    if (adapter.isDisposed) return;
+    try {
+      await adapter.setVolume(0);
+      await adapter.pause();
+    } catch (_) {}
+  }
+
+  void _primeInitialPlayback() {
+    if (_didPrimeInitialPlayback) return;
+    _didPrimeInitialPlayback = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _startAutoPlayCurrentVideo();
+    });
   }
 
   @override
@@ -209,7 +233,7 @@ class _ShortViewState extends State<ShortView> {
           if (_cachedShorts.isNotEmpty) {
             unawaited(controller.updateCacheTiers(currentPage));
           }
-          _startAutoPlayCurrentVideo();
+          _primeInitialPlayback();
         }
       });
     } else {
@@ -220,7 +244,7 @@ class _ShortViewState extends State<ShortView> {
             pageController.jumpToPage(currentPage);
           }
           unawaited(controller.updateCacheTiers(currentPage));
-          _startAutoPlayCurrentVideo();
+          _primeInitialPlayback();
         }
       });
     }
@@ -289,7 +313,11 @@ class _ShortViewState extends State<ShortView> {
     // Eski video'yu hemen durdur (ucuz operasyon)
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
-      _releasePlayback(oldVc);
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        _quietBackgroundPlayback(oldVc);
+      } else {
+        _releasePlayback(oldVc);
+      }
       oldVc.removeListener(_videoEndListener);
       oldVc.removeListener(_telemetryListener);
     }
@@ -344,8 +372,12 @@ class _ShortViewState extends State<ShortView> {
       final vc = entry.value;
       if (idx == activePage) continue;
       try {
-        vc.setVolume(0);
-        _releasePlayback(vc);
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          _quietBackgroundPlayback(vc);
+        } else {
+          vc.setVolume(0);
+          _releasePlayback(vc);
+        }
       } catch (_) {}
     }
   }
@@ -366,6 +398,15 @@ class _ShortViewState extends State<ShortView> {
 
     isManuallyPaused = false;
     final hadActiveAdapter = controller.cache[currentPage] != null;
+    if (currentPage >= 0 && currentPage < _cachedShorts.length) {
+      final docId = _cachedShorts[currentPage].docID;
+      try {
+        VideoStateManager.instance.updateExclusiveModeDoc(docId);
+      } catch (_) {}
+      try {
+        VideoStateManager.instance.enterExclusiveMode(docId);
+      } catch (_) {}
+    }
 
     // Android'de ilk giriste komsu short'lari fazla erken dispose etmek,
     // ilk swipe'ta videonun ilk karede kalmasina yol aciyordu. Burada
@@ -376,7 +417,10 @@ class _ShortViewState extends State<ShortView> {
     }
 
     // Cache tier'larını güncelle (ilk 5 preload dahil)
-    await controller.updateCacheTiers(currentPage);
+    await controller.updateCacheTiers(
+      currentPage,
+      suppressWarmPause: true,
+    );
     if (!mounted) return;
     _setStateIfActiveAdapterChanged(currentPage, hadActiveAdapter,
         force: false);
@@ -411,6 +455,8 @@ class _ShortViewState extends State<ShortView> {
         vc.play();
       }
       _setupVideoEndListener(vc);
+      _schedulePlaybackWatchdog(page, vc);
+      _scheduleStallWatchdog(page, vc);
 
       // A10: Telemetry session başlat
       if (page < _cachedShorts.length) {
@@ -447,6 +493,64 @@ class _ShortViewState extends State<ShortView> {
           }
         } catch (_) {}
       }
+    });
+  }
+
+  void _scheduleStallWatchdog(int page, HLSVideoAdapter vc) {
+    _stallWatchdogTimer?.cancel();
+    _stallWatchdogRetries = 0;
+    _stallWatchdogLastPosition = vc.value.position;
+    _armStallWatchdog(page, vc);
+  }
+
+  void _armStallWatchdog(int page, HLSVideoAdapter vc) {
+    _stallWatchdogTimer?.cancel();
+    _stallWatchdogTimer = Timer(const Duration(milliseconds: 900), () async {
+      if (!mounted || page != currentPage || vc.isDisposed) return;
+      final value = vc.value;
+      if (!value.isInitialized || !value.hasRenderedFirstFrame) {
+        _stallWatchdogLastPosition = value.position;
+        _armStallWatchdog(page, vc);
+        return;
+      }
+      final progressed = value.position > _stallWatchdogLastPosition;
+      final healthy = progressed || value.isBuffering || value.isCompleted;
+      _stallWatchdogLastPosition = value.position;
+      if (healthy) {
+        _stallWatchdogRetries = 0;
+        _armStallWatchdog(page, vc);
+        return;
+      }
+      if (_stallWatchdogRetries >= 2) return;
+      _stallWatchdogRetries++;
+      try {
+        vc.setVolume(volume ? 1 : 0);
+        await vc.play();
+      } catch (_) {}
+      _armStallWatchdog(page, vc);
+    });
+  }
+
+  void _schedulePlaybackWatchdog(int page, HLSVideoAdapter vc) {
+    _playbackWatchdogTimer?.cancel();
+    _playWatchdogRetries = 0;
+    _armPlaybackWatchdog(page, vc);
+  }
+
+  void _armPlaybackWatchdog(int page, HLSVideoAdapter vc) {
+    _playbackWatchdogTimer?.cancel();
+    _playbackWatchdogTimer = Timer(_playWatchdogDelay, () async {
+      if (!mounted || page != currentPage || vc.isDisposed) return;
+      final value = vc.value;
+      final hasStarted = value.isPlaying || value.position > Duration.zero;
+      if (hasStarted) return;
+      if (_playWatchdogRetries >= 2) return;
+      _playWatchdogRetries++;
+      try {
+        vc.setVolume(volume ? 1 : 0);
+        await vc.play();
+      } catch (_) {}
+      _armPlaybackWatchdog(page, vc);
     });
   }
 
@@ -705,6 +809,8 @@ class _ShortViewState extends State<ShortView> {
     _playDebounce?.cancel();
     _tierDebounce?.cancel();
     _engagementRescoreTimer?.cancel();
+    _playbackWatchdogTimer?.cancel();
+    _stallWatchdogTimer?.cancel();
     _shortsWorker?.dispose();
     controller.lastIndex.value = currentPage;
     pageController.dispose();
@@ -789,19 +895,9 @@ class _ShortViewState extends State<ShortView> {
 
           if (!_didInitialAttach) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              final desiredIndex = controller.shorts.isEmpty
-                  ? 0
-                  : _initialDisplayIndex(
-                      controller.shorts,
-                      controller.lastIndex.value,
-                    );
-              currentPage = desiredIndex;
-              try {
-                if (pageController.hasClients) {
-                  pageController.jumpToPage(desiredIndex);
-                }
-              } catch (_) {}
+              if (mounted) {
+                _primeInitialPlayback();
+              }
             });
             _didInitialAttach = true;
           }

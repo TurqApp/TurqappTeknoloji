@@ -4,10 +4,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SupportMessageRepository extends GetxService {
+  static SupportMessageRepository? maybeFind() {
+    if (!Get.isRegistered<SupportMessageRepository>()) return null;
+    return Get.find<SupportMessageRepository>();
+  }
+
   static SupportMessageRepository _ensureService() {
-    if (Get.isRegistered<SupportMessageRepository>()) {
-      return Get.find<SupportMessageRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(SupportMessageRepository(), permanent: true);
   }
 

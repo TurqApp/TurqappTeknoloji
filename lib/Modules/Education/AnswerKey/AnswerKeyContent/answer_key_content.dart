@@ -15,7 +15,7 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class AnswerKeyContent extends StatelessWidget {
+class AnswerKeyContent extends StatefulWidget {
   const AnswerKeyContent({
     required this.model,
     required this.onUpdate,
@@ -27,10 +27,57 @@ class AnswerKeyContent extends StatelessWidget {
   final Function(bool) onUpdate;
   final bool isListLayout;
 
+  @override
+  State<AnswerKeyContent> createState() => _AnswerKeyContentState();
+}
+
+class _AnswerKeyContentState extends State<AnswerKeyContent> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final AnswerKeyContentController controller;
+
+  BookletModel get model => widget.model;
+  Function(bool) get onUpdate => widget.onUpdate;
+  bool get isListLayout => widget.isListLayout;
+
   String get _currentUid {
     final serviceUid = CurrentUserService.instance.userId.trim();
     if (serviceUid.isNotEmpty) return serviceUid;
     return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'answer_key_content_${model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        AnswerKeyContentController.maybeFind(tag: _controllerTag) == null;
+    controller = AnswerKeyContentController.ensure(
+      model,
+      onUpdate,
+      tag: _controllerTag,
+    );
+    controller.syncModel(model);
+  }
+
+  @override
+  void didUpdateWidget(covariant AnswerKeyContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    controller.syncModel(model);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = AnswerKeyContentController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<AnswerKeyContentController>(tag: _controllerTag);
+      }
+    }
+    super.dispose();
   }
 
   void _openOwner(BuildContext context, AnswerKeyContentController controller) {
@@ -225,8 +272,8 @@ class AnswerKeyContent extends StatelessWidget {
     AnswerKeyContentController controller,
   ) {
     const metrics = PasajListCardMetrics.regular;
-    final canShareFeed =
-        AdminAccessService.isKnownAdminSync() || controller.model.userID == _currentUid;
+    final canShareFeed = AdminAccessService.isKnownAdminSync() ||
+        controller.model.userID == _currentUid;
     return GestureDetector(
       onTap: () => _openOwner(context, controller),
       child: Padding(
@@ -372,11 +419,6 @@ class AnswerKeyContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-      AnswerKeyContentController(model, onUpdate),
-      tag: model.docID,
-    );
-    controller.syncModel(model);
     return isListLayout
         ? _buildListCard(context, controller)
         : _buildGridCard(context, controller);

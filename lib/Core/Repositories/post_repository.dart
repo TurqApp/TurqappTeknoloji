@@ -133,10 +133,14 @@ class PostRepository extends GetxService {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
+  static PostRepository? maybeFind() {
+    if (!Get.isRegistered<PostRepository>()) return null;
+    return Get.find<PostRepository>();
+  }
+
   static PostRepository _ensureService() {
-    if (Get.isRegistered<PostRepository>()) {
-      return Get.find<PostRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(PostRepository(), permanent: true);
   }
 

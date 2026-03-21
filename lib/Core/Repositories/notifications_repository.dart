@@ -2,10 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 class NotificationsRepository extends GetxService {
+  static NotificationsRepository? maybeFind() {
+    if (!Get.isRegistered<NotificationsRepository>()) return null;
+    return Get.find<NotificationsRepository>();
+  }
+
   static NotificationsRepository _ensureService() {
-    if (Get.isRegistered<NotificationsRepository>()) {
-      return Get.find<NotificationsRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(NotificationsRepository(), permanent: true);
   }
 

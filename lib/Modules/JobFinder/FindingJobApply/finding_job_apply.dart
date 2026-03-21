@@ -23,24 +23,16 @@ class _FindingJobApplyState extends State<FindingJobApply> {
   void initState() {
     super.initState();
     _controllerTag = 'finding_job_apply_${identityHashCode(this)}';
-    if (Get.isRegistered<FindingJobApplyController>(tag: _controllerTag)) {
-      controller = Get.find<FindingJobApplyController>(tag: _controllerTag);
-      _ownsController = false;
-    } else {
-      controller = Get.put(
-        FindingJobApplyController(),
-        tag: _controllerTag,
-      );
-      _ownsController = true;
-    }
+    _ownsController =
+        FindingJobApplyController.maybeFind(tag: _controllerTag) == null;
+    controller = FindingJobApplyController.ensure(tag: _controllerTag);
   }
 
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<FindingJobApplyController>(tag: _controllerTag) &&
         identical(
-          Get.find<FindingJobApplyController>(tag: _controllerTag),
+          FindingJobApplyController.maybeFind(tag: _controllerTag),
           controller,
         )) {
       Get.delete<FindingJobApplyController>(tag: _controllerTag);

@@ -3,10 +3,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 
 class AdminTaskAssignmentRepository extends GetxService {
+  static AdminTaskAssignmentRepository? maybeFind() {
+    if (!Get.isRegistered<AdminTaskAssignmentRepository>()) return null;
+    return Get.find<AdminTaskAssignmentRepository>();
+  }
+
   static AdminTaskAssignmentRepository _ensureService() {
-    if (Get.isRegistered<AdminTaskAssignmentRepository>()) {
-      return Get.find<AdminTaskAssignmentRepository>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AdminTaskAssignmentRepository(), permanent: true);
   }
 

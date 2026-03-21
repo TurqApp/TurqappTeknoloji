@@ -8,10 +8,14 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 class GlobalVideoAdapterPool extends GetxService {
   static const int _maxWarmAdapters = 10;
 
+  static GlobalVideoAdapterPool? maybeFind() {
+    if (!Get.isRegistered<GlobalVideoAdapterPool>()) return null;
+    return Get.find<GlobalVideoAdapterPool>();
+  }
+
   static GlobalVideoAdapterPool _ensureService() {
-    if (Get.isRegistered<GlobalVideoAdapterPool>()) {
-      return Get.find<GlobalVideoAdapterPool>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(GlobalVideoAdapterPool(), permanent: true);
   }
 
@@ -135,6 +139,13 @@ class GlobalVideoAdapterPool extends GetxService {
         adapter.dispose();
       }
     }
+  }
+
+  HLSVideoAdapter? adapterForTesting(String cacheKey) {
+    for (final entry in _leasedKeys.entries) {
+      if (entry.value == cacheKey) return entry.key;
+    }
+    return _warmAdapters[cacheKey]?.adapter;
   }
 
   bool _isReusable(

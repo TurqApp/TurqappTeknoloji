@@ -20,13 +20,6 @@ class MarketContactService {
   static final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
 
-  T _ensureService<T>(T Function() create) {
-    if (Get.isRegistered<T>()) {
-      return Get.find<T>();
-    }
-    return Get.put<T>(create());
-  }
-
   Future<void> openChat(MarketItemModel item) async {
     final currentUid = CurrentUserService.instance.userId.trim();
     if (currentUid.isEmpty) {
@@ -39,8 +32,7 @@ class MarketContactService {
       return;
     }
 
-    final chatListingController =
-        _ensureService<ChatListingController>(() => ChatListingController());
+    final chatListingController = ChatListingController.ensure();
     final sohbet = chatListingController.list
         .firstWhereOrNull((val) => val.userID == item.userId);
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 
@@ -7,6 +8,17 @@ import '../Models/user_post_reference.dart';
 
 /// Kullanıcı-post ilişkilerini yöneten yardımcı servis.
 class UserPostLinkService {
+  static UserPostLinkService? maybeFind() {
+    if (!Get.isRegistered<UserPostLinkService>()) return null;
+    return Get.find<UserPostLinkService>();
+  }
+
+  static UserPostLinkService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(UserPostLinkService(), permanent: true);
+  }
+
   UserPostLinkService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _userSubcollectionRepository = UserSubcollectionRepository.ensure(),
