@@ -613,7 +613,7 @@ Aktif faz:
 - Son tamamlanan Android cevap anahtari sonucu: `Cevap Anahtari` listesi temiz acildi; `Kitap Detayi` ve alt `Cevap Anahtarlari` preview bolumu Android cihazda temiz doğrulandi.
 - Son tamamlanan Android market sonucu: `Mabil Pazar` liste acilisi, `Ilan Detayi -> liste` geri donusu, owner `Tekliflerim`, `Kaydettiklerim` ve `Ilanlarim` yuzeyleri Android cihazda temiz dogrulandi. `Ilan Ekle` akisi sehir seciciye kadar acildi; `filter` sheet `Sehir / Fiyat Araligi / Siralama / Temizle / Uygula` ile temiz acildi.
 - Son tamamlanan Android burs/soru bankasi sonucu: `Burslar` liste ve `Burs Detayi` Android cihazda temiz acildi. `Soru Bankasi` icin LGS/YKS vb. kartlara test hook eklendi ve `LGS` karti Android cihazda acildi. Ortak search focus davranisi daraltildi; dump'ta `EditText` artik `focused=false`.
-- Son tamamlanan Android denemeler sonucu: `Denemeler` tip listesinde `LGS` karti Android cihazda acildi ve `LGS Testleri` ekrani temiz dogrulandi.
+- Son tamamlanan Android denemeler sonucu: `Denemeler` tip listesinde `LGS` karti Android cihazda acildi ve `LGS Testleri` ekrani temiz dogrulandi; action menu uzerinden `Deneme Sonuclarim` ve `Kaydedilenler` yuzeyleri de Android cihazda acildi.
 - Sonraki teknik hedef: tam 5'li smoke turunu yeni auth + short fix + host-stub artifact hattiyla temiz tamamlamak; dashboard UI ve backend alert kanalini baglamak; smoke testleri CI/device smoke parametresi + veri seviyesinde daha sert fixture assertion seviyesine tasimak; market ekraninda yeni owner/offers loglarini temiz cihaz turunda tekrar okumak.
 
 1. Repo truth pass:
@@ -637,7 +637,7 @@ Aktif faz:
 2. Bu notu ve `docs/architecture/cache_first_audit_2026_03_19.md` dosyasini ac.
 3. `docs/ANDROID_TEST_MATRIX_2026-03-21.md` dosyasini ac ve Android sweep dalgasini oradan yurut.
 4. Kalan kesin isleri yalnizca asagidaki siraya gore yurut:
-   `Market create/filter`, `Soru Bankasi focus`, `Online Sinav gercek Basvur`, `Denemeler saved/sonuclarim`, `Profile settings/raw forms`, `Story`, `Chat`, `Post creation`, `AdmobKare`, `telemetry/dashboard webhook`
+   `Market create/filter`, `Soru Bankasi focus`, `Online Sinav gercek Basvur`, `Profile settings/raw forms`, `Story`, `Chat`, `Post creation`, `AdmobKare`, `telemetry/dashboard webhook`
 5. Ilk teknik odak:
    `Market create/filter` Android sweep'ini kapat
 6. Sonra:
@@ -645,7 +645,7 @@ Aktif faz:
 7. Sonra:
    ayri applicant hesapla `Online Sınav` icin gercek `Basvur` akisini tamamla
 8. Sonra:
-   `Denemeler` icin `SavedPracticeExams` ve `SinavSonuclarim` yuzeylerini sweep'te kapat
+   `Denemeler` saved ve `SinavSonuclarim` sweep'i kapandi; kalan tek acik `Online Sinav` icin ayri applicant hesapla gercek `Basvur`
 9. Sonra:
    `Profile settings/raw form surfaces`, `Story`, `Chat`, `Post creation` Android sweep'ini bitir
 10. Sonraki runtime odagi:
@@ -663,9 +663,7 @@ Aktif faz:
    arama alaninin klavyeyi agresif tutmasini duzelt
 3. `Online Sinav gercek Basvur`
    owner degil, ayri applicant hesapla
-4. `Denemeler saved/sonuclarim`
-   `LGS Testleri` acildi; `saved` ve `sonuclarim` acik
-5. `Profile settings/raw forms`
+4. `Profile settings/raw forms`
    `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Cv`, `BiographyMaker`
 6. `Story`
    `StoryRow`, `StoryViewer`, `StoryMaker`, `StoryMusic`, `Highlights`, `DeletedStories`
@@ -686,8 +684,6 @@ Aktif faz:
   search focus/keyboard davranisi
 - `Practice exams`
   ayri applicant hesapla gercek `Basvur`
-  `SavedPracticeExams`
-  `SinavSonuclarim`
 - `Profile settings/raw forms`
   genis Android sweep
 - `Story`
