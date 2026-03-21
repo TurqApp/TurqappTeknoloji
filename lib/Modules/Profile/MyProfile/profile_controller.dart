@@ -56,6 +56,7 @@ class ProfileController extends GetxController {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  String? _pendingCenteredIdentity;
 
   var followerCount = 0.obs;
   var followingCount = 0.obs;
@@ -111,7 +112,7 @@ class ProfileController extends GetxController {
   StreamSubscription<List<UserPostReference>>? _resharesSub;
   final UserPostLinkService _linkService = Get.put(UserPostLinkService());
   List<UserPostReference> _latestReshareRefs = const [];
-  final Map<int, GlobalKey> _postKeys = {};
+  final Map<String, GlobalKey> _postKeys = {};
 
   var pausetheall = false.obs;
   final RxBool showScrollToTop = false.obs;
@@ -138,6 +139,16 @@ class ProfileController extends GetxController {
 
   ScrollController get currentScrollController =>
       scrollControllerForSelection(postSelection.value);
+
+  Future<void> animateCurrentSelectionToTop() async {
+    final controller = currentScrollController;
+    if (!controller.hasClients) return;
+    await controller.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
+  }
 
   @override
   void onInit() {
@@ -182,6 +193,21 @@ class ProfileController extends GetxController {
 
   int resolveResumeCenteredIndex() {
     if (mergedPosts.isEmpty) return -1;
+    final pendingIdentity = _pendingCenteredIdentity;
+    if (pendingIdentity != null && pendingIdentity.isNotEmpty) {
+      final pendingIndex = mergedPosts.indexWhere((entry) {
+        final entryDocId = ((entry['docID'] as String?) ?? '').trim();
+        final entryIsReshare = entry['isReshare'] == true;
+        return mergedEntryIdentity(
+              docId: entryDocId,
+              isReshare: entryIsReshare,
+            ) ==
+            pendingIdentity;
+      });
+      if (pendingIndex >= 0) {
+        return pendingIndex;
+      }
+    }
     if (lastCenteredIndex != null &&
         lastCenteredIndex! >= 0 &&
         lastCenteredIndex! < mergedPosts.length) {
@@ -204,6 +230,7 @@ class ProfileController extends GetxController {
     lastCenteredIndex = target;
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
+    capturePendingCenteredEntry(preferredIndex: target);
     pausetheall.value = false;
     _invariantGuard.assertCenteredSelection(
       surface: 'profile',
@@ -216,6 +243,29 @@ class ProfileController extends GetxController {
       payload: <String, dynamic>{
         'target': target,
       },
+    );
+  }
+
+  void capturePendingCenteredEntry({int? preferredIndex}) {
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= mergedPosts.length) {
+      _pendingCenteredIdentity = null;
+      return;
+    }
+    final entry = mergedPosts[candidateIndex];
+    final docId = ((entry['docID'] as String?) ?? '').trim();
+    if (docId.isEmpty) {
+      _pendingCenteredIdentity = null;
+      return;
+    }
+    _pendingCenteredIdentity = mergedEntryIdentity(
+      docId: docId,
+      isReshare: entry['isReshare'] == true,
     );
   }
 
@@ -580,13 +630,62 @@ class ProfileController extends GetxController {
     postSelection.value = index;
   }
 
-  GlobalKey getPostKey(int index) {
-    return _postKeys.putIfAbsent(index, () => GlobalObjectKey('post_$index'));
+  GlobalKey getPostKey({
+    required String docId,
+    required bool isReshare,
+  }) {
+    final identity = mergedEntryIdentity(
+      docId: docId,
+      isReshare: isReshare,
+    );
+    return _postKeys.putIfAbsent(
+      identity,
+      () => GlobalObjectKey(identity),
+    );
+  }
+
+  String mergedEntryIdentity({
+    required String docId,
+    required bool isReshare,
+  }) {
+    return '${isReshare ? 'reshare' : 'post'}_$docId';
+  }
+
+  int indexOfMergedEntry({
+    required String docId,
+    required bool isReshare,
+  }) {
+    final identity = mergedEntryIdentity(
+      docId: docId,
+      isReshare: isReshare,
+    );
+    return mergedPosts.indexWhere((entry) {
+      final entryDocId = ((entry['docID'] as String?) ?? '').trim();
+      final entryIsReshare = entry['isReshare'] == true;
+      return mergedEntryIdentity(
+            docId: entryDocId,
+            isReshare: entryIsReshare,
+          ) ==
+          identity;
+    });
+  }
+
+  String agendaInstanceTag({
+    required String docId,
+    required bool isReshare,
+  }) {
+    return 'profile_${isReshare ? 'reshare' : 'post'}_$docId';
   }
 
   void disposeAgendaContentController(String docID) {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
-      Get.delete<AgendaContentController>(tag: docID, force: true);
+    final tags = <String>{
+      agendaInstanceTag(docId: docID, isReshare: false),
+      agendaInstanceTag(docId: docID, isReshare: true),
+    };
+    for (final tag in tags) {
+      if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+        Get.delete<AgendaContentController>(tag: tag, force: true);
+      }
     }
   }
 

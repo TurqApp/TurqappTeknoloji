@@ -23,6 +23,7 @@ import '../Short/short_view.dart';
 import '../Short/short_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../Profile/Settings/settings_controller.dart';
+import '../Profile/MyProfile/profile_controller.dart';
 import '../../Core/Widgets/cached_user_avatar.dart';
 import '../../Core/Widgets/offline_indicator.dart';
 
@@ -318,6 +319,21 @@ class NavBarView extends StatelessWidget {
                                                 );
                                                 return;
                                               }
+                                            }
+                                          }
+                                          final profileIndex = settingController
+                                                  .educationScreenIsOn.value
+                                              ? 4
+                                              : 3;
+                                          if (i == profileIndex &&
+                                              controller.selectedIndex.value ==
+                                                  profileIndex) {
+                                            if (Get.isRegistered<
+                                                ProfileController>()) {
+                                              await Get.find<
+                                                      ProfileController>()
+                                                  .animateCurrentSelectionToTop();
+                                              return;
                                             }
                                           }
                                           if (i != 2) {

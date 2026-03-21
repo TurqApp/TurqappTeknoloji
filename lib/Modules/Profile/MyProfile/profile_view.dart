@@ -194,7 +194,7 @@ class _ProfileViewState extends State<ProfileView> {
       unawaited(_loadMarketItems(force: true));
     });
 
-    final uid = userService.userId;
+    final uid = _myUserId;
     if (uid.isNotEmpty) {
       final tag = 'highlights_$uid';
       if (Get.isRegistered<StoryHighlightsController>(tag: tag)) {
@@ -212,6 +212,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _showProfileImagePreview() {
+    controller.capturePendingCenteredEntry();
     controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
         ? controller.currentVisibleIndex.value
         : controller.lastCenteredIndex;
@@ -221,6 +222,19 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _hideProfileImagePreview() {
     controller.showPfImage.value = false;
+    controller.resumeCenteredPost();
+  }
+
+  void _suspendProfileFeedForRoute() {
+    controller.capturePendingCenteredEntry();
+    controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
+        ? controller.currentVisibleIndex.value
+        : controller.lastCenteredIndex;
+    controller.pausetheall.value = true;
+    controller.centeredIndex.value = -1;
+  }
+
+  void _resumeProfileFeedAfterRoute() {
     controller.resumeCenteredPost();
   }
 
@@ -374,8 +388,10 @@ class _ProfileViewState extends State<ProfileView> {
                                               item['post'] as PostsModel;
                                           final isReshare =
                                               item['isReshare'] as bool;
-                                          final itemKey = controller
-                                              .getPostKey(actualIndex);
+                                          final itemKey = controller.getPostKey(
+                                            docId: model.docID,
+                                            isReshare: isReshare,
+                                          );
 
                                           return Padding(
                                             padding: EdgeInsets.only(bottom: 5),
@@ -402,6 +418,12 @@ class _ProfileViewState extends State<ProfileView> {
                                                               .showPfImage
                                                               .value &&
                                                           isCentered,
+                                                      instanceTag:
+                                                          controller
+                                                              .agendaInstanceTag(
+                                                        docId: model.docID,
+                                                        isReshare: isReshare,
+                                                      ),
                                                       isYenidenPaylasilanPost:
                                                           isReshare,
                                                       reshareUserID: isReshare
@@ -418,13 +440,13 @@ class _ProfileViewState extends State<ProfileView> {
                                                   ),
                                                 ),
                                                 if ((actualIndex + 1) % 4 == 0)
-                                                  const Padding(
+                                                  Padding(
                                                     padding:
-                                                        EdgeInsets.symmetric(
+                                                        const EdgeInsets.symmetric(
                                                             vertical: 8.0),
                                                     child: AdmobKare(
                                                         key: ValueKey(
-                                                            'myprof-ad-slot')),
+                                                            'myprof-ad-slot-${(actualIndex + 1) ~/ 4}')),
                                                   ),
                                                 if (combinedPosts.isNotEmpty &&
                                                     combinedPosts.length < 4 &&
@@ -484,14 +506,7 @@ class _ProfileViewState extends State<ProfileView> {
                     right: 20,
                     child: GestureDetector(
                       onTap: () {
-                        final activeScrollController =
-                            controller.currentScrollController;
-                        if (!activeScrollController.hasClients) return;
-                        activeScrollController.animateTo(
-                          0,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.bounceIn,
-                        );
+                        controller.animateCurrentSelectionToTop();
                       },
                       child: RoadToTop(),
                     ),
