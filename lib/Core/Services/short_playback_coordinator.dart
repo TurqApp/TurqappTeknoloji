@@ -30,12 +30,12 @@ class ShortPlaybackCoordinator {
   factory ShortPlaybackCoordinator.forCurrentPlatform() {
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
     return ShortPlaybackCoordinator(
-      // Android tarafinda komsu short'lari biraz daha sicak tutup
-      // gecislerde siyah ekran ve gec first-frame ihtimalini azalt.
-      hotAhead: isAndroid ? 4 : 5,
-      hotBehind: isAndroid ? 2 : 2,
-      warmBehind: isAndroid ? 4 : 5,
-      maxAttachedPlayers: isAndroid ? 6 : 11,
+      // Android'de agresif hot pencere codec churn uretip ilk acilista
+      // stop/play/pause dalgasi olusturuyordu. Pencereyi butceye yaklastir.
+      hotAhead: isAndroid ? 1 : 5,
+      hotBehind: isAndroid ? 0 : 2,
+      warmBehind: isAndroid ? 1 : 5,
+      maxAttachedPlayers: isAndroid ? 3 : 11,
       budgetPolicy: PlayerBudgetPolicy.forSurface(
         PlayerSurfaceKind.shortFullscreen,
         lowMemoryDevice: isAndroid,
@@ -85,6 +85,20 @@ class ShortPlaybackCoordinator {
       warmIndices.add(i);
     }
 
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        items.length > 1 &&
+        currentIndex <= 1) {
+      // Android'de ilk iki short'ta 0,1,2'yi ayni anda hot tutmak
+      // ikinci videoda renderer stall uretmeye basliyordu. Ilk geciste
+      // sadece ilk iki index'i sicak tutup ucuncuyu soguk birak.
+      hotIndices
+        ..clear()
+        ..add(0)
+        ..add(1);
+      warmIndices.remove(0);
+      warmIndices.remove(1);
+    }
+
     _syncStates(
       items,
       currentIndex: currentIndex,
@@ -102,7 +116,11 @@ class ShortPlaybackCoordinator {
       activeIndex: currentIndex,
       hotIndices: hotIndices,
       warmIndices: warmIndices,
-      maxAttachedPlayers: maxAttachedPlayers,
+      maxAttachedPlayers: defaultTargetPlatform == TargetPlatform.android &&
+              items.length > 1 &&
+              currentIndex <= 1
+          ? (maxAttachedPlayers < 4 ? 4 : maxAttachedPlayers)
+          : maxAttachedPlayers,
     );
   }
 
