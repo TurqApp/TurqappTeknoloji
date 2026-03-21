@@ -1,6 +1,42 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerFeedPart on AgendaController {
+  void _ensureFeedPlaybackForIndex(int index) {
+    if (index < 0 || index >= agendaList.length) return;
+    final post = agendaList[index];
+    if (!_canAutoplayVideoPost(post)) return;
+    final manager = VideoStateManager.instance;
+    if (manager.currentPlayingDocID == post.docID) {
+      manager.reassertOnlyThis(post.docID);
+    } else {
+      manager.playOnlyThis(post.docID);
+    }
+    Future.delayed(const Duration(milliseconds: 220), () {
+      if (centeredIndex.value != index) return;
+      if (index < 0 || index >= agendaList.length) return;
+      if (agendaList[index].docID != post.docID) return;
+      manager.reassertOnlyThis(post.docID);
+    });
+    Future.delayed(const Duration(milliseconds: 520), () {
+      if (centeredIndex.value != index) return;
+      if (index < 0 || index >= agendaList.length) return;
+      if (agendaList[index].docID != post.docID) return;
+      manager.reassertOnlyThis(post.docID);
+    });
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (centeredIndex.value != index) return;
+      if (index < 0 || index >= agendaList.length) return;
+      if (agendaList[index].docID != post.docID) return;
+      manager.reassertOnlyThis(post.docID);
+    });
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (centeredIndex.value != index) return;
+      if (index < 0 || index >= agendaList.length) return;
+      if (agendaList[index].docID != post.docID) return;
+      manager.reassertOnlyThis(post.docID);
+    });
+  }
+
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
       final videoManager = VideoStateManager.instance;
@@ -273,6 +309,19 @@ extension AgendaControllerFeedPart on AgendaController {
     if (showFAB.value != shouldShowFab) {
       showFAB.value = shouldShowFab;
     }
+
+    _scrollIdleDebounce?.cancel();
+    _scrollIdleDebounce = Timer(
+      const Duration(milliseconds: 180),
+      () {
+        final centered = centeredIndex.value;
+        if (centered >= 0 && centered < agendaList.length) {
+          _ensureFeedPlaybackForIndex(centered);
+        } else {
+          resumeFeedPlayback();
+        }
+      },
+    );
   }
 
   void disposeAgendaContentController(String docID) {

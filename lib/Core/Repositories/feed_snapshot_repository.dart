@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
@@ -470,6 +471,9 @@ class FeedSnapshotRepository extends GetxService {
     required String userId,
     required int limit,
   }) async {
+    if (IntegrationTestMode.skipBackgroundStartupWork) {
+      return false;
+    }
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty) return false;
     if (_hybridBackfillRequested.contains(normalizedUserId)) return false;

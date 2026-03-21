@@ -74,6 +74,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
   Timer? _lazyInitTimer;
+  Timer? _playbackRecoveryTimer;
   bool _playbackIntentTracked = false;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
@@ -248,6 +249,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     } catch (_) {}
 
     _lazyInitTimer?.cancel();
+    _playbackRecoveryTimer?.cancel();
     _replayAdHideTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
     if (isStandalonePostInstance) {
@@ -380,6 +382,35 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       } else {
         _applyPlaybackVolume();
       }
+    }
+
+    final shouldRecoverPlayback = widget.shouldPlay &&
+        _isSurfacePlaybackAllowed &&
+        v.isInitialized &&
+        !v.isPlaying &&
+        !v.isBuffering &&
+        !v.isCompleted &&
+        v.position > Duration.zero;
+    if (shouldRecoverPlayback) {
+      _playbackRecoveryTimer ??=
+          Timer(const Duration(milliseconds: 260), () {
+        _playbackRecoveryTimer = null;
+        if (!mounted) return;
+        final adapter = _videoAdapter;
+        final current = adapter?.value;
+        if (adapter == null || current == null) return;
+        final stillNeedsRecovery = widget.shouldPlay &&
+            _isSurfacePlaybackAllowed &&
+            current.isInitialized &&
+            !current.isPlaying &&
+            !current.isBuffering &&
+            !current.isCompleted;
+        if (!stillNeedsRecovery) return;
+        _startPlayback();
+      });
+    } else {
+      _playbackRecoveryTimer?.cancel();
+      _playbackRecoveryTimer = null;
     }
 
     // Watch progress bildirimi (feed videoları için)
