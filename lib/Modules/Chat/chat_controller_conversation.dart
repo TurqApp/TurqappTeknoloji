@@ -2,7 +2,7 @@ part of 'chat_controller.dart';
 
 extension _ChatControllerConversationX on ChatController {
   Future<void> _clearConversationUnread() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       await _conversationRepository.setUnreadCount(
@@ -25,7 +25,7 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   Future<void> _markConversationOpenedNow() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
@@ -35,7 +35,7 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   Future<void> _markConversationOpenedAt(int timestampMs) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final key = "chat_last_opened_${uid}_$chatID";
@@ -98,7 +98,7 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _onTypingChanged() {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final text = textEditingController.text;
     if (text.isNotEmpty) {
@@ -108,14 +108,10 @@ extension _ChatControllerConversationX on ChatController {
               ChatController._typingHeartbeatIntervalMs;
       if (shouldSendHeartbeat) {
         try {
-          FirebaseFirestore.instance
-              .collection("conversations")
-              .doc(chatID)
-              .set(
-            {
-              "typing.$uid": nowMs,
-            },
-            SetOptions(merge: true),
+          _conversationRepository.setTypingTimestamp(
+            chatId: chatID,
+            currentUid: uid,
+            timestampMs: nowMs,
           );
           _typingActive = true;
           _lastTypingHeartbeatMs = nowMs;
@@ -129,14 +125,15 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _clearTyping() {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     if (!_typingActive) return;
     try {
-      FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .set({"typing.$uid": 0}, SetOptions(merge: true));
+      _conversationRepository.setTypingTimestamp(
+        chatId: chatID,
+        currentUid: uid,
+        timestampMs: 0,
+      );
       _typingActive = false;
       _lastTypingHeartbeatMs = 0;
     } catch (_) {}
@@ -150,10 +147,12 @@ extension _ChatControllerConversationX on ChatController {
         .listen((doc) {
       if (!doc.exists) return;
       final data = doc.data() ?? {};
-      final typing = data["typing"] as Map<String, dynamic>? ?? {};
-      final muted = data["muted"] as Map<String, dynamic>? ?? {};
-      _recipientMuted = muted[userID] == true;
-      final otherTs = typing[userID] as num? ?? 0;
+      _recipientMuted =
+          _conversationRepository.participantBoolValue(data["muted"], userID);
+      final otherTs = _conversationRepository.participantIntValue(
+        data["typing"],
+        userID,
+      );
       final now = DateTime.now().millisecondsSinceEpoch;
       isOtherTyping.value = otherTs > 0 && (now - otherTs) < 3000;
 
@@ -187,7 +186,7 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   Future<void> loadChatBackgroundPreference() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final data = await _conversationRepository.getConversation(
@@ -196,17 +195,19 @@ extension _ChatControllerConversationX on ChatController {
             cacheOnly: false,
           ) ??
           const <String, dynamic>{};
-      final raw = (data["chatBg.$uid"] ?? data["chatBgIndex"]) as dynamic;
-      final muted = data["muted"] as Map<String, dynamic>? ?? {};
-      _recipientMuted = muted[userID] == true;
-      int idx = 0;
-      if (raw is int) {
-        idx = raw;
-      } else if (raw is num) {
-        idx = raw.toInt();
-      } else if (raw is String) {
-        idx = int.tryParse(raw) ?? 0;
-      }
+      final legacyRaw = data["chatBgIndex"];
+      final legacyIdx = legacyRaw is int
+          ? legacyRaw
+          : legacyRaw is num
+              ? legacyRaw.toInt()
+              : int.tryParse("$legacyRaw") ?? 0;
+      var idx = _conversationRepository.participantIntValue(
+        data["chatBg"],
+        uid,
+        defaultValue: legacyIdx,
+      );
+      _recipientMuted =
+          _conversationRepository.participantBoolValue(data["muted"], userID);
       if (idx < 0) idx = 0;
       if (idx > 5) idx = 5;
       chatBgPaletteIndex.value = idx;
@@ -216,13 +217,14 @@ extension _ChatControllerConversationX on ChatController {
   Future<void> setChatBackgroundPreference(int index) async {
     if (index < 0 || index > 5) return;
     chatBgPaletteIndex.value = index;
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
-      await FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .set({"chatBg.$uid": index}, SetOptions(merge: true));
+      await _conversationRepository.setChatBackgroundIndex(
+        chatId: chatID,
+        currentUid: uid,
+        index: index,
+      );
     } catch (_) {}
   }
 

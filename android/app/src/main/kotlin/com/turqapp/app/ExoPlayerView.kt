@@ -2,8 +2,11 @@ package com.turqapp.app
 
 import android.content.Context
 import android.graphics.Color
+import android.os.Build
+import android.os.Debug
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
@@ -11,14 +14,19 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.turqapp.app.qa.ExoPlayerPlaybackProbe
+import com.turqapp.app.qa.ExoPlayerSmokeRegistry
+import com.turqapp.app.qa.PlaybackHealthMonitor
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.platform.PlatformView
 
@@ -65,9 +73,18 @@ class ExoPlayerView(
     private var stableSurfacePasses = 0
     private var isBufferingDispatched = false
     private var lastVideoFrameAtMs = 0L
+    private var firstVideoFrameAtMs = 0L
     private var lastWatchdogPositionMs = 0L
     private var stallRecoveries = 0
+    private var droppedVideoFrames = 0
+    private var bufferingEvents = 0
     private var stallWatchdogRunnable: Runnable? = null
+    private var lastBandwidthEstimateKbps = 0L
+    private var selectedVideoBitrateKbps = 0L
+    private var selectedVideoHeight = 0
+    private var selectedVideoWidth = 0
+    private val smokeMonitor = PlaybackHealthMonitor(tag = "PlaybackHealthMonitor#$viewId")
+    private var smokeProbe: ExoPlayerPlaybackProbe? = null
 
     init {
         val layoutRes = R.layout.turq_texture_player_view
@@ -115,11 +132,15 @@ class ExoPlayerView(
                         playerView.player = existing
                     }
                 }
+                smokeProbe?.onSurfaceAttached()
+                ExoPlayerSmokeRegistry.register(smokeMonitor)
             }
 
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
+                smokeProbe?.onSurfaceDetached()
+                ExoPlayerSmokeRegistry.clear(smokeMonitor)
                 softHold()
             }
         })
@@ -189,6 +210,14 @@ class ExoPlayerView(
             existing
         }
 
+        if (smokeProbe == null) {
+            smokeProbe = ExoPlayerPlaybackProbe(
+                player = activePlayer,
+                monitor = smokeMonitor,
+                tag = "ExoPlayerPlaybackProbe#$viewId",
+            ).also { it.attach() }
+        }
+
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
         isSoftHeld = false
@@ -201,8 +230,15 @@ class ExoPlayerView(
         stableSurfacePasses = 0
         isBufferingDispatched = false
         lastVideoFrameAtMs = 0L
+        firstVideoFrameAtMs = 0L
         lastWatchdogPositionMs = 0L
         stallRecoveries = 0
+        droppedVideoFrames = 0
+        bufferingEvents = 0
+        lastBandwidthEstimateKbps = 0L
+        selectedVideoBitrateKbps = 0L
+        selectedVideoHeight = 0
+        selectedVideoWidth = 0
         resetSurfaceVisibility()
 
         if (existing == null) {
@@ -234,6 +270,7 @@ class ExoPlayerView(
                         stopStallWatchdog()
                     }
                     Player.STATE_BUFFERING -> {
+                        bufferingEvents += 1
                         if (!isBufferingDispatched) {
                             isBufferingDispatched = true
                             sendEvent(mapOf("event" to "buffering", "isBuffering" to true))
@@ -280,9 +317,47 @@ class ExoPlayerView(
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
                 lastVideoFrameAtMs = System.currentTimeMillis()
+                if (firstVideoFrameAtMs == 0L) {
+                    firstVideoFrameAtMs = lastVideoFrameAtMs
+                }
                 scheduleSurfaceReveal()
                 sendEvent(mapOf("event" to "firstFrame"))
             }
+            })
+            activePlayer.addAnalyticsListener(object : AnalyticsListener {
+                override fun onDroppedVideoFrames(
+                    eventTime: AnalyticsListener.EventTime,
+                    droppedFrames: Int,
+                    elapsedMs: Long,
+                ) {
+                    droppedVideoFrames += droppedFrames
+                }
+
+                override fun onBandwidthEstimate(
+                    eventTime: AnalyticsListener.EventTime,
+                    totalLoadTimeMs: Int,
+                    totalBytesLoaded: Long,
+                    bitrateEstimate: Long,
+                ) {
+                    lastBandwidthEstimateKbps = (bitrateEstimate / 1000L).coerceAtLeast(0L)
+                }
+
+                override fun onTracksChanged(
+                    eventTime: AnalyticsListener.EventTime,
+                    tracks: Tracks,
+                ) {
+                    for (group in tracks.groups) {
+                        if (group.type != C.TRACK_TYPE_VIDEO) continue
+                        for (i in 0 until group.length) {
+                            if (!group.isTrackSelected(i)) continue
+                            val format = group.getTrackFormat(i)
+                            selectedVideoBitrateKbps = (format.bitrate / 1000L).coerceAtLeast(0L)
+                            selectedVideoHeight = format.height
+                            selectedVideoWidth = format.width
+                            return
+                        }
+                    }
+                }
             })
         }
 
@@ -309,10 +384,17 @@ class ExoPlayerView(
         playerView.player = activePlayer
         player = activePlayer
         currentUrl = url
+        ExoPlayerSmokeRegistry.register(smokeMonitor)
+        if (autoPlay) {
+            smokeMonitor.resetForNewPlaybackSession()
+            smokeProbe?.onAutoplayRequested()
+        }
     }
 
     fun play() {
         player?.let { p ->
+            smokeMonitor.resetForNewPlaybackSession()
+            smokeProbe?.onAutoplayRequested()
             if (isSoftHeld) {
                 p.volume = heldVolume
                 isSoftHeld = false
@@ -383,6 +465,60 @@ class ExoPlayerView(
         return player?.isPlaying ?: false
     }
 
+    fun isBuffering(): Boolean {
+        val p = player ?: return false
+        return p.playbackState == Player.STATE_BUFFERING || isBufferingDispatched
+    }
+
+    fun getPlaybackDiagnostics(): Map<String, Any> {
+        val p = player
+        val positionMs = p?.currentPosition ?: 0L
+        val durationMs = p?.duration ?: C.TIME_UNSET
+        val now = System.currentTimeMillis()
+        val frameSilenceMs = if (lastVideoFrameAtMs <= 0L) 0L else now - lastVideoFrameAtMs
+        val firstFrameAgeMs = if (firstVideoFrameAtMs <= 0L) 0L else now - firstVideoFrameAtMs
+        return mapOf(
+            "platform" to "android",
+            "playerExists" to (p != null),
+            "currentUrl" to (currentUrl ?: ""),
+            "isPlaying" to (p?.isPlaying ?: false),
+            "isBuffering" to isBuffering(),
+            "isMuted" to ((p?.volume ?: 1f) == 0f),
+            "volume" to (p?.volume ?: 0f).toDouble(),
+            "position" to (positionMs / 1000.0),
+            "duration" to (if (durationMs == C.TIME_UNSET) 0.0 else durationMs / 1000.0),
+            "didRenderFirstFrame" to didRenderFirstFrame,
+            "isPlayerReady" to isPlayerReady,
+            "hasVideoSize" to hasVideoSize,
+            "hasStableSurfaceLayout" to hasStableSurfaceLayout,
+            "isSoftHeld" to isSoftHeld,
+            "stallRecoveries" to stallRecoveries,
+            "bufferingEvents" to bufferingEvents,
+            "droppedVideoFrames" to droppedVideoFrames,
+            "rendererFrameSilenceMs" to frameSilenceMs,
+            "firstFrameAgeMs" to firstFrameAgeMs,
+            "bandwidthEstimateKbps" to lastBandwidthEstimateKbps,
+            "selectedVideoBitrateKbps" to selectedVideoBitrateKbps,
+            "selectedVideoHeight" to selectedVideoHeight,
+            "selectedVideoWidth" to selectedVideoWidth,
+        )
+    }
+
+    fun getProcessDiagnostics(): Map<String, Any> {
+        val runtime = Runtime.getRuntime()
+        val javaHeapMb = (runtime.totalMemory() - runtime.freeMemory()).toDouble() / (1024.0 * 1024.0)
+        val nativeHeapMb = Debug.getNativeHeapAllocatedSize().toDouble() / (1024.0 * 1024.0)
+        val pssMb = Debug.getPss().toDouble() / 1024.0
+        return mapOf(
+            "platform" to "android",
+            "javaHeapMb" to javaHeapMb,
+            "nativeHeapMb" to nativeHeapMb,
+            "pssMb" to pssMb,
+            "thermalStatus" to readThermalStatus(),
+            "playerExists" to (player != null),
+        )
+    }
+
     /// Oynatmayı durdur, network/decoder kaynaklarını serbest bırak.
     /// Player view hayatta kalır, tekrar loadVideo ile yüklenebilir.
     fun stopPlayback() {
@@ -442,13 +578,29 @@ class ExoPlayerView(
                 val positionMs = p.currentPosition
                 val advancedMs = positionMs - lastWatchdogPositionMs
                 val frameSilenceMs = if (lastVideoFrameAtMs <= 0L) 0L else now - lastVideoFrameAtMs
+                val firstFrameAgeMs = if (firstVideoFrameAtMs <= 0L) 0L else now - firstVideoFrameAtMs
 
-                if (didRenderFirstFrame && advancedMs >= 900L && frameSilenceMs >= 2200L) {
+                val rendererFrozenAfterAdvance =
+                    didRenderFirstFrame &&
+                        firstFrameAgeMs >= 3500L &&
+                        advancedMs >= 900L &&
+                        frameSilenceMs >= 2200L
+
+                val playbackClockStalled =
+                    didRenderFirstFrame &&
+                        firstFrameAgeMs >= 2500L &&
+                        advancedMs <= 120L &&
+                        frameSilenceMs >= 1800L
+
+                if (rendererFrozenAfterAdvance || playbackClockStalled) {
                     sendEvent(
                         mapOf(
                             "event" to "rendererStall",
                             "position" to (positionMs / 1000.0),
                             "frameSilenceMs" to frameSilenceMs,
+                            "firstFrameAgeMs" to firstFrameAgeMs,
+                            "advancedMs" to advancedMs,
+                            "stallKind" to if (playbackClockStalled) "clock_stalled" else "renderer_frozen",
                             "recoveryAttempt" to (stallRecoveries + 1),
                         )
                     )
@@ -475,6 +627,13 @@ class ExoPlayerView(
         val currentPosition = p.currentPosition
         handler.post {
             try {
+                sendEvent(
+                    mapOf(
+                        "event" to "surfaceRebind",
+                        "position" to (currentPosition / 1000.0),
+                        "recoveryAttempt" to stallRecoveries,
+                    )
+                )
                 playerView.player = null
                 playerView.player = p
                 revealSurface(immediate = true)
@@ -495,6 +654,18 @@ class ExoPlayerView(
     }
 
     private fun resetSurfaceVisibility() {
+        if (!forceFullscreen) {
+            // Feed kartlarında poster zaten ilk frame gelene kadar üstte tutuluyor.
+            // Native view'i her load'ta tekrar alpha=0'a çekmek ikinci siyah dalga
+            // üretiyor. Non-fullscreen akışta görünürlük reseti yapma.
+            handler.post {
+                pendingRevealRunnable?.let(handler::removeCallbacks)
+                pendingRevealRunnable = null
+                playerView.animate().cancel()
+                playerView.alpha = 1f
+            }
+            return
+        }
         handler.post {
             pendingRevealRunnable?.let(handler::removeCallbacks)
             pendingRevealRunnable = null
@@ -558,7 +729,10 @@ class ExoPlayerView(
         stopStallWatchdog()
         player?.pause()
         resetSurfaceVisibility()
+        ExoPlayerSmokeRegistry.clear(smokeMonitor)
         if (fully) {
+            smokeProbe?.detach()
+            smokeProbe = null
             player?.release()
             player = null
             currentUrl = null
@@ -601,5 +775,22 @@ class ExoPlayerView(
 
     override fun onCancel(arguments: Any?) {
         eventSink = null
+    }
+
+    private fun readThermalStatus(): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return "unsupported"
+        }
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        return when (powerManager?.currentThermalStatus) {
+            PowerManager.THERMAL_STATUS_NONE -> "none"
+            PowerManager.THERMAL_STATUS_LIGHT -> "light"
+            PowerManager.THERMAL_STATUS_MODERATE -> "moderate"
+            PowerManager.THERMAL_STATUS_SEVERE -> "severe"
+            PowerManager.THERMAL_STATUS_CRITICAL -> "critical"
+            PowerManager.THERMAL_STATUS_EMERGENCY -> "emergency"
+            PowerManager.THERMAL_STATUS_SHUTDOWN -> "shutdown"
+            else -> "unknown"
+        }
     }
 }
