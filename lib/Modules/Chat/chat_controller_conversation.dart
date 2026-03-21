@@ -14,18 +14,14 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _syncUnreadIndicatorsLocal() {
-    if (Get.isRegistered<UnreadMessagesController>()) {
-      Get.find<UnreadMessagesController>().updateConversationUnreadLocal(
-        otherUid: userID,
-        unreadCount: 0,
-        chatId: chatID,
-        seenAtMs: DateTime.now().millisecondsSinceEpoch,
-      );
-    }
-    if (Get.isRegistered<InAppNotificationsController>()) {
-      Get.find<InAppNotificationsController>()
-          .markChatNotificationsReadLocal(chatId: chatID);
-    }
+    UnreadMessagesController.maybeFind()?.updateConversationUnreadLocal(
+      otherUid: userID,
+      unreadCount: 0,
+      chatId: chatID,
+      seenAtMs: DateTime.now().millisecondsSinceEpoch,
+    );
+    InAppNotificationsController.maybeFind()
+        ?.markChatNotificationsReadLocal(chatId: chatID);
   }
 
   Future<void> _markConversationOpenedNow() async {
@@ -51,7 +47,7 @@ extension _ChatControllerConversationX on ChatController {
 
   void getUserData() async {
     try {
-      final data = (await Get.find<UserProfileCacheService>().getProfile(
+      final data = (await UserProfileCacheService.ensure().getProfile(
             userID,
             preferCache: true,
             cacheOnly: _isOffline,

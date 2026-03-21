@@ -7,12 +7,16 @@ import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 
 class AdsFeatureFlagsService extends GetxService {
-  static AdsFeatureFlagsService get to {
+  static AdsFeatureFlagsService _ensureService() {
     if (Get.isRegistered<AdsFeatureFlagsService>()) {
       return Get.find<AdsFeatureFlagsService>();
     }
     return Get.put(AdsFeatureFlagsService());
   }
+
+  static AdsFeatureFlagsService ensure() => _ensureService();
+
+  static AdsFeatureFlagsService get to => _ensureService();
 
   final Rx<AdFeatureFlags> flags = AdFeatureFlags.defaults.obs;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sub;

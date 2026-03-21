@@ -113,6 +113,13 @@ class AppError {
 }
 
 class ErrorHandlingService extends GetxController {
+  static ErrorHandlingService? maybeFind() {
+    if (Get.isRegistered<ErrorHandlingService>()) {
+      return Get.find<ErrorHandlingService>();
+    }
+    return null;
+  }
+
   final RxList<AppError> _errorHistory = <AppError>[].obs;
   final RxBool _isOnline = true.obs;
   final RxInt _totalErrors = 0.obs;
@@ -302,8 +309,8 @@ Retry Count: ${appError.retryCount}
   void _showRetryOption(AppError appError) {
     Get.defaultDialog(
       title: 'common.retry'.tr,
-      middleText:
-          'error_handling.retry_prompt'.trParams({'message': appError.userFriendlyMessage}),
+      middleText: 'error_handling.retry_prompt'
+          .trParams({'message': appError.userFriendlyMessage}),
       textConfirm: 'common.retry'.tr,
       textCancel: 'common.cancel'.tr,
       onConfirm: () {

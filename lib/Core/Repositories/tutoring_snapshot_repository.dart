@@ -12,11 +12,15 @@ class TutoringSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'tutoring_home_snapshot';
   static const String _searchSurfaceKey = 'tutoring_search_snapshot';
 
-  static TutoringSnapshotRepository ensure() {
+  static TutoringSnapshotRepository _ensureService() {
     if (Get.isRegistered<TutoringSnapshotRepository>()) {
       return Get.find<TutoringSnapshotRepository>();
     }
     return Get.put(TutoringSnapshotRepository(), permanent: true);
+  }
+
+  static TutoringSnapshotRepository ensure() {
+    return _ensureService();
   }
 
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
@@ -147,10 +151,9 @@ class TutoringSnapshotRepository extends GetxService {
         .where((item) => item.docID.isNotEmpty)
         .where((item) => item.ended != true)
         .map((item) {
-          _primeUserSummary(item);
-          return item;
-        })
-        .toList(growable: false);
+      _primeUserSummary(item);
+      return item;
+    }).toList(growable: false);
   }
 
   void _primeUserSummary(TutoringModel item) {

@@ -74,4 +74,11 @@ class StoryCommentsController extends GetxController {
   void clearSelectedGif() {
     selectedGifUrl.value = '';
   }
+
+  @override
+  void onClose() {
+    commentFocus.dispose();
+    commentTextfield.dispose();
+    super.onClose();
+  }
 }

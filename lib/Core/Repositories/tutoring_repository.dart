@@ -21,11 +21,15 @@ class TutoringRepository extends GetxService {
   SharedPreferences? _prefs;
   static const int _thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
 
-  static TutoringRepository ensure() {
+  static TutoringRepository _ensureService() {
     if (Get.isRegistered<TutoringRepository>()) {
       return Get.find<TutoringRepository>();
     }
     return Get.put(TutoringRepository(), permanent: true);
+  }
+
+  static TutoringRepository ensure() {
+    return _ensureService();
   }
 
   @override

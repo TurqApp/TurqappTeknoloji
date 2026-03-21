@@ -22,12 +22,14 @@ class SocialMediaLinksRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedSocialMediaLinks> _memory = {};
 
-  static SocialMediaLinksRepository ensure() {
+  static SocialMediaLinksRepository _ensureService() {
     if (Get.isRegistered<SocialMediaLinksRepository>()) {
       return Get.find<SocialMediaLinksRepository>();
     }
     return Get.put(SocialMediaLinksRepository(), permanent: true);
   }
+
+  static SocialMediaLinksRepository ensure() => _ensureService();
 
   @override
   void onInit() {

@@ -57,6 +57,7 @@ class TestsController extends GetxController {
         loadMore();
       }
 
+      scrollOffset.value = currentOffset;
       _previousOffset.value = currentOffset;
     });
   }

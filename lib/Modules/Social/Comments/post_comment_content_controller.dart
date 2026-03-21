@@ -7,16 +7,21 @@ import '../../../Services/post_interaction_service.dart';
 import 'post_comment_controller.dart';
 
 class PostCommentContentController extends GetxController {
-  PostCommentContentController({required this.model, required this.postID});
+  PostCommentContentController({
+    required this.model,
+    required this.postID,
+    required this.commentControllerTag,
+  });
 
   final PostCommentModel model;
   final String postID;
+  final String commentControllerTag;
 
   final RxString nickname = ''.obs;
   final RxString avatarUrl = ''.obs;
   final RxList<String> likes = <String>[].obs;
   final PostInteractionService _interactionService =
-      Get.put(PostInteractionService());
+      PostInteractionService.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   @override
@@ -51,7 +56,7 @@ class PostCommentContentController extends GetxController {
   }
 
   Future<bool> deleteComment() async {
-    return await Get.find<PostCommentController>(tag: postID)
+    return await Get.find<PostCommentController>(tag: commentControllerTag)
         .deleteComment(model.docID);
   }
 }

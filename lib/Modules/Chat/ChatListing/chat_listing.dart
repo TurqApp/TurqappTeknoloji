@@ -31,10 +31,11 @@ class _ChatListingState extends State<ChatListing> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<ChatListingController>()) {
-      controller = Get.find<ChatListingController>();
+    final existingController = ChatListingController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(ChatListingController());
+      controller = ChatListingController.ensure();
       _ownsController = true;
     }
   }
@@ -43,8 +44,7 @@ class _ChatListingState extends State<ChatListing> {
   void dispose() {
     _openedChatId.dispose();
     if (_ownsController &&
-        Get.isRegistered<ChatListingController>() &&
-        identical(Get.find<ChatListingController>(), controller)) {
+        identical(ChatListingController.maybeFind(), controller)) {
       Get.delete<ChatListingController>(force: true);
     }
     super.dispose();

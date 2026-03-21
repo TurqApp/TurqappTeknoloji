@@ -22,12 +22,14 @@ class NotificationPreferencesRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedNotificationPreferences> _memory = {};
 
-  static NotificationPreferencesRepository ensure() {
+  static NotificationPreferencesRepository _ensureService() {
     if (Get.isRegistered<NotificationPreferencesRepository>()) {
       return Get.find<NotificationPreferencesRepository>();
     }
     return Get.put(NotificationPreferencesRepository(), permanent: true);
   }
+
+  static NotificationPreferencesRepository ensure() => _ensureService();
 
   @override
   void onInit() {

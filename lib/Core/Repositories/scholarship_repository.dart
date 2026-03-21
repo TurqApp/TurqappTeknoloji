@@ -19,11 +19,15 @@ class ScholarshipRepository extends GetxService {
       <String, _TimedScholarshipApply>{};
   SharedPreferences? _prefs;
 
-  static ScholarshipRepository ensure() {
+  static ScholarshipRepository _ensureService() {
     if (Get.isRegistered<ScholarshipRepository>()) {
       return Get.find<ScholarshipRepository>();
     }
     return Get.put(ScholarshipRepository(), permanent: true);
+  }
+
+  static ScholarshipRepository ensure() {
+    return _ensureService();
   }
 
   @override
@@ -218,8 +222,9 @@ class ScholarshipRepository extends GetxService {
     const chunkSize = 10;
     final byId = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
     for (var i = 0; i < orderedIds.length; i += chunkSize) {
-      final end =
-          (i + chunkSize > orderedIds.length) ? orderedIds.length : i + chunkSize;
+      final end = (i + chunkSize > orderedIds.length)
+          ? orderedIds.length
+          : i + chunkSize;
       final chunk = orderedIds.sublist(i, end);
       final snap = await ScholarshipFirestorePath.collection()
           .where(FieldPath.documentId, whereIn: chunk)
@@ -406,7 +411,8 @@ class ScholarshipRepository extends GetxService {
     }
 
     final doc = await ScholarshipFirestorePath.doc(cleanId).get();
-    final ids = List<String>.from(doc.data()?['basvurular'] ?? const <String>[]);
+    final ids =
+        List<String>.from(doc.data()?['basvurular'] ?? const <String>[]);
     await _storeRawDoc(cacheKey, <String, dynamic>{'ids': ids});
     return ids;
   }
@@ -457,8 +463,7 @@ class ScholarshipRepository extends GetxService {
     final docRef = ScholarshipFirestorePath.doc(cleanId);
     final doc = await docRef.get();
     if (!doc.exists) return false;
-    final current =
-        List<String>.from(doc.data()?[field] ?? const <String>[]);
+    final current = List<String>.from(doc.data()?[field] ?? const <String>[]);
     final contains = current.contains(cleanUserId);
     final next = contains
         ? current.where((e) => e != cleanUserId).toList(growable: false)

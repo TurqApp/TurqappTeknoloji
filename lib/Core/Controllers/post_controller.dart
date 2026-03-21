@@ -10,7 +10,7 @@ class PostController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _interactionService = Get.put(PostInteractionService());
+    _interactionService = PostInteractionService.ensure();
   }
 
   // ========== BEĞENI İŞLEMLERİ ==========
@@ -39,8 +39,8 @@ class PostController extends GetxController {
         duration: const Duration(seconds: 1),
       );
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.like_failed'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.like_failed'.trParams({'error': '$e'}));
     }
   }
 
@@ -75,8 +75,8 @@ class PostController extends GetxController {
         AppSnackbar('common.error'.tr, 'post_controller.comment_add_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.comment_add_error'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.comment_add_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -99,8 +99,8 @@ class PostController extends GetxController {
         AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.comment_delete_error'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.comment_delete_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -125,8 +125,8 @@ class PostController extends GetxController {
         AppSnackbar('common.error'.tr, 'post_controller.reply_add_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.reply_add_error'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.reply_add_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -150,14 +150,12 @@ class PostController extends GetxController {
       // Başarılı mesajı göster
       AppSnackbar(
         'common.success'.tr,
-        isSaved
-            ? 'post_controller.saved'.tr
-            : 'post_controller.unsaved'.tr,
+        isSaved ? 'post_controller.saved'.tr : 'post_controller.unsaved'.tr,
         duration: const Duration(seconds: 1),
       );
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.save_failed'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.save_failed'.trParams({'error': '$e'}));
     }
   }
 
@@ -185,8 +183,8 @@ class PostController extends GetxController {
       // UI'ı güncelle
       update(['post_$postId', 'reshare_$postId']);
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.reshare_error'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.reshare_error'.trParams({'error': '$e'}));
     }
   }
 
@@ -225,8 +223,8 @@ class PostController extends GetxController {
         AppSnackbar('common.info'.tr, 'post_controller.report_exists'.tr);
       }
     } catch (e) {
-      AppSnackbar(
-          'common.error'.tr, 'post_controller.report_error'.trParams({'error': '$e'}));
+      AppSnackbar('common.error'.tr,
+          'post_controller.report_error'.trParams({'error': '$e'}));
     }
   }
 

@@ -46,8 +46,9 @@ class SearchUserContent extends StatelessWidget {
   }
 
   Future<void> _saveRecentIfNeeded(String targetUid) async {
-    if (Get.isRegistered<ExploreController>()) {
-      await Get.find<ExploreController>().saveRecentSearch(targetUid);
+    final explore = ExploreController.maybeFind();
+    if (explore != null) {
+      await explore.saveRecentSearch(targetUid);
       return;
     }
     try {
@@ -63,9 +64,7 @@ class SearchUserContent extends StatelessWidget {
           'timeStamp': DateTime.now().millisecondsSinceEpoch,
         },
       );
-      if (Get.isRegistered<ExploreController>()) {
-        await Get.find<ExploreController>().refreshRecentSearchUsers();
-      }
+      await ExploreController.maybeFind()?.refreshRecentSearchUsers();
     } catch (_) {}
   }
 
@@ -95,8 +94,8 @@ class SearchUserContent extends StatelessWidget {
   Future<void> _removeRecent() async {
     final targetUid = await _resolveTargetUid();
     if (targetUid.isEmpty) return;
-    if (Get.isRegistered<ExploreController>()) {
-      final c = Get.find<ExploreController>();
+    final c = ExploreController.maybeFind();
+    if (c != null) {
       await c.removeRecentSearch(targetUid);
       c.isSearchMode.value = true;
       return;
@@ -136,9 +135,7 @@ class SearchUserContent extends StatelessWidget {
                           'common.info'.tr, 'explore.account_unavailable'.tr);
                       return;
                     }
-                    final explore = Get.isRegistered<ExploreController>()
-                        ? Get.find<ExploreController>()
-                        : null;
+                    final explore = ExploreController.maybeFind();
                     explore?.suspendExplorePreview();
                     await Get.to(
                       () => SocialProfile(userID: targetUid),

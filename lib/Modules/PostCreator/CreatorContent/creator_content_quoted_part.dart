@@ -168,9 +168,7 @@ extension CreatorContentQuotedPart on CreatorContent {
       return const SizedBox.shrink();
     }
 
-    final profileCache = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService(), permanent: true);
+    final profileCache = UserProfileCacheService.ensure();
     final postRepository = PostRepository.ensure();
 
     return FutureBuilder<List<dynamic>>(

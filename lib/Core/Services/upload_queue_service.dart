@@ -86,6 +86,22 @@ class QueuedUpload {
 }
 
 class UploadQueueService extends GetxController {
+  static UploadQueueService _ensureService() {
+    if (Get.isRegistered<UploadQueueService>()) {
+      return Get.find<UploadQueueService>();
+    }
+    return Get.put(UploadQueueService());
+  }
+
+  static UploadQueueService ensure() => _ensureService();
+
+  static UploadQueueService? maybeFind() {
+    if (Get.isRegistered<UploadQueueService>()) {
+      return Get.find<UploadQueueService>();
+    }
+    return null;
+  }
+
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   static const Duration _recentDuplicateWindow = Duration(minutes: 15);
   final RxList<QueuedUpload> _queue = <QueuedUpload>[].obs;
@@ -112,6 +128,14 @@ class UploadQueueService extends GetxController {
       if (value.isNotEmpty) return value;
     }
     return '';
+  }
+
+  String _resolveActiveUserId([Map<String, dynamic>? postDataMap]) {
+    return _firstNonEmptyValue([
+      CurrentUserService.instance.userId,
+      FirebaseAuth.instance.currentUser?.uid,
+      postDataMap?['userID'],
+    ]);
   }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {
@@ -208,8 +232,9 @@ class UploadQueueService extends GetxController {
     required String sourcePostId,
     required String originalPostId,
   }) async {
-    final candidate =
-        sourcePostId.trim().isNotEmpty ? sourcePostId.trim() : originalPostId.trim();
+    final candidate = sourcePostId.trim().isNotEmpty
+        ? sourcePostId.trim()
+        : originalPostId.trim();
     if (candidate.isEmpty) return '';
 
     final raw = await PostRepository.ensure().fetchPostRawById(
@@ -255,7 +280,8 @@ class UploadQueueService extends GetxController {
                 _recentDuplicateWindow &&
             _queueFingerprint(item) == fingerprint);
     if (recentDuplicate) {
-      AppSnackbar('common.info'.tr, 'upload_queue.already_uploaded_recently'.tr);
+      AppSnackbar(
+          'common.info'.tr, 'upload_queue.already_uploaded_recently'.tr);
       return false;
     }
     _queue.add(upload);
@@ -274,12 +300,7 @@ class UploadQueueService extends GetxController {
 
   Future<void> _createPendingPostShell(QueuedUpload upload) async {
     final postDataMap = jsonDecode(upload.postData) as Map<String, dynamic>;
-    final String userID =
-        (CurrentUserService.instance.userId.isNotEmpty
-                ? CurrentUserService.instance.userId
-                : postDataMap['userID'] ?? '')
-            .toString()
-            .trim();
+    final String userID = _resolveActiveUserId(postDataMap);
     if (userID.isEmpty) return;
 
     final String text = (postDataMap['text'] ?? '')
@@ -479,8 +500,8 @@ class UploadQueueService extends GetxController {
       final String gif = (postDataMap['gif'] ?? '').toString();
       // Always bind queued uploads to current session user.
       // Stale queue payload may contain old userID and fail Storage isPostOwner rule.
-      String userID = CurrentUserService.instance.userId.trim();
-      if (userID.trim().isEmpty) {
+      final String userID = _resolveActiveUserId(postDataMap);
+      if (userID.isEmpty) {
         throw Exception('userID boş: upload sırasında oturum bulunamadı');
       }
       final Map<String, dynamic> yorumMap =

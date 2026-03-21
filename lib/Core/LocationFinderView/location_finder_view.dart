@@ -6,21 +6,57 @@ import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 
 import 'location_finder_view_controller.dart';
 
-class LocationFinderView extends StatelessWidget {
+class LocationFinderView extends StatefulWidget {
   final String submitButtonTitle;
   final Function(LatLng) backLatLong;
   final Function(String) backAdres;
 
-  LocationFinderView(
-      {super.key,
-      required this.submitButtonTitle,
-      required this.backAdres,
-      required this.backLatLong});
+  const LocationFinderView({
+    super.key,
+    required this.submitButtonTitle,
+    required this.backAdres,
+    required this.backLatLong,
+  });
+
+  @override
+  State<LocationFinderView> createState() => _LocationFinderViewState();
+}
+
+class _LocationFinderViewState extends State<LocationFinderView> {
+  late final String _controllerTag;
   late final LocationFinderViewController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'location_finder_${identityHashCode(this)}';
+    if (Get.isRegistered<LocationFinderViewController>(tag: _controllerTag)) {
+      controller = Get.find<LocationFinderViewController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(
+        LocationFinderViewController(),
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<LocationFinderViewController>(tag: _controllerTag) &&
+        identical(
+          Get.find<LocationFinderViewController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<LocationFinderViewController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(LocationFinderViewController());
     return Scaffold(
       body: Obx(() {
         final pos = controller.currentPosition.value;
@@ -141,12 +177,14 @@ class LocationFinderView extends StatelessWidget {
               right: 20,
               child: TurqAppButton(
                 onTap: () {
-                  backLatLong(LatLng(controller.currentPosition.value!.latitude,
-                      controller.currentPosition.value!.longitude));
-                  backAdres(controller.currentAddress.value.toString());
+                  widget.backLatLong(LatLng(
+                    controller.currentPosition.value!.latitude,
+                    controller.currentPosition.value!.longitude,
+                  ));
+                  widget.backAdres(controller.currentAddress.value.toString());
                   Get.back();
                 },
-                text: submitButtonTitle,
+                text: widget.submitButtonTitle,
               ),
             )
           ],

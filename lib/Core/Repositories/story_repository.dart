@@ -63,11 +63,9 @@ class StoryRepository extends GetxService {
   static const int _deletedStoriesCacheLimit = 100;
 
   UserProfileCacheService get _userCache {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      return Get.find<UserProfileCacheService>();
-    }
-    return Get.put(UserProfileCacheService(), permanent: true);
+    return UserProfileCacheService.ensure();
   }
+
   final UserRepository _userRepository = UserRepository.ensure();
   final VisibilityPolicyService _visibilityPolicy =
       VisibilityPolicyService.ensure();
@@ -108,12 +106,14 @@ class StoryRepository extends GetxService {
     }).toList(growable: false);
   }
 
-  static StoryRepository ensure() {
+  static StoryRepository _ensureService() {
     if (Get.isRegistered<StoryRepository>()) {
       return Get.find<StoryRepository>();
     }
     return Get.put(StoryRepository(), permanent: true);
   }
+
+  static StoryRepository ensure() => _ensureService();
 
   Future<void> _ensureInitialized() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -217,8 +217,8 @@ class StoryRepository extends GetxService {
       userDataMap.addAll(await _loadMissingProfilesFromUsers(missingUserIds));
     }
 
-    final followingIds = await VisibilityPolicyService.ensure()
-        .loadViewerFollowingIds(
+    final followingIds =
+        await VisibilityPolicyService.ensure().loadViewerFollowingIds(
       viewerUserId: currentUid,
       preferCache: true,
     );
@@ -500,7 +500,10 @@ class StoryRepository extends GetxService {
     final musicId = (raw['musicId'] ?? '').toString().trim();
 
     try {
-      await FirebaseFirestore.instance.collection('stories').doc(storyId).delete();
+      await FirebaseFirestore.instance
+          .collection('stories')
+          .doc(storyId)
+          .delete();
     } catch (_) {}
 
     if (uid.isNotEmpty) {
@@ -1151,5 +1154,4 @@ class StoryRepository extends GetxService {
       'timeStamp': DateTime.now().millisecondsSinceEpoch,
     });
   }
-
 }

@@ -85,6 +85,13 @@ class PostDraft {
 }
 
 class DraftService extends GetxController {
+  static DraftService? maybeFind() {
+    if (Get.isRegistered<DraftService>()) {
+      return Get.find<DraftService>();
+    }
+    return null;
+  }
+
   final RxList<PostDraft> _drafts = <PostDraft>[].obs;
   final RxBool _autoSaveEnabled = true.obs;
   final RxInt _autoSaveInterval = 30.obs; // seconds
@@ -268,8 +275,7 @@ class DraftService extends GetxController {
       if (await draftDir.exists()) {
         await draftDir.delete(recursive: true);
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// Save drafts to storage

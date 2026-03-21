@@ -26,13 +26,42 @@ part 'create_scholarship_basic_part.dart';
 part 'create_scholarship_extra_part.dart';
 part 'create_scholarship_media_part.dart';
 
-class CreateScholarshipView extends StatelessWidget {
+class CreateScholarshipView extends StatefulWidget {
   const CreateScholarshipView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(CreateScholarshipController());
+  State<CreateScholarshipView> createState() => _CreateScholarshipViewState();
+}
 
+class _CreateScholarshipViewState extends State<CreateScholarshipView> {
+  late final CreateScholarshipController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'create_scholarship_${identityHashCode(this)}';
+    controller = Get.isRegistered<CreateScholarshipController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<CreateScholarshipController>(tag: _controllerTag)
+        : Get.put(CreateScholarshipController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<CreateScholarshipController>(tag: _controllerTag) &&
+        identical(
+          Get.find<CreateScholarshipController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<CreateScholarshipController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

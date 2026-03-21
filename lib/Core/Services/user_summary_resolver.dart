@@ -4,11 +4,15 @@ import 'package:turqappv2/Core/Services/typesense_user_card_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 class UserSummaryResolver extends GetxService {
-  static UserSummaryResolver ensure() {
+  static UserSummaryResolver _ensureService() {
     if (Get.isRegistered<UserSummaryResolver>()) {
       return Get.find<UserSummaryResolver>();
     }
     return Get.put(UserSummaryResolver(), permanent: true);
+  }
+
+  static UserSummaryResolver ensure() {
+    return _ensureService();
   }
 
   UserRepository get _users => UserRepository.ensure();
@@ -164,7 +168,8 @@ class UserSummaryResolver extends GetxService {
       ]),
       rozet: rozet,
       token: token,
-      followerCount: _toInt(merged['followerCount'] ?? merged['followersCount']),
+      followerCount:
+          _toInt(merged['followerCount'] ?? merged['followersCount']),
       followingCount: _toInt(merged['followingCount']),
       postCount: _toInt(merged['postCount']),
       isPrivate: merged['isPrivate'] == true,

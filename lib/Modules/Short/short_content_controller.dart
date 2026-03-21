@@ -82,7 +82,7 @@ class ShortContentController extends GetxController {
     super.onInit();
 
     // Initialize interaction service
-    _interactionService = Get.put(PostInteractionService());
+    _interactionService = PostInteractionService.ensure();
     _postRepository = PostRepository.ensure();
 
     // Initialize stats from model

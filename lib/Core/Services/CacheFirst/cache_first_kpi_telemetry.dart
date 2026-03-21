@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 
 import 'cache_first_telemetry.dart';
@@ -8,7 +7,8 @@ class CacheFirstKpiTelemetry<T> implements CacheFirstTelemetry<T> {
 
   @override
   void onEvent(CacheFirstTelemetryEvent<T> event) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
 
     final resource = event.resource;
     final payload = <String, dynamic>{
@@ -29,7 +29,7 @@ class CacheFirstKpiTelemetry<T> implements CacheFirstTelemetry<T> {
       if (event.error != null) 'errorType': event.error.runtimeType.toString(),
     };
 
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.cacheFirstLifecycle,
       payload,
     );

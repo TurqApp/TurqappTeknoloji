@@ -21,11 +21,15 @@ class JobRepository extends GetxService {
   final Map<String, _TimedBool> _boolMemory = <String, _TimedBool>{};
   SharedPreferences? _prefs;
 
-  static JobRepository ensure() {
+  static JobRepository _ensureService() {
     if (Get.isRegistered<JobRepository>()) {
       return Get.find<JobRepository>();
     }
     return Get.put(JobRepository(), permanent: true);
+  }
+
+  static JobRepository ensure() {
+    return _ensureService();
   }
 
   @override

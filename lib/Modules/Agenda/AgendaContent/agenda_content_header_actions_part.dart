@@ -2,15 +2,16 @@ part of 'agenda_content.dart';
 
 extension AgendaContentHeaderActionsPart on _AgendaContentState {
   List<StoryUserModel> _storyUsersSnapshot() {
-    if (!Get.isRegistered<StoryRowController>()) return const [];
-    return Get.find<StoryRowController>().users.toList(growable: false);
+    final rowController = StoryRowController.maybeFind();
+    if (rowController == null) return const [];
+    return rowController.users.toList(growable: false);
   }
 
   void _suspendEmbeddedFeedContextsForRoute() {
     if (Get.isRegistered<FloodListingController>()) {
       final floodController = Get.find<FloodListingController>();
-      final floodIndex =
-          floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
         floodController.capturePendingCenteredEntry(model: widget.model);
         floodController.lastCenteredIndex = floodIndex;
@@ -47,8 +48,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<ArchiveController>()) {
       final archiveController = Get.find<ArchiveController>();
-      final archiveIndex =
-          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
         archiveController.capturePendingCenteredEntry(model: widget.model);
         archiveController.lastCenteredIndex = archiveIndex;
@@ -58,7 +59,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<LikedPostControllers>()) {
       final likedController = Get.find<LikedPostControllers>();
-      final likedIndex = likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      final likedIndex =
+          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
         likedController.capturePendingCenteredEntry(model: widget.model);
         likedController.lastCenteredIndex = likedIndex;
@@ -81,8 +83,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<TagPostsController>()) {
       final tagPostsController = Get.find<TagPostsController>();
-      final tagPostIndex =
-          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
         tagPostsController.capturePendingCenteredEntry(model: widget.model);
         tagPostsController.lastCenteredIndex = tagPostIndex;
@@ -106,8 +108,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   void _restoreEmbeddedFeedContexts() {
     if (Get.isRegistered<FloodListingController>()) {
       final floodController = Get.find<FloodListingController>();
-      final floodIndex =
-          floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
         floodController.capturePendingCenteredEntry(model: widget.model);
         floodController.centeredIndex.value = floodIndex;
@@ -145,8 +147,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<ArchiveController>()) {
       final archiveController = Get.find<ArchiveController>();
-      final archiveIndex =
-          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
         archiveController.capturePendingCenteredEntry(model: widget.model);
         archiveController.lastCenteredIndex = archiveIndex;
@@ -157,7 +159,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<LikedPostControllers>()) {
       final likedController = Get.find<LikedPostControllers>();
-      final likedIndex = likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      final likedIndex =
+          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
         likedController.capturePendingCenteredEntry(model: widget.model);
         likedController.lastCenteredIndex = likedIndex;
@@ -180,8 +183,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<TagPostsController>()) {
       final tagPostsController = Get.find<TagPostsController>();
-      final tagPostIndex =
-          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
         tagPostsController.capturePendingCenteredEntry(model: widget.model);
         tagPostsController.lastCenteredIndex = tagPostIndex;
@@ -908,9 +911,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: isReshared
-                ? 'post.undo_reshare'.tr
-                : 'common.reshare'.tr,
+            title: isReshared ? 'post.undo_reshare'.tr : 'common.reshare'.tr,
             icon: Icons.repeat,
           ),
           PullDownMenuItem(

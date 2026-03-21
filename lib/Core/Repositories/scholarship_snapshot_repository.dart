@@ -23,12 +23,14 @@ class ScholarshipSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'scholarship_home_snapshot';
   static const String _searchSurfaceKey = 'scholarship_search_snapshot';
 
-  static ScholarshipSnapshotRepository ensure() {
+  static ScholarshipSnapshotRepository _ensureService() {
     if (Get.isRegistered<ScholarshipSnapshotRepository>()) {
       return Get.find<ScholarshipSnapshotRepository>();
     }
     return Get.put(ScholarshipSnapshotRepository(), permanent: true);
   }
+
+  static ScholarshipSnapshotRepository ensure() => _ensureService();
 
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
@@ -290,8 +292,7 @@ class ScholarshipSnapshotRepository extends GetxService {
       items: rawItems
           .whereType<Map>()
           .map(
-            (raw) =>
-                _decodeCombinedItem(Map<String, dynamic>.from(raw.cast())),
+            (raw) => _decodeCombinedItem(Map<String, dynamic>.from(raw.cast())),
           )
           .where((item) => (item['docId'] ?? '').toString().isNotEmpty)
           .toList(growable: false),
@@ -305,7 +306,8 @@ class ScholarshipSnapshotRepository extends GetxService {
       'docId': item['docId'] ?? '',
       'type': item['type'] ?? kIndividualScholarshipType,
       'model': model.toJson(),
-      'userData': Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
+      'userData':
+          Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
       'likesCount': item['likesCount'] ?? 0,
       'bookmarksCount': item['bookmarksCount'] ?? 0,
       'timeStamp': item['timeStamp'] ?? model.timeStamp,
@@ -314,11 +316,13 @@ class ScholarshipSnapshotRepository extends GetxService {
   }
 
   Map<String, dynamic> _decodeCombinedItem(Map<String, dynamic> item) {
-    final modelMap = Map<String, dynamic>.from(item['model'] as Map? ?? const {});
+    final modelMap =
+        Map<String, dynamic>.from(item['model'] as Map? ?? const {});
     return <String, dynamic>{
       'model': IndividualScholarshipsModel.fromJson(modelMap),
       'type': (item['type'] ?? kIndividualScholarshipType).toString(),
-      'userData': Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
+      'userData':
+          Map<String, dynamic>.from(item['userData'] as Map? ?? const {}),
       'docId': (item['docId'] ?? '').toString(),
       'likesCount': (item['likesCount'] as num?)?.toInt() ?? 0,
       'bookmarksCount': (item['bookmarksCount'] as num?)?.toInt() ?? 0,

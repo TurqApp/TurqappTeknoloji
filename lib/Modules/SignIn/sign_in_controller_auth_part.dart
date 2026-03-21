@@ -51,10 +51,7 @@ extension SignInControllerAuthPart on SignInController {
       );
 
       try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-        }
+        UnreadMessagesController.maybeFind()?.startListeners();
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[SignIn] unread listener skipped: $e');
@@ -311,7 +308,8 @@ extension SignInControllerAuthPart on SignInController {
       );
 
       try {
-        final storyController = Get.find<StoryRowController>();
+        final storyController = StoryRowController.maybeFind();
+        if (storyController == null) return;
         await storyController.loadStories(limit: 100, cacheFirst: false);
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
@@ -341,10 +339,7 @@ extension SignInControllerAuthPart on SignInController {
       }
 
       try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-        }
+        UnreadMessagesController.maybeFind()?.startListeners();
       } catch (_) {}
 
       wait.value = false;
@@ -446,7 +441,8 @@ extension SignInControllerAuthPart on SignInController {
       unawaited(CurrentUserService.instance.forceRefresh());
 
       try {
-        final storyController = Get.find<StoryRowController>();
+        final storyController = StoryRowController.maybeFind();
+        if (storyController == null) return;
         await Future.any([
           storyController.loadStories(limit: 100, cacheFirst: false),
           Future.delayed(const Duration(seconds: 3)),

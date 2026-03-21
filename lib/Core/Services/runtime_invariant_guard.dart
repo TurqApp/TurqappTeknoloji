@@ -28,11 +28,15 @@ class RuntimeInvariantViolation {
 }
 
 class RuntimeInvariantGuard extends GetxService {
-  static RuntimeInvariantGuard ensure() {
+  static RuntimeInvariantGuard _ensureService() {
     if (Get.isRegistered<RuntimeInvariantGuard>()) {
       return Get.find<RuntimeInvariantGuard>();
     }
     return Get.put(RuntimeInvariantGuard(), permanent: true);
+  }
+
+  static RuntimeInvariantGuard ensure() {
+    return _ensureService();
   }
 
   final RxList<RuntimeInvariantViolation> _recent =

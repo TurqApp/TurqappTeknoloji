@@ -14,17 +14,19 @@ class SavedJobs extends StatefulWidget {
 }
 
 class _SavedJobsState extends State<SavedJobs> {
+  late final String _controllerTag;
   late final SavedJobsController controller;
   late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SavedJobsController>()) {
-      controller = Get.find<SavedJobsController>();
+    _controllerTag = 'saved_jobs_${identityHashCode(this)}';
+    if (Get.isRegistered<SavedJobsController>(tag: _controllerTag)) {
+      controller = Get.find<SavedJobsController>(tag: _controllerTag);
       _ownsController = false;
     } else {
-      controller = Get.put(SavedJobsController());
+      controller = Get.put(SavedJobsController(), tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -32,9 +34,12 @@ class _SavedJobsState extends State<SavedJobs> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SavedJobsController>() &&
-        identical(Get.find<SavedJobsController>(), controller)) {
-      Get.delete<SavedJobsController>();
+        Get.isRegistered<SavedJobsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<SavedJobsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SavedJobsController>(tag: _controllerTag);
     }
     super.dispose();
   }

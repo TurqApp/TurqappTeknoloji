@@ -9,6 +9,22 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ArchiveController extends GetxController {
+  static ArchiveController _ensureController() {
+    if (Get.isRegistered<ArchiveController>()) {
+      return Get.find<ArchiveController>();
+    }
+    return Get.put(ArchiveController());
+  }
+
+  static ArchiveController ensure() => _ensureController();
+
+  static ArchiveController? maybeFind() {
+    if (Get.isRegistered<ArchiveController>()) {
+      return Get.find<ArchiveController>();
+    }
+    return null;
+  }
+
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
   final ProfileRepository _profileRepository = ProfileRepository.ensure();

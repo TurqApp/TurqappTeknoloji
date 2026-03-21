@@ -218,7 +218,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       try {
-        await Get.find<StoryRowController>().loadStories();
+        await StoryRowController.maybeFind()?.loadStories();
       } catch (e) {
         debugPrint("Story UI refresh error: $e");
       }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 
-class AppBottomSheet extends StatelessWidget {
+class AppBottomSheet extends StatefulWidget {
   final List<dynamic> list;
   final Function(dynamic) onBackData;
   final Function(List<dynamic>)? onBackUpdatedList;
@@ -49,16 +49,57 @@ class AppBottomSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(AppBottomSheetController());
-    controller.initSelection(list, startSelection);
+  State<AppBottomSheet> createState() => _AppBottomSheetState();
+}
 
+class _AppBottomSheetState extends State<AppBottomSheet> {
+  late final String _controllerTag;
+  late final AppBottomSheetController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'app_bottom_sheet_${identityHashCode(this)}';
+    if (Get.isRegistered<AppBottomSheetController>(tag: _controllerTag)) {
+      controller = Get.find<AppBottomSheetController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(AppBottomSheetController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+    controller.initSelection(widget.list, widget.startSelection);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppBottomSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.list != widget.list ||
+        oldWidget.startSelection != widget.startSelection) {
+      controller.initSelection(widget.list, widget.startSelection);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<AppBottomSheetController>(tag: _controllerTag) &&
+        identical(
+          Get.find<AppBottomSheetController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<AppBottomSheetController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(15),
+      padding: const EdgeInsets.all(15),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppSheetHeader(title: title),
+          AppSheetHeader(title: widget.title),
           Wrap(
             children: [
               SizedBox(
@@ -73,9 +114,9 @@ class AppBottomSheet extends StatelessWidget {
 
                       return GestureDetector(
                         onTap: () {
-                          controller.selectItem(item, onBackData);
-                          if (onBackUpdatedList != null) {
-                            onBackUpdatedList!(controller.list.toList());
+                          controller.selectItem(item, widget.onBackData);
+                          if (widget.onBackUpdatedList != null) {
+                            widget.onBackUpdatedList!(controller.list.toList());
                           }
                         },
                         child: Container(
@@ -86,7 +127,7 @@ class AppBottomSheet extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      itemLabelBuilder?.call(item) ??
+                                      widget.itemLabelBuilder?.call(item) ??
                                           item.toString(),
                                       style: TextStyle(
                                         color: Colors.black,

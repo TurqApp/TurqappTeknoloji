@@ -34,12 +34,14 @@ class ShortSnapshotRepository extends GetxService {
   static const int _defaultPersistLimit = 20;
   static const int _maxPageSkips = 4;
 
-  static ShortSnapshotRepository ensure() {
+  static ShortSnapshotRepository _ensureService() {
     if (Get.isRegistered<ShortSnapshotRepository>()) {
       return Get.find<ShortSnapshotRepository>();
     }
     return Get.put(ShortSnapshotRepository(), permanent: true);
   }
+
+  static ShortSnapshotRepository ensure() => _ensureService();
 
   final ShortRepository _shortRepository = ShortRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();

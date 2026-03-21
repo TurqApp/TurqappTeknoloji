@@ -95,4 +95,11 @@ class LocationFinderViewController extends GetxController {
       print("Konuma gidilemedi: $e");
     }
   }
+
+  @override
+  void onClose() {
+    mapController.value?.dispose();
+    mapController.value = null;
+    super.onClose();
+  }
 }

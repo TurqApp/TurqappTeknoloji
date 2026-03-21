@@ -1,6 +1,6 @@
 part of 'create_scholarship_view.dart';
 
-extension CreateScholarshipBasicPart on CreateScholarshipView {
+extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
   String _applicationPlaceLabel(String value) {
     switch (value) {
       case CreateScholarshipController.applicationPlaceTurqAppValue:
@@ -51,15 +51,14 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           child: TextFormField(
             cursorColor: Colors.black,
             textCapitalization: TextCapitalization.characters,
-            decoration:
-                inputDecoration.copyWith(hintText: "scholarship.title_label".tr),
+            decoration: inputDecoration.copyWith(
+                hintText: "scholarship.title_label".tr),
             controller: controller.baslikController,
             onChanged: (value) => controller.baslik.value = value,
           ),
         ),
         16.ph,
-        Text("scholarship.provider_label".tr,
-            style: TextStyles.textFieldTitle),
+        Text("scholarship.provider_label".tr, style: TextStyles.textFieldTitle),
         4.ph,
         Container(
           alignment: Alignment.center,
@@ -140,8 +139,7 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
           ),
         ),
         16.ph,
-        Text("scholarship.website_label".tr,
-            style: TextStyles.textFieldTitle),
+        Text("scholarship.website_label".tr, style: TextStyles.textFieldTitle),
         4.ph,
         Container(
           alignment: Alignment.center,
@@ -248,8 +246,8 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('common.continue'.tr,
-                    style: TextStyles.medium15white),
+                child:
+                    Text('common.continue'.tr, style: TextStyles.medium15white),
               ),
             ),
           ],
@@ -684,8 +682,8 @@ extension CreateScholarshipBasicPart on CreateScholarshipView {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('common.continue'.tr,
-                    style: TextStyles.medium15white),
+                child:
+                    Text('common.continue'.tr, style: TextStyles.medium15white),
               ),
             ),
           ],

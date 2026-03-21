@@ -15,24 +15,45 @@ import '../../Core/Helpers/custom_nickname_formatter.dart';
 part 'sign_in_auth_part.dart';
 part 'sign_in_signup_part.dart';
 
-class SignIn extends StatelessWidget {
-  SignIn({
+class SignIn extends StatefulWidget {
+  const SignIn({
     super.key,
     this.initialIdentifier = '',
     this.storedAccountUid = '',
-  }) : controller = _createFreshController() {
-    controller.prepareSignInPrefill(initialIdentifier);
-    controller.prepareStoredAccountContext(storedAccountUid);
-  }
+  });
 
   final String initialIdentifier;
   final String storedAccountUid;
 
-  final SignInController controller;
+  @override
+  State<SignIn> createState() => _SignInState();
+}
 
-  static SignInController _createFreshController() {
-    final tag = 'sign_in_${DateTime.now().microsecondsSinceEpoch}';
-    return Get.put(SignInController(), tag: tag);
+class _SignInState extends State<SignIn> {
+  late final SignInController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'sign_in_${identityHashCode(this)}';
+    controller = Get.isRegistered<SignInController>(tag: _controllerTag)
+        ? Get.find<SignInController>(tag: _controllerTag)
+        : Get.put(SignInController(), tag: _controllerTag);
+    controller.prepareSignInPrefill(widget.initialIdentifier);
+    controller.prepareStoredAccountContext(widget.storedAccountUid);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<SignInController>(tag: _controllerTag) &&
+        identical(
+          Get.find<SignInController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SignInController>(tag: _controllerTag);
+    }
+    super.dispose();
   }
 
   @override

@@ -95,6 +95,22 @@ class SmartSuggestion {
 }
 
 class PostEditingService extends GetxController {
+  static PostEditingService _ensureService() {
+    if (Get.isRegistered<PostEditingService>()) {
+      return Get.find<PostEditingService>();
+    }
+    return Get.put(PostEditingService());
+  }
+
+  static PostEditingService ensure() => _ensureService();
+
+  static PostEditingService? maybeFind() {
+    if (Get.isRegistered<PostEditingService>()) {
+      return Get.find<PostEditingService>();
+    }
+    return null;
+  }
+
   final RxList<EditAction> _undoStack = <EditAction>[].obs;
   final RxList<EditAction> _redoStack = <EditAction>[].obs;
   final Rx<TextFormatting> _currentFormatting = TextFormatting().obs;
@@ -506,7 +522,8 @@ class PostEditingService extends GetxController {
               children: [
                 Text(
                   'post_editing.current_font_size'.trParams({
-                    'size': _currentFormatting.value.fontSize.toInt().toString(),
+                    'size':
+                        _currentFormatting.value.fontSize.toInt().toString(),
                   }),
                   style: TextStyle(fontSize: _currentFormatting.value.fontSize),
                 ),

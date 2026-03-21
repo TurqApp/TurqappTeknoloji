@@ -21,10 +21,11 @@ class _ArchivesState extends State<Archives> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<ArchiveController>()) {
-      controller = Get.find<ArchiveController>();
+    final existingController = ArchiveController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(ArchiveController());
+      controller = ArchiveController.ensure();
       _ownsController = true;
     }
   }
@@ -32,8 +33,7 @@ class _ArchivesState extends State<Archives> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<ArchiveController>() &&
-        identical(Get.find<ArchiveController>(), controller)) {
+        identical(ArchiveController.maybeFind(), controller)) {
       Get.delete<ArchiveController>(force: true);
     }
     super.dispose();
@@ -88,8 +88,8 @@ class _ArchivesState extends State<Archives> {
                                     model: model,
                                     isPreview: false,
                                     shouldPlay: isCentered,
-                                    instanceTag:
-                                        controller.agendaInstanceTag(model.docID),
+                                    instanceTag: controller
+                                        .agendaInstanceTag(model.docID),
                                     showArchivePost: true,
                                   ),
                                   const SizedBox(height: 2),

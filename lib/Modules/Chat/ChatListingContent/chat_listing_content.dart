@@ -81,9 +81,7 @@ class ChatListingContent extends StatelessWidget {
   String get _uid => CurrentUserService.instance.userId;
 
   Future<void> _refreshList() async {
-    if (Get.isRegistered<ChatListingController>()) {
-      await Get.find<ChatListingController>().getList();
-    }
+    await ChatListingController.maybeFind()?.getList();
   }
 
   Future<void> _markUnread() async {
@@ -98,8 +96,9 @@ class ChatListingContent extends StatelessWidget {
 
   Future<void> _togglePinned() async {
     final newValue = !model.isPinned;
-    if (newValue && Get.isRegistered<ChatListingController>()) {
-      final listing = Get.find<ChatListingController>();
+    if (newValue) {
+      final listing = ChatListingController.maybeFind();
+      if (listing == null) return;
       final pinnedCount = listing.list
           .where((e) => e.isPinned && !e.deleted.contains("__archived__"))
           .length;
@@ -125,8 +124,8 @@ class ChatListingContent extends StatelessWidget {
       muted: newValue,
     );
     await _refreshList();
-    AppSnackbar('common.done'.tr,
-        newValue ? 'chat.muted'.tr : 'chat.unmuted'.tr);
+    AppSnackbar(
+        'common.done'.tr, newValue ? 'chat.muted'.tr : 'chat.unmuted'.tr);
   }
 
   Future<void> _archiveChat() async {
@@ -309,20 +308,17 @@ class ChatListingContent extends StatelessWidget {
                       );
                       controller.notReadCounter.value = 0;
                       model.unreadCount = 0;
-                      if (Get.isRegistered<UnreadMessagesController>()) {
-                        Get.find<UnreadMessagesController>()
-                            .updateConversationUnreadLocal(
-                          otherUid: model.userID,
-                          unreadCount: 0,
-                          chatId: model.chatID,
-                          seenAtMs: seenAtMs,
-                        );
-                      }
-                      if (Get.isRegistered<InAppNotificationsController>()) {
-                        Get.find<InAppNotificationsController>()
-                            .markChatNotificationsReadLocal(
-                                chatId: model.chatID);
-                      }
+                      UnreadMessagesController.maybeFind()
+                          ?.updateConversationUnreadLocal(
+                        otherUid: model.userID,
+                        unreadCount: 0,
+                        chatId: model.chatID,
+                        seenAtMs: seenAtMs,
+                      );
+                      InAppNotificationsController.maybeFind()
+                          ?.markChatNotificationsReadLocal(
+                        chatId: model.chatID,
+                      );
                       unawaited(_conversationRepository
                           .setUnreadCount(
                             chatId: model.chatID,
@@ -332,9 +328,7 @@ class ChatListingContent extends StatelessWidget {
                           .catchError((_) {}));
                       await Get.to(() =>
                           ChatView(chatID: model.chatID, userID: model.userID));
-                      if (Get.isRegistered<ChatListingController>()) {
-                        await Get.find<ChatListingController>().getList();
-                      }
+                      await ChatListingController.maybeFind()?.getList();
                     },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

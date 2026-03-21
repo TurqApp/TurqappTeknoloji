@@ -42,12 +42,14 @@ class VerifiedAccountRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedVerifiedAccountStatus> _memory = {};
 
-  static VerifiedAccountRepository ensure() {
+  static VerifiedAccountRepository _ensureService() {
     if (Get.isRegistered<VerifiedAccountRepository>()) {
       return Get.find<VerifiedAccountRepository>();
     }
     return Get.put(VerifiedAccountRepository(), permanent: true);
   }
+
+  static VerifiedAccountRepository ensure() => _ensureService();
 
   @override
   void onInit() {
@@ -138,9 +140,7 @@ class VerifiedAccountRepository extends GetxService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchApplications() {
-    return _collection()
-        .orderBy('timeStamp', descending: true)
-        .snapshots();
+    return _collection().orderBy('timeStamp', descending: true).snapshots();
   }
 
   Future<void> _store(String uid, bool exists) async {
@@ -187,9 +187,10 @@ class VerifiedAccountRepository extends GetxService {
 
   String _prefsKey(String key) => '$_prefsPrefix:$key';
 }
-  CollectionReference<Map<String, dynamic>> _collection() {
-    return FirebaseFirestore.instance
-        .collection('adminConfig')
-        .doc('admin')
-        .collection('TurqAppVerified');
-  }
+
+CollectionReference<Map<String, dynamic>> _collection() {
+  return FirebaseFirestore.instance
+      .collection('adminConfig')
+      .doc('admin')
+      .collection('TurqAppVerified');
+}

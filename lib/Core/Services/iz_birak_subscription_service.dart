@@ -5,11 +5,15 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class IzBirakSubscriptionService extends GetxService {
-  static IzBirakSubscriptionService ensure() {
+  static IzBirakSubscriptionService _ensureService() {
     if (Get.isRegistered<IzBirakSubscriptionService>()) {
       return Get.find<IzBirakSubscriptionService>();
     }
     return Get.put(IzBirakSubscriptionService(), permanent: true);
+  }
+
+  static IzBirakSubscriptionService ensure() {
+    return _ensureService();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

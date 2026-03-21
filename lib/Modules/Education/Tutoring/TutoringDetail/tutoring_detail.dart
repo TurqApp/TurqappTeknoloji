@@ -37,9 +37,7 @@ class TutoringDetail extends StatelessWidget {
   TutoringDetail({super.key});
 
   final ChatListingController chatListingController =
-      Get.isRegistered<ChatListingController>()
-          ? Get.find<ChatListingController>()
-          : Get.put(ChatListingController());
+      ChatListingController.ensure();
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
 

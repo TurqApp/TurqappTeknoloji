@@ -7,6 +7,22 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Services/network_awareness_service.dart';
 
 class UnreadMessagesController extends GetxController {
+  static UnreadMessagesController _ensureController() {
+    if (Get.isRegistered<UnreadMessagesController>()) {
+      return Get.find<UnreadMessagesController>();
+    }
+    return Get.put(UnreadMessagesController());
+  }
+
+  static UnreadMessagesController ensure() => _ensureController();
+
+  static UnreadMessagesController? maybeFind() {
+    if (Get.isRegistered<UnreadMessagesController>()) {
+      return Get.find<UnreadMessagesController>();
+    }
+    return null;
+  }
+
   final totalUnreadCount = 0.obs;
   Timer? _syncTimer;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _conversationsSub;
@@ -21,10 +37,7 @@ class UnreadMessagesController extends GetxController {
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
 
-  NetworkAwarenessService? get _network =>
-      Get.isRegistered<NetworkAwarenessService>()
-          ? Get.find<NetworkAwarenessService>()
-          : null;
+  NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
@@ -175,9 +188,8 @@ class UnreadMessagesController extends GetxController {
     await _hydratePersistedReadState(uid);
     if (!_listenersStarted || _activeUid != uid) return;
     _readStateReady = true;
-    _conversationsSub = _conversationRepository
-        .watchUserConversations(uid)
-        .listen((snapshot) {
+    _conversationsSub =
+        _conversationRepository.watchUserConversations(uid).listen((snapshot) {
       _applyConversationDocs(snapshot.docs, uid);
     }, onError: (_) {});
     // snapshots() already delivers initial state; avoid duplicate startup read.
@@ -221,6 +233,7 @@ class UnreadMessagesController extends GetxController {
       await prefs.setInt("chat_last_opened_${uid}_$chatId", cutoffMs);
     } catch (_) {}
   }
+
   void _cancelAllSubscriptions() {
     _syncTimer?.cancel();
     _syncTimer = null;

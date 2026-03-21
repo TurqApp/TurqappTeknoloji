@@ -2,13 +2,13 @@ part of 'post_content_controller.dart';
 
 extension PostContentControllerActionsPart on PostContentController {
   ExploreController? get _exploreControllerOrNull =>
-      Get.isRegistered<ExploreController>() ? Get.find<ExploreController>() : null;
+      ExploreController.maybeFind();
 
   ProfileController? get _profileControllerOrNull =>
-      Get.isRegistered<ProfileController>() ? Get.find<ProfileController>() : null;
+      ProfileController.maybeFind();
 
   ArchiveController? get _archiveControllerOrNull =>
-      Get.isRegistered<ArchiveController>() ? Get.find<ArchiveController>() : null;
+      ArchiveController.maybeFind();
 
   Future<void> getGizleArsivSikayetEdildi() async {
     gizlendi.value = model.gizlendi;
@@ -261,8 +261,10 @@ extension PostContentControllerActionsPart on PostContentController {
       final normalizedImage = shouldUsePostFallback
           ? postLevelAvatarFallback
           : (rawImage.isEmpty ? kDefaultAvatarUrl : rawImage);
-      final effectiveNick = postLevelNickname.isNotEmpty ? postLevelNickname : nick;
-      final effectiveName = postLevelDisplayName.isNotEmpty ? postLevelDisplayName : name;
+      final effectiveNick =
+          postLevelNickname.isNotEmpty ? postLevelNickname : nick;
+      final effectiveName =
+          postLevelDisplayName.isNotEmpty ? postLevelDisplayName : name;
       nickname.value = effectiveNick;
       username.value = uname.isNotEmpty ? uname : effectiveNick;
       avatarUrl.value = normalizedImage;

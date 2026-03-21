@@ -24,6 +24,22 @@ import '../../../Services/user_post_link_service.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ProfileController extends GetxController {
+  static ProfileController _ensureController() {
+    if (Get.isRegistered<ProfileController>()) {
+      return Get.find<ProfileController>();
+    }
+    return Get.put(ProfileController());
+  }
+
+  static ProfileController ensure() => _ensureController();
+
+  static ProfileController? maybeFind() {
+    if (Get.isRegistered<ProfileController>()) {
+      return Get.find<ProfileController>();
+    }
+    return null;
+  }
+
   // 🎯 Using CurrentUserService for optimized user data access
   final userService = CurrentUserService.instance;
   // Aktif oturum kullanıcısını izleyip veri setlerini dinamik yenilemek için

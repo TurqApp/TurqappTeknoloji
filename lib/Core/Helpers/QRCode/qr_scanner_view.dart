@@ -7,10 +7,43 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
-class QrScannerView extends StatelessWidget {
-  final controller = Get.put(QrScannerController());
+class QrScannerView extends StatefulWidget {
+  const QrScannerView({super.key});
 
-  QrScannerView({super.key});
+  @override
+  State<QrScannerView> createState() => _QrScannerViewState();
+}
+
+class _QrScannerViewState extends State<QrScannerView> {
+  late final String _controllerTag;
+  late final QrScannerController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'qr_scanner_${identityHashCode(this)}';
+    if (Get.isRegistered<QrScannerController>(tag: _controllerTag)) {
+      controller = Get.find<QrScannerController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(QrScannerController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<QrScannerController>(tag: _controllerTag) &&
+        identical(
+          Get.find<QrScannerController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<QrScannerController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(

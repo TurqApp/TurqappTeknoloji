@@ -12,12 +12,14 @@ class JobHomeSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'jobs_home_snapshot';
   static const String _searchSurfaceKey = 'jobs_search_snapshot';
 
-  static JobHomeSnapshotRepository ensure() {
+  static JobHomeSnapshotRepository _ensureService() {
     if (Get.isRegistered<JobHomeSnapshotRepository>()) {
       return Get.find<JobHomeSnapshotRepository>();
     }
     return Get.put(JobHomeSnapshotRepository(), permanent: true);
   }
+
+  static JobHomeSnapshotRepository ensure() => _ensureService();
 
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 

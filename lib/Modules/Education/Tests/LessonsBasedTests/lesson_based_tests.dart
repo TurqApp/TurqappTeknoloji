@@ -5,15 +5,50 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Tests/LessonsBasedTests/lesson_based_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
-class LessonBasedTests extends StatelessWidget {
+class LessonBasedTests extends StatefulWidget {
   final String testTuru;
 
   const LessonBasedTests({super.key, required this.testTuru});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(LessonBasedTestsController(testTuru));
+  State<LessonBasedTests> createState() => _LessonBasedTestsState();
+}
 
+class _LessonBasedTestsState extends State<LessonBasedTests> {
+  late final LessonBasedTestsController controller;
+  late final String _controllerTag;
+
+  String get testTuru => widget.testTuru;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'lesson_based_tests_${widget.testTuru.hashCode}_${identityHashCode(this)}';
+    controller = Get.isRegistered<LessonBasedTestsController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<LessonBasedTestsController>(tag: _controllerTag)
+        : Get.put(
+            LessonBasedTestsController(widget.testTuru),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<LessonBasedTestsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<LessonBasedTestsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<LessonBasedTestsController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(

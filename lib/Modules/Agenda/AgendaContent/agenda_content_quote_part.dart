@@ -15,9 +15,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
       return;
     }
 
-    final profileCache = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService(), permanent: true);
+    final profileCache = UserProfileCacheService.ensure();
     final postRepository = PostRepository.ensure();
 
     _quotedSourceFuture = Future.wait<dynamic>([
@@ -490,9 +488,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
 
     if (sourceUserId.isNotEmpty) {
       try {
-        final profileCache = Get.isRegistered<UserProfileCacheService>()
-            ? Get.find<UserProfileCacheService>()
-            : Get.put(UserProfileCacheService(), permanent: true);
+        final profileCache = UserProfileCacheService.ensure();
         final profile = (await profileCache.getProfile(
               sourceUserId,
               preferCache: true,

@@ -143,6 +143,13 @@ class MediaEdit {
 }
 
 class MediaEnhancementService extends GetxController {
+  static MediaEnhancementService? maybeFind() {
+    if (Get.isRegistered<MediaEnhancementService>()) {
+      return Get.find<MediaEnhancementService>();
+    }
+    return null;
+  }
+
   final RxList<MediaEdit> _currentEdits = <MediaEdit>[].obs;
   final Rx<FilterType> _selectedFilter = FilterType.none.obs;
   final Rx<MediaAdjustments> _currentAdjustments = MediaAdjustments().obs;

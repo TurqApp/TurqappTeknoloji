@@ -53,8 +53,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     await controller.showPostCommentsBottomSheet(
                         currentStory.id,
                         widget.user.nickname,
-                        widget.user.userID == _currentUid,
-                        onClosed: (v) {
+                        widget.user.userID == _currentUid, onClosed: (v) {
                       _startProgress();
                       unawaited(_resumeStoryAudio());
                     });
@@ -229,8 +228,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                       Get.isRegistered<DeletedStoriesController>()
                           ? Get.find<DeletedStoriesController>()
                           : null;
-                  final isDeletedStory = deletedStoriesController
-                          ?.deletedAtById
+                  final isDeletedStory = deletedStoriesController?.deletedAtById
                           .containsKey(currentStory.id) ==
                       true;
                   noYesAlert(
@@ -523,7 +521,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
 
     // Story refresh
     try {
-      await Get.find<StoryRowController>().loadStories();
+      await StoryRowController.maybeFind()?.loadStories();
     } catch (e) {
       debugPrint("Story delete refresh error: $e");
     }

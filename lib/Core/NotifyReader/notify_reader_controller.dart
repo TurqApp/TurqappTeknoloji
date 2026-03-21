@@ -14,6 +14,23 @@ import '../../Modules/SocialProfile/social_profile.dart';
 import '../../Models/notification_model.dart';
 
 class NotifyReaderController extends GetxController {
+  static NotifyReaderController _ensureController({String? tag}) {
+    if (Get.isRegistered<NotifyReaderController>(tag: tag)) {
+      return Get.find<NotifyReaderController>(tag: tag);
+    }
+    return Get.put(NotifyReaderController(), tag: tag);
+  }
+
+  static NotifyReaderController ensure({String? tag}) =>
+      _ensureController(tag: tag);
+
+  static NotifyReaderController? maybeFind({String? tag}) {
+    if (Get.isRegistered<NotifyReaderController>(tag: tag)) {
+      return Get.find<NotifyReaderController>(tag: tag);
+    }
+    return null;
+  }
+
   final NotifyLookupRepository _lookupRepository =
       NotifyLookupRepository.ensure();
   static const _commentType = kNotificationPostTypeCommentLower;

@@ -72,9 +72,7 @@ class PostContentController extends GetxController {
   final bool enableLegacyCommentSync;
   final bool scrollFeedToTopOnReshare;
 
-  ShortController get shortsController => Get.isRegistered<ShortController>()
-      ? Get.find<ShortController>()
-      : Get.put(ShortController());
+  ShortController get shortsController => ShortController.ensure();
 
   bool _canSendAdminPush = AdminAccessService.isKnownAdminSync();
 
@@ -121,12 +119,8 @@ class PostContentController extends GetxController {
   final reSharedUsers = <String>[].obs;
   final userService = CurrentUserService.instance;
   final countManager = PostCountManager.instance;
-  PostInteractionService get _interactionService {
-    if (Get.isRegistered<PostInteractionService>()) {
-      return Get.find<PostInteractionService>();
-    }
-    return Get.put(PostInteractionService());
-  }
+  PostInteractionService get _interactionService =>
+      PostInteractionService.ensure();
 
   // Reactive count variables using centralized manager
   RxInt get likeCount => countManager.getLikeCount(model.docID);

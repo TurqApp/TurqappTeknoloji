@@ -451,9 +451,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
       final userMeta = <String, Map<String, dynamic>>{};
       if (userIds.isNotEmpty) {
-        final profileCache = Get.isRegistered<UserProfileCacheService>()
-            ? Get.find<UserProfileCacheService>()
-            : Get.put(UserProfileCacheService(), permanent: true);
+        final profileCache = UserProfileCacheService.ensure();
         final cachedProfiles = await profileCache.getProfiles(
           userIds,
           preferCache: true,

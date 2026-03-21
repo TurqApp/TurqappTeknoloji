@@ -65,35 +65,20 @@ class AgendaView extends StatelessWidget {
   }
 
   GlobalLoaderController get loader {
-    if (Get.isRegistered<GlobalLoaderController>()) {
-      return Get.find<GlobalLoaderController>();
-    }
-    return Get.put(GlobalLoaderController(), permanent: true);
+    return GlobalLoaderController.ensure();
   }
 
   // ⚠️ CRITICAL FIX: Safe lazy loading for UnreadMessagesController
   UnreadMessagesController get unreadController {
-    if (Get.isRegistered<UnreadMessagesController>()) {
-      return Get.find<UnreadMessagesController>();
-    } else {
-      return Get.put(UnreadMessagesController());
-    }
+    return UnreadMessagesController.ensure();
   }
 
   RecommendedUserListController get recommendedController {
-    if (Get.isRegistered<RecommendedUserListController>()) {
-      return Get.find<RecommendedUserListController>();
-    } else {
-      return Get.put(RecommendedUserListController());
-    }
+    return RecommendedUserListController.ensure();
   }
 
   InAppNotificationsController get notificationsController {
-    if (Get.isRegistered<InAppNotificationsController>()) {
-      return Get.find<InAppNotificationsController>();
-    } else {
-      return Get.put(InAppNotificationsController());
-    }
+    return InAppNotificationsController.ensure();
   }
 
   @override
@@ -140,8 +125,7 @@ class AgendaView extends StatelessWidget {
                         print("Unread messages refresh error: $e");
                       }
                       try {
-                        final storyController = Get.find<StoryRowController>();
-                        await storyController.loadStories();
+                        await StoryRowController.maybeFind()?.loadStories();
                       } catch (e) {
                         print("Story refresh error: $e");
                       }

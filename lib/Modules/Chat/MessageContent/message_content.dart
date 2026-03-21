@@ -42,9 +42,7 @@ class MessageContent extends StatelessWidget {
       this.dateSeparatorText});
   late final MessageContentController controller;
   late final ChatController chatController;
-  final ExploreController? explore = Get.isRegistered<ExploreController>()
-      ? Get.find<ExploreController>()
-      : null;
+  final ExploreController? explore = ExploreController.maybeFind();
   final ValueNotifier<Offset?> _lastLongPressGlobal =
       ValueNotifier<Offset?>(null);
   String get _currentUserId => CurrentUserService.instance.userId;
@@ -125,10 +123,9 @@ class MessageContent extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
       child: Column(
-        mainAxisAlignment:
-            model.userID == _currentUserId
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
+        mainAxisAlignment: model.userID == _currentUserId
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           if (dateSeparatorText != null)
             Padding(
@@ -309,10 +306,9 @@ class MessageContent extends StatelessWidget {
       children: [
         Obx(() {
           return Column(
-            crossAxisAlignment:
-                model.userID == _currentUserId
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
+            crossAxisAlignment: model.userID == _currentUserId
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               if (controller.showAllImages.value == false)
                 Padding(
@@ -475,10 +471,9 @@ class MessageContent extends StatelessWidget {
                     final img = model.imgs[index];
                     final isLast = index == model.imgs.length - 1;
                     return Column(
-                      crossAxisAlignment:
-                          model.userID == _currentUserId
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
+                      crossAxisAlignment: model.userID == _currentUserId
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
                       children: [
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,

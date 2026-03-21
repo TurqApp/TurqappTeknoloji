@@ -4,16 +4,42 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_circle.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 
-class StoryRow extends StatelessWidget {
-  StoryRow({super.key});
+class StoryRow extends StatefulWidget {
+  const StoryRow({super.key});
   static const double _storyRowHeight = 90;
   static const double _storyRowLeadingPadding = 10;
   static const double _storyRowItemSpacing = 10;
-  final controller = Get.isRegistered<StoryRowController>()
-      ? Get.find<StoryRowController>()
-      : Get.put(StoryRowController());
-  StoryInteractionOptimizer get _storyOptimizer =>
-      StoryInteractionOptimizer.to;
+
+  @override
+  State<StoryRow> createState() => _StoryRowState();
+}
+
+class _StoryRowState extends State<StoryRow> {
+  late final StoryRowController controller;
+  bool _ownsController = false;
+
+  StoryInteractionOptimizer get _storyOptimizer => StoryInteractionOptimizer.to;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = StoryRowController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = StoryRowController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(StoryRowController.maybeFind(), controller)) {
+      Get.delete<StoryRowController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +56,7 @@ class StoryRow extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: hasData
             ? SizedBox(
-                height: _storyRowHeight,
+                height: StoryRow._storyRowHeight,
                 width: double.infinity,
                 child: ListView.builder(
                   key: const ValueKey('story_real'),
@@ -40,8 +66,8 @@ class StoryRow extends StatelessWidget {
                     final user = controller.users[index];
                     return Padding(
                       padding: EdgeInsets.only(
-                        left: index == 0 ? _storyRowLeadingPadding : 0,
-                        right: _storyRowItemSpacing,
+                        left: index == 0 ? StoryRow._storyRowLeadingPadding : 0,
+                        right: StoryRow._storyRowItemSpacing,
                       ),
                       child: StoryCircle(
                         key: ValueKey('circle_${user.userID}'),
@@ -54,13 +80,13 @@ class StoryRow extends StatelessWidget {
                 ),
               )
             : SizedBox(
-                height: _storyRowHeight,
+                height: StoryRow._storyRowHeight,
                 width: double.infinity,
                 child: Builder(
                   builder: (context) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!Get.isRegistered<StoryRowController>()) return;
-                      Get.find<StoryRowController>().addMyUserImmediately();
+                      if (!mounted) return;
+                      controller.addMyUserImmediately();
                     });
                     return const StoryRowPlaceholder();
                   },

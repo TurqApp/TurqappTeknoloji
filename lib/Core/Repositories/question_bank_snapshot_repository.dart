@@ -8,11 +8,15 @@ class QuestionBankSnapshotRepository extends GetxService {
 
   static const String _searchSurfaceKey = 'workout_search_snapshot';
 
-  static QuestionBankSnapshotRepository ensure() {
+  static QuestionBankSnapshotRepository _ensureService() {
     if (Get.isRegistered<QuestionBankSnapshotRepository>()) {
       return Get.find<QuestionBankSnapshotRepository>();
     }
     return Get.put(QuestionBankSnapshotRepository(), permanent: true);
+  }
+
+  static QuestionBankSnapshotRepository ensure() {
+    return _ensureService();
   }
 
   late final CacheFirstCoordinator<List<QuestionBankModel>> _coordinator =
@@ -154,7 +158,8 @@ class QuestionBankSnapshotRepository extends GetxService {
     final rawItems = (json['items'] as List<dynamic>?) ?? const <dynamic>[];
     return rawItems
         .whereType<Map>()
-        .map((raw) => QuestionBankModel.fromJson(Map<String, dynamic>.from(raw)))
+        .map(
+            (raw) => QuestionBankModel.fromJson(Map<String, dynamic>.from(raw)))
         .where((item) => item.docID.isNotEmpty)
         .toList(growable: false);
   }

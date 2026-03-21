@@ -64,15 +64,46 @@ class ComplaintController extends GetxController {
   }
 }
 
-class ComplaintBottomSheet extends StatelessWidget {
+class ComplaintBottomSheet extends StatefulWidget {
   final QuestionBankModel question;
 
   const ComplaintBottomSheet({super.key, required this.question});
 
   @override
+  State<ComplaintBottomSheet> createState() => _ComplaintBottomSheetState();
+}
+
+class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
+  late final ComplaintController sikayetController;
+  late final String _controllerTag;
+
+  QuestionBankModel get question => widget.question;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'complaint_${widget.question.docID}_${identityHashCode(this)}';
+    sikayetController =
+        Get.isRegistered<ComplaintController>(tag: _controllerTag)
+            ? Get.find<ComplaintController>(tag: _controllerTag)
+            : Get.put(ComplaintController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<ComplaintController>(tag: _controllerTag) &&
+        identical(
+          Get.find<ComplaintController>(tag: _controllerTag),
+          sikayetController,
+        )) {
+      Get.delete<ComplaintController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ComplaintController sikayetController =
-        Get.put(ComplaintController());
     final RxList<String> selectedSikayets =
         <String>[].obs; // Multiple selections
 

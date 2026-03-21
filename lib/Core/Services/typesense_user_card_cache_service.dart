@@ -12,11 +12,15 @@ class TypesenseUserCardCacheService extends GetxService {
       <String, _CachedUserCardsResult>{};
   SharedPreferences? _prefs;
 
-  static TypesenseUserCardCacheService ensure() {
+  static TypesenseUserCardCacheService _ensureService() {
     if (Get.isRegistered<TypesenseUserCardCacheService>()) {
       return Get.find<TypesenseUserCardCacheService>();
     }
     return Get.put(TypesenseUserCardCacheService(), permanent: true);
+  }
+
+  static TypesenseUserCardCacheService ensure() {
+    return _ensureService();
   }
 
   Future<Map<String, Map<String, dynamic>>> getUserCardsByIds(
@@ -43,7 +47,8 @@ class TypesenseUserCardCacheService extends GetxService {
 
     if (cacheOnly) return const <String, Map<String, dynamic>>{};
 
-    final cards = await TypesenseUserService.instance.getUserCardsByIds(cleaned);
+    final cards =
+        await TypesenseUserService.instance.getUserCardsByIds(cleaned);
     await _store(cacheKey, cards);
     return cards;
   }
@@ -144,6 +149,6 @@ class _CachedUserCardsResult {
   final Map<String, Map<String, dynamic>> cards;
   final DateTime cachedAt;
 
-  bool get isFresh => DateTime.now().difference(cachedAt) < TypesenseUserCardCacheService._ttl;
+  bool get isFresh =>
+      DateTime.now().difference(cachedAt) < TypesenseUserCardCacheService._ttl;
 }
-

@@ -49,12 +49,14 @@ class FeedSnapshotRepository extends GetxService {
   static const int _defaultPersistLimit = 40;
   static final Set<String> _hybridBackfillRequested = <String>{};
 
-  static FeedSnapshotRepository ensure() {
+  static FeedSnapshotRepository _ensureService() {
     if (Get.isRegistered<FeedSnapshotRepository>()) {
       return Get.find<FeedSnapshotRepository>();
     }
     return Get.put(FeedSnapshotRepository(), permanent: true);
   }
+
+  static FeedSnapshotRepository ensure() => _ensureService();
 
   final PostRepository _postRepository = PostRepository.ensure();
   final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();

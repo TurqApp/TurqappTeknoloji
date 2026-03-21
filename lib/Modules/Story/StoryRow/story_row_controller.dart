@@ -17,14 +17,25 @@ import 'story_user_model.dart';
 class StoryRowController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
+  static StoryRowController _ensureController() {
+    if (Get.isRegistered<StoryRowController>()) {
+      return Get.find<StoryRowController>();
+    }
+    return Get.put(StoryRowController());
+  }
+
+  static StoryRowController ensure() => _ensureController();
+
+  static StoryRowController? maybeFind() {
+    if (Get.isRegistered<StoryRowController>()) {
+      return Get.find<StoryRowController>();
+    }
+    return null;
+  }
+
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
   final userService = CurrentUserService.instance;
-  UserProfileCacheService get _userCache {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      return Get.find<UserProfileCacheService>();
-    }
-    return Get.put(UserProfileCacheService(), permanent: true);
-  }
+  UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
 
   final int initialLimit = 30;
   final int fullLimit = 100;
@@ -51,9 +62,8 @@ class StoryRowController extends GetxController {
     users.insert(
       0,
       StoryUserModel(
-        nickname: nickname.isNotEmpty
-            ? nickname
-            : 'story.placeholder_nickname'.tr,
+        nickname:
+            nickname.isNotEmpty ? nickname : 'story.placeholder_nickname'.tr,
         avatarUrl: userService.avatarUrl,
         fullName: fullName,
         userID: myUid,
@@ -83,7 +93,8 @@ class StoryRowController extends GetxController {
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
     try {
-      final controller = Get.find<StoryRowController>();
+      final controller = maybeFind();
+      if (controller == null) return;
       await controller.loadStories();
     } catch (e) {
       debugPrint("Story refresh error: $e");

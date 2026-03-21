@@ -19,8 +19,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
     final floodCount = raw['floodCount'];
     final isSeries = floodCount is num
         ? floodCount.toInt() > 1
-        : int.tryParse('$floodCount') != null &&
-            int.parse('$floodCount') > 1;
+        : int.tryParse('$floodCount') != null && int.parse('$floodCount') > 1;
     if (!isSeries) {
       return candidate;
     }
@@ -224,9 +223,7 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
       }
 
       try {
-        if (Get.isRegistered<ProfileController>()) {
-          Get.find<ProfileController>().fetchPosts(isInitial: true);
-        }
+        ProfileController.maybeFind()?.fetchPosts(isInitial: true);
       } catch (_) {}
 
       AppSnackbar(

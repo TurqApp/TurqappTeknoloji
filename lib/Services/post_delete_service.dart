@@ -193,8 +193,8 @@ class PostDeleteService {
     }
 
     // Explore listeleri
-    if (Get.isRegistered<ExploreController>()) {
-      final explore = Get.find<ExploreController>();
+    final explore = ExploreController.maybeFind();
+    if (explore != null) {
       final i1 = explore.explorePosts.indexWhere((e) => e.docID == docID);
       if (i1 != -1) {
         explore.explorePosts[i1] = explore.explorePosts[i1]
@@ -223,8 +223,8 @@ class PostDeleteService {
     }
 
     // Profil listeleri
-    if (Get.isRegistered<ProfileController>()) {
-      final prof = Get.find<ProfileController>();
+    final prof = ProfileController.maybeFind();
+    if (prof != null) {
       prof.allPosts.removeWhere((e) => e.docID == docID);
       prof.photos.removeWhere((e) => e.docID == docID);
       prof.videos.removeWhere((e) => e.docID == docID);
@@ -238,8 +238,8 @@ class PostDeleteService {
     }
 
     // Shorts listesi
-    if (Get.isRegistered<ShortController>()) {
-      final shorts = Get.find<ShortController>();
+    final shorts = ShortController.maybeFind();
+    if (shorts != null) {
       shorts.shorts.removeWhere((e) => e.docID == docID);
       shorts.shorts.refresh();
     }

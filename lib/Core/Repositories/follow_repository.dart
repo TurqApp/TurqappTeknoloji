@@ -20,11 +20,15 @@ class FollowRepository extends GetxService {
   static const String _prefsKeyPrefix = 'follow_repository_v1';
   static const String _relationPrefsKeyPrefix = 'follow_relation_repository_v1';
 
-  static FollowRepository ensure() {
+  static FollowRepository _ensureService() {
     if (Get.isRegistered<FollowRepository>()) {
       return Get.find<FollowRepository>();
     }
     return Get.put(FollowRepository(), permanent: true);
+  }
+
+  static FollowRepository ensure() {
+    return _ensureService();
   }
 
   SharedPreferences? _prefs;
@@ -178,7 +182,8 @@ class FollowRepository extends GetxService {
     required String otherUid,
     int? timestampMs,
   }) async {
-    if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid) return;
+    if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid)
+      return;
     final firestore = FirebaseFirestore.instance;
     final now = timestampMs ?? DateTime.now().millisecondsSinceEpoch;
     final batch = firestore.batch();
@@ -202,7 +207,8 @@ class FollowRepository extends GetxService {
     required String currentUid,
     required String otherUid,
   }) async {
-    if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid) return;
+    if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid)
+      return;
     final firestore = FirebaseFirestore.instance;
     final batch = firestore.batch();
     final followingRef = firestore

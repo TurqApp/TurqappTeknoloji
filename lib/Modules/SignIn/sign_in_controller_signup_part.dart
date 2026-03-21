@@ -89,7 +89,8 @@ extension SignInControllerSignupPart on SignInController {
       } catch (_) {}
 
       try {
-        final storyController = Get.find<StoryRowController>();
+        final storyController = StoryRowController.maybeFind();
+        if (storyController == null) return;
         await storyController.loadStories(limit: 100, cacheFirst: false);
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
@@ -119,10 +120,7 @@ extension SignInControllerSignupPart on SignInController {
       }
 
       try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-        }
+        UnreadMessagesController.maybeFind()?.startListeners();
       } catch (_) {}
 
       wait.value = false;
@@ -137,9 +135,7 @@ extension SignInControllerSignupPart on SignInController {
       } catch (_) {}
       AppSnackbar(
         'signup.limit_title'.tr,
-        e.message.isNotEmpty
-            ? e.message
-            : 'signup.limit_body'.tr,
+        e.message.isNotEmpty ? e.message : 'signup.limit_body'.tr,
       );
       wait.value = false;
     } on UsernameAlreadyTaken catch (e) {
@@ -148,9 +144,7 @@ extension SignInControllerSignupPart on SignInController {
       } catch (_) {}
       AppSnackbar(
         'signup.username_taken_title'.tr,
-        e.message.isNotEmpty
-            ? e.message
-            : 'signup.username_taken_body'.tr,
+        e.message.isNotEmpty ? e.message : 'signup.username_taken_body'.tr,
       );
       wait.value = false;
     } catch (_) {
@@ -293,7 +287,7 @@ extension SignInControllerSignupPart on SignInController {
         bool emailAvailable,
         bool nicknameAvailable,
         bool reachable,
-  })> _checkSignupAvailabilityHttp({
+      })> _checkSignupAvailabilityHttp({
     String? email,
     String? nickname,
     bool showServiceError = false,

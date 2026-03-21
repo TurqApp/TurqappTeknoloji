@@ -51,12 +51,14 @@ class ProfileRepository extends GetxService {
   final Map<String, PostsModel?> _latestResharePostMemory =
       <String, PostsModel?>{};
 
-  static ProfileRepository ensure() {
+  static ProfileRepository _ensureService() {
     if (Get.isRegistered<ProfileRepository>()) {
       return Get.find<ProfileRepository>();
     }
     return Get.put(ProfileRepository(), permanent: true);
   }
+
+  static ProfileRepository ensure() => _ensureService();
 
   Future<ProfileBuckets?> readCachedBuckets(String uid) async {
     if (uid.isEmpty) return null;

@@ -127,7 +127,7 @@ class ShortView extends StatefulWidget {
 }
 
 class _ShortViewState extends State<ShortView> {
-  ShortController get controller => Get.find<ShortController>();
+  ShortController get controller => ShortController.ensure();
   final ShortRenderCoordinator _shortRenderCoordinator =
       ShortRenderCoordinator.ensure();
 
@@ -468,8 +468,9 @@ class _ShortViewState extends State<ShortView> {
         isAudible: volume,
         hasStableFocus: true,
       );
-      if (Get.isRegistered<PlaybackKpiService>()) {
-        Get.find<PlaybackKpiService>().track(
+      final playbackKpi = PlaybackKpiService.maybeFind();
+      if (playbackKpi != null) {
+        playbackKpi.track(
           PlaybackKpiEventType.playbackIntent,
           {
             'source': 'short_view',

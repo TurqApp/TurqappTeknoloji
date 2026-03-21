@@ -53,7 +53,8 @@ abstract class PostContentBase extends StatefulWidget {
 mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
   late final AgendaController agendaController = _resolveAgendaController();
-  late final GlobalVideoAdapterPool adapterPool = GlobalVideoAdapterPool.ensure();
+  late final GlobalVideoAdapterPool adapterPool =
+      GlobalVideoAdapterPool.ensure();
   final videoStateManager = VideoStateManager.instance;
 
   late final PostContentController controller;
@@ -409,24 +410,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
               behavior: HitTestBehavior.opaque,
               onTap: () => unawaited(replayVideoFromStart()),
               child: Container(
-                constraints: const BoxConstraints(
-                  minHeight: 42,
-                  maxWidth: 148,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 8,
-                ),
-                alignment: Alignment.center,
+                width: 148,
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
                 ),
-                child: const FittedBox(
-                  fit: BoxFit.scaleDown,
+                child: const Center(
                   child: Text(
                     'Tekrar izle',
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 14,
@@ -494,8 +489,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (surfaceTag.startsWith('archives_') &&
         Get.isRegistered<ArchiveController>()) {
       final archiveController = Get.find<ArchiveController>();
-      final archiveIndex =
-          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
         archiveController.currentVisibleIndex.value = archiveIndex;
         archiveController.capturePendingCenteredEntry(
@@ -543,8 +538,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (surfaceTag.startsWith('tag_post_') &&
         Get.isRegistered<TagPostsController>()) {
       final tagPostsController = Get.find<TagPostsController>();
-      final tagPostIndex =
-          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
         tagPostsController.currentVisibleIndex.value = tagPostIndex;
         tagPostsController.capturePendingCenteredEntry(
@@ -560,8 +555,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (surfaceTag.startsWith('flood_') &&
         Get.isRegistered<FloodListingController>()) {
       final floodController = Get.find<FloodListingController>();
-      final floodIndex =
-          floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
         floodController.currentVisibleIndex.value = floodIndex;
         floodController.capturePendingCenteredEntry(preferredIndex: floodIndex);
@@ -609,9 +604,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   void _trackPlaybackIntent() {
     if (_playbackIntentTracked) return;
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
     _playbackIntentTracked = true;
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.playbackIntent,
       {
         'surface': isStandalonePostInstance ? 'single_post' : 'feed_post',

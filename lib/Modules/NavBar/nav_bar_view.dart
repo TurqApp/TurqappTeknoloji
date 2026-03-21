@@ -41,8 +41,7 @@ class NavBarView extends StatelessWidget {
       Get.isRegistered<SettingsController>()
           ? Get.find<SettingsController>()
           : Get.put(SettingsController());
-  final DeepLinkService? deepLinkService =
-      Get.isRegistered<DeepLinkService>() ? Get.find<DeepLinkService>() : null;
+  final DeepLinkService? deepLinkService = DeepLinkService.maybeFind();
 
   // Ensure controllers are available
   void _ensureControllersReady() {
@@ -50,8 +49,8 @@ class NavBarView extends StatelessWidget {
     if (!Get.isRegistered<AgendaController>()) {
       Get.put(AgendaController());
     }
-    if (!isIOS && !Get.isRegistered<StoryRowController>()) {
-      Get.put(StoryRowController());
+    if (!isIOS) {
+      StoryRowController.ensure();
     }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.
@@ -66,8 +65,12 @@ class NavBarView extends StatelessWidget {
 
     // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in
     // Note: startListeners() has internal guard against multiple calls
-    if (!isIOS && Get.isRegistered<UnreadMessagesController>()) {
-      final unreadController = Get.find<UnreadMessagesController>();
+    if (!isIOS) {
+      final unreadController = UnreadMessagesController.maybeFind();
+      if (unreadController == null) {
+        _controllersPrepared = true;
+        return;
+      }
       unreadController.startListeners();
     }
 
@@ -250,204 +253,204 @@ class NavBarView extends StatelessWidget {
                               ),
                               child: Row(
                                 children: List.generate(icons.length, (i) {
-                                final isSelected =
-                                    controller.selectedIndex.value == i;
-                                final navKey = _navKeyForIndex(
-                                  index: i,
-                                  hasEducation: settingController
-                                      .educationScreenIsOn.value,
-                                );
-                                return Expanded(
-                                  child: Center(
-                                    child: Semantics(
-                                      label: navKey,
-                                      button: true,
-                                      selected: isSelected,
-                                      child: TextButton(
-                                        key: ValueKey(navKey),
-                                        style: ButtonStyle(
-                                          overlayColor: WidgetStateProperty.all(
-                                            Colors.transparent,
+                                  final isSelected =
+                                      controller.selectedIndex.value == i;
+                                  final navKey = _navKeyForIndex(
+                                    index: i,
+                                    hasEducation: settingController
+                                        .educationScreenIsOn.value,
+                                  );
+                                  return Expanded(
+                                    child: Center(
+                                      child: Semantics(
+                                        label: navKey,
+                                        button: true,
+                                        selected: isSelected,
+                                        child: TextButton(
+                                          key: ValueKey(navKey),
+                                          style: ButtonStyle(
+                                            overlayColor:
+                                                WidgetStateProperty.all(
+                                              Colors.transparent,
+                                            ),
+                                            padding: WidgetStateProperty.all(
+                                              EdgeInsets.zero,
+                                            ),
                                           ),
-                                          padding: WidgetStateProperty.all(
-                                            EdgeInsets.zero,
-                                          ),
-                                        ),
-                                        onPressed: () async {
-                                          if (i == 0 &&
-                                              controller.selectedIndex.value ==
-                                                  0) {
-                                            if (Get.isRegistered<
-                                                AgendaController>()) {
-                                              final agendaCtrl =
-                                                  Get.find<AgendaController>();
-                                              if (agendaCtrl.scrollController
-                                                  .hasClients) {
-                                                agendaCtrl.scrollController
-                                                    .animateTo(
-                                                  0,
-                                                  duration: const Duration(
-                                                    milliseconds: 500,
-                                                  ),
-                                                  curve: Curves.easeOut,
-                                                );
-                                                return;
+                                          onPressed: () async {
+                                            if (i == 0 &&
+                                                controller
+                                                        .selectedIndex.value ==
+                                                    0) {
+                                              if (Get.isRegistered<
+                                                  AgendaController>()) {
+                                                final agendaCtrl = Get.find<
+                                                    AgendaController>();
+                                                if (agendaCtrl.scrollController
+                                                    .hasClients) {
+                                                  agendaCtrl.scrollController
+                                                      .animateTo(
+                                                    0,
+                                                    duration: const Duration(
+                                                      milliseconds: 500,
+                                                    ),
+                                                    curve: Curves.easeOut,
+                                                  );
+                                                  return;
+                                                }
                                               }
                                             }
-                                          }
-                                          if (i == 1 &&
-                                              controller.selectedIndex.value ==
-                                                  1) {
-                                            if (Get.isRegistered<
-                                                ExploreController>()) {
-                                              final explore =
-                                                  Get.find<ExploreController>();
-                                              final tab =
-                                                  maybeFindPageLineBarController(
-                                                        kExplorePageLineBarTag,
-                                                      )
-                                                      ?.selection
-                                                      .value ??
-                                                  0;
-                                              ScrollController? sc;
-                                              switch (tab) {
-                                                case 0:
-                                                  sc = explore.exploreScroll;
-                                                  break;
-                                                case 1:
-                                                  sc = explore.floodsScroll;
-                                                  break;
-                                                case 2:
-                                                  sc = explore.videoScroll;
-                                                  break;
-                                                case 3:
-                                                  sc = explore.photoScroll;
-                                                  break;
-                                                default:
-                                                  sc = explore.exploreScroll;
-                                              }
-                                              if (sc.hasClients) {
-                                                sc.animateTo(
-                                                  0,
-                                                  duration: const Duration(
-                                                    milliseconds: 500,
-                                                  ),
-                                                  curve: Curves.easeOut,
-                                                );
-                                                return;
+                                            if (i == 1 &&
+                                                controller
+                                                        .selectedIndex.value ==
+                                                    1) {
+                                              if (Get.isRegistered<
+                                                  ExploreController>()) {
+                                                final explore = Get.find<
+                                                    ExploreController>();
+                                                final tab =
+                                                    maybeFindPageLineBarController(
+                                                          kExplorePageLineBarTag,
+                                                        )?.selection.value ??
+                                                        0;
+                                                ScrollController? sc;
+                                                switch (tab) {
+                                                  case 0:
+                                                    sc = explore.exploreScroll;
+                                                    break;
+                                                  case 1:
+                                                    sc = explore.floodsScroll;
+                                                    break;
+                                                  case 2:
+                                                    sc = explore.videoScroll;
+                                                    break;
+                                                  case 3:
+                                                    sc = explore.photoScroll;
+                                                    break;
+                                                  default:
+                                                    sc = explore.exploreScroll;
+                                                }
+                                                if (sc.hasClients) {
+                                                  sc.animateTo(
+                                                    0,
+                                                    duration: const Duration(
+                                                      milliseconds: 500,
+                                                    ),
+                                                    curve: Curves.easeOut,
+                                                  );
+                                                  return;
+                                                }
                                               }
                                             }
-                                          }
-                                          final profileIndex = settingController
-                                                  .educationScreenIsOn.value
-                                              ? 4
-                                              : 3;
-                                          if (i == profileIndex &&
-                                              controller.selectedIndex.value ==
-                                                  profileIndex) {
-                                            if (Get.isRegistered<
-                                                ProfileController>()) {
-                                              await Get.find<
-                                                      ProfileController>()
-                                                  .animateCurrentSelectionToTop();
-                                              return;
-                                            }
-                                          }
-                                          if (i != 2) {
-                                            if (i ==
-                                                (settingController
+                                            final profileIndex =
+                                                settingController
                                                         .educationScreenIsOn
                                                         .value
-                                                    ? 3
-                                                    : 2)) {
-                                              FocusScope.of(context).unfocus();
-                                              controller.changeIndex(i);
-                                            } else {
-                                              controller.changeIndex(i);
+                                                    ? 4
+                                                    : 3;
+                                            if (i == profileIndex &&
+                                                controller
+                                                        .selectedIndex.value ==
+                                                    profileIndex) {
+                                              if (Get.isRegistered<
+                                                  ProfileController>()) {
+                                                await Get.find<
+                                                        ProfileController>()
+                                                    .animateCurrentSelectionToTop();
+                                                return;
+                                              }
                                             }
-                                          } else {
-                                            final shortController = Get
-                                                    .isRegistered<
-                                                        ShortController>()
-                                                ? Get.find<ShortController>()
-                                                : Get.put(
-                                                    ShortController(),
-                                                  );
-
-                                            if (shortController
-                                                .shorts.isEmpty) {
-                                              shortController
-                                                  .backgroundPreload()
-                                                  .catchError((_) {});
-                                            }
-
-                                            await Get.to(
-                                              () => const ShortView(),
-                                            );
-                                          }
-                                        },
-                                        child: Builder(builder: (_) {
-                                          if (icons[i] == 'profile_dynamic') {
-                                            return Obx(() {
-                                              CurrentUserService
-                                                  .instance.currentUserRx.value;
-                                              final authUid = FirebaseAuth
-                                                      .instance
-                                                      .currentUser
-                                                      ?.uid ??
-                                                  '';
-                                              final userId = CurrentUserService
-                                                      .instance
-                                                      .userId
-                                                      .isNotEmpty
-                                                  ? CurrentUserService
-                                                      .instance.userId
-                                                  : authUid;
-                                              final img = CurrentUserService
-                                                  .instance.avatarUrl;
-                                              final uploading = controller
-                                                  .uploadingPosts.value;
-                                              const double size = 28;
-                                              return AnimatedBuilder(
-                                                animation: controller
-                                                    .animationController.value,
-                                                builder: (_, __) {
-                                                  final angle = controller
-                                                          .animationController
+                                            if (i != 2) {
+                                              if (i ==
+                                                  (settingController
+                                                          .educationScreenIsOn
                                                           .value
-                                                          .value *
-                                                      2 *
-                                                      math.pi *
-                                                      3;
-                                                  return _AvatarWithRing(
-                                                    userId: userId,
-                                                    imageUrl: img,
-                                                    size: size,
-                                                    isSelected: isSelected,
-                                                    uploading: uploading,
-                                                    angle: angle,
-                                                  );
-                                                },
+                                                      ? 3
+                                                      : 2)) {
+                                                FocusScope.of(context)
+                                                    .unfocus();
+                                                controller.changeIndex(i);
+                                              } else {
+                                                controller.changeIndex(i);
+                                              }
+                                            } else {
+                                              final shortController =
+                                                  ShortController.ensure();
+
+                                              if (shortController
+                                                  .shorts.isEmpty) {
+                                                shortController
+                                                    .backgroundPreload()
+                                                    .catchError((_) {});
+                                              }
+
+                                              await Get.to(
+                                                () => const ShortView(),
                                               );
-                                            });
-                                          }
-                                          return SvgPicture.asset(
-                                            '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
-                                            height: i <= 1 ? 25 : 28,
-                                            colorFilter: ColorFilter.mode(
-                                              isSelected
-                                                  ? Colors.black
-                                                  : Colors.black.withValues(
-                                                      alpha: 0.5,
-                                                    ),
-                                              BlendMode.srcIn,
-                                            ),
-                                          );
-                                        }),
+                                            }
+                                          },
+                                          child: Builder(builder: (_) {
+                                            if (icons[i] == 'profile_dynamic') {
+                                              return Obx(() {
+                                                CurrentUserService.instance
+                                                    .currentUserRx.value;
+                                                final authUid = FirebaseAuth
+                                                        .instance
+                                                        .currentUser
+                                                        ?.uid ??
+                                                    '';
+                                                final userId =
+                                                    CurrentUserService.instance
+                                                            .userId.isNotEmpty
+                                                        ? CurrentUserService
+                                                            .instance.userId
+                                                        : authUid;
+                                                final img = CurrentUserService
+                                                    .instance.avatarUrl;
+                                                final uploading = controller
+                                                    .uploadingPosts.value;
+                                                const double size = 28;
+                                                return AnimatedBuilder(
+                                                  animation: controller
+                                                      .animationController
+                                                      .value,
+                                                  builder: (_, __) {
+                                                    final angle = controller
+                                                            .animationController
+                                                            .value
+                                                            .value *
+                                                        2 *
+                                                        math.pi *
+                                                        3;
+                                                    return _AvatarWithRing(
+                                                      userId: userId,
+                                                      imageUrl: img,
+                                                      size: size,
+                                                      isSelected: isSelected,
+                                                      uploading: uploading,
+                                                      angle: angle,
+                                                    );
+                                                  },
+                                                );
+                                              });
+                                            }
+                                            return SvgPicture.asset(
+                                              '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
+                                              height: i <= 1 ? 25 : 28,
+                                              colorFilter: ColorFilter.mode(
+                                                isSelected
+                                                    ? Colors.black
+                                                    : Colors.black.withValues(
+                                                        alpha: 0.5,
+                                                      ),
+                                                BlendMode.srcIn,
+                                              ),
+                                            );
+                                          }),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
+                                  );
                                 }),
                               ),
                             ),

@@ -52,12 +52,14 @@ class AccountCenterService extends GetxService {
     return b.lastUsedAt.compareTo(a.lastUsedAt);
   }
 
-  static AccountCenterService ensure() {
+  static AccountCenterService _ensureService() {
     if (Get.isRegistered<AccountCenterService>()) {
       return Get.find<AccountCenterService>();
     }
     return Get.put(AccountCenterService(), permanent: true);
   }
+
+  static AccountCenterService ensure() => _ensureService();
 
   Future<SharedPreferences> _ensurePrefs() async {
     return _prefs ??= await SharedPreferences.getInstance();
@@ -100,7 +102,8 @@ class AccountCenterService extends GetxService {
       if (account.email.trim().isNotEmpty) continue;
 
       var resolvedEmail = '';
-      final storedCredential = await AccountSessionVault.instance.read(account.uid);
+      final storedCredential =
+          await AccountSessionVault.instance.read(account.uid);
       if (storedCredential != null) {
         resolvedEmail = normalizeEmailAddress(storedCredential.email);
       }
@@ -114,7 +117,8 @@ class AccountCenterService extends GetxService {
       }
 
       if (resolvedEmail.isEmpty && isCurrentUserId(account.uid)) {
-        resolvedEmail = normalizeEmailAddress(FirebaseAuth.instance.currentUser?.email);
+        resolvedEmail =
+            normalizeEmailAddress(FirebaseAuth.instance.currentUser?.email);
       }
 
       if (resolvedEmail.isEmpty) continue;
@@ -123,8 +127,7 @@ class AccountCenterService extends GetxService {
     }
 
     final deduped = _dedupeAccounts(current)..sort(_compareAccounts);
-    final structurallyChanged =
-        changed || deduped.length != accounts.length;
+    final structurallyChanged = changed || deduped.length != accounts.length;
     if (!structurallyChanged) return;
     accounts.assignAll(deduped);
     await _persist();
@@ -134,7 +137,8 @@ class AccountCenterService extends GetxService {
     final byIdentity = <String, StoredAccount>{};
     for (final account in source) {
       final email = normalizeEmailAddress(account.email);
-      final key = email.isNotEmpty ? 'email:$email' : 'uid:${account.uid.trim()}';
+      final key =
+          email.isNotEmpty ? 'email:$email' : 'uid:${account.uid.trim()}';
       final existing = byIdentity[key];
       if (existing == null) {
         byIdentity[key] = account;
@@ -167,7 +171,8 @@ class AccountCenterService extends GetxService {
         activeUid.value = '';
         await _prefs?.remove(_activeUidKey);
       }
-      if (lastUsedUid.value.isNotEmpty && accountByUid(lastUsedUid.value) == null) {
+      if (lastUsedUid.value.isNotEmpty &&
+          accountByUid(lastUsedUid.value) == null) {
         lastUsedUid.value = accounts.isNotEmpty ? accounts.first.uid : '';
       }
       if (lastUsedUid.value.isEmpty) {
@@ -204,7 +209,8 @@ class AccountCenterService extends GetxService {
       final existing = current[index];
       current[index] = account.copyWith(
         isPinned: account.isPinned,
-        sortOrder: account.sortOrder == 0 ? existing.sortOrder : account.sortOrder,
+        sortOrder:
+            account.sortOrder == 0 ? existing.sortOrder : account.sortOrder,
         lastSuccessfulSignInAt: account.lastSuccessfulSignInAt == 0
             ? existing.lastSuccessfulSignInAt
             : account.lastSuccessfulSignInAt,
@@ -213,11 +219,12 @@ class AccountCenterService extends GetxService {
     } else {
       final nextSortOrder = current.isEmpty
           ? 1
-          : current
-                  .map((item) => item.sortOrder)
-                  .reduce((value, element) => value > element ? value : element) +
+          : current.map((item) => item.sortOrder).reduce(
+                  (value, element) => value > element ? value : element) +
               1;
-      current.add(account.copyWith(sortOrder: account.sortOrder == 0 ? nextSortOrder : account.sortOrder));
+      current.add(account.copyWith(
+          sortOrder:
+              account.sortOrder == 0 ? nextSortOrder : account.sortOrder));
       shouldPromoteActiveUid = promoteActiveUid && account.isSessionValid;
     }
     final deduped = _dedupeAccounts(current)..sort(_compareAccounts);
@@ -340,7 +347,8 @@ class AccountCenterService extends GetxService {
     final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final deviceKey = await DeviceSessionService.instance.getOrCreateDeviceKey();
+    final deviceKey =
+        await DeviceSessionService.instance.getOrCreateDeviceKey();
     final patch = <String, dynamic>{
       'singleDeviceSessionEnabled': enabled,
       'activeSessionUpdatedAt': nowMs,
@@ -365,7 +373,8 @@ class AccountCenterService extends GetxService {
     );
     if (raw == null || raw['singleDeviceSessionEnabled'] != true) return;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final deviceKey = await DeviceSessionService.instance.getOrCreateDeviceKey();
+    final deviceKey =
+        await DeviceSessionService.instance.getOrCreateDeviceKey();
     await UserRepository.ensure().updateUserFields(uid, <String, dynamic>{
       'activeSessionDeviceKey': deviceKey,
       'activeSessionUpdatedAt': nowMs,

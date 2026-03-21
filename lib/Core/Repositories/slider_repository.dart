@@ -7,11 +7,15 @@ class SliderRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
 
-  static SliderRepository ensure() {
+  static SliderRepository _ensureService() {
     if (Get.isRegistered<SliderRepository>()) {
       return Get.find<SliderRepository>();
     }
     return Get.put(SliderRepository(), permanent: true);
+  }
+
+  static SliderRepository ensure() {
+    return _ensureService();
   }
 
   Future<SliderRemoteData> fetchSlider(String sliderId) async {

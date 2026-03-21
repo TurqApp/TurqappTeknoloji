@@ -10,12 +10,40 @@ import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_sco
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class AntremanScore extends StatelessWidget {
-  AntremanScore({super.key});
+class AntremanScore extends StatefulWidget {
+  const AntremanScore({super.key});
 
-  final AntremanScoreController controller = Get.put(AntremanScoreController());
+  @override
+  State<AntremanScore> createState() => _AntremanScoreState();
+}
+
+class _AntremanScoreState extends State<AntremanScore> {
+  late final AntremanScoreController controller;
   final String currentUserID = CurrentUserService.instance.userId;
   final ScrollController _scrollController = ScrollController();
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'antreman_score_${identityHashCode(this)}';
+    controller = Get.isRegistered<AntremanScoreController>(tag: _controllerTag)
+        ? Get.find<AntremanScoreController>(tag: _controllerTag)
+        : Get.put(AntremanScoreController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    if (Get.isRegistered<AntremanScoreController>(tag: _controllerTag) &&
+        identical(
+          Get.find<AntremanScoreController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<AntremanScoreController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +359,8 @@ class AntremanScore extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    user['nickname'] ?? 'common.unknown_user'.tr,
+                                    user['nickname'] ??
+                                        'common.unknown_user'.tr,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyles.textFieldTitle

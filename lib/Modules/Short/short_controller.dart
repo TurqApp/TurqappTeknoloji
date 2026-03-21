@@ -25,6 +25,19 @@ import '../../Models/posts_model.dart';
 /// range bazlı (±7 etrafında) preload & prune desteği sunan controller
 /// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
 class ShortController extends GetxController {
+  static ShortController _ensureController() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(ShortController());
+  }
+
+  static ShortController ensure() => _ensureController();
+
+  static ShortController? maybeFind() {
+    if (!Get.isRegistered<ShortController>()) return null;
+    return Get.find<ShortController>();
+  }
+
   static const bool _verboseShortLogs = false;
   void _log(String message) {
     if (_verboseShortLogs) debugPrint(message);

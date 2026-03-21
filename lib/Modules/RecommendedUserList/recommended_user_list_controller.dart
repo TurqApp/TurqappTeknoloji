@@ -8,6 +8,22 @@ import 'package:turqappv2/Models/recommended_user_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserListController extends GetxController {
+  static RecommendedUserListController _ensureController() {
+    if (Get.isRegistered<RecommendedUserListController>()) {
+      return Get.find<RecommendedUserListController>();
+    }
+    return Get.put(RecommendedUserListController());
+  }
+
+  static RecommendedUserListController ensure() => _ensureController();
+
+  static RecommendedUserListController? maybeFind() {
+    if (Get.isRegistered<RecommendedUserListController>()) {
+      return Get.find<RecommendedUserListController>();
+    }
+    return null;
+  }
+
   RxList<RecommendedUserModel> list = <RecommendedUserModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool hasError = false.obs;

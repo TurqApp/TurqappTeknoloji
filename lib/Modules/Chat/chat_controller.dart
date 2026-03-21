@@ -107,10 +107,7 @@ class ChatController extends GetxController {
   String? _recordingPath;
   static const int _localChatWindowLimit = 180;
 
-  NetworkAwarenessService? get _network =>
-      Get.isRegistered<NetworkAwarenessService>()
-          ? Get.find<NetworkAwarenessService>()
-          : null;
+  NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;

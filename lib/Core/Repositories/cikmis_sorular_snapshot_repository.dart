@@ -9,12 +9,14 @@ class CikmisSorularSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'past_question_home_snapshot';
   static const String _searchSurfaceKey = 'past_question_search_snapshot';
 
-  static CikmisSorularSnapshotRepository ensure() {
+  static CikmisSorularSnapshotRepository _ensureService() {
     if (Get.isRegistered<CikmisSorularSnapshotRepository>()) {
       return Get.find<CikmisSorularSnapshotRepository>();
     }
     return Get.put(CikmisSorularSnapshotRepository(), permanent: true);
   }
+
+  static CikmisSorularSnapshotRepository ensure() => _ensureService();
 
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
 
@@ -39,8 +41,9 @@ class CikmisSorularSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<String, List<Map<String, dynamic>>,
-      List<Map<String, dynamic>>> _homePipeline = CacheFirstQueryPipeline<
-          String, List<Map<String, dynamic>>, List<Map<String, dynamic>>>(
+          List<Map<String, dynamic>>> _homePipeline =
+      CacheFirstQueryPipeline<String, List<Map<String, dynamic>>,
+          List<Map<String, dynamic>>>(
     surfaceKey: _homeSurfaceKey,
     coordinator: _coordinator,
     userIdResolver: (userId) => userId,

@@ -14,17 +14,19 @@ class CareerProfile extends StatefulWidget {
 }
 
 class _CareerProfileState extends State<CareerProfile> {
+  late final String _controllerTag;
   late final CareerProfileController controller;
   late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<CareerProfileController>()) {
-      controller = Get.find<CareerProfileController>();
+    _controllerTag = 'career_profile_${identityHashCode(this)}';
+    if (Get.isRegistered<CareerProfileController>(tag: _controllerTag)) {
+      controller = Get.find<CareerProfileController>(tag: _controllerTag);
       _ownsController = false;
     } else {
-      controller = Get.put(CareerProfileController());
+      controller = Get.put(CareerProfileController(), tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -32,9 +34,12 @@ class _CareerProfileState extends State<CareerProfile> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<CareerProfileController>() &&
-        identical(Get.find<CareerProfileController>(), controller)) {
-      Get.delete<CareerProfileController>();
+        Get.isRegistered<CareerProfileController>(tag: _controllerTag) &&
+        identical(
+          Get.find<CareerProfileController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<CareerProfileController>(tag: _controllerTag);
     }
     super.dispose();
   }

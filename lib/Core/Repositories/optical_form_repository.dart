@@ -12,15 +12,18 @@ class OpticalFormRepository extends GetxService {
   final FirebaseFirestore _firestore;
   static const Duration _ttl = Duration(hours: 6);
   static const String _prefsPrefix = 'optical_form_repository_v1';
-  final Map<String, _TimedValue<dynamic>> _memory = <String, _TimedValue<dynamic>>{};
+  final Map<String, _TimedValue<dynamic>> _memory =
+      <String, _TimedValue<dynamic>>{};
   SharedPreferences? _prefs;
 
-  static OpticalFormRepository ensure() {
+  static OpticalFormRepository _ensureService() {
     if (Get.isRegistered<OpticalFormRepository>()) {
       return Get.find<OpticalFormRepository>();
     }
     return Get.put(OpticalFormRepository(), permanent: true);
   }
+
+  static OpticalFormRepository ensure() => _ensureService();
 
   @override
   void onInit() {
@@ -60,7 +63,8 @@ class OpticalFormRepository extends GetxService {
       final cached = await _getCachedList(key);
       if (cached != null) {
         return cached
-            .map((e) => OpticalFormModel.fromMap(e, (e['docID'] ?? '').toString()))
+            .map((e) =>
+                OpticalFormModel.fromMap(e, (e['docID'] ?? '').toString()))
             .toList(growable: false);
       }
     }
@@ -97,7 +101,8 @@ class OpticalFormRepository extends GetxService {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
-    final ids = docIds.where((e) => e.trim().isNotEmpty).toList(growable: false);
+    final ids =
+        docIds.where((e) => e.trim().isNotEmpty).toList(growable: false);
     if (ids.isEmpty) return const <OpticalFormModel>[];
     final byId = <String, OpticalFormModel>{};
     const chunkSize = 10;
@@ -127,7 +132,10 @@ class OpticalFormRepository extends GetxService {
         await _storeMap('doc:${doc.id}', doc.data());
       }
     }
-    return ids.where(byId.containsKey).map((id) => byId[id]!).toList(growable: false);
+    return ids
+        .where(byId.containsKey)
+        .map((id) => byId[id]!)
+        .toList(growable: false);
   }
 
   Future<List<OpticalFormModel>> fetchAnsweredByUser(
@@ -141,7 +149,8 @@ class OpticalFormRepository extends GetxService {
       final cached = await _getCachedList(key);
       if (cached != null) {
         return cached
-            .map((e) => OpticalFormModel.fromMap(e, (e['docID'] ?? '').toString()))
+            .map((e) =>
+                OpticalFormModel.fromMap(e, (e['docID'] ?? '').toString()))
             .toList(growable: false);
       }
     }
@@ -218,7 +227,8 @@ class OpticalFormRepository extends GetxService {
         .collection('Yanitlar')
         .doc(userId)
         .get();
-    final answers = List<String>.from((doc.data()?['cevaplar'] as List?) ?? const []);
+    final answers =
+        List<String>.from((doc.data()?['cevaplar'] as List?) ?? const []);
     await _storePrimitive(key, answers);
     return answers;
   }
@@ -313,7 +323,8 @@ class OpticalFormRepository extends GetxService {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       if (ts <= 0) return null;
-      if (DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) > _ttl) {
+      if (DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts)) >
+          _ttl) {
         return null;
       }
       final value = decoded['v'];

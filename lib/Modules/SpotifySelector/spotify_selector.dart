@@ -7,10 +7,16 @@ import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/music_model.dart';
 import 'package:turqappv2/Modules/SpotifySelector/spotify_selector_controller.dart';
 
-class SpotifySelector extends StatelessWidget {
-  SpotifySelector({super.key});
+class SpotifySelector extends StatefulWidget {
+  const SpotifySelector({super.key});
 
-  final controller = Get.put(SpotifySelectorController());
+  @override
+  State<SpotifySelector> createState() => _SpotifySelectorState();
+}
+
+class _SpotifySelectorState extends State<SpotifySelector> {
+  late final SpotifySelectorController controller;
+  late final String _controllerTag;
 
   static const List<String> _tabs = <String>[
     'spotify.tab.for_you',
@@ -18,6 +24,28 @@ class SpotifySelector extends StatelessWidget {
     'spotify.tab.all',
     'common.saved',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'spotify_selector_${identityHashCode(this)}';
+    controller =
+        Get.isRegistered<SpotifySelectorController>(tag: _controllerTag)
+            ? Get.find<SpotifySelectorController>(tag: _controllerTag)
+            : Get.put(SpotifySelectorController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<SpotifySelectorController>(tag: _controllerTag) &&
+        identical(
+          Get.find<SpotifySelectorController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SpotifySelectorController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +235,8 @@ class SpotifySelector extends StatelessWidget {
           children: List.generate(_tabs.length, (index) {
             final selected = controller.selectedTab.value == index;
             return Padding(
-              padding: EdgeInsets.only(right: index == _tabs.length - 1 ? 0 : 8),
+              padding:
+                  EdgeInsets.only(right: index == _tabs.length - 1 ? 0 : 8),
               child: GestureDetector(
                 onTap: () => controller.selectedTab.value = index,
                 child: AnimatedContainer(
@@ -227,9 +256,8 @@ class SpotifySelector extends StatelessWidget {
                     style: TextStyle(
                       color: selected ? Colors.white : const Color(0xFF5B6572),
                       fontSize: 12,
-                      fontFamily: selected
-                          ? 'MontserratSemiBold'
-                          : 'MontserratMedium',
+                      fontFamily:
+                          selected ? 'MontserratSemiBold' : 'MontserratMedium',
                     ),
                   ),
                 ),

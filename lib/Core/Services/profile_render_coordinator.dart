@@ -4,11 +4,15 @@ import 'package:turqappv2/Core/Services/render_list_patch.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class ProfileRenderCoordinator extends GetxService {
-  static ProfileRenderCoordinator ensure() {
+  static ProfileRenderCoordinator _ensureService() {
     if (Get.isRegistered<ProfileRenderCoordinator>()) {
       return Get.find<ProfileRenderCoordinator>();
     }
     return Get.put(ProfileRenderCoordinator(), permanent: true);
+  }
+
+  static ProfileRenderCoordinator ensure() {
+    return _ensureService();
   }
 
   List<Map<String, dynamic>> buildMergedEntries({
@@ -53,12 +57,16 @@ class ProfileRenderCoordinator extends GetxService {
     required List<Map<String, dynamic>> next,
   }) {
     if (_sameRenderableSequence(previous, next)) {
-      _trackPatch(previousCount: previous.length, nextCount: next.length, operations: 0);
+      _trackPatch(
+          previousCount: previous.length,
+          nextCount: next.length,
+          operations: 0);
       return const RenderListPatch<Map<String, dynamic>>(operations: []);
     }
 
     final operations = <RenderPatchOperation<Map<String, dynamic>>>[];
-    final sharedLength = previous.length < next.length ? previous.length : next.length;
+    final sharedLength =
+        previous.length < next.length ? previous.length : next.length;
 
     for (int i = 0; i < sharedLength; i++) {
       if (_entryKey(previous[i]) != _entryKey(next[i]) ||
@@ -192,8 +200,9 @@ class ProfileRenderCoordinator extends GetxService {
     required int nextCount,
     required int operations,
   }) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
-    Get.find<PlaybackKpiService>().track(
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
+    playbackKpi.track(
       PlaybackKpiEventType.renderDiff,
       <String, dynamic>{
         'surface': 'profile',

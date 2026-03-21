@@ -16,11 +16,15 @@ class BookletRepository extends GetxService {
   final Map<String, _TimedBooklets> _memory = <String, _TimedBooklets>{};
   SharedPreferences? _prefs;
 
-  static BookletRepository ensure() {
+  static BookletRepository _ensureService() {
     if (Get.isRegistered<BookletRepository>()) {
       return Get.find<BookletRepository>();
     }
     return Get.put(BookletRepository(), permanent: true);
+  }
+
+  static BookletRepository ensure() {
+    return _ensureService();
   }
 
   @override

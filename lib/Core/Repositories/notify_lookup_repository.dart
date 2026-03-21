@@ -91,12 +91,14 @@ class NotifyLookupRepository extends GetxService {
   final Map<String, NotifyMarketLookup> _marketLookupCache =
       <String, NotifyMarketLookup>{};
 
-  static NotifyLookupRepository ensure() {
+  static NotifyLookupRepository _ensureService() {
     if (Get.isRegistered<NotifyLookupRepository>()) {
       return Get.find<NotifyLookupRepository>();
     }
     return Get.put(NotifyLookupRepository(), permanent: true);
   }
+
+  static NotifyLookupRepository ensure() => _ensureService();
 
   Future<NotifyPostLookup> getPostLookup(String postID) async {
     _pruneStaleLookups();

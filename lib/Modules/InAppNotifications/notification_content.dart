@@ -376,9 +376,7 @@ class _NotificationContentState extends State<NotificationContent> {
   }
 
   void yonlendirme() async {
-    final notifyReader = Get.isRegistered<NotifyReaderController>()
-        ? Get.find<NotifyReaderController>()
-        : Get.put(NotifyReaderController());
+    final notifyReader = NotifyReaderController.ensure();
     await notifyReader.openNotification(model);
   }
 }

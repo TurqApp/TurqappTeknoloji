@@ -13,6 +13,23 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class InAppNotificationsController extends GetxController {
+  static InAppNotificationsController _ensureController({String? tag}) {
+    if (Get.isRegistered<InAppNotificationsController>(tag: tag)) {
+      return Get.find<InAppNotificationsController>(tag: tag);
+    }
+    return Get.put(InAppNotificationsController(), tag: tag);
+  }
+
+  static InAppNotificationsController ensure({String? tag}) =>
+      _ensureController(tag: tag);
+
+  static InAppNotificationsController? maybeFind({String? tag}) {
+    if (Get.isRegistered<InAppNotificationsController>(tag: tag)) {
+      return Get.find<InAppNotificationsController>(tag: tag);
+    }
+    return null;
+  }
+
   var selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
   RxList<NotificationModel> list = <NotificationModel>[].obs;
@@ -43,9 +60,8 @@ class InAppNotificationsController extends GetxController {
     final uid = CurrentUserService.instance.userId.trim();
     if (uid.isEmpty) return;
     _settingsSub?.cancel();
-    _settingsSub = _notificationsRepository
-        .watchSettings(uid)
-        .listen((snapshot) {
+    _settingsSub =
+        _notificationsRepository.watchSettings(uid).listen((snapshot) {
       _preferences =
           NotificationPreferencesService.mergeWithDefaults(snapshot.data());
       _applyFilters();
@@ -110,9 +126,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   void _bindNewNotificationHeadStream(String uid) {
-    _newNotificationHeadSub = _notificationsRepository
-        .watchNotificationHead(uid)
-        .listen((snapshot) {
+    _newNotificationHeadSub =
+        _notificationsRepository.watchNotificationHead(uid).listen((snapshot) {
       if (snapshot.docs.isEmpty) return;
       final headData = snapshot.docs.first.data();
       final headTs = _asInt(headData["timeStamp"]);

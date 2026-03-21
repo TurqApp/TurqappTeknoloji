@@ -25,6 +25,13 @@ import 'models.dart';
 ///   Posts/{docID}/hls/720p/segment_0.ts
 /// ```
 class SegmentCacheManager extends GetxController {
+  static SegmentCacheManager? maybeFind() {
+    if (Get.isRegistered<SegmentCacheManager>()) {
+      return Get.find<SegmentCacheManager>();
+    }
+    return null;
+  }
+
   late String _cacheDir;
   CacheIndex _index = CacheIndex();
   final CacheMetrics metrics = CacheMetrics();

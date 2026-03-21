@@ -25,12 +25,14 @@ class ProfilePostsSnapshotRepository extends GetxService {
 
   static const String _surfaceKey = 'profile_posts_snapshot';
 
-  static ProfilePostsSnapshotRepository ensure() {
+  static ProfilePostsSnapshotRepository _ensureService() {
     if (Get.isRegistered<ProfilePostsSnapshotRepository>()) {
       return Get.find<ProfilePostsSnapshotRepository>();
     }
     return Get.put(ProfilePostsSnapshotRepository(), permanent: true);
   }
+
+  static ProfilePostsSnapshotRepository ensure() => _ensureService();
 
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
 
@@ -60,8 +62,9 @@ class ProfilePostsSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<ProfilePostsSnapshotQuery, ProfileBuckets,
-      ProfileBuckets> _pipeline = CacheFirstQueryPipeline<
-          ProfilePostsSnapshotQuery, ProfileBuckets, ProfileBuckets>(
+          ProfileBuckets> _pipeline =
+      CacheFirstQueryPipeline<ProfilePostsSnapshotQuery, ProfileBuckets,
+          ProfileBuckets>(
     surfaceKey: _surfaceKey,
     coordinator: _coordinator,
     userIdResolver: (query) => query.userId.trim(),

@@ -7,11 +7,10 @@ class OfflineIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<OfflineModeService>()) {
+    final offlineService = OfflineModeService.maybeFind();
+    if (offlineService == null) {
       return const SizedBox.shrink();
     }
-
-    final offlineService = Get.find<OfflineModeService>();
 
     return Obx(() {
       if (offlineService.isOnline.value) {
@@ -47,8 +46,8 @@ class OfflineIndicator extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'offline_indicator.pending_count'
-                        .trParams({'count': '${offlineService.pendingActions.length}'}),
+                    'offline_indicator.pending_count'.trParams(
+                        {'count': '${offlineService.pendingActions.length}'}),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,

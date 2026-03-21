@@ -1,6 +1,6 @@
 part of 'sign_in.dart';
 
-extension SignInSignupPart on SignIn {
+extension SignInSignupPart on _SignInState {
   Widget create1() {
     return Expanded(
       child: Obx(() {

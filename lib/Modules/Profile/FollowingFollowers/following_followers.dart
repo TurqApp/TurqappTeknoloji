@@ -24,11 +24,12 @@ class FollowingFollowers extends StatefulWidget {
 
 class _FollowingFollowersState extends State<FollowingFollowers> {
   late final FollowingFollowersController controller;
-  late final ScrollController _scrollController;
+  late final ScrollController _followersScrollController;
+  late final ScrollController _followingScrollController;
   bool _ownsController = false;
+  late int _currentPage;
 
-  String get _pageLineBarTag =>
-      '${kFollowersPageLineBarTag}_${widget.userId}';
+  String get _pageLineBarTag => '${kFollowersPageLineBarTag}_${widget.userId}';
 
   @override
   void initState() {
@@ -45,12 +46,15 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
       );
       _ownsController = true;
     }
-    _scrollController = ScrollController();
+    _followersScrollController = ScrollController();
+    _followingScrollController = ScrollController();
+    _currentPage = widget.selection;
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _followersScrollController.dispose();
+    _followingScrollController.dispose();
     if (_ownsController &&
         Get.isRegistered<FollowingFollowersController>(tag: widget.userId) &&
         identical(
@@ -95,6 +99,11 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
                   child: PageView(
                     controller: controller.pageController,
                     onPageChanged: (idx) {
+                      if (mounted && _currentPage != idx) {
+                        setState(() {
+                          _currentPage = idx;
+                        });
+                      }
                       syncPageLineBarSelection(_pageLineBarTag, idx);
                     },
                     children: [
@@ -102,14 +111,14 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
                           list: controller.takipciler,
                           isLoading: () => controller.isLoadingFollowers,
                           hasMore: () => controller.hasMoreFollowers,
-                          scrollController: _scrollController,
+                          scrollController: _followersScrollController,
                           loadMore: () =>
                               controller.getFollowers(initial: false)),
                       _buildList(context,
                           list: controller.takipEdilenler,
                           isLoading: () => controller.isLoadingFollowing,
                           hasMore: () => controller.hasMoreFollowing,
-                          scrollController: _scrollController,
+                          scrollController: _followingScrollController,
                           loadMore: () =>
                               controller.getFollowing(initial: false)),
                     ],
@@ -122,7 +131,10 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
               right: 20,
               child: GestureDetector(
                 onTap: () {
-                  _scrollController.animateTo(0,
+                  final activeController = _currentPage == 0
+                      ? _followersScrollController
+                      : _followingScrollController;
+                  activeController.animateTo(0,
                       duration: Duration(milliseconds: 300),
                       curve: Curves.bounceIn);
                 },

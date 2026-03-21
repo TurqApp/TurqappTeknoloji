@@ -8,21 +8,50 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class TestsGrid extends StatelessWidget {
+class TestsGrid extends StatefulWidget {
   final TestsModel model;
   final Function? update;
 
   const TestsGrid({super.key, required this.model, this.update});
 
+  @override
+  State<TestsGrid> createState() => _TestsGridState();
+}
+
+class _TestsGridState extends State<TestsGrid> {
+  late final TestsGridController controller;
+  late final String _controllerTag;
+
+  TestsModel get model => widget.model;
+  Function? get update => widget.update;
+
   String get _currentUserId => CurrentUserService.instance.userId;
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      TestsGridController(model, update),
-      tag: model.docID,
-    );
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'tests_grid_${widget.model.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<TestsGridController>(tag: _controllerTag)
+        ? Get.find<TestsGridController>(tag: _controllerTag)
+        : Get.put(TestsGridController(widget.model, widget.update),
+            tag: _controllerTag);
+  }
 
+  @override
+  void dispose() {
+    if (Get.isRegistered<TestsGridController>(tag: _controllerTag) &&
+        identical(
+          Get.find<TestsGridController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<TestsGridController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,

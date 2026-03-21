@@ -30,6 +30,7 @@ class PostComments extends StatefulWidget {
 
 class _PostCommentsState extends State<PostComments> {
   late final PostCommentController controller;
+  late final String _controllerTag;
   final user = CurrentUserService.instance;
   final emojis = ["😂", "😍", "🔥", "👏", "👍", "🙏", "😅", "❤️"];
   final textEditingController = TextEditingController();
@@ -38,15 +39,18 @@ class _PostCommentsState extends State<PostComments> {
   @override
   void initState() {
     super.initState();
-    controller = Get.put(
-      PostCommentController(
-        postID: widget.postID,
-        userID: widget.userID,
-        collection: widget.collection,
-        onCommentCountChange: widget.onCommentCountChange,
-      ),
-      tag: widget.postID,
-    );
+    _controllerTag = 'post_comments_${widget.postID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<PostCommentController>(tag: _controllerTag)
+        ? Get.find<PostCommentController>(tag: _controllerTag)
+        : Get.put(
+            PostCommentController(
+              postID: widget.postID,
+              userID: widget.userID,
+              collection: widget.collection,
+              onCommentCountChange: widget.onCommentCountChange,
+            ),
+            tag: _controllerTag,
+          );
 
     focusNode.requestFocus();
   }
@@ -55,6 +59,13 @@ class _PostCommentsState extends State<PostComments> {
   void dispose() {
     textEditingController.dispose();
     focusNode.dispose();
+    if (Get.isRegistered<PostCommentController>(tag: _controllerTag) &&
+        identical(
+          Get.find<PostCommentController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PostCommentController>(tag: _controllerTag);
+    }
     super.dispose();
   }
 
@@ -90,6 +101,7 @@ class _PostCommentsState extends State<PostComments> {
                                   PostCommentContent(
                                     model: controller.list[i],
                                     postID: widget.postID,
+                                    commentControllerTag: _controllerTag,
                                     isPending: controller.isPendingComment(
                                         controller.list[i].docID),
                                     onReplyTap: (commentId, nickname) {

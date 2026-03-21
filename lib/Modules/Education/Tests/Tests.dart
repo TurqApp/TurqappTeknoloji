@@ -21,23 +21,51 @@ import 'package:turqappv2/Core/Widgets/skeleton_loader.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class Tests extends StatelessWidget {
-  Tests({
+class Tests extends StatefulWidget {
+  const Tests({
     super.key,
     this.embedded = false,
     this.showEmbeddedControls = true,
   });
   final bool embedded;
   final bool showEmbeddedControls;
-  final controller = Get.put(TestsController());
+
+  @override
+  State<Tests> createState() => _TestsState();
+}
+
+class _TestsState extends State<Tests> {
+  late final TestsController controller;
+  late final String _controllerTag;
   ScrollController get _scrollController => controller.scrollController;
+
+  bool get embedded => widget.embedded;
+  bool get showEmbeddedControls => widget.showEmbeddedControls;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'tests_${embedded ? 'embedded' : 'root'}_${identityHashCode(this)}';
+    controller = Get.isRegistered<TestsController>(tag: _controllerTag)
+        ? Get.find<TestsController>(tag: _controllerTag)
+        : Get.put(TestsController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<TestsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<TestsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<TestsController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    _scrollController.addListener(() {
-      controller.scrollOffset.value = _scrollController.offset;
-    });
-
     final bodyContent = Expanded(
       child: RefreshIndicator(
         color: Colors.white,

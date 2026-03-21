@@ -15,12 +15,36 @@ import '../Services/SegmentCache/cache_manager.dart';
 import '../Services/SegmentCache/cache_metrics.dart';
 import '../Services/SegmentCache/prefetch_scheduler.dart';
 
-class AppHealthDashboard extends StatelessWidget {
+class AppHealthDashboard extends StatefulWidget {
   const AppHealthDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<AppHealthDashboard> createState() => _AppHealthDashboardState();
+}
+
+class _AppHealthDashboardState extends State<AppHealthDashboard> {
+  @override
+  void initState() {
+    super.initState();
     _ensureDashboardServices();
+  }
+
+  T _ensureService<T>(T Function() create) {
+    if (Get.isRegistered<T>()) {
+      return Get.find<T>();
+    }
+    return Get.put<T>(create());
+  }
+
+  T? _maybeFindService<T>() {
+    if (!Get.isRegistered<T>()) {
+      return null;
+    }
+    return Get.find<T>();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('settings.diagnostics.app_health_panel'.tr),
@@ -56,44 +80,26 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _ensureDashboardServices() {
-    if (!Get.isRegistered<ErrorHandlingService>()) {
-      Get.put(ErrorHandlingService());
-    }
-    if (!Get.isRegistered<NetworkAwarenessService>()) {
-      Get.put(NetworkAwarenessService());
-    }
-    if (!Get.isRegistered<UploadQueueService>()) {
-      Get.put(UploadQueueService());
-    }
-    if (!Get.isRegistered<DraftService>()) {
-      Get.put(DraftService());
-    }
-    if (!Get.isRegistered<PostEditingService>()) {
-      Get.put(PostEditingService());
-    }
-    if (!Get.isRegistered<MediaEnhancementService>()) {
-      Get.put(MediaEnhancementService());
-    }
-    if (!Get.isRegistered<StorageBudgetManager>()) {
-      Get.put(StorageBudgetManager());
-    }
-    if (!Get.isRegistered<PlaybackKpiService>()) {
-      Get.put(PlaybackKpiService());
-    }
-    if (!Get.isRegistered<PlaybackPolicyEngine>()) {
-      Get.put(PlaybackPolicyEngine());
-    }
+    _ensureService<ErrorHandlingService>(() => ErrorHandlingService());
+    _ensureService<NetworkAwarenessService>(() => NetworkAwarenessService());
+    _ensureService<UploadQueueService>(() => UploadQueueService());
+    _ensureService<DraftService>(() => DraftService());
+    _ensureService<PostEditingService>(() => PostEditingService());
+    _ensureService<MediaEnhancementService>(() => MediaEnhancementService());
+    _ensureService<StorageBudgetManager>(() => StorageBudgetManager());
+    _ensureService<PlaybackKpiService>(() => PlaybackKpiService());
+    _ensureService<PlaybackPolicyEngine>(() => PlaybackPolicyEngine());
   }
 
   Widget _buildPlaybackIntelligenceCard() {
-    final budgetManager = Get.isRegistered<StorageBudgetManager>()
-        ? Get.find<StorageBudgetManager>()
-        : Get.put(StorageBudgetManager());
+    final budgetManager =
+        _ensureService<StorageBudgetManager>(() => StorageBudgetManager());
     final profile = budgetManager.currentProfile;
-    final usage = Get.isRegistered<SegmentCacheManager>()
+    final cacheManager = _maybeFindService<SegmentCacheManager>();
+    final usage = cacheManager != null
         ? StorageBudgetManager.usageSnapshotForProfile(
             profile,
-            streamUsageBytes: Get.find<SegmentCacheManager>().totalSizeBytes,
+            streamUsageBytes: cacheManager.totalSizeBytes,
           )
         : null;
     final recentProtectionWindow =
@@ -101,12 +107,8 @@ class AppHealthDashboard extends StatelessWidget {
       profile,
       streamUsageBytes: usage?.streamUsageBytes ?? 0,
     );
-    final policy = Get.isRegistered<PlaybackPolicyEngine>()
-        ? Get.find<PlaybackPolicyEngine>().snapshot()
-        : null;
-    final kpiService = Get.isRegistered<PlaybackKpiService>()
-        ? Get.find<PlaybackKpiService>()
-        : null;
+    final policy = _maybeFindService<PlaybackPolicyEngine>()?.snapshot();
+    final kpiService = _maybeFindService<PlaybackKpiService>();
     final recentEvents = kpiService?.recentEvents ?? const <PlaybackKpiEvent>[];
     final feedCacheSummary = kpiService?.summarizeCacheFirst(
       surfaceKeyPrefix: 'feed_',
@@ -143,9 +145,7 @@ class AppHealthDashboard extends StatelessWidget {
         break;
       }
     }
-    final scheduler = Get.isRegistered<PrefetchScheduler>()
-        ? Get.find<PrefetchScheduler>()
-        : null;
+    final scheduler = _maybeFindService<PrefetchScheduler>();
     final pressureLabel = usage == null
         ? null
         : usage.crossedHardStop
@@ -640,14 +640,14 @@ class AppHealthDashboard extends StatelessWidget {
     final pendingUploads = (uploadStats['pending'] as num?)?.toInt() ?? 0;
 
     double cacheHitRate = 0;
-    if (Get.isRegistered<SegmentCacheManager>()) {
-      cacheHitRate = Get.find<SegmentCacheManager>().metrics.cacheHitRate;
+    final cache = SegmentCacheManager.maybeFind();
+    if (cache != null) {
+      cacheHitRate = cache.metrics.cacheHitRate;
     }
 
-    final kpiReport = Get.isRegistered<PlaybackKpiService>()
-        ? TelemetryThresholdPolicyAdapter.evaluateKpiService(
-            Get.find<PlaybackKpiService>(),
-          )
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    final kpiReport = playbackKpi != null
+        ? TelemetryThresholdPolicyAdapter.evaluateKpiService(playbackKpi)
         : const TelemetryThresholdReport(issues: <TelemetryThresholdIssue>[]);
 
     final alerts = <String>[];
@@ -975,8 +975,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getSystemHealth() {
-    if (Get.isRegistered<ErrorHandlingService>()) {
-      return Get.find<ErrorHandlingService>().getSystemHealth();
+    final errorService = ErrorHandlingService.maybeFind();
+    if (errorService != null) {
+      return errorService.getSystemHealth();
     }
     return {
       'status': 'unknown',
@@ -987,8 +988,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getErrorStats() {
-    if (Get.isRegistered<ErrorHandlingService>()) {
-      return Get.find<ErrorHandlingService>().getErrorStats();
+    final errorService = ErrorHandlingService.maybeFind();
+    if (errorService != null) {
+      return errorService.getErrorStats();
     }
     return {
       'total': 0,
@@ -1000,8 +1002,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getNetworkStats() {
-    if (Get.isRegistered<NetworkAwarenessService>()) {
-      return Get.find<NetworkAwarenessService>().getNetworkStats();
+    final networkService = NetworkAwarenessService.maybeFind();
+    if (networkService != null) {
+      return networkService.getNetworkStats();
     }
     return {
       'currentNetwork': 'Bilinmiyor',
@@ -1013,8 +1016,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getUploadStats() {
-    if (Get.isRegistered<UploadQueueService>()) {
-      return Get.find<UploadQueueService>().getQueueStats();
+    final uploadService = UploadQueueService.maybeFind();
+    if (uploadService != null) {
+      return uploadService.getQueueStats();
     }
     return {
       'total': 0,
@@ -1027,8 +1031,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getDraftStats() {
-    if (Get.isRegistered<DraftService>()) {
-      return Get.find<DraftService>().getDraftStats();
+    final draftService = DraftService.maybeFind();
+    if (draftService != null) {
+      return draftService.getDraftStats();
     }
     return {
       'total': 0,
@@ -1040,8 +1045,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getEditStats() {
-    if (Get.isRegistered<PostEditingService>()) {
-      return Get.find<PostEditingService>().getEditStatistics();
+    final editingService = PostEditingService.maybeFind();
+    if (editingService != null) {
+      return editingService.getEditStatistics();
     }
     return {
       'totalActions': 0,
@@ -1054,8 +1060,9 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getMediaStats() {
-    if (Get.isRegistered<MediaEnhancementService>()) {
-      return Get.find<MediaEnhancementService>().getProcessingStats();
+    final mediaService = MediaEnhancementService.maybeFind();
+    if (mediaService != null) {
+      return mediaService.getProcessingStats();
     }
     return {
       'totalEdits': 0,
@@ -1095,8 +1102,8 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _showErrorStats() {
-    if (Get.isRegistered<ErrorHandlingService>()) {
-      final errorService = Get.find<ErrorHandlingService>();
+    final errorService = ErrorHandlingService.maybeFind();
+    if (errorService != null) {
       final stats = errorService.getErrorStats();
 
       Get.dialog(
@@ -1130,8 +1137,8 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _showNetworkStats() {
-    if (Get.isRegistered<NetworkAwarenessService>()) {
-      final networkService = Get.find<NetworkAwarenessService>();
+    final networkService = NetworkAwarenessService.maybeFind();
+    if (networkService != null) {
       final stats = networkService.getNetworkStats();
 
       Get.dialog(
@@ -1166,8 +1173,8 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _showUploadStats() {
-    if (Get.isRegistered<UploadQueueService>()) {
-      final uploadService = Get.find<UploadQueueService>();
+    final uploadService = UploadQueueService.maybeFind();
+    if (uploadService != null) {
       final stats = uploadService.getQueueStats();
 
       Get.dialog(
@@ -1203,8 +1210,8 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _showDraftStats() {
-    if (Get.isRegistered<DraftService>()) {
-      final draftService = Get.find<DraftService>();
+    final draftService = DraftService.maybeFind();
+    if (draftService != null) {
       final stats = draftService.getDraftStats();
 
       Get.dialog(
@@ -1238,8 +1245,8 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _showEditingStats() {
-    if (Get.isRegistered<PostEditingService>()) {
-      final editingService = Get.find<PostEditingService>();
+    final editingService = PostEditingService.maybeFind();
+    if (editingService != null) {
       final stats = editingService.getEditStatistics();
 
       Get.dialog(
@@ -1275,8 +1282,8 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   void _showMediaStats() {
-    if (Get.isRegistered<MediaEnhancementService>()) {
-      final mediaService = Get.find<MediaEnhancementService>();
+    final mediaService = MediaEnhancementService.maybeFind();
+    if (mediaService != null) {
       final stats = mediaService.getProcessingStats();
 
       Get.dialog(

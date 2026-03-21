@@ -25,6 +25,26 @@ class UserProfileCacheService extends GetxService {
   Timer? _persistTimer;
   bool _dirty = false;
 
+  static UserProfileCacheService _ensureService() {
+    if (Get.isRegistered<UserProfileCacheService>()) {
+      return Get.find<UserProfileCacheService>();
+    }
+    return Get.put(UserProfileCacheService(), permanent: true);
+  }
+
+  static UserProfileCacheService ensure() => _ensureService();
+
+  static UserProfileCacheService? maybeFind() {
+    if (Get.isRegistered<UserProfileCacheService>()) {
+      return Get.find<UserProfileCacheService>();
+    }
+    return null;
+  }
+
+  static Future<void> invalidateIfRegistered(String uid) async {
+    await maybeFind()?.invalidateUser(uid);
+  }
+
   @override
   void onInit() {
     super.onInit();

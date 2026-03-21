@@ -672,9 +672,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
   }
 
   Widget buildUploadIndicator() {
-    final uploadService = Get.isRegistered<UploadQueueService>()
-        ? Get.find<UploadQueueService>()
-        : Get.put(UploadQueueService());
+    final uploadService = UploadQueueService.ensure();
 
     return Obx(() {
       QueuedUpload? item;

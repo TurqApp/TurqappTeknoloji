@@ -1,11 +1,12 @@
 part of 'create_scholarship_view.dart';
 
-extension CreateScholarshipExtraPart on CreateScholarshipView {
+extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
   String _duplicateStatusLabel(String value) {
     switch (value) {
       case CreateScholarshipController.duplicateStatusCanReceiveValue:
         return 'scholarship.duplicate_status.can_receive'.tr;
-      case CreateScholarshipController.duplicateStatusCannotReceiveExceptKykValue:
+      case CreateScholarshipController
+            .duplicateStatusCannotReceiveExceptKykValue:
         return 'scholarship.duplicate_status.cannot_receive_except_kyk'.tr;
       default:
         return value;
@@ -439,15 +440,15 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
               ),
             ),
             Obx(
-              () =>
-                  controller.egitimKitlesi.value ==
-                      CreateScholarshipController.educationAudienceAllValue ||
-                  controller.egitimKitlesi.value ==
-                      CreateScholarshipController
-                          .educationAudienceMiddleSchoolValue ||
-                  controller.egitimKitlesi.value ==
-                      CreateScholarshipController
-                          .educationAudienceHighSchoolValue
+              () => controller.egitimKitlesi.value ==
+                          CreateScholarshipController
+                              .educationAudienceAllValue ||
+                      controller.egitimKitlesi.value ==
+                          CreateScholarshipController
+                              .educationAudienceMiddleSchoolValue ||
+                      controller.egitimKitlesi.value ==
+                          CreateScholarshipController
+                              .educationAudienceHighSchoolValue
                   ? const SizedBox.shrink()
                   : 8.pw,
             ),
@@ -477,7 +478,8 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                             builder: (context) => MultiSelectBottomSheet2(
                               title: "scholarship.degree_type_select".tr,
                               items: const [
-                                CreateScholarshipController.degreeAssociateValue,
+                                CreateScholarshipController
+                                    .degreeAssociateValue,
                                 CreateScholarshipController.degreeBachelorValue,
                                 CreateScholarshipController.degreeMasterValue,
                                 CreateScholarshipController.degreePhdValue,
@@ -507,8 +509,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                                   controller.lisansTuru.isEmpty
                                       ? "scholarship.degree_type_select".tr
                                       : controller.lisansTuru.length > 1
-                                          ? 'common.selected_count'
-                                              .trParams({
+                                          ? 'common.selected_count'.trParams({
                                               'count': controller
                                                   .lisansTuru.length
                                                   .toString(),
@@ -910,8 +911,7 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                   color: Colors.grey.withAlpha(100),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('common.back'.tr,
-                    style: TextStyles.medium15Black),
+                child: Text('common.back'.tr, style: TextStyles.medium15Black),
               ),
             ),
             GestureDetector(
@@ -966,8 +966,8 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('common.continue'.tr,
-                    style: TextStyles.medium15white),
+                child:
+                    Text('common.continue'.tr, style: TextStyles.medium15white),
               ),
             ),
           ],

@@ -17,28 +17,70 @@ import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class PostCommentContent extends StatelessWidget {
-  PostCommentContent({
+class PostCommentContent extends StatefulWidget {
+  const PostCommentContent({
     super.key,
     required this.model,
     required this.postID,
+    required this.commentControllerTag,
     this.isPending = false,
     this.onReplyTap,
-  }) {
-    Get.put(
-      PostCommentContentController(model: model, postID: postID),
-      tag: model.docID,
-    );
-  }
+  });
 
   final PostCommentModel model;
   final String postID;
+  final String commentControllerTag;
   final bool isPending;
   final void Function(String commentId, String nickname)? onReplyTap;
 
   @override
+  State<PostCommentContent> createState() => _PostCommentContentState();
+}
+
+class _PostCommentContentState extends State<PostCommentContent> {
+  late final PostCommentContentController controller;
+  late final String _controllerTag;
+
+  PostCommentModel get model => widget.model;
+  String get postID => widget.postID;
+  bool get isPending => widget.isPending;
+  String get commentControllerTag => widget.commentControllerTag;
+  void Function(String commentId, String nickname)? get onReplyTap =>
+      widget.onReplyTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'post_comment_content_${widget.postID}_${widget.model.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<PostCommentContentController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<PostCommentContentController>(tag: _controllerTag)
+        : Get.put(
+            PostCommentContentController(
+              model: widget.model,
+              postID: widget.postID,
+              commentControllerTag: widget.commentControllerTag,
+            ),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<PostCommentContentController>(tag: _controllerTag) &&
+        identical(
+          Get.find<PostCommentContentController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PostCommentContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.find<PostCommentContentController>(tag: model.docID);
     return Obx(() {
       final currentUID = CurrentUserService.instance.userId;
       final hasLiked =

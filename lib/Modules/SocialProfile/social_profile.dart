@@ -97,10 +97,11 @@ class _SocialProfileState extends State<SocialProfile> {
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
-    if (Get.isRegistered<ChatListingController>()) {
-      chatListingController = Get.find<ChatListingController>();
+    final existingChatListing = ChatListingController.maybeFind();
+    if (existingChatListing != null) {
+      chatListingController = existingChatListing;
     } else {
-      chatListingController = Get.put(ChatListingController());
+      chatListingController = ChatListingController.ensure();
       _ownsChatListingController = true;
     }
     if (Get.isRegistered<SocialProfileController>(tag: widget.userID)) {
@@ -286,8 +287,7 @@ class _SocialProfileState extends State<SocialProfile> {
       Get.delete<SocialProfileController>(tag: widget.userID, force: true);
     }
     if (_ownsChatListingController &&
-        Get.isRegistered<ChatListingController>() &&
-        identical(Get.find<ChatListingController>(), chatListingController)) {
+        identical(ChatListingController.maybeFind(), chatListingController)) {
       Get.delete<ChatListingController>(force: true);
     }
     super.dispose();
@@ -401,7 +401,8 @@ class _SocialProfileState extends State<SocialProfile> {
                                                 item['post'] as PostsModel;
                                             final isReshare =
                                                 item['isReshare'] as bool;
-                                            final itemKey = controller.getPostKey(
+                                            final itemKey =
+                                                controller.getPostKey(
                                               docId: model.docID,
                                               isReshare: isReshare,
                                             );
@@ -422,9 +423,8 @@ class _SocialProfileState extends State<SocialProfile> {
                                                             .showPfImage
                                                             .value &&
                                                         isCentered,
-                                                    instanceTag:
-                                                        controller
-                                                            .agendaInstanceTag(
+                                                    instanceTag: controller
+                                                        .agendaInstanceTag(
                                                       docId: model.docID,
                                                       isReshare: isReshare,
                                                     ),
@@ -444,9 +444,9 @@ class _SocialProfileState extends State<SocialProfile> {
                                                   if ((actualIndex + 1) % 4 ==
                                                       0)
                                                     Padding(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                              vertical: 8.0),
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8.0),
                                                       child: AdmobKare(
                                                           key: ValueKey(
                                                               'socialprof-ad-slot-${(actualIndex + 1) ~/ 4}')),

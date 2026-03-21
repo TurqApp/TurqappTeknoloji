@@ -40,16 +40,7 @@ class NavBarController extends GetxController
   final String fullText = "TurqApp";
 
   // ⚠️ CRITICAL FIX: Safe getter for ShortController
-  ShortController get shortCtrl {
-    if (_shortCtrl == null) {
-      if (Get.isRegistered<ShortController>()) {
-        _shortCtrl = Get.find<ShortController>();
-      } else {
-        _shortCtrl = Get.put(ShortController());
-      }
-    }
-    return _shortCtrl!;
-  }
+  ShortController get shortCtrl => _shortCtrl ??= ShortController.ensure();
 
   late final Rx<AnimationController> typingController;
   late final Rx<AnimationController> deletingController;
@@ -179,24 +170,20 @@ class NavBarController extends GetxController
       } catch (_) {}
 
       try {
-        if (Get.isRegistered<ShortController>()) {
-          final shortsController = shortCtrl;
-          if (shortsController.shorts.length < 8) {
-            shortsController.warmStart(targetCount: 8, maxPages: 2);
-          }
+        final shortsController = ShortController.maybeFind();
+        if (shortsController != null && shortsController.shorts.length < 8) {
+          shortsController.warmStart(targetCount: 8, maxPages: 2);
         }
       } catch (_) {}
 
       try {
-        if (Get.isRegistered<StoryRowController>()) {
-          final storyController = Get.find<StoryRowController>();
-          if (storyController.users.length < 30) {
-            await storyController.loadStories(
-              limit: 30,
-              cacheFirst: true,
-              silentLoad: true,
-            );
-          }
+        final storyController = StoryRowController.maybeFind();
+        if (storyController != null && storyController.users.length < 30) {
+          await storyController.loadStories(
+            limit: 30,
+            cacheFirst: true,
+            silentLoad: true,
+          );
         }
       } catch (_) {}
     });
@@ -350,9 +337,9 @@ class NavBarController extends GetxController
       });
     }
 
-    if (previous == 1 && index != 1 && Get.isRegistered<ExploreController>()) {
+    if (previous == 1 && index != 1) {
       // Keşfet'ten çıkarken resetle; geri dönünce Gündem ile açılır.
-      Get.find<ExploreController>().resetSearchToDefault();
+      ExploreController.maybeFind()?.resetSearchToDefault();
     }
   }
 

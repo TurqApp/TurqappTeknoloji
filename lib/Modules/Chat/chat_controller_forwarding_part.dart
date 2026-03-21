@@ -328,8 +328,6 @@ extension ChatControllerForwardingPart on ChatController {
     await convRef.collection("messages").add(convMessage);
 
     AppSnackbar('chat.forwarded_title'.tr, 'chat.forwarded_body'.tr);
-    if (Get.isRegistered<ChatListingController>()) {
-      Get.find<ChatListingController>().getList();
-    }
+    ChatListingController.maybeFind()?.getList();
   }
 }

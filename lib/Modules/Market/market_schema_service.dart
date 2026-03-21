@@ -14,12 +14,14 @@ class MarketSchemaService extends GetxService {
   final RxMap<String, dynamic> schema = <String, dynamic>{}.obs;
   SharedPreferences? _prefs;
 
-  static MarketSchemaService ensure() {
+  static MarketSchemaService _ensureService() {
     if (Get.isRegistered<MarketSchemaService>()) {
       return Get.find<MarketSchemaService>();
     }
     return Get.put(MarketSchemaService(), permanent: true);
   }
+
+  static MarketSchemaService ensure() => _ensureService();
 
   @override
   void onInit() {
@@ -60,15 +62,14 @@ class MarketSchemaService extends GetxService {
     final menu = (ui['recommendedRoundMenu'] as List<dynamic>? ?? const [])
         .whereType<Map>()
         .map((item) {
-          final mapped = Map<String, dynamic>.from(item);
-          final key = (mapped['key'] ?? '').toString();
-          final localized = _roundMenuLabelFor(key);
-          if (localized != null) {
-            mapped['label'] = localized;
-          }
-          return mapped;
-        })
-        .toList(growable: false);
+      final mapped = Map<String, dynamic>.from(item);
+      final key = (mapped['key'] ?? '').toString();
+      final localized = _roundMenuLabelFor(key);
+      if (localized != null) {
+        mapped['label'] = localized;
+      }
+      return mapped;
+    }).toList(growable: false);
     return menu;
   }
 

@@ -1,6 +1,6 @@
 part of 'sign_in.dart';
 
-extension SignInAuthPart on SignIn {
+extension SignInAuthPart on _SignInState {
   Widget _brandTypewriter() {
     return _LoginBrandTypewriter(
       key: ValueKey('login-brand-${controller.selection.value}'),

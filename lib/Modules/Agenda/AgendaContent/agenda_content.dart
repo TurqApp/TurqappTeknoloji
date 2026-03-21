@@ -321,8 +321,9 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   StoryUserModel? _resolveStoryUser() {
-    if (!Get.isRegistered<StoryRowController>()) return null;
-    final users = Get.find<StoryRowController>().users;
+    final rowController = StoryRowController.maybeFind();
+    if (rowController == null) return null;
+    final users = rowController.users;
     for (final user in users) {
       if (user.userID == widget.model.userID) {
         return user;

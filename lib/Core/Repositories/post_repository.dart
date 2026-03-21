@@ -113,7 +113,7 @@ class PostRepository extends GetxService {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance,
         _interactionService =
-            interactionService ?? Get.put(PostInteractionService()),
+            interactionService ?? PostInteractionService.ensure(),
         _countManager = countManager ?? PostCountManager.instance;
 
   final FirebaseFirestore _firestore;
@@ -133,12 +133,14 @@ class PostRepository extends GetxService {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
-  static PostRepository ensure() {
+  static PostRepository _ensureService() {
     if (Get.isRegistered<PostRepository>()) {
       return Get.find<PostRepository>();
     }
     return Get.put(PostRepository(), permanent: true);
   }
+
+  static PostRepository ensure() => _ensureService();
 
   PostRepositoryState attachPost(
     PostsModel model, {

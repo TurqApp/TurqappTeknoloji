@@ -14,22 +14,62 @@ import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_cont
 
 import 'in_app_notifications_controller.dart';
 
-class InAppNotifications extends StatelessWidget {
-  InAppNotifications({super.key});
+class InAppNotifications extends StatefulWidget {
+  const InAppNotifications({super.key});
 
-  final controller = Get.put(InAppNotificationsController());
-  final String _pageLineBarTag =
-      '${kNotificationsPageLineBarTag}_${identityHashCode(Object())}';
-  final recommendedController =
-      Get.isRegistered<RecommendedUserListController>()
-          ? Get.find<RecommendedUserListController>()
-          : Get.put(RecommendedUserListController());
+  @override
+  State<InAppNotifications> createState() => _InAppNotificationsState();
+}
+
+class _InAppNotificationsState extends State<InAppNotifications> {
+  late final InAppNotificationsController controller;
+  late final RecommendedUserListController recommendedController;
+  late final String _controllerTag;
+  late final String _pageLineBarTag;
+  bool _ownsRecommendedController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'in_app_notifications_${identityHashCode(this)}';
+    _pageLineBarTag = '${kNotificationsPageLineBarTag}_$_controllerTag';
+    controller = Get.isRegistered<InAppNotificationsController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<InAppNotificationsController>(tag: _controllerTag)
+        : Get.put(InAppNotificationsController(), tag: _controllerTag);
+    final existingRecommended = RecommendedUserListController.maybeFind();
+    if (existingRecommended != null) {
+      recommendedController = existingRecommended;
+    } else {
+      recommendedController = RecommendedUserListController.ensure();
+      _ownsRecommendedController = true;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      controller.markInboxSeen();
+    });
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<InAppNotificationsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<InAppNotificationsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<InAppNotificationsController>(tag: _controllerTag);
+    }
+    if (_ownsRecommendedController &&
+        identical(
+            RecommendedUserListController.maybeFind(), recommendedController)) {
+      Get.delete<RecommendedUserListController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.markInboxSeen();
-    });
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenNotifications),
       body: SafeArea(

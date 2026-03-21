@@ -103,7 +103,7 @@ class RozetController extends GetxController {
   }
 }
 
-class RozetContent extends StatelessWidget {
+class RozetContent extends StatefulWidget {
   final double size;
   final String userID;
   final double leftSpacing;
@@ -117,17 +117,51 @@ class RozetContent extends StatelessWidget {
     this.rozetValue,
   });
 
+  @override
+  State<RozetContent> createState() => _RozetContentState();
+}
+
+class _RozetContentState extends State<RozetContent> {
+  late final String _controllerTag;
+  late final RozetController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'rozet_${widget.userID}_${identityHashCode(this)}';
+    if (Get.isRegistered<RozetController>(tag: _controllerTag)) {
+      controller = Get.find<RozetController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(RozetController(widget.userID), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<RozetController>(tag: _controllerTag) &&
+        identical(
+          Get.find<RozetController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<RozetController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   Widget _badge(Color color) {
     return Transform.translate(
       offset: const Offset(0, -1),
       child: Padding(
-        padding: EdgeInsets.only(left: leftSpacing),
+        padding: EdgeInsets.only(left: widget.leftSpacing),
         child: Stack(
           alignment: Alignment.center,
           children: [
             Container(
-              width: size - 7,
-              height: size - 7,
+              width: widget.size - 7,
+              height: widget.size - 7,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -136,7 +170,7 @@ class RozetContent extends StatelessWidget {
             Icon(
               CupertinoIcons.checkmark_seal_fill,
               color: color,
-              size: size,
+              size: widget.size,
             ),
           ],
         ),
@@ -146,7 +180,7 @@ class RozetContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final knownRozet = (rozetValue ?? '').trim();
+    final knownRozet = (widget.rozetValue ?? '').trim();
     if (knownRozet.isNotEmpty) {
       final mapped = mapRozetToColor(knownRozet);
       return mapped == Colors.transparent
@@ -154,12 +188,9 @@ class RozetContent extends StatelessWidget {
           : _badge(mapped);
     }
 
-    if (userID.isEmpty) {
+    if (widget.userID.isEmpty) {
       return const SizedBox.shrink();
     }
-
-    final tag = "rozet_$userID";
-    final controller = Get.put(RozetController(userID), tag: tag);
 
     return Obx(() {
       final color = controller.color.value;

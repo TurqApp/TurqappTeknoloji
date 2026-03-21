@@ -22,11 +22,15 @@ class ExploreRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
 
-  static ExploreRepository ensure() {
+  static ExploreRepository _ensureService() {
     if (Get.isRegistered<ExploreRepository>()) {
       return Get.find<ExploreRepository>();
     }
     return Get.put(ExploreRepository(), permanent: true);
+  }
+
+  static ExploreRepository ensure() {
+    return _ensureService();
   }
 
   Future<ExploreQueryPage> fetchExplorePostsPage({
@@ -226,7 +230,8 @@ class ExploreRepository extends GetxService {
     return ExploreQueryPage(
       items: items,
       lastDoc: snap.docs.isEmpty ? null : snap.docs.last,
-      hasMore: snap.docs.length >= (excludeSeriesRoots ? pageLimit * 3 : pageLimit),
+      hasMore:
+          snap.docs.length >= (excludeSeriesRoots ? pageLimit * 3 : pageLimit),
     );
   }
 }

@@ -1,6 +1,6 @@
 part of 'create_scholarship_view.dart';
 
-extension CreateScholarshipMediaPart on CreateScholarshipView {
+extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
   Widget buildGorsel(
     BuildContext context,
     CreateScholarshipController controller,

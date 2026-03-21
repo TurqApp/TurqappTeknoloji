@@ -16,8 +16,7 @@ class SocialProfileFollowers extends StatefulWidget {
       required this.userID});
 
   @override
-  State<SocialProfileFollowers> createState() =>
-      _SocialProfileFollowersState();
+  State<SocialProfileFollowers> createState() => _SocialProfileFollowersState();
 }
 
 class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
@@ -30,7 +29,8 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<SocialProfileFollowersController>(tag: widget.userID)) {
+    if (Get.isRegistered<SocialProfileFollowersController>(
+        tag: widget.userID)) {
       controller =
           Get.find<SocialProfileFollowersController>(tag: widget.userID);
     } else {
@@ -48,7 +48,8 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<SocialProfileFollowersController>(tag: widget.userID) &&
+        Get.isRegistered<SocialProfileFollowersController>(
+            tag: widget.userID) &&
         identical(
           Get.find<SocialProfileFollowersController>(tag: widget.userID),
           controller,
@@ -72,11 +73,7 @@ class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 15, right: 15, top: 15),
-              child: Row(
-                children: [
-                  BackButtons(text: widget.nickname),
-                ],
-              ),
+              child: BackButtons(text: widget.nickname),
             ),
             PageLineBar(
               barList: ['profile.followers'.tr, 'profile.following'.tr],

@@ -18,11 +18,15 @@ class ConfigRepository extends GetxService {
   static const Duration _defaultTtl = Duration(minutes: 30);
   static const String _prefsKeyPrefix = 'config_repository_v1';
 
-  static ConfigRepository ensure() {
+  static ConfigRepository _ensureService() {
     if (Get.isRegistered<ConfigRepository>()) {
       return Get.find<ConfigRepository>();
     }
     return Get.put(ConfigRepository(), permanent: true);
+  }
+
+  static ConfigRepository ensure() {
+    return _ensureService();
   }
 
   SharedPreferences? _prefs;

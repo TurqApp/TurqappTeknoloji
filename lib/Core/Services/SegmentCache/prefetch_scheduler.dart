@@ -22,6 +22,13 @@ import 'network_policy.dart';
 /// 2. Aktif videoda ilk 2 segment hazır
 /// 3. İzleme sırasında yalnızca 1 sonraki segment hazırlanır
 class PrefetchScheduler extends GetxController {
+  static PrefetchScheduler? maybeFind() {
+    if (Get.isRegistered<PrefetchScheduler>()) {
+      return Get.find<PrefetchScheduler>();
+    }
+    return null;
+  }
+
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
   static const Map<String, String> _cdnHeaders = {
     'X-Turq-App': 'turqapp-mobile',
@@ -70,8 +77,9 @@ class PrefetchScheduler extends GetxController {
   int get maxConcurrentDownloads => _maxConcurrent;
   bool get _isOnWiFi {
     try {
-      if (Get.isRegistered<NetworkAwarenessService>()) {
-        return Get.find<NetworkAwarenessService>().isOnWiFi;
+      final network = NetworkAwarenessService.maybeFind();
+      if (network != null) {
+        return network.isOnWiFi;
       }
     } catch (_) {}
     return CacheNetworkPolicy.canPrefetch;
@@ -771,7 +779,8 @@ class PrefetchScheduler extends GetxController {
   }
 
   void _publishPrefetchHealthIfNeeded({bool force = false}) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
 
     final readyBucket = (_lastFeedReadyRatio * 10).floor().clamp(0, 10);
     final latencyBucket = (_avgQueueDispatchLatencyMs / 250).floor().clamp(
@@ -792,7 +801,7 @@ class PrefetchScheduler extends GetxController {
     }
     _lastPrefetchHealthSignature = signature;
 
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.prefetchHealth,
       {
         'paused': _paused,

@@ -31,12 +31,14 @@ class UserSubcollectionRepository extends GetxService {
   SharedPreferences? _prefs;
   final Map<String, _CachedUserSubcollection> _memory = {};
 
-  static UserSubcollectionRepository ensure() {
+  static UserSubcollectionRepository _ensureService() {
     if (Get.isRegistered<UserSubcollectionRepository>()) {
       return Get.find<UserSubcollectionRepository>();
     }
     return Get.put(UserSubcollectionRepository(), permanent: true);
   }
+
+  static UserSubcollectionRepository ensure() => _ensureService();
 
   @override
   void onInit() {
@@ -55,7 +57,8 @@ class UserSubcollectionRepository extends GetxService {
     bool forceRefresh = false,
     bool cacheOnly = false,
   }) async {
-    if (uid.isEmpty || subcollection.isEmpty) return const <UserSubcollectionEntry>[];
+    if (uid.isEmpty || subcollection.isEmpty)
+      return const <UserSubcollectionEntry>[];
     final key = _cacheKey(uid, subcollection);
 
     if (!forceRefresh) {
@@ -204,7 +207,8 @@ class UserSubcollectionRepository extends GetxService {
     );
     final next = List<UserSubcollectionEntry>.from(current)
       ..removeWhere((e) => e.id == docId)
-      ..add(UserSubcollectionEntry(id: docId, data: Map<String, dynamic>.from(data)));
+      ..add(UserSubcollectionEntry(
+          id: docId, data: Map<String, dynamic>.from(data)));
     await setEntries(uid, subcollection: subcollection, items: next);
   }
 

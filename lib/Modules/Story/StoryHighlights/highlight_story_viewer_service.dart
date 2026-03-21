@@ -22,8 +22,8 @@ class HighlightStoryViewerService {
 
       List<StoryModel> stories = <StoryModel>[];
 
-      if (Get.isRegistered<StoryRowController>()) {
-        final rowController = Get.find<StoryRowController>();
+      final rowController = StoryRowController.maybeFind();
+      if (rowController != null) {
         final userModel =
             rowController.users.firstWhereOrNull((u) => u.userID == userId);
         if (userModel != null && userModel.stories.isNotEmpty) {
@@ -41,9 +41,7 @@ class HighlightStoryViewerService {
           uniqueIds,
         );
 
-        stories = storyMap.values
-            .where((s) => s.userId == userId)
-            .toList()
+        stories = storyMap.values.where((s) => s.userId == userId).toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       }
 

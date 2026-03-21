@@ -95,7 +95,8 @@ class EditorNicknameController extends GetxController {
     });
   }
 
-  String get currentNormalized => normalizeEditableNickname(nicknameController.text);
+  String get currentNormalized =>
+      normalizeEditableNickname(nicknameController.text);
 
   bool get canSave {
     final name = currentNormalized;
@@ -279,14 +280,14 @@ class EditorNicknameController extends GetxController {
       await fetchAndSetUserData();
       Get.back();
     } on FirebaseFunctionsException catch (e) {
-      debugPrint('EditorNicknameController.setData callable error: ${e.code} ${e.message}');
+      debugPrint(
+          'EditorNicknameController.setData callable error: ${e.code} ${e.message}');
       if (e.code == 'already-exists' ||
           (e.message ?? '').contains('nickname_already_taken')) {
         AppSnackbar('common.error'.tr, 'editor_nickname.error_taken'.tr);
       } else if (e.code == 'failed-precondition' &&
           (e.message ?? '').contains('grace_limit')) {
-        AppSnackbar(
-            'common.error'.tr, 'editor_nickname.error_grace_limit'.tr);
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_grace_limit'.tr);
       } else if (e.code == 'failed-precondition' &&
           (e.message ?? '').contains('cooldown')) {
         AppSnackbar('common.error'.tr, 'editor_nickname.error_cooldown'.tr);
@@ -302,8 +303,7 @@ class EditorNicknameController extends GetxController {
       if (e.toString().contains('taken')) {
         AppSnackbar('common.error'.tr, 'editor_nickname.error_taken'.tr);
       } else if (e.toString().contains('grace_limit')) {
-        AppSnackbar(
-            'common.error'.tr, 'editor_nickname.error_grace_limit'.tr);
+        AppSnackbar('common.error'.tr, 'editor_nickname.error_grace_limit'.tr);
       } else if (e.toString().contains('cooldown')) {
         AppSnackbar('common.error'.tr, 'editor_nickname.error_cooldown'.tr);
       } else {
@@ -314,9 +314,7 @@ class EditorNicknameController extends GetxController {
   }
 
   Future<void> _refreshNicknameSurfaces() async {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      await Get.find<UserProfileCacheService>().invalidateUser(uid);
-    }
+    await UserProfileCacheService.invalidateIfRegistered(uid);
     PostContentController.invalidateUserProfileCache(uid);
     await CurrentUserService.instance.forceRefresh();
     await StoryRowController.refreshStoriesGlobally();

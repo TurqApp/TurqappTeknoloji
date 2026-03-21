@@ -5,12 +5,14 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class AdminApprovalRepository extends GetxService {
   static const String _adminConfigDocId = 'admin';
 
-  static AdminApprovalRepository ensure() {
+  static AdminApprovalRepository _ensureService() {
     if (Get.isRegistered<AdminApprovalRepository>()) {
       return Get.find<AdminApprovalRepository>();
     }
     return Get.put(AdminApprovalRepository(), permanent: true);
   }
+
+  static AdminApprovalRepository ensure() => _ensureService();
 
   CollectionReference<Map<String, dynamic>> get _ref =>
       FirebaseFirestore.instance

@@ -12,7 +12,7 @@ import 'story_sticker_sheet.dart';
 import 'story_video.dart';
 import 'text_editor_sheet.dart';
 
-class StoryMaker extends StatelessWidget {
+class StoryMaker extends StatefulWidget {
   static const Map<String, String> _mediaLookLabels = <String, String>{
     'original': 'story.media_look.original',
     'clear': 'story.media_look.clear',
@@ -31,7 +31,6 @@ class StoryMaker extends StatelessWidget {
   final double initialMediaAspectRatio;
   final String initialSourceUserId;
   final String initialSourceDisplayName;
-  final controller = Get.put(StoryMakerController());
 
   StoryMaker({
     super.key,
@@ -41,6 +40,43 @@ class StoryMaker extends StatelessWidget {
     this.initialSourceUserId = '',
     this.initialSourceDisplayName = '',
   });
+
+  @override
+  State<StoryMaker> createState() => _StoryMakerState();
+}
+
+class _StoryMakerState extends State<StoryMaker> {
+  late final StoryMakerController controller;
+  late final String _controllerTag;
+
+  Map<String, String> get _mediaLookLabels => StoryMaker._mediaLookLabels;
+  Map<String, IconData> get _mediaLookIcons => StoryMaker._mediaLookIcons;
+  String get initialMediaUrl => widget.initialMediaUrl;
+  bool get initialMediaIsVideo => widget.initialMediaIsVideo;
+  double get initialMediaAspectRatio => widget.initialMediaAspectRatio;
+  String get initialSourceUserId => widget.initialSourceUserId;
+  String get initialSourceDisplayName => widget.initialSourceDisplayName;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'story_maker_${identityHashCode(this)}';
+    controller = Get.isRegistered<StoryMakerController>(tag: _controllerTag)
+        ? Get.find<StoryMakerController>(tag: _controllerTag)
+        : Get.put(StoryMakerController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<StoryMakerController>(tag: _controllerTag) &&
+        identical(
+          Get.find<StoryMakerController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<StoryMakerController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

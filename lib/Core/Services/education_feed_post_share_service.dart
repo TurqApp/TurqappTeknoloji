@@ -20,12 +20,20 @@ import 'package:uuid/uuid.dart';
 class EducationFeedPostShareService {
   const EducationFeedPostShareService();
 
+  T _ensureService<T>(T Function() create) {
+    if (Get.isRegistered<T>()) {
+      return Get.find<T>();
+    }
+    return Get.put<T>(create());
+  }
+
   Future<void> shareScholarship(
     Map<String, dynamic> scholarshipData,
   ) async {
     final burs = scholarshipData['model'];
     if (burs is! IndividualScholarshipsModel) {
-      AppSnackbar('common.error'.tr, 'education_feed.share_scholarship_data_missing'.tr);
+      AppSnackbar('common.error'.tr,
+          'education_feed.share_scholarship_data_missing'.tr);
       return;
     }
 
@@ -34,7 +42,8 @@ class EducationFeedPostShareService {
             .toString()
             .trim();
     if (docId.isEmpty) {
-      AppSnackbar('common.error'.tr, 'education_feed.share_scholarship_start_failed'.tr);
+      AppSnackbar('common.error'.tr,
+          'education_feed.share_scholarship_start_failed'.tr);
       return;
     }
 
@@ -168,7 +177,8 @@ class EducationFeedPostShareService {
   }) async {
     final currentUid = CurrentUserService.instance.userId;
     if (currentUid.isEmpty) {
-      AppSnackbar('login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
+      AppSnackbar(
+          'login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
       return;
     }
     if (imageUrl.trim().isEmpty) {
@@ -177,9 +187,8 @@ class EducationFeedPostShareService {
     }
 
     await ShareActionGuard.run(() async {
-      final loader = Get.isRegistered<GlobalLoaderController>()
-          ? Get.find<GlobalLoaderController>()
-          : Get.put(GlobalLoaderController());
+      final loader = _ensureService<GlobalLoaderController>(
+          () => GlobalLoaderController());
       loader.isOn.value = true;
 
       try {
@@ -307,9 +316,7 @@ class EducationFeedPostShareService {
           }
         }
 
-        if (Get.isRegistered<ProfileController>()) {
-          Get.find<ProfileController>().getLastPostAndAddToAllPosts();
-        }
+        ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
 
         AppSnackbar(
           'common.success'.tr,

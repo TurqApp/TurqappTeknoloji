@@ -10,10 +10,18 @@ import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class AntremanComments extends StatelessWidget {
+class AntremanComments extends StatefulWidget {
   final QuestionBankModel question;
 
   const AntremanComments({super.key, required this.question});
+
+  @override
+  State<AntremanComments> createState() => _AntremanCommentsState();
+}
+
+class _AntremanCommentsState extends State<AntremanComments> {
+  late final AntremanCommentsController controller;
+  late final String _controllerTag;
 
   Rect getWidgetPosition(GlobalKey key) {
     final RenderBox? renderBox =
@@ -30,8 +38,34 @@ class AntremanComments extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'antreman_comments_${widget.question.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<AntremanCommentsController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<AntremanCommentsController>(tag: _controllerTag)
+        : Get.put(
+            AntremanCommentsController(widget.question),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<AntremanCommentsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<AntremanCommentsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<AntremanCommentsController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AntremanCommentsController(question));
     final double maxHeight = MediaQuery.of(context).size.height * 0.95;
 
     return GestureDetector(
@@ -664,18 +698,16 @@ class AntremanComments extends StatelessWidget {
                                               begeniler: [],
                                             ),
                                           );
-                                          final replyUserInfo =
-                                              controller.userInfoCache[
-                                                      replyingComment.userID] ??
-                                                  {
-                                                    'avatarUrl': '',
-                                                    'displayName':
-                                                        'training.unknown_user'
-                                                            .tr,
-                                                    'nickname':
-                                                        'training.unknown_user'
-                                                            .tr,
-                                                  };
+                                          final replyUserInfo = controller
+                                                      .userInfoCache[
+                                                  replyingComment.userID] ??
+                                              {
+                                                'avatarUrl': '',
+                                                'displayName':
+                                                    'training.unknown_user'.tr,
+                                                'nickname':
+                                                    'training.unknown_user'.tr,
+                                              };
                                           final replyUserName = (replyUserInfo[
                                                       'displayName'] ??
                                                   replyUserInfo['username'] ??

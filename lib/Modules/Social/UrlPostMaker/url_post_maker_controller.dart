@@ -67,7 +67,7 @@ class UrlPostMakerController extends GetxController {
         'UrlPostMakerController setData: originalUserID = $originalUserID, originalPostID = $originalPostID');
 
     try {
-      Get.find<GlobalLoaderController>().isOn.value = true;
+      GlobalLoaderController.ensure().isOn.value = true;
       final uuid = Uuid().v4();
       final normalizedAR = double.parse(aspectRatio.toStringAsFixed(4));
       final imageUrls =
@@ -237,15 +237,12 @@ class UrlPostMakerController extends GetxController {
         }
       }
 
-      if (Get.isRegistered<ProfileController>()) {
-        final mystore = Get.find<ProfileController>();
-        mystore.getLastPostAndAddToAllPosts();
-      }
-      Get.find<GlobalLoaderController>().isOn.value = false;
+      ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
+      GlobalLoaderController.ensure().isOn.value = false;
       isSharing.value = false;
       Get.back();
     } catch (e) {
-      Get.find<GlobalLoaderController>().isOn.value = false;
+      GlobalLoaderController.ensure().isOn.value = false;
       isSharing.value = false;
       print('UrlPostMaker setData error: $e');
       // Hata durumunda kullanıcıya bilgi verilebilir

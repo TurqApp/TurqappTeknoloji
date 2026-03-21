@@ -121,18 +121,17 @@ class UserRepository extends GetxService {
   final Map<String, _TimedUserLookup<Map<String, dynamic>?>> _queryCache =
       <String, _TimedUserLookup<Map<String, dynamic>?>>{};
 
-  static UserRepository ensure() {
+  static UserRepository _ensureService() {
     if (Get.isRegistered<UserRepository>()) {
       return Get.find<UserRepository>();
     }
     return Get.put(UserRepository(), permanent: true);
   }
 
+  static UserRepository ensure() => _ensureService();
+
   UserProfileCacheService get _cache {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      return Get.find<UserProfileCacheService>();
-    }
-    return Get.put(UserProfileCacheService(), permanent: true);
+    return UserProfileCacheService.ensure();
   }
 
   Future<UserSummary?> getUser(
@@ -180,8 +179,8 @@ class UserRepository extends GetxService {
     if (uid.isEmpty || data.isEmpty) return;
     await FirebaseFirestore.instance.collection('users').doc(uid).update(data);
     if (!mergeIntoCache) return;
-    final existing = _cache.peekProfile(uid, allowStale: true) ??
-        const <String, dynamic>{};
+    final existing =
+        _cache.peekProfile(uid, allowStale: true) ?? const <String, dynamic>{};
     final merged = Map<String, dynamic>.from(existing)..addAll(data);
     await _cache.putProfile(uid, merged);
   }
@@ -197,8 +196,8 @@ class UserRepository extends GetxService {
         .doc(uid)
         .set(data, SetOptions(merge: true));
     if (!mergeIntoCache) return;
-    final existing = _cache.peekProfile(uid, allowStale: true) ??
-        const <String, dynamic>{};
+    final existing =
+        _cache.peekProfile(uid, allowStale: true) ?? const <String, dynamic>{};
     final merged = Map<String, dynamic>.from(existing)..addAll(data);
     await _cache.putProfile(uid, merged);
   }

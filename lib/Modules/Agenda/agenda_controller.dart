@@ -47,10 +47,7 @@ class _AgendaSourcePage {
 
 class AgendaController extends GetxController {
   final scrollController = ScrollController();
-  UserProfileCacheService get _profileCache =>
-      Get.isRegistered<UserProfileCacheService>()
-          ? Get.find<UserProfileCacheService>()
-          : Get.put(UserProfileCacheService(), permanent: true);
+  UserProfileCacheService get _profileCache => UserProfileCacheService.ensure();
   UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
   VisibilityPolicyService get _visibilityPolicy =>
       VisibilityPolicyService.ensure();
@@ -473,7 +470,8 @@ class AgendaController extends GetxController {
   }
 
   void _trackPlaybackWindow() {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
     final centered = centeredIndex.value;
     final activeDocId = centered >= 0 && centered < agendaList.length
         ? agendaList[centered].docID
@@ -496,7 +494,7 @@ class AgendaController extends GetxController {
     ].join('|');
     if (signature == _lastPlaybackWindowSignature) return;
     _lastPlaybackWindowSignature = signature;
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.playbackWindow,
       <String, dynamic>{
         'surface': 'feed',

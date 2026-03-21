@@ -606,8 +606,7 @@ extension ChatControllerActionsPart on ChatController {
       final replyTextFinal = (replyTextOverride ?? "").trim();
       final replyTypeFinal = (replyTypeOverride ?? "text").trim();
       final replySenderFinal =
-          (replySenderIdOverride ?? CurrentUserService.instance.userId)
-              .trim();
+          (replySenderIdOverride ?? CurrentUserService.instance.userId).trim();
       final replyMessageFinal =
           (replyMessageIdOverride ?? "preview_${now.microsecondsSinceEpoch}")
               .trim();
@@ -803,9 +802,7 @@ extension ChatControllerActionsPart on ChatController {
         textEditingController.clear();
       }
       clearComposerAction();
-      if (Get.isRegistered<ChatListingController>()) {
-        Get.find<ChatListingController>().getList();
-      }
+      ChatListingController.maybeFind()?.getList();
     }
   }
 }

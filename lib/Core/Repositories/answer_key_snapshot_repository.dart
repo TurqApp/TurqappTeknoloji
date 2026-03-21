@@ -10,12 +10,14 @@ class AnswerKeySnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'answer_key_home_snapshot';
   static const String _searchSurfaceKey = 'answer_key_search_snapshot';
 
-  static AnswerKeySnapshotRepository ensure() {
+  static AnswerKeySnapshotRepository _ensureService() {
     if (Get.isRegistered<AnswerKeySnapshotRepository>()) {
       return Get.find<AnswerKeySnapshotRepository>();
     }
     return Get.put(AnswerKeySnapshotRepository(), permanent: true);
   }
+
+  static AnswerKeySnapshotRepository ensure() => _ensureService();
 
   final BookletRepository _bookletRepository = BookletRepository.ensure();
 

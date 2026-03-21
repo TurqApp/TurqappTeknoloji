@@ -226,7 +226,7 @@ class ClickableTextController extends GetxController {
   }
 }
 
-class ClickableTextContent extends StatelessWidget {
+class ClickableTextContent extends StatefulWidget {
   final String text;
   final void Function(String url)? onUrlTap;
   final void Function(String hashtag)? onHashtagTap;
@@ -266,40 +266,98 @@ class ClickableTextContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Controller tag must reflect style so different contexts don't reuse
-    // a controller with stale colors (e.g., fullscreen vs feed).
-    String colorKey(Color? c) => c?.toARGB32().toRadixString(16) ?? 'n';
-    final tag = 'click_${text.hashCode}_'
-        '${colorKey(fontColor)}_'
-        '${colorKey(urlColor)}_'
-        '${colorKey(mentionColor)}_'
-        '${colorKey(hashtagColor)}_'
-        '${colorKey(interactiveColor)}_'
-        '${startWith7line ? '7' : '2'}_'
-        '${toggleExpandOnTextTap ? 'tap' : 'btn'}';
+  State<ClickableTextContent> createState() => _ClickableTextContentState();
+}
 
-    final controller = Get.put(
-      ClickableTextController(
-        text: text,
-        onUrlTap: onUrlTap,
-        onHashtagTap: onHashtagTap,
-        onMentionTap: onMentionTap,
-        onPlainTextTap: onPlainTextTap,
-        fontSize: fontSize,
-        fontColor: fontColor,
-        urlColor: urlColor,
-        mentionColor: mentionColor,
-        hashtagColor: hashtagColor,
-        startWith7line: startWith7line,
-        interactiveColor: interactiveColor, // YENİ
-      ),
-      tag: tag,
+class _ClickableTextContentState extends State<ClickableTextContent> {
+  late String _controllerTag;
+  late ClickableTextController controller;
+  bool _ownsController = false;
+
+  String _colorKey(Color? c) => c?.toARGB32().toRadixString(16) ?? 'n';
+
+  String _buildControllerTag() {
+    final signature = 'click_${widget.text.hashCode}_'
+        '${_colorKey(widget.fontColor)}_'
+        '${_colorKey(widget.urlColor)}_'
+        '${_colorKey(widget.mentionColor)}_'
+        '${_colorKey(widget.hashtagColor)}_'
+        '${_colorKey(widget.interactiveColor)}_'
+        '${widget.startWith7line ? '7' : '2'}_'
+        '${widget.toggleExpandOnTextTap ? 'tap' : 'btn'}_'
+        '${identityHashCode(widget.onUrlTap)}_'
+        '${identityHashCode(widget.onHashtagTap)}_'
+        '${identityHashCode(widget.onMentionTap)}_'
+        '${identityHashCode(widget.onPlainTextTap)}';
+    return '${signature}_${identityHashCode(this)}';
+  }
+
+  ClickableTextController _createController() {
+    return ClickableTextController(
+      text: widget.text,
+      onUrlTap: widget.onUrlTap,
+      onHashtagTap: widget.onHashtagTap,
+      onMentionTap: widget.onMentionTap,
+      onPlainTextTap: widget.onPlainTextTap,
+      fontSize: widget.fontSize,
+      fontColor: widget.fontColor,
+      urlColor: widget.urlColor,
+      mentionColor: widget.mentionColor,
+      hashtagColor: widget.hashtagColor,
+      startWith7line: widget.startWith7line,
+      interactiveColor: widget.interactiveColor,
     );
+  }
 
+  void _bindController() {
+    if (Get.isRegistered<ClickableTextController>(tag: _controllerTag)) {
+      controller = Get.find<ClickableTextController>(tag: _controllerTag);
+      _ownsController = false;
+    } else {
+      controller = Get.put(_createController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  void _disposeOwnedController() {
+    if (_ownsController &&
+        Get.isRegistered<ClickableTextController>(tag: _controllerTag) &&
+        identical(
+          Get.find<ClickableTextController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ClickableTextController>(tag: _controllerTag);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = _buildControllerTag();
+    _bindController();
+  }
+
+  @override
+  void didUpdateWidget(covariant ClickableTextContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextTag = _buildControllerTag();
+    if (nextTag == _controllerTag) return;
+    _disposeOwnedController();
+    _controllerTag = nextTag;
+    _bindController();
+  }
+
+  @override
+  void dispose() {
+    _disposeOwnedController();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final baseStyle = TextStyle(
-      fontSize: fontSize ?? 15,
-      color: fontColor ?? Colors.black,
+      fontSize: widget.fontSize ?? 15,
+      color: widget.fontColor ?? Colors.black,
       fontFamily: "Montserrat",
       height: 1.4,
     );
@@ -307,7 +365,8 @@ class ClickableTextContent extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (Get.isRegistered<ClickableTextController>(tag: tag)) {
+          if (!mounted) return;
+          if (Get.isRegistered<ClickableTextController>(tag: _controllerTag)) {
             controller.checkIfExceeds(constraints, baseStyle);
           }
         });
@@ -316,7 +375,7 @@ class ClickableTextContent extends StatelessWidget {
           final collapsed = !controller.expanded.value;
           final maxLines =
               collapsed ? (controller.startWith7line ? 7 : 2) : null;
-          final showOverlay = showEllipsisOverlay &&
+          final showOverlay = widget.showEllipsisOverlay &&
               collapsed &&
               controller.showExpandButton.value;
           Widget textBody = showOverlay
@@ -339,7 +398,8 @@ class ClickableTextContent extends StatelessWidget {
                       collapsed ? TextOverflow.ellipsis : TextOverflow.visible,
                 );
 
-          if (toggleExpandOnTextTap && controller.showExpandButton.value) {
+          if (widget.toggleExpandOnTextTap &&
+              controller.showExpandButton.value) {
             textBody = GestureDetector(
               behavior: HitTestBehavior.translucent,
               onTap: controller.toggleExpand,
@@ -364,10 +424,11 @@ class ClickableTextContent extends StatelessWidget {
                         ? 'common.show_less'.tr
                         : 'common.show_more'.tr,
                     style: TextStyle(
-                      fontSize: expandButtonFontSize ?? ((fontSize ?? 15) - 1),
-                      color: expandButtonColor ??
-                          interactiveColor ??
-                          urlColor ??
+                      fontSize: widget.expandButtonFontSize ??
+                          ((widget.fontSize ?? 15) - 1),
+                      color: widget.expandButtonColor ??
+                          widget.interactiveColor ??
+                          widget.urlColor ??
                           AppColors.primaryColor,
                       fontFamily: "Montserrat",
                     ),

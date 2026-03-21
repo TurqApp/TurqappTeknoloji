@@ -8,11 +8,17 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/MyStatistic/my_statistic_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
-class MyStatisticView extends StatelessWidget {
-  MyStatisticView({super.key});
+class MyStatisticView extends StatefulWidget {
+  const MyStatisticView({super.key});
 
-  final MyStatisticController controller = Get.put(MyStatisticController());
+  @override
+  State<MyStatisticView> createState() => _MyStatisticViewState();
+}
+
+class _MyStatisticViewState extends State<MyStatisticView> {
+  late final MyStatisticController controller;
   final userService = CurrentUserService.instance;
+  late final String _controllerTag;
   static const List<Color> _statColors = [
     // Mevcutlar…
     Color(0xFF1E88E5),
@@ -36,6 +42,27 @@ class MyStatisticView extends StatelessWidget {
     Color(0xFF512DA8),
     Color(0xFF0097A7),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'antreman_my_statistics_${identityHashCode(this)}';
+    controller = Get.isRegistered<MyStatisticController>(tag: _controllerTag)
+        ? Get.find<MyStatisticController>(tag: _controllerTag)
+        : Get.put(MyStatisticController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<MyStatisticController>(tag: _controllerTag) &&
+        identical(
+          Get.find<MyStatisticController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyStatisticController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

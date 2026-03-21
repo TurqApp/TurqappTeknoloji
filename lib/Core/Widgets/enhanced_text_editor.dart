@@ -34,7 +34,7 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
   @override
   void initState() {
     super.initState();
-    _editingService = Get.put(PostEditingService());
+    _editingService = PostEditingService.ensure();
     widget.controller.addListener(_onTextChanged);
   }
 

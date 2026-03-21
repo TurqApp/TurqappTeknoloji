@@ -28,11 +28,15 @@ class NotificationsSnapshotRepository extends GetxService {
 
   static const String _surfaceKey = 'notifications_inbox_snapshot';
 
-  static NotificationsSnapshotRepository ensure() {
+  static NotificationsSnapshotRepository _ensureService() {
     if (Get.isRegistered<NotificationsSnapshotRepository>()) {
       return Get.find<NotificationsSnapshotRepository>();
     }
     return Get.put(NotificationsSnapshotRepository(), permanent: true);
+  }
+
+  static NotificationsSnapshotRepository ensure() {
+    return _ensureService();
   }
 
   final NotificationsRepository _notificationsRepository =
@@ -312,8 +316,8 @@ class NotificationsSnapshotRepository extends GetxService {
           isRead: (data['isRead'] ?? data['read'] ?? false) == true,
           type: (data['type'] ?? '').toString(),
           postID: (data['postID'] ?? '').toString(),
-          postType:
-              notificationPostTypeFromEventType((data['type'] ?? '').toString()),
+          postType: notificationPostTypeFromEventType(
+              (data['type'] ?? '').toString()),
           thumbnail: (data['thumbnail'] ?? '').toString(),
           timeStamp: _asInt(data['timeStamp']),
           title: (data['title'] ?? '').toString(),

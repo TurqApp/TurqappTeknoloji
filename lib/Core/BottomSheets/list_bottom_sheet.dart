@@ -76,15 +76,23 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   final TextEditingController searchController = TextEditingController();
   final FocusNode searchFocusNode = FocusNode();
   late ValueNotifier<bool> focusNotifier;
+  late final String _controllerTag;
   late final ListBottomSheetController controller;
+  bool _ownsController = false;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(
-      ListBottomSheetController(),
-      tag: '${widget.title}_${identityHashCode(this)}',
-    );
+    _controllerTag = '${widget.title}_${identityHashCode(this)}';
+    if (Get.isRegistered<ListBottomSheetController>(tag: _controllerTag)) {
+      controller = Get.find<ListBottomSheetController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(
+        ListBottomSheetController(),
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
     controller.initSingleSelection(widget.list, widget.startSelection);
     // ValueNotifier'ı başlat
     focusNotifier = ValueNotifier<bool>(searchFocusNode.hasFocus);
@@ -97,10 +105,14 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   @override
   void dispose() {
     // Temizlik
-    Get.delete<ListBottomSheetController>(
-      tag: '${widget.title}_${identityHashCode(this)}',
-      force: true,
-    );
+    if (_ownsController &&
+        Get.isRegistered<ListBottomSheetController>(tag: _controllerTag) &&
+        identical(
+          Get.find<ListBottomSheetController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ListBottomSheetController>(tag: _controllerTag);
+    }
     searchController.dispose();
     searchFocusNode.dispose();
     focusNotifier.dispose();

@@ -313,16 +313,16 @@ class HLSProxyServer extends GetxController {
 
   NetworkAwarenessService? _getNetworkService() {
     try {
-      return Get.find<NetworkAwarenessService>();
-    } catch (_) {
-      try {
-        final service = Get.put(NetworkAwarenessService(), permanent: true);
-        debugPrint('[HLSProxy] NetworkAwarenessService auto-registered');
-        return service;
-      } catch (e) {
-        debugPrint('[HLSProxy] Failed to auto-register network service: $e');
-        return null;
+      final existing = NetworkAwarenessService.maybeFind();
+      if (existing != null) {
+        return existing;
       }
+      final service = NetworkAwarenessService.ensure();
+      debugPrint('[HLSProxy] NetworkAwarenessService auto-registered');
+      return service;
+    } catch (e) {
+      debugPrint('[HLSProxy] Failed to auto-register network service: $e');
+      return null;
     }
   }
 

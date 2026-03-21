@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/playback_state_machine.dart';
 import 'package:turqappv2/Core/Services/player_budget_policy.dart';
@@ -163,7 +162,8 @@ class ShortPlaybackCoordinator {
     required Set<int> hotIndices,
     required Set<int> warmIndices,
   }) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
     final safeIndex =
         items.isEmpty ? 0 : activeIndex.clamp(0, items.length - 1);
     final activeDocId = items.isEmpty ? '' : items[safeIndex].docID;
@@ -177,7 +177,7 @@ class ShortPlaybackCoordinator {
     ].join('|');
     if (signature == _lastWindowSignature) return;
     _lastWindowSignature = signature;
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.playbackWindow,
       <String, dynamic>{
         'surface': 'short',

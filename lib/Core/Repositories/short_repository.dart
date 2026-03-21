@@ -22,11 +22,15 @@ class ShortRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
 
-  static ShortRepository ensure() {
+  static ShortRepository _ensureService() {
     if (Get.isRegistered<ShortRepository>()) {
       return Get.find<ShortRepository>();
     }
     return Get.put(ShortRepository(), permanent: true);
+  }
+
+  static ShortRepository ensure() {
+    return _ensureService();
   }
 
   Future<ShortPageResult> fetchReadyPage({

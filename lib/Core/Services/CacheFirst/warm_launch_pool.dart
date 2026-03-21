@@ -14,11 +14,15 @@ class WarmLaunchPool extends GetxService {
 
   final IndexPoolStore _delegate;
 
-  static WarmLaunchPool ensure() {
+  static WarmLaunchPool _ensureService() {
     if (Get.isRegistered<WarmLaunchPool>()) {
       return Get.find<WarmLaunchPool>();
     }
     return Get.put(WarmLaunchPool(), permanent: true);
+  }
+
+  static WarmLaunchPool ensure() {
+    return _ensureService();
   }
 
   Future<void> init() => _delegate.init();

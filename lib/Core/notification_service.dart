@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -89,9 +90,19 @@ class NotificationService {
   }
 
   Future<void> _syncCurrentToken() async {
+    await _ensureApplePushBridgeReady();
     final token = await _messaging.getToken();
     if (token == null || token.isEmpty) return;
     await _persistToken(token);
+  }
+
+  Future<void> _ensureApplePushBridgeReady() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    for (var i = 0; i < 12; i++) {
+      final apnsToken = await _messaging.getAPNSToken();
+      if (apnsToken != null && apnsToken.isNotEmpty) return;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
   }
 
   Future<void> _persistToken(String token) async {
@@ -258,9 +269,7 @@ class NotificationService {
         ),
       );
 
-      final controller = Get.isRegistered<NotifyReaderController>()
-          ? Get.find<NotifyReaderController>()
-          : Get.put(NotifyReaderController());
+      final controller = NotifyReaderController.ensure();
 
       final normalized = normalizeSearchText(type.toString());
       try {

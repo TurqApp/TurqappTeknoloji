@@ -14,11 +14,15 @@ class ShortRenderUpdate {
 }
 
 class ShortRenderCoordinator extends GetxService {
-  static ShortRenderCoordinator ensure() {
+  static ShortRenderCoordinator _ensureService() {
     if (Get.isRegistered<ShortRenderCoordinator>()) {
       return Get.find<ShortRenderCoordinator>();
     }
     return Get.put(ShortRenderCoordinator(), permanent: true);
+  }
+
+  static ShortRenderCoordinator ensure() {
+    return _ensureService();
   }
 
   ShortRenderUpdate buildUpdate({
@@ -44,10 +48,10 @@ class ShortRenderCoordinator extends GetxService {
     required ShortRenderUpdate update,
     required List<PostsModel> next,
   }) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
-    final clampedCurrent = previous.isEmpty
-        ? 0
-        : currentIndex.clamp(0, previous.length - 1);
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
+    final clampedCurrent =
+        previous.isEmpty ? 0 : currentIndex.clamp(0, previous.length - 1);
     var insertCount = 0;
     var updateCount = 0;
     var removeCount = 0;
@@ -69,7 +73,7 @@ class ShortRenderCoordinator extends GetxService {
           break;
       }
     }
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.renderDiff,
       <String, dynamic>{
         'surface': 'short',
@@ -145,9 +149,11 @@ class ShortRenderCoordinator extends GetxService {
     }
 
     final operations = <RenderPatchOperation<PostsModel>>[];
-    final sharedLength = previous.length < next.length ? previous.length : next.length;
+    final sharedLength =
+        previous.length < next.length ? previous.length : next.length;
     for (int i = 0; i < sharedLength; i++) {
-      if (previous[i].docID != next[i].docID || !_samePayload(previous[i], next[i])) {
+      if (previous[i].docID != next[i].docID ||
+          !_samePayload(previous[i], next[i])) {
         operations.add(
           RenderPatchOperation<PostsModel>(
             type: RenderPatchOperationType.update,

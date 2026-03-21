@@ -85,6 +85,13 @@ class _SettingsViewState extends State<SettingsView> {
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
 
+  T _ensureService<T>(T Function() create) {
+    if (Get.isRegistered<T>()) {
+      return Get.find<T>();
+    }
+    return Get.put<T>(create());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -132,8 +139,8 @@ class _SettingsViewState extends State<SettingsView> {
                   child: Column(
                     children: [
                       buildSectionTitle('settings.account'.tr),
-                      buildRow('settings.edit_profile'.tr, CupertinoIcons.pencil_outline,
-                          () {
+                      buildRow('settings.edit_profile'.tr,
+                          CupertinoIcons.pencil_outline, () {
                         Get.to(() => EditProfile());
                       }),
                       FutureBuilder<VerifiedAccountApplicationState?>(
@@ -185,7 +192,8 @@ class _SettingsViewState extends State<SettingsView> {
                           Get.to(() => BlockedUsers());
                         },
                       ),
-                      buildRow('settings.interests'.tr, CupertinoIcons.sparkles, () {
+                      buildRow('settings.interests'.tr, CupertinoIcons.sparkles,
+                          () {
                         Get.to(() => Interests());
                       }),
                       buildRow(
@@ -195,28 +203,37 @@ class _SettingsViewState extends State<SettingsView> {
                           Get.to(() => AccountCenterView());
                         },
                       ),
-                      buildRow('settings.career_profile'.tr, CupertinoIcons.paperclip, () {
+                      buildRow('settings.career_profile'.tr,
+                          CupertinoIcons.paperclip, () {
                         Get.to(() => Cv());
                       }),
                       buildSectionTitle('settings.content'.tr),
-                      buildRow('settings.saved_posts'.tr, CupertinoIcons.bookmark, () {
+                      buildRow(
+                          'settings.saved_posts'.tr, CupertinoIcons.bookmark,
+                          () {
                         Get.to(() => SavedPosts());
                       }),
-                      buildRow('settings.archive'.tr, CupertinoIcons.refresh_thick, () {
+                      buildRow(
+                          'settings.archive'.tr, CupertinoIcons.refresh_thick,
+                          () {
                         Get.to(() => Archives());
                       }),
-                      buildRow('settings.liked_posts'.tr, CupertinoIcons.hand_thumbsup,
-                          () {
+                      buildRow('settings.liked_posts'.tr,
+                          CupertinoIcons.hand_thumbsup, () {
                         Get.to(() => LikedPosts());
                       }),
                       buildSectionTitle('settings.app'.tr),
-                      buildRow('settings.language'.tr, CupertinoIcons.globe, () {
+                      buildRow('settings.language'.tr, CupertinoIcons.globe,
+                          () {
                         Get.to(() => const LanguageSettingsView());
                       }, showLanguageLabel: true),
-                      buildRow('settings.notifications'.tr, CupertinoIcons.bell, () {
+                      buildRow('settings.notifications'.tr, CupertinoIcons.bell,
+                          () {
                         Get.to(() => const NotificationSettingsView());
                       }),
-                      buildRow('settings.permissions'.tr, CupertinoIcons.lock_shield, () {
+                      buildRow(
+                          'settings.permissions'.tr, CupertinoIcons.lock_shield,
+                          () {
                         Get.to(() => const PermissionsView());
                       }),
                       buildRow('settings.pasaj'.tr, CupertinoIcons.nosign, () {
@@ -230,10 +247,12 @@ class _SettingsViewState extends State<SettingsView> {
                           ),
                         );
                       }),
-                      buildRow('settings.policies'.tr, CupertinoIcons.shield, () {
+                      buildRow('settings.policies'.tr, CupertinoIcons.shield,
+                          () {
                         Get.to(() => Policies());
                       }),
-                      buildRow('settings.contact_us'.tr, CupertinoIcons.pencil_circle, () {
+                      buildRow('settings.contact_us'.tr,
+                          CupertinoIcons.pencil_circle, () {
                         Get.to(() => const SupportContactView());
                       }),
                       StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -291,7 +310,8 @@ class _SettingsViewState extends State<SettingsView> {
                           }
                           return Column(
                             children: [
-                              buildSectionTitle('settings.system_diagnostics'.tr),
+                              buildSectionTitle(
+                                  'settings.system_diagnostics'.tr),
                               buildRow(
                                 'settings.admin_ads'.tr,
                                 CupertinoIcons.volume_up,
@@ -347,9 +367,8 @@ class _SettingsViewState extends State<SettingsView> {
                         },
                       ),
                       buildSectionTitle('settings.session'.tr),
-                      buildRow(
-                          'settings.sign_out'.tr, CupertinoIcons.square_arrow_right,
-                          () {
+                      buildRow('settings.sign_out'.tr,
+                          CupertinoIcons.square_arrow_right, () {
                         noYesAlert(
                           title: 'settings.sign_out_title'.tr,
                           message: 'settings.sign_out_message'.tr,
@@ -533,11 +552,8 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showDataUsageDialog() {
-    if (!Get.isRegistered<NetworkAwarenessService>()) {
-      Get.put(NetworkAwarenessService());
-    }
-
-    final networkService = Get.find<NetworkAwarenessService>();
+    final networkService = _ensureService<NetworkAwarenessService>(
+        () => NetworkAwarenessService());
     final stats = networkService.getNetworkStats();
     final usage = networkService.dataUsage;
     final now = DateTime.now();
@@ -553,9 +569,8 @@ class _SettingsViewState extends State<SettingsView> {
         ? CacheMetrics.formatBytes(
             Get.find<SegmentCacheManager>().totalSizeBytes)
         : "settings.diagnostics.unknown".tr;
-    final offline = Get.isRegistered<OfflineModeService>()
-        ? Get.find<OfflineModeService>()
-        : Get.put(OfflineModeService.instance);
+    final offline =
+        _ensureService<OfflineModeService>(() => OfflineModeService.instance);
     final queueStats = offline.getQueueStats();
     final queueLastSyncMs = (queueStats['lastSyncAt'] as int?) ?? 0;
     final queueLastSyncText = queueLastSyncMs <= 0
@@ -586,18 +601,24 @@ class _SettingsViewState extends State<SettingsView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("${'settings.diagnostics.network'.tr}: ${stats['currentNetwork']}"),
-            Text("${'settings.diagnostics.connected'.tr}: ${stats['isConnected']}"),
+            Text(
+                "${'settings.diagnostics.network'.tr}: ${stats['currentNetwork']}"),
+            Text(
+                "${'settings.diagnostics.connected'.tr}: ${stats['isConnected']}"),
             Text(
               "${'settings.diagnostics.monthly_total'.tr}: ${stats['monthlyUsageMB']} MB",
             ),
-            Text("${'settings.diagnostics.monthly_limit'.tr}: ${stats['monthlyLimitMB']} MB"),
-            Text("${'settings.diagnostics.remaining'.tr}: ${stats['remainingMB']} MB"),
+            Text(
+                "${'settings.diagnostics.monthly_limit'.tr}: ${stats['monthlyLimitMB']} MB"),
+            Text(
+                "${'settings.diagnostics.remaining'.tr}: ${stats['remainingMB']} MB"),
             Text(
               "${'settings.diagnostics.limit_usage'.tr}: ${stats['dataUsagePercentage'].toStringAsFixed(1)}%",
             ),
-            Text("${'settings.diagnostics.wifi_usage'.tr}: ${stats['wifiUsageMB']} MB"),
-            Text("${'settings.diagnostics.cellular_usage'.tr}: ${stats['cellularUsageMB']} MB"),
+            Text(
+                "${'settings.diagnostics.wifi_usage'.tr}: ${stats['wifiUsageMB']} MB"),
+            Text(
+                "${'settings.diagnostics.cellular_usage'.tr}: ${stats['cellularUsageMB']} MB"),
             const SizedBox(height: 8),
             Text(
               "settings.diagnostics.time_ranges".tr,
@@ -621,25 +642,31 @@ class _SettingsViewState extends State<SettingsView> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             Text("${'settings.diagnostics.upload'.tr}: ${usage.uploadedMB} MB"),
-            Text("${'settings.diagnostics.download'.tr}: ${usage.downloadedMB} MB"),
+            Text(
+                "${'settings.diagnostics.download'.tr}: ${usage.downloadedMB} MB"),
             const SizedBox(height: 8),
             Text(
               "settings.diagnostics.cache".tr,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            Text("${'settings.diagnostics.saved_media_count'.tr}: $cacheEntryCount"),
+            Text(
+                "${'settings.diagnostics.saved_media_count'.tr}: $cacheEntryCount"),
             Text("${'settings.diagnostics.occupied_space'.tr}: $cacheSizeText"),
             const SizedBox(height: 8),
             Text(
               "settings.diagnostics.offline_queue".tr,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            Text("${'settings.diagnostics.pending'.tr}: ${queueStats['pending'] ?? 0}"),
-            Text("${'settings.diagnostics.dead_letter'.tr}: ${queueStats['deadLetter'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.pending'.tr}: ${queueStats['pending'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.dead_letter'.tr}: ${queueStats['deadLetter'] ?? 0}"),
             Text(
                 "${'settings.diagnostics.status'.tr}: ${(queueStats['isSyncing'] ?? false) ? 'settings.diagnostics.syncing'.tr : 'settings.diagnostics.idle'.tr}"),
-            Text("${'settings.diagnostics.processed_total'.tr}: ${queueStats['processedCount'] ?? 0}"),
-            Text("${'settings.diagnostics.failed_total'.tr}: ${queueStats['failedCount'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.processed_total'.tr}: ${queueStats['processedCount'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.failed_total'.tr}: ${queueStats['failedCount'] ?? 0}"),
             Text("${'settings.diagnostics.last_sync'.tr}: $queueLastSyncText"),
             const SizedBox(height: 8),
             Text("${'settings.diagnostics.login_date'.tr}: $loginDate"),
@@ -657,27 +684,13 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _ensureDiagnosticsServices() {
-    if (!Get.isRegistered<ErrorHandlingService>()) {
-      Get.put(ErrorHandlingService());
-    }
-    if (!Get.isRegistered<NetworkAwarenessService>()) {
-      Get.put(NetworkAwarenessService());
-    }
-    if (!Get.isRegistered<UploadQueueService>()) {
-      Get.put(UploadQueueService());
-    }
-    if (!Get.isRegistered<DraftService>()) {
-      Get.put(DraftService());
-    }
-    if (!Get.isRegistered<PostEditingService>()) {
-      Get.put(PostEditingService());
-    }
-    if (!Get.isRegistered<MediaEnhancementService>()) {
-      Get.put(MediaEnhancementService());
-    }
-    if (!Get.isRegistered<OfflineModeService>()) {
-      Get.put(OfflineModeService.instance);
-    }
+    _ensureService<ErrorHandlingService>(() => ErrorHandlingService());
+    _ensureService<NetworkAwarenessService>(() => NetworkAwarenessService());
+    _ensureService<UploadQueueService>(() => UploadQueueService());
+    _ensureService<DraftService>(() => DraftService());
+    _ensureService<PostEditingService>(() => PostEditingService());
+    _ensureService<MediaEnhancementService>(() => MediaEnhancementService());
+    _ensureService<OfflineModeService>(() => OfflineModeService.instance);
   }
 
   void _showSystemDiagnosticsMenu() {
@@ -765,10 +778,8 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showVideoCacheDetails() {
-    final hasCache = Get.isRegistered<SegmentCacheManager>();
-    final hasPrefetch = Get.isRegistered<PrefetchScheduler>();
-    final cache = hasCache ? Get.find<SegmentCacheManager>() : null;
-    final prefetch = hasPrefetch ? Get.find<PrefetchScheduler>() : null;
+    final cache = SegmentCacheManager.maybeFind();
+    final prefetch = PrefetchScheduler.maybeFind();
 
     final metrics = cache?.metrics.toJson() ?? {};
     final hitRate = (metrics['cacheHitRate'] ?? '0.0%').toString();
@@ -780,8 +791,10 @@ class _SettingsViewState extends State<SettingsView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("${'settings.diagnostics.saved_videos'.tr}: ${cache?.entryCount ?? 0}"),
-            Text("${'settings.diagnostics.saved_segments'.tr}: ${cache?.totalSegmentCount ?? 0}"),
+            Text(
+                "${'settings.diagnostics.saved_videos'.tr}: ${cache?.entryCount ?? 0}"),
+            Text(
+                "${'settings.diagnostics.saved_segments'.tr}: ${cache?.totalSegmentCount ?? 0}"),
             Text(
               "${'settings.diagnostics.disk_usage'.tr}: ${cache == null ? 'settings.diagnostics.unknown'.tr : CacheMetrics.formatBytes(cache.totalSizeBytes)}",
             ),
@@ -789,15 +802,21 @@ class _SettingsViewState extends State<SettingsView> {
             Text("settings.diagnostics.cache_traffic".tr,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             Text("${'settings.diagnostics.hit_rate'.tr}: $hitRate"),
-            Text("${'settings.diagnostics.hit'.tr}: ${metrics['cacheHits'] ?? 0}"),
-            Text("${'settings.diagnostics.miss'.tr}: ${metrics['cacheMisses'] ?? 0}"),
-            Text("${'settings.diagnostics.cache_served'.tr}: ${metrics['bytesServedFromCache'] ?? '0B'}"),
-            Text("${'settings.diagnostics.downloaded_from_network'.tr}: ${metrics['bytesDownloaded'] ?? '0B'}"),
+            Text(
+                "${'settings.diagnostics.hit'.tr}: ${metrics['cacheHits'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.miss'.tr}: ${metrics['cacheMisses'] ?? 0}"),
+            Text(
+                "${'settings.diagnostics.cache_served'.tr}: ${metrics['bytesServedFromCache'] ?? '0B'}"),
+            Text(
+                "${'settings.diagnostics.downloaded_from_network'.tr}: ${metrics['bytesDownloaded'] ?? '0B'}"),
             const SizedBox(height: 8),
             Text("settings.diagnostics.prefetch".tr,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text("${'settings.diagnostics.queue'.tr}: ${prefetch?.queueSize ?? 0}"),
-            Text("${'settings.diagnostics.active_downloads'.tr}: ${prefetch?.activeDownloads ?? 0}"),
+            Text(
+                "${'settings.diagnostics.queue'.tr}: ${prefetch?.queueSize ?? 0}"),
+            Text(
+                "${'settings.diagnostics.active_downloads'.tr}: ${prefetch?.activeDownloads ?? 0}"),
             Text(
                 "${'settings.diagnostics.status'.tr}: ${(prefetch?.isPaused ?? true) ? 'settings.diagnostics.paused'.tr : 'settings.diagnostics.active'.tr}"),
           ],
@@ -834,7 +853,9 @@ class _SettingsViewState extends State<SettingsView> {
                 title: Text("settings.diagnostics.reset_data_counters".tr),
                 onTap: () async {
                   Get.back();
-                  await Get.find<NetworkAwarenessService>().resetDataUsage();
+                  await _ensureService<NetworkAwarenessService>(
+                    () => NetworkAwarenessService(),
+                  ).resetDataUsage();
                   AppSnackbar("common.success".tr,
                       "settings.diagnostics.data_counters_reset".tr);
                 },
@@ -909,9 +930,8 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showOfflineQueueDetails() {
-    final offline = Get.isRegistered<OfflineModeService>()
-        ? Get.find<OfflineModeService>()
-        : Get.put(OfflineModeService.instance);
+    final offline =
+        _ensureService<OfflineModeService>(() => OfflineModeService.instance);
 
     Get.dialog(
       AlertDialog(
@@ -977,12 +997,18 @@ class _SettingsViewState extends State<SettingsView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("${'settings.diagnostics.online'.tr}: ${stats['isOnline']}"),
-                  Text("${'settings.diagnostics.sync'.tr}: ${stats['isSyncing']}"),
-                  Text("${'settings.diagnostics.pending'.tr}: ${pending.length}"),
-                  Text("${'settings.diagnostics.dead_letter'.tr}: ${dead.length}"),
-                  Text("${'settings.diagnostics.processed'.tr}: ${stats['processedCount'] ?? 0}"),
-                  Text("${'settings.diagnostics.failed'.tr}: ${stats['failedCount'] ?? 0}"),
+                  Text(
+                      "${'settings.diagnostics.online'.tr}: ${stats['isOnline']}"),
+                  Text(
+                      "${'settings.diagnostics.sync'.tr}: ${stats['isSyncing']}"),
+                  Text(
+                      "${'settings.diagnostics.pending'.tr}: ${pending.length}"),
+                  Text(
+                      "${'settings.diagnostics.dead_letter'.tr}: ${dead.length}"),
+                  Text(
+                      "${'settings.diagnostics.processed'.tr}: ${stats['processedCount'] ?? 0}"),
+                  Text(
+                      "${'settings.diagnostics.failed'.tr}: ${stats['failedCount'] ?? 0}"),
                   const SizedBox(height: 10),
                   Text(
                     'settings.diagnostics.pending_first8'.tr,
@@ -1036,7 +1062,8 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _showLastErrorSummary() {
-    final errorService = Get.find<ErrorHandlingService>();
+    final errorService =
+        _ensureService<ErrorHandlingService>(() => ErrorHandlingService());
     final last = errorService.getLastErrorSummary();
 
     Get.dialog(
@@ -1048,12 +1075,18 @@ class _SettingsViewState extends State<SettingsView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("${'settings.diagnostics.error_code'.tr}: ${last['code']}"),
-                  Text("${'settings.diagnostics.error_category'.tr}: ${last['category']}"),
-                  Text("${'settings.diagnostics.error_severity'.tr}: ${last['severity']}"),
-                  Text("${'settings.diagnostics.error_retryable'.tr}: ${last['retryable']}"),
-                  Text("${'settings.diagnostics.error_message'.tr}: ${last['userFriendlyMessage']}"),
-                  Text("${'settings.diagnostics.error_time'.tr}: ${last['timestamp']}"),
+                  Text(
+                      "${'settings.diagnostics.error_code'.tr}: ${last['code']}"),
+                  Text(
+                      "${'settings.diagnostics.error_category'.tr}: ${last['category']}"),
+                  Text(
+                      "${'settings.diagnostics.error_severity'.tr}: ${last['severity']}"),
+                  Text(
+                      "${'settings.diagnostics.error_retryable'.tr}: ${last['retryable']}"),
+                  Text(
+                      "${'settings.diagnostics.error_message'.tr}: ${last['userFriendlyMessage']}"),
+                  Text(
+                      "${'settings.diagnostics.error_time'.tr}: ${last['timestamp']}"),
                 ],
               ),
         actions: [

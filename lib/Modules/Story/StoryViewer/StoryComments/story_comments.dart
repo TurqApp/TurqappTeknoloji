@@ -9,23 +9,57 @@ import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/StoryCommentUser/story_comment_user.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 
-class StoryComments extends StatelessWidget {
+class StoryComments extends StatefulWidget {
   final String storyID;
   final String nickname;
   final bool isMyStory;
 
-  StoryComments(
-      {super.key,
-      required this.storyID,
-      required this.nickname,
-      required this.isMyStory});
+  const StoryComments({
+    super.key,
+    required this.storyID,
+    required this.nickname,
+    required this.isMyStory,
+  });
+
+  @override
+  State<StoryComments> createState() => _StoryCommentsState();
+}
+
+class _StoryCommentsState extends State<StoryComments> {
+  late final StoryCommentsController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'story_comments_${widget.storyID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<StoryCommentsController>(tag: _controllerTag)
+        ? Get.find<StoryCommentsController>(tag: _controllerTag)
+        : Get.put(
+            StoryCommentsController(
+              nickname: widget.nickname,
+              storyID: widget.storyID,
+            ),
+            tag: _controllerTag,
+          );
+    controller.getData();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<StoryCommentsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<StoryCommentsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<StoryCommentsController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-        StoryCommentsController(nickname: nickname, storyID: storyID),
-        tag: storyID);
-    // Klavye otomatik açılmasın: odak talep etmiyoruz.
-    controller.getData();
     return SafeArea(
       child: Column(
         children: [
@@ -48,8 +82,8 @@ class StoryComments extends StatelessWidget {
                         final model = controller.list[index];
                         return StoryCommentUser(
                           model: model,
-                          storyID: storyID,
-                          isMyStory: isMyStory,
+                          storyID: widget.storyID,
+                          isMyStory: widget.isMyStory,
                         );
                       },
                     ),

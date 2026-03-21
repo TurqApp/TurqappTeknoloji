@@ -55,10 +55,11 @@ class ChatListingContentController extends GetxController {
   }
 
   void _bindListingState() {
-    if (!Get.isRegistered<ChatListingController>()) return;
-    final listing = Get.find<ChatListingController>();
+    final listing = ChatListingController.maybeFind();
+    if (listing == null) return;
     _listWorker = ever<List<ChatListingModel>>(listing.list, (_) {
-      final latest = listing.list.firstWhereOrNull((e) => e.chatID == model.chatID);
+      final latest =
+          listing.list.firstWhereOrNull((e) => e.chatID == model.chatID);
       if (latest == null) return;
       model = latest;
       notReadCounter.value = latest.unreadCount;

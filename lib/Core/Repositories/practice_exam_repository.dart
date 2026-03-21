@@ -21,12 +21,14 @@ class PracticeExamRepository extends GetxService {
       <String, _TimedPracticeExamBool>{};
   SharedPreferences? _prefs;
 
-  static PracticeExamRepository ensure() {
+  static PracticeExamRepository _ensureService() {
     if (Get.isRegistered<PracticeExamRepository>()) {
       return Get.find<PracticeExamRepository>();
     }
     return Get.put(PracticeExamRepository(), permanent: true);
   }
+
+  static PracticeExamRepository ensure() => _ensureService();
 
   @override
   void onInit() {

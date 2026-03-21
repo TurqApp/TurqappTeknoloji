@@ -10,10 +10,37 @@ import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/schol
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class SavedItemsView extends StatelessWidget {
-  SavedItemsView({super.key});
+class SavedItemsView extends StatefulWidget {
+  const SavedItemsView({super.key});
 
-  final SavedItemsController controller = Get.put(SavedItemsController());
+  @override
+  State<SavedItemsView> createState() => _SavedItemsViewState();
+}
+
+class _SavedItemsViewState extends State<SavedItemsView> {
+  late final SavedItemsController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'saved_items_${identityHashCode(this)}';
+    controller = Get.isRegistered<SavedItemsController>(tag: _controllerTag)
+        ? Get.find<SavedItemsController>(tag: _controllerTag)
+        : Get.put(SavedItemsController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<SavedItemsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<SavedItemsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SavedItemsController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,8 +272,7 @@ class SavedItemsView extends StatelessWidget {
                                         isIndividualScholarshipType(type)
                                             ? 'scholarship.applications_suffix'
                                                 .trParams({
-                                                'title': burs.baslik
-                                                    .toString(),
+                                                'title': burs.baslik.toString(),
                                               })
                                             : burs.baslik,
                                         style: TextStyle(

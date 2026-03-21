@@ -54,15 +54,36 @@ class SliverStaggeredGrid {
   }
 }
 
-class ExploreView extends StatelessWidget {
-  ExploreView({super.key});
+class ExploreView extends StatefulWidget {
+  const ExploreView({super.key});
 
-  ExploreController get controller {
-    if (Get.isRegistered<ExploreController>()) {
-      return Get.find<ExploreController>();
+  @override
+  State<ExploreView> createState() => _ExploreViewState();
+}
+
+class _ExploreViewState extends State<ExploreView> {
+  late final ExploreController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = ExploreController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      return Get.put(ExploreController());
+      controller = ExploreController.ensure();
+      _ownsController = true;
     }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(ExploreController.maybeFind(), controller)) {
+      Get.delete<ExploreController>();
+    }
+    super.dispose();
   }
 
   double _safeAspectRatio(num ratio, {double fallback = 9 / 16}) {

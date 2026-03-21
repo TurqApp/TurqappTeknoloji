@@ -17,11 +17,15 @@ class TestRepository extends GetxService {
   final Map<String, _TimedTests> _memory = <String, _TimedTests>{};
   SharedPreferences? _prefs;
 
-  static TestRepository ensure() {
+  static TestRepository _ensureService() {
     if (Get.isRegistered<TestRepository>()) {
       return Get.find<TestRepository>();
     }
     return Get.put(TestRepository(), permanent: true);
+  }
+
+  static TestRepository ensure() {
+    return _ensureService();
   }
 
   @override
@@ -195,7 +199,10 @@ class TestRepository extends GetxService {
     final items = snap.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
         .toList(growable: false)
-      ..sort((a, b) => int.tryParse(b.timeStamp)?.compareTo(int.tryParse(a.timeStamp) ?? 0) ?? 0);
+      ..sort((a, b) =>
+          int.tryParse(b.timeStamp)
+              ?.compareTo(int.tryParse(a.timeStamp) ?? 0) ??
+          0);
     await _store(cacheKey, items);
     return items;
   }
@@ -412,8 +419,8 @@ class TestRepository extends GetxService {
     final docSnapshot = await docRef.get();
     if (!docSnapshot.exists) return false;
 
-    final favorites =
-        List<String>.from((docSnapshot.data()?['favoriler'] ?? const <String>[]));
+    final favorites = List<String>.from(
+        (docSnapshot.data()?['favoriler'] ?? const <String>[]));
     final isFavorite = favorites.contains(userId);
     await docRef.update({
       'favoriler': isFavorite

@@ -26,7 +26,7 @@ class PostCommentController extends GetxController {
 
   final CurrentUserService userService = CurrentUserService.instance;
   final PostInteractionService _interactionService =
-      Get.put(PostInteractionService());
+      PostInteractionService.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   final RxList<PostCommentModel> list = <PostCommentModel>[].obs;

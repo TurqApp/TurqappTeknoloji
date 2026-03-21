@@ -7,11 +7,15 @@ import 'package:turqappv2/Models/posts_model.dart';
 class FeedRenderCoordinator extends GetxService {
   static const int _mediaReadyWindow = 10;
 
-  static FeedRenderCoordinator ensure() {
+  static FeedRenderCoordinator _ensureService() {
     if (Get.isRegistered<FeedRenderCoordinator>()) {
       return Get.find<FeedRenderCoordinator>();
     }
     return Get.put(FeedRenderCoordinator(), permanent: true);
+  }
+
+  static FeedRenderCoordinator ensure() {
+    return _ensureService();
   }
 
   List<Map<String, dynamic>> buildMergedEntries({
@@ -142,7 +146,8 @@ class FeedRenderCoordinator extends GetxService {
     }
 
     final operations = <RenderPatchOperation<Map<String, dynamic>>>[];
-    final sharedLength = previous.length < next.length ? previous.length : next.length;
+    final sharedLength =
+        previous.length < next.length ? previous.length : next.length;
 
     for (int i = 0; i < sharedLength; i++) {
       if (_entryKey(previous[i]) != _entryKey(next[i]) ||
@@ -337,11 +342,12 @@ class FeedRenderCoordinator extends GetxService {
     required int filteredCount,
     required List<Map<String, dynamic>> renderEntries,
   }) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
     final promoCount = renderEntries.where((entry) {
       return (entry['renderType'] ?? 'post') == 'promo';
     }).length;
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.renderDiff,
       <String, dynamic>{
         'surface': 'feed',
@@ -358,7 +364,8 @@ class FeedRenderCoordinator extends GetxService {
     required int nextCount,
     required RenderListPatch<Map<String, dynamic>> patch,
   }) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
     var insertCount = 0;
     var updateCount = 0;
     var removeCount = 0;
@@ -380,7 +387,7 @@ class FeedRenderCoordinator extends GetxService {
           break;
       }
     }
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.renderDiff,
       <String, dynamic>{
         'surface': 'feed',

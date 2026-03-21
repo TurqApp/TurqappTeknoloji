@@ -167,19 +167,21 @@ class _ProfileViewState extends State<ProfileView> {
       storyOwnerUsers.any((u) => u.userID == _myUserId && u.stories.isNotEmpty);
 
   List<StoryUserModel> get storyOwnerUsers {
-    if (!Get.isRegistered<StoryRowController>()) {
+    final rowController = StoryRowController.maybeFind();
+    if (rowController == null) {
       return const <StoryUserModel>[];
     }
-    return Get.find<StoryRowController>().users;
+    return rowController.users;
   }
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<ProfileController>()) {
-      controller = Get.find<ProfileController>();
+    final existingController = ProfileController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
     } else {
-      controller = Get.put(ProfileController());
+      controller = ProfileController.ensure();
       _ownsController = true;
     }
     if (Get.isRegistered<SocialMediaController>()) {
@@ -356,8 +358,7 @@ class _ProfileViewState extends State<ProfileView> {
       Get.delete<SocialMediaController>(force: true);
     }
     if (_ownsController &&
-        Get.isRegistered<ProfileController>() &&
-        identical(Get.find<ProfileController>(), controller)) {
+        identical(ProfileController.maybeFind(), controller)) {
       Get.delete<ProfileController>(force: true);
     }
     super.dispose();
@@ -446,9 +447,8 @@ class _ProfileViewState extends State<ProfileView> {
                                                               .showPfImage
                                                               .value &&
                                                           isCentered,
-                                                      instanceTag:
-                                                          controller
-                                                              .agendaInstanceTag(
+                                                      instanceTag: controller
+                                                          .agendaInstanceTag(
                                                         docId: model.docID,
                                                         isReshare: isReshare,
                                                       ),
@@ -469,9 +469,9 @@ class _ProfileViewState extends State<ProfileView> {
                                                 ),
                                                 if ((actualIndex + 1) % 4 == 0)
                                                   Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                            vertical: 8.0),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        vertical: 8.0),
                                                     child: AdmobKare(
                                                         key: ValueKey(
                                                             'myprof-ad-slot-${(actualIndex + 1) ~/ 4}')),

@@ -15,6 +15,22 @@ import '../../../Core/Services/user_profile_cache_service.dart';
 import '../CreateChat/create_chat.dart';
 
 class ChatListingController extends GetxController {
+  static ChatListingController _ensureController() {
+    if (Get.isRegistered<ChatListingController>()) {
+      return Get.find<ChatListingController>();
+    }
+    return Get.put(ChatListingController());
+  }
+
+  static ChatListingController ensure() => _ensureController();
+
+  static ChatListingController? maybeFind() {
+    if (Get.isRegistered<ChatListingController>()) {
+      return Get.find<ChatListingController>();
+    }
+    return null;
+  }
+
   RxList<ChatListingModel> list = <ChatListingModel>[].obs;
   RxList<ChatListingModel> filteredList = <ChatListingModel>[].obs;
   RxString selectedTab = "all".obs;
@@ -30,10 +46,7 @@ class ChatListingController extends GetxController {
   final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
 
-  NetworkAwarenessService? get _network =>
-      Get.isRegistered<NetworkAwarenessService>()
-          ? Get.find<NetworkAwarenessService>()
-          : null;
+  NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
@@ -318,7 +331,7 @@ class ChatListingController extends GetxController {
       return tempList;
     }
 
-    final userCache = Get.find<UserProfileCacheService>();
+    final userCache = UserProfileCacheService.ensure();
     for (final doc in docs) {
       final data = doc.data();
       final archivedMap = data["archived"] is Map
@@ -438,9 +451,8 @@ class ChatListingController extends GetxController {
     if (uid.isEmpty) return;
 
     if (!_isOffline) {
-      _conversationsSub = _conversationRepository
-          .watchUserConversations(uid)
-          .listen((_) {
+      _conversationsSub =
+          _conversationRepository.watchUserConversations(uid).listen((_) {
         _realtimeRefreshDebounce?.cancel();
         _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 350), () {
           getList(forceServer: false, silent: true);

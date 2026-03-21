@@ -25,14 +25,17 @@ List<Map<String, dynamic>> _decodeObjectEntries(String response) {
 }
 
 class EducationReferenceDataService extends GetxService {
-  static EducationReferenceDataService get instance =>
-      Get.find<EducationReferenceDataService>();
-
-  static EducationReferenceDataService ensure() {
+  static EducationReferenceDataService _ensureService() {
     if (Get.isRegistered<EducationReferenceDataService>()) {
       return Get.find<EducationReferenceDataService>();
     }
     return Get.put(EducationReferenceDataService(), permanent: true);
+  }
+
+  static EducationReferenceDataService get instance => _ensureService();
+
+  static EducationReferenceDataService ensure() {
+    return _ensureService();
   }
 
   List<String>? _countries;

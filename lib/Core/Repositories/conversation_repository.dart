@@ -6,11 +6,15 @@ import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Chat/chat_constants.dart';
 
 class ConversationRepository extends GetxService {
-  static ConversationRepository ensure() {
+  static ConversationRepository _ensureService() {
     if (Get.isRegistered<ConversationRepository>()) {
       return Get.find<ConversationRepository>();
     }
     return Get.put(ConversationRepository(), permanent: true);
+  }
+
+  static ConversationRepository ensure() {
+    return _ensureService();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -101,10 +105,8 @@ class ConversationRepository extends GetxService {
     required bool cacheOnly,
   }) async {
     try {
-      final query = _firestore
-          .collection("users")
-          .doc(uid)
-          .collection("chatArchives");
+      final query =
+          _firestore.collection("users").doc(uid).collection("chatArchives");
       final snap = await _getWithCachePreference(
         query,
         preferCache: preferCache,
@@ -129,10 +131,8 @@ class ConversationRepository extends GetxService {
     required bool cacheOnly,
   }) async {
     try {
-      final query = _firestore
-          .collection("users")
-          .doc(uid)
-          .collection("chatDeletions");
+      final query =
+          _firestore.collection("users").doc(uid).collection("chatDeletions");
       final snap = await _getWithCachePreference(
         query,
         preferCache: preferCache,
@@ -243,7 +243,8 @@ class ConversationRepository extends GetxService {
     }, SetOptions(merge: true));
   }
 
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> fetchUserConversations(
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+      fetchUserConversations(
     String uid, {
     required bool preferCache,
     required bool cacheOnly,
@@ -289,7 +290,8 @@ class ConversationRepository extends GetxService {
     return docsById.values.toList(growable: false);
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchUserConversations(String uid) {
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchUserConversations(
+      String uid) {
     return _firestore
         .collection("conversations")
         .where("participants", arrayContains: uid)

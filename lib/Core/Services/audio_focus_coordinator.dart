@@ -5,11 +5,15 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 /// Uygulama genelinde tek bir aktif ses kaynağı olmasını zorlar.
 class AudioFocusCoordinator extends GetxService {
-  static AudioFocusCoordinator get instance {
-    if (!Get.isRegistered<AudioFocusCoordinator>()) {
-      Get.put(AudioFocusCoordinator());
+  static AudioFocusCoordinator _ensureService() {
+    if (Get.isRegistered<AudioFocusCoordinator>()) {
+      return Get.find<AudioFocusCoordinator>();
     }
-    return Get.find<AudioFocusCoordinator>();
+    return Get.put(AudioFocusCoordinator());
+  }
+
+  static AudioFocusCoordinator get instance {
+    return _ensureService();
   }
 
   final Set<HLSVideoAdapter> _players = <HLSVideoAdapter>{};

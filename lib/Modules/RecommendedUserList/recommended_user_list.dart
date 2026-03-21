@@ -16,17 +16,13 @@ class RecommendedUserList extends StatefulWidget {
 
 class _RecommendedUserListState extends State<RecommendedUserList> {
   late final ScrollController _scrollController;
+  late final RecommendedUserListController controller;
   bool _prefetchRequested = false;
-  RecommendedUserListController get controller {
-    if (Get.isRegistered<RecommendedUserListController>()) {
-      return Get.find<RecommendedUserListController>();
-    }
-    return Get.put(RecommendedUserListController());
-  }
 
   @override
   void initState() {
     super.initState();
+    controller = RecommendedUserListController.ensure();
     _scrollController = ScrollController(keepScrollOffset: false);
     // İlk frame’den sonra görünürlüğe yakınsa prefetch et
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());

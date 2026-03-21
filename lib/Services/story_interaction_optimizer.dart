@@ -5,12 +5,16 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryInteractionOptimizer extends GetxService {
-  static StoryInteractionOptimizer get to {
+  static StoryInteractionOptimizer _ensureService() {
     if (Get.isRegistered<StoryInteractionOptimizer>()) {
       return Get.find<StoryInteractionOptimizer>();
     }
     return Get.put(StoryInteractionOptimizer(), permanent: true);
   }
+
+  static StoryInteractionOptimizer ensure() => _ensureService();
+
+  static StoryInteractionOptimizer get to => _ensureService();
   final CurrentUserService _userService = CurrentUserService.instance;
 
   // Debouncing ve batching için

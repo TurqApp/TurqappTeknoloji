@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 
 class AdminTaskAssignmentRepository extends GetxService {
-  static AdminTaskAssignmentRepository ensure() {
+  static AdminTaskAssignmentRepository _ensureService() {
     if (Get.isRegistered<AdminTaskAssignmentRepository>()) {
       return Get.find<AdminTaskAssignmentRepository>();
     }
     return Get.put(AdminTaskAssignmentRepository(), permanent: true);
   }
+
+  static AdminTaskAssignmentRepository ensure() => _ensureService();
 
   CollectionReference<Map<String, dynamic>> get _ref =>
       FirebaseFirestore.instance.collection('adminTaskAssignments');

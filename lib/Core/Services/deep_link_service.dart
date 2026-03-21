@@ -29,6 +29,13 @@ import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class DeepLinkService extends GetxService {
+  static DeepLinkService? maybeFind() {
+    if (Get.isRegistered<DeepLinkService>()) {
+      return Get.find<DeepLinkService>();
+    }
+    return null;
+  }
+
   final ShortLinkService _shortLinkService = ShortLinkService();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final VisibilityPolicyService _visibilityPolicy =
@@ -51,6 +58,13 @@ class DeepLinkService extends GetxService {
   bool _started = false;
   bool _handling = false;
   final RxBool initialLinkResolved = false.obs;
+
+  T _ensureController<T>(T Function() create) {
+    if (Get.isRegistered<T>()) {
+      return Get.find<T>();
+    }
+    return Get.put<T>(create());
+  }
 
   Future<_PostLookupCache> _getPostLookup(String postId) async {
     _pruneStaleLookups();
@@ -290,6 +304,7 @@ class DeepLinkService extends GetxService {
 
     return null;
   }
+
   Future<void> _openPost(String postId) async {
     final lookup = await _getPostLookup(postId);
     final model = lookup.model;
@@ -430,7 +445,8 @@ class DeepLinkService extends GetxService {
     );
     if (canOpen) return true;
 
-    AppSnackbar('common.info'.tr, 'social_profile.private_follow_to_see_posts'.tr);
+    AppSnackbar(
+        'common.info'.tr, 'social_profile.private_follow_to_see_posts'.tr);
     return false;
   }
 
@@ -506,12 +522,12 @@ class DeepLinkService extends GetxService {
       return;
     }
 
-    final navController = Get.isRegistered<NavBarController>()
-        ? Get.find<NavBarController>()
-        : Get.put(NavBarController());
-    final educationController = Get.isRegistered<EducationController>()
-        ? Get.find<EducationController>()
-        : Get.put(EducationController());
+    final navController = _ensureController<NavBarController>(
+      () => NavBarController(),
+    );
+    final educationController = _ensureController<EducationController>(
+      () => EducationController(),
+    );
 
     // Eğitim ana ekranı sekmesi
     navController.changeIndex(3);

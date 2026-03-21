@@ -22,12 +22,14 @@ class CikmisSorularRepository extends GetxService {
   final Map<String, _TimedJsonList> _memory = <String, _TimedJsonList>{};
   SharedPreferences? _prefs;
 
-  static CikmisSorularRepository ensure() {
+  static CikmisSorularRepository _ensureService() {
     if (Get.isRegistered<CikmisSorularRepository>()) {
       return Get.find<CikmisSorularRepository>();
     }
     return Get.put(CikmisSorularRepository(), permanent: true);
   }
+
+  static CikmisSorularRepository ensure() => _ensureService();
 
   @override
   void onInit() {

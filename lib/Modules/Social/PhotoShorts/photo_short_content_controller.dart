@@ -121,7 +121,7 @@ class PhotoShortsContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _interactionService = Get.put(PostInteractionService());
+    _interactionService = PostInteractionService.ensure();
     _postRepository = PostRepository.ensure();
     _adminPushRepository = AdminPushRepository.ensure();
     // Initialize counts after current build to avoid Obx update during build
@@ -822,7 +822,6 @@ class PhotoShortsContentController extends GetxController {
           await _postRepository.fetchLegacyResharedPostId(model.docID, uid);
 
       if (yeniPostID != null && yeniPostID.isNotEmpty) {
-
         await FirebaseFirestore.instance
             .collection("Posts")
             .doc(yeniPostID)

@@ -15,9 +15,7 @@ class SearchUserContentController extends GetxController {
     if (userID.trim().isEmpty) return;
     isNavigated.value = true;
     try {
-      final explore = Get.isRegistered<ExploreController>()
-          ? Get.find<ExploreController>()
-          : null;
+      final explore = ExploreController.maybeFind();
       explore?.suspendExplorePreview();
       // Sayfa kapandığında isNavigated sıfırlanır (finally)
       await Get.to(
@@ -42,9 +40,7 @@ class SearchUserContentController extends GetxController {
       await CurrentUserService.instance.forceRefresh();
     } catch (_) {
     } finally {
-      if (Get.isRegistered<ExploreController>()) {
-        Get.find<ExploreController>().resumeExplorePreview();
-      }
+      ExploreController.maybeFind()?.resumeExplorePreview();
       isNavigated.value = false;
     }
   }

@@ -29,6 +29,22 @@ import '../../Models/posts_model.dart';
 part 'explore_controller_recent_search_part.dart';
 
 class ExploreController extends GetxController {
+  static ExploreController _ensureController() {
+    if (Get.isRegistered<ExploreController>()) {
+      return Get.find<ExploreController>();
+    }
+    return Get.put(ExploreController());
+  }
+
+  static ExploreController ensure() => _ensureController();
+
+  static ExploreController? maybeFind() {
+    if (Get.isRegistered<ExploreController>()) {
+      return Get.find<ExploreController>();
+    }
+    return null;
+  }
+
   static const double _verticalExploreAspectMax = 0.7;
   static const String _recentSearchUsersCachePrefix =
       'explore_recent_search_users_v1_';
@@ -90,7 +106,7 @@ class ExploreController extends GetxController {
   int _photoEmptyScans = 0;
   int _floodsEmptyScans = 0;
   // ... diğer kodlar
-  UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
+  UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
   UserSubcollectionRepository get _subcollectionRepository =>
       UserSubcollectionRepository.ensure();
   TopTagsRepository get _topTagsRepository => TopTagsRepository.ensure();
@@ -195,7 +211,8 @@ class ExploreController extends GetxController {
         lastFloodVisibleIndex != nextIndex &&
         lastFloodVisibleIndex! >= 0 &&
         lastFloodVisibleIndex! < exploreFloods.length) {
-      disposeFloodContentController(exploreFloods[lastFloodVisibleIndex!].docID);
+      disposeFloodContentController(
+          exploreFloods[lastFloodVisibleIndex!].docID);
     }
     floodsVisibleIndex.value = nextIndex;
     lastFloodVisibleIndex = nextIndex;

@@ -15,6 +15,13 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class OfflineModeService extends GetxController {
   static final OfflineModeService instance = OfflineModeService._internal();
   OfflineModeService._internal();
+  static OfflineModeService? maybeFind() {
+    if (Get.isRegistered<OfflineModeService>()) {
+      return Get.find<OfflineModeService>();
+    }
+    return null;
+  }
+
   static const int _maxRetryAttempts = 5;
   static const int _baseRetryDelayMs = 1500;
   static const int _maxRetryDelayMs = 5 * 60 * 1000;
@@ -34,9 +41,11 @@ class OfflineModeService extends GetxController {
   bool _isProcessing = false;
 
   static const String _pendingActionsKeyPrefix = 'pending_actions';
-  static const String _deadLetterActionsKeyPrefix = 'pending_actions_dead_letter';
+  static const String _deadLetterActionsKeyPrefix =
+      'pending_actions_dead_letter';
   static const String _lastSyncAtKeyPrefix = 'pending_actions_last_sync_at';
-  static const String _processedCountKeyPrefix = 'pending_actions_processed_count';
+  static const String _processedCountKeyPrefix =
+      'pending_actions_processed_count';
   static const String _failedCountKeyPrefix = 'pending_actions_failed_count';
 
   @override
@@ -73,7 +82,8 @@ class OfflineModeService extends GetxController {
   }
 
   String get _pendingActionsKey => '$_pendingActionsKeyPrefix:$_activeUid';
-  String get _deadLetterActionsKey => '$_deadLetterActionsKeyPrefix:$_activeUid';
+  String get _deadLetterActionsKey =>
+      '$_deadLetterActionsKeyPrefix:$_activeUid';
   String get _lastSyncAtKey => '$_lastSyncAtKeyPrefix:$_activeUid';
   String get _processedCountKey => '$_processedCountKeyPrefix:$_activeUid';
   String get _failedCountKey => '$_failedCountKeyPrefix:$_activeUid';

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 
 /// Cache hit/miss sayaçları ve debug dump.
@@ -77,9 +76,10 @@ class CacheMetrics {
   }
 
   void _publishKpi({bool force = false}) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
     if (!force && proxyRequestsTotal == 0) return;
-    Get.find<PlaybackKpiService>().track(
+    playbackKpi.track(
       PlaybackKpiEventType.cacheHitRatio,
       {
         'proxyRequestsTotal': proxyRequestsTotal,

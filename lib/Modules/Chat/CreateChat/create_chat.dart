@@ -45,10 +45,11 @@ class _CreateChatState extends State<CreateChat> {
       controllerr = Get.put(CreateChatController());
       _ownsCreateChatController = true;
     }
-    if (Get.isRegistered<ChatListingController>()) {
-      chatListingController = Get.find<ChatListingController>();
+    final existingChatListing = ChatListingController.maybeFind();
+    if (existingChatListing != null) {
+      chatListingController = existingChatListing;
     } else {
-      chatListingController = Get.put(ChatListingController());
+      chatListingController = ChatListingController.ensure();
       _ownsChatListingController = true;
     }
   }
@@ -57,7 +58,8 @@ class _CreateChatState extends State<CreateChat> {
   void dispose() {
     if (_ownsFollowersController &&
         Get.isRegistered<FollowingFollowersController>() &&
-        identical(Get.find<FollowingFollowersController>(), followersFollowing)) {
+        identical(
+            Get.find<FollowingFollowersController>(), followersFollowing)) {
       Get.delete<FollowingFollowersController>(force: true);
     }
     if (_ownsCreateChatController &&
@@ -66,8 +68,7 @@ class _CreateChatState extends State<CreateChat> {
       Get.delete<CreateChatController>(force: true);
     }
     if (_ownsChatListingController &&
-        Get.isRegistered<ChatListingController>() &&
-        identical(Get.find<ChatListingController>(), chatListingController)) {
+        identical(ChatListingController.maybeFind(), chatListingController)) {
       Get.delete<ChatListingController>(force: true);
     }
     super.dispose();

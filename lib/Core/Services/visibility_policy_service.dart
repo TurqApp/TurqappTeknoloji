@@ -4,11 +4,15 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class VisibilityPolicyService extends GetxService {
-  static VisibilityPolicyService ensure() {
+  static VisibilityPolicyService _ensureService() {
     if (Get.isRegistered<VisibilityPolicyService>()) {
       return Get.find<VisibilityPolicyService>();
     }
     return Get.put(VisibilityPolicyService(), permanent: true);
+  }
+
+  static VisibilityPolicyService ensure() {
+    return _ensureService();
   }
 
   final UserSummaryResolver _resolver = UserSummaryResolver.ensure();

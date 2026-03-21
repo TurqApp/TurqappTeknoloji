@@ -32,6 +32,13 @@ class PlaybackKpiEvent {
 }
 
 class PlaybackKpiService extends GetxService {
+  static PlaybackKpiService? maybeFind() {
+    if (Get.isRegistered<PlaybackKpiService>()) {
+      return Get.find<PlaybackKpiService>();
+    }
+    return null;
+  }
+
   final RxList<PlaybackKpiEvent> _recent = <PlaybackKpiEvent>[].obs;
 
   List<PlaybackKpiEvent> get recentEvents => List.unmodifiable(_recent);

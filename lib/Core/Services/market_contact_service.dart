@@ -20,6 +20,13 @@ class MarketContactService {
   static final ConversationRepository _conversationRepository =
       ConversationRepository.ensure();
 
+  T _ensureService<T>(T Function() create) {
+    if (Get.isRegistered<T>()) {
+      return Get.find<T>();
+    }
+    return Get.put<T>(create());
+  }
+
   Future<void> openChat(MarketItemModel item) async {
     final currentUid = CurrentUserService.instance.userId.trim();
     if (currentUid.isEmpty) {
@@ -27,13 +34,13 @@ class MarketContactService {
       return;
     }
     if (currentUid == item.userId) {
-      AppSnackbar('common.info'.tr, 'market_contact.cannot_message_own_listing'.tr);
+      AppSnackbar(
+          'common.info'.tr, 'market_contact.cannot_message_own_listing'.tr);
       return;
     }
 
-    final chatListingController = Get.isRegistered<ChatListingController>()
-        ? Get.find<ChatListingController>()
-        : Get.put(ChatListingController());
+    final chatListingController =
+        _ensureService<ChatListingController>(() => ChatListingController());
     final sohbet = chatListingController.list
         .firstWhereOrNull((val) => val.userID == item.userId);
 
@@ -121,7 +128,8 @@ class MarketContactService {
                       final dialUri = Uri.parse('tel:${_dialValue(phone)}');
                       final opened = await launchUrl(dialUri);
                       if (!opened) {
-                        AppSnackbar('common.error'.tr, 'market_contact.phone_app_failed'.tr);
+                        AppSnackbar('common.error'.tr,
+                            'market_contact.phone_app_failed'.tr);
                       }
                       if (context.mounted) Navigator.of(context).pop();
                     },

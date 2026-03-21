@@ -26,9 +26,25 @@ class PostInteractionWidget extends StatefulWidget {
 }
 
 class _PostInteractionWidgetState extends State<PostInteractionWidget> {
+  late final String _controllerTag;
+  late final PostController _controller;
+  bool _ownsController = false;
   Future<bool>? _likeFuture;
   Future<bool>? _reshareFuture;
   Future<bool>? _saveFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'post_interaction_${widget.post.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<PostController>(tag: _controllerTag)) {
+      _controller = Get.find<PostController>(tag: _controllerTag);
+    } else {
+      _controller = Get.put(PostController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
 
   void _refreshStatusFutures(PostController controller) {
     _likeFuture = controller.checkLikeStatus(widget.post.docID);
@@ -40,16 +56,28 @@ class _PostInteractionWidgetState extends State<PostInteractionWidget> {
   void didUpdateWidget(covariant PostInteractionWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.post.docID != widget.post.docID) {
-      final controller = Get.find<PostController>();
-      _refreshStatusFutures(controller);
+      _refreshStatusFutures(_controller);
     }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<PostController>(tag: _controllerTag) &&
+        identical(
+          Get.find<PostController>(tag: _controllerTag),
+          _controller,
+        )) {
+      Get.delete<PostController>(tag: _controllerTag);
+    }
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return GetBuilder<PostController>(
+      tag: _controllerTag,
       id: 'post_${widget.post.docID}',
-      init: PostController(),
       builder: (controller) {
         _likeFuture ??= controller.checkLikeStatus(widget.post.docID);
         _reshareFuture ??= controller.checkReshareStatus(widget.post.docID);
@@ -233,13 +261,34 @@ class PostViewTracker extends StatefulWidget {
 }
 
 class _PostViewTrackerState extends State<PostViewTracker> {
+  late final String _controllerTag;
   late PostController _controller;
+  bool _ownsController = false;
   bool _hasRecordedView = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = Get.put(PostController());
+    _controllerTag = 'post_view_${widget.post.docID}_${identityHashCode(this)}';
+    if (Get.isRegistered<PostController>(tag: _controllerTag)) {
+      _controller = Get.find<PostController>(tag: _controllerTag);
+    } else {
+      _controller = Get.put(PostController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<PostController>(tag: _controllerTag) &&
+        identical(
+          Get.find<PostController>(tag: _controllerTag),
+          _controller,
+        )) {
+      Get.delete<PostController>(tag: _controllerTag);
+    }
+    super.dispose();
   }
 
   void _recordView() {

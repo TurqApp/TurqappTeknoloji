@@ -92,7 +92,8 @@ class _PermissionsViewState extends State<PermissionsView> {
           helpSheetTitle: 'permissions.item.notifications.help_sheet_title'.tr,
           helpSheetBody: 'permissions.item.notifications.help_sheet_body'.tr,
           helpSheetBody2: 'permissions.item.notifications.help_sheet_body2'.tr,
-          helpSheetLinkText: 'permissions.item.notifications.help_sheet_link'.tr,
+          helpSheetLinkText:
+              'permissions.item.notifications.help_sheet_link'.tr,
         ),
         _PermissionItem(
           title: 'permissions.item.photos.title'.tr,
@@ -163,8 +164,9 @@ class _PermissionsViewState extends State<PermissionsView> {
   }
 
   Future<void> _loadNetworkSettings() async {
-    if (!Get.isRegistered<NetworkAwarenessService>()) return;
-    final settings = Get.find<NetworkAwarenessService>().settings;
+    final networkService = NetworkAwarenessService.maybeFind();
+    if (networkService == null) return;
+    final settings = networkService.settings;
     if (!mounted) return;
     setState(() {
       _networkSettings = NetworkSettings(
@@ -194,8 +196,9 @@ class _PermissionsViewState extends State<PermissionsView> {
       mobileTargetMbps: _networkSettings.mobileTargetMbps,
     );
 
-    if (Get.isRegistered<NetworkAwarenessService>()) {
-      await Get.find<NetworkAwarenessService>().updateSettings(next);
+    final networkService = NetworkAwarenessService.maybeFind();
+    if (networkService != null) {
+      await networkService.updateSettings(next);
     }
 
     if (!mounted) return;

@@ -36,19 +36,11 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
   }
 
   SegmentCacheManager? get _cache {
-    try {
-      return Get.find<SegmentCacheManager>();
-    } catch (_) {
-      return null;
-    }
+    return SegmentCacheManager.maybeFind();
   }
 
   PrefetchScheduler? get _prefetch {
-    try {
-      return Get.find<PrefetchScheduler>();
-    } catch (_) {
-      return null;
-    }
+    return PrefetchScheduler.maybeFind();
   }
 
   @override
@@ -97,16 +89,15 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
     final softPct = hard > 0 ? ((soft / hard) * 100).clamp(0, 999) : 0;
 
     final lines = <String>[
-      'segment_cache.hit_miss'
-          .trParams({'hits': '${metrics.cacheHits}', 'misses': '${metrics.cacheMisses}'}),
+      'segment_cache.hit_miss'.trParams(
+          {'hits': '${metrics.cacheHits}', 'misses': '${metrics.cacheMisses}'}),
       'segment_cache.rate'
           .trParams({'rate': (metrics.cacheHitRate * 100).toStringAsFixed(1)}),
       'segment_cache.served'.trParams(
           {'bytes': CacheMetrics.formatBytes(metrics.bytesServedFromCache)}),
       'segment_cache.downloaded'.trParams(
           {'bytes': CacheMetrics.formatBytes(metrics.bytesDownloaded)}),
-      'segment_cache.evictions'
-          .trParams({'count': '${metrics.evictions}'}),
+      'segment_cache.evictions'.trParams({'count': '${metrics.evictions}'}),
       'segment_cache.entries'.trParams({'count': '${cache.entryCount}'}),
       'segment_cache.disk'
           .trParams({'bytes': CacheMetrics.formatBytes(cache.totalSizeBytes)}),
@@ -114,10 +105,8 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
         'bytes': CacheMetrics.formatBytes(soft),
         'pct': softPct.toStringAsFixed(0),
       }),
-      'segment_cache.hard'
-          .trParams({'bytes': CacheMetrics.formatBytes(hard)}),
-      'segment_cache.usage'
-          .trParams({'pct': usagePct.toStringAsFixed(1)}),
+      'segment_cache.hard'.trParams({'bytes': CacheMetrics.formatBytes(hard)}),
+      'segment_cache.usage'.trParams({'pct': usagePct.toStringAsFixed(1)}),
       if (prefetch != null) ...[
         'segment_cache.prefetch'.trParams({
           'status': prefetch.isPaused

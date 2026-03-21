@@ -15,17 +15,19 @@ class MyApplications extends StatefulWidget {
 }
 
 class _MyApplicationsState extends State<MyApplications> {
+  late final String _controllerTag;
   late final MyApplicationsController controller;
   late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<MyApplicationsController>()) {
-      controller = Get.find<MyApplicationsController>();
+    _controllerTag = 'my_applications_${identityHashCode(this)}';
+    if (Get.isRegistered<MyApplicationsController>(tag: _controllerTag)) {
+      controller = Get.find<MyApplicationsController>(tag: _controllerTag);
       _ownsController = false;
     } else {
-      controller = Get.put(MyApplicationsController());
+      controller = Get.put(MyApplicationsController(), tag: _controllerTag);
       _ownsController = true;
     }
   }
@@ -33,9 +35,12 @@ class _MyApplicationsState extends State<MyApplications> {
   @override
   void dispose() {
     if (_ownsController &&
-        Get.isRegistered<MyApplicationsController>() &&
-        identical(Get.find<MyApplicationsController>(), controller)) {
-      Get.delete<MyApplicationsController>();
+        Get.isRegistered<MyApplicationsController>(tag: _controllerTag) &&
+        identical(
+          Get.find<MyApplicationsController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyApplicationsController>(tag: _controllerTag);
     }
     super.dispose();
   }
@@ -275,8 +280,7 @@ class _MyApplicationsState extends State<MyApplications> {
       AlertDialog(
         title: Text("pasaj.job_finder.cancel_apply_title".tr,
             style: TextStyle(fontFamily: "MontserratBold", fontSize: 16)),
-        content: Text(
-            "pasaj.job_finder.cancel_apply_body".tr,
+        content: Text("pasaj.job_finder.cancel_apply_body".tr,
             style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14)),
         actions: [
           TextButton(

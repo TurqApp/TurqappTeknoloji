@@ -16,19 +16,44 @@ import 'package:turqappv2/Modules/EditPost/edit_post_controller.dart';
 
 import 'edit_post_model.dart';
 
-class EditPost extends StatelessWidget {
+class EditPost extends StatefulWidget {
   final PostsModel post;
-  final EditPostModel model;
-  final EditPostController controller;
 
-  EditPost({super.key, required this.post})
-      : model = EditPostModel.fromMap(post.toMap(), post.docID),
-        controller = Get.put(
-          EditPostController(
-            model: EditPostModel.fromMap(post.toMap(), post.docID),
-          ),
-          tag: post.docID,
-        );
+  const EditPost({super.key, required this.post});
+
+  @override
+  State<EditPost> createState() => _EditPostState();
+}
+
+class _EditPostState extends State<EditPost> {
+  late final EditPostModel model;
+  late final EditPostController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    model = EditPostModel.fromMap(widget.post.toMap(), widget.post.docID);
+    _controllerTag = 'edit_post_${widget.post.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<EditPostController>(tag: _controllerTag)
+        ? Get.find<EditPostController>(tag: _controllerTag)
+        : Get.put(
+            EditPostController(model: model),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<EditPostController>(tag: _controllerTag) &&
+        identical(
+          Get.find<EditPostController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<EditPostController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

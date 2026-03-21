@@ -2707,8 +2707,7 @@ class AppTranslations extends Translations {
         'story.deleted_stories.empty': 'Silinmiş hikaye bulunmuyor',
         'story.deleted_stories.snackbar_title': 'Hikaye',
         'story.deleted_stories.reposted': 'Hikaye tekrar paylaşıldı',
-        'story.deleted_stories.deleted_forever':
-            'Hikaye kalıcı olarak silindi',
+        'story.deleted_stories.deleted_forever': 'Hikaye kalıcı olarak silindi',
         'story.deleted_stories.deleted_at': 'Silindi: @time',
         'story_music.title': 'Müzik',
         'story_music.search_hint': 'Müzik ara',
@@ -2724,8 +2723,7 @@ class AppTranslations extends Translations {
         'chat.tab_unread': 'Okunmamış',
         'chat.tab_archive': 'Arşiv',
         'chat.empty_title': 'Henüz sohbetin yok',
-        'chat.empty_body':
-            'Mesajlaştığında konuşmaların burada listelenecek.',
+        'chat.empty_body': 'Mesajlaştığında konuşmaların burada listelenecek.',
         'chat.action_failed':
             'İşlem tamamlanamadı, yetki veya kayıt sorunu var',
         'chat.attach_videos': 'Videolar',
@@ -2835,8 +2833,7 @@ class AppTranslations extends Translations {
         'training.time_day': '@count gün önce',
         'training.time_week': '@count hafta önce',
         'training.photo_pick_failed': 'Fotoğraf seçilirken bir hata oluştu!',
-        'training.photo_upload_failed':
-            'Fotoğraf yüklenirken bir hata oluştu!',
+        'training.photo_upload_failed': 'Fotoğraf yüklenirken bir hata oluştu!',
         'training.select_main_category_title': 'Ana Kategori Seç',
         'training.select_main_category_body':
             'Soru Bankası bu kategori ile açılır. İstediğin zaman menüden değiştirebilirsin.',
@@ -2872,18 +2869,15 @@ class AppTranslations extends Translations {
         'training.no_questions_in_category': 'Bu kategoride soru bulunamadı',
         'training.saved_load_failed':
             'Kaydedilen sorular yüklenirken hata oluştu',
-        'training.view_update_failed':
-            'Görüntüleme güncellenirken hata oluştu',
+        'training.view_update_failed': 'Görüntüleme güncellenirken hata oluştu',
         'training.saved_removed': 'Soru Sonra Çöz listesinden kaldırıldı!',
         'training.saved_added': 'Soru Sonra Çöz listesine eklendi!',
         'training.saved_remove_failed':
             'Sonra Çöz kaldırma sırasında hata oluştu.',
-        'training.saved_update_failed':
-            'Sonra Çöz güncellenirken hata oluştu.',
+        'training.saved_update_failed': 'Sonra Çöz güncellenirken hata oluştu.',
         'training.like_removed': 'Beğeni kaldırıldı!',
         'training.liked': 'Soru beğenildi!',
-        'training.like_remove_failed':
-            'Beğeni kaldırma sırasında hata oluştu.',
+        'training.like_remove_failed': 'Beğeni kaldırma sırasında hata oluştu.',
         'training.like_add_failed': 'Beğeni eklenirken hata oluştu.',
         'training.share_failed': 'Paylaşım başlatılamadı',
         'training.share_question_link_title': '@exam - @lesson @number. Soru',
@@ -2941,8 +2935,7 @@ class AppTranslations extends Translations {
         'training.answer_save_failed': 'Cevap kaydedilirken hata oluştu',
         'training.no_more_questions': 'Bu kategoride başka soru kalmadı!',
         'training.settings_opening': 'Ayarlar ekranı açılıyor!',
-        'training.fetch_more_failed':
-            'Daha fazla soru çekilirken hata oluştu',
+        'training.fetch_more_failed': 'Daha fazla soru çekilirken hata oluştu',
         'training.comments_load_failed':
             'Yorumlar yüklenirken bir hata oluştu. Lütfen tekrar deneyin!',
         'training.comment_or_photo_required':
@@ -3009,8 +3002,7 @@ class AppTranslations extends Translations {
         'tutoring.user_load_failed':
             'Kullanıcı bilgileri yüklenirken hata oluştu: {error}',
         'tutoring.location_missing': 'Konum Bulunamadı',
-        'tutoring.no_listings_in_region':
-            'Bu bölgede ders ilanı bulunmuyor.',
+        'tutoring.no_listings_in_region': 'Bu bölgede ders ilanı bulunmuyor.',
         'tutoring.no_lessons_in_category':
             '{category} alanında ders bulunamadı.',
         'tutoring.search_empty': 'Aramana uygun ilan bulunamadı',
@@ -3075,8 +3067,7 @@ class AppTranslations extends Translations {
         'tutoring.sort.most_viewed': 'En Çok Görüntülenen',
         'tutoring.lesson_place.student_home': 'Öğrencinin Evi',
         'tutoring.lesson_place.teacher_home': 'Öğretmenin Evi',
-        'tutoring.lesson_place.either_home':
-            'Öğrencinin veya Öğretmenin Evi',
+        'tutoring.lesson_place.either_home': 'Öğrencinin veya Öğretmenin Evi',
         'tutoring.lesson_place.remote': 'Uzaktan Eğitim',
         'tutoring.lesson_place.lesson_area': 'Ders Verme Alanı',
         'tutoring.branch.summer_school': 'Yaz Okulu',
@@ -3722,6 +3713,7 @@ class AppTranslations extends Translations {
         'post_creator.look.clear': 'Temiz',
         'post_creator.look.cinema': 'Sinematik',
         'post_creator.look.vibe': 'Canlı',
+        'post_creator.look.bright': 'Parlak',
         'post_creator.comments.everyone': 'Herkes',
         'post_creator.comments.verified': 'Onaylı hesaplar',
         'post_creator.comments.following': 'Takip ettiğin hesaplar',
@@ -7508,6 +7500,7 @@ class AppTranslations extends Translations {
         'post_creator.look.clear': 'Clean',
         'post_creator.look.cinema': 'Cinematic',
         'post_creator.look.vibe': 'Vivid',
+        'post_creator.look.bright': 'Bright',
         'post_creator.comments.everyone': 'Everyone',
         'post_creator.comments.verified': 'Verified accounts',
         'post_creator.comments.following': 'Accounts you follow',

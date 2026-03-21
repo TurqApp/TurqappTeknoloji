@@ -2,11 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 
 class NotificationsRepository extends GetxService {
-  static NotificationsRepository ensure() {
+  static NotificationsRepository _ensureService() {
     if (Get.isRegistered<NotificationsRepository>()) {
       return Get.find<NotificationsRepository>();
     }
     return Get.put(NotificationsRepository(), permanent: true);
+  }
+
+  static NotificationsRepository ensure() {
+    return _ensureService();
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

@@ -21,11 +21,15 @@ class AdmobBannerWarmupService extends GetxService {
   bool _sdkReady = false;
   final Map<String, DateTime> _lastWarmupAtBySurface = <String, DateTime>{};
 
-  static AdmobBannerWarmupService ensure() {
+  static AdmobBannerWarmupService _ensureService() {
     if (Get.isRegistered<AdmobBannerWarmupService>()) {
       return Get.find<AdmobBannerWarmupService>();
     }
     return Get.put(AdmobBannerWarmupService(), permanent: true);
+  }
+
+  static AdmobBannerWarmupService ensure() {
+    return _ensureService();
   }
 
   Future<void> ensureInitialized() async {
@@ -51,7 +55,8 @@ class AdmobBannerWarmupService extends GetxService {
     await ensureInitialized();
     if (!_sdkReady) return;
 
-    final target = isFirstLaunch ? splashFirstLaunchTarget : splashDefaultTarget;
+    final target =
+        isFirstLaunch ? splashFirstLaunchTarget : splashDefaultTarget;
     await AdmobKare.warmupPool(targetCount: target);
     Future<void>.delayed(_secondaryTopUpDelay, () async {
       try {

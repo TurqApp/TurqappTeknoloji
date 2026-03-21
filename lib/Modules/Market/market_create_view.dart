@@ -21,6 +21,7 @@ class MarketCreateView extends StatefulWidget {
 class _MarketCreateViewState extends State<MarketCreateView> {
   late final String _controllerTag;
   late final MarketCreateController controller;
+  bool _ownsController = false;
   final PageController _imagePreviewController = PageController();
   int _imagePreviewIndex = 0;
 
@@ -32,18 +33,28 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   void initState() {
     super.initState();
     _controllerTag =
-        'market-create-${widget.initialItem?.id ?? DateTime.now().microsecondsSinceEpoch}';
-    controller = Get.put(
-      MarketCreateController(initialItem: widget.initialItem),
-      tag: _controllerTag,
-    );
+        'market_create_${widget.initialItem?.id ?? 'new'}_${identityHashCode(this)}';
+    if (Get.isRegistered<MarketCreateController>(tag: _controllerTag)) {
+      controller = Get.find<MarketCreateController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(
+        MarketCreateController(initialItem: widget.initialItem),
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
   }
 
   @override
   void dispose() {
     _imagePreviewController.dispose();
-    if (Get.isRegistered<MarketCreateController>(tag: _controllerTag)) {
-      Get.delete<MarketCreateController>(tag: _controllerTag, force: true);
+    if (_ownsController &&
+        Get.isRegistered<MarketCreateController>(tag: _controllerTag) &&
+        identical(
+          Get.find<MarketCreateController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MarketCreateController>(tag: _controllerTag);
     }
     super.dispose();
   }

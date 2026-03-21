@@ -13,10 +13,20 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ApplicantProfile extends StatelessWidget {
+class ApplicantProfile extends StatefulWidget {
   final String userID;
 
   const ApplicantProfile({super.key, required this.userID});
+
+  @override
+  State<ApplicantProfile> createState() => _ApplicantProfileState();
+}
+
+class _ApplicantProfileState extends State<ApplicantProfile> {
+  late final ScholarshipApplicationsContentController controller;
+  late final String _controllerTag;
+
+  String get userID => widget.userID;
 
   bool _isNoValue(String value) {
     final normalized = normalizeSearchText(value);
@@ -31,12 +41,39 @@ class ApplicantProfile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      ScholarshipApplicationsContentController(userID: userID),
-      tag: userID,
-    );
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'scholarship_applicant_profile_${widget.userID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<ScholarshipApplicationsContentController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<ScholarshipApplicationsContentController>(
+            tag: _controllerTag)
+        : Get.put(
+            ScholarshipApplicationsContentController(userID: widget.userID),
+            tag: _controllerTag,
+          );
+  }
 
+  @override
+  void dispose() {
+    if (Get.isRegistered<ScholarshipApplicationsContentController>(
+          tag: _controllerTag,
+        ) &&
+        identical(
+          Get.find<ScholarshipApplicationsContentController>(
+            tag: _controllerTag,
+          ),
+          controller,
+        )) {
+      Get.delete<ScholarshipApplicationsContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,

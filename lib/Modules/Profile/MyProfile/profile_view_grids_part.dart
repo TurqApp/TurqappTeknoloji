@@ -340,9 +340,9 @@ extension _ProfileViewGridsPart on _ProfileViewState {
       }
     } catch (_) {}
 
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].arsiv = true;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].arsiv = true;
     final exploreController = Get.find<ExploreController>();
 
     final index3 = exploreController.explorePosts.indexOf(model);

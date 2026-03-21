@@ -81,10 +81,12 @@ class EditProfileController extends GetxController {
       final profile = (data["profile"] is Map)
           ? Map<String, dynamic>.from(data["profile"] as Map)
           : const <String, dynamic>{};
-      final rawEmail =
-          (data["email"] ?? profile["email"] ?? FirebaseAuth.instance.currentUser?.email ?? "")
-              .toString()
-              .trim();
+      final rawEmail = (data["email"] ??
+              profile["email"] ??
+              FirebaseAuth.instance.currentUser?.email ??
+              "")
+          .toString()
+          .trim();
       final rawPhone = (data["phoneNumber"] ?? profile["phoneNumber"] ?? "")
           .toString()
           .trim();
@@ -292,9 +294,7 @@ class EditProfileController extends GetxController {
   }
 
   Future<void> _refreshAvatarNicknameSurfaces(String uid) async {
-    if (Get.isRegistered<UserProfileCacheService>()) {
-      await Get.find<UserProfileCacheService>().invalidateUser(uid);
-    }
+    await UserProfileCacheService.invalidateIfRegistered(uid);
     PostContentController.invalidateUserProfileCache(uid);
     await userService.forceRefresh();
     await StoryRowController.refreshStoriesGlobally();

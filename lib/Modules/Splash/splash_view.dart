@@ -239,8 +239,8 @@ class _SplashViewState extends State<SplashView> {
     } catch (_) {
       loggedIn = false;
     }
-    if (Get.isRegistered<PlaybackKpiService>()) {
-      final playbackKpi = Get.find<PlaybackKpiService>();
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi != null) {
       playbackKpi.track(
         PlaybackKpiEventType.startup,
         {
@@ -470,9 +470,7 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => NetworkAwarenessService());
     Get.lazyPut(() => OfflineModeService.instance);
 
-    if (!Get.isRegistered<GlobalLoaderController>()) {
-      Get.put(GlobalLoaderController(), permanent: true);
-    }
+    GlobalLoaderController.ensure();
     if (!Get.isRegistered<AdmobBannerWarmupService>()) {
       Get.put(AdmobBannerWarmupService(), permanent: true);
     }
@@ -497,9 +495,7 @@ class _SplashViewState extends State<SplashView> {
     if (!Get.isRegistered<IndexPoolStore>()) {
       Get.put(IndexPoolStore(), permanent: true);
     }
-    if (!Get.isRegistered<UserProfileCacheService>()) {
-      Get.put(UserProfileCacheService(), permanent: true);
-    }
+    UserProfileCacheService.ensure();
     if (!Get.isRegistered<StorageBudgetManager>()) {
       Get.put(StorageBudgetManager(), permanent: true);
     }
@@ -514,7 +510,8 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _runCriticalWarmStartLoads({required bool isFirstLaunch}) async {
     try {
       final bool onWiFi = _isOnWiFiNow();
-      final storyController = Get.find<StoryRowController>();
+      final storyController = StoryRowController.maybeFind();
+      if (storyController == null) return;
       final agendaController = Get.find<AgendaController>();
 
       // Paralel: shorts + story + feed + recommended aynı anda başlasın
@@ -522,7 +519,8 @@ class _SplashViewState extends State<SplashView> {
         // Shorts
         (() async {
           try {
-            final shorts = Get.find<ShortController>();
+            final shorts = ShortController.maybeFind();
+            if (shorts == null) return;
             await _warmShortSnapshotForStartup(
               onWiFi: onWiFi,
               isFirstLaunch: isFirstLaunch,
@@ -653,15 +651,16 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _runWarmStartLoads({required bool isFirstLaunch}) async {
     try {
       final bool onWiFi = _isOnWiFiNow();
-      final storyController = Get.find<StoryRowController>();
+      final storyController = StoryRowController.maybeFind();
+      if (storyController == null) return;
       final shortTarget =
           onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 4 : 6);
       final storyTarget = onWiFi ? 30 : 18;
 
       // Shorts tarafında çok hafif ısınma yap.
       try {
-        final shorts = Get.find<ShortController>();
-        if (shorts.shorts.length < shortTarget) {
+        final shorts = ShortController.maybeFind();
+        if (shorts != null && shorts.shorts.length < shortTarget) {
           shorts.warmStart(
             targetCount: shortTarget,
             maxPages: onWiFi ? 2 : 1,
@@ -743,13 +742,14 @@ class _SplashViewState extends State<SplashView> {
   }
 
   bool _isStoryReady() {
-    if (!Get.isRegistered<StoryRowController>()) return false;
-    return Get.find<StoryRowController>().users.length >= _minStoryUsersForNav;
+    final storyController = StoryRowController.maybeFind();
+    if (storyController == null) return false;
+    return storyController.users.length >= _minStoryUsersForNav;
   }
 
   bool _isShortsReady() {
-    if (!Get.isRegistered<ShortController>()) return false;
-    return Get.find<ShortController>().shorts.length >= _minShortsForNav;
+    return (ShortController.maybeFind()?.shorts.length ?? 0) >=
+        _minShortsForNav;
   }
 
   Future<void> _prepareMinimumStartupCore({
@@ -913,8 +913,9 @@ class _SplashViewState extends State<SplashView> {
     required CachedResource<T> resource,
     required int itemCount,
   }) {
-    if (!Get.isRegistered<PlaybackKpiService>()) return;
-    Get.find<PlaybackKpiService>().track(
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
+    playbackKpi.track(
       PlaybackKpiEventType.startup,
       <String, dynamic>{
         'surface': surface,
@@ -963,9 +964,7 @@ class _SplashViewState extends State<SplashView> {
 
       if (userIds.isEmpty) return;
 
-      final userCache = Get.isRegistered<UserProfileCacheService>()
-          ? Get.find<UserProfileCacheService>()
-          : Get.put(UserProfileCacheService(), permanent: true);
+      final userCache = UserProfileCacheService.ensure();
       final profiles = await userCache.getProfiles(
         userIds.toList(),
         preferCache: true,

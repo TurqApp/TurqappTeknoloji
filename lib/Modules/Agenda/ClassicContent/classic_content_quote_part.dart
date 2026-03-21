@@ -22,9 +22,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
       return;
     }
 
-    final profileCache = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService());
+    final profileCache = UserProfileCacheService.ensure();
     _quotedSourceProfileFuture = profileCache.getProfile(
       sourceUserId,
       preferCache: true,

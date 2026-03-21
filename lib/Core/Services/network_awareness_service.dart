@@ -146,6 +146,22 @@ class DataUsageStats {
 }
 
 class NetworkAwarenessService extends GetxController {
+  static NetworkAwarenessService _ensureService() {
+    if (Get.isRegistered<NetworkAwarenessService>()) {
+      return Get.find<NetworkAwarenessService>();
+    }
+    return Get.put(NetworkAwarenessService(), permanent: true);
+  }
+
+  static NetworkAwarenessService ensure() => _ensureService();
+
+  static NetworkAwarenessService? maybeFind() {
+    if (Get.isRegistered<NetworkAwarenessService>()) {
+      return Get.find<NetworkAwarenessService>();
+    }
+    return null;
+  }
+
   final Rx<NetworkType> _currentNetwork = NetworkType.none.obs;
   final Rx<NetworkSettings> _settings = NetworkSettings().obs;
   final Rx<DataUsageStats> _dataUsage = DataUsageStats(
@@ -301,10 +317,9 @@ class NetworkAwarenessService extends GetxController {
     return {
       'allowed': true,
       'reason': 'network_awareness.upload_recommended'.tr,
-      'suggestion':
-          isOnWiFi
-              ? 'network_awareness.wifi_optimal'.tr
-              : 'network_awareness.cellular_in_use'.tr,
+      'suggestion': isOnWiFi
+          ? 'network_awareness.wifi_optimal'.tr
+          : 'network_awareness.cellular_in_use'.tr,
       'optimization': {
         'originalSize': fileSizeMB,
         'optimizedSize': estimatedSizeMB,

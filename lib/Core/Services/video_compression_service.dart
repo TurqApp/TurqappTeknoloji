@@ -23,9 +23,7 @@ class VideoCompressionService extends GetxController {
         return videoFile;
       }
 
-      final network = Get.isRegistered<NetworkAwarenessService>()
-          ? Get.find<NetworkAwarenessService>()
-          : null;
+      final network = NetworkAwarenessService.maybeFind();
 
       // Choose initial quality based on network
       var quality = VideoQuality.DefaultQuality;

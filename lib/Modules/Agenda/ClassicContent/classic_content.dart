@@ -270,9 +270,7 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
-  ShortController get shortsController => Get.isRegistered<ShortController>()
-      ? Get.find<ShortController>()
-      : Get.put(ShortController());
+  ShortController get shortsController => ShortController.ensure();
 
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
@@ -334,8 +332,9 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   StoryUserModel? _resolveStoryUser() {
-    if (!Get.isRegistered<StoryRowController>()) return null;
-    final users = Get.find<StoryRowController>().users;
+    final rowController = StoryRowController.maybeFind();
+    if (rowController == null) return null;
+    final users = rowController.users;
     for (final user in users) {
       if (user.userID == widget.model.userID) {
         return user;
@@ -381,8 +380,10 @@ class _ClassicContentState extends State<ClassicContent>
     final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
-      final users =
-          Get.find<StoryRowController>().users.toList(growable: false);
+      final users = StoryRowController.maybeFind()?.users.toList(
+                growable: false,
+              ) ??
+          const <StoryUserModel>[];
       Get.to(() => StoryViewer(
             startedUser: storyUser,
             storyOwnerUsers: users,

@@ -19,10 +19,18 @@ import 'package:uuid/uuid.dart';
 class MarketFeedPostShareService {
   const MarketFeedPostShareService();
 
+  T _ensureService<T>(T Function() create) {
+    if (Get.isRegistered<T>()) {
+      return Get.find<T>();
+    }
+    return Get.put<T>(create());
+  }
+
   Future<void> shareItem(MarketItemModel item) async {
     final currentUid = CurrentUserService.instance.userId;
     if (currentUid.isEmpty) {
-      AppSnackbar('login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
+      AppSnackbar(
+          'login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);
       return;
     }
     if (item.coverImageUrl.trim().isEmpty) {
@@ -31,9 +39,8 @@ class MarketFeedPostShareService {
     }
 
     await ShareActionGuard.run(() async {
-      final loader = Get.isRegistered<GlobalLoaderController>()
-          ? Get.find<GlobalLoaderController>()
-          : Get.put(GlobalLoaderController());
+      final loader = _ensureService<GlobalLoaderController>(
+          () => GlobalLoaderController());
       loader.isOn.value = true;
 
       try {
@@ -149,9 +156,7 @@ class MarketFeedPostShareService {
           }
         }
 
-        if (Get.isRegistered<ProfileController>()) {
-          Get.find<ProfileController>().getLastPostAndAddToAllPosts();
-        }
+        ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
 
         AppSnackbar('common.success'.tr, 'market_feed_share.shared'.tr);
       } catch (_) {

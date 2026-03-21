@@ -32,11 +32,15 @@ class MarketSnapshotRepository extends GetxService {
   static const String _homeSurfaceKey = 'market_home_snapshot';
   static const String _searchSurfaceKey = 'market_search_snapshot';
 
-  static MarketSnapshotRepository ensure() {
+  static MarketSnapshotRepository _ensureService() {
     if (Get.isRegistered<MarketSnapshotRepository>()) {
       return Get.find<MarketSnapshotRepository>();
     }
     return Get.put(MarketSnapshotRepository(), permanent: true);
+  }
+
+  static MarketSnapshotRepository ensure() {
+    return _ensureService();
   }
 
   late final CacheFirstCoordinator<List<MarketItemModel>> _coordinator =
@@ -60,8 +64,9 @@ class MarketSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<MarketListingQuery, List<MarketItemModel>,
-      List<MarketItemModel>> _homePipeline = CacheFirstQueryPipeline<
-          MarketListingQuery, List<MarketItemModel>, List<MarketItemModel>>(
+          List<MarketItemModel>> _homePipeline =
+      CacheFirstQueryPipeline<MarketListingQuery, List<MarketItemModel>,
+          List<MarketItemModel>>(
     surfaceKey: _homeSurfaceKey,
     coordinator: _coordinator,
     userIdResolver: (query) => query.userId.trim(),
@@ -74,8 +79,9 @@ class MarketSnapshotRepository extends GetxService {
   );
 
   late final CacheFirstQueryPipeline<MarketListingQuery, List<MarketItemModel>,
-      List<MarketItemModel>> _searchPipeline = CacheFirstQueryPipeline<
-          MarketListingQuery, List<MarketItemModel>, List<MarketItemModel>>(
+          List<MarketItemModel>> _searchPipeline =
+      CacheFirstQueryPipeline<MarketListingQuery, List<MarketItemModel>,
+          List<MarketItemModel>>(
     surfaceKey: _searchSurfaceKey,
     coordinator: _coordinator,
     userIdResolver: (query) => query.userId.trim(),

@@ -58,6 +58,15 @@ class PostInteractionService extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
+  static PostInteractionService _ensureService() {
+    if (Get.isRegistered<PostInteractionService>()) {
+      return Get.find<PostInteractionService>();
+    }
+    return Get.put(PostInteractionService());
+  }
+
+  static PostInteractionService ensure() => _ensureService();
+
   static const Duration _cacheTTL = Duration(seconds: 30);
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
   final Set<String> _reportedByMe = <String>{};
@@ -71,9 +80,9 @@ class PostInteractionService extends GetxController {
     final authUid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
     return authUid.isEmpty ? null : authUid;
   }
+
   bool get _isOffline =>
-      Get.isRegistered<OfflineModeService>() &&
-      !Get.find<OfflineModeService>().isOnline.value;
+      !(OfflineModeService.maybeFind()?.isOnline.value ?? true);
 
   // ---------------------------------------------------------------------------
   // BEĞENİ

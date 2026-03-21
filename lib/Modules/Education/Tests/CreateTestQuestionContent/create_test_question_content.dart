@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTestQuestionContent/create_test_question_content_controller.dart';
 
-class CreateTestQuestionContent extends StatelessWidget {
+class CreateTestQuestionContent extends StatefulWidget {
   final TestReadinessModel model;
   final String testID;
   final int index;
@@ -18,16 +18,53 @@ class CreateTestQuestionContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      CreateTestQuestionContentController(
-        model: model,
-        testID: testID,
-        index: index,
-      ),
-      tag: 'question_${model.docID}',
-    );
+  State<CreateTestQuestionContent> createState() =>
+      _CreateTestQuestionContentState();
+}
 
+class _CreateTestQuestionContentState extends State<CreateTestQuestionContent> {
+  late final CreateTestQuestionContentController controller;
+  late final String _controllerTag;
+
+  TestReadinessModel get model => widget.model;
+  String get testID => widget.testID;
+  int get index => widget.index;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'test_question_${widget.testID}_${widget.model.docID}_${identityHashCode(this)}';
+    controller = Get.isRegistered<CreateTestQuestionContentController>(
+      tag: _controllerTag,
+    )
+        ? Get.find<CreateTestQuestionContentController>(tag: _controllerTag)
+        : Get.put(
+            CreateTestQuestionContentController(
+              model: widget.model,
+              testID: widget.testID,
+              index: widget.index,
+            ),
+            tag: _controllerTag,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<CreateTestQuestionContentController>(
+          tag: _controllerTag,
+        ) &&
+        identical(
+          Get.find<CreateTestQuestionContentController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<CreateTestQuestionContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(
       () => controller.isInvalid.value
           ? Padding(
@@ -209,9 +246,8 @@ class CreateTestQuestionContent extends StatelessWidget {
                                             const Center(
                                           child: CupertinoActivityIndicator(),
                                         ),
-                                        errorWidget:
-                                            (context, url, error) =>
-                                                const Icon(
+                                        errorWidget: (context, url, error) =>
+                                            const Icon(
                                           Icons.broken_image,
                                         ),
                                       ),

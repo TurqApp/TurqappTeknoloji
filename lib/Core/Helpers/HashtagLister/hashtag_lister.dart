@@ -3,12 +3,44 @@ import 'package:get/get.dart';
 
 import 'hashtag_lister_controller.dart';
 
-class Hashtaglister extends StatelessWidget {
+class Hashtaglister extends StatefulWidget {
   final Function(String) onTapSelected;
 
-  Hashtaglister({super.key, required this.onTapSelected});
+  const Hashtaglister({super.key, required this.onTapSelected});
 
-  final controller = Get.put(HashtagListerController());
+  @override
+  State<Hashtaglister> createState() => _HashtaglisterState();
+}
+
+class _HashtaglisterState extends State<Hashtaglister> {
+  late final String _controllerTag;
+  late final HashtagListerController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'hashtag_lister_${identityHashCode(this)}';
+    if (Get.isRegistered<HashtagListerController>(tag: _controllerTag)) {
+      controller = Get.find<HashtagListerController>(tag: _controllerTag);
+    } else {
+      controller = Get.put(HashtagListerController(), tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<HashtagListerController>(tag: _controllerTag) &&
+        identical(
+          Get.find<HashtagListerController>(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<HashtagListerController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +55,7 @@ class Hashtaglister extends StatelessWidget {
             onPressed: () {
               controller.hashtags
                   .removeAt(index); // Doğrudan RxList üzerinde işlem
-              onTapSelected(model.hashtag); // Seçim bilgisi gönder
+              widget.onTapSelected(model.hashtag); // Seçim bilgisi gönder
             },
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,

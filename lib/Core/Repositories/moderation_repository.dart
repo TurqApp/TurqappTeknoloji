@@ -14,12 +14,14 @@ class ModerationFlaggedPost {
 }
 
 class ModerationRepository extends GetxService {
-  static ModerationRepository ensure() {
+  static ModerationRepository _ensureService() {
     if (Get.isRegistered<ModerationRepository>()) {
       return Get.find<ModerationRepository>();
     }
     return Get.put(ModerationRepository(), permanent: true);
   }
+
+  static ModerationRepository ensure() => _ensureService();
 
   Stream<List<ModerationFlaggedPost>> watchFlaggedPosts({
     required int threshold,

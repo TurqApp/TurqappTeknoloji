@@ -30,6 +30,7 @@ class CreatorContentController extends GetxController
     'clear',
     'cinema',
     'vibe',
+    'bright',
   ];
 
   TextEditingController textEdit = TextEditingController();
@@ -230,7 +231,8 @@ class CreatorContentController extends GetxController
                                   onTap: () => Get.back(result: 6),
                                 ),
                                 ListTile(
-                                  title: Text('post_creator.poll_option_12h'.tr),
+                                  title:
+                                      Text('post_creator.poll_option_12h'.tr),
                                   onTap: () => Get.back(result: 12),
                                 ),
                                 ListTile(
@@ -347,7 +349,9 @@ class CreatorContentController extends GetxController
     final postCreator = Get.find<PostCreatorController>();
     final isSeries = postCreator.postList.length > 1;
     final existingCount = selectedImages.length;
-    final maxImages = isSeries ? UploadConstants.maxImagesPerPost : UploadConstants.maxImagesPerPost;
+    final maxImages = isSeries
+        ? UploadConstants.maxImagesPerPost
+        : UploadConstants.maxImagesPerPost;
     final existingReusedCount = reusedImageUrls.length;
     final remaining = maxImages - existingCount - existingReusedCount;
     if (remaining <= 0) {
@@ -371,10 +375,10 @@ class CreatorContentController extends GetxController
     if (!isSeries && totalCount > maxImages) {
       UploadValidationService.showValidationError(
           'post_creator.max_photo_add'.trParams({
-            'count': '$maxImages',
-            'current': '$currentImageCount',
-            'adding': '$newImageCount',
-          }));
+        'count': '$maxImages',
+        'current': '$currentImageCount',
+        'adding': '$newImageCount',
+      }));
       return;
     }
 
@@ -383,9 +387,9 @@ class CreatorContentController extends GetxController
       if (!validation.isValid) {
         UploadValidationService.showValidationError(
             'post_creator.photo_validation_prefix'.trParams({
-              'index': '${i + 1}',
-              'error': validation.errorMessage ?? '',
-            }));
+          'index': '${i + 1}',
+          'error': validation.errorMessage ?? '',
+        }));
         return;
       }
     }
@@ -452,9 +456,10 @@ class CreatorContentController extends GetxController
             final newModel = postCreator.insertComposerItemAfter(insertCursor);
             insertCursor++;
             final newTag = newModel.index.toString();
-            targetController = Get.isRegistered<CreatorContentController>(tag: newTag)
-                ? Get.find<CreatorContentController>(tag: newTag)
-                : Get.put(CreatorContentController(), tag: newTag);
+            targetController =
+                Get.isRegistered<CreatorContentController>(tag: newTag)
+                    ? Get.find<CreatorContentController>(tag: newTag)
+                    : Get.put(CreatorContentController(), tag: newTag);
           }
 
           await targetController._replaceWithSingleImage(
@@ -675,9 +680,8 @@ class CreatorContentController extends GetxController
     if (source != ImageSource.gallery &&
         !isSeries &&
         (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty)) {
-      UploadValidationService.showValidationError(
-          'post_creator.max_video_count'
-              .trParams({'count': '${UploadConstants.maxVideosPerPost}'}));
+      UploadValidationService.showValidationError('post_creator.max_video_count'
+          .trParams({'count': '${UploadConstants.maxVideosPerPost}'}));
       return;
     }
 
@@ -1298,9 +1302,8 @@ class CreatorContentController extends GetxController
                               ),
                             ],
                           ),
-                          child:
-                              Text('common.save'.tr,
-                                  style: TextStyles.medium15white),
+                          child: Text('common.save'.tr,
+                              style: TextStyles.medium15white),
                         ),
                       ),
                     ),

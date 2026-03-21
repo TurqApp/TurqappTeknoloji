@@ -398,8 +398,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
   Widget pulldownmenu(Color color) {
     final canManagePost =
-        widget.model.userID == _currentUid ||
-            controller.canSendAdminPush;
+        widget.model.userID == _currentUid || controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -652,9 +651,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
     if (sourceUserId.isNotEmpty) {
       try {
-        final profileCache = Get.isRegistered<UserProfileCacheService>()
-            ? Get.find<UserProfileCacheService>()
-            : Get.put(UserProfileCacheService(), permanent: true);
+        final profileCache = UserProfileCacheService.ensure();
         final profile = (await profileCache.getProfile(
               sourceUserId,
               preferCache: true,
@@ -772,9 +769,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: isReshared
-                ? 'post.undo_reshare'.tr
-                : 'common.reshare'.tr,
+            title: isReshared ? 'post.undo_reshare'.tr : 'common.reshare'.tr,
             icon: Icons.repeat,
           ),
           PullDownMenuItem(
@@ -838,8 +833,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
   Widget likeButton() {
     return Obx(() {
-      final bool isLiked = _currentUid.isNotEmpty &&
-          controller.likes.contains(_currentUid);
+      final bool isLiked =
+          _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
       final Color displayColor =
           isLiked ? Colors.blueAccent : _ClassicContentState._actionColor;
 
