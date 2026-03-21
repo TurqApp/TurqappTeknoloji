@@ -24,4 +24,7 @@ class IntegrationTestKeys {
 
   static String practiceExamCta(String docId) =>
       'it-practice-exam-cta-$docId';
+
+  static String questionBankCategory(String category) =>
+      'it-question-bank-category-$category';
 }

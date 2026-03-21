@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
@@ -198,57 +199,64 @@ class AntremanView2 extends StatelessWidget {
                   itemCount: controller.mainCategories.length,
                   itemBuilder: (context, index) {
                     final category = controller.mainCategories[index];
-                    return GestureDetector(
-                      onTap: () async {
-                        await controller.setMainCategory(category);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 18,
-                        ),
-                        margin: const EdgeInsets.symmetric(vertical: 7),
-                        decoration: _sectionCardDecoration(
-                          color: controller.getRandomColor(index),
-                          elevated: true,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    category,
-                                    style: TextStyles.antremanTitle,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Premium soru akisini bu kategoriden ac.',
-                                    style: TextStyle(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.82),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                    return Semantics(
+                      label: IntegrationTestKeys.questionBankCategory(category),
+                      button: true,
+                      child: GestureDetector(
+                        onTap: () async {
+                          await controller.setMainCategory(category);
+                        },
+                        child: Container(
+                          key: ValueKey(
+                            IntegrationTestKeys.questionBankCategory(category),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 18,
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 7),
+                          decoration: _sectionCardDecoration(
+                            color: controller.getRandomColor(index),
+                            elevated: true,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      category,
+                                      style: TextStyles.antremanTitle,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Premium soru akisini bu kategoriden ac.',
+                                      style: TextStyle(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.82),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(14),
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.chevron_right,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
-                              child: const Icon(
-                                CupertinoIcons.chevron_right,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     );
