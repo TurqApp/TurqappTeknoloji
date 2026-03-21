@@ -19,6 +19,8 @@ class _MyBookletResultsState extends State<MyBookletResults> {
   final MyBookletResultsController controller =
       Get.put(MyBookletResultsController());
   final PageController _pageController = PageController();
+  late final String _pageLineBarTag =
+      'MyBookletResults_${identityHashCode(this)}';
 
   @override
   void dispose() {
@@ -185,7 +187,7 @@ class _MyBookletResultsState extends State<MyBookletResults> {
                   "${'answer_key.book'.tr} (${controller.list.length})",
                   'answer_key.optical_form'.tr,
                 ],
-                pageName: "MyBookletResults",
+                pageName: _pageLineBarTag,
                 pageController: _pageController,
               ),
             ),
@@ -203,13 +205,10 @@ class _MyBookletResultsState extends State<MyBookletResults> {
                         controller: _pageController,
                         onPageChanged: (index) {
                           controller.setSelection(index);
-                          if (Get.isRegistered<PageLineBarController>(
-                            tag: "MyBookletResults",
-                          )) {
-                            Get.find<PageLineBarController>(
-                              tag: "MyBookletResults",
-                            ).selection.value = index;
-                          }
+                          syncPageLineBarSelection(
+                            _pageLineBarTag,
+                            index,
+                          );
                         },
                         children: [
                           _buildBookletPage(),

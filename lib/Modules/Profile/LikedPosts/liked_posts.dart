@@ -19,8 +19,9 @@ class LikedPosts extends StatefulWidget {
 
 class _LikedPostsState extends State<LikedPosts> {
   late LikedPostControllers controller;
-  late PageLineBarController pageLineBarController;
   final scrollController = ScrollController();
+  late final String _pageLineBarTag =
+      '${kLikedPostsPageLineBarTag}_${identityHashCode(this)}';
 
   int _estimatedCenteredIndex() {
     if (!scrollController.hasClients || controller.all.isEmpty) {
@@ -41,10 +42,6 @@ class _LikedPostsState extends State<LikedPosts> {
   void initState() {
     super.initState();
     controller = Get.put(LikedPostControllers());
-    pageLineBarController = Get.put(
-      PageLineBarController(pageName: "LikedPosts"),
-      tag: "LikedPosts",
-    );
 
     scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
@@ -96,7 +93,7 @@ class _LikedPostsState extends State<LikedPosts> {
                 "common.videos".tr,
                 "common.photos".tr,
               ],
-              pageName: kLikedPostsPageLineBarTag,
+              pageName: _pageLineBarTag,
               pageController: controller.pageController,
             ),
             Expanded(
@@ -104,10 +101,7 @@ class _LikedPostsState extends State<LikedPosts> {
                 return PageView(
                   controller: controller.pageController,
                   onPageChanged: (v) {
-                    Get.find<PageLineBarController>(
-                            tag: kLikedPostsPageLineBarTag)
-                        .selection
-                        .value = v;
+                    syncPageLineBarSelection(_pageLineBarTag, v);
                   },
                   children: [
                     posts(),

@@ -2,28 +2,50 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 
-class MyTutorings extends StatelessWidget {
-  const MyTutorings({super.key});
+class MyTutorings extends StatefulWidget {
+  MyTutorings({super.key});
+
+  @override
+  State<MyTutorings> createState() => _MyTutoringsState();
+}
+
+class _MyTutoringsState extends State<MyTutorings> {
+  late final MyTutoringsController controller;
+  late final String _pageLineBarTag =
+      'MyTutorings_${identityHashCode(this)}';
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<MyTutoringsController>()) {
+      controller = Get.find<MyTutoringsController>();
+    } else {
+      controller = Get.put(MyTutoringsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyTutoringsController>() &&
+        Get.find<MyTutoringsController>() == controller) {
+      Get.delete<MyTutoringsController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController = Get.put(ViewModeController());
-
-    Get.put(MyTutoringsController());
-    Get.lazyPut(
-      () => PageLineBarController(pageName: "MyTutorings"),
-      tag: "MyTutorings",
-    );
-
-    final MyTutoringsController controller = Get.find<MyTutoringsController>();
-    final PageLineBarController pageLineBarController =
-        Get.find<PageLineBarController>(tag: "MyTutorings");
 
     return Obx(
       () {
@@ -46,18 +68,10 @@ class MyTutorings extends StatelessWidget {
             backgroundColor: Colors.white,
             elevation: 0,
             scrolledUnderElevation: 0,
-            leading: IconButton(
-              onPressed: Get.back,
-              icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-            ),
-            title: Text(
-              'tutoring.my_listings_title'.tr,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
+            leadingWidth: 52,
+            titleSpacing: 8,
+            leading: const AppBackButton(),
+            title: AppPageTitle('tutoring.my_listings_title'.tr),
           ),
           body: SafeArea(
             top: false,
@@ -69,7 +83,7 @@ class MyTutorings extends StatelessWidget {
                     'tutoring.published'.tr,
                     'tutoring.expired'.tr,
                   ],
-                  pageName: "MyTutorings",
+                  pageName: _pageLineBarTag,
                   pageController: controller.pageController,
                 ),
                 Expanded(
@@ -77,7 +91,7 @@ class MyTutorings extends StatelessWidget {
                     controller: controller.pageController,
                     onPageChanged: (index) {
                       controller.selection.value = index;
-                      pageLineBarController.selection.value = index;
+                      syncPageLineBarSelection(_pageLineBarTag, index);
                     },
                     children: [
                       Obx(

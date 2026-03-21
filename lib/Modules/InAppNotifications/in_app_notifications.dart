@@ -18,6 +18,8 @@ class InAppNotifications extends StatelessWidget {
   InAppNotifications({super.key});
 
   final controller = Get.put(InAppNotificationsController());
+  final String _pageLineBarTag =
+      '${kNotificationsPageLineBarTag}_${identityHashCode(Object())}';
   final recommendedController =
       Get.isRegistered<RecommendedUserListController>()
           ? Get.find<RecommendedUserListController>()
@@ -205,7 +207,7 @@ class InAppNotifications extends StatelessWidget {
         "notifications.tab_mentions".tr,
         "notifications.tab_listings".tr,
       ],
-      pageName: kNotificationsPageLineBarTag,
+      pageName: _pageLineBarTag,
       fontSize: 15,
       pageController: controller.pageController,
     );
@@ -255,9 +257,7 @@ class InAppNotifications extends StatelessWidget {
         physics: const ClampingScrollPhysics(),
         onPageChanged: (idx) {
           controller.selection.value = idx;
-          Get.find<PageLineBarController>(tag: "Notifications")
-              .selection
-              .value = idx;
+          syncPageLineBarSelection(_pageLineBarTag, idx);
         },
         children: [
           _listForSelection(0),

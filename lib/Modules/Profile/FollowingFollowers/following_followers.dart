@@ -18,6 +18,8 @@ class FollowingFollowers extends StatelessWidget {
     required this.userId,
   });
 
+  String get _pageLineBarTag => '${kFollowersPageLineBarTag}_$userId';
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(
@@ -46,7 +48,7 @@ class FollowingFollowers extends StatelessWidget {
                       'following.followers_tab'.tr,
                       'following.following_tab'.tr,
                     ],
-                    pageName: kFollowersPageLineBarTag,
+                    pageName: _pageLineBarTag,
                     initialIndex: selection,
                     pageController: controller.pageController,
                   );
@@ -55,10 +57,7 @@ class FollowingFollowers extends StatelessWidget {
                   child: PageView(
                     controller: controller.pageController,
                     onPageChanged: (idx) {
-                      Get.find<PageLineBarController>(
-                              tag: kFollowersPageLineBarTag)
-                          .selection
-                          .value = idx;
+                      syncPageLineBarSelection(_pageLineBarTag, idx);
                     },
                     children: [
                       _buildList(context,

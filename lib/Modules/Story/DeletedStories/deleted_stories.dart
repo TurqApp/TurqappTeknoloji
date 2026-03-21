@@ -22,6 +22,8 @@ class DeletedStoriesView extends StatefulWidget {
 
 class _DeletedStoriesViewState extends State<DeletedStoriesView> {
   late final DeletedStoriesController controller;
+  late final String _pageLineBarTag =
+      '${kDeletedStoriesPageLineBarTag}_${identityHashCode(this)}';
 
   @override
   void initState() {
@@ -47,7 +49,7 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
                 'story.deleted_stories.tab_deleted'.tr,
                 'story.deleted_stories.tab_expired'.tr,
               ],
-              pageName: kDeletedStoriesPageLineBarTag,
+              pageName: _pageLineBarTag,
               pageController: controller.pageController,
             ),
             Expanded(
@@ -61,7 +63,10 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
                   onRefresh: () => controller.refresh(),
                   child: controller.list.isEmpty
                       ? _EmptyState()
-                      : _TabbedContent(controller: controller),
+                      : _TabbedContent(
+                          controller: controller,
+                          pageLineBarTag: _pageLineBarTag,
+                        ),
                 );
               }),
             ),
@@ -247,18 +252,18 @@ class _StoryCard extends StatelessWidget {
 
 class _TabbedContent extends StatelessWidget {
   final DeletedStoriesController controller;
-  const _TabbedContent({required this.controller});
+  final String pageLineBarTag;
+  const _TabbedContent({
+    required this.controller,
+    required this.pageLineBarTag,
+  });
 
   @override
   Widget build(BuildContext context) {
     return PageView(
       controller: controller.pageController,
       onPageChanged: (idx) {
-        Get.find<PageLineBarController>(
-                tag: kDeletedStoriesPageLineBarTag)
-            .selection
-            .value =
-            idx;
+        syncPageLineBarSelection(pageLineBarTag, idx);
       },
       children: [
         _GridContent(controller: controller, reasonFilter: 'manual'),

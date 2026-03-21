@@ -21,15 +21,13 @@ class SavedPosts extends StatefulWidget {
 
 class _SavedPostsState extends State<SavedPosts> {
   late SavedPostsController controller;
-  late PageLineBarController pageLineBarController;
+  late final String _pageLineBarTag =
+      '${kSavedPostsPageLineBarTag}_${identityHashCode(this)}';
 
   @override
   void initState() {
     super.initState();
     controller = Get.put(SavedPostsController());
-    pageLineBarController = Get.put(
-        PageLineBarController(pageName: "SavedPosts"),
-        tag: "SavedPosts");
   }
 
   @override
@@ -54,17 +52,14 @@ class _SavedPostsState extends State<SavedPosts> {
                   "saved_posts.posts_tab".tr,
                   "saved_posts.series_tab".tr,
                 ],
-                pageName: kSavedPostsPageLineBarTag,
+                pageName: _pageLineBarTag,
                 pageController: controller.pageController),
             Expanded(
               child: Obx(() {
                 return PageView(
                   controller: controller.pageController,
                   onPageChanged: (v) {
-                    Get.find<PageLineBarController>(
-                            tag: kSavedPostsPageLineBarTag)
-                        .selection
-                        .value = v;
+                    syncPageLineBarSelection(_pageLineBarTag, v);
                   },
                   children: [
                     _buildAgendaTab(

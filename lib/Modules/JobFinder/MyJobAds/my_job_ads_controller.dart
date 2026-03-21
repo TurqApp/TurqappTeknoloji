@@ -198,4 +198,10 @@ class MyJobAdsController extends GetxController {
 
     return validJobs;
   }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
+  }
 }

@@ -283,15 +283,13 @@ class NavBarView extends StatelessWidget {
                                                 ExploreController>()) {
                                               final explore =
                                                   Get.find<ExploreController>();
-                                              int tab = 0;
-                                              try {
-                                                tab = Get.find<
-                                                            PageLineBarController>(
-                                                        tag:
-                                                            kExplorePageLineBarTag)
-                                                    .selection
-                                                    .value;
-                                              } catch (_) {}
+                                              final tab =
+                                                  maybeFindPageLineBarController(
+                                                        kExplorePageLineBarTag,
+                                                      )
+                                                      ?.selection
+                                                      .value ??
+                                                  0;
                                               ScrollController? sc;
                                               switch (tab) {
                                                 case 0:

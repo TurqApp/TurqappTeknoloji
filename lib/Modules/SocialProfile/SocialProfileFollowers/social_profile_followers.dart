@@ -14,6 +14,8 @@ class SocialProfileFollowers extends StatelessWidget {
       required this.selection,
       required this.nickname,
       required this.userID});
+  String get _pageLineBarTag =>
+      '${kFollowersSocialProfilePageLineBarTag}_$userID';
   late final controller = Get.put(
       SocialProfileFollowersController(initialPage: selection, userID: userID));
 
@@ -36,7 +38,7 @@ class SocialProfileFollowers extends StatelessWidget {
             ),
             PageLineBar(
               barList: ['profile.followers'.tr, 'profile.following'.tr],
-              pageName: kFollowersSocialProfilePageLineBarTag,
+              pageName: _pageLineBarTag,
               initialIndex: selection,
               pageController: controller.pageController,
             ),
@@ -44,10 +46,10 @@ class SocialProfileFollowers extends StatelessWidget {
               child: PageView(
                 controller: controller.pageController,
                 onPageChanged: (v) {
-                  Get.find<PageLineBarController>(
-                          tag: kFollowersSocialProfilePageLineBarTag)
-                      .selection
-                      .value = v;
+                  syncPageLineBarSelection(
+                    _pageLineBarTag,
+                    v,
+                  );
                 },
                 children: [
                   Obx(() {

@@ -1,6 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
@@ -46,18 +46,10 @@ class _MarketOffersViewState extends State<MarketOffersView> {
           backgroundColor: Colors.white,
           elevation: 0,
           scrolledUnderElevation: 0,
-          leading: IconButton(
-            onPressed: Get.back,
-            icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-          ),
-          title: Text(
-            'pasaj.market.offers_title'.tr,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontFamily: 'MontserratBold',
-            ),
-          ),
+          leadingWidth: 52,
+          titleSpacing: 8,
+          leading: const AppBackButton(),
+          title: AppPageTitle('pasaj.market.offers_title'.tr),
           bottom: TabBar(
             indicatorColor: Colors.black,
             labelColor: Colors.black,

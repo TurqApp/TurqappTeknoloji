@@ -7,9 +7,39 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import '../JobContent/job_content.dart';
 import 'my_job_ads_controller.dart';
 
-class MyJobAds extends StatelessWidget {
+class MyJobAds extends StatefulWidget {
   MyJobAds({super.key});
-  final controller = Get.put(MyJobAdsController());
+
+  @override
+  State<MyJobAds> createState() => _MyJobAdsState();
+}
+
+class _MyJobAdsState extends State<MyJobAds> {
+  late final MyJobAdsController controller;
+  late final String _pageLineBarTag = 'MyJobAds_${identityHashCode(this)}';
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<MyJobAdsController>()) {
+      controller = Get.find<MyJobAdsController>();
+    } else {
+      controller = Get.put(MyJobAdsController());
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        Get.isRegistered<MyJobAdsController>() &&
+        Get.find<MyJobAdsController>() == controller) {
+      Get.delete<MyJobAdsController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,15 +58,13 @@ class MyJobAds extends StatelessWidget {
                   "pasaj.job_finder.published_tab".tr,
                   "pasaj.job_finder.expired_tab".tr,
                 ],
-                pageName: "MyJobAds",
+                pageName: _pageLineBarTag,
                 pageController: controller.pageController),
             Expanded(
               child: PageView(
                 controller: controller.pageController,
                 onPageChanged: (v) {
-                  Get.find<PageLineBarController>(tag: "MyJobAds")
-                      .selection
-                      .value = v;
+                  syncPageLineBarSelection(_pageLineBarTag, v);
                 },
                 children: [
                   Obx(() {

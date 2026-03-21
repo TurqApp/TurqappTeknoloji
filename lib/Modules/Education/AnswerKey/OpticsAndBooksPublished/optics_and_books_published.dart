@@ -20,6 +20,8 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
   final controller = Get.put(OpticsAndBooksPublishedController());
   final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
+  late final String _pageLineBarTag =
+      'OpticsAndBooksPublished_${identityHashCode(this)}';
 
   @override
   void initState() {
@@ -116,7 +118,7 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
                       "${'answer_key.book'.tr} (${controller.list.length})",
                       "${'answer_key.optical_form'.tr} (${controller.optikler.length})",
                     ],
-                    pageName: "OpticsAndBooksPublished",
+                    pageName: _pageLineBarTag,
                     pageController: _pageController,
                   ),
                 ),
@@ -125,13 +127,10 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
                     controller: _pageController,
                     onPageChanged: (index) {
                       controller.setSelection(index);
-                      if (Get.isRegistered<PageLineBarController>(
-                        tag: "OpticsAndBooksPublished",
-                      )) {
-                        Get.find<PageLineBarController>(
-                          tag: "OpticsAndBooksPublished",
-                        ).selection.value = index;
-                      }
+                      syncPageLineBarSelection(
+                        _pageLineBarTag,
+                        index,
+                      );
                     },
                     children: [
                       _buildBooksPage(),

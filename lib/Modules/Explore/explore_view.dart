@@ -204,10 +204,10 @@ class ExploreView extends StatelessWidget {
                               physics: const ClampingScrollPhysics(),
                               onPageChanged: (idx) {
                                 controller.selection.value = idx;
-                                Get.find<PageLineBarController>(
-                                        tag: kExplorePageLineBarTag)
-                                    .selection
-                                    .value = idx;
+                                syncPageLineBarSelection(
+                                  kExplorePageLineBarTag,
+                                  idx,
+                                );
                                 if (idx == 0 &&
                                     controller.trendingTags.isEmpty) {
                                   controller.fetchTrendingTags();

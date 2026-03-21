@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Themes/app_colors.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import '../text_styles.dart';
 
 class BackButtons extends StatelessWidget {
@@ -12,19 +12,19 @@ class BackButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        IconButton(
-          onPressed: () {
+        AppBackButton(
+          onTap: () {
             Get.back();
           },
-          icon: Icon(
-            CupertinoIcons.arrow_left,
-            color: AppColors.textBlack,
+        )
+            ,
+        const SizedBox(width: 8),
+        Expanded(
+          child: AppPageTitle(
+            text,
+            fontSize: TextStyles.headerTextStyle.fontSize ?? 20,
           ),
         ),
-        Text(
-          text,
-          style: TextStyles.headerTextStyle,
-        )
       ],
     );
   }
