@@ -18,6 +18,7 @@ class ActionButton extends StatefulWidget {
   final BuildContext context;
   final List<PullDownMenuItem> menuItems;
   final ActionButtonPermissionScope permissionScope;
+  final String? semanticsLabel;
   final double size;
   final double lift;
   final Color backgroundColor;
@@ -28,6 +29,7 @@ class ActionButton extends StatefulWidget {
     required this.context,
     required this.menuItems,
     this.permissionScope = ActionButtonPermissionScope.none,
+    this.semanticsLabel,
     this.size = 60,
     this.lift = 60,
     this.backgroundColor = Colors.white,
@@ -203,37 +205,41 @@ class _ActionButtonState extends State<ActionButton> {
                         })
                         .whereType<PullDownMenuItem>()
                         .toList(),
-                    buttonBuilder: (context, showMenu) => ClipOval(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                        child: Container(
-                          width: widget.size,
-                          height: widget.size,
-                          decoration: BoxDecoration(
-                            color: effectiveBackgroundColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: widget.backgroundColor == Colors.white
-                                  ? Colors.black.withValues(alpha: 0.06)
-                                  : widget.backgroundColor
-                                      .withValues(alpha: 0.24),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x22000000),
-                                blurRadius: 16,
-                                offset: Offset(0, 5),
+                    buttonBuilder: (context, showMenu) => Semantics(
+                      label: widget.semanticsLabel,
+                      button: true,
+                      child: ClipOval(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                          child: Container(
+                            width: widget.size,
+                            height: widget.size,
+                            decoration: BoxDecoration(
+                              color: effectiveBackgroundColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: widget.backgroundColor == Colors.white
+                                    ? Colors.black.withValues(alpha: 0.06)
+                                    : widget.backgroundColor
+                                        .withValues(alpha: 0.24),
                               ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.grid_view_outlined,
-                              color: widget.iconColor,
-                              size: widget.size <= 56 ? 23 : 25,
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 5),
+                                ),
+                              ],
                             ),
-                            onPressed: showMenu,
+                            alignment: Alignment.center,
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.grid_view_outlined,
+                                color: widget.iconColor,
+                                size: widget.size <= 56 ? 23 : 25,
+                              ),
+                              onPressed: showMenu,
+                            ),
                           ),
                         ),
                       ),

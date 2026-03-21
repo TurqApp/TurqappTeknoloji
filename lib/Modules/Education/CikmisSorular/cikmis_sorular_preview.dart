@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/external.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'cikmis_sorular_cover_model.dart';
 
 class CikmisSorularPreview extends StatefulWidget {
@@ -440,7 +440,9 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
             GestureDetector(
               onTap: () {
                 _repository.saveResult(
-                  uid: FirebaseAuth.instance.currentUser?.uid ?? "local",
+                  uid: CurrentUserService.instance.userId.isNotEmpty
+                      ? CurrentUserService.instance.userId
+                      : "local",
                   anaBaslik: widget.anaBaslik,
                   sinavTuru: widget.sinavTuru,
                   yil: widget.yil,

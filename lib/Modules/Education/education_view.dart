@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
@@ -1089,6 +1090,9 @@ class EducationView extends StatelessWidget {
                       child: ActionButton(
                         context: context,
                         menuItems: menuItems,
+                        semanticsLabel: IntegrationTestKeys.educationActionMenu(
+                          _tabIdForIndex(controller.selectedTab.value),
+                        ),
                         size: 56,
                         lift: 62,
                         backgroundColor: Colors.green,

@@ -27,4 +27,7 @@ class IntegrationTestKeys {
 
   static String questionBankCategory(String category) =>
       'it-question-bank-category-$category';
+
+  static String educationActionMenu(String tabId) =>
+      'it-education-action-menu-$tabId';
 }

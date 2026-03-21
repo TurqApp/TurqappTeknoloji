@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AnswerKeyController extends GetxController {
   static const String _listingSelectionPrefKeyPrefix =
@@ -80,7 +80,7 @@ class AnswerKeyController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -98,7 +98,7 @@ class AnswerKeyController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = CurrentUserService.instance.userId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -126,7 +126,7 @@ class AnswerKeyController extends GetxController {
 
   Future<void> _bootstrapInitialData() async {
     await AnswerKeyContentController.warmSavedIdsForCurrentUser();
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _answerKeySnapshotRepository
         .openHome(
@@ -218,7 +218,7 @@ class AnswerKeyController extends GetxController {
     _lastDocument = null;
     try {
       final resource = await _answerKeySnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: _pageSize,
       );
       final items = resource.data ?? const <BookletModel>[];
@@ -272,7 +272,7 @@ class AnswerKeyController extends GetxController {
     try {
       final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );
