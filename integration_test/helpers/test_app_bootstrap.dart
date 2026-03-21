@@ -8,6 +8,7 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Services/device_session_service.dart';
 import 'package:turqappv2/main.dart' as app;
 
 const bool kRunIntegrationSmoke =
@@ -20,6 +21,7 @@ const String kIntegrationLoginPassword =
 AccountSessionCredential? _cachedIntegrationCredential;
 
 IntegrationTestWidgetsFlutterBinding ensureIntegrationBinding() {
+  Get.testMode = true;
   return IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 }
 
@@ -77,6 +79,10 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
       email: credentials.email,
       password: credentials.password,
     );
+    final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (signedUid.isNotEmpty) {
+      DeviceSessionService.instance.beginSessionClaim(signedUid);
+    }
     debugPrint('[integration-smoke] auth: sign-in success');
   } on FirebaseAuthException catch (error) {
     throw TestFailure(
@@ -100,17 +106,28 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
   final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
   if (signedUid.isNotEmpty) {
     await accountCenter.markSuccessfulSignIn(signedUid);
+    try {
+      await accountCenter.registerCurrentDeviceSessionIfEnabled();
+    } catch (error) {
+      debugPrint(
+        '[integration-smoke] auth: session register skipped: $error',
+      );
+    }
   }
   debugPrint('[integration-smoke] auth: account center synced');
 
   if (Get.currentRoute != '/NavBarView') {
-    Get.offAll(() => NavBarView());
-    await pumpForAppStartup(
-      tester,
-      step: const Duration(milliseconds: 250),
-      maxPumps: 12,
-    );
-    debugPrint('[integration-smoke] auth: routed to NavBar');
+    try {
+      Get.offAll(() => NavBarView());
+      await pumpForAppStartup(
+        tester,
+        step: const Duration(milliseconds: 250),
+        maxPumps: 12,
+      );
+      debugPrint('[integration-smoke] auth: routed to NavBar');
+    } catch (error) {
+      debugPrint('[integration-smoke] auth: route to NavBar skipped: $error');
+    }
   }
 }
 

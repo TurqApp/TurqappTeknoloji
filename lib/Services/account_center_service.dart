@@ -52,10 +52,14 @@ class AccountCenterService extends GetxService {
     return b.lastUsedAt.compareTo(a.lastUsedAt);
   }
 
+  static AccountCenterService? maybeFind() {
+    if (!Get.isRegistered<AccountCenterService>()) return null;
+    return Get.find<AccountCenterService>();
+  }
+
   static AccountCenterService _ensureService() {
-    if (Get.isRegistered<AccountCenterService>()) {
-      return Get.find<AccountCenterService>();
-    }
+    final existing = maybeFind();
+    if (existing != null) return existing;
     return Get.put(AccountCenterService(), permanent: true);
   }
 
@@ -364,7 +368,10 @@ class AccountCenterService extends GetxService {
   }
 
   Future<void> registerCurrentDeviceSessionIfEnabled() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = (CurrentUserService.instance.userId.trim().isNotEmpty
+            ? CurrentUserService.instance.userId
+            : FirebaseAuth.instance.currentUser?.uid ?? '')
+        .trim();
     if (uid.isEmpty) return;
     final raw = await UserRepository.ensure().getUserRaw(
       uid,

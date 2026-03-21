@@ -318,11 +318,7 @@ extension SignInControllerAuthPart on SignInController {
 
       late AgendaController agendaController;
       try {
-        if (Get.isRegistered<AgendaController>()) {
-          agendaController = Get.find<AgendaController>();
-        } else {
-          agendaController = Get.put(AgendaController());
-        }
+        agendaController = AgendaController.ensure();
 
         await agendaController.refreshAgenda();
 
@@ -335,7 +331,7 @@ extension SignInControllerAuthPart on SignInController {
           retries++;
         }
       } catch (_) {
-        agendaController = Get.put(AgendaController());
+        agendaController = AgendaController.ensure();
       }
 
       try {
@@ -374,6 +370,10 @@ extension SignInControllerAuthPart on SignInController {
       final signedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (signedUid.isNotEmpty) {
         DeviceSessionService.instance.beginSessionClaim(signedUid);
+        try {
+          await AccountCenterService.ensure()
+              .registerCurrentDeviceSessionIfEnabled();
+        } catch (_) {}
       }
       authSucceeded = true;
       try {
@@ -453,9 +453,8 @@ extension SignInControllerAuthPart on SignInController {
       } catch (_) {}
 
       try {
-        final agendaController = Get.isRegistered<AgendaController>()
-            ? Get.find<AgendaController>()
-            : Get.put(AgendaController());
+        final agendaController =
+            AgendaController.maybeFind() ?? AgendaController.ensure();
         await Future.any([
           agendaController.refreshAgenda(),
           Future.delayed(const Duration(seconds: 3)),
