@@ -66,6 +66,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _skipNextPause = false;
   bool _blockPause = false;
   bool _replayOverlayLatched = false;
+  bool _replayAdPrewarmed = false;
+  bool _replayAdVisible = false;
+  bool _replayLeadAdShown = false;
+  bool _replayAdImpressionReceived = false;
+  Timer? _replayAdHideTimer;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
   Timer? _lazyInitTimer;
@@ -243,6 +248,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     } catch (_) {}
 
     _lazyInitTimer?.cancel();
+    _replayAdHideTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
     if (isStandalonePostInstance) {
       videoStateManager.exitExclusiveMode();
@@ -319,17 +325,57 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _onVideoUpdate() {
     if (!mounted) return;
     final v = _videoAdapter!.value;
+    final remaining =
+        v.duration > Duration.zero ? v.duration - v.position : null;
+    final replayAdWarmupLead = Theme.of(context).platform == TargetPlatform.iOS
+        ? const Duration(seconds: 8)
+        : const Duration(seconds: 4);
+    final replayAdWarmupTarget =
+        Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
+
+    if (!isStandalonePostInstance &&
+        !_replayAdPrewarmed &&
+        remaining != null &&
+        remaining <= replayAdWarmupLead &&
+        remaining > Duration.zero) {
+      _replayAdPrewarmed = true;
+      unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+    }
+
+    if (!isStandalonePostInstance &&
+        !_replayLeadAdShown &&
+        !_replayOverlayLatched &&
+        remaining != null &&
+        remaining <= const Duration(seconds: 3) &&
+        remaining > const Duration(milliseconds: 400) &&
+        AdmobKare.hasReadyBanner) {
+      _replayLeadAdShown = true;
+      _replayAdVisible = true;
+      _replayAdImpressionReceived = false;
+      _replayAdHideTimer?.cancel();
+      if (mounted) {
+        setState(() {});
+      }
+    }
 
     if (v.isCompleted) {
       if (!_replayOverlayLatched) {
         _replayOverlayLatched = true;
+        _replayAdHideTimer?.cancel();
+        _replayAdVisible = false;
+        _replayAdImpressionReceived = false;
         if (!isStandalonePostInstance) {
-          unawaited(AdmobKare.warmupPool(targetCount: 3));
+          unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
         }
       }
     } else if (_replayOverlayLatched &&
         (v.isPlaying || v.position == Duration.zero)) {
       _replayOverlayLatched = false;
+      _replayAdPrewarmed = false;
+      _replayAdVisible = false;
+      _replayLeadAdShown = false;
+      _replayAdImpressionReceived = false;
+      _replayAdHideTimer?.cancel();
     }
 
     // İlk kez ready olduğunda ses ayarla
@@ -436,21 +482,40 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final adapter = _videoAdapter;
     if (adapter == null) return;
     _replayOverlayLatched = false;
+    _replayAdPrewarmed = false;
+    _replayAdVisible = false;
+    _replayLeadAdShown = false;
+    _replayAdImpressionReceived = false;
+    _replayAdHideTimer?.cancel();
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
     _startPlayback();
   }
 
+  void _onReplayAdImpression() {
+    if (_replayAdImpressionReceived) return;
+    _replayAdImpressionReceived = true;
+    _replayAdHideTimer?.cancel();
+    _replayAdHideTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() {
+        _replayAdVisible = false;
+      });
+    });
+  }
+
   Widget buildFeedReplayOverlay(HLSVideoValue value) {
     if (isStandalonePostInstance) return const SizedBox.shrink();
-    if (!_replayOverlayLatched && !value.isCompleted) {
+    if (!_replayOverlayLatched && !_replayAdVisible && !value.isCompleted) {
       return const SizedBox.shrink();
     }
+    final showReplayButton = _replayOverlayLatched || value.isCompleted;
+    final showAdPanel = _replayAdVisible;
     return Positioned.fill(
       child: IgnorePointer(
         ignoring: false,
         child: ColoredBox(
-          color: Colors.black.withValues(alpha: 0.28),
+          color: Colors.black.withValues(alpha: showReplayButton ? 0.28 : 0.18),
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -463,39 +528,56 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        const AdmobKare(),
-                        ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.18),
-                        ),
-                        Center(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => unawaited(replayVideoFromStart()),
+                        if (showAdPanel) ...[
+                          Center(
                             child: Container(
-                              width: 148,
-                              height: 44,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 18),
+                              width: 300,
+                              height: 250,
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(22),
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              child: const Center(
-                                child: Text(
-                                  'Tekrar izle',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 14,
-                                    fontFamily: 'MontserratSemiBold',
-                                    height: 1.0,
+                              clipBehavior: Clip.antiAlias,
+                              child: AdmobKare(
+                                showChrome: false,
+                                onImpression: _onReplayAdImpression,
+                              ),
+                            ),
+                          ),
+                          ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.10),
+                          ),
+                        ],
+                        if (showReplayButton)
+                          Center(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => unawaited(replayVideoFromStart()),
+                              child: Container(
+                                width: 148,
+                                height: 44,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Tekrar izle',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 14,
+                                      fontFamily: 'MontserratSemiBold',
+                                      height: 1.0,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),

@@ -54,11 +54,11 @@ class ShortController extends GetxController {
   static const double _shortLandscapeAspectThreshold = 1.2;
 
   static final double _activeBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 5.0 : 3.0;
+      defaultTargetPlatform == TargetPlatform.android ? 5.0 : 4.8;
   static final double _neighborBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 3.6 : 2.4;
+      defaultTargetPlatform == TargetPlatform.android ? 3.6 : 3.6;
   static final double _prepBufferSeconds =
-      defaultTargetPlatform == TargetPlatform.android ? 2.8 : 2.1;
+      defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.0;
 
   bool _isEligibleShortPost(PostsModel post) {
     if (!post.hasPlayableVideo) return false;

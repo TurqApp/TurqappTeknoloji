@@ -5,11 +5,20 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdmobKare extends StatefulWidget {
-  const AdmobKare({super.key});
+  const AdmobKare({
+    super.key,
+    this.showChrome = true,
+    this.onImpression,
+  });
+
+  final bool showChrome;
+  final VoidCallback? onImpression;
 
   static Future<void> warmupPool({int targetCount = 3}) {
     return _AdmobKareState.warmupPool(targetCount: targetCount);
   }
+
+  static bool get hasReadyBanner => _AdmobKareState.hasReadyBanner;
 
   @override
   State<AdmobKare> createState() => _AdmobKareState();
@@ -29,6 +38,7 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _isAdLoaded = false;
   bool _isDisposed = false;
   bool _loadFailed = false;
+  bool _impressionReported = false;
   int _retryCount = 0;
   Timer? _retryTimer;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
@@ -41,6 +51,7 @@ class _AdmobKareState extends State<AdmobKare> {
 
   static bool get _supportsSharedPool => true;
   static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
+  static bool get hasReadyBanner => _readyPool.isNotEmpty;
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
@@ -129,6 +140,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _bannerAd = pooled;
       _isAdLoaded = true;
       _loadFailed = false;
+      _impressionReported = false;
       if (_supportsSharedPool) {
         unawaited(warmupPool());
       }
@@ -161,6 +173,7 @@ class _AdmobKareState extends State<AdmobKare> {
         _loadFailed = false;
       });
     }
+    _impressionReported = false;
 
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
@@ -228,6 +241,10 @@ class _AdmobKareState extends State<AdmobKare> {
         onAdImpression: (Ad ad) {
           _log(
               'impression banner unit=$adUnitId platform=${Platform.operatingSystem}');
+          if (!_impressionReported) {
+            _impressionReported = true;
+            widget.onImpression?.call();
+          }
         },
       ),
     )..load();
@@ -276,6 +293,9 @@ class _AdmobKareState extends State<AdmobKare> {
 
     final ad = _bannerAd;
     if (_loadFailed || !_canRenderAd(ad)) {
+      if (!widget.showChrome) {
+        return const SizedBox.shrink();
+      }
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Container(
@@ -296,6 +316,17 @@ class _AdmobKareState extends State<AdmobKare> {
     final bannerAd = ad!;
 
     try {
+      final adBody = SizedBox(
+        width: bannerAd.size.width.toDouble(),
+        height: bannerAd.size.height.toDouble(),
+        child: AdWidget(
+          ad: bannerAd,
+          key: ValueKey('admob_${bannerAd.hashCode}'),
+        ),
+      );
+      if (!widget.showChrome) {
+        return Center(child: adBody);
+      }
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
@@ -318,14 +349,7 @@ class _AdmobKareState extends State<AdmobKare> {
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: bannerAd.size.width.toDouble(),
-                  height: bannerAd.size.height.toDouble(),
-                  child: AdWidget(
-                    ad: bannerAd,
-                    key: ValueKey('admob_${bannerAd.hashCode}'),
-                  ),
-                ),
+                adBody,
                 const SizedBox(height: 4),
               ],
             ),

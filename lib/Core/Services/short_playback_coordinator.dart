@@ -32,10 +32,10 @@ class ShortPlaybackCoordinator {
     return ShortPlaybackCoordinator(
       // Android'de agresif hot pencere codec churn uretip ilk acilista
       // stop/play/pause dalgasi olusturuyordu. Pencereyi butceye yaklastir.
-      hotAhead: isAndroid ? 1 : 5,
-      hotBehind: isAndroid ? 0 : 2,
-      warmBehind: isAndroid ? 1 : 5,
-      maxAttachedPlayers: isAndroid ? 3 : 11,
+      hotAhead: isAndroid ? 1 : 6,
+      hotBehind: isAndroid ? 0 : 3,
+      warmBehind: isAndroid ? 1 : 6,
+      maxAttachedPlayers: isAndroid ? 3 : 12,
       budgetPolicy: PlayerBudgetPolicy.forSurface(
         PlayerSurfaceKind.shortFullscreen,
         lowMemoryDevice: isAndroid,
