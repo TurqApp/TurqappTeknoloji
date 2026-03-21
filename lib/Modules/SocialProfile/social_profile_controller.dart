@@ -39,6 +39,7 @@ class SocialProfileController extends GetxController {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  String? _pendingCenteredIdentity;
 
   final ScrollController scrollController = ScrollController();
   final RxList<SocialMediaModel> socialMediaList = <SocialMediaModel>[].obs;
@@ -53,7 +54,7 @@ class SocialProfileController extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
   final UserPostLinkService _linkService = Get.put(UserPostLinkService());
-  final Map<int, GlobalKey> _postKeys = {};
+  final Map<String, GlobalKey> _postKeys = {};
   var showPfImage = false.obs;
 
   String userID;
@@ -158,38 +159,120 @@ class SocialProfileController extends GetxController {
   }
 
   int resolveResumeCenteredIndex() {
-    if (allPosts.isEmpty) return -1;
+    final activeLength =
+        postSelection.value == 0 ? combinedFeedEntries.length : allPosts.length;
+    if (activeLength == 0) return -1;
+    final pendingIdentity = _pendingCenteredIdentity;
+    if (pendingIdentity != null && pendingIdentity.isNotEmpty) {
+      final pendingIndex = postSelection.value == 0
+          ? combinedFeedEntries.indexWhere((entry) {
+              final entryDocId = ((entry['docID'] as String?) ?? '').trim();
+              final entryIsReshare = entry['isReshare'] == true;
+              return combinedEntryIdentity(
+                    docId: entryDocId,
+                    isReshare: entryIsReshare,
+                  ) ==
+                  pendingIdentity;
+            })
+          : allPosts.indexWhere((post) => 'post_${post.docID}' == pendingIdentity);
+      if (pendingIndex >= 0) {
+        return pendingIndex;
+      }
+    }
     if (lastCenteredIndex != null &&
         lastCenteredIndex! >= 0 &&
-        lastCenteredIndex! < allPosts.length) {
+        lastCenteredIndex! < activeLength) {
       return lastCenteredIndex!;
     }
-    if (centeredIndex.value >= 0 && centeredIndex.value < allPosts.length) {
+    if (centeredIndex.value >= 0 && centeredIndex.value < activeLength) {
       return centeredIndex.value;
     }
     return 0;
   }
 
   void resumeCenteredPost() {
+    final activeCombinedEntries = postSelection.value == 0
+        ? combinedFeedEntries
+        : const <Map<String, dynamic>>[];
+    final activeLength = postSelection.value == 0
+        ? activeCombinedEntries.length
+        : allPosts.length;
     final expectedDocId = (lastCenteredIndex != null &&
             lastCenteredIndex! >= 0 &&
-            lastCenteredIndex! < allPosts.length)
-        ? allPosts[lastCenteredIndex!].docID
+            lastCenteredIndex! < activeLength)
+        ? postSelection.value == 0
+            ? ((activeCombinedEntries[lastCenteredIndex!]['docID'] as String?) ??
+                '')
+            : allPosts[lastCenteredIndex!].docID
         : null;
     final target = resolveResumeCenteredIndex();
-    if (target < 0 || target >= allPosts.length) return;
+    if (target < 0 || target >= activeLength) return;
     lastCenteredIndex = target;
     centeredIndex.value = target;
+    currentVisibleIndex.value = target;
+    capturePendingCenteredEntry(preferredIndex: target);
     _invariantGuard.assertCenteredSelection(
       surface: 'social_profile',
       invariantKey: 'resume_centered_post',
       centeredIndex: centeredIndex.value,
-      docIds: allPosts.map((post) => post.docID).toList(growable: false),
+      docIds: postSelection.value == 0
+          ? activeCombinedEntries
+              .map((entry) => ((entry['docID'] as String?) ?? ''))
+              .toList(growable: false)
+          : allPosts.map((post) => post.docID).toList(growable: false),
       expectedDocId: expectedDocId,
       payload: <String, dynamic>{
         'target': target,
       },
     );
+  }
+
+  void capturePendingCenteredEntry({
+    int? preferredIndex,
+    PostsModel? model,
+    bool isReshare = false,
+  }) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      if (docId.isEmpty) {
+        _pendingCenteredIdentity = null;
+        return;
+      }
+      _pendingCenteredIdentity = postSelection.value == 0
+          ? combinedEntryIdentity(docId: docId, isReshare: isReshare)
+          : 'post_$docId';
+      return;
+    }
+
+    final activeLength =
+        postSelection.value == 0 ? combinedFeedEntries.length : allPosts.length;
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= activeLength) {
+      _pendingCenteredIdentity = null;
+      return;
+    }
+
+    if (postSelection.value == 0) {
+      final entry = combinedFeedEntries[candidateIndex];
+      final docId = ((entry['docID'] as String?) ?? '').trim();
+      if (docId.isEmpty) {
+        _pendingCenteredIdentity = null;
+        return;
+      }
+      _pendingCenteredIdentity = combinedEntryIdentity(
+        docId: docId,
+        isReshare: entry['isReshare'] == true,
+      );
+      return;
+    }
+
+    final docId = allPosts[candidateIndex].docID.trim();
+    _pendingCenteredIdentity = docId.isEmpty ? null : 'post_$docId';
   }
 
   @override
@@ -341,8 +424,78 @@ class SocialProfileController extends GetxController {
     }
   }
 
-  GlobalKey getPostKey(int index) {
-    return _postKeys.putIfAbsent(index, () => GlobalObjectKey('post_$index'));
+  GlobalKey getPostKey({
+    required String docId,
+    required bool isReshare,
+  }) {
+    final identity = combinedEntryIdentity(
+      docId: docId,
+      isReshare: isReshare,
+    );
+    return _postKeys.putIfAbsent(
+      identity,
+      () => GlobalObjectKey('social_$identity'),
+    );
+  }
+
+  String combinedEntryIdentity({
+    required String docId,
+    required bool isReshare,
+  }) {
+    return '${isReshare ? 'reshare' : 'post'}_$docId';
+  }
+
+  List<Map<String, dynamic>> get combinedFeedEntries {
+    final combinedPosts = <Map<String, dynamic>>[];
+
+    for (final post in allPosts) {
+      combinedPosts.add(<String, dynamic>{
+        'docID': post.docID,
+        'post': post,
+        'isReshare': false,
+        'timestamp': post.timeStamp,
+      });
+    }
+
+    for (final reshare in reshares) {
+      combinedPosts.add(<String, dynamic>{
+        'docID': reshare.docID,
+        'post': reshare,
+        'isReshare': true,
+        'timestamp': reshare.timeStamp,
+      });
+    }
+
+    combinedPosts.sort(
+      (a, b) => (b['timestamp'] as num).compareTo(a['timestamp'] as num),
+    );
+    return combinedPosts;
+  }
+
+  int indexOfCombinedEntry({
+    required String docId,
+    required bool isReshare,
+  }) {
+    final identity = combinedEntryIdentity(
+      docId: docId,
+      isReshare: isReshare,
+    );
+    return combinedFeedEntries.indexWhere((entry) {
+      final entryDocId = ((entry['docID'] as String?) ?? '').trim();
+      final entryIsReshare = entry['isReshare'] == true;
+      return combinedEntryIdentity(
+            docId: entryDocId,
+            isReshare: entryIsReshare,
+          ) ==
+          identity;
+    });
+  }
+
+  String agendaInstanceTag({
+    required String docId,
+    required bool isReshare,
+  }) {
+    return 'social_${isReshare ? 'reshare' : 'post'}_$docId';
   }
 
   Future<void> fetchScheduledPosts({bool initial = false}) async {
@@ -369,8 +522,14 @@ class SocialProfileController extends GetxController {
   }
 
   Future<void> disposeAgendaContentController(String docID) async {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
-      Get.delete<AgendaContentController>(tag: docID, force: true);
+    final tags = <String>{
+      agendaInstanceTag(docId: docID, isReshare: false),
+      agendaInstanceTag(docId: docID, isReshare: true),
+    };
+    for (final tag in tags) {
+      if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+        Get.delete<AgendaContentController>(tag: tag, force: true);
+      }
     }
   }
 

@@ -118,6 +118,20 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   bool _isSharedAsPost = false;
   String _sharedOriginalUserID = "";
   String _sharedOriginalPostID = "";
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
+  String _requireCurrentUid() {
+    final uid = _currentUid;
+    if (uid.isEmpty) {
+      throw StateError('Current user uid unavailable');
+    }
+    return uid;
+  }
   String _sharedSourcePostID = "";
   bool _isQuotedPost = false;
   String _quotedOriginalText = "";

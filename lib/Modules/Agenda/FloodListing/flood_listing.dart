@@ -72,7 +72,7 @@ class _FloodListingState extends State<FloodListing> {
               }
 
               final model = controller.floods[index];
-              final itemKey = controller.getFloodKey(index);
+              final itemKey = controller.getFloodKey(docId: model.docID);
               final isCentered = centeredIndex == index;
               final isLastItem = index == controller.floods.length - 1;
 
@@ -80,6 +80,7 @@ class _FloodListingState extends State<FloodListing> {
                 key: itemKey,
                 model: model,
                 isPreview: true,
+                instanceTag: controller.floodInstanceTag(model.docID),
                 shouldPlay: isCentered,
                 suppressFloodBadge: true,
               );

@@ -26,7 +26,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
     void openProfile() {
-      if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+      if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
             .indexWhere((p) => p.docID == widget.model.docID);
         if (modelIndex >= 0) {
@@ -122,8 +122,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                             ],
                           )),
                     ),
-                    if (widget.model.userID !=
-                        FirebaseAuth.instance.currentUser!.uid)
+                    if (widget.model.userID != _currentUid)
                       Obx(() {
                         if (controller.isFollowing.value) {
                           return const SizedBox.shrink();
@@ -222,7 +221,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
     void openProfile() {
-      if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+      if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
             .indexWhere((p) => p.docID == widget.model.docID);
         if (modelIndex >= 0) {
@@ -332,8 +331,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                             ],
                           )),
                     ),
-                    if (widget.model.userID !=
-                        FirebaseAuth.instance.currentUser!.uid)
+                    if (widget.model.userID != _currentUid)
                       Obx(() {
                         if (controller.isFollowing.value) {
                           return const SizedBox.shrink();
@@ -400,7 +398,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
   Widget pulldownmenu(Color color) {
     final canManagePost =
-        widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
+        widget.model.userID == _currentUid ||
             controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
@@ -556,7 +554,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
-            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+            widget.model.userID == _currentUid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -568,7 +566,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
-            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+            widget.model.userID == _currentUid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();
@@ -578,7 +576,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
-        if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid)
+        if (widget.model.userID != _currentUid)
           PullDownMenuItem(
             onTap: () {
               _suspendClassicFeedForRoute();
@@ -757,8 +755,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
   Widget reshareButton() {
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
-      final bool isOwner = controller.userService.userId == widget.model.userID;
-      final currentUserId = controller.userService.userId;
+      final bool isOwner = _currentUid == widget.model.userID;
+      final currentUserId = _currentUid;
       final bool canReshare = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
@@ -809,7 +807,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
   Widget commentButton(BuildContext context) {
     return Obx(() {
       final int visibility = widget.model.yorumVisibility;
-      final bool isOwner = controller.userService.userId == widget.model.userID;
+      final bool isOwner = _currentUid == widget.model.userID;
       final bool canInteract = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
@@ -840,8 +838,8 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
 
   Widget likeButton() {
     return Obx(() {
-      final bool isLiked =
-          controller.likes.contains(FirebaseAuth.instance.currentUser!.uid);
+      final bool isLiked = _currentUid.isNotEmpty &&
+          controller.likes.contains(_currentUid);
       final Color displayColor =
           isLiked ? Colors.blueAccent : _ClassicContentState._actionColor;
 

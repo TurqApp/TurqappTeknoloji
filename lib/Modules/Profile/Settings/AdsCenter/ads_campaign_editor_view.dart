@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -438,6 +439,12 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       );
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   List<String> _splitComma(String raw) {
     return raw
         .split(',')
@@ -458,7 +465,7 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
   }
 
   Future<void> _save() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     final base = widget.initialCampaign ?? AdCampaign.empty(createdBy: uid);
 
     final campaign = base.copyWith(

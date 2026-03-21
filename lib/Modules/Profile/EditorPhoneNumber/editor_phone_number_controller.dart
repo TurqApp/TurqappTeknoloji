@@ -22,6 +22,12 @@ class EditorPhoneNumberController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
 
+  String get _currentUid {
+    final serviceUid = _userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Timer? _timer;
 
   @override
@@ -49,7 +55,7 @@ class EditorPhoneNumberController extends GetxController {
   }
 
   Future<void> _loadInitialPhone() async {
-    final uid = _userService.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final data = await _userRepository.getUserRaw(
       uid,

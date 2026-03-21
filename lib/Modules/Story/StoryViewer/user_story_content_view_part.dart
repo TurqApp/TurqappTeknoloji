@@ -174,7 +174,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
             ),
           ),
         ),
-        if (currentStory.userId == CurrentUserService.instance.userId)
+        if (currentStory.userId == _currentUid)
           myToolBar()
         else
           otherToolBar()

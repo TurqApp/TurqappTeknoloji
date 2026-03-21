@@ -1,6 +1,12 @@
 part of 'explore_controller.dart';
 
 extension ExploreControllerRecentSearchPart on ExploreController {
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<void> _applyUserCacheQuota() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -35,8 +41,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   String _buildRecentSearchReloadKey(dynamic currentUser) {
-    final userID =
-        (currentUser?.userID ?? CurrentUserService.instance.userId).toString();
+    final userID = (currentUser?.userID ?? _currentUid).toString();
     if (userID.isEmpty) {
       return '';
     }
@@ -50,7 +55,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   Future<void> _reloadRecentSearchUsers() async {
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = _currentUid;
     if (currentUserID.isEmpty) {
       recentSearchUsers.clear();
       await _saveRecentSearchUsersCache();
@@ -140,7 +145,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   String? _recentSearchUsersCacheKey() {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return null;
     return '${ExploreController._recentSearchUsersCachePrefix}$uid';
   }
@@ -200,7 +205,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   Future<void> saveRecentSearch(String targetUid) async {
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = _currentUid;
     final cleanTarget = targetUid.trim();
     if (currentUserID.isEmpty ||
         cleanTarget.isEmpty ||
@@ -247,7 +252,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   }
 
   Future<void> removeRecentSearch(String targetUid) async {
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = _currentUid;
     final cleanTarget = targetUid.trim();
     if (currentUserID.isEmpty || cleanTarget.isEmpty) {
       return;

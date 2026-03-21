@@ -59,7 +59,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                           ? 0.92
                           : (widget.model.floodCount > 1 ? 1.0 : 0.80);
                       return VisibilityDetector(
-                        key: Key('agenda-media-${widget.model.docID}'),
+                        key: Key('agenda-media-$controllerTag'),
                         onVisibilityChanged: (info) {
                           reportMediaVisibility(info.visibleFraction);
                         },

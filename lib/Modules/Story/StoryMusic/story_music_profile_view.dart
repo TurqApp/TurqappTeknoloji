@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -33,6 +34,12 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
   bool _isLoading = true;
   MusicModel? _track;
   List<_MusicStoryEntry> _entries = const [];
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   void initState() {
@@ -97,7 +104,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
     if (userIds.isNotEmpty) {
     }
 
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = _currentUid;
     final entries = activeStories.map((story) {
       final userData = userDataById[story.userId];
       final nickname = _resolveNickname(userData, story.userId == currentUid);

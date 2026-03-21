@@ -21,6 +21,7 @@ class ProfileRenderCoordinator extends GetxService {
     for (final post in allPosts.where((post) =>
         !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
       combined.add(<String, dynamic>{
+        'docID': post.docID,
         'post': post,
         'isReshare': false,
         'timestamp': post.timeStamp,
@@ -34,6 +35,7 @@ class ProfileRenderCoordinator extends GetxService {
         reshare.timeStamp.toInt(),
       );
       combined.add(<String, dynamic>{
+        'docID': reshare.docID,
         'post': reshare,
         'isReshare': true,
         'timestamp': reshareTimestamp,

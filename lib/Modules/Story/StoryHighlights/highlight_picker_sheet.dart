@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -19,6 +20,12 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
   bool _isCreatingNew = false;
   bool _isSubmitting = false;
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -27,7 +34,7 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return const SizedBox.shrink();
     final media = MediaQuery.of(context);
     final topInset = media.padding.top;

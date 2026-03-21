@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
@@ -39,6 +40,12 @@ class _AdminPushViewState extends State<AdminPushView> {
   bool _checkingAccess = true;
   bool _canManagePush = false;
   String _lastReport = "";
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   void initState() {
@@ -157,9 +164,7 @@ class _AdminPushViewState extends State<AdminPushView> {
         minAge: minAge,
         maxAge: maxAge,
       );
-      final senderUid = CurrentUserService.instance.userId.trim().isEmpty
-          ? "admin"
-          : CurrentUserService.instance.userId.trim();
+      final senderUid = _currentUid.isEmpty ? "admin" : _currentUid;
 
       if (targetUids.isEmpty) {
         AppSnackbar(

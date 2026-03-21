@@ -533,11 +533,27 @@ class EditPostController extends GetxController {
           agendaCtrl.agendaList[idx] = updated;
           agendaCtrl.agendaList.refresh();
         }
-        // Update the AgendaContentController's edit time if present
-        if (Get.isRegistered<AgendaContentController>(tag: model.docID)) {
-          final contentCtrl =
-              Get.find<AgendaContentController>(tag: model.docID);
-          contentCtrl.editTime.value = DateTime.now().millisecondsSinceEpoch;
+        // Update mounted content controllers across feed/profile side surfaces.
+        final editTimestamp = DateTime.now().millisecondsSinceEpoch;
+        final candidateTags = <String>{
+          model.docID,
+          'profile_post_${model.docID}',
+          'profile_reshare_${model.docID}',
+          'social_post_${model.docID}',
+          'social_reshare_${model.docID}',
+          'liked_post_${model.docID}',
+          'archives_${model.docID}',
+          'tag_post_${model.docID}',
+          'top_tag_${model.docID}',
+          'flood_${model.docID}',
+          'explore_series_${model.docID}',
+        };
+        for (final tag in candidateTags) {
+          if (!Get.isRegistered<AgendaContentController>(tag: tag)) {
+            continue;
+          }
+          final contentCtrl = Get.find<AgendaContentController>(tag: tag);
+          contentCtrl.editTime.value = editTimestamp;
         }
       } catch (_) {}
 

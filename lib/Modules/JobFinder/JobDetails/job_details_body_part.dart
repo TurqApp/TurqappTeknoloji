@@ -198,7 +198,7 @@ extension JobDetailsBodyPart on JobDetails {
                 child: Column(
                   children: [
                     GestureDetector(
-                      onTap: current.userID == CurrentUserService.instance.userId
+                      onTap: current.userID == _currentUid
                           ? null
                           : () => Get.to(() => SocialProfile(userID: current.userID)),
                       child: Row(
@@ -249,7 +249,7 @@ extension JobDetailsBodyPart on JobDetails {
                               ],
                             ),
                           ),
-                          if (current.userID != CurrentUserService.instance.userId)
+                          if (current.userID != _currentUid)
                             const Icon(
                               CupertinoIcons.chevron_right,
                               color: Colors.black38,

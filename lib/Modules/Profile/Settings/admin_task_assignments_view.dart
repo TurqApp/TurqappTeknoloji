@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -31,6 +32,12 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   bool _searching = false;
   bool _saving = false;
   bool _clearing = false;
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   void initState() {
@@ -555,7 +562,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         avatarUrl: (user['avatarUrl'] ?? '').toString(),
         rozet: (user['rozet'] ?? '').toString(),
         taskIds: _selectedTaskIds,
-        updatedBy: CurrentUserService.instance.userId,
+        updatedBy: _currentUid,
       );
       AppSnackbar(
         'admin.tasks.title'.tr,

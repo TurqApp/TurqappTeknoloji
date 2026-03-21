@@ -78,7 +78,8 @@ class TopTags extends StatelessWidget {
                         }
 
                         final model = controller.agendaList[actualIndex];
-                        final itemKey = controller.getAgendaKey(actualIndex);
+                        final itemKey =
+                            controller.getAgendaKey(docId: model.docID);
                         final isCentered =
                             controller.centeredIndex.value == actualIndex;
 
@@ -91,6 +92,8 @@ class TopTags extends StatelessWidget {
                                 key: itemKey,
                                 model: model,
                                 isPreview: false,
+                                instanceTag:
+                                    controller.agendaInstanceTag(model.docID),
                                 shouldPlay: isCentered,
                               ),
                               SizedBox(

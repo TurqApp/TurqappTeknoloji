@@ -713,7 +713,7 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     highlight: hl,
                   ),
                   onLongPress: () {
-                    final myUid = CurrentUserService.instance.userId;
+                    final myUid = _myUserId;
                     if (widget.userID == myUid) {
                       noYesAlert(
                         title: 'profile.remove_highlight_title'.tr,

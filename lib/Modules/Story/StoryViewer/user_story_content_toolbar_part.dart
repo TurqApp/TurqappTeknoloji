@@ -53,8 +53,7 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
                     await controller.showPostCommentsBottomSheet(
                         currentStory.id,
                         widget.user.nickname,
-                        widget.user.userID ==
-                            CurrentUserService.instance.userId,
+                        widget.user.userID == _currentUid,
                         onClosed: (v) {
                       _startProgress();
                       unawaited(_resumeStoryAudio());

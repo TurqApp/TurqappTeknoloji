@@ -55,6 +55,12 @@ class NotificationService {
   static const _chatTypes = {'chat', 'message'};
   static const String _fcmTokenKeyPrefix = 'fcm_token';
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<void> initialize() async {
     if (!_bgRegistered) {
       FirebaseMessaging.onBackgroundMessage(
@@ -92,7 +98,7 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     if (token.isEmpty) return;
 
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = _currentUid;
     final tokenKey = _tokenPrefsKey(currentUid);
     final saved = prefs.getString(tokenKey);
     if (currentUid.isNotEmpty) {
@@ -150,7 +156,7 @@ class NotificationService {
 
   Future<void> showNotification(RemoteMessage msg) async {
     if (!_shouldUseLocalNotifications()) return;
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = _currentUid;
     final fromUserID = (msg.data['fromUserID'] ?? '').toString().trim();
     if (currentUid.isNotEmpty &&
         fromUserID.isNotEmpty &&
@@ -301,7 +307,7 @@ class NotificationService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final fromUid = CurrentUserService.instance.userId;
+      final fromUid = _currentUid;
       if (fromUid.isEmpty) return;
       final myToken = prefs.getString(_tokenPrefsKey(fromUid));
 

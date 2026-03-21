@@ -14,10 +14,10 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          controller.pausetheall.value = true;
+                          _suspendProfileFeedForRoute();
                           Get.to(() => AboutProfile(
                               userID: _myUserId))?.then((_) {
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                           });
                         },
                         child: Text(
@@ -50,9 +50,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                 ),
                 AppHeaderActionButton(
                   onTap: () {
-                    controller.pausetheall.value = true;
+                    _suspendProfileFeedForRoute();
                     Get.to(() => MyQRCode())?.then((_) {
-                      controller.resumeCenteredPost();
+                      _resumeProfileFeedAfterRoute();
                     });
                   },
                   child: Icon(
@@ -64,9 +64,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                 AppIconSurface.kGap.pw,
                 AppHeaderActionButton(
                   onTap: () {
-                    controller.pausetheall.value = true;
+                    _suspendProfileFeedForRoute();
                     Get.to(() => ChatListing())?.then((_) {
-                      controller.resumeCenteredPost();
+                      _resumeProfileFeedAfterRoute();
                     });
                   },
                   child: Icon(
@@ -78,9 +78,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                 AppIconSurface.kGap.pw,
                 AppHeaderActionButton(
                   onTap: () {
-                    controller.pausetheall.value = true;
+                    _suspendProfileFeedForRoute();
                     Get.to(() => SettingsView())?.then((_) {
-                      controller.resumeCenteredPost();
+                      _resumeProfileFeedAfterRoute();
                       _refreshUserState();
                     });
                   },
@@ -134,31 +134,31 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
 
                           if (myStoryUser != null &&
                               myStoryUser.stories.isNotEmpty) {
-                            controller.pausetheall.value = true;
+                            _suspendProfileFeedForRoute();
                             Get.to(() => StoryViewer(
                                   startedUser: myStoryUser,
                                   storyOwnerUsers: [myStoryUser],
                                 ))?.then((_) {
-                              controller.resumeCenteredPost();
+                              _resumeProfileFeedAfterRoute();
                             });
                           } else {
-                            controller.pausetheall.value = true;
+                            _suspendProfileFeedForRoute();
                             Get.to(() => StoryMaker())?.then((_) {
-                              controller.resumeCenteredPost();
+                              _resumeProfileFeedAfterRoute();
                               _refreshUserState();
                             });
                           }
                         } catch (_) {
-                          controller.pausetheall.value = true;
+                          _suspendProfileFeedForRoute();
                           Get.to(() => StoryMaker())?.then((_) {
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                             _refreshUserState();
                           });
                         }
                       } else {
-                        controller.pausetheall.value = true;
+                        _suspendProfileFeedForRoute();
                         Get.to(() => StoryMaker())?.then((_) {
-                          controller.resumeCenteredPost();
+                          _resumeProfileFeedAfterRoute();
                           _refreshUserState();
                         });
                       }
@@ -173,9 +173,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     right: 0,
                     child: GestureDetector(
                       onTap: () {
-                        controller.pausetheall.value = true;
+                        _suspendProfileFeedForRoute();
                         Get.to(() => StoryMaker())?.then((_) {
-                          controller.resumeCenteredPost();
+                          _resumeProfileFeedAfterRoute();
                           _refreshUserState();
                         });
                       },
@@ -204,9 +204,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          controller.pausetheall.value = true;
+                          _suspendProfileFeedForRoute();
                           Get.to(() => EditProfile())?.then((_) {
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                             _refreshUserState();
                           });
                         },
@@ -232,9 +232,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          controller.pausetheall.value = true;
+                          _suspendProfileFeedForRoute();
                           Get.to(() => MyStatisticView())?.then((_) {
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                           });
                         },
                         child: Container(
@@ -285,9 +285,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               if (!_hasVerifiedRozet)
                 GestureDetector(
                   onTap: () {
-                    controller.pausetheall.value = true;
+                    _suspendProfileFeedForRoute();
                     Get.to(() => BecomeVerifiedAccount())?.then((_) {
-                      controller.resumeCenteredPost();
+                      _resumeProfileFeedAfterRoute();
                     });
                   },
                   child: Row(
@@ -326,9 +326,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
           if (_myDisplayBio.isNotEmpty)
             GestureDetector(
               onTap: () {
-                controller.pausetheall.value = true;
+                _suspendProfileFeedForRoute();
                 Get.to(() => BiographyMaker())?.then((_) {
-                  controller.resumeCenteredPost();
+                  _resumeProfileFeedAfterRoute();
                   _refreshUserState();
                 });
               },
@@ -407,11 +407,11 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.pausetheall.value = true;
+              _suspendProfileFeedForRoute();
               Get.to(() => FollowingFollowers(
                   selection: 0,
                   userId: _myUserId))?.then((_) {
-                controller.resumeCenteredPost();
+                _resumeProfileFeedAfterRoute();
               });
             },
             child: Semantics(
@@ -452,11 +452,11 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.pausetheall.value = true;
+              _suspendProfileFeedForRoute();
               Get.to(() => FollowingFollowers(
                   selection: 1,
                   userId: _myUserId))?.then((_) {
-                controller.resumeCenteredPost();
+                _resumeProfileFeedAfterRoute();
               });
             },
             child: Semantics(

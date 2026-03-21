@@ -175,8 +175,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           final post = allPosts[index];
           final docID = '${uuid}_$index';
           final nowMs = DateTime.now().millisecondsSinceEpoch;
-          final uid = await _ensureStorageUploadAuthReady() ??
-              FirebaseAuth.instance.currentUser!.uid;
+          final uid =
+              await _ensureStorageUploadAuthReady() ?? _requireCurrentUid();
           final locationCity =
               post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
 
@@ -433,7 +433,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "tags": index == 0 ? allHashtags.toList() : [],
               "thumbnail": thumbnailUrl,
               "timeStamp": nowMs + index,
-              "userID": FirebaseAuth.instance.currentUser!.uid,
+              "userID": uid,
               "authorNickname": authorNickname,
               "authorDisplayName": authorDisplayName,
               "authorAvatarUrl": authorAvatarUrl,
@@ -486,7 +486,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 _sharedOriginalPostID.isNotEmpty &&
                 index == 0) {
               try {
-                final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+                final currentUserId = _requireCurrentUid();
                 final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
                 final counterTargetPostId = _isQuotedPost
                     ? await resolveQuoteCounterTargetPostId()
@@ -550,7 +550,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 tags: index == 0 ? allHashtags.toList() : [],
                 thumbnail: thumbnailUrl,
                 timeStamp: nowMs + index,
-                userID: FirebaseAuth.instance.currentUser!.uid,
+                userID: uid,
                 authorNickname: authorNickname,
                 authorAvatarUrl: authorAvatarUrl,
                 video: videoUrl,
@@ -589,8 +589,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             // Update counter for root post
             if (index == 0 && publishTime == nowMs) {
               try {
-                final me = FirebaseAuth.instance.currentUser?.uid;
-                if (me != null) {
+                final me = _currentUid;
+                if (me.isNotEmpty) {
                   await FirebaseFirestore.instance
                       .collection('users')
                       .doc(me)

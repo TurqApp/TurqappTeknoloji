@@ -64,10 +64,20 @@ class _LikedPostsState extends State<LikedPosts> {
     final nextIndex = _estimatedCenteredIndex();
     if (nextIndex < 0) return;
     if (controller.centeredIndex.value != nextIndex) {
+      final previousIndex = controller.lastCenteredIndex;
+      if (previousIndex != null &&
+          previousIndex >= 0 &&
+          previousIndex < controller.all.length &&
+          previousIndex != nextIndex) {
+        controller.disposeAgendaContentController(
+          controller.all[previousIndex].docID,
+        );
+      }
       setState(() {
         controller.centeredIndex.value = nextIndex;
         controller.currentVisibleIndex.value = nextIndex;
         controller.lastCenteredIndex = nextIndex;
+        controller.capturePendingCenteredEntry(preferredIndex: nextIndex);
       });
     }
   }
@@ -154,7 +164,7 @@ class _LikedPostsState extends State<LikedPosts> {
 
                           final actualIndex = index - 1;
                           final model = controller.all[actualIndex];
-                          final itemKey = controller.getPostKey(actualIndex);
+                          final itemKey = controller.getPostKey(model.docID);
                           final isCentered =
                               controller.centeredIndex.value == actualIndex;
 
@@ -170,6 +180,8 @@ class _LikedPostsState extends State<LikedPosts> {
                                     model: model,
                                     isPreview: false,
                                     shouldPlay: isCentered,
+                                    instanceTag:
+                                        controller.agendaInstanceTag(model.docID),
                                   ),
                                 ),
                                 SizedBox(
@@ -211,6 +223,7 @@ class _LikedPostsState extends State<LikedPosts> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () async {
+            controller.capturePendingCenteredEntry(model: list[index]);
             controller.lastCenteredIndex =
                 controller.currentVisibleIndex.value >= 0
                     ? controller.currentVisibleIndex.value
@@ -257,6 +270,7 @@ class _LikedPostsState extends State<LikedPosts> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () async {
+            controller.capturePendingCenteredEntry(model: list[index]);
             controller.lastCenteredIndex =
                 controller.currentVisibleIndex.value >= 0
                     ? controller.currentVisibleIndex.value

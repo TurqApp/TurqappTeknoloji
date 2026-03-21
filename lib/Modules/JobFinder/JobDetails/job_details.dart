@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -43,14 +44,19 @@ class JobDetails extends StatelessWidget {
   JobDetailsController get controller =>
       Get.find<JobDetailsController>(tag: model.docID);
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<void> _openMentionProfile(String mention) async {
     final normalizedMention = normalizeHandleInput(mention);
     if (normalizedMention.isEmpty) return;
     final targetUid =
         await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
 
-    final currentUid = CurrentUserService.instance.userId;
-    if (targetUid.isNotEmpty && targetUid != currentUid) {
+    if (targetUid.isNotEmpty && targetUid != _currentUid) {
       await Get.to(() => SocialProfile(userID: targetUid));
     }
   }

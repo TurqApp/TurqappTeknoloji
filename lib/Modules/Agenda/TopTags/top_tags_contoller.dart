@@ -24,7 +24,7 @@ class TopTagsController extends GetxController {
   final RxInt visibleIndex = (-1).obs;
   String? _pendingCenteredDocId;
 
-  final Map<int, GlobalKey> _agendaKeys = {};
+  final Map<String, GlobalKey> _agendaKeys = {};
   RxList<PostsModel> agendaList = <PostsModel>[].obs;
 
   bool isLoadingMore = false;
@@ -92,9 +92,13 @@ class TopTagsController extends GetxController {
     } catch (_) {}
   }
 
-  GlobalKey getAgendaKey(int index) {
+  String agendaInstanceTag(String docId) => 'top_tag_$docId';
+
+  GlobalKey getAgendaKey({required String docId}) {
     return _agendaKeys.putIfAbsent(
-        index, () => GlobalObjectKey('agenda_$index'));
+      docId,
+      () => GlobalObjectKey(agendaInstanceTag(docId)),
+    );
   }
 
   int _resolveRestoreIndex() {
@@ -123,6 +127,26 @@ class TopTagsController extends GetxController {
     currentVisibleIndex.value = target;
     lastCenteredIndex = target;
     _pendingCenteredDocId = null;
+  }
+
+  void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      _pendingCenteredDocId = docId.isEmpty ? null : docId;
+      return;
+    }
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= agendaList.length) {
+      _pendingCenteredDocId = null;
+      return;
+    }
+    final docId = agendaList[candidateIndex].docID.trim();
+    _pendingCenteredDocId = docId.isEmpty ? null : docId;
   }
 
   void resumeCenteredPost() {
@@ -157,7 +181,9 @@ class TopTagsController extends GetxController {
         disposeAgendaContentController(prevModel.docID);
       }
       currentVisibleIndex.value = newIndex;
+      centeredIndex.value = newIndex;
       lastCenteredIndex = newIndex;
+      capturePendingCenteredEntry(preferredIndex: newIndex);
     }
   }
 
@@ -168,6 +194,7 @@ class TopTagsController extends GetxController {
       centeredIndex.value = 0;
       currentVisibleIndex.value = 0;
       lastCenteredIndex = 0;
+      capturePendingCenteredEntry(preferredIndex: 0);
       return;
     }
     final estimatedItemExtent = (metrics.viewportDimension * 0.74).clamp(
@@ -181,11 +208,13 @@ class TopTagsController extends GetxController {
     centeredIndex.value = nextIndex;
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
+    capturePendingCenteredEntry(preferredIndex: nextIndex);
   }
 
   void disposeAgendaContentController(String docID) {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
-      Get.delete<AgendaContentController>(tag: docID, force: true);
+    final tag = agendaInstanceTag(docID);
+    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      Get.delete<AgendaContentController>(tag: tag, force: true);
       print("Disposed AgendaContentController");
     }
   }

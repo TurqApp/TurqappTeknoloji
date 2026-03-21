@@ -283,7 +283,7 @@ extension CvControllerPersistencePart on CvController {
   // ── Data Operations ──
 
   Future<void> setData() async {
-    final uid = _userService.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'cv.not_signed_in'.tr);
       return;
@@ -319,7 +319,7 @@ extension CvControllerPersistencePart on CvController {
   }
 
   Future<void> loadDataFromFirestore({bool forceRefresh = false}) async {
-    final uid = _userService.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     try {
       final data = await _cvRepository.getCv(

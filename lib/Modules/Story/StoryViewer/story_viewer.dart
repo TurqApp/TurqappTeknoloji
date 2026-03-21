@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
@@ -317,7 +318,11 @@ class _StoryViewerState extends State<StoryViewer>
 
   void _onScreenshotDetected() {
     try {
-      final uid = CurrentUserService.instance.userId.trim();
+      final uid = (() {
+        final serviceUid = CurrentUserService.instance.userId.trim();
+        if (serviceUid.isNotEmpty) return serviceUid;
+        return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+      })();
       if (uid.isEmpty) return;
       if (currentPageIndex >= widget.storyOwnerUsers.length) return;
       final storyOwner = widget.storyOwnerUsers[currentPageIndex];
@@ -388,7 +393,11 @@ class _StoryViewerState extends State<StoryViewer>
   /// Kullanıcının tüm hikayelerini bitirdikten sonra çağrılır
   void _markUserAsFullyViewed(int index) async {
     try {
-      final uid = CurrentUserService.instance.userId.trim();
+      final uid = (() {
+        final serviceUid = CurrentUserService.instance.userId.trim();
+        if (serviceUid.isNotEmpty) return serviceUid;
+        return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+      })();
       if (uid.isNotEmpty && index < widget.storyOwnerUsers.length) {
         final user = widget.storyOwnerUsers[index];
         final targetUserId = user.userID;

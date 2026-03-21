@@ -13,6 +13,7 @@ import 'package:turqappv2/Modules/Profile/DeleteAccount/delete_account.dart';
 import 'package:turqappv2/Modules/Profile/EditProfile/edit_profile_controller.dart';
 import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname.dart';
+import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number.dart';
 import 'package:turqappv2/Modules/Profile/JobSelector/job_selector.dart';
 import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contact.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links.dart';
@@ -49,9 +50,13 @@ class _EditProfileState extends State<EditProfile> {
     return controller.email.value;
   }
 
-  String get _phoneNumber => currentUserService.phoneNumber.trim().isNotEmpty
-      ? currentUserService.phoneNumber.trim()
-      : controller.phoneNumber.value;
+  String _formatDisplayPhone(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('+')) return trimmed;
+    if (trimmed.startsWith('0')) return '+9$trimmed';
+    return '+90$trimmed';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -390,8 +395,23 @@ class _EditProfileState extends State<EditProfile> {
                           Padding(
                             padding: EdgeInsets.only(bottom: 12),
                             child: Obx(() {
+                              final currentUser =
+                                  currentUserService.currentUserRx.value;
+                              final reactivePhone =
+                                  controller.phoneNumber.value.trim();
+                              final resolvedPhone =
+                                  (currentUser?.phoneNumber.trim().isNotEmpty ==
+                                          true)
+                                      ? currentUser!.phoneNumber.trim()
+                                      : reactivePhone;
+                              final displayPhone =
+                                  _formatDisplayPhone(resolvedPhone);
                               return GestureDetector(
-                                onTap: () {},
+                                onTap: () {
+                                  Get.to(() => EditorPhoneNumber())?.then((_) {
+                                    currentUserService.forceRefresh();
+                                  });
+                                },
                                 child: Container(
                                   height: 50,
                                   alignment: Alignment.centerLeft,
@@ -411,7 +431,9 @@ class _EditProfileState extends State<EditProfile> {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "+90$_phoneNumber",
+                                            displayPhone.isNotEmpty
+                                                ? displayPhone
+                                                : 'common.not_specified'.tr,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               color: Colors.black,
@@ -421,25 +443,13 @@ class _EditProfileState extends State<EditProfile> {
                                           ),
                                         ),
                                         const SizedBox(width: 12),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              CupertinoIcons
-                                                  .checkmark_seal_fill,
-                                              color: Colors.green,
-                                              size: 18,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              'common.verified'.tr,
-                                              style: const TextStyle(
-                                                color: Colors.green,
-                                                fontSize: 14,
-                                                fontFamily: "MontserratMedium",
-                                              ),
-                                            ),
-                                          ],
+                                        Text(
+                                          'common.change'.tr,
+                                          style: const TextStyle(
+                                            color: Colors.blueAccent,
+                                            fontSize: 15,
+                                            fontFamily: "MontserratMedium",
+                                          ),
                                         ),
                                       ],
                                     ),

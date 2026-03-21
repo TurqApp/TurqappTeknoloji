@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,11 @@ class StoryCommentUser extends StatelessWidget {
       required this.storyID,
       required this.isMyStory});
 
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {

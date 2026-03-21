@@ -85,9 +85,11 @@ class _TagPostsState extends State<TagPosts> {
                         child: Column(
                           children: [
                             AgendaContent(
-                              key: controller.getAgendaKey(actualIndex),
+                              key: controller.getAgendaKey(docId: model.docID),
                               model: model,
                               isPreview: false,
+                              instanceTag:
+                                  controller.agendaInstanceTag(model.docID),
                               shouldPlay:
                                   controller.centeredIndex.value == actualIndex,
                             ),

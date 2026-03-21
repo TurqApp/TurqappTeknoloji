@@ -42,7 +42,11 @@ class EditProfileController extends GetxController {
   final RxString phoneNumber = ''.obs;
   StreamSubscription<Map<String, dynamic>?>? _userSub;
 
-  final uid = FirebaseAuth.instance.currentUser!.uid;
+  String get _currentUid {
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
   String get defaultAvatarUrl => kDefaultAvatarUrl;
@@ -69,6 +73,8 @@ class EditProfileController extends GetxController {
   }
 
   void _bindUserContactData() {
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
     _userSub?.cancel();
     _userSub = _userRepository.watchUserRaw(uid).listen((data) {
       if (data == null) return;
@@ -88,6 +94,8 @@ class EditProfileController extends GetxController {
   }
 
   Future<void> fetchAndSetUserData() async {
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
     // 🎯 Using CurrentUserService - instant from cache!
     final currentUser = userService.currentUser;
 
@@ -205,7 +213,8 @@ class EditProfileController extends GetxController {
   }
 
   Future<void> updateProfileInfo() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
 
     String? newImageUrl;
 
@@ -260,6 +269,8 @@ class EditProfileController extends GetxController {
       cancelText: 'common.cancel'.tr,
       onYesPressed: () async {
         try {
+          final uid = _currentUid;
+          if (uid.isEmpty) return;
           // 🎯 Using CurrentUserService.updateFields
           await userService.updateFields({'avatarUrl': defaultAvatarUrl});
           await _refreshAvatarNicknameSurfaces(uid);

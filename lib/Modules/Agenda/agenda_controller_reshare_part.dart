@@ -1,6 +1,12 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerResharePart on AgendaController {
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<void> _fetchFollowingAndReshares(
     String uid, {
     bool refreshFollowings = false,
@@ -25,7 +31,7 @@ extension AgendaControllerResharePart on AgendaController {
   }
 
   Future<void> refreshFollowingData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     await _fetchFollowingAndReshares(uid, refreshFollowings: true);
   }
@@ -35,7 +41,7 @@ extension AgendaControllerResharePart on AgendaController {
     int perPostLimit = 2,
   }) async {
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = _currentUid;
       final targetPosts =
           posts.take(AgendaController._reshareScanPostLimit).toList();
       if (targetPosts.isEmpty) return;
@@ -318,7 +324,7 @@ extension AgendaControllerResharePart on AgendaController {
 
   Future<void> _fetchAndMergeReshareEvents({int eventLimit = 500}) async {
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = _currentUid;
       if (uid.isEmpty) return;
 
       final allReshareEvents = <Map<String, dynamic>>[];

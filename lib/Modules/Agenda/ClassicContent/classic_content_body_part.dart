@@ -519,7 +519,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         VisibilityDetector(
-          key: Key('classic-media-${widget.model.docID}'),
+          key: Key('classic-media-$controllerTag'),
           onVisibilityChanged: (info) {
             reportMediaVisibility(info.visibleFraction);
           },

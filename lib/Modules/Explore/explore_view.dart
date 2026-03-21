@@ -597,6 +597,8 @@ class ExploreView extends StatelessWidget {
                                                   'explore-series-${p.docID}'),
                                               model: p,
                                               isPreview: true,
+                                              instanceTag:
+                                                  'explore_series_${p.docID}',
                                               shouldPlay: false,
                                             ),
                                           ),

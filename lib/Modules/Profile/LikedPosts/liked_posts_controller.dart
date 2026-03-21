@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content_controller.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/user_post_reference.dart';
@@ -18,11 +19,12 @@ class LikedPostControllers extends GetxController {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  String? _pendingCenteredDocId;
 
   final UserPostLinkService _linkService = Get.put(UserPostLinkService());
   StreamSubscription<User?>? _authSub;
   StreamSubscription<List<UserPostReference>>? _likedSub;
-  final Map<int, GlobalKey> _postKeys = {};
+  final Map<String, GlobalKey> _postKeys = {};
 
   String? _currentUserId;
   List<UserPostReference> _latestRefs = const [];
@@ -126,9 +128,20 @@ class LikedPostControllers extends GetxController {
     );
   }
 
-  GlobalKey getPostKey(int index) {
+  GlobalKey getPostKey(String docId) {
     return _postKeys.putIfAbsent(
-        index, () => GlobalObjectKey('liked_post_$index'));
+      docId,
+      () => GlobalObjectKey('liked_post_$docId'),
+    );
+  }
+
+  String agendaInstanceTag(String docId) => 'liked_post_$docId';
+
+  void disposeAgendaContentController(String docId) {
+    final tag = agendaInstanceTag(docId);
+    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      Get.delete<AgendaContentController>(tag: tag, force: true);
+    }
   }
 
   void _applyPosts(List<PostsModel> posts) {
@@ -138,6 +151,14 @@ class LikedPostControllers extends GetxController {
 
   int resolveResumeCenteredIndex() {
     if (all.isEmpty) return -1;
+    final pendingDocId = _pendingCenteredDocId;
+    if (pendingDocId != null && pendingDocId.isNotEmpty) {
+      final pendingIndex =
+          all.indexWhere((post) => post.docID.trim() == pendingDocId);
+      if (pendingIndex >= 0) {
+        return pendingIndex;
+      }
+    }
     if (lastCenteredIndex != null &&
         lastCenteredIndex! >= 0 &&
         lastCenteredIndex! < all.length) {
@@ -155,6 +176,27 @@ class LikedPostControllers extends GetxController {
     lastCenteredIndex = target;
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
+    capturePendingCenteredEntry(preferredIndex: target);
+  }
+
+  void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      _pendingCenteredDocId = docId.isEmpty ? null : docId;
+      return;
+    }
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= all.length) {
+      _pendingCenteredDocId = null;
+      return;
+    }
+    final docId = all[candidateIndex].docID.trim();
+    _pendingCenteredDocId = docId.isEmpty ? null : docId;
   }
 
   @override

@@ -4,7 +4,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
   Future<void> _openMentionProfile(String mention) async {
     final targetUid =
         await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentUid = _currentUid;
     if (targetUid.isNotEmpty && targetUid != currentUid) {
       _suspendClassicFeedForRoute();
       await Get.to(() => SocialProfile(userID: targetUid));

@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AnswerKeyContentController extends GetxController {
   static final Map<String, Set<String>> _savedIdsByUser =
@@ -32,6 +33,12 @@ class AnswerKeyContentController extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
+  static String _resolveCurrentUid() {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
+  }
+
   bool get isOwner => isCurrentUserId(model.userID);
 
   void syncModel(BookletModel nextModel) {
@@ -45,13 +52,13 @@ class AnswerKeyContentController extends GetxController {
   }
 
   void _initialize() {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final currentUserId = _resolveCurrentUid();
     _primeBookmarkState(currentUserId);
     unawaited(_loadBookmarkState(currentUserId));
   }
 
-  void _primeBookmarkState(String? currentUserId) {
-    if (currentUserId == null) {
+  void _primeBookmarkState(String currentUserId) {
+    if (currentUserId.isEmpty) {
       isBookmarked.value = false;
       return;
     }
@@ -63,8 +70,8 @@ class AnswerKeyContentController extends GetxController {
     isBookmarked.value = false;
   }
 
-  Future<void> _loadBookmarkState(String? currentUserId) async {
-    if (currentUserId == null) return;
+  Future<void> _loadBookmarkState(String currentUserId) async {
+    if (currentUserId.isEmpty) return;
 
     try {
       final savedIds = await _loadSavedIds(currentUserId);
@@ -105,14 +112,14 @@ class AnswerKeyContentController extends GetxController {
   }
 
   static Future<void> warmSavedIdsForCurrentUser() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null || userId.isEmpty) return;
+    final userId = _resolveCurrentUid();
+    if (userId.isEmpty) return;
     await _loadSavedIds(userId);
   }
 
   void _updateViewCount() {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId != null && model.userID != currentUserId) {
+    final currentUserId = _resolveCurrentUid();
+    if (currentUserId.isNotEmpty && model.userID != currentUserId) {
       FirebaseFirestore.instance.collection("books").doc(model.docID).update({
         "viewCount": FieldValue.increment(1),
       }).then((_) {
@@ -126,8 +133,8 @@ class AnswerKeyContentController extends GetxController {
   }
 
   Future<void> toggleBookmark() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    final userId = _resolveCurrentUid();
+    if (userId.isEmpty) return;
 
     try {
       if (isBookmarked.value) {
@@ -304,7 +311,7 @@ class AnswerKeyContentController extends GetxController {
   }
 
   Future<void> shareBooklet() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = _resolveCurrentUid();
     final canShareFeed =
         AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
     if (!canShareFeed) {
@@ -350,7 +357,7 @@ class AnswerKeyContentController extends GetxController {
   }
 
   void showBottomSheet(BuildContext context) {
-    if (model.userID != FirebaseAuth.instance.currentUser?.uid) {
+    if (model.userID != _resolveCurrentUid()) {
       _showSpamBottomSheet(context);
     } else {
       _showDeleteBottomSheet(context);

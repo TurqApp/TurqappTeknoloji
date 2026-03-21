@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -30,6 +31,12 @@ class SearchUserContent extends StatelessWidget {
   const SearchUserContent(
       {super.key, required this.model, required this.isSearch});
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<String> _resolveTargetUid() async {
     var targetUid = model.userID.trim();
     if (targetUid.isNotEmpty) return targetUid;
@@ -44,7 +51,7 @@ class SearchUserContent extends StatelessWidget {
       return;
     }
     try {
-      final currentUserID = CurrentUserService.instance.userId;
+      final currentUserID = _currentUid;
       if (currentUserID.isEmpty) return;
       await _userSubcollectionRepository.upsertEntry(
         currentUserID,
@@ -95,7 +102,7 @@ class SearchUserContent extends StatelessWidget {
       return;
     }
     try {
-      final currentUserID = CurrentUserService.instance.userId;
+      final currentUserID = _currentUid;
       if (currentUserID.isNotEmpty) {
         await _userSubcollectionRepository.deleteEntry(
           currentUserID,

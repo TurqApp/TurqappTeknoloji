@@ -266,8 +266,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       final post = allPosts[index];
       final docID = '${uuid}_$index';
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final uid = await _ensureStorageUploadAuthReady() ??
-          FirebaseAuth.instance.currentUser!.uid;
+      final uid = await _ensureStorageUploadAuthReady() ?? _requireCurrentUid();
 
       // Storage rules require Posts/{docID}.userID to exist before media upload.
       await _preparePostShellForStorageUpload(
@@ -543,7 +542,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           _sharedOriginalPostID.isNotEmpty &&
           index == 0) {
         try {
-          final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+          final currentUserId = _requireCurrentUid();
           final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
           final counterTargetPostId = _isQuotedPost
               ? await resolveQuoteCounterTargetPostId()
@@ -603,7 +602,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           tags: index == 0 ? allHashtags.toList() : [],
           thumbnail: thumbnailUrl,
           timeStamp: nowMs + index,
-          userID: FirebaseAuth.instance.currentUser!.uid,
+          userID: uid,
           video: videoUrl,
           hlsStatus: isReusedVideoPost ? "ready" : "none",
           hlsMasterUrl: isReusedVideoPost ? videoUrl : "",
@@ -633,8 +632,8 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       // Sayaç güncelle: kök post (index==0) ve hemen yayınlanıyorsa
       if (index == 0 && publishTime == nowMs) {
         try {
-          final me = FirebaseAuth.instance.currentUser?.uid;
-          if (me != null) {
+          final me = _currentUid;
+          if (me.isNotEmpty) {
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(me)

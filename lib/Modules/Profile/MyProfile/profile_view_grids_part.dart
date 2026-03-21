@@ -30,14 +30,14 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
-                  controller.pausetheall.value = true;
+                  _suspendProfileFeedForRoute();
                   if (model.floodCount > 1) {
                     await Get.to(() => FloodListing(mainModel: model));
                   } else {
                     await Get.to(() =>
                         PhotoShorts(fetchedList: templist, startModel: model));
                   }
-                  controller.resumeCenteredPost();
+                  _resumeProfileFeedAfterRoute();
                 },
                 onLongPress: () {
                   Get.dialog(
@@ -68,9 +68,9 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         CupertinoDialogAction(
                           onPressed: () async {
                             Get.back();
-                            controller.pausetheall.value = true;
+                            _suspendProfileFeedForRoute();
                             await Get.to(() => EditPost(post: model));
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                           },
                           child: Text("profile.edit".tr,
                               style: TextStyle(
@@ -190,14 +190,14 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
-                  controller.pausetheall.value = true;
+                  _suspendProfileFeedForRoute();
                   if (model.floodCount > 1) {
                     await Get.to(() => FloodListing(mainModel: model));
                   } else {
                     await Get.to(() => SingleShortView(
                         startList: templist, startModel: model));
                   }
-                  controller.resumeCenteredPost();
+                  _resumeProfileFeedAfterRoute();
                 },
                 onLongPress: () {
                   Get.dialog(
@@ -228,9 +228,9 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         CupertinoDialogAction(
                           onPressed: () async {
                             Get.back();
-                            controller.pausetheall.value = true;
+                            _suspendProfileFeedForRoute();
                             await Get.to(() => EditPost(post: model));
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                           },
                           child: Text("profile.edit".tr,
                               style: TextStyle(
@@ -398,7 +398,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
               final model = controller.reshares[index];
               return GestureDetector(
                 onTap: () async {
-                  controller.pausetheall.value = true;
+                  _suspendProfileFeedForRoute();
                   if (model.hasPlayableVideo) {
                     await Get.to(
                       () => SingleShortView(
@@ -418,7 +418,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       ),
                     );
                   }
-                  controller.resumeCenteredPost();
+                  _resumeProfileFeedAfterRoute();
                 },
                 onLongPress: () {
                   noYesAlert(
@@ -557,10 +557,10 @@ extension _ProfileViewGridsPart on _ProfileViewState {
     final statusColor = _marketStatusColor(item.status);
     return GestureDetector(
       onTap: () async {
-        controller.pausetheall.value = true;
+        _suspendProfileFeedForRoute();
         await Get.to(() => MarketDetailView(item: item));
         await _loadMarketItems(force: true);
-        controller.resumeCenteredPost();
+        _resumeProfileFeedAfterRoute();
       },
       child: Container(
         clipBehavior: Clip.antiAlias,
@@ -670,10 +670,10 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () async {
-                        controller.pausetheall.value = true;
+                        _suspendProfileFeedForRoute();
                         await Get.to(() => MarketDetailView(item: item));
                         await _loadMarketItems(force: true);
-                        controller.resumeCenteredPost();
+                        _resumeProfileFeedAfterRoute();
                       },
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
@@ -796,9 +796,9 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         CupertinoDialogAction(
                           onPressed: () async {
                             Get.back();
-                            controller.pausetheall.value = true;
+                            _suspendProfileFeedForRoute();
                             await Get.to(() => EditPost(post: model));
-                            controller.resumeCenteredPost();
+                            _resumeProfileFeedAfterRoute();
                           },
                           child: Text("profile.edit".tr,
                               style: TextStyle(

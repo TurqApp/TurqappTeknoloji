@@ -6,7 +6,6 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:uuid/uuid.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ArchiveController extends GetxController {
@@ -17,12 +16,19 @@ class ArchiveController extends GetxController {
 
   final RxList<PostsModel> list = <PostsModel>[].obs;
   final RxBool isLoading = true.obs;
-  final Map<int, GlobalKey> _agendaKeys = {};
+  final Map<String, GlobalKey> _agendaKeys = {};
+  final currentVisibleIndex = RxInt(-1);
   int? lastCenteredIndex;
   final centeredIndex = 0.obs;
   String? _pendingCenteredDocId;
   StreamSubscription<User?>? _authSub;
   String? _currentUserId;
+
+  String get _resolvedCurrentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   void onInit() {
@@ -39,9 +45,13 @@ class ArchiveController extends GetxController {
     super.onClose();
   }
 
-  GlobalKey getAgendaKey(int index) {
+  String agendaInstanceTag(String docId) => 'archives_$docId';
+
+  GlobalKey getAgendaKey({required String docId}) {
     return _agendaKeys.putIfAbsent(
-        index, () => GlobalObjectKey("archives_${Uuid().v4()}"));
+      docId,
+      () => GlobalObjectKey(agendaInstanceTag(docId)),
+    );
   }
 
   void _onScroll() {
@@ -53,7 +63,9 @@ class ArchiveController extends GetxController {
     if (list.isEmpty) return;
     if (position.pixels <= 0) {
       centeredIndex.value = 0;
+      currentVisibleIndex.value = 0;
       lastCenteredIndex = 0;
+      capturePendingCenteredEntry(preferredIndex: 0);
       return;
     }
     final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
@@ -70,13 +82,16 @@ class ArchiveController extends GetxController {
         disposeAgendaContentController(prevModel.docID);
       }
       centeredIndex.value = nextIndex;
+      currentVisibleIndex.value = nextIndex;
       lastCenteredIndex = nextIndex;
+      capturePendingCenteredEntry(preferredIndex: nextIndex);
     }
   }
 
   void disposeAgendaContentController(String docID) {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
-      Get.delete<AgendaContentController>(tag: docID, force: true);
+    final tag = agendaInstanceTag(docID);
+    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      Get.delete<AgendaContentController>(tag: tag, force: true);
     }
   }
 
@@ -102,8 +117,29 @@ class ArchiveController extends GetxController {
     final target = _resolveRestoreIndex();
     if (target < 0 || target >= list.length) return;
     centeredIndex.value = target;
+    currentVisibleIndex.value = target;
     lastCenteredIndex = target;
     _pendingCenteredDocId = null;
+  }
+
+  void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      _pendingCenteredDocId = docId.isEmpty ? null : docId;
+      return;
+    }
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= list.length) {
+      _pendingCenteredDocId = null;
+      return;
+    }
+    final docId = list[candidateIndex].docID.trim();
+    _pendingCenteredDocId = docId.isEmpty ? null : docId;
   }
 
   void _bindAuth() {
@@ -138,7 +174,7 @@ class ArchiveController extends GetxController {
   }
 
   Future<void> fetchData({bool silent = false}) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _resolvedCurrentUid;
     if (uid.isEmpty) return;
     if (!silent) {
       isLoading.value = true;

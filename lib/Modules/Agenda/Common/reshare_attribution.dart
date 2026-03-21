@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -32,6 +33,12 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
   String? _resolvedNickname;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   TextStyle get _labelStyle =>
       widget.style ??
       const TextStyle(
@@ -58,7 +65,7 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
     _resolvedNickname = null;
     final targetId = widget.explicitReshareUserId;
     if (targetId == null) return;
-    final me = CurrentUserService.instance.userId;
+    final me = _currentUid;
     if (me.isNotEmpty && targetId == me) return;
     final cached = ReshareHelper.getCachedNickname(targetId);
     if (cached != null && cached.trim().isNotEmpty) {
@@ -90,7 +97,7 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
       return widget.placeholder;
     }
 
-    final me = CurrentUserService.instance.userId;
+    final me = _currentUid;
 
     if (widget.explicitReshareUserId != null) {
       final targetId = widget.explicitReshareUserId!.trim();

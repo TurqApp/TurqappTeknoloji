@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import '../AgendaContent/agenda_content_controller.dart';
 import 'tag_posts_repository.dart';
 
 class TagPostsController extends GetxController {
@@ -11,7 +12,8 @@ class TagPostsController extends GetxController {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
-  final Map<int, GlobalKey> _agendaKeys = {};
+  String? _pendingCenteredDocId;
+  final Map<String, GlobalKey> _agendaKeys = {};
 
   TagPostsController({required this.tag, TagPostsRepository? repository})
       : _repo = repository ?? TagPostsRepository();
@@ -38,11 +40,20 @@ class TagPostsController extends GetxController {
     list.assignAll(fetchedPosts);
   }
 
-  GlobalKey getAgendaKey(int index) {
+  String agendaInstanceTag(String docId) => 'tag_post_$docId';
+
+  GlobalKey getAgendaKey({required String docId}) {
     return _agendaKeys.putIfAbsent(
-      index,
-      () => GlobalObjectKey('tag_post_$index'),
+      docId,
+      () => GlobalObjectKey(agendaInstanceTag(docId)),
     );
+  }
+
+  void disposeAgendaContentController(String docId) {
+    final tag = agendaInstanceTag(docId);
+    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      Get.delete<AgendaContentController>(tag: tag, force: true);
+    }
   }
 
   void updateVisibleIndexByPosition(ScrollController controller) {
@@ -52,6 +63,7 @@ class TagPostsController extends GetxController {
       centeredIndex.value = 0;
       currentVisibleIndex.value = 0;
       lastCenteredIndex = 0;
+      capturePendingCenteredEntry(preferredIndex: 0);
       return;
     }
     final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
@@ -62,8 +74,61 @@ class TagPostsController extends GetxController {
                 estimatedItemExtent)
             .floor())
         .clamp(0, list.length - 1);
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex != nextIndex &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < list.length) {
+      disposeAgendaContentController(list[lastCenteredIndex!].docID);
+    }
     centeredIndex.value = nextIndex;
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
+    capturePendingCenteredEntry(preferredIndex: nextIndex);
+  }
+
+  int resolveResumeCenteredIndex() {
+    if (list.isEmpty) return -1;
+    final pendingDocId = _pendingCenteredDocId;
+    if (pendingDocId != null && pendingDocId.isNotEmpty) {
+      final mapped = list.indexWhere((post) => post.docID == pendingDocId);
+      if (mapped >= 0) return mapped;
+    }
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < list.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < list.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void resumeCenteredPost() {
+    final target = resolveResumeCenteredIndex();
+    if (target < 0 || target >= list.length) return;
+    centeredIndex.value = target;
+    currentVisibleIndex.value = target;
+    lastCenteredIndex = target;
+  }
+
+  void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      _pendingCenteredDocId = docId.isEmpty ? null : docId;
+      return;
+    }
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= list.length) {
+      _pendingCenteredDocId = null;
+      return;
+    }
+    final docId = list[candidateIndex].docID.trim();
+    _pendingCenteredDocId = docId.isEmpty ? null : docId;
   }
 }

@@ -1,12 +1,18 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentHeaderActionsPart on _AgendaContentState {
+  List<StoryUserModel> _storyUsersSnapshot() {
+    if (!Get.isRegistered<StoryRowController>()) return const [];
+    return Get.find<StoryRowController>().users.toList(growable: false);
+  }
+
   void _suspendEmbeddedFeedContextsForRoute() {
     if (Get.isRegistered<FloodListingController>()) {
       final floodController = Get.find<FloodListingController>();
       final floodIndex =
           floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
+        floodController.capturePendingCenteredEntry(model: widget.model);
         floodController.lastCenteredIndex = floodIndex;
         floodController.centeredIndex.value = -1;
       }
@@ -14,8 +20,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<ProfileController>()) {
       final profileController = Get.find<ProfileController>();
-      final profileIndex = profileController.mergedPosts.indexWhere(
-        (entry) => (entry['post'] as PostsModel).docID == widget.model.docID,
+      final profileIndex = profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
       );
       if (profileIndex >= 0) {
         profileController.lastCenteredIndex = profileIndex;
@@ -27,8 +34,10 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<SocialProfileController>()) {
       final socialProfileController = Get.find<SocialProfileController>();
-      final socialIndex = socialProfileController.allPosts
-          .indexWhere((p) => p.docID == widget.model.docID);
+      final socialIndex = socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
       if (socialIndex >= 0) {
         socialProfileController.lastCenteredIndex = socialIndex;
         socialProfileController.currentVisibleIndex.value = -1;
@@ -41,6 +50,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final archiveIndex =
           archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
+        archiveController.capturePendingCenteredEntry(model: widget.model);
         archiveController.lastCenteredIndex = archiveIndex;
         archiveController.centeredIndex.value = -1;
       }
@@ -50,6 +60,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final likedController = Get.find<LikedPostControllers>();
       final likedIndex = likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
+        likedController.capturePendingCenteredEntry(model: widget.model);
         likedController.lastCenteredIndex = likedIndex;
         likedController.currentVisibleIndex.value = -1;
         likedController.centeredIndex.value = -1;
@@ -61,6 +72,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
       if (topTagsIndex >= 0) {
+        topTagsController.capturePendingCenteredEntry(model: widget.model);
         topTagsController.lastCenteredIndex = topTagsIndex;
         topTagsController.currentVisibleIndex.value = -1;
         topTagsController.centeredIndex.value = -1;
@@ -72,6 +84,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final tagPostIndex =
           tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
+        tagPostsController.capturePendingCenteredEntry(model: widget.model);
         tagPostsController.lastCenteredIndex = tagPostIndex;
         tagPostsController.currentVisibleIndex.value = -1;
         tagPostsController.centeredIndex.value = -1;
@@ -85,15 +98,18 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final floodIndex =
           floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
       if (floodIndex >= 0) {
+        floodController.capturePendingCenteredEntry(model: widget.model);
         floodController.centeredIndex.value = floodIndex;
+        floodController.currentVisibleIndex.value = floodIndex;
         floodController.lastCenteredIndex = floodIndex;
       }
     }
 
     if (Get.isRegistered<ProfileController>()) {
       final profileController = Get.find<ProfileController>();
-      final profileIndex = profileController.mergedPosts.indexWhere(
-        (entry) => (entry['post'] as PostsModel).docID == widget.model.docID,
+      final profileIndex = profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
       );
       if (profileIndex >= 0) {
         profileController.lastCenteredIndex = profileIndex;
@@ -105,8 +121,10 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
     if (Get.isRegistered<SocialProfileController>()) {
       final socialProfileController = Get.find<SocialProfileController>();
-      final socialIndex = socialProfileController.allPosts
-          .indexWhere((p) => p.docID == widget.model.docID);
+      final socialIndex = socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
       if (socialIndex >= 0) {
         socialProfileController.lastCenteredIndex = socialIndex;
         socialProfileController.currentVisibleIndex.value = socialIndex;
@@ -119,7 +137,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final archiveIndex =
           archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
+        archiveController.capturePendingCenteredEntry(model: widget.model);
         archiveController.lastCenteredIndex = archiveIndex;
+        archiveController.currentVisibleIndex.value = archiveIndex;
         archiveController.centeredIndex.value = archiveIndex;
       }
     }
@@ -128,6 +148,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final likedController = Get.find<LikedPostControllers>();
       final likedIndex = likedController.all.indexWhere((p) => p.docID == widget.model.docID);
       if (likedIndex >= 0) {
+        likedController.capturePendingCenteredEntry(model: widget.model);
         likedController.lastCenteredIndex = likedIndex;
         likedController.currentVisibleIndex.value = likedIndex;
         likedController.centeredIndex.value = likedIndex;
@@ -139,6 +160,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final topTagsIndex = topTagsController.agendaList
           .indexWhere((p) => p.docID == widget.model.docID);
       if (topTagsIndex >= 0) {
+        topTagsController.capturePendingCenteredEntry(model: widget.model);
         topTagsController.lastCenteredIndex = topTagsIndex;
         topTagsController.currentVisibleIndex.value = topTagsIndex;
         topTagsController.centeredIndex.value = topTagsIndex;
@@ -150,6 +172,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final tagPostIndex =
           tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
+        tagPostsController.capturePendingCenteredEntry(model: widget.model);
         tagPostsController.lastCenteredIndex = tagPostIndex;
         tagPostsController.currentVisibleIndex.value = tagPostIndex;
         tagPostsController.centeredIndex.value = tagPostIndex;
@@ -206,9 +229,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
     final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
-      final users =
-          Get.find<StoryRowController>().users.toList(growable: false);
-          Get.to(() => StoryViewer(
+      final users = _storyUsersSnapshot();
+      Get.to(() => StoryViewer(
             startedUser: storyUser,
             storyOwnerUsers: users,
           ))?.then((_) {
@@ -218,7 +240,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
     }
 
     videoController?.pause();
-    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    final currentUid = _currentUid;
     final route = widget.model.userID == currentUid
         ? Get.to(() => ProfileView())
         : Get.to(() => SocialProfile(userID: widget.model.userID));
@@ -301,7 +323,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             displayTime.length >
         28;
     void openProfile() {
-      if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+      if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
             .indexWhere((p) => p.docID == widget.model.docID);
         if (modelIndex >= 0) {
@@ -393,8 +415,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                       ),
                     ),
                     if (controller.isFollowing.value == false &&
-                        widget.model.userID !=
-                            FirebaseAuth.instance.currentUser!.uid &&
+                        widget.model.userID != _currentUid &&
                         controller.avatarUrl.value != "" &&
                         !shouldHideFollow)
                       Obx(() => TextButton(
@@ -564,7 +585,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   Widget pulldownmenu() {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = _currentUid;
     final canManagePost =
         widget.model.userID == currentUid || controller.canSendAdminPush;
     return PullDownButton(
@@ -721,7 +742,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
-            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+            widget.model.userID == _currentUid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -733,7 +754,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
-            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+            widget.model.userID == _currentUid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();
@@ -743,7 +764,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             icon: CupertinoIcons.doc_text_viewfinder,
             isDestructive: true,
           ),
-        if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid)
+        if (widget.model.userID != _currentUid)
           PullDownMenuItem(
             onTap: () {
               _suspendAgendaFeedForRoute();
@@ -773,7 +794,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   Widget commentButton(BuildContext context) {
     return Obx(() {
       final int visibility = widget.model.yorumVisibility;
-      final bool isOwner = controller.userService.userId == widget.model.userID;
+      final bool isOwner = _currentUid == widget.model.userID;
       final bool canInteract = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
@@ -805,7 +826,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
 
   Widget likeButton() {
     final bool isLiked =
-        controller.likes.contains(FirebaseAuth.instance.currentUser!.uid);
+        _currentUid.isNotEmpty && controller.likes.contains(_currentUid);
     final Color likeColor =
         isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
 
@@ -848,8 +869,8 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   Widget reshareButton() {
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
-      final bool isOwner = controller.userService.userId == widget.model.userID;
-      final currentUserId = controller.userService.userId;
+      final bool isOwner = _currentUid == widget.model.userID;
+      final currentUserId = _currentUid;
       final bool canReshare = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||

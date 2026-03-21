@@ -67,8 +67,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
         Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Obx(() {
-            final me = FirebaseAuth.instance.currentUser;
-            if (me == null) return const SizedBox.shrink();
+            if (_currentUid.isEmpty) return const SizedBox.shrink();
             return Transform.translate(
               offset: const Offset(17, 0),
               child: SizedBox(

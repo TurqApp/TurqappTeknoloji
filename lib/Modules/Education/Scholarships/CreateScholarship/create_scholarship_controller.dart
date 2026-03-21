@@ -20,6 +20,7 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_view.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
@@ -103,7 +104,12 @@ class CreateScholarshipController extends GetxController {
   final templateUrl = ''.obs;
   final template = ''.obs;
   final ulke = ''.obs;
-  final currentUser = FirebaseAuth.instance.currentUser;
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   final bursKosullari = <String>[
     "T.C. vatandaşı olmak.",
@@ -164,7 +170,7 @@ class CreateScholarshipController extends GetxController {
   final GlobalKey templateKey = GlobalKey();
 
   Future<Map<String, dynamic>> _authorFieldsForCurrentUser() async {
-    final uid = currentUser?.uid ?? '';
+    final uid = _currentUid;
     if (uid.isEmpty) {
       return const <String, dynamic>{
         'nickname': '',
@@ -927,7 +933,7 @@ class CreateScholarshipController extends GetxController {
             timeStamp: DateTime.now().millisecondsSinceEpoch,
             tutar: tutar.value,
             universiteler: universiteler,
-            userID: currentUser?.uid ?? '',
+            userID: _currentUid,
             website: website.value,
             lisansTuru: lisansTuru.join(','),
             template: template.value,
@@ -1065,7 +1071,7 @@ class CreateScholarshipController extends GetxController {
             timeStamp: DateTime.now().millisecondsSinceEpoch,
             tutar: tutar.value,
             universiteler: universiteler,
-            userID: currentUser?.uid ?? '',
+            userID: _currentUid,
             website: website.value,
             lisansTuru: lisansTuru.join(','),
             template: template.value,

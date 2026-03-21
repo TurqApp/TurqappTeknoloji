@@ -39,6 +39,12 @@ class JobCreatorController extends GetxController {
   TextEditingController isTanimi = TextEditingController();
   TextEditingController maas1 = TextEditingController();
   TextEditingController maas2 = TextEditingController();
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
   TextEditingController calismaSaatiBaslangic = TextEditingController();
   TextEditingController calismaSaatiBitis = TextEditingController();
   TextEditingController basvuruSayisi = TextEditingController(text: "0");
@@ -762,7 +768,7 @@ class JobCreatorController extends GetxController {
         "authorAvatarUrl": avatarUrl,
         "authorDisplayName": displayName,
         "authorNickname": nickname,
-        "userID": FirebaseAuth.instance.currentUser?.uid ?? '',
+        "userID": _currentUid,
         "rozet": rozet,
         "yanHaklar": selectedYanHaklar.toList(),
         "ilanBasligi": ilanBasligi.text,

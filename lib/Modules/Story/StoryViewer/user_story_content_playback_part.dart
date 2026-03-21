@@ -228,7 +228,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       await controller.showPostCommentsBottomSheet(
         currentStory.id,
         widget.user.nickname,
-        widget.user.userID == CurrentUserService.instance.userId,
+        widget.user.userID == _currentUid,
         onClosed: (v) {
           if (!mounted) return;
           _startProgress();

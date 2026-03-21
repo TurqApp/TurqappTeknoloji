@@ -27,8 +27,14 @@ class AccountCenterView extends StatelessWidget {
 
   CurrentUserService get _currentUserService => CurrentUserService.instance;
 
+  String get _currentUid {
+    final serviceUid = _currentUserService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<void> _continueWithAccount(StoredAccount account) async {
-    final currentUid = _currentUserService.userId.trim();
+    final currentUid = _currentUid;
     if (currentUid == account.uid) {
       AppSnackbar(
         'account_center.active_account_title'.tr,
@@ -98,7 +104,7 @@ class AccountCenterView extends StatelessWidget {
     BuildContext context,
     StoredAccount account,
   ) async {
-    final currentUid = _currentUserService.userId.trim();
+    final currentUid = _currentUid;
     if (currentUid == account.uid) {
       AppSnackbar(
         'account_center.active_account_title'.tr,
@@ -320,9 +326,15 @@ class _SessionSecuritySection extends StatelessWidget {
 
   final AccountCenterService accountCenter;
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -458,6 +470,12 @@ class _PersonalDetailsSection extends StatelessWidget {
   final UserRepository userRepository;
   final VoidCallback onContactTap;
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   Future<String?> _loadContactDetails() async {
     final current = currentUserService.currentUser;
     final authUser = FirebaseAuth.instance.currentUser;
@@ -486,7 +504,7 @@ class _PersonalDetailsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = _currentUid;
     return FutureBuilder<String?>(
       key: ValueKey(currentUid),
       future: _loadContactDetails(),

@@ -275,7 +275,9 @@ class UploadQueueService extends GetxController {
   Future<void> _createPendingPostShell(QueuedUpload upload) async {
     final postDataMap = jsonDecode(upload.postData) as Map<String, dynamic>;
     final String userID =
-        (FirebaseAuth.instance.currentUser?.uid ?? postDataMap['userID'] ?? '')
+        (CurrentUserService.instance.userId.isNotEmpty
+                ? CurrentUserService.instance.userId
+                : postDataMap['userID'] ?? '')
             .toString()
             .trim();
     if (userID.isEmpty) return;
@@ -477,7 +479,7 @@ class UploadQueueService extends GetxController {
       final String gif = (postDataMap['gif'] ?? '').toString();
       // Always bind queued uploads to current session user.
       // Stale queue payload may contain old userID and fail Storage isPostOwner rule.
-      String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
+      String userID = CurrentUserService.instance.userId.trim();
       if (userID.trim().isEmpty) {
         throw Exception('userID boş: upload sırasında oturum bulunamadı');
       }

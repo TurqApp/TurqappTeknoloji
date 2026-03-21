@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
@@ -8,6 +9,12 @@ class AboutProfileController extends GetxController {
   final userService = CurrentUserService.instance;
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+
+  String get _currentUid {
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   var avatarUrl = "".obs;
   var nickname = "".obs;
@@ -42,7 +49,7 @@ class AboutProfileController extends GetxController {
   Future<void> _loadUserData(String userID) async {
     try {
       // 🎯 If viewing own profile, use cache (instant!)
-      final currentUserId = userService.userId;
+      final currentUserId = _currentUid;
       if (currentUserId == userID && userService.currentUser != null) {
         final user = userService.currentUser!;
         avatarUrl.value = user.avatarUrl;

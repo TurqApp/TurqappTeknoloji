@@ -8,8 +8,7 @@ extension JobDetailsActionsPart on JobDetails {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            if (controller.model.value.userID ==
-                CurrentUserService.instance.userId)
+            if (controller.model.value.userID == _currentUid)
               Expanded(
                 child: Row(
                   children: [

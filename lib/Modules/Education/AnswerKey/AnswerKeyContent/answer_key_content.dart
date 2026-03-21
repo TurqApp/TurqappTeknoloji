@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AnswerKeyContent extends StatelessWidget {
   const AnswerKeyContent({
@@ -25,6 +26,12 @@ class AnswerKeyContent extends StatelessWidget {
   final BookletModel model;
   final Function(bool) onUpdate;
   final bool isListLayout;
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   void _openOwner(BuildContext context, AnswerKeyContentController controller) {
     controller.openBooklet(context);
@@ -218,9 +225,8 @@ class AnswerKeyContent extends StatelessWidget {
     AnswerKeyContentController controller,
   ) {
     const metrics = PasajListCardMetrics.regular;
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final canShareFeed = AdminAccessService.isKnownAdminSync() ||
-        controller.model.userID == currentUid;
+    final canShareFeed =
+        AdminAccessService.isKnownAdminSync() || controller.model.userID == _currentUid;
     return GestureDetector(
       onTap: () => _openOwner(context, controller),
       child: Padding(

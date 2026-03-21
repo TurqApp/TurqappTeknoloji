@@ -2,7 +2,7 @@ part of 'job_details.dart';
 
 extension JobDetailsReviewsPart on JobDetails {
   void _showJobReviewBottomSheet(JobDetailsController controller) {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = _currentUid;
     final existingReview = controller.reviews
         .where((review) => review.userID == currentUserId)
         .cast<dynamic>()
@@ -136,7 +136,7 @@ extension JobDetailsReviewsPart on JobDetails {
   // ignore: unused_element
   Widget _buildReviewsSection(JobDetailsController controller) {
     return Obx(() {
-      final currentUserId = CurrentUserService.instance.userId;
+      final currentUserId = _currentUid;
       final canReview = currentUserId.isNotEmpty &&
           currentUserId != controller.model.value.userID;
       final totalReviews = controller.reviews.length;

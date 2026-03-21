@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class ScholarshipProvidersView extends StatelessWidget {
@@ -15,6 +16,12 @@ class ScholarshipProvidersView extends StatelessWidget {
   final ScholarshipProvidersController controller = Get.put(
     ScholarshipProvidersController(),
   );
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,10 +63,8 @@ class ScholarshipProvidersView extends StatelessWidget {
                                               controller.providers[index];
                                           return GestureDetector(
                                             onTap: () {
-                                              final currentUserId = FirebaseAuth
-                                                  .instance.currentUser?.uid;
                                               if (provider['userID'] ==
-                                                  currentUserId) {
+                                                  _currentUid) {
                                                 null;
                                               } else {
                                                 Get.to(

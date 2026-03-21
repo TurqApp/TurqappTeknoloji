@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -101,6 +102,12 @@ class _UserStoryContentState extends State<UserStoryContent>
   late UserStoryContentController controller;
   Timer? _musicStartFallbackTimer;
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,8 +141,7 @@ class _UserStoryContentState extends State<UserStoryContent>
           UserStoryContentController(
               storyID: widget.user.stories[storyIndex].id,
               nickname: widget.user.nickname,
-              isMyStory: widget.user.userID ==
-                  CurrentUserService.instance.userId),
+              isMyStory: widget.user.userID == _currentUid),
           tag: '${widget.user.userID}_$storyIndex');
     }
   }
@@ -153,8 +159,7 @@ class _UserStoryContentState extends State<UserStoryContent>
           UserStoryContentController(
               storyID: widget.user.stories[storyIndex].id,
               nickname: widget.user.nickname,
-              isMyStory: widget.user.userID ==
-                  CurrentUserService.instance.userId),
+              isMyStory: widget.user.userID == _currentUid),
           tag: '${widget.user.userID}_$storyIndex');
     }
   }

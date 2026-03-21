@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_stats_repository.dart';
@@ -30,6 +31,12 @@ class MyStatisticController extends GetxController {
   // Approx profile visits (story views in last 30d)
   final profileVisitsApprox = 0.obs;
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   // Controls
   @override
   void onInit() {
@@ -51,7 +58,7 @@ class MyStatisticController extends GetxController {
   }
 
   void _bindUserDocCounters() {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     _userDocSub?.cancel();
     final userService = CurrentUserService.instance;
@@ -72,7 +79,7 @@ class MyStatisticController extends GetxController {
   Future<void> _loadAll() async {
     isLoading.value = true;
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = _currentUid;
       if (uid.isEmpty) {
         _reset();
         return;
@@ -107,7 +114,7 @@ class MyStatisticController extends GetxController {
   }
 
   Future<void> _loadWarmCache() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final cached = await _statsRepository.getStats(uid, preferCache: true);
     if (cached == null || cached.isEmpty) return;

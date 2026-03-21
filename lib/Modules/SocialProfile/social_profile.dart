@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -78,7 +79,11 @@ class _SocialProfileState extends State<SocialProfile> {
   ScrollController get _currentScrollController =>
       _scrollControllerForSelection(controller.postSelection.value);
 
-  String get _myUserId => userService.userId;
+  String get _myUserId {
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   void initState() {
@@ -132,7 +137,10 @@ class _SocialProfileState extends State<SocialProfile> {
       controller.getPhotos(initial: false);
     }
 
-    if (controller.allPosts.isEmpty) return;
+    final activeFeedLength = controller.postSelection.value == 0
+        ? controller.combinedFeedEntries.length
+        : controller.allPosts.length;
+    if (activeFeedLength == 0) return;
 
     // RenderBox geometry reads here were causing layout-time assertions on
     // device. Keep the active index conservative until we wire a safer probe.
@@ -146,7 +154,7 @@ class _SocialProfileState extends State<SocialProfile> {
       return;
     }
 
-    final safeLastIndex = controller.allPosts.length - 1;
+    final safeLastIndex = activeFeedLength - 1;
     if (controller.centeredIndex.value > safeLastIndex) {
       setState(() {
         controller.centeredIndex.value = safeLastIndex;
@@ -186,14 +194,27 @@ class _SocialProfileState extends State<SocialProfile> {
     });
   }
 
-  void _suspendCenteredPostForRoute([PostsModel? model]) {
+  void _suspendCenteredPostForRoute([
+    PostsModel? model,
+    bool isReshare = false,
+  ]) {
     if (!mounted) return;
     if (model != null) {
-      final modelIndex =
-          controller.allPosts.indexWhere((post) => post.docID == model.docID);
+      controller.capturePendingCenteredEntry(
+        model: model,
+        isReshare: isReshare,
+      );
+      final modelIndex = controller.postSelection.value == 0
+          ? controller.indexOfCombinedEntry(
+              docId: model.docID,
+              isReshare: isReshare,
+            )
+          : controller.allPosts.indexWhere((post) => post.docID == model.docID);
       if (modelIndex >= 0) {
         controller.lastCenteredIndex = modelIndex;
       }
+    } else {
+      controller.capturePendingCenteredEntry();
     }
     _setCenteredIndex(-1);
   }
@@ -208,6 +229,7 @@ class _SocialProfileState extends State<SocialProfile> {
   void _showProfileImagePreview() {
     if (!mounted || controller.avatarUrl.value.isEmpty) return;
     setState(() {
+      controller.capturePendingCenteredEntry();
       controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
           ? controller.currentVisibleIndex.value
           : controller.lastCenteredIndex;
@@ -298,32 +320,8 @@ class _SocialProfileState extends State<SocialProfile> {
                               : controller.postSelection.value == 0
                                   ? () {
                                       // Normal postlar ve yeniden paylaşılanları birleştir
-                                      final List<Map<String, dynamic>>
-                                          combinedPosts = [];
-
-                                      // Normal postları ekle
-                                      for (final post in controller.allPosts) {
-                                        combinedPosts.add({
-                                          'post': post,
-                                          'isReshare': false,
-                                          'timestamp': post.timeStamp,
-                                        });
-                                      }
-
-                                      // Yeniden paylaşılanları ekle
-                                      for (final reshare
-                                          in controller.reshares) {
-                                        combinedPosts.add({
-                                          'post': reshare,
-                                          'isReshare': true,
-                                          'timestamp': reshare.timeStamp,
-                                        });
-                                      }
-
-                                      // Zaman damgasına göre sırala (en yeni en üstte)
-                                      combinedPosts.sort((a, b) =>
-                                          (b['timestamp'] as num).compareTo(
-                                              a['timestamp'] as num));
+                                      final combinedPosts =
+                                          controller.combinedFeedEntries;
 
                                       return NotificationListener<
                                           ScrollNotification>(
@@ -364,8 +362,10 @@ class _SocialProfileState extends State<SocialProfile> {
                                                 item['post'] as PostsModel;
                                             final isReshare =
                                                 item['isReshare'] as bool;
-                                            final itemKey = controller
-                                                .getPostKey(actualIndex);
+                                            final itemKey = controller.getPostKey(
+                                              docId: model.docID,
+                                              isReshare: isReshare,
+                                            );
                                             final isCentered = controller
                                                     .centeredIndex.value ==
                                                 actualIndex;
@@ -383,6 +383,12 @@ class _SocialProfileState extends State<SocialProfile> {
                                                             .showPfImage
                                                             .value &&
                                                         isCentered,
+                                                    instanceTag:
+                                                        controller
+                                                            .agendaInstanceTag(
+                                                      docId: model.docID,
+                                                      isReshare: isReshare,
+                                                    ),
                                                     isYenidenPaylasilanPost:
                                                         isReshare,
                                                     reshareUserID: isReshare
@@ -398,13 +404,13 @@ class _SocialProfileState extends State<SocialProfile> {
                                                   ),
                                                   if ((actualIndex + 1) % 4 ==
                                                       0)
-                                                    const Padding(
+                                                    Padding(
                                                       padding:
-                                                          EdgeInsets.symmetric(
+                                                          const EdgeInsets.symmetric(
                                                               vertical: 8.0),
                                                       child: AdmobKare(
                                                           key: ValueKey(
-                                                              'socialprof-ad-slot')),
+                                                              'socialprof-ad-slot-${(actualIndex + 1) ~/ 4}')),
                                                     ),
                                                   if (combinedPosts.isNotEmpty &&
                                                       combinedPosts.length <

@@ -1,6 +1,15 @@
 part of 'short_content.dart';
 
 extension ShortsContentBodyPart on _ShortsContentState {
+  String _formatShortProgressLabel(Duration value) {
+    final totalSeconds = value.inSeconds;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    final mm = minutes.toString().padLeft(2, '0');
+    final ss = seconds.toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+
   Widget userInfoBar(BuildContext context) {
     return Obx(() {
       return Container(
@@ -38,23 +47,52 @@ extension ShortsContentBodyPart on _ShortsContentState {
                       listenable: videoPlayerController,
                       builder: (_, __) {
                         final val = videoPlayerController.value;
-                        return ProgressBar(
-                          thumbRadius: 3,
-                          timeLabelLocation: TimeLabelLocation.above,
-                          progress: val.position,
-                          total: val.duration,
-                          buffered: val.buffered.isNotEmpty
-                              ? val.buffered.last.end
-                              : Duration.zero,
-                          onSeek: videoPlayerController.seekTo,
-                          timeLabelTextStyle:
-                              const TextStyle(color: Colors.white),
-                          thumbColor: Colors.white,
-                          progressBarColor: Colors.white,
-                          baseBarColor: Colors.grey,
-                          bufferedBarColor: Colors.white38,
-                          barHeight: 2,
-                          timeLabelPadding: 10,
+                        final total = val.duration;
+                        final progress = val.position > total && total > Duration.zero
+                            ? total
+                            : val.position;
+                        final buffered = val.buffered.isNotEmpty
+                            ? val.buffered.last.end
+                            : Duration.zero;
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  _formatShortProgressLabel(progress),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontFamily: AppFontFamilies.mmedium,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  _formatShortProgressLabel(total),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontFamily: AppFontFamilies.mmedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            ProgressBar(
+                              thumbRadius: 3,
+                              timeLabelLocation: TimeLabelLocation.none,
+                              progress: progress,
+                              total: total,
+                              buffered: buffered,
+                              onSeek: videoPlayerController.seekTo,
+                              thumbColor: Colors.white,
+                              progressBarColor: Colors.white,
+                              baseBarColor: Colors.grey,
+                              bufferedBarColor: Colors.white38,
+                              barHeight: 2,
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -706,7 +744,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
     final int commentVisibility = model.yorumVisibility;
     final int reshareVisibility = model.paylasimVisibility;
     final currentUser = CurrentUserService.instance.currentUser;
-    final bool isOwner = CurrentUserService.instance.userId == model.userID;
+    final bool isOwner = _currentUserId == model.userID;
     final bool isVerified = currentUser?.hesapOnayi ?? false;
     final bool isFollowing = controller.takipEdiyorum.value;
     final bool canComment = isOwner ||

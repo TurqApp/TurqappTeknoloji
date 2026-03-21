@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -16,6 +17,12 @@ class FollowerContent extends StatelessWidget {
 
   const FollowerContent({required this.userID, required this.key})
       : super(key: key);
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +43,7 @@ class FollowerContent extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () {
-                if (userID != CurrentUserService.instance.userId) {
+                if (userID != _currentUid) {
                   Get.to(() => SocialProfile(userID: userID))!.then((v) {
                     controller.followControl(userID);
                   });
@@ -106,8 +113,7 @@ class FollowerContent extends StatelessWidget {
             SizedBox(
               width: 12,
             ),
-            if (controller.isLoaded.value &&
-                userID != CurrentUserService.instance.userId)
+            if (controller.isLoaded.value && userID != _currentUid)
               Column(
                 children: [
                   if (controller.isFollowed.value == false)

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -144,6 +145,12 @@ class PostContentController extends GetxController {
   final reShareUserNickname = "".obs;
   final reShareUserUserID = "".obs;
 
+  String get _currentUid {
+    final serviceUid = userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   final arsiv = false.obs;
   final gizlendi = false.obs;
   final sikayetEdildi = false.obs;
@@ -155,7 +162,14 @@ class PostContentController extends GetxController {
 
   final yenidenPaylasildiMi = false.obs;
 
-  final AgendaController agendaController = Get.find<AgendaController>();
+  AgendaController _resolveAgendaController() {
+    if (Get.isRegistered<AgendaController>()) {
+      return Get.find<AgendaController>();
+    }
+    return Get.put(AgendaController());
+  }
+
+  late final AgendaController agendaController = _resolveAgendaController();
   late final PostRepository _postRepository;
   late final AdminPushRepository _adminPushRepository;
   PostRepositoryState? _postState;
@@ -363,7 +377,7 @@ class PostContentController extends GetxController {
   }
 
   void _syncSharedInteractionState() {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (_postState == null) return;
     final liked = _postState!.liked.value;
     if (uid.isNotEmpty) {
@@ -386,7 +400,7 @@ class PostContentController extends GetxController {
   }
 
   Future<void> votePoll(int optionIndex) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final postRef =
         FirebaseFirestore.instance.collection('Posts').doc(model.docID);

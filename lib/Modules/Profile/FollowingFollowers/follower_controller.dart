@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
@@ -25,6 +26,12 @@ class FollowerController extends GetxController {
       <String, _FollowStateCacheEntry>{};
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
+
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   Future<void> getData(String userID) async {
     if (isLoaded.value) return;
@@ -77,7 +84,7 @@ class FollowerController extends GetxController {
   }
 
   Future<void> followControl(String userID) async {
-    final myUid = CurrentUserService.instance.userId;
+    final myUid = _currentUid;
     if (myUid.isEmpty) return;
     _pruneFollowStateCache();
 
@@ -120,7 +127,7 @@ class FollowerController extends GetxController {
     isFollowed.value = outcome.nowFollowing; // reconcile
     isFollowed.refresh();
 
-    final myUid = CurrentUserService.instance.userId;
+    final myUid = _currentUid;
     if (myUid.isNotEmpty) {
       try {
         _followStateCacheByUser['$myUid:$otherUserID'] = _FollowStateCacheEntry(

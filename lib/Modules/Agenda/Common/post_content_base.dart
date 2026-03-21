@@ -12,6 +12,13 @@ import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../Agenda/agenda_controller.dart';
+import '../../Profile/MyProfile/profile_controller.dart';
+import '../../Profile/Archives/archives_controller.dart';
+import '../../Profile/LikedPosts/liked_posts_controller.dart';
+import '../../SocialProfile/social_profile_controller.dart';
+import '../../Agenda/TopTags/top_tags_contoller.dart';
+import '../../Agenda/TagPosts/tag_posts_controller.dart';
+import '../../Agenda/FloodListing/flood_listing_controller.dart';
 import 'post_content_controller.dart';
 
 /// Base widget/state that encapsulates the shared behaviour between
@@ -164,7 +171,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _initVideoController() {
     if (_videoAdapter != null) return;
     _videoAdapter = adapterPool.acquire(
-      cacheKey: widget.model.docID,
+      cacheKey: playbackHandleKey,
       url: widget.model.playbackUrl,
       autoPlay: widget.shouldPlay,
       loop: shouldLoopVideo,
@@ -397,51 +404,27 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         child: ColoredBox(
           color: Colors.black.withValues(alpha: 0.28),
           child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => unawaited(replayVideoFromStart()),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: const Text(
-                      'Tekrar izle',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'MontserratSemiBold',
-                      ),
-                    ),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => unawaited(replayVideoFromStart()),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: const Text(
+                  'Tekrar izle',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontFamily: 'MontserratSemiBold',
                   ),
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.96),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: const Text(
-                    'Daha fazla Reels videosu izle',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -452,8 +435,131 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void reportMediaVisibility(double visibleFraction) {
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex < 0) return;
-    agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
+    if (modelIndex >= 0) {
+      agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
+    }
+
+    final surfaceTag = widget.instanceTag ?? '';
+    if (visibleFraction < 0.55) return;
+
+    if (surfaceTag.startsWith('profile_') &&
+        Get.isRegistered<ProfileController>()) {
+      final profileController = Get.find<ProfileController>();
+      final profileIndex = profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (profileIndex >= 0) {
+        profileController.currentVisibleIndex.value = profileIndex;
+        profileController.capturePendingCenteredEntry(
+          preferredIndex: profileIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          profileController.centeredIndex.value = profileIndex;
+          profileController.lastCenteredIndex = profileIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('social_') &&
+        Get.isRegistered<SocialProfileController>()) {
+      final socialProfileController = Get.find<SocialProfileController>();
+      final socialIndex = socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (socialIndex >= 0) {
+        socialProfileController.currentVisibleIndex.value = socialIndex;
+        socialProfileController.capturePendingCenteredEntry(
+          preferredIndex: socialIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          socialProfileController.centeredIndex.value = socialIndex;
+          socialProfileController.lastCenteredIndex = socialIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('archives_') &&
+        Get.isRegistered<ArchiveController>()) {
+      final archiveController = Get.find<ArchiveController>();
+      final archiveIndex =
+          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.currentVisibleIndex.value = archiveIndex;
+        archiveController.capturePendingCenteredEntry(
+          preferredIndex: archiveIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          archiveController.centeredIndex.value = archiveIndex;
+          archiveController.lastCenteredIndex = archiveIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('liked_post_') &&
+        Get.isRegistered<LikedPostControllers>()) {
+      final likedController = Get.find<LikedPostControllers>();
+      final likedIndex =
+          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      if (likedIndex >= 0) {
+        likedController.currentVisibleIndex.value = likedIndex;
+        likedController.capturePendingCenteredEntry(preferredIndex: likedIndex);
+        if (visibleFraction >= 0.72) {
+          likedController.centeredIndex.value = likedIndex;
+          likedController.lastCenteredIndex = likedIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('top_tag_') &&
+        Get.isRegistered<TopTagsController>()) {
+      final topTagsController = Get.find<TopTagsController>();
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.currentVisibleIndex.value = topTagsIndex;
+        topTagsController.capturePendingCenteredEntry(
+          preferredIndex: topTagsIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          topTagsController.centeredIndex.value = topTagsIndex;
+          topTagsController.lastCenteredIndex = topTagsIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('tag_post_') &&
+        Get.isRegistered<TagPostsController>()) {
+      final tagPostsController = Get.find<TagPostsController>();
+      final tagPostIndex =
+          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.currentVisibleIndex.value = tagPostIndex;
+        tagPostsController.capturePendingCenteredEntry(
+          preferredIndex: tagPostIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          tagPostsController.centeredIndex.value = tagPostIndex;
+          tagPostsController.lastCenteredIndex = tagPostIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('flood_') &&
+        Get.isRegistered<FloodListingController>()) {
+      final floodController = Get.find<FloodListingController>();
+      final floodIndex =
+          floodController.floods.indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.currentVisibleIndex.value = floodIndex;
+        floodController.capturePendingCenteredEntry(preferredIndex: floodIndex);
+        if (visibleFraction >= 0.72) {
+          floodController.centeredIndex.value = floodIndex;
+          floodController.lastCenteredIndex = floodIndex;
+        }
+      }
+    }
   }
 
   void onPostInitialized() {}

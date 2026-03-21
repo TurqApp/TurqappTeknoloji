@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_content.dart';
@@ -44,15 +43,8 @@ class FollowingFollowers extends StatelessWidget {
                 Obx(() {
                   return PageLineBar(
                     barList: [
-                      'following.followers_tab'.trParams({
-                        'count':
-                            NumberFormatter.format(controller.takipciCounter.value),
-                      }),
-                      'following.following_tab'.trParams({
-                        'count': NumberFormatter.format(
-                          controller.takipedilenCounter.value,
-                        ),
-                      }),
+                      'following.followers_tab'.tr,
+                      'following.following_tab'.tr,
                     ],
                     pageName: kFollowersPageLineBarTag,
                     initialIndex: selection,

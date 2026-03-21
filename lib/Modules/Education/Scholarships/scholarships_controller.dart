@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -16,6 +15,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_view.dart';
@@ -77,7 +77,7 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> _bootstrapScholarships() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final userId = CurrentUserService.instance.userId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _scholarshipSnapshotRepository
         .openHome(
@@ -104,7 +104,7 @@ class ScholarshipsController extends GetxController {
     }
     try {
       final result = await _scholarshipSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 1,
       );
       totalCount.value = result.data?.found ?? 0;
@@ -169,7 +169,7 @@ class ScholarshipsController extends GetxController {
     try {
       final result = await _scholarshipSnapshotRepository.search(
         query: normalized,
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: 40,
         forceSync: true,
       );
@@ -199,7 +199,7 @@ class ScholarshipsController extends GetxController {
   Future<void> _primeLocalStateForCombined(
     List<Map<String, dynamic>> items,
   ) async {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUserId = CurrentUserService.instance.userId;
     final followTasks = <Future<void>>[];
 
     for (final item in items) {
@@ -246,8 +246,8 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> toggleFollow(String followedId) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
+    final currentUserId = CurrentUserService.instance.userId;
+    if (currentUserId.isEmpty) return;
     followLoading[followedId] = true;
     try {
       final outcome = await FollowService.toggleFollow(followedId);
@@ -280,7 +280,7 @@ class ScholarshipsController extends GetxController {
         isLoading.value = true;
       }
       final result = await _scholarshipSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: initialBatchSize,
         forceSync: forceRefresh,
       );
@@ -313,7 +313,7 @@ class ScholarshipsController extends GetxController {
     try {
       isLoadingMore.value = true;
       final result = await _scholarshipSnapshotRepository.loadHome(
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        userId: CurrentUserService.instance.userId,
         limit: batchSize,
         page: _typesensePage + 1,
         forceSync: true,
@@ -355,12 +355,11 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> toggleLike(String docId, String type) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
-    final userId = user.uid;
     final wasLiked = likedScholarships[docId] ?? false;
 
     try {
@@ -416,12 +415,11 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = CurrentUserService.instance.userId;
+    if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
-    final userId = user.uid;
     final wasBookmarked = bookmarkedScholarships[docId] ?? false;
 
     try {
@@ -481,7 +479,7 @@ class ScholarshipsController extends GetxController {
     BuildContext context,
   ) async {
     final burs = scholarshipData['model'];
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = CurrentUserService.instance.userId;
     final ownerUid =
         (burs?.userID ?? scholarshipData['userID'] ?? '').toString();
     final canShare = AdminAccessService.isKnownAdminSync() ||

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +54,12 @@ class CvController extends GetxController {
   RxBool isSaving = false.obs;
   RxBool isUploadingPhoto = false.obs;
   RxString photoUrl = ''.obs;
+
+  String get _currentUid {
+    final serviceUid = _userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   @override
   void onInit() {
@@ -106,7 +113,7 @@ class CvController extends GetxController {
 
   Future<void> pickCvPhoto(BuildContext context) async {
     if (isUploadingPhoto.value) return;
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'cv.not_signed_in'.tr);
       return;
@@ -181,7 +188,7 @@ class CvController extends GetxController {
   }
 
   Future<void> _bootstrapCvData() async {
-    final uid = _userService.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final cached = await _cvRepository.getCv(
       uid,

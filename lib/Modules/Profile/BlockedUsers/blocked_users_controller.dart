@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
@@ -21,6 +22,12 @@ class BlockedUsersController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
 
+  String get _currentUid {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -31,7 +38,7 @@ class BlockedUsersController extends GetxController {
     final hasLocal = await _hydrateBlockedUsersFromCache();
     if (hasLocal) {
       isLoading.value = false;
-      final uid = CurrentUserService.instance.userId;
+      final uid = _currentUid;
       if (uid.isNotEmpty &&
           SilentRefreshGate.shouldRefresh(
             'blocked_users:$uid',
@@ -48,7 +55,7 @@ class BlockedUsersController extends GetxController {
   }
 
   Future<bool> _hydrateBlockedUsersFromCache() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     final entries = await _subcollectionRepository.getEntries(
       uid,
       subcollection: 'blockedUsers',
@@ -78,7 +85,7 @@ class BlockedUsersController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = _currentUid;
       final entries = await _subcollectionRepository.getEntries(
         uid,
         subcollection: 'blockedUsers',
@@ -213,7 +220,7 @@ class BlockedUsersController extends GetxController {
                   child: GestureDetector(
                     onTap: () async {
                       try {
-                        final uid = CurrentUserService.instance.userId;
+                        final uid = _currentUid;
                         await _subcollectionRepository.deleteEntry(
                           uid,
                           subcollection: 'blockedUsers',

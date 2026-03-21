@@ -242,8 +242,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
     final int commentVisibility = widget.model.yorumVisibility;
     final int reshareVisibility = widget.model.paylasimVisibility;
     final currentUser = CurrentUserService.instance.currentUser;
-    final bool isOwner =
-        CurrentUserService.instance.userId == widget.model.userID;
+    final bool isOwner = _currentUserId == widget.model.userID;
     final bool isVerified = currentUser?.hesapOnayi ?? false;
     final bool isFollowing = controller.takipEdiyorum.value;
     final bool canComment = isOwner ||

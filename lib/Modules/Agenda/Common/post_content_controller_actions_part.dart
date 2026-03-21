@@ -1,6 +1,15 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerActionsPart on PostContentController {
+  ExploreController? get _exploreControllerOrNull =>
+      Get.isRegistered<ExploreController>() ? Get.find<ExploreController>() : null;
+
+  ProfileController? get _profileControllerOrNull =>
+      Get.isRegistered<ProfileController>() ? Get.find<ProfileController>() : null;
+
+  ArchiveController? get _archiveControllerOrNull =>
+      Get.isRegistered<ArchiveController>() ? Get.find<ArchiveController>() : null;
+
   Future<void> getGizleArsivSikayetEdildi() async {
     gizlendi.value = model.gizlendi;
     arsiv.value = model.arsiv;
@@ -12,28 +21,33 @@ extension PostContentControllerActionsPart on PostContentController {
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].gizlendi = true;
 
-    final exploreController = Get.find<ExploreController>();
+    final exploreController = _exploreControllerOrNull;
 
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].gizlendi = true;
+    if (exploreController != null) {
+      final index3 = exploreController.explorePosts.indexOf(model);
+      if (index3 >= 0) {
+        exploreController.explorePosts[index3].gizlendi = true;
+      }
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].gizlendi = true;
+      final index4 = exploreController.explorePhotos.indexOf(model);
+      if (index4 >= 0) {
+        exploreController.explorePhotos[index4].gizlendi = true;
+      }
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].gizlendi = true;
+      final index5 = exploreController.exploreVideos.indexOf(model);
+      if (index5 >= 0) {
+        exploreController.exploreVideos[index5].gizlendi = true;
+      }
+    }
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].gizlendi = true;
+    final index8 = agendaController.agendaList.indexOf(model);
+    if (index8 >= 0) agendaController.agendaList[index8].gizlendi = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].gizlendi = true;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].gizlendi = true;
+    final profileController = _profileControllerOrNull;
+    if (profileController != null) {
+      final index9 = profileController.allPosts.indexOf(model);
+      if (index9 >= 0) profileController.allPosts[index9].gizlendi = true;
+    }
 
     gizlendi.value = true;
   }
@@ -43,28 +57,33 @@ extension PostContentControllerActionsPart on PostContentController {
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].gizlendi = false;
 
-    final exploreController = Get.find<ExploreController>();
+    final exploreController = _exploreControllerOrNull;
 
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].gizlendi = false;
+    if (exploreController != null) {
+      final index3 = exploreController.explorePosts.indexOf(model);
+      if (index3 >= 0) {
+        exploreController.explorePosts[index3].gizlendi = false;
+      }
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].gizlendi = false;
+      final index4 = exploreController.explorePhotos.indexOf(model);
+      if (index4 >= 0) {
+        exploreController.explorePhotos[index4].gizlendi = false;
+      }
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].gizlendi = false;
+      final index5 = exploreController.exploreVideos.indexOf(model);
+      if (index5 >= 0) {
+        exploreController.exploreVideos[index5].gizlendi = false;
+      }
+    }
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].gizlendi = false;
+    final index8 = agendaController.agendaList.indexOf(model);
+    if (index8 >= 0) agendaController.agendaList[index8].gizlendi = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].gizlendi = false;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].gizlendi = false;
+    final profileController = _profileControllerOrNull;
+    if (profileController != null) {
+      final index9 = profileController.allPosts.indexOf(model);
+      if (index9 >= 0) profileController.allPosts[index9].gizlendi = false;
+    }
 
     gizlendi.value = false;
   }
@@ -76,28 +95,27 @@ extension PostContentControllerActionsPart on PostContentController {
     final shortController = shortsController;
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].arsiv = true;
-    final exploreController = Get.find<ExploreController>();
+    final exploreController = _exploreControllerOrNull;
 
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].arsiv = true;
+    if (exploreController != null) {
+      final index3 = exploreController.explorePosts.indexOf(model);
+      if (index3 >= 0) exploreController.explorePosts[index3].arsiv = true;
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = true;
+      final index4 = exploreController.explorePhotos.indexOf(model);
+      if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = true;
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = true;
+      final index5 = exploreController.exploreVideos.indexOf(model);
+      if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = true;
+    }
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = true;
+    final index8 = agendaController.agendaList.indexOf(model);
+    if (index8 >= 0) agendaController.agendaList[index8].arsiv = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final profileController = _profileControllerOrNull;
+    if (profileController != null) {
+      final index9 = profileController.allPosts.indexOf(model);
+      if (index9 >= 0) profileController.allPosts[index9].arsiv = false;
+    }
 
     arsiv.value = true;
   }
@@ -109,32 +127,31 @@ extension PostContentControllerActionsPart on PostContentController {
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].arsiv = false;
 
-    final exploreController = Get.find<ExploreController>();
-    final index3 = exploreController.explorePosts.indexOf(model);
-    if (index3 >= 0) exploreController.explorePosts[index3].arsiv = false;
+    final exploreController = _exploreControllerOrNull;
+    if (exploreController != null) {
+      final index3 = exploreController.explorePosts.indexOf(model);
+      if (index3 >= 0) exploreController.explorePosts[index3].arsiv = false;
 
-    final index4 = exploreController.explorePhotos.indexOf(model);
-    if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = false;
+      final index4 = exploreController.explorePhotos.indexOf(model);
+      if (index4 >= 0) exploreController.explorePhotos[index4].arsiv = false;
 
-    final index5 = exploreController.exploreVideos.indexOf(model);
-    if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = false;
+      final index5 = exploreController.exploreVideos.indexOf(model);
+      if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = false;
+    }
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = false;
+    final index8 = agendaController.agendaList.indexOf(model);
+    if (index8 >= 0) agendaController.agendaList[index8].arsiv = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
+    final profileController = _profileControllerOrNull;
+    if (profileController != null) {
+      final index9 = profileController.allPosts.indexOf(model);
+      if (index9 >= 0) profileController.allPosts[index9].arsiv = false;
+    }
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
-
-    if (Get.isRegistered<ArchiveController>()) {
-      final store11 = Get.find<ArchiveController>();
-      final index11 = store11.list.indexOf(model);
-      if (index11 >= 0) store11.list.removeAt(index11);
+    final archiveController = _archiveControllerOrNull;
+    if (archiveController != null) {
+      final index11 = archiveController.list.indexOf(model);
+      if (index11 >= 0) archiveController.list.removeAt(index11);
     }
 
     arsiv.value = false;
@@ -151,13 +168,12 @@ extension PostContentControllerActionsPart on PostContentController {
 
     // 3 sn sonra overlay'i kaldır ve ana listeden çıkar
     Future.delayed(const Duration(seconds: 3), () {
-      if (Get.isRegistered<AgendaController>()) {
-        final agenda = Get.find<AgendaController>();
-        final idx = agenda.agendaList.indexWhere((e) => e.docID == model.docID);
-        if (idx != -1) {
-          agenda.agendaList.removeAt(idx);
-          agenda.agendaList.refresh();
-        }
+      final idx = agendaController.agendaList.indexWhere(
+        (e) => e.docID == model.docID,
+      );
+      if (idx != -1) {
+        agendaController.agendaList.removeAt(idx);
+        agendaController.agendaList.refresh();
       }
     });
   }
@@ -171,7 +187,7 @@ extension PostContentControllerActionsPart on PostContentController {
           ? await _postRepository.toggleReshare(model)
           : await _interactionService.toggleReshare(targetPostId);
 
-      final uid = userService.userId;
+      final uid = _currentUid;
 
       if (status) {
         yenidenPaylasildiMi.value = true;
@@ -183,7 +199,7 @@ extension PostContentControllerActionsPart on PostContentController {
               DateTime.now().millisecondsSinceEpoch;
         }
         try {
-          Get.find<ProfileController>().getResharesSingle();
+          _profileControllerOrNull?.getResharesSingle();
         } catch (_) {}
         await onReshareAdded(uid, targetPostId: targetPostId);
       } else {
@@ -195,7 +211,7 @@ extension PostContentControllerActionsPart on PostContentController {
         reShareUserUserID.value = '';
         reShareUserNickname.value = '';
         try {
-          Get.find<ProfileController>().removeReshare(targetPostId);
+          _profileControllerOrNull?.removeReshare(targetPostId);
         } catch (_) {}
         await onReshareRemoved(uid, targetPostId: targetPostId);
       }
@@ -206,7 +222,7 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> followCheck() async {
-    final currentUid = userService.userId;
+    final currentUid = _currentUid;
     if (model.userID != currentUid) {
       if (agendaController.followingIDs.contains(model.userID)) {
         isFollowing.value = true;
@@ -299,7 +315,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
     // Current user posts should stay bound to current-user stream so avatar/
     // nickname changes are reflected immediately in feed cards.
-    final currentUserId = userService.userId;
+    final currentUserId = _currentUid;
     if (currentUserId == userID) {
       if (userService.currentUser != null) {
         final user = userService.currentUser!;
@@ -442,7 +458,7 @@ extension PostContentControllerActionsPart on PostContentController {
     reSharedUsers.value = list;
 
     // Kimi göstereceğiz? Önce ben, sonra takip ettiklerimden en günceli
-    final me = userService.userId;
+    final me = _currentUid;
     if (me.isNotEmpty && list.contains(me)) {
       reShareUserUserID.value = me;
       reShareUserNickname.value = 'Sen';
@@ -496,7 +512,7 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> like() async {
-    final uid = userService.userId;
+    final uid = _currentUid;
     final bool wasLiked = uid.isNotEmpty && likes.contains(uid);
 
     try {
@@ -554,14 +570,14 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> followUser() async {
-    if (model.userID == userService.userId) return;
+    if (model.userID == _currentUid) return;
     await onlyFollowUserOneTime();
   }
 
   Future<void> onlyFollowUserOneTime() async {
     try {
       if (followLoading.value) return;
-      final currentUid = userService.userId;
+      final currentUid = _currentUid;
       final alreadyFollowing = await FollowRepository.ensure().isFollowing(
         model.userID,
         currentUid: currentUid,
@@ -601,7 +617,7 @@ extension PostContentControllerActionsPart on PostContentController {
   Future<void> sendAdminPushForPost() async {
     if (!canSendAdminPush) return;
 
-    final currentUid = userService.userId;
+    final currentUid = _currentUid;
     if (currentUid.isEmpty) return;
 
     final pushCopy = _buildPostPushCopy();
@@ -645,7 +661,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
   // Dinamik sayaç güncelleme fonksiyonları
   Future<void> updateCommentCount({bool increment = true}) async {
-    final uid = userService.userId;
+    final uid = _currentUid;
 
     if (increment) {
       commentCount.value++;

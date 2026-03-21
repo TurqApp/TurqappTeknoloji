@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -36,6 +35,8 @@ class MyStatisticView extends StatelessWidget {
     Color(0xFF512DA8),
     Color(0xFF0097A7),
   ];
+
+  String get _currentUid => userService.userId;
 
   @override
   Widget build(BuildContext context) {
@@ -111,8 +112,7 @@ class MyStatisticView extends StatelessWidget {
                                             ),
                                             RozetContent(
                                               size: 15,
-                                              userID: FirebaseAuth
-                                                  .instance.currentUser!.uid,
+                                              userID: _currentUid,
                                             ),
                                           ],
                                         ),

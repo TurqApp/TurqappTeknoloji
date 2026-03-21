@@ -111,6 +111,12 @@ class _ClassicContentState extends State<ClassicContent>
   Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
   String _quotedSourceProfileUserId = '';
 
+  String get _currentUid {
+    final serviceUid = controller.userService.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
+
   int get _feedCacheWidth {
     final media = MediaQuery.of(context);
     return (media.size.width * media.devicePixelRatio).round();
@@ -386,8 +392,7 @@ class _ClassicContentState extends State<ClassicContent>
     }
 
     videoController?.pause();
-    final currentUid = FirebaseAuth.instance.currentUser!.uid;
-    final route = widget.model.userID == currentUid
+    final route = widget.model.userID == _currentUid
         ? Get.to(() => ProfileView())
         : Get.to(() => SocialProfile(userID: widget.model.userID));
     route?.then((_) {

@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/explore_repository.dart';
+import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content_controller.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
@@ -77,6 +79,8 @@ class ExploreController extends GetxController {
   DocumentSnapshot? lastFloodsDoc;
   RxBool floodsHasMore = true.obs;
   RxBool floodsIsLoading = false.obs;
+  final RxInt floodsVisibleIndex = (-1).obs;
+  int? lastFloodVisibleIndex;
   RxBool showScrollToTop = false.obs;
   final RxSet<String> followingIDs = <String>{}.obs;
   // Boş sayfa tespit sayaçları (filtre sonrası görünür içerik çıkmadığında)
@@ -140,6 +144,7 @@ class ExploreController extends GetxController {
         fetchFloods();
       }
 
+      _updateFloodVisibleIndex();
       _syncScrollToTopVisibility(floodsScroll.offset);
     });
 
@@ -157,6 +162,41 @@ class ExploreController extends GetxController {
       return;
     }
     showScrollToTop.value = shouldShow;
+  }
+
+  String floodSeriesInstanceTag(String docId) => 'explore_series_$docId';
+
+  void disposeFloodContentController(String docId) {
+    final tag = floodSeriesInstanceTag(docId);
+    if (Get.isRegistered<AgendaContentController>(tag: tag)) {
+      Get.delete<AgendaContentController>(tag: tag, force: true);
+    }
+  }
+
+  void _updateFloodVisibleIndex() {
+    if (!floodsScroll.hasClients || exploreFloods.isEmpty) return;
+    final position = floodsScroll.position;
+    if (position.pixels <= 0) {
+      floodsVisibleIndex.value = 0;
+      lastFloodVisibleIndex = 0;
+      return;
+    }
+    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final nextIndex = (((position.pixels + position.viewportDimension * 0.25) /
+                estimatedItemExtent)
+            .floor())
+        .clamp(0, exploreFloods.length - 1);
+    if (lastFloodVisibleIndex != null &&
+        lastFloodVisibleIndex != nextIndex &&
+        lastFloodVisibleIndex! >= 0 &&
+        lastFloodVisibleIndex! < exploreFloods.length) {
+      disposeFloodContentController(exploreFloods[lastFloodVisibleIndex!].docID);
+    }
+    floodsVisibleIndex.value = nextIndex;
+    lastFloodVisibleIndex = nextIndex;
   }
 
   void suspendExplorePreview({int focusIndex = -1}) {

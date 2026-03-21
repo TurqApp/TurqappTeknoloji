@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -69,7 +70,11 @@ class _ShortsContentState extends State<ShortsContent> {
   HLSVideoAdapter get videoPlayerController => widget.videoPlayerController;
   Function(bool) get volumeOff => widget.volumeOff;
   void Function(String updatedDocId)? get onEdited => widget.onEdited;
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId {
+    final serviceUid = CurrentUserService.instance.userId.trim();
+    if (serviceUid.isNotEmpty) return serviceUid;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
 
   void resumeIfActive() {
     if (!widget.isActive) return;

@@ -48,7 +48,7 @@ class Archives extends StatelessWidget {
 
                             final model = controller.list[actualIndex];
                             final itemKey =
-                                controller.getAgendaKey(actualIndex);
+                                controller.getAgendaKey(docId: model.docID);
                             final isCentered =
                                 controller.centeredIndex.value == actualIndex;
 
@@ -61,6 +61,8 @@ class Archives extends StatelessWidget {
                                     model: model,
                                     isPreview: false,
                                     shouldPlay: isCentered,
+                                    instanceTag:
+                                        controller.agendaInstanceTag(model.docID),
                                     showArchivePost: true,
                                   ),
                                   const SizedBox(height: 2),
