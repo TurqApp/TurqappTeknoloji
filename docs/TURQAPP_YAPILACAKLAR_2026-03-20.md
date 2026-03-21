@@ -636,21 +636,70 @@ Aktif faz:
 1. `git status` ile dirty worktree'yi dikkatli incele.
 2. Bu notu ve `docs/architecture/cache_first_audit_2026_03_19.md` dosyasini ac.
 3. `docs/ANDROID_TEST_MATRIX_2026-03-21.md` dosyasini ac ve Android sweep dalgasini oradan yurut.
-4. `Master Plan Durum Kontrolu` kismini referans alip aciklari `KISMEN / ACIK / BILINCLI / EKSIK ALTYAPI` diye ayir.
+4. Kalan kesin isleri yalnizca asagidaki siraya gore yurut:
+   `Market create/filter`, `Soru Bankasi focus`, `Online Sinav gercek Basvur`, `Denemeler saved/sonuclarim`, `Profile settings/raw forms`, `Story`, `Chat`, `Post creation`, `AdmobKare`, `telemetry/dashboard webhook`
 5. Ilk teknik odak:
-   `Feed autoplay tuning` + `Short playback churn olcumu`
+   `Market create/filter` Android sweep'ini kapat
 6. Sonra:
-   `Online Sınav` icin ayri applicant hesapla gercek `Basvur` akis turunu tamamla
+   `Soru Bankasi` arama barinin agresif keyboard/focus davranisini duzelt
 7. Sonra:
-   Android sweep matrisi `Dalga 2` yuzeylerini kayitli cihaz turu ile kapat
-8. Sonraki teknik odak:
-   dirty kalan raw/form ekranlarini tek tek ayirip sadece gerekli olanlari raw belgede birak
-9. Sonraki kalite odagi:
+   ayri applicant hesapla `Online Sınav` icin gercek `Basvur` akisini tamamla
+8. Sonra:
+   `Denemeler` icin `SavedPracticeExams` ve `SinavSonuclarim` yuzeylerini sweep'te kapat
+9. Sonra:
+   `Profile settings/raw form surfaces`, `Story`, `Chat`, `Post creation` Android sweep'ini bitir
+10. Sonraki runtime odagi:
+   `AdmobKare` reuse/pool davranisi icin kalici karar al
+11. Sonraki kalite odagi:
    `telemetry alarms + release gate + dashboard/backend alert` hattini gercek config ile dogrula
-10. Sonraki Android runtime odagi:
-   `AdmobKare` pool reuse icin daha guvenli lease/refcount tasarimi veya kalici pool iptali karari
-11. Sonraki backend operasyon odagi:
-   `firestore.indexes.json` icindeki `offers` indexlerini deploy edip market offer warning'lerini temiz run ile tekrar okumak
+12. Sonraki backend operasyon odagi:
+   kalan `market offer` warning/index loglarini temiz run ile tekrar oku
+
+## Haftalik Limit Sonrasi Net Devam Sirasi
+
+1. `Market create/filter`
+   `Kaydettiklerim`, `Ilanlarim`, `Tekliflerim` kapandi; kalan sadece `create` ve `filter`
+2. `Soru Bankasi focus`
+   arama alaninin klavyeyi agresif tutmasini duzelt
+3. `Online Sinav gercek Basvur`
+   owner degil, ayri applicant hesapla
+4. `Denemeler saved/sonuclarim`
+   `LGS Testleri` acildi; `saved` ve `sonuclarim` acik
+5. `Profile settings/raw forms`
+   `EditProfile`, `AddressSelector`, `JobSelector`, `Interests`, `AboutProfile`, `Settings`, `Cv`, `BiographyMaker`
+6. `Story`
+   `StoryRow`, `StoryViewer`, `StoryMaker`, `StoryMusic`, `Highlights`, `DeletedStories`
+7. `Chat`
+   `ChatListing`, `CreateChat`, `MessageContent`, `LocationShareView`
+8. `Post creation`
+   `PostCreator`, `EditPost`, `UrlPostMaker`, text/hashtag akislar
+9. `AdmobKare`
+   reuse/pool kararini kalici hale getir
+10. `Telemetry/Alert`
+   webhook/config ile gercek alarm dogrulamasi
+
+## Kesin Kalan Isler
+
+- `Market`
+  `create`, `filter`
+- `QuestionBank`
+  search focus/keyboard davranisi
+- `Practice exams`
+  ayri applicant hesapla gercek `Basvur`
+  `SavedPracticeExams`
+  `SinavSonuclarim`
+- `Profile settings/raw forms`
+  genis Android sweep
+- `Story`
+  tam Android sweep
+- `Chat`
+  tam Android sweep
+- `Post creation`
+  upload/local insert/geri donus sweep
+- `AdmobKare`
+  kalici runtime karari
+- `Telemetry/release alert`
+  gercek config/webhook dogrulamasi
 
 ## Teknik Notlar
 
@@ -660,7 +709,8 @@ Aktif faz:
 - Yeni buyuk mimari dosya yazmaktan cok mevcut KPI'a gore tuning yap.
 - `UserRepository.ensure().getUser(...)` kullanan temiz gorunur yuzeylerin tamami kapatildi.
 - Bundan sonraki resolver isleri daha cok dirty dosyalarda veya bilincli raw ekranlarda kaldi.
-- Canli Android run'da artik bakilacak iki ana alan: reklam satiri reuse hatalari ve market offer index/rule warning'leri.
+- `5/5` integration smoke yesil.
+- Canli Android run'da artik bakilacak ana alanlar: kalan Android sweep maddeleri, `AdmobKare` reuse davranisi ve market offer/index warning loglari.
 
 ## Kisa Durum Ozeti
 
@@ -670,17 +720,20 @@ Bugun:
 - Feed / Short / Profile / SocialProfile playback-restore davranisi buyuk olcude toparlandi.
 - User-summary resolver hatlari gorunur UI yuzeylerinde buyuk olcude tekillesti.
 - Passage omurgasi ve smoke auth/helper kodu fiilen kapandi.
-- Kalan isler artik refactor degil; smoke dogrulamasi, quality gate, telemetry alarm entegrasyonu ve saha tuning.
+- `5/5` smoke yesil.
+- Android sweep'te cekirdek ve Passage yuzeylerinin buyuk kismi kapandi.
+- Kalan isler artik buyuk refactor degil; son Android sweep maddeleri, runtime reklam karari ve operasyonel alarm dogrulamasi.
 
 Pratik kalan oran:
 
-- `%2-4`
+- `%2-3`
 
 Kisa hukum:
 
-- Hayir, sadece test kalmadi.
-- Kod tarafinda ana omurga buyuk olcude bitti.
-- Kalanlarin buyuk kismi dogrulama/test olsa da, hala bitmemis operasyonel kod isi var:
-  smoke artifact/export fallback, dashboard/backend alert baglantisi, release gate sertlestirmesi ve son telemetry alarm baglari.
+- Kod tarafinda ana omurga bitti.
+- Kalanlar:
+  son Android sweep maddeleri
+  `AdmobKare` runtime karari
+  gercek config ile telemetry/dashboard/backend alert dogrulamasi
 
 Bu dosya, bundan sonra limit acildiginda dogrudan devam noktasi ve kanonik master plan olarak kullanilsin.
