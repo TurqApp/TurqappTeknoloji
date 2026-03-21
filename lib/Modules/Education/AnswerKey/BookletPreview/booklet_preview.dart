@@ -248,17 +248,13 @@ class BookletPreview extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
-          'answer_key.book_detail'.tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: 'MontserratBold',
-          ),
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: const AppPageTitle(
+          'answer_key.book_detail',
+          translate: true,
+          fontSize: 20,
         ),
         actions: [
           Padding(

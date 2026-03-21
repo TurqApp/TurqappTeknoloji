@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
@@ -928,12 +929,13 @@ class _ShortViewState extends State<ShortView> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    _buildCircleButton(
+                                    const AppBackButton(
                                       icon: CupertinoIcons.arrow_left,
-                                      key: const ValueKey(
+                                      key: ValueKey(
                                         IntegrationTestKeys.actionShortBack,
                                       ),
-                                      onTap: () => Get.back(),
+                                      iconColor: Colors.white,
+                                      surfaceColor: Color(0x50000000),
                                     ),
                                     _buildCircleButton(
                                       icon: volume

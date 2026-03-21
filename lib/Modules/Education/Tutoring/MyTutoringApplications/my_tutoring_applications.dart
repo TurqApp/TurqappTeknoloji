@@ -19,18 +19,10 @@ class MyTutoringApplications extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
-          'tutoring.my_applications'.tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle('tutoring.my_applications'.tr),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {

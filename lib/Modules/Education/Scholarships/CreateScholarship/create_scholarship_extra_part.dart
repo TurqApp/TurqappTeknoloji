@@ -85,18 +85,18 @@ extension CreateScholarshipExtraPart on CreateScholarshipView {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 15),
-          child: GestureDetector(
-            onTap: () => controller.currentSection.value = 2,
-            child: Row(
-              children: [
-                const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-                const SizedBox(width: 12),
-                Text(
-                  'scholarship.application_info'.tr,
-                  style: TextStyles.headerTextStyle,
-                ),
-              ],
-            ),
+          child: Row(
+            children: [
+              AppBackButton(
+                onTap: () => controller.currentSection.value = 2,
+                icon: CupertinoIcons.arrow_left,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'scholarship.application_info'.tr,
+                style: TextStyles.headerTextStyle,
+              ),
+            ],
           ),
         ),
         Text(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test_controller.dart';
 
 class SolveTest extends StatelessWidget {
@@ -50,18 +51,8 @@ class SolveTest extends StatelessWidget {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              GestureDetector(
-                                                onTap: Get.back,
-                                                child: SizedBox(
-                                                  width: 30,
-                                                  height: 30,
-                                                  child: Center(
-                                                    child: Icon(
-                                                      Icons.arrow_back,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ),
+                                              const AppBackButton(
+                                                icon: Icons.arrow_back,
                                               ),
                                               Obx(
                                                 () => Text(

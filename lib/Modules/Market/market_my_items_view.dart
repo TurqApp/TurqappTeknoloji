@@ -50,18 +50,10 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
-          'pasaj.market.my_listings'.tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle('pasaj.market.my_listings'.tr),
       ),
       body: FutureBuilder<List<MarketItemModel>>(
         future: _itemsFuture,

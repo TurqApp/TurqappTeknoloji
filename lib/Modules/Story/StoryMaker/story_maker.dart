@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/icon_buttons.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'story_maker_controller.dart';
 import 'story_sticker_sheet.dart';
 import 'story_video.dart';
@@ -503,12 +504,10 @@ class StoryMaker extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                onPressed: () => Get.back(),
-                icon: Icon(CupertinoIcons.arrow_left,
-                    color: Colors.white, size: 24),
-                padding: EdgeInsets.zero,
-                constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+              const AppBackButton(
+                icon: CupertinoIcons.arrow_left,
+                iconColor: Colors.white,
+                surfaceColor: Color(0x1FFFFFFF),
               ),
               Obx(() => IconButton(
                     onPressed:

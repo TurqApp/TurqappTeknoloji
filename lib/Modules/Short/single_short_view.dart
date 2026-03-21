@@ -17,6 +17,7 @@ import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/short_render_coordinator.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
+import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Core/Services/SegmentCache/cache_manager.dart';
 import 'short_content.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
@@ -743,8 +744,10 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildTopCircleButton(
+                      AppBackButton(
                         icon: CupertinoIcons.arrow_left,
+                        iconColor: Colors.white,
+                        surfaceColor: const Color(0x50000000),
                         onTap: () async {
                           try {
                             VideoStateManager.instance.exitExclusiveMode();

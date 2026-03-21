@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -37,18 +38,10 @@ class ApplicationReview extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
-          "pasaj.job_finder.applicants".tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: "MontserratBold",
-          ),
-        ),
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle("pasaj.job_finder.applicants".tr),
       ),
       body: SafeArea(
         top: false,

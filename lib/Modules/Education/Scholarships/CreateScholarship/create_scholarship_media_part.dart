@@ -15,18 +15,18 @@ extension CreateScholarshipMediaPart on CreateScholarshipView {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 15),
-          child: GestureDetector(
-            onTap: () => controller.currentSection.value = 3,
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.arrow_left, color: Colors.black),
-                SizedBox(width: 12),
-                Text(
-                  'scholarship.extra_info'.tr,
-                  style: TextStyles.headerTextStyle,
-                ),
-              ],
-            ),
+          child: Row(
+            children: [
+              AppBackButton(
+                onTap: () => controller.currentSection.value = 3,
+                icon: CupertinoIcons.arrow_left,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'scholarship.extra_info'.tr,
+                style: TextStyles.headerTextStyle,
+              ),
+            ],
           ),
         ),
         Text(

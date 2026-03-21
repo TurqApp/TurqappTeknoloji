@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 
 import '../../../Core/strings.dart';
 import 'report_user_controller.dart';
@@ -31,28 +32,22 @@ class ReportUser extends StatelessWidget {
               if (controller.step.value == 0.50)
                 BackButtons(text: 'common.report'.tr)
               else
-                GestureDetector(
-                  onTap: () {
-                    controller.step.value = 0.5;
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        CupertinoIcons.arrow_left,
-                        color: Colors.black,
-                      ),
-                      SizedBox(
-                        width: 12,
-                      ),
-                      Text(
+                Row(
+                  children: [
+                    AppBackButton(
+                      onTap: () {
+                        controller.step.value = 0.5;
+                      },
+                      icon: CupertinoIcons.arrow_left,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AppPageTitle(
                         'common.report'.tr,
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 25,
-                            fontFamily: "MontserratBold"),
-                      )
-                    ],
-                  ),
+                        fontSize: 25,
+                      ),
+                    ),
+                  ],
                 )
             ]),
             Obx(() {

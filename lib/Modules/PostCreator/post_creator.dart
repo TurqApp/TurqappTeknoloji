@@ -9,6 +9,7 @@ import 'package:turqappv2/Modules/PostCreator/CreatorContent/post_creator_model.
 import 'CreatorContent/creator_content.dart';
 import 'post_creator_controller.dart';
 import '../../Core/BottomSheets/no_yes_alert.dart';
+import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Core/Widgets/app_icon_surface.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 
@@ -129,9 +130,9 @@ class PostCreator extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                onPressed: () => Get.back(),
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
+              AppBackButton(
+                onTap: () => Get.back(),
+                icon: Icons.arrow_back,
               ),
               InkWell(
                 onTap: controller.isPublishing.value

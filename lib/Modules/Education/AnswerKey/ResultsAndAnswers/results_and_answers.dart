@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:math' as math;
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/ResultsAndAnswers/results_and_answers_controller.dart';
 
@@ -18,29 +19,22 @@ class ResultsAndAnswers extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            GestureDetector(
-              onTap: () => Get.back(),
-              child: Container(
-                height: 70,
-                alignment: Alignment.centerLeft,
-                decoration: const BoxDecoration(color: Colors.white),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_back, color: Colors.black),
-                      const SizedBox(width: 12),
-                      Text(
-                        model.name,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontFamily: "MontserratBold",
-                          fontSize: 25,
-                        ),
-                      ),
-                    ],
+            Container(
+              height: 70,
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(color: Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  const AppBackButton(icon: Icons.arrow_back),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      model.name,
+                      fontSize: 25,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             Expanded(

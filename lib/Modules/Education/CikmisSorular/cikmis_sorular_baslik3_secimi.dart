@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 
 import 'cikmis_sorular_preview.dart';
 
@@ -70,28 +71,22 @@ class _CikmisSorularBaslik3SecimiState
             Container(
               height: 70,
               color: Colors.white,
-              child: Padding(
-                padding: EdgeInsets.all(15),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.arrow_back, color: Colors.black),
-                      SizedBox(width: 12),
-                      Text(
-                        'past_questions.sessions_by_year'
-                            .trParams({'year': widget.yil}),
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 25,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ],
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  AppBackButton(
+                    icon: Icons.arrow_back,
+                    onTap: () => Navigator.pop(context),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      'past_questions.sessions_by_year'
+                          .trParams({'year': widget.yil}),
+                      fontSize: 25,
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(

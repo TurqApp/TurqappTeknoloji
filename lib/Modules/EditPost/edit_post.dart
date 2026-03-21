@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:video_player/video_player.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post_controller.dart';
@@ -52,10 +53,8 @@ class EditPost extends StatelessWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        IconButton(
-                                          onPressed: () => Get.back(),
-                                          icon: const Icon(Icons.arrow_back,
-                                              color: Colors.black),
+                                        const AppBackButton(
+                                          icon: Icons.arrow_back,
                                         ),
                                         TextButton(
                                           onPressed: () async {

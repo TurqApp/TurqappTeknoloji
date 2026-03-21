@@ -34,18 +34,10 @@ extension TutoringDetailBodyPart on TutoringDetail {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
-          'tutoring.title'.tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle('tutoring.title'.tr),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 2),

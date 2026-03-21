@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
@@ -95,20 +96,8 @@ class JobFinder extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(CupertinoIcons.arrow_left,
-                            color: Colors.black, size: 25),
-                      ),
-                    ),
+                    const AppBackButton(),
+                    const SizedBox(width: 8),
                     TypewriterText(text: "pasaj.job_finder.title".tr),
                   ],
                 ),

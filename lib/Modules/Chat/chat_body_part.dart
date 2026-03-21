@@ -519,12 +519,12 @@ extension ChatBodyPart on ChatView {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            IconButton(
-              onPressed: () {
+            AppBackButton(
+              onTap: () {
                 _disposeChatControllerIfAny();
                 Get.back();
               },
-              icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+              icon: CupertinoIcons.arrow_left,
             ),
             Expanded(
               child: Obx(
@@ -634,18 +634,9 @@ extension ChatBodyPart on ChatView {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton(
-                    onPressed: controller.clearPendingMedia,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.all(12),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Icon(
-                      CupertinoIcons.arrow_left,
-                      color: Colors.black,
-                      size: 25,
-                    ),
+                  AppBackButton(
+                    onTap: controller.clearPendingMedia,
+                    icon: CupertinoIcons.arrow_left,
                   ),
                 ],
               ),

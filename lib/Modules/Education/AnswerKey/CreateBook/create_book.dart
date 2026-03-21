@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
@@ -513,29 +514,19 @@ class CreateBookAnswerKey extends StatelessWidget {
             Container(
               height: 70,
               decoration: const BoxDecoration(color: Colors.white),
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Row(
-                        children: [
-                          Icon(Icons.arrow_back, color: Colors.black),
-                          SizedBox(width: 12),
-                          Text(
-                            "answer_key.add_answer_key".tr,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 25,
-                              fontFamily: 'MontserratBold',
-                            ),
-                          ),
-                        ],
-                      ),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: const Row(
+                children: [
+                  AppBackButton(icon: Icons.arrow_back),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      "answer_key.add_answer_key",
+                      translate: true,
+                      fontSize: 25,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             Expanded(

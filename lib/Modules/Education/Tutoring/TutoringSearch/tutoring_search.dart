@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
@@ -29,13 +30,8 @@ class TutoringSearch extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(15, 10, 15, 0),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: Get.back,
-                    icon: const Icon(
-                      CupertinoIcons.arrow_left,
-                      color: Colors.black,
-                    ),
-                  ),
+                  const AppBackButton(),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TurqSearchBar(
                       controller: controller.searchController,

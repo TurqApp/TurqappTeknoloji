@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Utils/phone_utils.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/job_model.dart';
 
 import 'job_creator_controller.dart';
@@ -25,19 +26,13 @@ class JobCreator extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          onPressed: Get.back,
-          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
-        ),
-        title: Text(
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle(
           existingJob == null
               ? 'pasaj.job_finder.create_add_title'.tr
               : 'pasaj.job_finder.create_edit_title'.tr,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontFamily: 'MontserratBold',
-          ),
         ),
       ),
       body: SafeArea(

@@ -71,23 +71,8 @@ class MarketView extends StatelessWidget {
           children: [
             Row(
               children: [
-                TextButton(
-                  onPressed: () => Get.back(),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(
-                      CupertinoIcons.arrow_left,
-                      color: Colors.black,
-                      size: 25,
-                    ),
-                  ),
-                ),
+                const AppBackButton(),
+                const SizedBox(width: 8),
                 Text(
                   'pasaj.market.title'.tr,
                   style: TextStyle(

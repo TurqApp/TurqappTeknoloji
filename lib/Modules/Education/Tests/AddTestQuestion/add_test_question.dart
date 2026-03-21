@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_question_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTestQuestionContent/create_test_question_content.dart';
@@ -35,28 +36,29 @@ class AddTestQuestion extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            GestureDetector(
-              onTap: Get.back,
-              child: Container(
-                height: 70,
-                color: Colors.black,
-                child: Padding(
-                  padding: EdgeInsets.all(15),
-                  child: Row(
-                    children: [
-                      Icon(Icons.arrow_back_sharp, color: Colors.white),
-                      SizedBox(width: 12),
-                      Text(
-                        "tests.add_question".tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ],
+            Container(
+              height: 70,
+              color: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  const AppBackButton(
+                    icon: Icons.arrow_back_sharp,
+                    iconColor: Colors.white,
+                    surfaceColor: Color(0x1FFFFFFF),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "tests.add_question".tr,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 25,
+                        fontFamily: "MontserratBold",
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/verified_account_data_list.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_account_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,19 +23,16 @@ class BecomeVerifiedAccount extends StatelessWidget {
           children: [
             Row(
               children: [
-                IconButton(
-                  onPressed: () {
+                AppBackButton(
+                  onTap: () {
                     if (controller.bodySelection.value != 0) {
                       controller.bodySelection--;
                     } else {
                       Get.back();
                     }
                   },
-                  icon: const Icon(
-                    CupertinoIcons.arrow_left,
-                    color: Colors.black,
-                    size: 20,
-                  ),
+                  icon: CupertinoIcons.arrow_left,
+                  iconSize: 20,
                 ),
               ],
             ),

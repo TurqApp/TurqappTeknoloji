@@ -13,27 +13,10 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                TextButton(
-                  onPressed: () {
-                    Get.back();
-                  },
-                  child: Container(
-                    width: 45,
-                    height: 45,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black.withAlpha(80),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Icon(
-                        CupertinoIcons.arrow_left,
-                        color: Colors.white,
-                        size: 25,
-                      ),
-                    ),
-                  ),
+                const AppBackButton(
+                  icon: CupertinoIcons.arrow_left,
+                  iconColor: Colors.white,
+                  surfaceColor: Color(0x50000000),
                 ),
                 if (widget.model.floodCount > 1)
                   TextButton(

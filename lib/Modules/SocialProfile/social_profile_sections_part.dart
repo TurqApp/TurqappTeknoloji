@@ -10,22 +10,8 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
               Expanded(
                 child: Row(
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        minimumSize: const Size(35, 35),
-                      ),
-                      child: const Icon(
-                        CupertinoIcons.arrow_left,
-                        color: Colors.black,
-                        size: 25,
-                      ),
-                    ),
-                    6.pw,
+                    const AppBackButton(),
+                    8.pw,
                     GestureDetector(
                       onTap: () {
                         _setCenteredIndex(-1);

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -46,26 +47,11 @@ class _MarketSearchViewState extends State<MarketSearchView> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 15, 0),
+              padding: const EdgeInsets.fromLTRB(12, 8, 15, 0),
               child: Row(
                 children: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Icon(
-                        CupertinoIcons.arrow_left,
-                        color: Colors.black,
-                        size: 25,
-                      ),
-                    ),
-                  ),
+                  const AppBackButton(),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TurqSearchBar(
                       controller: controller.search,

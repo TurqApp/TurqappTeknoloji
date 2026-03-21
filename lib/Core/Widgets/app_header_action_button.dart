@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 
 class AppHeaderActionButton extends StatelessWidget {
@@ -10,6 +12,7 @@ class AppHeaderActionButton extends StatelessWidget {
     this.badgeColor = const Color(0xFF00C853),
     this.size = AppIconSurface.kSize,
     this.opacity = 1,
+    this.surfaceColor = const Color(0xFFFFFFFF),
   });
 
   final Widget child;
@@ -18,6 +21,7 @@ class AppHeaderActionButton extends StatelessWidget {
   final Color badgeColor;
   final double size;
   final double opacity;
+  final Color surfaceColor;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +29,7 @@ class AppHeaderActionButton extends StatelessWidget {
       opacity: opacity,
       child: AppIconSurface(
         size: size,
+        color: surfaceColor,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -54,6 +59,64 @@ class AppHeaderActionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: content,
+    );
+  }
+}
+
+class AppBackButton extends StatelessWidget {
+  const AppBackButton({
+    super.key,
+    this.onTap,
+    this.icon = CupertinoIcons.arrow_left,
+    this.iconSize = 20,
+    this.iconColor = Colors.black,
+    this.surfaceColor = const Color(0xFFFFFFFF),
+  });
+
+  final VoidCallback? onTap;
+  final IconData icon;
+  final double iconSize;
+  final Color iconColor;
+  final Color surfaceColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppHeaderActionButton(
+      onTap: onTap ?? () => Get.back(),
+      surfaceColor: surfaceColor,
+      child: Icon(
+        icon,
+        color: iconColor,
+        size: iconSize,
+      ),
+    );
+  }
+}
+
+class AppPageTitle extends StatelessWidget {
+  const AppPageTitle(
+    this.title, {
+    super.key,
+    this.fontSize = 20,
+    this.translate = false,
+  });
+
+  final String title;
+  final double fontSize;
+  final bool translate;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayTitle = translate ? title.tr : title;
+    return Text(
+      displayTitle,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: Colors.black,
+        fontSize: fontSize,
+        fontFamily: 'MontserratBold',
+      ),
     );
   }
 }

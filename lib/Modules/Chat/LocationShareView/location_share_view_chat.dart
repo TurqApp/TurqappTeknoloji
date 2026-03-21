@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'location_share_controller.dart';
 
 class LocationShareViewChat extends StatelessWidget {
@@ -105,25 +106,11 @@ class LocationShareViewChat extends StatelessWidget {
             Positioned(
                 bottom: 100,
                 left: 20,
-                child: TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  onPressed: () {
+                child: AppBackButton(
+                  onTap: () {
                     Get.back();
                   },
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey)),
-                    child: Icon(
-                      CupertinoIcons.arrow_left,
-                      color: Colors.black,
-                      size: 25,
-                    ),
-                  ),
+                  icon: CupertinoIcons.arrow_left,
                 )),
 
             // Paylaş butonu

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultPreview/booklet_result_preview_controller.dart';
 
@@ -22,30 +23,19 @@ class BookletResultPreview extends StatelessWidget {
             Container(
               height: 70,
               decoration: const BoxDecoration(color: Colors.white),
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Get.back(),
-                      child: Row(
-                        children: [
-                          Icon(Icons.arrow_back, color: Colors.black),
-                          SizedBox(width: 12),
-                          Text(
-                            "tests.results_title".tr,
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 25,
-                              fontFamily: "MontserratBold",
-                            ),
-                          ),
-                        ],
-                      ),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: const Row(
+                children: [
+                  AppBackButton(icon: Icons.arrow_back),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      "tests.results_title",
+                      translate: true,
+                      fontSize: 25,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             Expanded(

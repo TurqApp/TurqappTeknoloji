@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/external.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 
 class CikmisSoruOlustur extends StatefulWidget {
   const CikmisSoruOlustur({super.key});
@@ -71,27 +72,22 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
             Container(
               height: 70,
               color: Colors.white,
-              child: Padding(
-                padding: EdgeInsets.all(15),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.arrow_back, color: Colors.black),
-                      SizedBox(width: 12),
-                      Text(
-                        "education.past_exam_create_title".tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 25,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ],
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  AppBackButton(
+                    icon: Icons.arrow_back,
+                    onTap: () => Navigator.pop(context),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      "education.past_exam_create_title",
+                      translate: true,
+                      fontSize: 25,
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(

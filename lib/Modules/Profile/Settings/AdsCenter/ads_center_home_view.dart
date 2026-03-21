@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_campaign_editor_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_campaign_list_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
@@ -41,18 +42,11 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'ads_center.title'.tr,
-          style: TextStyle(
-            color: Colors.black,
-            fontFamily: 'MontserratBold',
-            fontSize: 18,
-          ),
-        ),
+        scrolledUnderElevation: 0,
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(icon: Icons.arrow_back),
+        title: AppPageTitle('ads_center.title'.tr, fontSize: 18),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
