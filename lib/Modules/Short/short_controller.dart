@@ -25,13 +25,11 @@ import '../../Models/posts_model.dart';
 /// range bazlı (±7 etrafında) preload & prune desteği sunan controller
 /// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
 class ShortController extends GetxController {
-  static ShortController _ensureController() {
+  static ShortController ensure() {
     final existing = maybeFind();
     if (existing != null) return existing;
     return Get.put(ShortController());
   }
-
-  static ShortController ensure() => _ensureController();
 
   static ShortController? maybeFind() {
     if (!Get.isRegistered<ShortController>()) return null;
@@ -53,6 +51,7 @@ class ShortController extends GetxController {
   Future<void>? _backgroundPreloadFuture;
   Future<void>? _initialLoadFuture;
   static const int _initialPreloadCount = 3;
+  static const double _shortLandscapeAspectThreshold = 1.2;
 
   static final double _activeBufferSeconds =
       defaultTargetPlatform == TargetPlatform.android ? 5.0 : 3.0;
@@ -60,6 +59,15 @@ class ShortController extends GetxController {
       defaultTargetPlatform == TargetPlatform.android ? 3.6 : 2.4;
   static final double _prepBufferSeconds =
       defaultTargetPlatform == TargetPlatform.android ? 2.8 : 2.1;
+
+  bool _isEligibleShortPost(PostsModel post) {
+    if (!post.hasPlayableVideo) return false;
+    final ar = post.aspectRatio.toDouble();
+    if (ar > _shortLandscapeAspectThreshold) {
+      return false;
+    }
+    return true;
+  }
 
   // Dinamik yükleme durumları
   final int pageSize = 20;
@@ -180,7 +188,7 @@ class ShortController extends GetxController {
       }
 
       final rawWithVideo =
-          page.posts.where((p) => p.hasPlayableVideo).toList(growable: false);
+          page.posts.where(_isEligibleShortPost).toList(growable: false);
       final timeFiltered = rawWithVideo
           .where((p) => p.timeStamp <= nowMs)
           .toList(growable: false);
@@ -298,6 +306,11 @@ class ShortController extends GetxController {
       _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
       await _loadNextPage();
     } else {
+      final sanitized =
+          shorts.where(_isEligibleShortPost).toList(growable: false);
+      if (sanitized.length != shorts.length) {
+        _replaceShorts(sanitized, remapCache: true);
+      }
       _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
       await preloadRange(0, range: 0);
     }
@@ -519,6 +532,7 @@ class ShortController extends GetxController {
 
       final existingIds = shorts.map((post) => post.docID).toSet();
       final incoming = result.posts
+          .where(_isEligibleShortPost)
           .where((post) => !existingIds.contains(post.docID))
           .toList(growable: false);
       if (incoming.isNotEmpty) {
@@ -802,7 +816,9 @@ class ShortController extends GetxController {
   bool _applySnapshotResource(CachedResource<List<PostsModel>> resource) {
     final data = resource.data;
     if (data == null || data.isEmpty) return false;
-    _replaceShorts(data);
+    final filtered = data.where(_isEligibleShortPost).toList(growable: false);
+    if (filtered.isEmpty) return false;
+    _replaceShorts(filtered);
     hasMore.value = true;
     return true;
   }
@@ -811,6 +827,7 @@ class ShortController extends GetxController {
     List<PostsModel> newItems, {
     bool remapCache = true,
   }) {
+    newItems = newItems.where(_isEligibleShortPost).toList(growable: false);
     if (_hasSameRenderOrder(shorts, newItems)) {
       return;
     }
