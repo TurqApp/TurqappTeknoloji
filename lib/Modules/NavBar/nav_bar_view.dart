@@ -133,6 +133,22 @@ class NavBarView extends StatelessWidget {
     return true;
   }
 
+  void _handleRootHorizontalSwipe(DragEndDetails details) {
+    final dx = details.velocity.pixelsPerSecond.dx;
+    final shortIndex = 2;
+    final feedIndex = 0;
+    final selected = controller.selectedIndex.value;
+
+    if (selected == feedIndex && dx < -700) {
+      controller.changeIndex(shortIndex);
+      return;
+    }
+
+    if (selected == shortIndex && dx > 700) {
+      controller.changeIndex(feedIndex);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -147,90 +163,93 @@ class NavBarView extends StatelessWidget {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         key: const ValueKey(IntegrationTestKeys.navBarRoot),
-        body: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            Column(
-              children: [
-                const OfflineIndicator(),
-                Expanded(
-                  child: Obx(() => _buildSelectedPage()),
-                ),
-              ],
-            ),
-            Obx(() {
-              if (controller.selectedIndex.value != 0) {
-                return const SizedBox.shrink();
-              }
-              return Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: IgnorePointer(
-                  child: Container(
-                    height: MediaQuery.of(context).padding.top - 3,
-                    color: Colors.white,
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: _handleRootHorizontalSwipe,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Column(
+                children: [
+                  const OfflineIndicator(),
+                  Expanded(
+                    child: Obx(() => _buildSelectedPage()),
                   ),
-                ),
-              );
-            }),
-            Obx(() {
-              final icons = [
-                'assets/icons/house',
-                'assets/icons/search',
-                'assets/icons/play',
-                if (settingController.educationScreenIsOn.value)
-                  'assets/icons/sinav',
-                'profile_dynamic',
-              ];
-              final showBar = controller.showBar.value;
-
-              return AnimatedSlide(
-                offset: showBar ? Offset.zero : const Offset(0, 1.2),
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
-                child: AnimatedOpacity(
-                  opacity: showBar ? 1 : 0,
-                  duration: const Duration(milliseconds: 180),
+                ],
+              ),
+              Obx(() {
+                if (controller.selectedIndex.value != 0) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
                   child: IgnorePointer(
-                    ignoring: !showBar,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        12,
-                        0,
-                        12,
-                        math.max(
-                          0.0,
-                          math.max(8.0,
-                                  MediaQuery.of(context).viewPadding.bottom) -
-                              (GetPlatform.isIOS ? 20 : 10),
+                    child: Container(
+                      height: MediaQuery.of(context).padding.top - 3,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              }),
+              Obx(() {
+                final icons = [
+                  'assets/icons/house',
+                  'assets/icons/search',
+                  'assets/icons/play',
+                  if (settingController.educationScreenIsOn.value)
+                    'assets/icons/sinav',
+                  'profile_dynamic',
+                ];
+                final showBar = controller.showBar.value;
+
+                return AnimatedSlide(
+                  offset: showBar ? Offset.zero : const Offset(0, 1.2),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  child: AnimatedOpacity(
+                    opacity: showBar ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: IgnorePointer(
+                      ignoring: !showBar,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          12,
+                          0,
+                          12,
+                          math.max(
+                            0.0,
+                            math.max(8.0,
+                                    MediaQuery.of(context).viewPadding.bottom) -
+                                (GetPlatform.isIOS ? 20 : 10),
+                          ),
                         ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                          child: Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.88),
-                              border: Border.all(
-                                color: Colors.black.withValues(alpha: 0.06),
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x22000000),
-                                  blurRadius: 20,
-                                  offset: Offset(0, 6),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                            child: Container(
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.88),
+                                border: Border.all(
+                                  color: Colors.black.withValues(alpha: 0.06),
                                 ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            child: Row(
-                              children: List.generate(icons.length, (i) {
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x22000000),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
+                              ),
+                              child: Row(
+                                children: List.generate(icons.length, (i) {
                                 final isSelected =
                                     controller.selectedIndex.value == i;
                                 final navKey = _navKeyForIndex(
@@ -429,17 +448,18 @@ class NavBarView extends StatelessWidget {
                                     ),
                                   ),
                                 );
-                              }),
+                                }),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }),
-          ],
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );

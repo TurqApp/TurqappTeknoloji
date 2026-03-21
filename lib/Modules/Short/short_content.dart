@@ -46,6 +46,7 @@ class ShortsContent extends StatefulWidget {
   final bool showOverlayControls;
   final VoidCallback? onToggleOverlay;
   final Future<void> Function()? onDoubleTapLike;
+  final Future<void> Function()? onSwipeRight;
 
   const ShortsContent({
     super.key,
@@ -57,6 +58,7 @@ class ShortsContent extends StatefulWidget {
     this.showOverlayControls = true,
     this.onToggleOverlay,
     this.onDoubleTapLike,
+    this.onSwipeRight,
   });
 
   @override
@@ -150,9 +152,10 @@ class _ShortsContentState extends State<ShortsContent> {
           }
         },
         onHorizontalDragEnd: (details) async {
-          if (details.velocity.pixelsPerSecond.dx < 0) {
+          if (details.velocity.pixelsPerSecond.dx > 500 &&
+              widget.onSwipeRight != null) {
             videoPlayerController.pause();
-            await Get.to(() => SocialProfile(userID: model.userID));
+            await widget.onSwipeRight!();
             resumeIfActive();
           }
         },

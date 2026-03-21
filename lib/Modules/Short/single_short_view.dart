@@ -713,6 +713,22 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             if (idx < 0 || idx >= shorts.length) return;
             await PostRepository.ensure().toggleLike(shorts[idx]);
           },
+          onSwipeRight: () async {
+            try {
+              VideoStateManager.instance.exitExclusiveMode();
+            } catch (_) {}
+            await _pauseAllControllers();
+            final docID = widget.startModel?.docID ??
+                (shorts.isNotEmpty ? shorts[currentPage].docID : null);
+            final pos = vp.value.isInitialized
+                ? vp.value.position
+                : Duration.zero;
+            if (!mounted) return;
+            Navigator.of(context).pop({
+              'docID': docID,
+              'positionMs': pos.inMilliseconds,
+            });
+          },
           volumeOff: (volume) {
             if (!volume) {
               vp.pause();

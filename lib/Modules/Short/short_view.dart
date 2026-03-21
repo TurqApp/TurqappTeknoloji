@@ -18,6 +18,7 @@ import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -887,6 +888,11 @@ class _ShortViewState extends State<ShortView> {
                           },
                           onDoubleTapLike: () async {
                             await PostRepository.ensure().toggleLike(list[idx]);
+                          },
+                          onSwipeRight: () async {
+                            if (Get.isRegistered<NavBarController>()) {
+                              Get.find<NavBarController>().changeIndex(0);
+                            }
                           },
                           volumeOff: (v) {
                             if (v) {
