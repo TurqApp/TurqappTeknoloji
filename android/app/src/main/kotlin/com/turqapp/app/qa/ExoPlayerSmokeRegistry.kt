@@ -1,29 +1,46 @@
 package com.turqapp.app.qa
 
-/**
- * Visible feed player için en son aktif smoke monitor'ı tutar.
- *
- * Amaç:
- * - Espresso testinin gerçek aktif player truth state'ini okuyabilmesi
- * - App kodunda minimum entegrasyonla çalışmak
- */
-object ExoPlayerSmokeRegistry {
-    @Volatile
-    private var activeMonitor: PlaybackHealthMonitor? = null
+import android.content.Context
 
-    fun register(monitor: PlaybackHealthMonitor) {
-        activeMonitor = monitor
+object ExoPlayerSmokeRegistry {
+    data class Snapshot(
+        val active: Boolean,
+        val firstFrameRendered: Boolean,
+        val errors: List<String>,
+        val status: String,
+        val snapshot: Map<String, Any>,
+        val raw: String,
+    )
+
+    fun register(context: Context, monitor: PlaybackHealthMonitor) {
+        PlaybackHealthStore.register(context, monitor)
     }
 
-    fun clear(monitor: PlaybackHealthMonitor) {
-        if (activeMonitor === monitor) {
-            activeMonitor = null
-        }
+    fun publish(context: Context, monitor: PlaybackHealthMonitor) {
+        PlaybackHealthStore.publish(context, monitor)
+    }
+
+    fun publish(context: Context, monitor: PlaybackHealthMonitor, snapshot: Map<String, Any>) {
+        PlaybackHealthStore.publish(context, monitor, snapshot)
+    }
+
+    fun clear(context: Context, monitor: PlaybackHealthMonitor) {
+        PlaybackHealthStore.clear(context, monitor)
     }
 
     fun requireActiveMonitor(): PlaybackHealthMonitor {
-        return requireNotNull(activeMonitor) {
-            "No active PlaybackHealthMonitor registered."
-        }
+        return PlaybackHealthStore.requireActiveMonitor()
+    }
+
+    fun readSnapshot(context: Context): Snapshot? {
+        val snapshot = PlaybackHealthStore.readSnapshot(context) ?: return null
+        return Snapshot(
+            active = snapshot.active,
+            firstFrameRendered = snapshot.firstFrameRendered,
+            errors = snapshot.errors,
+            status = snapshot.status,
+            snapshot = snapshot.snapshot,
+            raw = snapshot.raw,
+        )
     }
 }

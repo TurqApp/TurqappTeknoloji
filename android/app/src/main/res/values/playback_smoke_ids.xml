@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="feedTab" type="id" />
+    <item name="feedRecyclerView" type="id" />
+    <item name="fullscreenButton" type="id" />
+    <item name="playbackHealthStatusLabel" type="id" />
+</resources>

@@ -67,9 +67,18 @@ class ExoPlayerPlaybackProbe(
         monitor.onFullscreenTransitionEnded()
     }
 
+    fun onAppBackgrounded() {
+        monitor.onAppBackgrounded()
+    }
+
+    fun onAppForegrounded() {
+        monitor.onAppForegrounded()
+    }
+
     override fun onPlaybackStateChanged(playbackState: Int) {
         when (playbackState) {
             Player.STATE_READY -> {
+                monitor.onBufferingEnded()
                 monitor.onPlayerReady()
                 Log.d(
                     tag,
@@ -78,19 +87,26 @@ class ExoPlayerPlaybackProbe(
             }
             Player.STATE_BUFFERING -> {
                 rebufferCount += 1
-                monitor.onRebuffer()
+                monitor.onBufferingStarted()
                 Log.w(tag, "state=BUFFERING count=$rebufferCount")
             }
             Player.STATE_ENDED -> {
+                monitor.onPlaybackPaused()
                 Log.d(tag, "state=ENDED position=${player.currentPosition}")
             }
             Player.STATE_IDLE -> {
+                monitor.onPlaybackPaused()
                 Log.d(tag, "state=IDLE")
             }
         }
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
+        if (isPlaying) {
+            monitor.onPlaybackStarted()
+        } else {
+            monitor.onPlaybackPaused()
+        }
         Log.d(
             tag,
             "isPlaying=$isPlaying playWhenReady=${player.playWhenReady} state=${player.playbackState}"
@@ -115,7 +131,7 @@ class ExoPlayerPlaybackProbe(
         elapsedMs: Long,
     ) {
         monitor.onDroppedFrames(droppedFrames)
-        Log.w(tag, "droppedFrames=$droppedFrames totalThresholdState=${monitor.snapshot()["droppedFrames"]}")
+        Log.w(tag, "droppedFrames=$droppedFrames total=${monitor.snapshot()["droppedFramesTotal"]}")
     }
 
     override fun onAudioUnderrun(

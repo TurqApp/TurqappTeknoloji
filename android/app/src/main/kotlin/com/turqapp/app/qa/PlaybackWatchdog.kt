@@ -7,14 +7,7 @@ import android.util.Log
 import androidx.media3.common.Player
 
 /**
- * Hafif position/frame watchdog.
- *
- * Kritik kural:
- * - playback position artıyor
- * - ama yeni frame callback'i gelmiyor
- * => VIDEO_FREEZE
- *
- * UI state'e güvenmez, player truth ve frame timestamp'ini karşılaştırır.
+ * Lightweight watchdog that compares playback progression with visible frame activity.
  */
 class PlaybackWatchdog(
     private val playerProvider: () -> Player?,
@@ -22,13 +15,13 @@ class PlaybackWatchdog(
     private val tag: String = "PlaybackWatchdog",
     private val tickMs: Long = 250L,
     private val freezeNoFrameWindowMs: Long = 1_000L,
-    private val audioMissingWindowMs: Long = 1_500L,
+    private val startTimeoutMs: Long = 1_500L,
 ) {
 
     private val handler = Handler(Looper.getMainLooper())
     private var running = false
     private var lastObservedPositionMs = 0L
-    private var lastAdvancedAt = 0L
+    private var lastProgressedAt = 0L
 
     private val tick = object : Runnable {
         override fun run() {
@@ -49,7 +42,7 @@ class PlaybackWatchdog(
         if (running) return
         running = true
         lastObservedPositionMs = 0L
-        lastAdvancedAt = 0L
+        lastProgressedAt = 0L
         handler.post(tick)
     }
 
@@ -66,52 +59,62 @@ class PlaybackWatchdog(
 
         val advanced = positionMs > lastObservedPositionMs + 40L
         if (advanced) {
-            lastAdvancedAt = now
+            lastProgressedAt = now
         }
 
-        val lastFrameRenderedAt = monitor.lastFrameRenderedAt
-        val frameSilentTooLong =
-            lastFrameRenderedAt > 0L && now - lastFrameRenderedAt > freezeNoFrameWindowMs
-        val progressedWithoutFrame =
-            advanced && monitor.firstFrameRendered && frameSilentTooLong
+        val staleFrame = monitor.shouldFlagVideoFreeze(now)
+        val progressedWithoutFreshFrame =
+            advanced &&
+                staleFrame &&
+                monitor.hasRenderedFirstFrame &&
+                now - monitor.lastFrameRenderedAt > freezeNoFrameWindowMs
 
-        if (progressedWithoutFrame) {
+        if (progressedWithoutFreshFrame) {
             Log.e(
                 tag,
-                "freezeDetected positionMs=$positionMs lastFrameRenderedAt=$lastFrameRenderedAt"
+                "freezeDetected positionMs=$positionMs lastFrameRenderedAt=${monitor.lastFrameRenderedAt}"
             )
             monitor.onVideoFreeze()
         }
 
-        val playbackExpected = player.playWhenReady
+        val playbackExpected = monitor.isPlaybackExpected || player.playWhenReady
         val startedTooLate =
             playbackExpected &&
+                !monitor.hasRenderedFirstFrame &&
                 monitor.playbackRequestedAt > 0L &&
-                !monitor.firstFrameRendered &&
-                now - monitor.playbackRequestedAt > audioMissingWindowMs
+                now - monitor.playbackRequestedAt > startTimeoutMs
 
         if (startedTooLate) {
             monitor.onPlaybackNotStarted()
         }
 
         val likelyAudioOnly =
-            player.isPlaying &&
-                monitor.firstFrameRendered &&
-                lastAdvancedAt > 0L &&
-                now - lastAdvancedAt < freezeNoFrameWindowMs &&
-                frameSilentTooLong
+            (player.isPlaying || playbackExpected) &&
+                (advanced || now - lastProgressedAt < freezeNoFrameWindowMs) &&
+                staleFrame &&
+                !monitor.isBuffering
 
         if (likelyAudioOnly) {
             monitor.onAudioMissing()
             monitor.onVideoFreeze()
         }
 
-        if (monitor.isFullscreenTransitionOpen &&
+        if (monitor.awaitingFullscreenRecovery &&
             playbackExpected &&
-            !player.isPlaying &&
-            player.playbackState == Player.STATE_READY
+            monitor.fullscreenTransitionStartedAt > 0L &&
+            now - monitor.fullscreenTransitionStartedAt > startTimeoutMs &&
+            (!player.isPlaying || !monitor.hasFreshFrameSince(monitor.fullscreenTransitionStartedAt))
         ) {
             monitor.onFullscreenInterruption()
+        }
+
+        if (monitor.awaitingBackgroundRecovery &&
+            monitor.appForegroundedAt > 0L &&
+            now - monitor.appForegroundedAt > startTimeoutMs &&
+            playbackExpected &&
+            (!player.isPlaying || !monitor.hasFreshFrameSince(monitor.appForegroundedAt))
+        ) {
+            monitor.onBackgroundResumeFailure()
         }
 
         lastObservedPositionMs = positionMs

@@ -161,6 +161,7 @@ private object ExoPlayerSmokeBridge {
             "active" to snapshot.active,
             "firstFrameRendered" to snapshot.firstFrameRendered,
             "errors" to snapshot.errors,
+            "snapshot" to snapshot.snapshot,
             "raw" to snapshot.raw,
         )
     }

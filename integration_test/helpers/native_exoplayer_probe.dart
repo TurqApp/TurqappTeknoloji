@@ -22,6 +22,14 @@ bool get supportsNativeExoSmoke =>
 Future<Map<String, dynamic>> readNativeExoSmokeSnapshot() =>
     HLSController.getActiveSmokeSnapshot();
 
+Map<String, dynamic> readNativeExoRuntimeSnapshot(Map<String, dynamic> snapshot) {
+  final raw = snapshot['snapshot'];
+  if (raw is Map) {
+    return Map<String, dynamic>.from(raw);
+  }
+  return const <String, dynamic>{};
+}
+
 List<String> readNativeExoCriticalErrors(Map<String, dynamic> snapshot) {
   final raw = snapshot['errors'];
   if (raw is! List) return const <String>[];
@@ -82,6 +90,40 @@ Future<void> expectNativeExoSmokeHealthy(
 
   throw TestFailure(
     '$label did not keep a healthy active native ExoPlayer snapshot '
+    '(snapshot=${jsonEncode(last)}).',
+  );
+}
+
+Future<void> expectNoAudibleNativeFeedPlayback(
+  WidgetTester tester, {
+  required String label,
+  Duration timeout = const Duration(seconds: 2),
+  Duration step = const Duration(milliseconds: 200),
+}) async {
+  final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
+  Map<String, dynamic> last = const <String, dynamic>{};
+
+  for (var i = 0; i < maxTicks; i++) {
+    await tester.pump(step);
+    last = await readNativeExoSmokeSnapshot();
+    final active = last['active'] == true;
+    if (!active) return;
+
+    final runtime = readNativeExoRuntimeSnapshot(last);
+    final isPlayingRuntime = runtime['isPlayingRuntime'] == true;
+    final playerVolume = (runtime['playerVolume'] as num?)?.toDouble() ?? 0.0;
+    final isMuted = runtime['isMuted'] == true;
+    final playWhenReady = runtime['playWhenReady'] == true;
+
+    final isAudiblePlayback =
+        (isPlayingRuntime || playWhenReady) && playerVolume > 0.01 && !isMuted;
+    if (!isAudiblePlayback) {
+      return;
+    }
+  }
+
+  throw TestFailure(
+    '$label still has audible native feed playback '
     '(snapshot=${jsonEncode(last)}).',
   );
 }

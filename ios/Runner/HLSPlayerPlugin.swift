@@ -37,13 +37,7 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         if call.method == "getActiveSmokeSnapshot" {
-            result([
-                "supported": false,
-                "active": false,
-                "firstFrameRendered": false,
-                "errors": [],
-                "raw": ""
-            ])
+            result(PlaybackHealthStore.shared.snapshot())
             return
         }
 

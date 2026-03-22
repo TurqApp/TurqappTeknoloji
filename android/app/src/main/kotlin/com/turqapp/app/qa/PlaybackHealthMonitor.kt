@@ -2,46 +2,25 @@ package com.turqapp.app.qa
 
 import android.os.SystemClock
 import android.util.Log
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.LinkedHashSet
 
 /**
- * Feed / shorts playback smoke monitor.
- *
- * Amaç:
- * - ExoPlayer callback'lerinden gelen truth state'i tek yerde toplamak
- * - kritik playback semptomlarını hafif ama gerçekçi kurallarla işaretlemek
- * - Espresso smoke testi için okunabilir hata listesi üretmek
+ * Collects feed / shorts playback truth and deduplicated critical errors.
  */
 class PlaybackHealthMonitor(
     private val tag: String = "PlaybackHealthMonitor",
     private val firstFrameTimeoutMs: Long = 1_500L,
     private val freezeFrameTimeoutMs: Long = 1_000L,
     private val excessiveDroppedFramesThreshold: Int = 24,
+    private val excessiveRebufferThreshold: Int = 3,
 ) {
+    var stateListener: ((PlaybackHealthMonitor) -> Unit)? = null
 
-    private val errors = CopyOnWriteArrayList<String>()
-    private val surfaceAttachCount = AtomicInteger(0)
-    private val playbackRequestCount = AtomicInteger(0)
+    private val errorLock = Any()
+    private val recordedErrors = LinkedHashSet<String>()
 
     @Volatile
     var playbackRequestedAt: Long = 0L
-        private set
-
-    @Volatile
-    var firstFrameRenderedAt: Long = 0L
-        private set
-
-    @Volatile
-    var firstFrameRendered: Boolean = false
-        private set
-
-    @Volatile
-    var lastFrameRenderedAt: Long = 0L
-        private set
-
-    @Volatile
-    var lastKnownPlaybackPositionMs: Long = 0L
         private set
 
     @Volatile
@@ -49,93 +28,202 @@ class PlaybackHealthMonitor(
         private set
 
     @Volatile
+    var firstFrameRenderedAt: Long = 0L
+        private set
+
+    @Volatile
+    var lastFrameRenderedAt: Long = 0L
+        private set
+
+    @Volatile
+    var lastKnownPlaybackPosition: Long = 0L
+        private set
+
+    @Volatile
+    var isPlaybackExpected: Boolean = false
+        private set
+
+    @Volatile
+    var isPlaying: Boolean = false
+        private set
+
+    @Volatile
+    var hasRenderedFirstFrame: Boolean = false
+        private set
+
+    @Volatile
+    var isBuffering: Boolean = false
+        private set
+
+    @Volatile
+    var isInFullscreenTransition: Boolean = false
+        private set
+
+    @Volatile
+    var surfaceAttachCount: Int = 0
+        private set
+
+    @Volatile
+    var surfaceDetachCount: Int = 0
+        private set
+
+    @Volatile
+    var droppedFramesTotal: Int = 0
+        private set
+
+    @Volatile
+    var rebufferCount: Int = 0
+        private set
+
+    @Volatile
+    var lastKnownPlaybackAdvanceAt: Long = 0L
+        private set
+
+    @Volatile
     var fullscreenTransitionStartedAt: Long = 0L
         private set
 
     @Volatile
-    var lastSurfaceAttachedAt: Long = 0L
+    var appBackgroundedAt: Long = 0L
         private set
 
     @Volatile
-    var lastSurfaceDetachedAt: Long = 0L
+    var appForegroundedAt: Long = 0L
         private set
 
     @Volatile
-    var isPlayerReady: Boolean = false
+    var awaitingFullscreenRecovery: Boolean = false
         private set
 
     @Volatile
-    var isFullscreenTransitionOpen: Boolean = false
+    var awaitingBackgroundRecovery: Boolean = false
         private set
 
     @Volatile
-    var droppedFrames: Int = 0
-        private set
-
-    @Volatile
-    var isAudioExpected: Boolean = false
-        private set
-
-    @Volatile
-    var lastErrorAt: Long = 0L
+    var playerReadyObserved: Boolean = false
         private set
 
     fun resetForNewPlaybackSession() {
         playbackRequestedAt = 0L
-        firstFrameRenderedAt = 0L
-        firstFrameRendered = false
-        lastFrameRenderedAt = 0L
-        lastKnownPlaybackPositionMs = 0L
         playerReadyAt = 0L
+        firstFrameRenderedAt = 0L
+        lastFrameRenderedAt = 0L
+        lastKnownPlaybackPosition = 0L
+        isPlaybackExpected = false
+        isPlaying = false
+        hasRenderedFirstFrame = false
+        isBuffering = false
+        isInFullscreenTransition = false
+        surfaceAttachCount = 0
+        surfaceDetachCount = 0
+        droppedFramesTotal = 0
+        rebufferCount = 0
+        lastKnownPlaybackAdvanceAt = 0L
         fullscreenTransitionStartedAt = 0L
-        lastSurfaceAttachedAt = 0L
-        lastSurfaceDetachedAt = 0L
-        isPlayerReady = false
-        isFullscreenTransitionOpen = false
-        droppedFrames = 0
-        isAudioExpected = false
-        errors.clear()
-        surfaceAttachCount.set(0)
-        playbackRequestCount.set(0)
+        appBackgroundedAt = 0L
+        appForegroundedAt = 0L
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        playerReadyObserved = false
+        synchronized(errorLock) {
+            recordedErrors.clear()
+        }
+        publish("reset")
     }
 
     fun onPlaybackRequested() {
-        playbackRequestedAt = now()
-        playbackRequestCount.incrementAndGet()
-        isAudioExpected = true
-        firstFrameRendered = false
+        val timestamp = now()
+        playbackRequestedAt = timestamp
+        playerReadyAt = 0L
         firstFrameRenderedAt = 0L
         lastFrameRenderedAt = 0L
-        isPlayerReady = false
-        log("playbackRequested")
+        lastKnownPlaybackPosition = 0L
+        lastKnownPlaybackAdvanceAt = 0L
+        isPlaybackExpected = true
+        isPlaying = false
+        hasRenderedFirstFrame = false
+        isBuffering = false
+        playerReadyObserved = false
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        log("playbackRequested at=$timestamp")
+        publish("playbackRequested")
     }
 
     fun onPlayerReady() {
-        playerReadyAt = now()
-        isPlayerReady = true
-        log("playerReady")
-        maybeFlagReadyWithoutFrame()
+        if (!playerReadyObserved) {
+            playerReadyObserved = true
+            playerReadyAt = now()
+        }
+        log("playerReady at=$playerReadyAt")
+        evaluatePassiveTimeouts()
+        publish("playerReady")
+    }
+
+    fun onPlaybackStarted() {
+        isPlaying = true
+        isPlaybackExpected = true
+        isBuffering = false
+        publish("playbackStarted")
+    }
+
+    fun onPlaybackPaused() {
+        isPlaying = false
+        publish("playbackPaused")
     }
 
     fun onFirstFrameRendered() {
-        val ts = now()
-        firstFrameRendered = true
-        firstFrameRenderedAt = ts
-        lastFrameRenderedAt = ts
-        log("firstFrameRendered ttffMs=${safeDelta(playbackRequestedAt, ts)}")
-        maybeFlagFirstFrameTimeout()
+        val timestamp = now()
+        hasRenderedFirstFrame = true
+        if (firstFrameRenderedAt == 0L) {
+            firstFrameRenderedAt = timestamp
+        }
+        lastFrameRenderedAt = timestamp
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        log("firstFrameRendered ttffMs=${deltaFrom(playbackRequestedAt, timestamp)}")
+        publish("firstFrameRendered")
     }
 
     fun onFrameRendered() {
         lastFrameRenderedAt = now()
+        if (!hasRenderedFirstFrame) {
+            hasRenderedFirstFrame = true
+            if (firstFrameRenderedAt == 0L) {
+                firstFrameRenderedAt = lastFrameRenderedAt
+            }
+        }
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        publish("frameRendered")
     }
 
     fun onPositionUpdate(positionMs: Long) {
-        lastKnownPlaybackPositionMs = positionMs
+        if (positionMs > lastKnownPlaybackPosition + 40L) {
+            lastKnownPlaybackAdvanceAt = now()
+        }
+        lastKnownPlaybackPosition = positionMs
+        publish("position=$positionMs")
+    }
+
+    fun onBufferingStarted() {
+        if (!isBuffering) {
+            rebufferCount += 1
+            if (rebufferCount >= excessiveRebufferThreshold) {
+                addError("EXCESSIVE_REBUFFERING")
+            }
+        }
+        isBuffering = true
+        publish("bufferingStarted")
+    }
+
+    fun onBufferingEnded() {
+        isBuffering = false
+        publish("bufferingEnded")
     }
 
     fun onAudioMissing() {
-        addError("AUDIO_MISSING")
+        addError("AUDIO_NOT_STARTED")
     }
 
     fun onPlaybackNotStarted() {
@@ -144,39 +232,50 @@ class PlaybackHealthMonitor(
 
     fun onFullscreenTransitionStarted() {
         fullscreenTransitionStartedAt = now()
-        isFullscreenTransitionOpen = true
-        log("fullscreenTransitionStarted")
+        isInFullscreenTransition = true
+        awaitingFullscreenRecovery = isPlaybackExpected || isPlaying || hasRenderedFirstFrame
+        publish("fullscreenTransitionStarted")
     }
 
     fun onFullscreenTransitionEnded() {
-        isFullscreenTransitionOpen = false
-        log("fullscreenTransitionEnded")
+        isInFullscreenTransition = false
+        if (awaitingFullscreenRecovery) {
+            fullscreenTransitionStartedAt = now()
+        }
+        publish("fullscreenTransitionEnded")
     }
 
     fun onSurfaceAttached() {
-        lastSurfaceAttachedAt = now()
-        val attachCount = surfaceAttachCount.incrementAndGet()
-        log("surfaceAttached count=$attachCount")
-        if (!firstFrameRendered && attachCount >= 2) {
+        surfaceAttachCount += 1
+        if (!hasRenderedFirstFrame && surfaceAttachCount >= 2) {
             addError("DOUBLE_BLACK_SCREEN_RISK")
         }
+        publish("surfaceAttached")
     }
 
     fun onSurfaceDetached() {
-        lastSurfaceDetachedAt = now()
-        log("surfaceDetached")
+        surfaceDetachCount += 1
+        publish("surfaceDetached")
+    }
+
+    fun onAppBackgrounded() {
+        appBackgroundedAt = now()
+        awaitingBackgroundRecovery = isPlaybackExpected || isPlaying || hasRenderedFirstFrame
+        isPlaying = false
+        publish("appBackgrounded")
+    }
+
+    fun onAppForegrounded() {
+        appForegroundedAt = now()
+        publish("appForegrounded")
     }
 
     fun onDroppedFrames(count: Int) {
-        droppedFrames += count
-        log("droppedFrames total=$droppedFrames")
-        if (droppedFrames >= excessiveDroppedFramesThreshold) {
+        droppedFramesTotal += count
+        if (droppedFramesTotal >= excessiveDroppedFramesThreshold) {
             addError("EXCESSIVE_DROPPED_FRAMES")
         }
-    }
-
-    fun onRebuffer() {
-        addError("REBUFFER_EVENT")
+        publish("droppedFrames")
     }
 
     fun onVideoFreeze() {
@@ -195,49 +294,103 @@ class PlaybackHealthMonitor(
         addError("FULLSCREEN_INTERRUPTION")
     }
 
-    fun getErrors(): List<String> = errors.toList()
+    fun onBackgroundResumeFailure() {
+        addError("BACKGROUND_RESUME_FAILURE")
+    }
 
-    fun hasErrors(): Boolean = errors.isNotEmpty()
+    fun getErrors(): List<String> {
+        return synchronized(errorLock) { recordedErrors.toList() }
+    }
+
+    fun hasErrors(): Boolean {
+        return synchronized(errorLock) { recordedErrors.isNotEmpty() }
+    }
+
+    fun hasFreshFrameSince(timestamp: Long): Boolean {
+        return lastFrameRenderedAt >= timestamp && lastFrameRenderedAt > 0L
+    }
 
     fun snapshot(): Map<String, Any> = mapOf(
         "playbackRequestedAt" to playbackRequestedAt,
-        "firstFrameRenderedAt" to firstFrameRenderedAt,
-        "firstFrameRendered" to firstFrameRendered,
-        "lastFrameRenderedAt" to lastFrameRenderedAt,
-        "lastKnownPlaybackPositionMs" to lastKnownPlaybackPositionMs,
         "playerReadyAt" to playerReadyAt,
-        "isPlayerReady" to isPlayerReady,
-        "isFullscreenTransitionOpen" to isFullscreenTransitionOpen,
-        "surfaceAttachCount" to surfaceAttachCount.get(),
-        "playbackRequestCount" to playbackRequestCount.get(),
-        "droppedFrames" to droppedFrames,
-        "errors" to errors.toList(),
+        "firstFrameRenderedAt" to firstFrameRenderedAt,
+        "lastFrameRenderedAt" to lastFrameRenderedAt,
+        "lastKnownPlaybackPosition" to lastKnownPlaybackPosition,
+        "isPlaybackExpected" to isPlaybackExpected,
+        "isPlaying" to isPlaying,
+        "hasRenderedFirstFrame" to hasRenderedFirstFrame,
+        "isBuffering" to isBuffering,
+        "isInFullscreenTransition" to isInFullscreenTransition,
+        "surfaceAttachCount" to surfaceAttachCount,
+        "surfaceDetachCount" to surfaceDetachCount,
+        "droppedFramesTotal" to droppedFramesTotal,
+        "rebufferCount" to rebufferCount,
+        "appBackgroundedAt" to appBackgroundedAt,
+        "appForegroundedAt" to appForegroundedAt,
+        "awaitingFullscreenRecovery" to awaitingFullscreenRecovery,
+        "awaitingBackgroundRecovery" to awaitingBackgroundRecovery,
+        "errors" to getErrors(),
     )
 
     fun evaluatePassiveTimeouts() {
-        maybeFlagFirstFrameTimeout()
-        maybeFlagReadyWithoutFrame()
-    }
+        val timestamp = now()
+        if (playbackRequestedAt > 0L &&
+            !hasRenderedFirstFrame &&
+            timestamp - playbackRequestedAt > firstFrameTimeoutMs
+        ) {
+            onFirstFrameTimeout()
+            if (!isPlaying && isPlaybackExpected) {
+                onPlaybackNotStarted()
+            }
+        }
 
-    private fun maybeFlagFirstFrameTimeout() {
-        if (playbackRequestedAt == 0L || firstFrameRendered) return
-        if (now() - playbackRequestedAt > firstFrameTimeoutMs) {
-            addError("FIRST_FRAME_TIMEOUT")
+        if (playerReadyAt > 0L &&
+            !hasRenderedFirstFrame &&
+            timestamp - playerReadyAt > firstFrameTimeoutMs
+        ) {
+            onReadyWithoutFrame()
+        }
+
+        if (awaitingFullscreenRecovery &&
+            fullscreenTransitionStartedAt > 0L &&
+            timestamp - fullscreenTransitionStartedAt > firstFrameTimeoutMs &&
+            isPlaybackExpected &&
+            !hasFreshFrameSince(fullscreenTransitionStartedAt)
+        ) {
+            onFullscreenInterruption()
+        }
+
+        if (awaitingBackgroundRecovery &&
+            appForegroundedAt > 0L &&
+            timestamp - appForegroundedAt > firstFrameTimeoutMs &&
+            isPlaybackExpected &&
+            !hasFreshFrameSince(appForegroundedAt)
+        ) {
+            onBackgroundResumeFailure()
         }
     }
 
-    private fun maybeFlagReadyWithoutFrame() {
-        if (!isPlayerReady || firstFrameRendered || playerReadyAt == 0L) return
-        if (now() - playerReadyAt > firstFrameTimeoutMs) {
-            addError("READY_WITHOUT_FRAME")
-        }
+    fun shouldFlagVideoFreeze(timestamp: Long = now()): Boolean {
+        if (!hasRenderedFirstFrame || lastFrameRenderedAt <= 0L) return false
+        if (!(isPlaybackExpected || isPlaying || lastKnownPlaybackAdvanceAt > 0L)) return false
+        return timestamp - lastFrameRenderedAt > freezeFrameTimeoutMs
     }
 
     private fun addError(code: String) {
-        if (errors.contains(code)) return
-        errors.add(code)
-        lastErrorAt = now()
+        val inserted = synchronized(errorLock) { recordedErrors.add(code) }
+        if (!inserted) return
         Log.e(tag, "error=$code snapshot=${snapshot()}")
+        publish("error=$code")
+    }
+
+    private fun publish(event: String) {
+        log(event)
+        stateListener?.invoke(this)
+    }
+
+    private fun deltaFrom(start: Long, end: Long): Long {
+        if (start <= 0L || end <= 0L || end < start) return 0L
+        return end - start
     }
 
     private fun log(message: String) {
@@ -245,9 +398,4 @@ class PlaybackHealthMonitor(
     }
 
     private fun now(): Long = SystemClock.elapsedRealtime()
-
-    private fun safeDelta(start: Long, end: Long): Long {
-        if (start <= 0L || end <= 0L) return 0L
-        return (end - start).coerceAtLeast(0L)
-    }
 }

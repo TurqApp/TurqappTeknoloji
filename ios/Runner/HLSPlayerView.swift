@@ -2,6 +2,7 @@ import UIKit
 import AVFoundation
 import CoreImage
 import Flutter
+import Darwin
 
 private final class PlayerContainerView: UIView {
     weak var linkedPlayerLayer: AVPlayerLayer?
@@ -44,6 +45,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var didRenderFirstFrame: Bool = false
     private var currentUrl: String?
     private let ciContext = CIContext(options: nil)
+    private var bufferingEventsCount: Int = 0
+    private var playbackStallCount: Int = 0
+    private let playbackHealthMonitor = PlaybackHealthMonitor(tag: "AVPlaybackHealth")
+    private var playbackHealthProbe: AVPlayerPlaybackProbe?
+    private var playbackWatchdog: PlaybackWatchdog?
 
     private func log(_ message: String) {
         print("[HLSPlayerView] \(message)")
@@ -74,6 +80,14 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         _view.isOpaque = true
 
         super.init()
+
+        playbackHealthMonitor.stateListener = { monitor in
+            PlaybackHealthStore.shared.update(
+                errors: monitor.getErrors(),
+                snapshot: monitor.snapshot()
+            )
+        }
+        PlaybackHealthStore.shared.installDebugLabelIfNeeded()
 
         // Setup event channel
         eventChannel.setStreamHandler(self)
@@ -119,6 +133,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         didRequestInitialPlay = false
         didStabilizeVisualLayer = false
         didRenderFirstFrame = false
+        bufferingEventsCount = 0
+        playbackStallCount = 0
         currentUrl = url
 
         // Create AVURLAsset for HLS
@@ -161,12 +177,14 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Setup observers
         setupPlayerObservers()
+        configurePlaybackHealth()
 
     }
 
     // MARK: - Player Controls
     func play() {
         log("play url=\(currentUrl ?? "-")")
+        playbackHealthMonitor.onPlaybackRequested()
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: true)
         sendEvent(["event": "play"])
@@ -176,6 +194,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         log("pause url=\(currentUrl ?? "-")")
         captureCurrentFrameSnapshot(showOverlay: false)
         player?.pause()
+        playbackHealthMonitor.onPlaybackPaused()
         sendEvent(["event": "pause"])
     }
 
@@ -218,6 +237,50 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         } else {
             return player?.rate ?? 0 > 0
         }
+    }
+
+    func isBuffering() -> Bool {
+        if #available(iOS 10.0, *) {
+            if player?.timeControlStatus == .waitingToPlayAtSpecifiedRate {
+                return true
+            }
+        }
+        return playerItem?.isPlaybackBufferEmpty ?? false
+    }
+
+    func getPlaybackDiagnostics() -> [String: Any] {
+        let position = player?.currentTime().seconds ?? 0.0
+        let duration = playerItem?.duration.seconds ?? 0.0
+        let accessEvent = playerItem?.accessLog()?.events.last
+        let observedBitrateKbps = (accessEvent?.observedBitrate ?? 0.0) / 1000.0
+        let indicatedBitrateKbps = (accessEvent?.indicatedBitrate ?? 0.0) / 1000.0
+        let switchBitrateKbps = (accessEvent?.switchBitrate ?? 0.0) / 1000.0
+        return [
+            "platform": "ios",
+            "playerExists": player != nil,
+            "currentUrl": currentUrl ?? "",
+            "isPlaying": isPlaying(),
+            "isBuffering": isBuffering(),
+            "isMuted": player?.isMuted ?? false,
+            "volume": Double(player?.volume ?? 0),
+            "position": position.isFinite ? position : 0.0,
+            "duration": duration.isFinite ? duration : 0.0,
+            "didRenderFirstFrame": didRenderFirstFrame,
+            "bufferingEvents": bufferingEventsCount,
+            "playbackStalls": playbackStallCount,
+            "observedBitrateKbps": observedBitrateKbps,
+            "indicatedBitrateKbps": indicatedBitrateKbps,
+            "switchBitrateKbps": switchBitrateKbps,
+        ]
+    }
+
+    func getProcessDiagnostics() -> [String: Any] {
+        return [
+            "platform": "ios",
+            "residentMemoryMb": Self.currentResidentMemoryMb(),
+            "thermalState": Self.thermalStateName(),
+            "playerExists": player != nil,
+        ]
     }
 
     // MARK: - Network & Buffer Control
@@ -304,6 +367,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         // Buffer observers
         playbackBufferEmptyObserver = playerItem.observe(\.isPlaybackBufferEmpty, options: [.new]) { [weak self] item, _ in
             if item.isPlaybackBufferEmpty {
+                self?.bufferingEventsCount += 1
                 self?.log("bufferEmpty url=\(self?.currentUrl ?? "-")")
                 self?.sendEvent(["event": "buffering", "isBuffering": true])
             }
@@ -386,6 +450,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             queue: .main
         ) { [weak self] _ in
             self?.log("playbackStalled url=\(self?.currentUrl ?? "-")")
+            self?.playbackStallCount += 1
             self?.didRequestInitialPlay = false
             self?.requestAutoplayIfNeeded(force: true)
             self?.sendEvent(["event": "buffering", "isBuffering": true])
@@ -398,6 +463,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         didRequestInitialPlay = true
         DispatchQueue.main.asyncAfter(deadline: .now() + (force ? 0.0 : 0.05)) { [weak self] in
             guard let self = self, let player = self.player else { return }
+            self.playbackHealthMonitor.onPlaybackRequested()
             self.refreshPlayerLayer()
             if #available(iOS 10.0, *) {
                 player.playImmediately(atRate: 1.0)
@@ -434,11 +500,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     @objc private func appDidEnterBackground() {
+        playbackHealthMonitor.onAppDidEnterBackground()
         player?.pause()
     }
 
     @objc private func appWillEnterForeground() {
-        // Optional: resume playback if needed
+        playbackHealthMonitor.onAppWillEnterForeground()
     }
 
     // MARK: - Layout
@@ -460,10 +527,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 if shouldForceReattach {
                     playerLayer.removeFromSuperlayer()
                     self._view.layer.addSublayer(playerLayer)
+                    self.playbackHealthMonitor.onPlayerLayerAttached()
                 } else if needsAttach {
                     self._view.layer.addSublayer(playerLayer)
+                    self.playbackHealthMonitor.onPlayerLayerAttached()
                 }
                 self._view.linkedPlayerLayer = playerLayer
+                self.playbackHealthProbe?.attachPlayerLayer(playerLayer)
             }
             self._view.setNeedsLayout()
             self._view.layoutIfNeeded()
@@ -481,10 +551,34 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 guard layer.isReadyForDisplay, !self.didRenderFirstFrame else { return }
                 self.didRenderFirstFrame = true
                 self.log("firstFrame url=\(self.currentUrl ?? "-")")
+                self.playbackHealthMonitor.onFirstFrameRendered()
+                self.playbackHealthMonitor.onFrameRendered()
                 self.hideFrameSnapshot()
                 self.sendEvent(["event": "firstFrame"])
             }
         }
+    }
+
+    private func configurePlaybackHealth() {
+        playbackHealthMonitor.resetForNewPlaybackSession()
+        playbackHealthProbe?.invalidate()
+        playbackWatchdog?.stop()
+        playbackHealthProbe = AVPlayerPlaybackProbe(
+            player: player,
+            playerItem: playerItem,
+            monitor: playbackHealthMonitor,
+            tag: "AVPlayerPlaybackProbe"
+        )
+        if let playerLayer {
+            playbackHealthProbe?.attachPlayerLayer(playerLayer)
+        }
+        playbackWatchdog = PlaybackWatchdog(
+            playerProvider: { [weak self] in self?.player },
+            playerLayerProvider: { [weak self] in self?.playerLayer },
+            monitor: playbackHealthMonitor,
+            tag: "AVPlayerPlaybackWatchdog"
+        )
+        playbackWatchdog?.start()
     }
 
     private func setupVideoOutput() {
@@ -593,6 +687,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         // Stop player
         player?.pause()
         player?.replaceCurrentItem(with: nil)
+        playbackWatchdog?.stop()
+        playbackWatchdog = nil
+        playbackHealthProbe?.invalidate()
+        playbackHealthProbe = nil
+        playbackHealthMonitor.onPlayerLayerDetached()
 
         // Remove layer
         playerLayer?.removeFromSuperlayer()
@@ -606,6 +705,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if !preserveFrameSnapshot {
             currentUrl = nil
         }
+        PlaybackHealthStore.shared.update(
+            errors: playbackHealthMonitor.getErrors(),
+            snapshot: playbackHealthMonitor.snapshot()
+        )
     }
 
     func dispose() {
@@ -618,6 +721,31 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         DispatchQueue.main.async { [weak self] in
             self?.eventSink?(data)
         }
+    }
+
+    private static func thermalStateName() -> String {
+        if #available(iOS 11.0, *) {
+            switch ProcessInfo.processInfo.thermalState {
+            case .nominal: return "nominal"
+            case .fair: return "fair"
+            case .serious: return "serious"
+            case .critical: return "critical"
+            @unknown default: return "unknown"
+            }
+        }
+        return "unsupported"
+    }
+
+    private static func currentResidentMemoryMb() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
+        let result: kern_return_t = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0.0 }
+        return Double(info.resident_size) / (1024.0 * 1024.0)
     }
 }
 
