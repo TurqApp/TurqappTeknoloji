@@ -110,7 +110,9 @@ extension _DeleteAccountContentPart on _DeleteAccountState {
                   const SizedBox(height: 12),
                   Text(
                     'delete_account.validity_notice'
-                        .trParams({'days': '$_deletionGraceDays'}),
+                        .trParams({
+                          'days': '${_DeleteAccountState._deletionGraceDays}',
+                        }),
                     style: TextStyle(
                       color: Colors.black.withValues(alpha: 0.6),
                       fontSize: 12,

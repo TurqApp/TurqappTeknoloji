@@ -148,7 +148,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
 
       final now = DateTime.now();
       final scheduledAt = now.add(
-        const Duration(days: _deletionGraceDays),
+        const Duration(days: _DeleteAccountState._deletionGraceDays),
       );
       final userRef =
           FirebaseFirestore.instance.collection("users").doc(user.uid);
@@ -193,7 +193,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
       AppSnackbar(
         'delete_account.request_received_title'.tr,
         'delete_account.request_received_body'
-            .trParams({'days': '$_deletionGraceDays'}),
+            .trParams({'days': '${_DeleteAccountState._deletionGraceDays}'}),
       );
     } catch (_) {
       if (!mounted) return;
