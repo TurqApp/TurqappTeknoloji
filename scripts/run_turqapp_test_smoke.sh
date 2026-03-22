@@ -21,7 +21,10 @@ TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
 DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
 MANIFEST="config/test_suites/turqapp_test_smoke.txt"
 
-mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+suite_tests=()
+while IFS= read -r suite_entry; do
+  suite_tests+=("$suite_entry")
+done < <(load_suite_entries "$MANIFEST")
 
 seed_integration_fixture_if_enabled
 trap 'reset_integration_fixture_if_enabled' EXIT

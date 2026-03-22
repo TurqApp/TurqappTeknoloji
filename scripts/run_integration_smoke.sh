@@ -47,7 +47,10 @@ if [[ "$allow_stored_auth" != "1" ]]; then
 fi
 
 SMOKE_MANIFEST="config/test_suites/integration_smoke.tsv"
-mapfile -t smoke_entries < <(load_suite_pairs "$SMOKE_MANIFEST")
+smoke_entries=()
+while IFS= read -r smoke_entry; do
+  smoke_entries+=("$smoke_entry")
+done < <(load_suite_pairs "$SMOKE_MANIFEST")
 
 declare -a flutter_args=(
   "test"

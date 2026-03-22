@@ -19,7 +19,10 @@ LOGIN_EMAIL="${INTEGRATION_LOGIN_EMAIL:?set INTEGRATION_LOGIN_EMAIL}"
 LOGIN_PASSWORD="${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
 MANIFEST="config/test_suites/release_gate_e2e.txt"
 
-mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+suite_tests=()
+while IFS= read -r suite_entry; do
+  suite_tests+=("$suite_entry")
+done < <(load_suite_entries "$MANIFEST")
 
 seed_integration_fixture_if_enabled
 trap 'reset_integration_fixture_if_enabled' EXIT
