@@ -32,6 +32,7 @@ import 'market_schema_service.dart';
 
 part 'market_controller_filter_part.dart';
 part 'market_controller_home_part.dart';
+part 'market_controller_actions_part.dart';
 
 class MarketController extends GetxController {
   static MarketController ensure({bool permanent = false}) {
