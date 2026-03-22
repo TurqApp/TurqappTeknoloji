@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserPhoneNumberAfterEmailVerification = exports.markCurrentEmailVerified = exports.updateUserEmail = exports.verifyEmailCode = exports.sendEmailVerificationCode = void 0;
+exports.verifyPasswordResetSmsCode = exports.verifySignupSmsCode = exports.checkSignupAvailabilityHttp = exports.checkSignupAvailability = exports.sendSignupSmsCode = exports.sendPasswordResetSmsCode = exports.updateUserPhoneNumberAfterEmailVerification = exports.markCurrentEmailVerified = exports.updateUserEmail = exports.verifyEmailCode = exports.sendEmailVerificationCode = void 0;
 const admin = require("firebase-admin");
+const axios_1 = require("axios");
 const resend_1 = require("resend");
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
+const rateLimiter_1 = require("./rateLimiter");
 const REGION = "europe-west3";
 const RESEND_API_KEY = (0, params_1.defineSecret)("RESEND_API_KEY");
 const EMAIL_ACCOUNTS_COLLECTION = "emailAccounts";
@@ -16,6 +18,14 @@ const EMAIL_MIN_INTERVAL_MS = 60 * 1000;
 const EMAIL_DAILY_LIMIT = 8;
 const VERIFY_TTL_MS = 60 * 60 * 1000;
 const VERIFY_USE_WINDOW_MS = 60 * 60 * 1000;
+const NETGSM_ENDPOINT = "https://api.netgsm.com.tr/sms/send/otp";
+const SIGNUP_SMS_RESEND_MS = 5 * 60 * 1000;
+const SIGNUP_SMS_TTL_MS = 120 * 1000;
+const SIGNUP_SMS_LOCK_MS = 15 * 1000;
+const PASSWORD_RESET_SMS_RESEND_MS = 5 * 60 * 1000;
+const PASSWORD_RESET_SMS_TTL_MS = 60 * 1000;
+const PASSWORD_RESET_SMS_LOCK_MS = 15 * 1000;
+const PHONE_ACCOUNT_LIMIT = 5;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const VALID_PURPOSES = [
     "signup",
@@ -33,13 +43,186 @@ function parsePurpose(raw) {
     return VALID_PURPOSES.includes(value) ? value : "signup";
 }
 function normalizePhone(raw) {
-    return String(raw || "").replace(/[^0-9]/g, "");
+    const digits = String(raw || "").replace(/[^0-9]/g, "");
+    if (digits.length >= 10) {
+        return digits.substring(digits.length - 10);
+    }
+    return digits;
+}
+function requiredEnv(name) {
+    const value = String(process.env[name] || "").trim();
+    if (!value) {
+        throw new https_1.HttpsError("failed-precondition", `${name.toLowerCase()}_missing`);
+    }
+    return value;
 }
 function accountRef(emailLower) {
     return db.collection(EMAIL_ACCOUNTS_COLLECTION).doc(emailLower);
 }
 function verificationRef(emailLower, purpose) {
     return accountRef(emailLower).collection("verifications").doc(purpose);
+}
+function passwordResetSmsRef(emailLower) {
+    return accountRef(emailLower).collection("smsVerifications").doc("password_reset");
+}
+function signupSmsRef(phone) {
+    return db.collection("phoneVerifications").doc(phone);
+}
+async function clearSmsDispatchingLock(ref) {
+    await ref.set({
+        dispatchingAt: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+}
+async function markSignupSmsDispatching(ref, phoneNumber, verificationCode, now) {
+    await db.runTransaction(async (tx) => {
+        const existing = await tx.get(ref);
+        if (existing.exists) {
+            const data = existing.data() || {};
+            const lastSentAt = Number(data.lastSentAt || 0);
+            const leftMs = SIGNUP_SMS_RESEND_MS - (now - lastSentAt);
+            if (lastSentAt > 0 && leftMs > 0) {
+                const leftSec = Math.ceil(leftMs / 1000);
+                throw new https_1.HttpsError("failed-precondition", `Yeni SMS için ${leftSec} saniye bekleyin.`);
+            }
+            const dispatchingAt = Number(data.dispatchingAt || 0);
+            const lockLeftMs = SIGNUP_SMS_LOCK_MS - (now - dispatchingAt);
+            if (dispatchingAt > 0 && lockLeftMs > 0) {
+                throw new https_1.HttpsError("failed-precondition", "Kod gönderimi zaten başlatıldı. Lütfen birkaç saniye bekleyin.");
+            }
+        }
+        tx.set(ref, {
+            phone: phoneNumber,
+            verificationCode,
+            dispatchingAt: now,
+        }, { merge: true });
+    });
+}
+async function persistSignupSmsChallenge(ref, phoneNumber, verificationCode, now) {
+    await ref.set({
+        phone: phoneNumber,
+        verificationCode,
+        createdAt: now,
+        lastSentAt: now,
+        expiresAt: now + SIGNUP_SMS_TTL_MS,
+        attempts: 0,
+        verified: false,
+        verifiedAt: admin.firestore.FieldValue.delete(),
+        dispatchingAt: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+}
+function isNetgsmSuccessResponse(rawBody) {
+    const body = String(rawBody || "").trim();
+    if (body.startsWith("00"))
+        return true;
+    const match = body.match(/<code>\s*([0-9]+)\s*<\/code>/i);
+    if (!match)
+        return false;
+    const code = Number(match[1]);
+    return Number.isFinite(code) && code === 0;
+}
+function buildNetgsmOtpXml(phone, verificationCode) {
+    const netgsmUserCode = requiredEnv("NETGSM_USERCODE");
+    const netgsmPassword = requiredEnv("NETGSM_PASSWORD");
+    const netgsmMsgHeader = String(process.env.NETGSM_MSG_HEADER || "TurqApp").trim() || "TurqApp";
+    return `<?xml version="1.0"?><mainbody><header><usercode>${netgsmUserCode}</usercode><password>${netgsmPassword}</password><msgheader>${netgsmMsgHeader}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
+}
+async function sendNetgsmOtp(phone, verificationCode) {
+    const xml = buildNetgsmOtpXml(phone, verificationCode);
+    const response = await axios_1.default.post(NETGSM_ENDPOINT, xml, {
+        headers: {
+            "Content-Type": "application/xml",
+        },
+        timeout: 15000,
+    });
+    return String(response.data || "").trim();
+}
+async function isPhoneAlreadyInUse(phone) {
+    const phoneAccountSnap = await db.collection("phoneAccounts").doc(phone).get();
+    if (phoneAccountSnap.exists) {
+        const data = phoneAccountSnap.data() || {};
+        const count = Number(data.count || 0);
+        const limit = Number(data.limit || PHONE_ACCOUNT_LIMIT) || PHONE_ACCOUNT_LIMIT;
+        const accounts = Array.isArray(data.accounts) ? data.accounts : [];
+        if (count >= limit) {
+            return {
+                inUse: true,
+                source: "phoneAccounts",
+                count,
+                limit,
+                matches: [{
+                        phone,
+                        count,
+                        limit,
+                        accounts,
+                    }],
+            };
+        }
+    }
+    const candidates = Array.from(new Set([phone, `+90${phone}`, `0${phone}`]));
+    const matches = [];
+    for (const candidate of candidates) {
+        const existingUser = await db
+            .collection("users")
+            .where("phoneNumber", "==", candidate)
+            .get();
+        if (!existingUser.empty) {
+            for (const doc of existingUser.docs) {
+                const data = doc.data() || {};
+                matches.push({
+                    candidate,
+                    uid: doc.id,
+                    phoneNumber: data.phoneNumber || "",
+                    email: data.email || "",
+                    username: data.username || data.usernameLower || "",
+                    deletedAt: data.deletedAt || null,
+                    isDeleted: Boolean(data.isDeleted),
+                    accountStatus: data.accountStatus || "",
+                });
+            }
+        }
+    }
+    if (matches.length >= PHONE_ACCOUNT_LIMIT) {
+        return {
+            inUse: true,
+            source: "users",
+            count: matches.length,
+            limit: PHONE_ACCOUNT_LIMIT,
+            matches,
+        };
+    }
+    return {
+        inUse: false,
+        source: "",
+        count: matches.length,
+        limit: PHONE_ACCOUNT_LIMIT,
+        matches: [],
+    };
+}
+async function assertSignupIdentityAvailable(emailRaw, nicknameRaw) {
+    const email = String(emailRaw || "").trim().toLowerCase();
+    const nickname = String(nicknameRaw || "").trim().toLowerCase().replace(/\s+/g, "");
+    if (!email || !validEmail(email)) {
+        throw new https_1.HttpsError("invalid-argument", "Geçerli bir e-posta girin");
+    }
+    if (!nickname || nickname.length < 8) {
+        throw new https_1.HttpsError("invalid-argument", "Kullanıcı adı en az 8 karakter olmalıdır");
+    }
+    const emailSnap = await db
+        .collection("users")
+        .where("email", "==", email)
+        .limit(1)
+        .get();
+    if (!emailSnap.empty) {
+        throw new https_1.HttpsError("already-exists", "Bu e-posta zaten kullanımda");
+    }
+    const usernameSnap = await db
+        .collection("users")
+        .where("usernameLower", "==", nickname)
+        .limit(1)
+        .get();
+    if (!usernameSnap.empty) {
+        throw new https_1.HttpsError("already-exists", "Bu kullanıcı adı zaten kullanımda");
+    }
 }
 async function resolveCaller(request) {
     const authUid = String(request.auth?.uid || "").trim();
@@ -187,15 +370,15 @@ async function ensurePurposeEmailRules(request, purpose, emailLower) {
 }
 async function sendCodeInternal(request, emailLower, purpose) {
     await ensurePurposeEmailRules(request, purpose, emailLower);
-    const now = admin.firestore.Timestamp.now();
-    const nowDate = now.toDate();
+    const nowMs = Date.now();
+    const nowDate = new Date(nowMs);
     const dayKey = nowDate.toISOString().slice(0, 10);
     const codeRef = verificationRef(emailLower, purpose);
     const existing = await codeRef.get();
     if (existing.exists) {
         const data = existing.data() || {};
-        const lastSentAt = data.lastSentAt;
-        if (lastSentAt && nowDate.getTime() - lastSentAt.toDate().getTime() < EMAIL_MIN_INTERVAL_MS) {
+        const lastSentAt = Number(data.lastSentAt || 0);
+        if (lastSentAt > 0 && nowDate.getTime() - lastSentAt < EMAIL_MIN_INTERVAL_MS) {
             throw new https_1.HttpsError("failed-precondition", "Lütfen yeni kod istemeden önce 1 dakika bekleyin");
         }
         const dailyKey = String(data.dailyKey || "");
@@ -227,11 +410,11 @@ async function sendCodeInternal(request, emailLower, purpose) {
         email: emailLower,
         purpose,
         verificationCode,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastSentAt: now,
+        createdAt: Date.now(),
+        lastSentAt: nowMs,
         dailyKey: dayKey,
         dailyCount,
-        expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + VERIFY_TTL_MS)),
+        expiresAt: Date.now() + VERIFY_TTL_MS,
         verified: false,
         verifiedAt: admin.firestore.FieldValue.delete(),
         attempts: 0,
@@ -247,7 +430,7 @@ async function sendCodeInternal(request, emailLower, purpose) {
     await codeRef.set(payload, { merge: true });
     await accountRef(emailLower).set({
         email: emailLower,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
         lastPurpose: purpose,
     }, { merge: true });
 }
@@ -266,6 +449,7 @@ exports.sendEmailVerificationCode = (0, https_1.onCall)({
     if (!validEmail(emailLower)) {
         throw new https_1.HttpsError("invalid-argument", "Geçersiz e-posta formatı");
     }
+    (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, `email_code_send_${purpose}`, 5, 600);
     await sendCodeInternal(request, emailLower, purpose);
     return { success: true, message: "Doğrulama kodu e-posta adresinize gönderildi" };
 });
@@ -281,6 +465,7 @@ exports.verifyEmailCode = (0, https_1.onCall)({
         throw new https_1.HttpsError("invalid-argument", "Email ve doğrulama kodu gereklidir");
     }
     const emailLower = emailRaw.toLowerCase().trim();
+    (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, `email_code_verify_${purpose}`, 12, 600);
     const codeRef = verificationRef(emailLower, purpose);
     const verificationDoc = await codeRef.get();
     if (!verificationDoc.exists) {
@@ -290,9 +475,9 @@ exports.verifyEmailCode = (0, https_1.onCall)({
     if (verificationData.verified === true) {
         throw new https_1.HttpsError("failed-precondition", "Bu doğrulama kodu zaten kullanılmış");
     }
-    const now = admin.firestore.Timestamp.now();
-    const expiresAt = verificationData.expiresAt;
-    if (!expiresAt || expiresAt.toMillis() < now.toMillis()) {
+    const now = Date.now();
+    const expiresAt = Number(verificationData.expiresAt || 0);
+    if (!expiresAt || expiresAt < now) {
         throw new https_1.HttpsError("deadline-exceeded", "Doğrulama kodunun süresi doldu");
     }
     const attempts = Number(verificationData.attempts || 0);
@@ -307,7 +492,7 @@ exports.verifyEmailCode = (0, https_1.onCall)({
     }
     await codeRef.update({
         verified: true,
-        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        verifiedAt: Date.now(),
         attempts,
     });
     return { success: true, message: "E-posta doğrulaması başarılı" };
@@ -318,6 +503,7 @@ exports.updateUserEmail = (0, https_1.onCall)({
     memory: "256MiB",
 }, async (request) => {
     const caller = await resolveCaller(request);
+    rateLimiter_1.RateLimits.general(caller.uid);
     const newEmail = String(request.data?.newEmail || "").toLowerCase().trim();
     if (!newEmail || !validEmail(newEmail)) {
         throw new https_1.HttpsError("invalid-argument", "Geçerli bir e-posta adresi gerekli");
@@ -329,8 +515,8 @@ exports.updateUserEmail = (0, https_1.onCall)({
     }
     const verificationData = verificationSnap.data() || {};
     const verified = verificationData.verified === true;
-    const verifiedAt = verificationData.verifiedAt;
-    const withinWindow = !!verifiedAt && (Date.now() - verifiedAt.toDate().getTime()) <= VERIFY_USE_WINDOW_MS;
+    const verifiedAt = Number(verificationData.verifiedAt || 0);
+    const withinWindow = verifiedAt > 0 && (Date.now() - verifiedAt) <= VERIFY_USE_WINDOW_MS;
     if (!verified || !withinWindow) {
         throw new https_1.HttpsError("failed-precondition", "Geçerli e-posta doğrulaması gerekli");
     }
@@ -340,11 +526,11 @@ exports.updateUserEmail = (0, https_1.onCall)({
     });
     await db.collection("users").doc(caller.uid).update({
         email: newEmail,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
     });
     await codeRef.set({
         verified: false,
-        consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        consumedAt: Date.now(),
     }, { merge: true });
     return { success: true, message: "E-posta adresi güncellendi" };
 });
@@ -354,6 +540,7 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
     memory: "256MiB",
 }, async (request) => {
     const caller = await resolveCaller(request);
+    rateLimiter_1.RateLimits.general(caller.uid);
     const userSnap = await db.collection("users").doc(caller.uid).get();
     const profileEmail = String((userSnap.data() || {}).email || "").toLowerCase().trim();
     const emailToConfirm = profileEmail || String(caller.email || "").toLowerCase().trim();
@@ -367,8 +554,8 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
     }
     const verificationData = verificationSnap.data() || {};
     const verified = verificationData.verified === true;
-    const verifiedAt = verificationData.verifiedAt;
-    const withinWindow = !!verifiedAt && (Date.now() - verifiedAt.toDate().getTime()) <= VERIFY_USE_WINDOW_MS;
+    const verifiedAt = Number(verificationData.verifiedAt || 0);
+    const withinWindow = verifiedAt > 0 && (Date.now() - verifiedAt) <= VERIFY_USE_WINDOW_MS;
     if (!verified || !withinWindow) {
         throw new https_1.HttpsError("failed-precondition", "Geçerli e-posta onayı bulunamadı");
     }
@@ -382,10 +569,8 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
         const code = error?.code || "";
         const message = error?.message || "";
         console.error("markCurrentEmailVerified:updateUser warning", {
-            uid: caller.uid,
-            emailToConfirm,
             code,
-            message,
+            hasPendingEmail: emailToConfirm.length > 0,
         });
         // Runtime service account yetkisi yoksa akışı bozma:
         // uygulama tarafı Firestore emailVerified alanını esas alacak.
@@ -409,11 +594,11 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
     await db.collection("users").doc(caller.uid).set({
         email: emailToConfirm,
         emailVerified: true,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
     }, { merge: true });
     await codeRef.set({
         verified: false,
-        consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        consumedAt: Date.now(),
     }, { merge: true });
     return { success: true, message: "E-posta onayı tamamlandı" };
 });
@@ -423,6 +608,7 @@ exports.updateUserPhoneNumberAfterEmailVerification = (0, https_1.onCall)({
     memory: "256MiB",
 }, async (request) => {
     const caller = await resolveCaller(request);
+    rateLimiter_1.RateLimits.general(caller.uid);
     const newPhoneRaw = String(request.data?.newPhone || "").trim();
     const newPhone = normalizePhone(newPhoneRaw);
     if (newPhone.length !== 10 || !newPhone.startsWith("5")) {
@@ -435,21 +621,401 @@ exports.updateUserPhoneNumberAfterEmailVerification = (0, https_1.onCall)({
     }
     const verificationData = verificationSnap.data() || {};
     const verified = verificationData.verified === true;
-    const verifiedAt = verificationData.verifiedAt;
+    const verifiedAt = Number(verificationData.verifiedAt || 0);
     const verifiedPhone = String(verificationData.newPhone || "");
-    const withinWindow = !!verifiedAt && (Date.now() - verifiedAt.toDate().getTime()) <= VERIFY_USE_WINDOW_MS;
+    const withinWindow = verifiedAt > 0 && (Date.now() - verifiedAt) <= VERIFY_USE_WINDOW_MS;
     if (!verified || !withinWindow || verifiedPhone !== newPhone) {
         throw new https_1.HttpsError("failed-precondition", "Geçerli telefon değişikliği doğrulaması bulunamadı");
     }
     await db.collection("users").doc(caller.uid).update({
         phoneNumber: newPhone,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
     });
     await codeRef.set({
         verified: false,
-        consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        consumedAt: Date.now(),
         consumedPhone: newPhone,
     }, { merge: true });
     return { success: true, message: "Telefon numarası güncellendi" };
+});
+exports.sendPasswordResetSmsCode = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+}, async (request) => {
+    try {
+        const emailRaw = request.data?.email;
+        if (!emailRaw || typeof emailRaw !== "string") {
+            throw new https_1.HttpsError("invalid-argument", "Email zorunludur");
+        }
+        const emailLower = emailRaw.toLowerCase().trim();
+        if (!validEmail(emailLower)) {
+            throw new https_1.HttpsError("invalid-argument", "Geçersiz e-posta formatı");
+        }
+        (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, "password_reset_sms_send", 5, 600);
+        const userQuery = await db
+            .collection("users")
+            .where("email", "==", emailLower)
+            .limit(1)
+            .get();
+        if (userQuery.empty) {
+            throw new https_1.HttpsError("not-found", "Bu e-posta adresi kayıtlı değil");
+        }
+        const userSnap = userQuery.docs[0];
+        const uid = userSnap.id;
+        const phone = normalizePhone(String((userSnap.data() || {}).phoneNumber || ""));
+        if (phone.length !== 10 || !phone.startsWith("5")) {
+            throw new https_1.HttpsError("failed-precondition", "Bu hesap için kayıtlı telefon numarası bulunamadı");
+        }
+        const smsRef = passwordResetSmsRef(emailLower);
+        const now = Date.now();
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await db.runTransaction(async (tx) => {
+            const existing = await tx.get(smsRef);
+            if (existing.exists) {
+                const data = existing.data() || {};
+                const lastSentAt = Number(data.lastSentAt || 0);
+                const leftMs = PASSWORD_RESET_SMS_RESEND_MS - (now - lastSentAt);
+                if (lastSentAt > 0 && leftMs > 0) {
+                    const leftSec = Math.ceil(leftMs / 1000);
+                    throw new https_1.HttpsError("failed-precondition", `Yeni SMS için ${leftSec} saniye bekleyin.`);
+                }
+                const dispatchingAt = Number(data.dispatchingAt || 0);
+                const lockLeftMs = PASSWORD_RESET_SMS_LOCK_MS - (now - dispatchingAt);
+                if (dispatchingAt > 0 && lockLeftMs > 0) {
+                    throw new https_1.HttpsError("failed-precondition", "Kod gönderimi zaten başlatıldı. Lütfen birkaç saniye bekleyin.");
+                }
+            }
+            tx.set(smsRef, {
+                email: emailLower,
+                uid,
+                verificationCode,
+                dispatchingAt: now,
+            }, { merge: true });
+        });
+        const netgsmBody = await sendNetgsmOtp(phone, verificationCode);
+        if (!isNetgsmSuccessResponse(netgsmBody)) {
+            await smsRef.set({
+                dispatchingAt: admin.firestore.FieldValue.delete(),
+            }, { merge: true });
+            console.error("sendPasswordResetSmsCode netgsm-error", {
+                hasUser: uid.length > 0,
+                responsePresent: netgsmBody.length > 0,
+            });
+            throw new https_1.HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
+        }
+        await smsRef.set({
+            email: emailLower,
+            uid,
+            verificationCode,
+            createdAt: now,
+            lastSentAt: now,
+            expiresAt: now + PASSWORD_RESET_SMS_TTL_MS,
+            attempts: 0,
+            verified: false,
+            consumed: false,
+            dispatchingAt: admin.firestore.FieldValue.delete(),
+        }, { merge: true });
+        return {
+            success: true,
+            message: "Doğrulama kodu kayıtlı telefon numaranıza gönderildi",
+            resendInSec: 120,
+            expiresInSec: 60,
+        };
+    }
+    catch (error) {
+        if (error instanceof https_1.HttpsError) {
+            throw error;
+        }
+        const message = error?.message || "unknown";
+        console.error("sendPasswordResetSmsCode fatal-error", {
+            message,
+        });
+        throw new https_1.HttpsError("failed-precondition", "Kod gönderilemedi. Lütfen tekrar deneyin.");
+    }
+});
+exports.sendSignupSmsCode = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+}, async (request) => {
+    try {
+        const phoneRaw = String(request.data?.phone || "").trim();
+        const phone = normalizePhone(phoneRaw);
+        console.info("sendSignupSmsCode request", {
+            hasPhoneInput: phoneRaw.length > 0,
+            normalizedPhoneLength: phone.length,
+            hasEmail: String(request.data?.email || "").trim().length > 0,
+            hasNickname: String(request.data?.nickname || "").trim().length > 0,
+        });
+        await assertSignupIdentityAvailable(request.data?.email, request.data?.nickname);
+        console.info("sendSignupSmsCode identity-available", {
+            normalizedPhoneLength: phone.length,
+        });
+        if (phone.length !== 10 || !phone.startsWith("5")) {
+            throw new https_1.HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
+        }
+        (0, rateLimiter_1.enforceRateLimitForKey)(phone, "signup_sms_send", 4, 900);
+        const phoneInUse = await isPhoneAlreadyInUse(phone);
+        if (phoneInUse.inUse) {
+            console.error("sendSignupSmsCode phone-in-use", {
+                source: phoneInUse.source,
+                count: phoneInUse.count,
+                limit: phoneInUse.limit,
+                hasMatches: phoneInUse.matches.length > 0,
+            });
+            throw new https_1.HttpsError("already-exists", "Bu telefon numarası için en fazla 5 hesap oluşturulabilir");
+        }
+        console.info("sendSignupSmsCode phone-available", {
+            normalizedPhoneLength: phone.length,
+        });
+        const now = Date.now();
+        const smsRef = signupSmsRef(phone);
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const signupPhone = phone;
+        await markSignupSmsDispatching(smsRef, signupPhone, verificationCode, now);
+        const recipientPhone = signupPhone;
+        const netgsmBody = await sendNetgsmOtp(recipientPhone, verificationCode);
+        if (!isNetgsmSuccessResponse(netgsmBody)) {
+            await clearSmsDispatchingLock(smsRef);
+            console.error("sendSignupSmsCode netgsm-error", {
+                responsePresent: netgsmBody.length > 0,
+            });
+            throw new https_1.HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
+        }
+        await persistSignupSmsChallenge(smsRef, signupPhone, verificationCode, now);
+        return {
+            success: true,
+            message: "Doğrulama kodu telefon numaranıza gönderildi",
+            resendInSec: 120,
+            expiresInSec: 120,
+        };
+    }
+    catch (error) {
+        if (error instanceof https_1.HttpsError) {
+            console.error("sendSignupSmsCode https-error", {
+                code: error.code,
+                message: error.message,
+            });
+            throw error;
+        }
+        const message = error?.message || "unknown";
+        console.error("sendSignupSmsCode fatal-error", {
+            message,
+        });
+        throw new https_1.HttpsError("failed-precondition", "Kod gönderilemedi. Lütfen tekrar deneyin.");
+    }
+});
+exports.checkSignupAvailability = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    invoker: "public",
+}, async (request) => {
+    const rawEmail = String(request.data?.email || "").trim().toLowerCase();
+    const rawNickname = String(request.data?.nickname || "").trim().toLowerCase();
+    const normalizedNickname = rawNickname.replace(/\s+/g, "");
+    if (!rawEmail && !normalizedNickname) {
+        throw new https_1.HttpsError("invalid-argument", "E-posta veya kullanıcı adı gereklidir");
+    }
+    if (rawEmail) {
+        if (!validEmail(rawEmail)) {
+            throw new https_1.HttpsError("invalid-argument", "Geçerli bir e-posta girin");
+        }
+        (0, rateLimiter_1.enforceRateLimitForKey)(rawEmail, "signup_email_check", 20, 300);
+    }
+    if (normalizedNickname) {
+        if (normalizedNickname.length < 8) {
+            throw new https_1.HttpsError("invalid-argument", "Kullanıcı adı en az 8 karakter olmalıdır");
+        }
+        (0, rateLimiter_1.enforceRateLimitForKey)(normalizedNickname, "signup_username_check", 20, 300);
+    }
+    let emailAvailable = true;
+    let nicknameAvailable = true;
+    if (rawEmail) {
+        const emailSnap = await db
+            .collection("users")
+            .where("email", "==", rawEmail)
+            .limit(1)
+            .get();
+        emailAvailable = emailSnap.empty;
+    }
+    if (normalizedNickname) {
+        const usernameSnap = await db
+            .collection("users")
+            .where("usernameLower", "==", normalizedNickname)
+            .limit(1)
+            .get();
+        nicknameAvailable = usernameSnap.empty;
+    }
+    return {
+        success: true,
+        emailAvailable,
+        nicknameAvailable,
+        normalizedNickname,
+    };
+});
+exports.checkSignupAvailabilityHttp = (0, https_1.onRequest)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    invoker: "public",
+}, async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+        res.status(204).send("");
+        return;
+    }
+    if (req.method !== "POST") {
+        res.status(405).json({ success: false, message: "Method not allowed" });
+        return;
+    }
+    try {
+        const rawEmail = String(req.body?.email || "").trim().toLowerCase();
+        const rawNickname = String(req.body?.nickname || "").trim().toLowerCase();
+        const normalizedNickname = rawNickname.replace(/\s+/g, "");
+        if (!rawEmail && !normalizedNickname) {
+            res.status(400).json({ success: false, message: "E-posta veya kullanıcı adı gereklidir" });
+            return;
+        }
+        if (rawEmail) {
+            if (!validEmail(rawEmail)) {
+                res.status(400).json({ success: false, message: "Geçerli bir e-posta girin" });
+                return;
+            }
+            (0, rateLimiter_1.enforceRateLimitForKey)(rawEmail, "signup_email_check_http", 20, 300);
+        }
+        if (normalizedNickname) {
+            if (normalizedNickname.length < 8) {
+                res.status(400).json({ success: false, message: "Kullanıcı adı en az 8 karakter olmalıdır" });
+                return;
+            }
+            (0, rateLimiter_1.enforceRateLimitForKey)(normalizedNickname, "signup_username_check_http", 20, 300);
+        }
+        let emailAvailable = true;
+        let nicknameAvailable = true;
+        if (rawEmail) {
+            const emailSnap = await db
+                .collection("users")
+                .where("email", "==", rawEmail)
+                .limit(1)
+                .get();
+            emailAvailable = emailSnap.empty;
+        }
+        if (normalizedNickname) {
+            const usernameSnap = await db
+                .collection("users")
+                .where("usernameLower", "==", normalizedNickname)
+                .limit(1)
+                .get();
+            nicknameAvailable = usernameSnap.empty;
+        }
+        res.status(200).json({
+            success: true,
+            emailAvailable,
+            nicknameAvailable,
+            normalizedNickname,
+        });
+    }
+    catch (error) {
+        const message = error?.message || "unknown";
+        console.error("checkSignupAvailabilityHttp fatal-error", { message });
+        res.status(500).json({ success: false, message: "Kayıt uygunluğu kontrol edilemedi" });
+    }
+});
+exports.verifySignupSmsCode = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+}, async (request) => {
+    const phoneRaw = String(request.data?.phone || "").trim();
+    const verificationCode = String(request.data?.verificationCode || "").trim();
+    const phone = normalizePhone(phoneRaw);
+    await assertSignupIdentityAvailable(request.data?.email, request.data?.nickname);
+    if (phone.length !== 10 || !phone.startsWith("5") || !verificationCode) {
+        throw new https_1.HttpsError("invalid-argument", "Telefon numarası ve doğrulama kodu gereklidir");
+    }
+    if (!/^\d{6}$/.test(verificationCode)) {
+        throw new https_1.HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
+    }
+    (0, rateLimiter_1.enforceRateLimitForKey)(phone, "signup_sms_verify", 12, 900);
+    const smsRef = signupSmsRef(phone);
+    const snap = await smsRef.get();
+    if (!snap.exists) {
+        throw new https_1.HttpsError("not-found", "Doğrulama kodu bulunamadı. Lütfen yeni kod isteyin.");
+    }
+    const data = snap.data() || {};
+    const expiresAt = Number(data.expiresAt || 0);
+    const now = Date.now();
+    if (!expiresAt || now > expiresAt) {
+        throw new https_1.HttpsError("deadline-exceeded", "Doğrulama kodunun süresi doldu");
+    }
+    const attempts = Number(data.attempts || 0);
+    if (attempts >= 5) {
+        throw new https_1.HttpsError("resource-exhausted", "Çok fazla hatalı deneme. Yeni kod isteyin.");
+    }
+    if (String(data.verificationCode || "") !== verificationCode) {
+        await smsRef.set({ attempts: admin.firestore.FieldValue.increment(1) }, { merge: true });
+        throw new https_1.HttpsError("invalid-argument", "Geçersiz doğrulama kodu");
+    }
+    await smsRef.set({
+        verified: true,
+        verifiedAt: now,
+        attempts,
+    }, { merge: true });
+    return {
+        success: true,
+        message: "Telefon doğrulaması başarılı",
+    };
+});
+exports.verifyPasswordResetSmsCode = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+}, async (request) => {
+    const emailRaw = request.data?.email;
+    const verificationCode = String(request.data?.verificationCode || "").trim();
+    if (!emailRaw || typeof emailRaw !== "string" || !verificationCode) {
+        throw new https_1.HttpsError("invalid-argument", "Email ve doğrulama kodu gereklidir");
+    }
+    const emailLower = emailRaw.toLowerCase().trim();
+    if (!validEmail(emailLower)) {
+        throw new https_1.HttpsError("invalid-argument", "Geçersiz e-posta formatı");
+    }
+    if (!/^\d{6}$/.test(verificationCode)) {
+        throw new https_1.HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
+    }
+    (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, "password_reset_sms_verify", 12, 900);
+    const smsRef = passwordResetSmsRef(emailLower);
+    const snap = await smsRef.get();
+    if (!snap.exists) {
+        throw new https_1.HttpsError("not-found", "Doğrulama kodu bulunamadı. Lütfen yeni kod isteyin.");
+    }
+    const data = snap.data() || {};
+    if (data.consumed === true) {
+        throw new https_1.HttpsError("failed-precondition", "Kod zaten kullanıldı. Yeni kod isteyin.");
+    }
+    const expiresAt = Number(data.expiresAt || 0);
+    const now = Date.now();
+    if (!expiresAt || now > expiresAt) {
+        throw new https_1.HttpsError("deadline-exceeded", "Doğrulama kodunun süresi doldu");
+    }
+    const attempts = Number(data.attempts || 0);
+    if (attempts >= 5) {
+        throw new https_1.HttpsError("resource-exhausted", "Çok fazla hatalı deneme. Yeni kod isteyin.");
+    }
+    if (String(data.verificationCode || "") != verificationCode) {
+        await smsRef.set({ attempts: admin.firestore.FieldValue.increment(1) }, { merge: true });
+        throw new https_1.HttpsError("invalid-argument", "Geçersiz doğrulama kodu");
+    }
+    await smsRef.set({
+        verified: true,
+        verifiedAt: now,
+        consumed: true,
+        consumedAt: now,
+    }, { merge: true });
+    return { success: true, message: "SMS doğrulaması başarılı" };
 });
 //# sourceMappingURL=11_resend.js.map

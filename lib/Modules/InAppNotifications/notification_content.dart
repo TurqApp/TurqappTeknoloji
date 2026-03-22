@@ -1,58 +1,117 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Models/notification_model.dart';
-import 'package:turqappv2/Modules/Explore/explore_controller.dart';
-import 'package:turqappv2/Modules/Short/single_short_view.dart';
-import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Models/notification_model.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'notification_content_controller.dart';
 
-class NotificationContent extends StatelessWidget {
+class NotificationContent extends StatefulWidget {
   final NotificationModel model;
   final VoidCallback? onOpen;
   final VoidCallback? onCardTap;
-  late final NotificationContentController controller;
-  NotificationContent({
+  const NotificationContent({
     super.key,
     required this.model,
     this.onOpen,
     this.onCardTap,
-  }) {
-    controller = Get.put(
-      NotificationContentController(userID: model.userID),
-      tag: model.docID,
+  });
+
+  @override
+  State<NotificationContent> createState() => _NotificationContentState();
+}
+
+class _NotificationContentState extends State<NotificationContent> {
+  late NotificationContentController controller;
+  late String _controllerTag;
+  bool _ownsController = false;
+
+  NotificationModel get model => widget.model;
+  VoidCallback? get onOpen => widget.onOpen;
+  VoidCallback? get onCardTap => widget.onCardTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _bindController();
+    _primePostData();
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.docID != widget.model.docID ||
+        oldWidget.model.postID != widget.model.postID ||
+        oldWidget.model.userID != widget.model.userID ||
+        oldWidget.model.postType != widget.model.postType) {
+      _disposeController();
+      _bindController();
+    }
+    _primePostData();
+  }
+
+  @override
+  void dispose() {
+    _disposeController();
+    super.dispose();
+  }
+
+  void _bindController() {
+    _controllerTag =
+        'notification_content_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        NotificationContentController.maybeFind(tag: _controllerTag) == null;
+    controller = NotificationContentController.ensure(
+      userID: widget.model.userID,
+      notification: widget.model,
+      tag: _controllerTag,
     );
+  }
+
+  void _disposeController() {
+    if (_ownsController &&
+        identical(
+          NotificationContentController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<NotificationContentController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+  }
+
+  void _primePostData() {
+    if (model.postType == kNotificationPostTypePosts &&
+        controller.model.value.docID != model.postID) {
+      controller.getPostData(model.postID);
+    }
   }
 
   String _buildPrimaryText() {
     final base = model.desc.trim().isEmpty
-        ? "senin gönderinle etkileşime geçti."
+        ? "notification.item.default_interaction".tr
         : model.desc.trim();
     return base.endsWith(".") ? base : "$base.";
   }
 
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
   @override
   Widget build(BuildContext context) {
-    if (model.postType == "Posts" &&
-        controller.model.value.docID != model.postID) {
-      controller.getPostData(model.postID);
-    }
-    // FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).collection("Bildirimler").doc(model.docID).update(
-    //     {
-    //       "postID" : "f4932ae6-19e8-4633-91bf-9f0d5d35f388"
-    //     });
     return Obx(() {
       return Column(
         children: [
           Container(
+            key: ValueKey(IntegrationTestKeys.notificationItem(model.docID)),
             margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
             decoration: BoxDecoration(
@@ -70,8 +129,7 @@ class NotificationContent extends StatelessWidget {
                       onCardTap!.call();
                       return;
                     }
-                    if (model.userID !=
-                        FirebaseAuth.instance.currentUser!.uid) {
+                    if (model.userID != _currentUserId) {
                       Get.to(() => SocialProfile(userID: model.userID));
                     }
                   },
@@ -85,13 +143,13 @@ class NotificationContent extends StatelessWidget {
                               shape: BoxShape.circle,
                               border:
                                   Border.all(color: Colors.grey.withAlpha(50))),
-                          child: controller.pfImage.value != ""
+                          child: controller.avatarUrl.value != ""
                               ? ClipOval(
                                   child: SizedBox(
                                     width: 40,
                                     height: 40,
                                     child: CachedNetworkImage(
-                                      imageUrl: controller.pfImage.value,
+                                      imageUrl: controller.avatarUrl.value,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -186,6 +244,32 @@ class NotificationContent extends StatelessWidget {
                                 ),
                               ),
                             ),
+                          if (controller.targetHint.value.trim().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    CupertinoIcons.arrow_turn_down_right,
+                                    size: 12,
+                                    color: Colors.black45,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      controller.targetHint.value,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 11,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -219,18 +303,19 @@ class NotificationContent extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (model.postType == "User")
+                if (model.postType == kNotificationPostTypeUser)
                   TextButton(
                     onPressed: controller.followLoading.value
                         ? null
                         : () {
                             if (controller.following.value) {
                               noYesAlert(
-                                title: "Takibi Bırak",
-                                message:
-                                    "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz?",
-                                cancelText: "Vazgeç",
-                                yesText: "Takibi Bırak",
+                                title: "following.unfollow_title".tr,
+                                message: "following.unfollow_body".trParams({
+                                  'nickname': controller.nickname.value,
+                                }),
+                                cancelText: "common.cancel".tr,
+                                yesText: "following.following".tr,
                                 onYesPressed: () {
                                   controller.toggleFollowStatus(model.userID);
                                 },
@@ -271,8 +356,8 @@ class NotificationContent extends StatelessWidget {
                           }
                           return Text(
                             controller.following.value
-                                ? "Takibi Bırak"
-                                : "Takip Et",
+                                ? "following.following".tr
+                                : "following.follow".tr,
                             style: TextStyle(
                               color: controller.following.value
                                   ? Colors.black
@@ -294,27 +379,7 @@ class NotificationContent extends StatelessWidget {
   }
 
   void yonlendirme() async {
-    final store = Get.find<ExploreController>();
-    final notifyReader = Get.isRegistered<NotifyReaderController>()
-        ? Get.find<NotifyReaderController>()
-        : Get.put(NotifyReaderController());
-    if (model.type == "job_application") {
-      await notifyReader.goToJob(model.postID);
-    } else if (model.type == "tutoring_application" ||
-        model.type == "tutoring_status") {
-      await notifyReader.goToTutoring(model.postID);
-    } else if (model.postType == "User") {
-      Get.to(() => SocialProfile(userID: model.userID));
-    } else {
-      if (controller.model.value.img.isNotEmpty) {
-        Get.to(() => PhotoShorts(
-            fetchedList: store.explorePhotos,
-            startModel: controller.model.value));
-      } else if (controller.model.value.hasPlayableVideo) {
-        Get.to(() => SingleShortView(
-            startModel: controller.model.value,
-            startList: store.exploreVideos..shuffle()));
-      }
-    }
+    final notifyReader = NotifyReaderController.ensure();
+    await notifyReader.openNotification(model);
   }
 }

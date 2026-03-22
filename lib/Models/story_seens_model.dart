@@ -11,7 +11,8 @@ class StorySeensModel {
   });
 
   /// Firestore’dan DocumentSnapshot ile model oluşturur
-  factory StorySeensModel.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory StorySeensModel.fromDocument(
+      DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     final ts = data['timeStamp'];
     return StorySeensModel(
@@ -23,7 +24,7 @@ class StorySeensModel {
   }
 
   Map<String, dynamic> toJson() => {
-    'userID': userID,
-    'timeStamp': Timestamp.fromMillisecondsSinceEpoch(timeStamp),
-  };
+        'userID': userID,
+        'timeStamp': Timestamp.fromMillisecondsSinceEpoch(timeStamp),
+      };
 }

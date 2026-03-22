@@ -6,6 +6,31 @@ service firebase.storage {
     function isAuth() {
       return request.auth != null;
     }
+    function canWritePostMedia(postId) {
+      return isAuth()
+        && (
+          !firestore.exists(/databases/(default)/documents/Posts/$(postId))
+          || firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid
+        );
+    }
+    function hasMatchingUploaderMetadata() {
+      return isAuth()
+        && request.resource != null
+        && request.resource.metadata != null
+        && request.resource.metadata.uploaderUid == request.auth.uid;
+    }
+    function isStorageUploaderBypass() {
+      return isAuth()
+        && request.auth.uid in [
+          'gszJ4gBsCRd03fijoldmtfsAXks2',
+          'fzP4AVdMugTi5oe11UTj6ljnfCj2'
+        ];
+    }
+    function isConversationParticipant(chatId) {
+      return isAuth()
+        && firestore.exists(/databases/(default)/documents/conversations/$(chatId))
+        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.participants;
+    }
 
     // User profile images
     match /users/{uid}/{allPaths=**} {
@@ -25,10 +50,22 @@ service firebase.storage {
     }
 
     // Post media (images, videos)
-    match /Posts/{postId}/{allPaths=**} {
+    match /Posts/{postId}/{fileName} {
       allow read: if isAuth();
-      allow write: if isAuth()
-                   && request.resource.size < 200 * 1024 * 1024; // 200MB video limit
+      allow write: if fileName != "thumbnail.jpg"
+                   && fileName != "hls"
+                   && (canWritePostMedia(postId)
+                       || hasMatchingUploaderMetadata()
+                       || isStorageUploaderBypass())
+                   && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
+    }
+    match /Posts/{postId}/{folder}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if folder != "hls"
+                   && (canWritePostMedia(postId)
+                       || hasMatchingUploaderMetadata()
+                       || isStorageUploaderBypass())
+                   && request.resource.size < 35 * 1024 * 1024;
     }
 
     // Story media (legacy uppercase + current lowercase)
@@ -37,34 +74,67 @@ service firebase.storage {
       allow write: if isAuth() && request.auth.uid == uid
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit
     }
-    match /stories/{uid}/{allPaths=**} {
+    match /stories/{uid}/{storyId} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == uid
+      allow write: if isAuth()
+                   && request.auth.uid == uid
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+    }
+    match /stories/{uid}/{storyId}/{fileName} {
+      allow read: if isAuth();
+      allow write: if fileName != "hls"
+                   && isAuth()
+                   && request.auth.uid == uid
+                   && request.resource.size < 50 * 1024 * 1024;
+    }
+    match /stories/{uid}/{storyId}/{folder}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if folder != "hls"
+                   && isAuth()
+                   && request.auth.uid == uid
+                   && request.resource.size < 50 * 1024 * 1024;
     }
 
     // Chat media
     match /Chat/{chatId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth()
+      allow read: if isConversationParticipant(chatId);
+      allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 25 * 1024 * 1024; // 25MB limit
     }
     match /Mesajlar/{chatId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth()
+      allow read: if isConversationParticipant(chatId);
+      allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 25 * 1024 * 1024;
     }
 
     // ChatAssets medya (fotoğraf, video, ses)
-    match /ChatAssets/{chatId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth()
+    match /ChatAssets/{chatId}/{fileName} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+    match /ChatAssets/{chatId}/{folder}/{allPaths=**} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if folder != "messages"
+                   && isConversationParticipant(chatId)
+                   && request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+    match /ChatAssets/{chatId}/messages/{msgId}/{fileName} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if fileName != "hls"
+                   && isConversationParticipant(chatId)
+                   && request.resource.size < 50 * 1024 * 1024;
+    }
+    match /ChatAssets/{chatId}/messages/{msgId}/{folder}/{allPaths=**} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if folder != "hls"
+                   && isConversationParticipant(chatId)
+                   && request.resource.size < 50 * 1024 * 1024;
     }
 
     // Chat HLS segments - public read for CDN
     match /ChatAssets/{chatId}/messages/{msgId}/hls/{allPaths=**} {
-      allow read;
+      allow read: if isConversationParticipant(chatId);
       allow write: if false; // Cloud Function only
     }
 
@@ -86,6 +156,25 @@ service firebase.storage {
       allow read: if isAuth();
       allow write: if isAuth()
                    && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /marketStore/{uid}/{itemId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.auth.uid == uid
+                   && request.resource.size < 15 * 1024 * 1024;
+    }
+
+    match /isBul/{jobId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && (
+                     !firestore.exists(/databases/(default)/documents/isBul/$(jobId))
+                     || firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid
+                     || hasMatchingUploaderMetadata()
+                     || isStorageUploaderBypass()
+                   )
+                   && request.resource.size < 15 * 1024 * 1024;
     }
 
     // Story HLS segments - public read for CDN

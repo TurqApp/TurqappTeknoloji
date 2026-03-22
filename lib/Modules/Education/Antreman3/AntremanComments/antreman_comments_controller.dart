@@ -1,17 +1,19 @@
 import 'dart:developer';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class Comment {
   final String docID;
@@ -92,8 +94,30 @@ class Reply {
 }
 
 class AntremanCommentsController extends GetxController {
+  static AntremanCommentsController ensure({
+    required QuestionBankModel question,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AntremanCommentsController(question),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AntremanCommentsController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<AntremanCommentsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<AntremanCommentsController>(tag: tag);
+  }
+
   final QuestionBankModel question;
-  final String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
+  final String userID = CurrentUserService.instance.effectiveUserId;
   final FocusNode focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
 
@@ -108,13 +132,14 @@ class AntremanCommentsController extends GetxController {
   final RxString editingCommentDocID = ''.obs;
   final RxString editingReplyDocID = ''.obs;
   final RxBool isTextFieldNotEmpty = false.obs;
+  final RxBool isLoading = true.obs;
   final Rx<File?> selectedImage = Rx<File?>(null);
   final ImagePicker picker = ImagePicker();
 
   @override
   void onInit() {
     super.onInit();
-    fetchComments();
+    unawaited(_bootstrapComments());
     commentController.addListener(() {
       isTextFieldNotEmpty.value = commentController.text.isNotEmpty;
     });
@@ -129,6 +154,10 @@ class AntremanCommentsController extends GetxController {
         Get.back();
       }
     });
+  }
+
+  Future<void> _bootstrapComments() async {
+    await fetchComments();
   }
 
   @override
@@ -149,7 +178,7 @@ class AntremanCommentsController extends GetxController {
       }
     } catch (e) {
       log("Fotoğraf seçilirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf seçilirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_pick_failed'.tr);
     }
   }
 
@@ -163,52 +192,43 @@ class AntremanCommentsController extends GetxController {
       );
     } catch (e) {
       log("Fotoğraf yüklenirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf yüklenirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_upload_failed'.tr);
       return null;
     }
   }
 
-  Future<void> fetchComments() async {
+  Future<void> fetchComments({bool silent = false}) async {
+    if (!silent || comments.isEmpty) {
+      isLoading.value = true;
+    }
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .orderBy('timeStamp', descending: true)
-          .get();
-
-      comments.clear();
-      for (var doc in snapshot.docs) {
-        final comment = Comment.fromJson(doc.id, doc.data());
-        comments.add(comment);
-        fetchReplies(doc.id);
-        repliesVisible[doc.id] = false;
+      final fetchedComments = await _antremanRepository.fetchComments(
+        question.docID,
+      );
+      final fetchedReplies = <String, List<Reply>>{};
+      for (final comment in fetchedComments) {
+        fetchedReplies[comment.docID] = await _antremanRepository.fetchReplies(
+          question.docID,
+          comment.docID,
+        );
+        repliesVisible[comment.docID] = repliesVisible[comment.docID] ?? false;
       }
+      comments.assignAll(fetchedComments);
+      replies.assignAll(fetchedReplies);
     } catch (e) {
       log("Yorumlar çekilirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorumlar yüklenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comments_load_failed'.tr);
+    } finally {
+      isLoading.value = false;
     }
   }
 
   Future<void> fetchReplies(String commentDocID) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .orderBy('timeStamp', descending: true)
-          .get();
-
-      final replyList = <Reply>[];
-      for (var doc in snapshot.docs) {
-        replyList.add(Reply.fromJson(doc.id, doc.data()));
-      }
-      replies[commentDocID] = replyList;
+      replies[commentDocID] = await _antremanRepository.fetchReplies(
+        question.docID,
+        commentDocID,
+      );
     } catch (e) {
       log("Yanıtlar çekilirken hata: $e");
     }
@@ -219,29 +239,35 @@ class AntremanCommentsController extends GetxController {
       return userInfoCache[userID]!;
     }
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      final data = doc.data();
-      log("User data for $userID: ${doc.data()}");
+      final data = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
       if (data == null) {
         userInfoCache[userID] = {
-          'pfImage': '',
-          'nickname': 'Bilinmeyen Kullanıcı',
+          'avatarUrl': '',
+          'nickname': 'training.unknown_user'.tr,
+          'displayName': 'training.unknown_user'.tr,
         };
         return userInfoCache[userID]!;
       }
+      final profileImage = data.avatarUrl;
+      final profileName = data.preferredName.isNotEmpty
+          ? data.preferredName
+          : 'training.unknown_user'.tr;
       userInfoCache[userID] = {
-        'pfImage': data['pfImage']?.toString() ?? '',
-        'nickname': data['nickname']?.toString() ?? 'Bilinmeyen Kullanıcı',
+        'avatarUrl': profileImage,
+        'nickname': profileName,
+        'username': data.username,
+        'displayName': profileName,
       };
       return userInfoCache[userID]!;
     } catch (e) {
       log("Kullanıcı bilgisi alınırken hata: $e");
       userInfoCache[userID] = {
-        'pfImage': '',
-        'nickname': 'Bilinmeyen Kullanıcı',
+        'avatarUrl': '',
+        'nickname': 'training.unknown_user'.tr,
+        'displayName': 'training.unknown_user'.tr,
       };
       return userInfoCache[userID]!;
     }
@@ -249,7 +275,7 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> addComment() async {
     if (commentController.text.isEmpty && selectedImage.value == null) {
-      AppSnackbar("Hata", "Yorum veya fotoğraf eklemelisiniz!");
+      AppSnackbar('common.error'.tr, 'training.comment_or_photo_required'.tr);
       return;
     }
 
@@ -269,29 +295,25 @@ class AntremanCommentsController extends GetxController {
     );
 
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .add(newComment.toJson());
+      await _antremanRepository.addComment(
+        questionId: question.docID,
+        comment: newComment,
+      );
       commentController.clear();
       selectedImage.value = null;
       replyingToCommentDocID.value = '';
       editingCommentDocID.value = '';
       fetchComments();
-      AppSnackbar("Başarılı", "Yorumunuz eklendi!");
+      AppSnackbar('common.success'.tr, 'training.comment_added'.tr);
     } catch (e) {
       log("Yorum eklenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorum eklenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comment_add_failed'.tr);
     }
   }
 
   Future<void> addReply(String commentDocID) async {
     if (commentController.text.isEmpty && selectedImage.value == null) {
-      AppSnackbar("Hata", "Yanıt veya fotoğraf eklemelisiniz!");
+      AppSnackbar('common.error'.tr, 'training.reply_or_photo_required'.tr);
       return;
     }
 
@@ -311,86 +333,66 @@ class AntremanCommentsController extends GetxController {
     );
 
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .add(newReply.toJson());
+      await _antremanRepository.addReply(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        reply: newReply,
+      );
       commentController.clear();
       selectedImage.value = null;
       replyingToCommentDocID.value = '';
       editingReplyDocID.value = '';
       fetchReplies(commentDocID);
-      AppSnackbar("Başarılı", "Yanıtınız eklendi!");
+      AppSnackbar('common.success'.tr, 'training.reply_added'.tr);
     } catch (e) {
       log("Yanıt eklenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yanıt eklenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.reply_add_failed'.tr);
     }
   }
 
   Future<void> deleteComment(String commentDocID) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .delete();
+      await _antremanRepository.deleteComment(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+      );
       fetchComments();
-      AppSnackbar("Başarılı", "Yorumunuz silindi!");
+      AppSnackbar('common.success'.tr, 'training.comment_deleted'.tr);
     } catch (e) {
       log("Yorum silinirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorum silinirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comment_delete_failed'.tr);
     }
   }
 
   Future<void> deleteReply(String commentDocID, String replyDocID) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .doc(replyDocID)
-          .delete();
+      await _antremanRepository.deleteReply(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        replyDocId: replyDocID,
+      );
       fetchReplies(commentDocID);
-      AppSnackbar("Başarılı", "Yanıtınız silindi!");
+      AppSnackbar('common.success'.tr, 'training.reply_deleted'.tr);
     } catch (e) {
       log("Yanıt silinirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yanıt silinirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.reply_delete_failed'.tr);
     }
   }
 
   Future<void> editComment(String commentDocID, String newText) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .update({'metin': newText});
+      await _antremanRepository.updateCommentText(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        text: newText,
+      );
       commentController.clear();
       editingCommentDocID.value = '';
       fetchComments();
-      AppSnackbar("Başarılı", "Yorumunuz güncellendi!");
+      AppSnackbar('common.success'.tr, 'training.comment_updated'.tr);
     } catch (e) {
       log("Yorum düzenlenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yorum düzenlenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.comment_update_failed'.tr);
     }
   }
 
@@ -400,24 +402,19 @@ class AntremanCommentsController extends GetxController {
     String newText,
   ) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .doc(replyDocID)
-          .update({'metin': newText});
+      await _antremanRepository.updateReplyText(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        replyDocId: replyDocID,
+        text: newText,
+      );
       commentController.clear();
       editingReplyDocID.value = '';
       fetchReplies(commentDocID);
-      AppSnackbar("Başarılı", "Yanıtınız güncellendi!");
+      AppSnackbar('common.success'.tr, 'training.reply_updated'.tr);
     } catch (e) {
       log("Yanıt düzenlenirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Yanıt düzenlenirken bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.reply_update_failed'.tr);
     }
   }
 
@@ -432,16 +429,12 @@ class AntremanCommentsController extends GetxController {
   Future<void> toggleLikeComment(String commentDocID, Comment comment) async {
     final isLiked = comment.begeniler.contains(userID);
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .update({
-        'begeniler': isLiked
-            ? FieldValue.arrayRemove([userID])
-            : FieldValue.arrayUnion([userID]),
-      });
+      await _antremanRepository.toggleLikeComment(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        userId: userID,
+        currentlyLiked: isLiked,
+      );
       final updatedComment = Comment(
         docID: comment.docID,
         userID: comment.userID,
@@ -457,10 +450,7 @@ class AntremanCommentsController extends GetxController {
       }
     } catch (e) {
       log("Yorum beğenilirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.like_failed'.tr);
     }
   }
 
@@ -471,18 +461,13 @@ class AntremanCommentsController extends GetxController {
   ) async {
     final isLiked = reply.begeniler.contains(userID);
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .doc(replyDocID)
-          .update({
-        'begeniler': isLiked
-            ? FieldValue.arrayRemove([userID])
-            : FieldValue.arrayUnion([userID]),
-      });
+      await _antremanRepository.toggleLikeReply(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        replyDocId: replyDocID,
+        userId: userID,
+        currentlyLiked: isLiked,
+      );
       final updatedReplies = replies[commentDocID]!.map((r) {
         if (r.docID == replyDocID) {
           return Reply(
@@ -500,10 +485,7 @@ class AntremanCommentsController extends GetxController {
       replies[commentDocID] = updatedReplies;
     } catch (e) {
       log("Yanıt beğenilirken hata: $e");
-      AppSnackbar(
-        "Hata",
-        "Beğeni işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin!",
-      );
+      AppSnackbar('common.error'.tr, 'training.like_failed'.tr);
     }
   }
 
@@ -535,15 +517,15 @@ class AntremanCommentsController extends GetxController {
     final weeks = (days / 7).floor();
 
     if (minutes < 1) {
-      return 'az önce';
+      return 'training.time_now'.tr;
     } else if (minutes < 60) {
-      return '$minutes dk önce';
+      return 'training.time_min'.trParams({'count': minutes.toString()});
     } else if (hours < 24) {
-      return '$hours saat önce';
+      return 'training.time_hour'.trParams({'count': hours.toString()});
     } else if (days < 7) {
-      return '$days gün önce';
+      return 'training.time_day'.trParams({'count': days.toString()});
     } else {
-      return '$weeks hafta önce';
+      return 'training.time_week'.trParams({'count': weeks.toString()});
     }
   }
 
@@ -559,8 +541,8 @@ class AntremanCommentsController extends GetxController {
         final r = await OptimizedNSFWService.checkImage(f);
         if (r.isNSFW) {
           AppSnackbar(
-            "Yükleme Başarısız!",
-            "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+            'training.upload_failed_title'.tr,
+            'training.upload_failed_body'.tr,
             backgroundColor: Colors.red.withValues(alpha: 0.7),
           );
           return;
@@ -571,7 +553,7 @@ class AntremanCommentsController extends GetxController {
       selectedImage.value = files.first; // İlk resmi al
     } catch (e) {
       log("Galeriden fotoğraf seçilirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf seçilirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_pick_failed'.tr);
     }
   }
 
@@ -586,8 +568,8 @@ class AntremanCommentsController extends GetxController {
       // NSFW tespiti (OptimizedNSFWService)
       final r = await OptimizedNSFWService.checkImage(file);
       if (r.isNSFW) {
-        AppSnackbar("Yükleme Başarısız!",
-            "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        AppSnackbar(
+            'training.upload_failed_title'.tr, 'training.upload_failed_body'.tr,
             backgroundColor: Colors.red.withValues(alpha: 0.7));
         return;
       }
@@ -596,7 +578,7 @@ class AntremanCommentsController extends GetxController {
       selectedImage.value = file;
     } catch (e) {
       log("Fotoğraf çekilirken hata: $e");
-      AppSnackbar("Hata", "Fotoğraf çekilirken bir hata oluştu!");
+      AppSnackbar('common.error'.tr, 'training.photo_pick_failed'.tr);
     }
   }
 }

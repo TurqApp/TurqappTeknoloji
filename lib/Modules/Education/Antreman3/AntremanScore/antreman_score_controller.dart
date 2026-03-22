@@ -1,12 +1,34 @@
 import 'dart:developer';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AntremanScoreController extends GetxController {
-  static const String _scoreCollection = 'questionBankSkor';
+  static AntremanScoreController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AntremanScoreController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AntremanScoreController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<AntremanScoreController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<AntremanScoreController>(tag: tag);
+  }
+
   static List<Map<String, dynamic>>? _cachedLeaderboard;
   static DateTime? _cachedAt;
   static String? _cachedMonthKey;
@@ -16,10 +38,12 @@ class AntremanScoreController extends GetxController {
   final RxBool isLoading = true.obs;
   final userPoint = 0.obs;
   final userRank = 0.obs;
-  final user = Get.find<FirebaseMyStore>();
   final now = DateTime.now();
-  final monthName = RxString(monthNames[DateTime.now().month]);
-  static const _excludedRozet = {'Turkuaz'};
+  static const _excludedRozet = {'turkuaz'};
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  String get monthName => _monthKeyFor(DateTime.now().month).tr;
 
   String get _monthKey {
     final now = DateTime.now();
@@ -27,30 +51,36 @@ class AntremanScoreController extends GetxController {
     return '${now.year}-$month';
   }
 
-  CollectionReference<Map<String, dynamic>> get _scoreEntriesRef =>
-      FirebaseFirestore.instance
-          .collection(_scoreCollection)
-          .doc(_monthKey)
-          .collection('items');
-
-  DocumentReference<Map<String, dynamic>> get _currentUserScoreRef =>
-      _scoreEntriesRef.doc(FirebaseAuth.instance.currentUser?.uid);
-
-  static const monthNames = [
-    '',
-    'Ocak',
-    'Şubat',
-    'Mart',
-    'Nisan',
-    'Mayıs',
-    'Haziran',
-    'Temmuz',
-    'Ağustos',
-    'Eylül',
-    'Ekim',
-    'Kasım',
-    'Aralık'
-  ];
+  String _monthKeyFor(int month) {
+    switch (month) {
+      case 1:
+        return 'common.month.january';
+      case 2:
+        return 'common.month.february';
+      case 3:
+        return 'common.month.march';
+      case 4:
+        return 'common.month.april';
+      case 5:
+        return 'common.month.may';
+      case 6:
+        return 'common.month.june';
+      case 7:
+        return 'common.month.july';
+      case 8:
+        return 'common.month.august';
+      case 9:
+        return 'common.month.september';
+      case 10:
+        return 'common.month.october';
+      case 11:
+        return 'common.month.november';
+      case 12:
+        return 'common.month.december';
+      default:
+        return 'common.month.january';
+    }
+  }
 
   @override
   void onInit() {
@@ -77,14 +107,17 @@ class AntremanScoreController extends GetxController {
   }
 
   bool _isEligibleEntry(Map<String, dynamic> data) {
-    final rozet = (data['rozet'] ?? '').toString();
+    final rozet = normalizeRozetValue((data['rozet'] ?? '').toString());
     if (_excludedRozet.contains(rozet)) return false;
-    final nickname = (data['nickname'] ?? '').toString().trim();
+    final nickname =
+        (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+            .toString()
+            .trim();
     return nickname.isNotEmpty;
   }
 
   DateTime _resolveUpdatedAt(Map<String, dynamic> data) {
-    final rawUpdatedAt = data['updatedAt'];
+    final rawUpdatedAt = data['updatedDate'];
     if (rawUpdatedAt is Timestamp) {
       return rawUpdatedAt.toDate();
     }
@@ -104,8 +137,12 @@ class AntremanScoreController extends GetxController {
     final updatedCompare = _resolveUpdatedAt(a).compareTo(_resolveUpdatedAt(b));
     if (updatedCompare != 0) return updatedCompare;
 
-    final aNickname = (a['nickname'] ?? '').toString().toLowerCase();
-    final bNickname = (b['nickname'] ?? '').toString().toLowerCase();
+    final aNickname = normalizeLowercase(
+      (a['displayName'] ?? a['username'] ?? a['nickname'] ?? '').toString(),
+    );
+    final bNickname = normalizeLowercase(
+      (b['displayName'] ?? b['username'] ?? b['nickname'] ?? '').toString(),
+    );
     return aNickname.compareTo(bNickname);
   }
 
@@ -113,33 +150,60 @@ class AntremanScoreController extends GetxController {
     List<Map<String, dynamic>> entries,
   ) async {
     final missingEntries = entries.where((entry) {
-      final pfImage = (entry['pfImage'] ?? '').toString().trim();
+      final avatarUrl = (entry['avatarUrl'] ?? '').toString().trim();
       final firstName = (entry['firstName'] ?? '').toString().trim();
       final lastName = (entry['lastName'] ?? '').toString().trim();
-      return pfImage.isEmpty || firstName.isEmpty || lastName.isEmpty;
+      return avatarUrl.isEmpty || firstName.isEmpty || lastName.isEmpty;
     }).toList();
 
     if (missingEntries.isEmpty) return entries;
 
+    final userIds = missingEntries
+        .map((entry) => (entry['userID'] ?? '').toString())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    final summaries = await _userSummaryResolver.resolveMany(
+      userIds,
+      preferCache: true,
+    );
     await Future.wait(
       missingEntries.map((entry) async {
         final userId = (entry['userID'] ?? '').toString();
         if (userId.isEmpty) return;
 
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .get();
-        final userData = userDoc.data();
-        if (userData == null) return;
+        final summary = summaries[userId];
+        if (summary != null) {
+          if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
+              summary.avatarUrl.trim().isNotEmpty) {
+            entry['avatarUrl'] = summary.avatarUrl;
+          }
+          if ((entry['displayName'] ?? '').toString().trim().isEmpty &&
+              summary.displayName.trim().isNotEmpty) {
+            entry['displayName'] = summary.displayName;
+          }
+          if ((entry['nickname'] ?? '').toString().trim().isEmpty &&
+              summary.preferredName.trim().isNotEmpty) {
+            entry['nickname'] = summary.preferredName;
+          }
+          if ((entry['rozet'] ?? '').toString().trim().isEmpty &&
+              summary.rozet.trim().isNotEmpty) {
+            entry['rozet'] = summary.rozet;
+          }
+          _fillNamePartsFromSummary(entry, summary);
+        }
 
-        for (final field in [
-          'pfImage',
-          'firstName',
-          'lastName',
-          'nickname',
-          'rozet',
-        ]) {
+        final needsRawFallback =
+            (entry['firstName'] ?? '').toString().trim().isEmpty ||
+                (entry['lastName'] ?? '').toString().trim().isEmpty;
+        if (!needsRawFallback) return;
+
+        final userData = await _userRepository.getUserRaw(
+          userId,
+          preferCache: true,
+        );
+        if (userData == null) return;
+        for (final field in ['firstName', 'lastName']) {
           final currentValue = (entry[field] ?? '').toString().trim();
           final fallbackValue = (userData[field] ?? '').toString().trim();
           if (currentValue.isEmpty && fallbackValue.isNotEmpty) {
@@ -152,6 +216,27 @@ class AntremanScoreController extends GetxController {
     return entries;
   }
 
+  void _fillNamePartsFromSummary(
+    Map<String, dynamic> entry,
+    UserSummary summary,
+  ) {
+    final display = summary.displayName.trim();
+    if (display.isEmpty) return;
+    final currentFirst = (entry['firstName'] ?? '').toString().trim();
+    final currentLast = (entry['lastName'] ?? '').toString().trim();
+    if (currentFirst.isNotEmpty && currentLast.isNotEmpty) return;
+
+    final parts =
+        display.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    if (parts.isEmpty) return;
+    if (currentFirst.isEmpty) {
+      entry['firstName'] = parts.first;
+    }
+    if (currentLast.isEmpty && parts.length > 1) {
+      entry['lastName'] = parts.skip(1).join(' ');
+    }
+  }
+
   Future<void> fetchLeaderboard({bool showLoader = true}) async {
     try {
       if (showLoader && leaderboard.isEmpty) {
@@ -160,37 +245,30 @@ class AntremanScoreController extends GetxController {
       final tempLeaderboard = <Map<String, dynamic>>[];
       const int limit = 40;
       const int pageSize = 200;
-      DocumentSnapshot? lastDocument;
+      DocumentSnapshot<Map<String, dynamic>>? lastDocument;
       userRank.value = 0;
-      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
 
       while (tempLeaderboard.length < limit) {
-        Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-            .collection(_scoreCollection)
-            .doc(_monthKey)
-            .collection('items')
-            .orderBy('antPoint', descending: true)
-            .limit(pageSize);
+        final page = await _antremanRepository.fetchLeaderboardPage(
+          monthKey: _monthKey,
+          pageSize: pageSize,
+          lastDocument: lastDocument,
+        );
+        if (page.isEmpty) break;
 
-        if (lastDocument != null) {
-          query = query.startAfterDocument(lastDocument);
-        }
-
-        final snapshot = await query.get();
-
-        if (snapshot.docs.isEmpty) break;
-
-        for (var doc in snapshot.docs) {
-          final data = Map<String, dynamic>.from(doc.data());
-          data['userID'] = doc.id;
+        for (final entry in page) {
+          final data = Map<String, dynamic>.from(entry)..remove('_doc');
+          final userId = (data['userID'] ?? '').toString();
           if (_isEligibleEntry(data) &&
-              !tempLeaderboard.any((user) => user['userID'] == doc.id)) {
+              !tempLeaderboard.any((user) => user['userID'] == userId)) {
             tempLeaderboard.add(data);
           }
         }
 
-        if (snapshot.docs.isNotEmpty) {
-          lastDocument = snapshot.docs.last;
+        final doc = page.last['_doc'];
+        if (doc is DocumentSnapshot<Map<String, dynamic>>) {
+          lastDocument = doc;
         } else {
           break;
         }
@@ -222,19 +300,18 @@ class AntremanScoreController extends GetxController {
   }
 
   Future<void> getUserAntPoint() async {
-    final monthlyDoc = await _currentUserScoreRef.get();
-    if (monthlyDoc.exists) {
-      userPoint.value =
-          ((monthlyDoc.data()?["antPoint"] ?? 100) as num).toInt();
+    final uid = CurrentUserService.instance.effectiveUserId;
+    final monthlyScore = await _antremanRepository.getMonthlyScore(uid);
+    if (monthlyScore != null) {
+      userPoint.value = monthlyScore;
     } else {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .get();
-      userPoint.value = ((userDoc.data()?["antPoint"] ?? 100) as num).toInt();
+      final userData = await _userRepository.getUserRaw(
+        uid,
+        preferCache: true,
+      );
+      userPoint.value = ((userData?["antPoint"] ?? 100) as num).toInt();
     }
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
+    if (uid.isNotEmpty) {
       unawaited(_computeUserRank(uid));
     }
   }
@@ -242,38 +319,35 @@ class AntremanScoreController extends GetxController {
   Future<void> _computeUserRank(String currentUserId) async {
     try {
       int rank = 1;
-      DocumentSnapshot? lastDocument;
+      DocumentSnapshot<Map<String, dynamic>>? lastDocument;
       const int pageSize = 400;
       while (true) {
-        Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-            .collection(_scoreCollection)
-            .doc(_monthKey)
-            .collection('items')
-            .orderBy('antPoint', descending: true)
-            .limit(pageSize);
-        if (lastDocument != null) {
-          query = query.startAfterDocument(lastDocument);
-        }
-        final snapshot = await query.get();
-        if (snapshot.docs.isEmpty) break;
+        final page = await _antremanRepository.fetchLeaderboardPage(
+          monthKey: _monthKey,
+          pageSize: pageSize,
+          lastDocument: lastDocument,
+        );
+        if (page.isEmpty) break;
 
-        final eligibleDocs = snapshot.docs.where((doc) {
-          return _isEligibleEntry(doc.data());
+        final eligibleDocs = page.where((entry) {
+          return _isEligibleEntry(entry);
         }).toList()
-          ..sort((a, b) => _compareEntries(
-                <String, dynamic>{...a.data(), 'userID': a.id},
-                <String, dynamic>{...b.data(), 'userID': b.id},
-              ));
+          ..sort(_compareEntries);
 
         for (final doc in eligibleDocs) {
-          if (doc.id == currentUserId) {
+          if (doc['userID'] == currentUserId) {
             userRank.value = rank;
             return;
           }
           rank++;
         }
 
-        lastDocument = snapshot.docs.last;
+        final last = page.last['_doc'];
+        if (last is DocumentSnapshot<Map<String, dynamic>>) {
+          lastDocument = last;
+        } else {
+          break;
+        }
       }
     } catch (e) {
       log("Sıralama hesaplanamadı: $e");

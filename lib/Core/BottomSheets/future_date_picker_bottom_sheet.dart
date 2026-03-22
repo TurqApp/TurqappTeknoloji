@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class FutureDatePickerBottomSheet extends StatelessWidget {
@@ -22,16 +22,29 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
 
   DateTime _stripTime(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
+  DateTime _resolveMaximumDate(DateTime now) =>
+      maximumDate ?? now.add(const Duration(days: 90));
+
+  DateTime _clampPickedDate(DateTime picked, DateTime now) {
+    final max = _resolveMaximumDate(now);
+    if (picked.isBefore(now)) return now;
+    if (picked.isAfter(max)) return max;
+    return picked;
+  }
+
   @override
   Widget build(BuildContext context) {
     final DateTime now = DateTime.now();
     final DateTime today = _stripTime(now);
+    final DateTime resolvedMaximumDate = _resolveMaximumDate(now);
 
     final DateTime effectiveInitial = withTime
-        ? (initialDate.isBefore(now) ? now : initialDate)
+        ? _clampPickedDate(initialDate, now)
         : (() {
             var d = _stripTime(initialDate);
             if (d.isBefore(today)) d = today;
+            final maxDay = _stripTime(resolvedMaximumDate);
+            if (d.isAfter(maxDay)) d = maxDay;
             return d;
           })();
 
@@ -48,16 +61,7 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
         color: Colors.white,
         child: Column(
           children: [
-            Container(
-              width: 50,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.all(Radius.circular(50)),
-              ),
-            ),
-            8.ph,
-            Text(title, style: TextStyles.bold20Black),
+            AppSheetHeader(title: title),
             Expanded(
               child: Align(
                 alignment: Alignment.center,
@@ -77,9 +81,10 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                         : CupertinoDatePickerMode.date,
                     initialDateTime: effectiveInitial,
                     minimumDate: withTime ? now : today,
-                    maximumDate: maximumDate,
+                    maximumDate: resolvedMaximumDate,
                     onDateTimeChanged: (DateTime date) {
-                      tempPicked = date;
+                      tempPicked =
+                          withTime ? _clampPickedDate(date, now) : date;
                     },
                     use24hFormat: true,
                     dateOrder: DatePickerDateOrder.dmy,
@@ -101,7 +106,7 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "İptal",
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -115,7 +120,9 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      onSelected(tempPicked);
+                      onSelected(withTime
+                          ? _clampPickedDate(tempPicked, now)
+                          : tempPicked);
                       Get.back();
                     },
                     child: Container(
@@ -126,7 +133,7 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "Tamam",
+                        'common.ok'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,

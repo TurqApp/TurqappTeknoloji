@@ -5,7 +5,13 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/app_snackbar.dart';
 import '../../../Services/phone_account_limiter.dart';
@@ -30,32 +36,20 @@ class _DeleteAccountState extends State<DeleteAccount> {
   bool _isBusy = false;
   int _countdown = 0;
   Timer? _timer;
-  StreamSubscription<DocumentSnapshot>? _userSub;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final PostRepository _postRepository = PostRepository.ensure();
 
   @override
   void initState() {
     super.initState();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      _userSub = FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .snapshots()
-          .listen((DocumentSnapshot doc) {
-        if (!doc.exists || !mounted) return;
-        final data = doc.data() as Map<String, dynamic>? ?? const {};
-        setState(() {
-          _phoneNumber = (data["phoneNumber"] ?? "").toString();
-          _email = (data["email"] ?? "").toString().trim().toLowerCase();
-        });
-      });
-    }
+    final current = CurrentUserService.instance.currentUser;
+    _phoneNumber = (current?.phoneNumber ?? '').trim();
+    _email = normalizeEmailAddress(current?.email);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _userSub?.cancel();
     _codeController.dispose();
     super.dispose();
   }
@@ -69,7 +63,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
-                children: [BackButtons(text: "Hesabını Sil")],
+                children: [BackButtons(text: 'delete_account.title'.tr)],
               ),
             ),
             Expanded(
@@ -86,7 +80,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Hesap Silme Onayı",
+                          'delete_account.confirm_title'.tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -95,7 +89,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          "Hesabınızı silmeden önce güvenlik için kayıtlı e-posta adresinize onay kodu gönderiyoruz.",
+                          'delete_account.confirm_body'.tr,
                           style: TextStyle(
                             color: Colors.black.withValues(alpha: 0.75),
                             fontSize: 14,
@@ -134,7 +128,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             decoration: InputDecoration(
-                              hintText: "6 haneli onay kodu",
+                              hintText: 'delete_account.code_hint'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "Montserrat",
@@ -153,11 +147,12 @@ class _DeleteAccountState extends State<DeleteAccount> {
                           child: Text(
                             _countdown > 0
                                 ? "${_countdown}s"
-                                : (_isCodeSent ? "Tekrar Gönder" : "Kod Gönder"),
+                                : (_isCodeSent
+                                    ? 'delete_account.resend'.tr
+                                    : 'delete_account.send_code'.tr),
                             style: TextStyle(
-                              color: _countdown > 0
-                                  ? Colors.grey
-                                  : Color(_color),
+                              color:
+                                  _countdown > 0 ? Colors.grey : Color(_color),
                               fontSize: 14,
                               fontFamily: "MontserratMedium",
                             ),
@@ -168,7 +163,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "Kodun geçerlilik süresi 1 saattir. Silme talebiniz $_deletionGraceDays gün sonra kalıcı olarak işlenir.",
+                    'delete_account.validity_notice'
+                        .trParams({'days': '$_deletionGraceDays'}),
                     style: TextStyle(
                       color: Colors.black.withValues(alpha: 0.6),
                       fontSize: 12,
@@ -185,10 +181,13 @@ class _DeleteAccountState extends State<DeleteAccount> {
                         color: _isBusy
                             ? Colors.black.withValues(alpha: 0.35)
                             : Color(_color),
-                        borderRadius: const BorderRadius.all(Radius.circular(12)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(12)),
                       ),
                       child: Text(
-                        _isBusy ? "İşleniyor..." : "Hesabımı Sil",
+                        _isBusy
+                            ? 'delete_account.processing'.tr
+                            : 'delete_account.delete_my_account'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -211,15 +210,18 @@ class _DeleteAccountState extends State<DeleteAccount> {
     if (_countdown > 0 || _isBusy) return;
     if (_email.isEmpty) {
       AppSnackbar(
-        "Uyarı",
-        "Bu hesapta e-posta yok. Silme talebini direkt başlatabilirsiniz.",
+        'delete_account.no_email_title'.tr,
+        'delete_account.no_email_body'.tr,
       );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Tekrar giriş yapın.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        'delete_account.session_missing'.tr,
+      );
       return;
     }
 
@@ -242,13 +244,19 @@ class _DeleteAccountState extends State<DeleteAccount> {
       setState(() {
         _isCodeSent = true;
       });
-      AppSnackbar("Kod Gönderildi", "Silme onay kodu e-posta adresinize gönderildi.");
+      AppSnackbar(
+        'delete_account.code_sent_title'.tr,
+        'delete_account.code_sent_body'.tr,
+      );
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      AppSnackbar("Uyarı", e.message ?? "Kod gönderilemedi.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        e.message ?? 'delete_account.send_failed'.tr,
+      );
     } catch (_) {
       if (!mounted) return;
-      AppSnackbar("Hata", "Kod gönderilemedi.");
+      AppSnackbar('common.error'.tr, 'delete_account.send_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -286,13 +294,19 @@ class _DeleteAccountState extends State<DeleteAccount> {
 
     final code = _codeController.text.trim();
     if (code.length != 6) {
-      AppSnackbar("Geçersiz Kod", "Lütfen 6 haneli kod girin.");
+      AppSnackbar(
+        'delete_account.invalid_code_title'.tr,
+        'delete_account.invalid_code_body'.tr,
+      );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Tekrar giriş yapın.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        'delete_account.session_missing'.tr,
+      );
       return;
     }
 
@@ -315,10 +329,13 @@ class _DeleteAccountState extends State<DeleteAccount> {
       await _requestDelete(context);
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
-      AppSnackbar("Uyarı", e.message ?? "Kod doğrulanamadı.");
+      AppSnackbar(
+        'delete_account.no_email_title'.tr,
+        e.message ?? 'delete_account.verify_failed'.tr,
+      );
     } catch (_) {
       if (!mounted) return;
-      AppSnackbar("Hata", "Kod doğrulanamadı.");
+      AppSnackbar('common.error'.tr, 'delete_account.verify_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -339,32 +356,38 @@ class _DeleteAccountState extends State<DeleteAccount> {
             .decrementOnUserDelete(uid: user.uid, phone: _phoneNumber);
       } catch (_) {}
 
-      final usersRef = FirebaseFirestore.instance.collection("users");
       final now = DateTime.now();
       final scheduledAt = now.add(
         const Duration(days: _deletionGraceDays),
       );
-      final userRef = usersRef.doc(user.uid);
+      final userRef =
+          FirebaseFirestore.instance.collection("users").doc(user.uid);
 
-      await userRef.update({
-        "accountStatus": "pending_deletion",
-        "deletedAccount": true,
-        "gizliHesap": true,
-        "deletionRequestedAt": FieldValue.serverTimestamp(),
-        "deletionScheduledAt": Timestamp.fromDate(scheduledAt),
-        "updatedAt": FieldValue.serverTimestamp(),
-      });
+      await _userRepository.updateUserFields(
+        user.uid,
+        {
+          "accountStatus": "pending_deletion",
+          "isDeleted": true,
+          "isPrivate": true,
+          "deletionRequestedAt": DateTime.now().millisecondsSinceEpoch,
+          "deletionScheduledAt": scheduledAt.millisecondsSinceEpoch,
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
+        },
+        mergeIntoCache: false,
+      );
 
       await userRef.collection("account_actions").add({
         "type": "deletion",
         "status": "pending",
         "reason": "self_service_request",
-        "createdAt": FieldValue.serverTimestamp(),
-        "scheduledAt": Timestamp.fromDate(scheduledAt),
+        "createdDate": DateTime.now().millisecondsSinceEpoch,
+        "scheduledAt": scheduledAt.millisecondsSinceEpoch,
       });
 
       await _hideUserPosts(user.uid);
 
+      await AccountCenterService.ensure().removeAccount(user.uid);
+      await CurrentUserService.instance.logout();
       await auth.signOut();
       if (!mounted) return;
       Navigator.push(
@@ -377,52 +400,22 @@ class _DeleteAccountState extends State<DeleteAccount> {
         ),
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Talebin alındı. $_deletionGraceDays gün sonunda hesabın tamamen silinir ve nickname tekrar kullanıma açılır.",
-          ),
-        ),
+      AppSnackbar(
+        'delete_account.request_received_title'.tr,
+        'delete_account.request_received_body'
+            .trParams({'days': '$_deletionGraceDays'}),
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Hesabınızı silerken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz",
-          ),
-        ),
+      AppSnackbar(
+        'common.error'.tr,
+        'delete_account.request_failed'.tr,
       );
     }
   }
 
   Future<void> _hideUserPosts(String uid) async {
-    final postsRef = FirebaseFirestore.instance.collection("Posts");
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    DocumentSnapshot? lastDoc;
-
-    while (true) {
-      Query query = postsRef.where("userID", isEqualTo: uid).limit(200);
-      if (lastDoc != null) {
-        query = query.startAfterDocument(lastDoc);
-      }
-
-      final snap = await query.get();
-      if (snap.docs.isEmpty) break;
-
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in snap.docs) {
-        batch.update(doc.reference, {
-          "deletedAccount": true,
-          "deletedPost": true,
-          "deletedPostTime": nowMs,
-          "updatedAt": FieldValue.serverTimestamp(),
-        });
-      }
-      await batch.commit();
-
-      lastDoc = snap.docs.last;
-      if (snap.docs.length < 200) break;
-    }
+    await _postRepository.markAllPostsDeletedForUser(uid, nowMs: nowMs);
   }
 }

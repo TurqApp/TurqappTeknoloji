@@ -10,7 +10,13 @@ class UserPostReference {
 
   factory UserPostReference.fromDoc(
       QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
+    return UserPostReference.fromMap(doc.data(), doc.id);
+  }
+
+  factory UserPostReference.fromMap(
+    Map<String, dynamic> data,
+    String docId,
+  ) {
     final rawTime = data['timeStamp'];
     final parsedTime = rawTime is num
         ? rawTime
@@ -18,8 +24,8 @@ class UserPostReference {
             ? rawTime.millisecondsSinceEpoch
             : 0;
     return UserPostReference(
-      docId: doc.id,
-      postId: data['post_docID'] as String? ?? doc.id,
+      docId: docId,
+      postId: data['post_docID'] as String? ?? docId,
       timeStamp: parsedTime,
     );
   }

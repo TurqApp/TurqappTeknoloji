@@ -26,7 +26,7 @@ function normalizeDoc(data) {
   if (!out.firstName && out.ad) out.firstName = out.ad;
   if (!out.lastName && out.soyad) out.lastName = out.soyad;
   if (!out.nickname && out.kullaniciAdi) out.nickname = out.kullaniciAdi;
-  if (!out.pfImage && out.profilResmi) out.pfImage = out.profilResmi;
+  if (!out.avatarUrl && out.profilResmi) out.avatarUrl = out.profilResmi;
 
   if (!Object.prototype.hasOwnProperty.call(out, 'gizliHesap')) {
     out.gizliHesap = false;

@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_content.dart';
@@ -14,6 +13,52 @@ class TutoringCategoryModel {
     required this.icon,
     required this.color,
   });
+
+  String get localizedName => tutoringBranchLabel(name);
+}
+
+String tutoringBranchKey(String raw) {
+  switch (raw) {
+    case 'Yaz Okulu':
+      return 'tutoring.branch.summer_school';
+    case 'Orta Öğretim':
+      return 'tutoring.branch.secondary_education';
+    case 'İlk Öğretim':
+      return 'tutoring.branch.primary_education';
+    case 'Yabancı Dil':
+      return 'tutoring.branch.foreign_language';
+    case 'Yazılım':
+      return 'tutoring.branch.software';
+    case 'Direksiyon':
+      return 'tutoring.branch.driving';
+    case 'Spor':
+      return 'tutoring.branch.sports';
+    case 'Sanat':
+      return 'tutoring.branch.art';
+    case 'Müzik':
+      return 'tutoring.branch.music';
+    case 'Tiyatro':
+      return 'tutoring.branch.theatre';
+    case 'Kişisel Gelişim':
+      return 'tutoring.branch.personal_development';
+    case 'Mesleki':
+      return 'tutoring.branch.vocational';
+    case 'Özel Eğitim':
+      return 'tutoring.branch.special_education';
+    case 'Çocuk':
+      return 'tutoring.branch.children';
+    case 'Diksiyon':
+      return 'tutoring.branch.diction';
+    case 'Fotoğrafçılık':
+      return 'tutoring.branch.photography';
+    default:
+      return raw;
+  }
+}
+
+String tutoringBranchLabel(String raw) {
+  final key = tutoringBranchKey(raw);
+  return key == raw ? raw : key.tr;
 }
 
 List<TutoringCategoryModel> kategoriler = [
@@ -115,7 +160,6 @@ class TutoringCategoryWidget extends StatelessWidget {
         children: categories.map((category) {
           return GestureDetector(
             onTap: () {
-              log("Kategori seçildi: ${category.name}");
               Get.to(() => TutoringContent(categoryName: category.name));
             },
             child: Padding(
@@ -138,7 +182,7 @@ class TutoringCategoryWidget extends StatelessWidget {
                   ),
                   8.ph,
                   Text(
-                    category.name,
+                    category.localizedName,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 10),
                     maxLines: 2,

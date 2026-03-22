@@ -1,68 +1,83 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Utils/account_status_utils.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchUserContent extends StatelessWidget {
   final OgrenciModel model;
   final bool isSearch;
+  static final UserRepository _userRepository = UserRepository.ensure();
+  static final UserSummaryResolver _userSummaryResolver =
+      UserSummaryResolver.ensure();
+  static final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  static final UsernameLookupRepository _usernameLookupRepository =
+      UsernameLookupRepository.ensure();
 
   const SearchUserContent(
       {super.key, required this.model, required this.isSearch});
 
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
+
   Future<String> _resolveTargetUid() async {
     var targetUid = model.userID.trim();
     if (targetUid.isNotEmpty) return targetUid;
-    final nick = model.nickname.trim();
-    if (nick.isEmpty) return "";
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isEqualTo: nick)
-          .limit(1)
-          .get();
-      if (snap.docs.isNotEmpty) {
-        return snap.docs.first.id;
-      }
-    } catch (_) {}
-    return "";
+    final handle = normalizeNicknameInput(model.nickname);
+    if (handle.isEmpty) return "";
+    return await _usernameLookupRepository.findUidForHandle(handle) ?? "";
   }
 
   Future<void> _saveRecentIfNeeded(String targetUid) async {
+    final explore = ExploreController.maybeFind();
+    if (explore != null) {
+      await explore.saveRecentSearch(targetUid);
+      return;
+    }
     try {
-      final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUserID == null || currentUserID.isEmpty) return;
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserID)
-          .update({
-        "lastSearchList": FieldValue.arrayUnion([targetUid])
-      });
-      if (Get.isRegistered<FirebaseMyStore>()) {
-        final store = Get.find<FirebaseMyStore>();
-        if (!store.lastSearchList.contains(targetUid)) {
-          store.lastSearchList.add(targetUid);
-        }
-      }
+      final currentUserID = _currentUid;
+      if (currentUserID.isEmpty) return;
+      await _userSubcollectionRepository.upsertEntry(
+        currentUserID,
+        subcollection: 'lastSearches',
+        docId: targetUid,
+        data: {
+          'userID': targetUid,
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          'timeStamp': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
+      await ExploreController.maybeFind()?.refreshRecentSearchUsers();
     } catch (_) {}
   }
 
   Future<bool> _isTargetAccountActive(String targetUid) async {
     try {
-      final snap =
-          await FirebaseFirestore.instance.collection("users").doc(targetUid).get();
-      final data = snap.data();
+      final summary = await _userSummaryResolver.resolve(
+        targetUid,
+        preferCache: true,
+      );
+      if (summary != null && summary.isDeleted) {
+        return false;
+      }
+      final data = await _userRepository.getUserRaw(targetUid);
       if (data == null) return false;
-      final deletedAccount = (data['deletedAccount'] ?? false) == true;
-      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      if (deletedAccount || status == 'pending_deletion' || status == 'deleted') {
+      if (isDeactivatedAccount(
+        accountStatus: data['accountStatus'],
+        isDeleted: data['isDeleted'],
+      )) {
         return false;
       }
       return true;
@@ -74,25 +89,22 @@ class SearchUserContent extends StatelessWidget {
   Future<void> _removeRecent() async {
     final targetUid = await _resolveTargetUid();
     if (targetUid.isEmpty) return;
+    final c = ExploreController.maybeFind();
+    if (c != null) {
+      await c.removeRecentSearch(targetUid);
+      c.isSearchMode.value = true;
+      return;
+    }
     try {
-      final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUserID != null && currentUserID.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(currentUserID)
-            .update({
-          "lastSearchList": FieldValue.arrayRemove([targetUid])
-        });
+      final currentUserID = _currentUid;
+      if (currentUserID.isNotEmpty) {
+        await _userSubcollectionRepository.deleteEntry(
+          currentUserID,
+          subcollection: 'lastSearches',
+          docId: targetUid,
+        );
       }
     } catch (_) {}
-    if (Get.isRegistered<FirebaseMyStore>()) {
-      final store = Get.find<FirebaseMyStore>();
-      store.lastSearchList.remove(targetUid);
-      store.lastSearchedUserList.removeWhere((u) => u.userID == targetUid);
-    }
-    if (Get.isRegistered<ExploreController>()) {
-      Get.find<ExploreController>().isSearchMode.value = true;
-    }
   }
 
   @override
@@ -114,18 +126,17 @@ class SearchUserContent extends StatelessWidget {
                     final isActive = await _isTargetAccountActive(targetUid);
                     if (!isActive) {
                       await _removeRecent();
-                      Get.snackbar(
-                        'Bilgi',
-                        'Bu hesap artık görüntülenemiyor.',
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 2),
-                      );
+                      AppSnackbar(
+                          'common.info'.tr, 'explore.account_unavailable'.tr);
                       return;
                     }
-                    Get.to(
+                    final explore = ExploreController.maybeFind();
+                    explore?.suspendExplorePreview();
+                    await Get.to(
                       () => SocialProfile(userID: targetUid),
                       preventDuplicates: false,
                     );
+                    explore?.resumeExplorePreview();
                     await _saveRecentIfNeeded(targetUid);
                   },
                   child: Row(
@@ -136,12 +147,14 @@ class SearchUserContent extends StatelessWidget {
                           border: Border.all(color: Colors.grey.withAlpha(50)),
                         ),
                         child: ClipOval(
-                          child: model.pfImage != ""
+                          child: model.avatarUrl != ""
                               ? SizedBox(
                                   width: 40,
                                   height: 40,
                                   child: CachedNetworkImage(
-                                    imageUrl: model.pfImage,
+                                    imageUrl: resolveAvatarUrl({
+                                      'avatarUrl': model.avatarUrl,
+                                    }),
                                     fit: BoxFit.cover,
                                   ),
                                 )

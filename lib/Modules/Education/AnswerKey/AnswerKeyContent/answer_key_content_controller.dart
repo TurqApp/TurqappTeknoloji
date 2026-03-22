@@ -1,30 +1,62 @@
+import 'dart:async';
 import 'dart:developer';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AnswerKeyContentController extends GetxController {
+  static final Map<String, Set<String>> _savedIdsByUser =
+      <String, Set<String>>{};
+  static final Map<String, Future<Set<String>>> _savedIdsLoaders =
+      <String, Future<Set<String>>>{};
+  static AnswerKeyContentController ensure(
+    BookletModel model,
+    Function(bool) onUpdate, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AnswerKeyContentController(model, onUpdate),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AnswerKeyContentController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<AnswerKeyContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<AnswerKeyContentController>(tag: tag);
+  }
+
   BookletModel model;
   final Function(bool) onUpdate;
 
   final isBookmarked = false.obs;
-  final pfImage = ''.obs;
-  final nickname = ''.obs;
   final secim = ''.obs;
 
   AnswerKeyContentController(this.model, this.onUpdate);
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
-  bool get isOwner => model.userID == FirebaseAuth.instance.currentUser?.uid;
+  static String _resolveCurrentUid() =>
+      CurrentUserService.instance.effectiveUserId;
+
+  bool get isOwner => isCurrentUserId(model.userID);
 
   void syncModel(BookletModel nextModel) {
     model = nextModel;
@@ -37,71 +69,119 @@ class AnswerKeyContentController extends GetxController {
   }
 
   void _initialize() {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId != null && model.kaydet.contains(currentUserId)) {
-      isBookmarked.value = true;
-    }
-
-    _fetchUserData();
-    _updateViewCount(currentUserId);
+    final currentUserId = _resolveCurrentUid();
+    _primeBookmarkState(currentUserId);
+    unawaited(_loadBookmarkState(currentUserId));
   }
 
-  Future<void> _fetchUserData() async {
+  void _primeBookmarkState(String currentUserId) {
+    if (currentUserId.isEmpty) {
+      isBookmarked.value = false;
+      return;
+    }
+    final cachedIds = _savedIdsByUser[currentUserId];
+    if (cachedIds != null) {
+      isBookmarked.value = cachedIds.contains(model.docID);
+      return;
+    }
+    isBookmarked.value = false;
+  }
+
+  Future<void> _loadBookmarkState(String currentUserId) async {
+    if (currentUserId.isEmpty) return;
+
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(model.userID)
-          .get();
-      pfImage.value = doc.get("pfImage") ?? '';
-      nickname.value = doc.get("nickname") ?? '';
-      log(
-        "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",
-      );
+      final savedIds = await _loadSavedIds(currentUserId);
+      isBookmarked.value = savedIds.contains(model.docID);
     } catch (e) {
-      log("Kullanıcı verisi çekme hatası: $e");
+      log("Kaydet durumu okunamadı: $e");
     }
   }
 
-  void _updateViewCount(String? currentUserId) {
-    if (currentUserId != null && model.userID != currentUserId) {
+  static Future<Set<String>> _loadSavedIds(String userId) {
+    final cached = _savedIdsByUser[userId];
+    if (cached != null) {
+      return Future<Set<String>>.value(cached);
+    }
+    final existingLoader = _savedIdsLoaders[userId];
+    if (existingLoader != null) {
+      return existingLoader;
+    }
+
+    final loader = () async {
+      final entries = await UserSubcollectionRepository.ensure().getEntries(
+        userId,
+        subcollection: 'books',
+        orderByField: 'createdAt',
+        descending: true,
+        preferCache: true,
+        forceRefresh: false,
+      );
+      final ids = entries.map((entry) => entry.id).toSet();
+      _savedIdsByUser[userId] = ids;
+      return ids;
+    }();
+
+    _savedIdsLoaders[userId] = loader;
+    return loader.whenComplete(() {
+      _savedIdsLoaders.remove(userId);
+    });
+  }
+
+  static Future<void> warmSavedIdsForCurrentUser() async {
+    final userId = _resolveCurrentUid();
+    if (userId.isEmpty) return;
+    await _loadSavedIds(userId);
+  }
+
+  void _updateViewCount() {
+    final currentUserId = _resolveCurrentUid();
+    if (currentUserId.isNotEmpty && model.userID != currentUserId) {
       FirebaseFirestore.instance.collection("books").doc(model.docID).update({
-        "goruntuleme": FieldValue.arrayUnion([currentUserId]),
-      }).catchError((e) => log("Görüntüleme güncelleme hatası: $e"));
+        "viewCount": FieldValue.increment(1),
+      }).then((_) {
+        model.viewCount += 1;
+        return null;
+      }).catchError((e) {
+        log("Görüntüleme güncelleme hatası: $e");
+        return null;
+      });
     }
   }
 
   Future<void> toggleBookmark() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+    final userId = _resolveCurrentUid();
+    if (userId.isEmpty) return;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('books').doc(model.docID);
+      if (isBookmarked.value) {
+        await _userSubcollectionRepository.deleteEntry(
+          userId,
+          subcollection: 'books',
+          docId: model.docID,
+        );
+        isBookmarked.value = false;
+        _savedIdsByUser[userId]?.remove(model.docID);
+        return;
+      }
 
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final docSnapshot = await transaction.get(docRef);
-
-        if (!docSnapshot.exists) return;
-
-        final data = docSnapshot.data();
-        final favorites = List<String>.from(data?['kaydet'] ?? []);
-
-        if (favorites.contains(userId)) {
-          favorites.remove(userId);
-          isBookmarked.value = false;
-        } else {
-          favorites.add(userId);
-          isBookmarked.value = true;
-        }
-
-        transaction.update(docRef, {'kaydet': favorites});
-      });
+      await _userSubcollectionRepository.upsertEntry(
+        userId,
+        subcollection: 'books',
+        docId: model.docID,
+        data: {
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
+      isBookmarked.value = true;
+      _savedIdsByUser.putIfAbsent(userId, () => <String>{}).add(model.docID);
     } catch (e) {
       log("Yer işareti değiştirme hatası: $e");
     }
   }
 
   void navigateToPreview(BuildContext context) {
+    _updateViewCount();
     Get.to(() => BookletPreview(model: model));
   }
 
@@ -139,7 +219,12 @@ class AnswerKeyContentController extends GetxController {
         ),
         content: ClipRRect(
           borderRadius: const BorderRadius.all(Radius.circular(12)),
-          child: Image.network(model.cover),
+          child: CachedNetworkImage(
+            imageUrl: model.cover,
+            fit: BoxFit.cover,
+            errorWidget: (context, url, error) =>
+                const Icon(Icons.broken_image),
+          ),
         ),
         backgroundColor: Colors.white,
         actions: [
@@ -156,8 +241,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Görüntüle",
+              child: Text(
+                "answer_key.inspect".tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.purpleAccent,
@@ -182,8 +267,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Kitabı Sil",
+              child: Text(
+                'answer_key.delete_book'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.red,
@@ -206,8 +291,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Düzenle",
+              child: Text(
+                'common.edit'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.indigo,
@@ -227,8 +312,8 @@ class AnswerKeyContentController extends GetxController {
                 border: Border.all(color: Colors.grey, width: 1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                "Vazgeç",
+              child: Text(
+                'common.cancel'.tr,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.black,
@@ -243,11 +328,11 @@ class AnswerKeyContentController extends GetxController {
   }
 
   Future<void> shareBooklet() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentUid = _resolveCurrentUid();
     final canShareFeed =
         AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
     if (!canShareFeed) {
-      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      AppSnackbar('common.warning'.tr, 'answer_key.share_owner_only'.tr);
       return;
     }
     final shareId = 'answer-key:${model.docID}';
@@ -265,7 +350,7 @@ class AnswerKeyContentController extends GetxController {
             title: model.baslik,
             desc: model.yayinEvi.isNotEmpty
                 ? model.yayinEvi
-                : '${model.sinavTuru} cevap anahtari',
+                : '${model.sinavTuru} ${'answer_key.book_answer_key_desc'.tr}',
             imageUrl: model.cover.isNotEmpty ? model.cover : null,
           );
         } catch (_) {
@@ -284,12 +369,12 @@ class AnswerKeyContentController extends GetxController {
         );
       });
     } catch (_) {
-      AppSnackbar("Hata", "Paylaşım başlatılamadı");
+      AppSnackbar('common.error'.tr, 'training.share_failed'.tr);
     }
   }
 
   void showBottomSheet(BuildContext context) {
-    if (model.userID != FirebaseAuth.instance.currentUser?.uid) {
+    if (model.userID != _resolveCurrentUid()) {
       _showSpamBottomSheet(context);
     } else {
       _showDeleteBottomSheet(context);
@@ -313,11 +398,11 @@ class AnswerKeyContentController extends GetxController {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Cevap Anahtarı Hakkında",
+                        "answer_key.about_title".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 18,
@@ -329,17 +414,17 @@ class AnswerKeyContentController extends GetxController {
                   const SizedBox(height: 15),
                   GestureDetector(
                     onTap: () {
-                      secim.value = secim.value == "Spam" ? "" : "Spam";
-                      if (secim.value == "Spam") {
+                      secim.value = secim.value == "spam" ? "" : "spam";
+                      if (secim.value == "spam") {
                         Get.back();
                       }
                     },
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            "Spam",
+                            "common.spam".tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -363,7 +448,7 @@ class AnswerKeyContentController extends GetxController {
                             padding: const EdgeInsets.all(3),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: secim.value == "Spam"
+                                color: secim.value == "spam"
                                     ? Colors.indigo
                                     : Colors.white,
                                 borderRadius: const BorderRadius.all(
@@ -387,10 +472,10 @@ class AnswerKeyContentController extends GetxController {
 
   void _showDeleteBottomSheet(BuildContext context) {
     noYesAlert(
-      title: "Kitabı Sil",
-      message: "Bu kitabı silmek istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Sil",
+      title: "answer_key.delete_book".tr,
+      message: "answer_key.delete_book_confirm".tr,
+      cancelText: "common.cancel".tr,
+      yesText: "common.delete".tr,
       onYesPressed: () async {
         try {
           await FirebaseFirestore.instance

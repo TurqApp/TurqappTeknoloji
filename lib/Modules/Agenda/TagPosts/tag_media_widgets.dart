@@ -92,9 +92,8 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
     if (!a.value.isPlaying) return;
 
     final durationMs = a.value.duration.inMilliseconds;
-    final loopCutoff = durationMs > 0
-        ? durationMs.clamp(700, _previewLoopMs)
-        : _previewLoopMs;
+    final loopCutoff =
+        durationMs > 0 ? durationMs.clamp(700, _previewLoopMs) : _previewLoopMs;
 
     // Preview'de sadece ilk segment döngüsü (yaklaşık 2 sn)
     if (a.value.position.inMilliseconds >= loopCutoff) {
@@ -134,7 +133,7 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
   Future<void> _softHoldController() async {
     if (_adapter != null) {
       _adapter?.removeListener(_onAdapterTick);
-      await _adapter?.pause();
+      await _adapter?.stopPlayback();
     }
   }
 
@@ -152,7 +151,7 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
       _adapter?.play();
     } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      _adapter?.pause();
+      _adapter?.stopPlayback();
     }
   }
 

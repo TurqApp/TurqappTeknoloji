@@ -1,55 +1,52 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserContentController extends GetxController {
+  static RecommendedUserContentController ensure({
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      RecommendedUserContentController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static RecommendedUserContentController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<RecommendedUserContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<RecommendedUserContentController>(tag: tag);
+  }
+
   String userID;
   var isFollowing = false.obs;
   var followLoading = false.obs;
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _followSub;
+  final FollowRepository _followRepository = FollowRepository.ensure();
 
   RecommendedUserContentController({required this.userID});
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    // Başlangıçta anlık durumu al ve ardından canlı dinlemeyi başlat
+    // Başlangıçta anlık durumu merkezi follow cache hattından al
     getTakipStatus();
-    listenTakipStatus();
-  }
-
-  @override
-  void onClose() {
-    _followSub?.cancel();
-    super.onClose();
   }
 
   Future<void> getTakipStatus() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
-        .doc(userID)
-        .get()
-        .then((DocumentSnapshot doc) {
-      isFollowing.value = doc.exists;
-    });
-  }
-
-  void listenTakipStatus() {
-    _followSub?.cancel();
-    _followSub = FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
-        .doc(userID)
-        .snapshots()
-        .listen((doc) {
-      isFollowing.value = doc.exists;
-    });
+    isFollowing.value = await _followRepository.isFollowing(
+      userID,
+      currentUid: CurrentUserService.instance.effectiveUserId,
+      preferCache: true,
+    );
   }
 
   Future<void> follow() async {
@@ -61,11 +58,10 @@ class RecommendedUserContentController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       isFollowing.value = outcome.nowFollowing; // reconcile
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
     } catch (e) {
       isFollowing.value = wasFollowing; // revert
-      print("Bir hata oluştu: $e");
     } finally {
       followLoading.value = false;
     }

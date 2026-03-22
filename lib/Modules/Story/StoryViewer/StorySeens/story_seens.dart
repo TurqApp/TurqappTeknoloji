@@ -1,48 +1,63 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryContentProfiles/story_content_profiles.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StorySeens/story_seens_controller.dart';
 import '../../../../Core/empty_row.dart';
 
-class StorySeens extends StatelessWidget {
+class StorySeens extends StatefulWidget {
   final String storyID;
-  StorySeens({super.key, required this.storyID});
+  const StorySeens({super.key, required this.storyID});
+
+  @override
+  State<StorySeens> createState() => _StorySeensState();
+}
+
+class _StorySeensState extends State<StorySeens> {
+  late final String _controllerTag;
+  late final StorySeensController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'story_seens_${widget.storyID}_${identityHashCode(this)}';
+    final existingController =
+        StorySeensController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = StorySeensController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
+    controller.getData(widget.storyID);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          StorySeensController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<StorySeensController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StorySeensController(), tag: storyID);
-    controller.getData(storyID);
     return SafeArea(
       child: Obx(() {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Text(
-                    "Görüntüleme (${controller.totalSeen})",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold"),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  )
-                ],
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: AppSheetHeader(
+                title: 'story.seens_title'.trParams({
+                  'count': '${controller.totalSeen}',
+                }),
               ),
             ),
             Expanded(
@@ -55,7 +70,7 @@ class StorySeens extends StatelessWidget {
                       },
                     )
                   : Center(
-                      child: EmptyRow(text: "Kimse hikayeni görüntülemedi"),
+                      child: EmptyRow(text: 'story.no_seens'.tr),
                     ),
             )
           ],

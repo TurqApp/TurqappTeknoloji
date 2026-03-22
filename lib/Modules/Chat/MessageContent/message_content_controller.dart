@@ -1,24 +1,49 @@
+import 'dart:async';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contact_add/contact.dart';
 import 'package:contact_add/contact_add.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/BottomSheets/show_action_sheet.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../Models/posts_model.dart';
 
 class MessageContentController extends GetxController {
+  static MessageContentController ensure({
+    required MessageModel model,
+    required String mainID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MessageContentController(model: model, mainID: mainID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MessageContentController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<MessageContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MessageContentController>(tag: tag);
+  }
+
   final MessageModel model;
   final String mainID;
 
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
 
   var currentIndex = 0.obs;
   var showAllImages = false.obs;
@@ -32,6 +57,9 @@ class MessageContentController extends GetxController {
 
   var postNickname = "".obs;
   var postPfImage = "".obs;
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   @override
   void onInit() {
@@ -41,18 +69,23 @@ class MessageContentController extends GetxController {
     imageUrls.assignAll(model.imgs);
 
     // kullanıcı verisini al
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(model.userID)
-        .get()
-        .then((doc) {
-      nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
-    });
+    unawaited(_loadMessageUser());
 
     if (model.postID != "") {
       getPost();
     }
+  }
+
+  Future<void> _loadMessageUser() async {
+    final user = await _userSummaryResolver.resolve(
+      model.userID,
+      preferCache: true,
+    );
+    if (user == null) return;
+    nickname.value = user.nickname.isNotEmpty
+        ? user.nickname
+        : (user.username.isNotEmpty ? user.username : user.displayName);
+    avatarUrl.value = user.avatarUrl;
   }
 
   Future<void> showMapsSheet() async {
@@ -73,7 +106,7 @@ class MessageContentController extends GetxController {
               Row(
                 children: [
                   Text(
-                    "Haritalarda Aç",
+                    'chat.open_in_maps'.tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -88,7 +121,10 @@ class MessageContentController extends GetxController {
                   final url = Uri.parse(
                       "https://www.google.com/maps/search/?api=1&query=${model.lat},${model.long}");
                   if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                    await confirmAndLaunchExternalUrl(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    );
                   }
                   Get.back();
                 },
@@ -103,7 +139,7 @@ class MessageContentController extends GetxController {
                       ),
                       SizedBox(width: 12),
                       Text(
-                        "Google Haritalar'da Aç",
+                        'chat.open_in_google_maps'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -120,8 +156,10 @@ class MessageContentController extends GetxController {
                     final url = Uri.parse(
                         "http://maps.apple.com/?q=${model.lat},${model.long}");
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
+                      await confirmAndLaunchExternalUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                     Get.back();
                   },
@@ -136,7 +174,7 @@ class MessageContentController extends GetxController {
                         ),
                         SizedBox(width: 12),
                         Text(
-                          "Apple Haritalar'da Aç",
+                          'chat.open_in_apple_maps'.tr,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 15,
@@ -157,8 +195,10 @@ class MessageContentController extends GetxController {
                     final webUrl = Uri.parse(
                         "https://yandex.com/maps/?ll=${model.long},${model.lat}&z=10");
                     if (await canLaunchUrl(webUrl)) {
-                      await launchUrl(webUrl,
-                          mode: LaunchMode.externalApplication);
+                      await confirmAndLaunchExternalUrl(
+                        webUrl,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   }
                   Get.back();
@@ -178,7 +218,7 @@ class MessageContentController extends GetxController {
                       ),
                       SizedBox(width: 12),
                       Text(
-                        "Yandex Haritalar'da Aç",
+                        'chat.open_in_yandex_maps'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -219,7 +259,7 @@ class MessageContentController extends GetxController {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Kişi Bilgisi",
+                    'chat.contact_info'.tr,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -272,7 +312,7 @@ class MessageContentController extends GetxController {
                           border: Border.all(color: Colors.grey),
                         ),
                         child: Text(
-                          "Rehbere Kaydet",
+                          'chat.save_to_contacts'.tr,
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -298,7 +338,7 @@ class MessageContentController extends GetxController {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 15),
                           child: Text(
-                            "Telefon Et",
+                            'chat.call'.tr,
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -324,76 +364,38 @@ class MessageContentController extends GetxController {
 
   Future<void> deleteMessage() async {
     if (model.source == "preview") return;
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
+    if (currentUid.isEmpty) return;
+
     await showActionSheet(
-      title: "Mesajı Sil",
-      message: "Bu mesajı silmek istediğinizden emin misiniz?",
+      title: 'chat.delete_message_title'.tr,
+      message: 'chat.delete_message_body'.tr,
       titleColor: Colors.black,
       messageColor: Colors.grey.shade600,
-      cancelText: "Vazgeç",
+      cancelText: 'common.cancel'.tr,
       cancelButtonColor: Colors.blueAccent,
       actions: [
         {
-          'text': "Sadece Benden Sil",
+          'text': 'chat.delete_for_me'.tr,
           'isDestructive': true,
           'color': Colors.red,
-          'onPressed': () {
-            if (model.source == "conversation") {
-              FirebaseFirestore.instance
-                  .collection("conversations")
-                  .doc(mainID)
-                  .collection("messages")
-                  .doc(model.rawDocID)
-                  .update({
-                "isDeleted": true,
-              });
-            } else {
-              FirebaseFirestore.instance
-                  .collection("message")
-                  .doc(mainID)
-                  .collection("Chat")
-                  .doc(model.rawDocID)
-                  .update({
-                "kullanicilar": FieldValue.arrayRemove(
-                    [FirebaseAuth.instance.currentUser!.uid])
-              });
-            }
+          'onPressed': () async {
+            await _conversationRepository.deleteMessageForUser(
+              chatId: mainID,
+              messageId: model.rawDocID,
+              currentUid: currentUid,
+            );
           },
         },
         {
-          'text': "Mesajı Herkesten Sil",
+          'text': 'chat.delete_for_everyone'.tr,
           'isDestructive': false,
           'color': Colors.red,
-          'onPressed': () {
-            if (model.source == "conversation") {
-              FirebaseFirestore.instance
-                  .collection("conversations")
-                  .doc(mainID)
-                  .collection("messages")
-                  .doc(model.rawDocID)
-                  .update({
-                "unsent": true,
-                "text": "",
-                "mediaUrls": <String>[],
-                "isDeleted": false,
-              });
-            } else {
-              FirebaseFirestore.instance
-                  .collection("message")
-                  .doc(mainID)
-                  .collection("Chat")
-                  .doc(model.rawDocID)
-                  .update({
-                "unsent": true,
-                "metin": "",
-                "imgs": <String>[],
-                "lat": 0,
-                "long": 0,
-                "postID": "",
-                "postType": "",
-                "kisiAdSoyad": "",
-                "kisiTelefon": "",
-              });
-            }
+          'onPressed': () async {
+            await _conversationRepository.unsendMessage(
+              chatId: mainID,
+              messageId: model.rawDocID,
+            );
           },
         },
       ],
@@ -401,85 +403,48 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> likeImage() async {
-    final docRef = model.source == "conversation"
-        ? FirebaseFirestore.instance
-            .collection("conversations")
-            .doc(mainID)
-            .collection("messages")
-            .doc(model.rawDocID)
-        : FirebaseFirestore.instance
-            .collection("message")
-            .doc(mainID)
-            .collection("Chat")
-            .doc(model.rawDocID);
-
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      final fieldName = model.source == "conversation" ? "likes" : "begeniler";
-      final currentLikes = List<String>.from(docSnapshot.get(fieldName) ?? []);
-      final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-
-      if (currentLikes.contains(currentUserID)) {
-        await docRef.update({
-          fieldName: FieldValue.arrayRemove([currentUserID])
-        });
-      } else {
-        await docRef.update({
-          fieldName: FieldValue.arrayUnion([currentUserID])
-        });
-      }
-    }
+    final currentUserID = CurrentUserService.instance.effectiveUserId.trim();
+    if (currentUserID.isEmpty) return;
+    await _conversationRepository.toggleMessageLike(
+      chatId: mainID,
+      messageId: model.rawDocID,
+      currentUid: currentUserID,
+      isLiked: model.begeniler.contains(currentUserID),
+    );
   }
 
   Future<void> deleteSingleImage(String imgUrl) async {
     if (model.source == "preview") return;
     await noYesAlert(
-      title: "Fotoğrafı Sil",
-      message: "Bu fotoğrafı silmek istediğinizden emin misiniz?",
-      cancelText: "İptal",
-      yesText: "Fotoğrafı Sil",
+      title: 'chat.delete_photo_title'.tr,
+      message: 'chat.delete_photo_body'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'chat.delete_photo_confirm'.tr,
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
-        await FirebaseFirestore.instance
-            .collection(
-                model.source == "conversation" ? "conversations" : "message")
-            .doc(mainID)
-            .collection(model.source == "conversation" ? "messages" : "Chat")
-            .doc(model.rawDocID)
-            .update(model.source == "conversation"
-                ? {
-                    "mediaUrls": FieldValue.arrayRemove([imgUrl])
-                  }
-                : {
-                    "imgs": FieldValue.arrayRemove([imgUrl])
-                  });
+        await _conversationRepository.removeMessageImage(
+          chatId: mainID,
+          messageId: model.rawDocID,
+          imgUrl: imgUrl,
+        );
       },
     );
   }
 
   Future<void> getPost() async {
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.postID)
-        .get()
-        .then((doc) {
-      if (doc.exists) {
-        postModel.value = PostsModel.fromFirestore(doc);
-      } else {
-        postModel.value = PostsModel.empty();
-      }
-
-      if (postModel.value != null) {
-        FirebaseFirestore.instance
-            .collection("users")
-            .doc(postModel.value!.userID)
-            .get()
-            .then((doc) {
-          postNickname.value = doc.get("nickname");
-          postPfImage.value = doc.get("pfImage");
-        });
-      }
-    });
+    final lookup =
+        await NotifyLookupRepository.ensure().getPostLookup(model.postID);
+    if (!lookup.exists || lookup.model == null) {
+      postModel.value = PostsModel.empty();
+      return;
+    }
+    postModel.value = lookup.model;
+    final user = await _userSummaryResolver.resolve(
+      lookup.model!.userID,
+      preferCache: true,
+    );
+    if (user == null) return;
+    postNickname.value = user.preferredName;
+    postPfImage.value = user.avatarUrl;
   }
 }

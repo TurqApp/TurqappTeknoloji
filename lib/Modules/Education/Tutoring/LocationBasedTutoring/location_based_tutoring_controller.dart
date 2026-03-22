@@ -1,43 +1,105 @@
-import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class LocationBasedTutoringController extends GetxController {
+  static LocationBasedTutoringController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      LocationBasedTutoringController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static LocationBasedTutoringController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<LocationBasedTutoringController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<LocationBasedTutoringController>(tag: tag);
+  }
+
+  static const String _cacheKey = 'location_tutoring_cache_v1';
+  final TutoringSnapshotRepository _tutoringSnapshotRepository =
+      TutoringSnapshotRepository.ensure();
   var isLoading = true.obs;
   var tutoringList = <TutoringModel>[].obs;
-  var users = <String, Map<String, dynamic>>{}.obs;
+
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
     super.onInit();
-    fetchLocationBasedTutoring();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> _batchFetchUsers(Set<String> userIds) async {
-    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
-    if (toFetch.isEmpty) return;
-
-    try {
-      for (var i = 0; i < toFetch.length; i += 30) {
-        final batch = toFetch.skip(i).take(30).toList();
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (var doc in snap.docs) {
-          users[doc.id] = doc.data();
-        }
+  Future<void> _bootstrapData() async {
+    final cached = await _readCache();
+    if (cached.isNotEmpty) {
+      if (!_sameTutoringEntries(tutoringList, cached)) {
+        tutoringList.assignAll(cached);
       }
-    } catch (e) {
-      log("Error batch fetching users: $e");
+      isLoading.value = false;
+      await fetchLocationBasedTutoring(silent: true);
+      return;
     }
+    await fetchLocationBasedTutoring();
   }
 
-  Future<void> fetchLocationBasedTutoring() async {
-    isLoading.value = true;
+  Future<void> fetchLocationBasedTutoring({
+    bool silent = false,
+  }) async {
+    if (!silent || tutoringList.isEmpty) {
+      isLoading.value = true;
+    }
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -56,34 +118,32 @@ class LocationBasedTutoringController extends GetxController {
         position.longitude,
       );
 
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .where('sehir', isEqualTo: currentCity)
-          .limit(100)
-          .get();
-      List<TutoringModel> tempList = querySnapshot.docs
-          .map(
-            (doc) => TutoringModel.fromJson(
-              doc.data() as Map<String, dynamic>,
-              doc.id,
-            ),
-          )
-          .toList();
-
-      // Batch fetch users instead of N+1
-      final userIds = tempList.map((t) => t.userID).toSet();
-      await _batchFetchUsers(userIds);
+      final result = await _tutoringSnapshotRepository.loadHome(
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 250,
+        forceSync: !silent,
+      );
+      final tempList = (result.data ?? const <TutoringModel>[])
+          .where((item) => item.docID.isNotEmpty)
+          .where((item) =>
+              normalizeLocationText(item.sehir) ==
+              normalizeLocationText(currentCity))
+          .toList(growable: true);
 
       // Mesafeye göre sırala (lat/long olan ilanlar önce, yakından uzağa)
       tempList.sort((a, b) {
-        final aDist = _distanceKm(position.latitude, position.longitude, a.lat, a.long);
-        final bDist = _distanceKm(position.latitude, position.longitude, b.lat, b.long);
+        final aDist =
+            _distanceKm(position.latitude, position.longitude, a.lat, a.long);
+        final bDist =
+            _distanceKm(position.latitude, position.longitude, b.lat, b.long);
         return aDist.compareTo(bDist);
       });
 
-      tutoringList.value = tempList;
-    } catch (e) {
-      log("Error fetching location-based tutoring data: $e");
+      if (!_sameTutoringEntries(tutoringList, tempList)) {
+        tutoringList.value = tempList;
+      }
+      await _writeCache(tempList);
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -99,12 +159,52 @@ class LocationBasedTutoringController extends GetxController {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
       if (placemarks.isNotEmpty) {
-        return placemarks.first.administrativeArea ?? 'Unknown';
+        return placemarks.first.administrativeArea ??
+            'settings.diagnostics.unknown'.tr;
       }
-      return 'Unknown';
-    } catch (e) {
-      log("Error getting city from coordinates: $e");
-      return 'Unknown';
+      return 'settings.diagnostics.unknown'.tr;
+    } catch (_) {
+      return 'settings.diagnostics.unknown'.tr;
+    }
+  }
+
+  Future<void> _writeCache(List<TutoringModel> items) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _cacheKey,
+        jsonEncode(
+          items
+              .map((item) => <String, dynamic>{
+                    'docID': item.docID,
+                    'data': item.toJson(),
+                  })
+              .toList(growable: false),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<List<TutoringModel>> _readCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null || raw.isEmpty) return const <TutoringModel>[];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const <TutoringModel>[];
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .map(
+            (item) => TutoringModel.fromJson(
+              Map<String, dynamic>.from(item['data'] as Map? ?? const {}),
+              (item['docID'] ?? '').toString(),
+            ),
+          )
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+    } catch (_) {
+      return const <TutoringModel>[];
     }
   }
 }

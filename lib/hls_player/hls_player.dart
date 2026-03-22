@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -17,6 +18,7 @@ class HLSPlayer extends StatefulWidget {
   final BoxFit fit;
   final double aspectRatio;
   final bool useAspectRatio;
+  final bool forceFullscreenOnAndroid;
 
   const HLSPlayer({
     super.key,
@@ -31,6 +33,7 @@ class HLSPlayer extends StatefulWidget {
     this.fit = BoxFit.contain,
     this.aspectRatio = 16 / 9,
     this.useAspectRatio = true,
+    this.forceFullscreenOnAndroid = false,
   });
 
   @override
@@ -68,6 +71,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
   void _onPlatformViewCreated(int viewId) {
     _isInitialized = true;
     widget.controller.initialize(viewId);
+    unawaited(_loadVideo());
   }
 
   Future<void> _loadVideo() async {
@@ -83,6 +87,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
     final playerBody = Container(
       color: widget.backgroundColor ?? Colors.transparent,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           // Platform view
           if (Platform.isIOS)
@@ -177,6 +182,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'url': widget.url,
           'autoPlay': widget.autoPlay,
           'loop': widget.loop,
+          'forceFullscreen': widget.forceFullscreenOnAndroid,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
@@ -195,6 +201,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'url': widget.url,
           'autoPlay': widget.autoPlay,
           'loop': widget.loop,
+          'forceFullscreen': widget.forceFullscreenOnAndroid,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,

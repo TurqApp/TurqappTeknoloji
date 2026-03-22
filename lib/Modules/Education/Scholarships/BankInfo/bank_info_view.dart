@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,13 +6,44 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/BankInfo/bank_info_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
-class BankInfoView extends StatelessWidget {
+class BankInfoView extends StatefulWidget {
   BankInfoView({super.key});
 
-  final BankInfoController controller = Get.put(BankInfoController());
+  @override
+  State<BankInfoView> createState() => _BankInfoViewState();
+}
+
+class _BankInfoViewState extends State<BankInfoView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final BankInfoController controller;
+  final UserRepository _userRepository = UserRepository.ensure();
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_bank_${identityHashCode(this)}';
+    final existing = BankInfoController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? BankInfoController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+            BankInfoController.maybeFind(tag: _controllerTag), controller)) {
+      Get.delete<BankInfoController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,45 +58,60 @@ class BankInfoView extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: BackButtons(text: "Banka Bilgileri"),
+                    child: BackButtons(text: 'bank_info.title'.tr),
                   ),
                   PullDownButton(
                     itemBuilder: (context) => [
                       PullDownMenuItem(
-                        title: 'Banka Bilgilerimi Sıfırla',
+                        title: 'bank_info.reset_menu'.tr,
                         icon: CupertinoIcons.restart,
                         onTap: () {
                           noYesAlert(
-                            title: "Emin misiniz?",
-                            message:
-                                "Banka bilgileriniz sıfırlanacak. Bu işlem geri alınamaz.",
-                            cancelText: "İptal",
-                            yesText: "Sıfırla",
+                            title: 'bank_info.reset_title'.tr,
+                            message: 'bank_info.reset_body'.tr,
+                            cancelText: 'common.cancel'.tr,
+                            yesText: 'common.reset'.tr,
                             yesButtonColor: CupertinoColors.destructiveRed,
                             onYesPressed: () async {
-                              controller.selectedBank.value = "Banka Seç";
-                              controller.kolayAdres.value = "E-Posta";
+                              controller.selectedBank.value =
+                                  controller.defaultBankSelection;
+                              controller.kolayAdres.value =
+                                  controller.defaultFastTypeEmail;
                               controller.iban.clear();
-                              await FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(FirebaseAuth.instance.currentUser?.uid)
-                                  .update({
-                                "iban": "",
-                                "bank": "",
-                                "kolayAdresSelection": "",
-                              });
+                              await _userRepository.updateUserFields(
+                                CurrentUserService.instance.effectiveUserId,
+                                {
+                                  ...scopedUserUpdate(
+                                    scope: 'finance',
+                                    values: {
+                                      "iban": "",
+                                      "bank": "",
+                                    },
+                                  ),
+                                  ...scopedUserUpdate(
+                                    scope: 'preferences',
+                                    values: {
+                                      "kolayAdresSelection": "",
+                                    },
+                                  ),
+                                },
+                              );
                               AppSnackbar(
-                                "Başarılı",
-                                "Banka Bilgileriniz sıfırlandı.",
+                                'common.success'.tr,
+                                'bank_info.reset_success'.tr,
                               );
                             },
                           );
                         },
                       ),
                     ],
-                    buttonBuilder: (context, showMenu) => IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: showMenu,
+                    buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                      onTap: showMenu,
+                      child: const Icon(
+                        Icons.more_vert,
+                        color: Colors.black,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -83,7 +127,7 @@ class BankInfoView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Kolay Adres (FAST)",
+                                  'bank_info.fast_title'.tr,
                                   style: TextStyles.textFieldTitle,
                                 ),
                                 GestureDetector(
@@ -106,7 +150,9 @@ class BankInfoView extends StatelessWidget {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              controller.kolayAdres.value,
+                                              controller.localizedFastType(
+                                                controller.kolayAdres.value,
+                                              ),
                                               style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -125,7 +171,7 @@ class BankInfoView extends StatelessWidget {
                                 ),
                                 SizedBox(height: 20),
                                 Text(
-                                  "Banka",
+                                  'bank_info.bank_label'.tr,
                                   style: TextStyles.textFieldTitle,
                                 ),
                                 GestureDetector(
@@ -148,7 +194,12 @@ class BankInfoView extends StatelessWidget {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              controller.selectedBank.value,
+                                              controller.selectedBank.value ==
+                                                      controller
+                                                          .defaultBankSelection
+                                                  ? 'bank_info.select_bank'.tr
+                                                  : controller
+                                                      .selectedBank.value,
                                               style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -167,7 +218,9 @@ class BankInfoView extends StatelessWidget {
                                 ),
                                 SizedBox(height: 20),
                                 Text(
-                                  controller.kolayAdres.value,
+                                  controller.localizedFastType(
+                                    controller.kolayAdres.value,
+                                  ),
                                   style: TextStyles.textFieldTitle,
                                 ),
                                 Container(
@@ -184,8 +237,7 @@ class BankInfoView extends StatelessWidget {
                                     child: Row(
                                       children: [
                                         Obx(
-                                          () => controller.kolayAdres.value ==
-                                                  "IBAN"
+                                          () => controller.isIbanSelected
                                               ? Row(
                                                   children: [
                                                     Text(
@@ -200,8 +252,7 @@ class BankInfoView extends StatelessWidget {
                                                     SizedBox(width: 4),
                                                   ],
                                                 )
-                                              : controller.kolayAdres.value ==
-                                                      "Telefon"
+                                              : controller.isPhoneSelected
                                                   ? Row(
                                                       children: [
                                                         Text(
@@ -222,41 +273,36 @@ class BankInfoView extends StatelessWidget {
                                           child: TextField(
                                             controller: controller.iban,
                                             inputFormatters: controller
-                                                        .kolayAdres.value ==
-                                                    "IBAN"
+                                                    .isIbanSelected
                                                 ? [
                                                     LengthLimitingTextInputFormatter(
                                                         16),
                                                     FilteringTextInputFormatter
                                                         .digitsOnly,
                                                   ]
-                                                : controller.kolayAdres.value ==
-                                                        "Telefon"
+                                                : controller.isPhoneSelected
                                                     ? [
                                                         LengthLimitingTextInputFormatter(
                                                             10),
                                                         FilteringTextInputFormatter
                                                             .digitsOnly,
                                                       ]
-                                                    : controller.kolayAdres
-                                                                .value ==
-                                                            "E-Posta"
+                                                    : controller.isEmailSelected
                                                         ? [
                                                             LengthLimitingTextInputFormatter(
                                                                 50),
                                                           ]
                                                         : [],
                                             keyboardType: controller
-                                                            .kolayAdres.value ==
-                                                        "IBAN" ||
-                                                    controller
-                                                            .kolayAdres.value ==
-                                                        "Telefon"
+                                                        .isIbanSelected ||
+                                                    controller.isPhoneSelected
                                                 ? TextInputType.number
                                                 : TextInputType.emailAddress,
                                             decoration: InputDecoration(
                                               hintText:
-                                                  controller.kolayAdres.value,
+                                                  controller.localizedFastType(
+                                                controller.kolayAdres.value,
+                                              ),
                                               hintStyle: TextStyle(
                                                 color: Colors.grey,
                                                 fontFamily: "MontserratMedium",
@@ -300,7 +346,7 @@ class BankInfoView extends StatelessWidget {
                                       BorderRadius.all(Radius.circular(12)),
                                 ),
                                 child: Text(
-                                  "Kaydet",
+                                  'common.save'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 15,

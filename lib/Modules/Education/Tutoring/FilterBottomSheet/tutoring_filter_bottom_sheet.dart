@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/FilterBottomSheet/tutoring_filter_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -10,9 +12,59 @@ class TutoringFilterBottomSheet extends StatelessWidget {
   final TutoringController controller;
 
   TutoringFilterBottomSheet({super.key, required this.controller});
-  final TutoringFilterController filterController = Get.put(
-    TutoringFilterController(),
-  );
+  final TutoringFilterController filterController =
+      TutoringFilterController.ensure();
+
+  String _branchLabel(String value) {
+    const map = {
+      'Yaz Okulu': 'tutoring.branch.summer_school',
+      'Orta Öğretim': 'tutoring.branch.secondary_education',
+      'İlk Öğretim': 'tutoring.branch.primary_education',
+      'Yabancı Dil': 'tutoring.branch.foreign_language',
+      'Yazılım': 'tutoring.branch.software',
+      'Direksiyon': 'tutoring.branch.driving',
+      'Spor': 'tutoring.branch.sports',
+      'Sanat': 'tutoring.branch.art',
+      'Müzik': 'tutoring.branch.music',
+      'Tiyatro': 'tutoring.branch.theatre',
+      'Kişisel Gelişim': 'tutoring.branch.personal_development',
+      'Mesleki': 'tutoring.branch.vocational',
+      'Özel Eğitim': 'tutoring.branch.special_education',
+      'Çocuk': 'tutoring.branch.children',
+      'Diksiyon': 'tutoring.branch.diction',
+      'Fotoğrafçılık': 'tutoring.branch.photography',
+    };
+    return (map[value] ?? value).tr;
+  }
+
+  String _genderLabel(String value) {
+    const map = {
+      'Erkek': 'tutoring.gender.male',
+      'Kadın': 'tutoring.gender.female',
+      'Farketmez': 'tutoring.gender.any',
+    };
+    return (map[value] ?? value).tr;
+  }
+
+  String _sortLabel(String value) {
+    const map = {
+      'En Yeni': 'tutoring.sort.latest',
+      'Bana En Yakın': 'tutoring.sort.nearest',
+      'En Çok Görüntülenen': 'tutoring.sort.most_viewed',
+    };
+    return (map[value] ?? value).tr;
+  }
+
+  String _lessonPlaceLabel(String value) {
+    const map = {
+      'Öğrencinin Evi': 'tutoring.lesson_place.student_home',
+      'Öğretmenin Evi': 'tutoring.lesson_place.teacher_home',
+      'Öğrencinin veya Öğretmenin Evi': 'tutoring.lesson_place.either_home',
+      'Uzaktan Eğitim': 'tutoring.lesson_place.remote',
+      'Ders Verme Alanı': 'tutoring.lesson_place.lesson_area',
+    };
+    return (map[value] ?? value).tr;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,18 +75,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
         constraints: BoxConstraints(maxHeight: Get.height * 0.9),
         child: Column(
           children: [
-            Center(
-              child: Container(
-                height: 4,
-                width: 50,
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            8.ph,
-            Center(child: Text("Filtrele", style: TextStyles.bold20Black)),
+            AppSheetHeader(title: "tutoring.filter_title".tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -65,50 +106,32 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                         'Fotoğrafçılık',
                       ].map((String value) {
                         return Obx(
-                          () => GestureDetector(
+                          () => PasajSelectionChip(
+                            label: _branchLabel(value),
+                            selected:
+                                filterController.selectedBranch.value == value,
                             onTap: () {
                               filterController.selectedBranch.value =
                                   filterController.selectedBranch.value == value
                                       ? null
                                       : value;
                             },
-                            child: Container(
-                              width: (MediaQuery.of(context).size.width -
-                                      32 -
-                                      16) /
-                                  3,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: filterController.selectedBranch.value ==
-                                        value
-                                    ? Colors.black
-                                    : Colors.white,
-                                border:
-                                    Border.all(color: Colors.black, width: 1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                value,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color:
-                                      filterController.selectedBranch.value ==
-                                              value
-                                          ? Colors.white
-                                          : Colors.black,
-                                  fontSize: 14,
-                                ),
-                              ),
+                            width:
+                                (MediaQuery.of(context).size.width - 32 - 16) /
+                                    3,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
+                            borderRadius: BorderRadius.circular(12),
+                            fontSize: 14,
                           ),
                         );
                       }).toList(),
                     ),
                     16.ph,
-                    Text("Cinsiyet", style: TextStyles.bold18Black),
+                    Text("tutoring.gender_title".tr,
+                        style: TextStyles.bold18Black),
                     8.ph,
                     Wrap(
                       spacing: 8,
@@ -119,37 +142,31 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                         return Obx(
                           () => GestureDetector(
                             onTap: () {
-                              if (filterController.selectedLessonPlace.value!
-                                  .contains(value)) {
-                                filterController.selectedLessonPlace.value!
-                                    .remove(
-                                  value,
-                                );
-                              } else {
-                                filterController.selectedLessonPlace.value!.add(
-                                  value,
-                                );
-                              }
-                              filterController.selectedLessonPlace.refresh();
+                              filterController.selectedGender.value =
+                                  filterController.selectedGender.value == value
+                                      ? null
+                                      : value;
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Icon(
-                                  filterController.selectedLessonPlace.value!
-                                          .contains(value)
+                                  filterController.selectedGender.value == value
                                       ? Icons.check_circle
                                       : Icons.radio_button_unchecked,
                                   size: 18,
-                                  color: filterController
-                                          .selectedLessonPlace.value!
-                                          .contains(value)
-                                      ? Colors.green
-                                      : Colors.grey,
+                                  color:
+                                      filterController.selectedGender.value ==
+                                              value
+                                          ? Colors.green
+                                          : Colors.grey,
                                 ),
                                 4.pw,
-                                Text(value, style: TextStyles.textFieldTitle),
+                                Text(
+                                  _genderLabel(value),
+                                  style: TextStyles.textFieldTitle,
+                                ),
                               ],
                             ),
                           ),
@@ -157,51 +174,45 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                       }).toList(),
                     ),
                     Divider(),
-                    Text("Sıralama Ölçütü", style: TextStyles.bold18Black),
+                    Text("tutoring.sort_title".tr,
+                        style: TextStyles.bold18Black),
                     8.ph,
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.start,
                       children: <String>[
-                        'En Yeniler',
-                        'Fiyat: Düşükten Yükseğe',
-                        'Fiyat: Yüksekten Düşüğe',
+                        'En Yeni',
+                        'Bana En Yakın',
+                        'En Çok Görüntülenen',
                       ].map((String value) {
                         return Obx(
                           () => GestureDetector(
                             onTap: () {
-                              if (filterController.selectedLessonPlace.value!
-                                  .contains(value)) {
-                                filterController.selectedLessonPlace.value!
-                                    .remove(
-                                  value,
-                                );
-                              } else {
-                                filterController.selectedLessonPlace.value!.add(
-                                  value,
-                                );
-                              }
-                              filterController.selectedLessonPlace.refresh();
+                              filterController.selectedSort.value =
+                                  filterController.selectedSort.value == value
+                                      ? null
+                                      : value;
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Icon(
-                                  filterController.selectedLessonPlace.value!
-                                          .contains(value)
+                                  filterController.selectedSort.value == value
                                       ? Icons.check_circle
                                       : Icons.radio_button_unchecked,
                                   size: 18,
-                                  color: filterController
-                                          .selectedLessonPlace.value!
-                                          .contains(value)
+                                  color: filterController.selectedSort.value ==
+                                          value
                                       ? Colors.green
                                       : Colors.grey,
                                 ),
                                 4.pw,
-                                Text(value, style: TextStyles.textFieldTitle),
+                                Text(
+                                  _sortLabel(value),
+                                  style: TextStyles.textFieldTitle,
+                                ),
                               ],
                             ),
                           ),
@@ -209,7 +220,8 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                       }).toList(),
                     ),
                     Divider(),
-                    Text("Ders Yeri", style: TextStyles.bold18Black),
+                    Text("tutoring.lesson_place_title".tr,
+                        style: TextStyles.bold18Black),
                     8.ph,
                     Wrap(
                       spacing: 8,
@@ -255,7 +267,10 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                       : Colors.grey,
                                 ),
                                 4.pw,
-                                Text(value, style: TextStyles.textFieldTitle),
+                                Text(
+                                  _lessonPlaceLabel(value),
+                                  style: TextStyles.textFieldTitle,
+                                ),
                               ],
                             ),
                           ),
@@ -263,7 +278,8 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                       }).toList(),
                     ),
                     Divider(),
-                    Text("Hizmet Verilen Yer", style: TextStyles.bold18Black),
+                    Text("tutoring.service_location_title".tr,
+                        style: TextStyles.bold18Black),
                     8.ph,
                     Obx(
                       () => Row(
@@ -289,7 +305,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                     children: [
                                       Text(
                                         filterController.city.value.isEmpty
-                                            ? "Şehir Seç"
+                                            ? "common.select_city".tr
                                             : filterController.city.value,
                                         style: const TextStyle(
                                           color: Colors.black,
@@ -329,7 +345,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                       children: [
                                         Text(
                                           filterController.town.value.isEmpty
-                                              ? "İlçe Seç"
+                                              ? "common.select_district".tr
                                               : filterController.town.value,
                                           style: const TextStyle(
                                             color: Colors.black,
@@ -367,7 +383,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                 border:
                                     Border.all(color: Colors.black, width: 1),
                               ),
-                              child: Text("Sıfırla",
+                              child: Text("common.reset".tr,
                                   style: TextStyles.bold16Black),
                             ),
                           ),
@@ -385,8 +401,8 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                 color: Colors.black,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child:
-                                  Text("Uygula", style: TextStyles.bold16White),
+                              child: Text("common.apply".tr,
+                                  style: TextStyles.bold16White),
                             ),
                           ),
                         ),

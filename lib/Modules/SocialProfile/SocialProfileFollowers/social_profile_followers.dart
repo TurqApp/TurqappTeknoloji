@@ -5,17 +5,58 @@ import '../../../Core/page_line_bar.dart';
 import '../../Profile/FollowingFollowers/follower_content.dart';
 import 'social_profile_followers_controller.dart';
 
-class SocialProfileFollowers extends StatelessWidget {
+class SocialProfileFollowers extends StatefulWidget {
   final int selection;
   final String userID;
   final String nickname;
-  SocialProfileFollowers(
+  const SocialProfileFollowers(
       {super.key,
       required this.selection,
       required this.nickname,
       required this.userID});
-  late final controller = Get.put(
-      SocialProfileFollowersController(initialPage: selection, userID: userID));
+
+  @override
+  State<SocialProfileFollowers> createState() => _SocialProfileFollowersState();
+}
+
+class _SocialProfileFollowersState extends State<SocialProfileFollowers> {
+  late final SocialProfileFollowersController controller;
+  bool _ownsController = false;
+
+  String get _pageLineBarTag =>
+      '${kFollowersSocialProfilePageLineBarTag}_${widget.userID}';
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController =
+        SocialProfileFollowersController.maybeFind(tag: widget.userID);
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = SocialProfileFollowersController.ensure(
+        initialPage: widget.selection,
+        userID: widget.userID,
+        tag: widget.userID,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          SocialProfileFollowersController.maybeFind(tag: widget.userID),
+          controller,
+        )) {
+      Get.delete<SocialProfileFollowersController>(
+        tag: widget.userID,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,26 +69,22 @@ class SocialProfileFollowers extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 15, right: 15, top: 15),
-              child: Row(
-                children: [
-                  BackButtons(text: nickname),
-                ],
-              ),
+              child: BackButtons(text: widget.nickname),
             ),
             PageLineBar(
-              barList: ["Takipciler", "Takip Edilenler"],
-              pageName: "FollowersSocialProfile",
-              initialIndex: selection,
+              barList: ['profile.followers'.tr, 'profile.following'.tr],
+              pageName: _pageLineBarTag,
+              initialIndex: widget.selection,
               pageController: controller.pageController,
             ),
             Expanded(
               child: PageView(
                 controller: controller.pageController,
                 onPageChanged: (v) {
-                  Get.find<PageLineBarController>(
-                          tag: 'FollowersSocialProfile')
-                      .selection
-                      .value = v;
+                  syncPageLineBarSelection(
+                    _pageLineBarTag,
+                    v,
+                  );
                 },
                 children: [
                   Obx(() {

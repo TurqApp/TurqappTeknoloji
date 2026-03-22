@@ -7,7 +7,11 @@ class StoryModel {
   final String userId;
   final DateTime createdAt;
   final Color backgroundColor;
+  final String musicId;
   final String musicUrl;
+  final String musicTitle;
+  final String musicArtist;
+  final String musicCoverUrl;
   final List<StoryElement> elements;
 
   StoryModel({
@@ -15,7 +19,11 @@ class StoryModel {
     required this.userId,
     required this.createdAt,
     required this.backgroundColor,
+    required this.musicId,
     required this.musicUrl,
+    required this.musicTitle,
+    required this.musicArtist,
+    required this.musicCoverUrl,
     required this.elements,
   });
 
@@ -62,12 +70,13 @@ class StoryModel {
         outlineColor: (m['outlineColor'] as int?) ?? 0xFF000000,
         stickerType: (m['stickerType'] as String?) ?? '',
         stickerData: (m['stickerData'] as String?) ?? '',
+        mediaLookPreset: (m['mediaLookPreset'] as String?) ?? 'original',
       );
     }).toList();
 
     // createdAt field'ının güvenli parsing'i
     DateTime parseCreatedAt() {
-      final createdAtData = data['createdAt'];
+      final createdAtData = data['createdDate'];
       if (createdAtData is Timestamp) {
         return createdAtData.toDate();
       } else if (createdAtData is int) {
@@ -83,7 +92,11 @@ class StoryModel {
       userId: data['userId'] as String,
       createdAt: parseCreatedAt(),
       backgroundColor: Color(data['backgroundColor'] as int),
+      musicId: data['musicId'] as String? ?? "",
       musicUrl: data['musicUrl'] as String? ?? "",
+      musicTitle: data['musicTitle'] as String? ?? "",
+      musicArtist: data['musicArtist'] as String? ?? "",
+      musicCoverUrl: data['musicCoverUrl'] as String? ?? "",
       elements: elems,
     );
   }
@@ -91,9 +104,13 @@ class StoryModel {
   /// StoryModel’ı Firestore’a yazmak üzere Map’e çevirir
   Map<String, dynamic> toMap() => {
         'userId': userId,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': backgroundColor.toARGB32(),
+        'musicId': musicId,
         'musicUrl': musicUrl,
+        'musicTitle': musicTitle,
+        'musicArtist': musicArtist,
+        'musicCoverUrl': musicCoverUrl,
         'elements': elements
             .map(
               (e) => {
@@ -121,6 +138,7 @@ class StoryModel {
                 'outlineColor': e.outlineColor,
                 'stickerType': e.stickerType,
                 'stickerData': e.stickerData,
+                'mediaLookPreset': e.mediaLookPreset,
               },
             )
             .toList(),
@@ -130,9 +148,13 @@ class StoryModel {
   Map<String, dynamic> toCacheMap() => {
         'id': id,
         'userId': userId,
-        'createdAt': createdAt.millisecondsSinceEpoch,
+        'createdDate': createdAt.millisecondsSinceEpoch,
         'backgroundColor': backgroundColor.toARGB32(),
+        'musicId': musicId,
         'musicUrl': musicUrl,
+        'musicTitle': musicTitle,
+        'musicArtist': musicArtist,
+        'musicCoverUrl': musicCoverUrl,
         'elements': elements
             .map(
               (e) => {
@@ -160,6 +182,7 @@ class StoryModel {
                 'outlineColor': e.outlineColor,
                 'stickerType': e.stickerType,
                 'stickerData': e.stickerData,
+                'mediaLookPreset': e.mediaLookPreset,
               },
             )
             .toList(),
@@ -205,6 +228,7 @@ class StoryModel {
         outlineColor: (m['outlineColor'] as num?)?.toInt() ?? 0xFF000000,
         stickerType: (m['stickerType'] ?? '').toString(),
         stickerData: (m['stickerData'] ?? '').toString(),
+        mediaLookPreset: (m['mediaLookPreset'] ?? 'original').toString(),
       );
     }).toList();
 
@@ -212,11 +236,15 @@ class StoryModel {
       id: (data['id'] ?? '').toString(),
       userId: (data['userId'] ?? '').toString(),
       createdAt: DateTime.fromMillisecondsSinceEpoch(
-          (data['createdAt'] as num?)?.toInt() ??
+          (data['createdDate'] as num?)?.toInt() ??
               DateTime.now().millisecondsSinceEpoch),
       backgroundColor:
           Color((data['backgroundColor'] as num?)?.toInt() ?? 0xFF000000),
+      musicId: (data['musicId'] ?? '').toString(),
       musicUrl: (data['musicUrl'] ?? '').toString(),
+      musicTitle: (data['musicTitle'] ?? '').toString(),
+      musicArtist: (data['musicArtist'] ?? '').toString(),
+      musicCoverUrl: (data['musicCoverUrl'] ?? '').toString(),
       elements: elems,
     );
   }

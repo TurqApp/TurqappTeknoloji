@@ -1,5 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 
 import 'cikmis_sorular_preview.dart';
 
@@ -24,34 +26,36 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
 
 class _CikmisSorularBaslik3SecimiState
     extends State<CikmisSorularBaslik3Secimi> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> basliklar = [];
+
+  String _localizedExamType(String raw) {
+    switch (raw) {
+      case 'Ön Lisans':
+        return 'past_questions.exam_type.associate'.tr;
+      case 'Lisans':
+        return 'past_questions.exam_type.undergraduate'.tr;
+      default:
+        return raw;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .where("sinavTuru", isEqualTo: widget.sinavTuru)
-        .where("yil", isEqualTo: widget.yil)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      for (var doc in snapshot.docs) {
-        String baslik2 = doc.get("baslik2");
-        String baslik3 = doc.get("baslik3");
-
-        if (!basliklar.contains(baslik3) && widget.baslik2 == baslik2) {
-          if (mounted) {
-            setState(() {
-              basliklar.add(baslik3);
-            });
-          }
-        }
-      }
-      // Veri tamamen yüklendikten sonra sıralama
+    _repository
+        .distinctValues(
+          where: (doc) =>
+              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
+              (doc['yil'] ?? '').toString() == widget.yil &&
+              (doc['baslik2'] ?? '').toString() == widget.baslik2,
+          field: 'baslik3',
+        )
+        .then((items) {
       if (mounted) {
         setState(() {
-          basliklar.sort(); // A -> Z sıralaması
+          basliklar = items;
         });
       }
     });
@@ -67,27 +71,22 @@ class _CikmisSorularBaslik3SecimiState
             Container(
               height: 70,
               color: Colors.white,
-              child: Padding(
-                padding: EdgeInsets.all(15),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.arrow_back, color: Colors.black),
-                      SizedBox(width: 12),
-                      Text(
-                        "${widget.yil} Yılı Oturumlar",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 25,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ],
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  AppBackButton(
+                    icon: Icons.arrow_back,
+                    onTap: () => Navigator.pop(context),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      'past_questions.sessions_by_year'
+                          .trParams({'year': widget.yil}),
+                      fontSize: 25,
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -142,8 +141,8 @@ class _CikmisSorularBaslik3SecimiState
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.black45,
-                                        Colors.black.withValues(alpha: 
-                                          0.9,
+                                        Colors.black.withValues(
+                                          alpha: 0.9,
                                         ), // Alt renk
                                       ],
                                       begin: Alignment
@@ -156,8 +155,8 @@ class _CikmisSorularBaslik3SecimiState
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 
-                                          0.3,
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.3,
                                         ), // Gölge rengi ve opaklık
                                         blurRadius: 6, // Gölge bulanıklık
                                         offset: Offset(
@@ -192,7 +191,7 @@ class _CikmisSorularBaslik3SecimiState
                                         Spacer(),
                                         SizedBox(height: 4),
                                         Text(
-                                          widget.sinavTuru,
+                                          _localizedExamType(widget.sinavTuru),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.grey,

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,13 +6,41 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestEntry/test_entry_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class TestEntry extends StatelessWidget {
+class TestEntry extends StatefulWidget {
   const TestEntry({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(TestEntryController());
+  State<TestEntry> createState() => _TestEntryState();
+}
 
+class _TestEntryState extends State<TestEntry> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final TestEntryController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'test_entry_${identityHashCode(this)}';
+    _ownsController =
+        TestEntryController.maybeFind(tag: _controllerTag) == null;
+    controller = TestEntryController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController =
+          TestEntryController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<TestEntryController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -19,7 +48,7 @@ class TestEntry extends StatelessWidget {
           children: [
             Column(
               children: [
-                BackButtons(text: "Teste Katıl"),
+                BackButtons(text: "tests.join_title".tr),
                 Expanded(
                   child: Container(
                     color: Colors.white,
@@ -47,12 +76,12 @@ class TestEntry extends StatelessWidget {
                                     focusNode: controller.focusNode,
                                     onChanged: controller.onTextChanged,
                                     onSubmitted: controller.onTextSubmitted,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       icon: Icon(
                                         AppIcons.search,
                                         color: Colors.pink,
                                       ),
-                                      hintText: "Test ID Ara",
+                                      hintText: "tests.search_id_hint".tr,
                                       hintStyle: TextStyle(
                                         color: Colors.grey,
                                         fontFamily: "Montserrat",
@@ -69,8 +98,8 @@ class TestEntry extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 15),
-                              const Text(
-                                "Öğretmeniniz tarafından size iletilen Test ID değerini buraya girerek teste başlayabilirsiniz.",
+                              Text(
+                                "tests.join_help".tr,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -96,7 +125,7 @@ class TestEntry extends StatelessWidget {
                                               child: Column(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
-                                                children: const [
+                                                children: [
                                                   Icon(
                                                     Icons.info_outline,
                                                     color: Colors.black,
@@ -104,7 +133,7 @@ class TestEntry extends StatelessWidget {
                                                   ),
                                                   SizedBox(height: 10),
                                                   Text(
-                                                    "Test bulunamadı.\nGirilen Test ID ile eşleşen bir test bulunamadı.",
+                                                    "tests.join_not_found".tr,
                                                     textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       color: Colors.black,
@@ -136,11 +165,31 @@ class TestEntry extends StatelessWidget {
                                                                 .value!
                                                                 .img
                                                                 .isNotEmpty
-                                                            ? Image.network(
-                                                                controller.model
-                                                                    .value!.img,
+                                                            ? CachedNetworkImage(
+                                                                imageUrl:
+                                                                    controller
+                                                                        .model
+                                                                        .value!
+                                                                        .img,
                                                                 fit: BoxFit
                                                                     .cover,
+                                                                placeholder: (
+                                                                  context,
+                                                                  url,
+                                                                ) =>
+                                                                    const Center(
+                                                                  child:
+                                                                      CupertinoActivityIndicator(),
+                                                                ),
+                                                                errorWidget: (
+                                                                  context,
+                                                                  url,
+                                                                  error,
+                                                                ) =>
+                                                                    const Icon(
+                                                                  Icons
+                                                                      .broken_image,
+                                                                ),
                                                               )
                                                             : const Center(
                                                                 child:
@@ -164,7 +213,16 @@ class TestEntry extends StatelessWidget {
                                                                 .spaceBetween,
                                                         children: [
                                                           Text(
-                                                            "${controller.model.value!.testTuru} Testi",
+                                                            "tests.type_test"
+                                                                .trParams({
+                                                              "type": controller
+                                                                  .localizedTestType(
+                                                                controller
+                                                                    .model
+                                                                    .value!
+                                                                    .testTuru,
+                                                              ),
+                                                            }),
                                                             maxLines: 1,
                                                             style:
                                                                 const TextStyle(
@@ -194,9 +252,13 @@ class TestEntry extends StatelessWidget {
                                                             ),
                                                           ),
                                                           Text(
-                                                            controller.model
-                                                                .value!.dersler
-                                                                .join(", "),
+                                                            controller
+                                                                .localizedLessons(
+                                                              controller
+                                                                  .model
+                                                                  .value!
+                                                                  .dersler,
+                                                            ),
                                                             maxLines: 2,
                                                             overflow:
                                                                 TextOverflow
@@ -231,7 +293,7 @@ class TestEntry extends StatelessWidget {
               () => controller.model.value != null
                   ? GestureDetector(
                       onTap: () => controller.joinTest(context),
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(20),
                         child: SizedBox(
                           height: 50,
@@ -242,7 +304,7 @@ class TestEntry extends StatelessWidget {
                             ),
                             child: Center(
                               child: Text(
-                                "Test'e Katıl",
+                                "tests.join_button".tr,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,

@@ -15,37 +15,37 @@ class RecommendedUserList extends StatefulWidget {
 }
 
 class _RecommendedUserListState extends State<RecommendedUserList> {
-  late final PageController _pageController;
+  late final ScrollController _scrollController;
+  late final RecommendedUserListController controller;
   bool _prefetchRequested = false;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.45, keepPage: true);
+    controller = RecommendedUserListController.ensure();
+    _scrollController = ScrollController(keepScrollOffset: false);
     // İlk frame’den sonra görünürlüğe yakınsa prefetch et
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<RecommendedUserListController>();
-
     // Her build sonrası konumu tekrar kontrol et (scroll ile tetiklenir)
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
 
     return Obx(() {
-      // Loading durumu: placeholder göster
-      if (controller.isLoading.value && controller.list.isEmpty) {
+      // Slot akışta sabit kalsın; veri gelene kadar placeholder göster.
+      if (controller.list.isEmpty && !controller.hasError.value) {
         return _buildLoadingPlaceholder();
       }
 
-      // Liste boşsa hiçbir şey gösterme
+      // Hata varsa sessizce gizle
       if (controller.list.isEmpty) {
         return const SizedBox.shrink();
       }
@@ -70,7 +70,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Önerilen Kişiler",
+                  'recommended_users.title'.tr,
                   style: TextStyles.bold16Black,
                 ),
                 12.pw,
@@ -81,19 +81,20 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
             ),
           ),
           SizedBox(
-            height: 205,
-            child: PageView.builder(
-              padEnds: false,
-              controller: _pageController,
+            height: (MediaQuery.of(context).size.height * 0.245)
+                .clamp(170.0, 205.0),
+            child: ListView.separated(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               itemCount: showItems.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final model = showItems[index];
-                return Padding(
-                  padding: EdgeInsets.only(left: index == 0 ? 15 : 0),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: RecommendedUserContent(model: model),
-                  ),
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width * 0.44)
+                      .clamp(150.0, 186.0),
+                  child: RecommendedUserContent(model: model),
                 );
               },
             ),
@@ -114,7 +115,6 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     if (pos.dy < screenH + lookahead) {
       _prefetchRequested = true;
       try {
-        final controller = Get.find<RecommendedUserListController>();
         controller.ensureLoaded(limit: controller.usersLimitInitial);
       } catch (_) {
         _prefetchRequested = false; // controller bulunamazsa tekrar dene
@@ -132,7 +132,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Önerilen Kişiler",
+                'recommended_users.title'.tr,
                 style: TextStyles.bold16Black,
               ),
               12.pw,
@@ -143,7 +143,8 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
           ),
         ),
         SizedBox(
-          height: 205,
+          height:
+              (MediaQuery.of(context).size.height * 0.245).clamp(170.0, 205.0),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 15),

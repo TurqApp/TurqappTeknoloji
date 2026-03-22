@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 enum ContentScreenKind {
@@ -6,6 +5,7 @@ enum ContentScreenKind {
   shorts,
   explore,
   story,
+  profile,
 }
 
 class ContentPolicy {
@@ -17,27 +17,15 @@ class ContentPolicy {
   static const int mobileAheadSegments = 3; // n + 3
 
   static bool get isOnWiFi {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnWiFi;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;
   }
 
   static bool get isOnCellular {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnCellular;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
   }
 
   static bool get isConnected {
-    try {
-      return Get.find<NetworkAwarenessService>().isConnected;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 
   // Kullanıcı kararı: mobilde arka plan güncelleme olmasın.
@@ -46,5 +34,40 @@ class ContentPolicy {
       return isOnWiFi;
     }
     return isOnWiFi;
+  }
+
+  static bool shouldBootstrapNetwork(
+    ContentScreenKind screen, {
+    required bool hasLocalContent,
+  }) {
+    if (!isConnected) return false;
+    if (isOnWiFi) return true;
+    return !hasLocalContent;
+  }
+
+  static int initialPoolLimit(ContentScreenKind screen) {
+    if (isOnWiFi) {
+      switch (screen) {
+        case ContentScreenKind.feed:
+          return 12;
+        case ContentScreenKind.shorts:
+        case ContentScreenKind.explore:
+        case ContentScreenKind.profile:
+          return 30;
+        case ContentScreenKind.story:
+          return 10;
+      }
+    }
+
+    switch (screen) {
+      case ContentScreenKind.feed:
+        return feedInitialFromPool;
+      case ContentScreenKind.shorts:
+      case ContentScreenKind.explore:
+      case ContentScreenKind.profile:
+        return mobileWarmWindow;
+      case ContentScreenKind.story:
+        return 10;
+    }
   }
 }

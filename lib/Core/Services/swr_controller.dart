@@ -114,6 +114,7 @@ abstract class SWRController<T> extends GetxController {
   }
 
   /// Sayfayı sıfırla ve baştan yükle.
+  @override
   Future<void> refresh() async {
     if (isLoading.value) return;
     isLoading.value = true;

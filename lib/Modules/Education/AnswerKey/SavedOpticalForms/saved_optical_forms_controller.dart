@@ -1,52 +1,155 @@
-import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedOpticalFormsController extends GetxController {
+  static SavedOpticalFormsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SavedOpticalFormsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SavedOpticalFormsController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<SavedOpticalFormsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SavedOpticalFormsController>(tag: tag);
+  }
+
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletModel>[].obs;
   final isLoading = false.obs;
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
     try {
-      list.clear();
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final snapshots = await FirebaseFirestore.instance
-          .collection("books")
-          .where("kaydet", arrayContains: uid)
-          .orderBy("timeStamp", descending: true)
-          .get();
-
-      for (var doc in snapshots.docs) {
-        final data = doc.data();
-        list.add(
-          BookletModel(
-            dil: (data["dil"] ?? '') as String,
-            sinavTuru: (data["sinavTuru"] ?? '') as String,
-            cover: (data["cover"] ?? '') as String,
-            baslik: (data["baslik"] ?? '') as String,
-            timeStamp: (data["timeStamp"] ?? 0) as num,
-            kaydet: List<String>.from(data["kaydet"] ?? []),
-            basimTarihi: (data["basimTarihi"] ?? '') as String,
-            yayinEvi: (data["yayinEvi"] ?? '') as String,
-            docID: doc.id,
-            userID: (data["userID"] ?? '') as String,
-            goruntuleme: List<String>.from(data["goruntuleme"] ?? []),
-          ),
-        );
+      final uid = CurrentUserService.instance.effectiveUserId;
+      if (uid.isEmpty) {
+        isLoading.value = false;
+        return;
       }
-    } catch (e) {
-      log("SavedOpticalFormsController.getData error: $e");
+      final savedEntries = await _userSubcollectionRepository.getEntries(
+        uid,
+        subcollection: "books",
+        orderByField: "createdAt",
+        descending: true,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (savedEntries.isNotEmpty) {
+        final books = await _bookletRepository.fetchByIds(
+          savedEntries.map((e) => e.id).toList(growable: false),
+          preferCache: true,
+          cacheOnly: true,
+        );
+        if (books.isNotEmpty) {
+          if (!_sameBookletEntries(list, books)) {
+            list.assignAll(books);
+          }
+          isLoading.value = false;
+          if (SilentRefreshGate.shouldRefresh(
+            'answer_key:saved_books:$uid',
+            minInterval: _silentRefreshInterval,
+          )) {
+            unawaited(getData(silent: true, forceRefresh: true));
+          }
+          return;
+        }
+      }
+    } catch (_) {}
+
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final shouldShowLoader = !silent && list.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
+    try {
+      final uid = CurrentUserService.instance.effectiveUserId;
+      final savedEntries = await _userSubcollectionRepository.getEntries(
+        uid,
+        subcollection: "books",
+        orderByField: "createdAt",
+        descending: true,
+        preferCache: true,
+        forceRefresh: forceRefresh,
+      );
+      final books = await _bookletRepository.fetchByIds(
+        savedEntries.map((e) => e.id).toList(growable: false),
+        preferCache: true,
+      );
+      if (!_sameBookletEntries(list, books)) {
+        list.assignAll(books);
+      }
+      SilentRefreshGate.markRefreshed('answer_key:saved_books:$uid');
+    } catch (_) {
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader || list.isEmpty) {
+        isLoading.value = false;
+      }
     }
   }
 }

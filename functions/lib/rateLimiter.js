@@ -14,6 +14,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RateLimits = void 0;
 exports.enforceRateLimit = enforceRateLimit;
+exports.enforceRateLimitForKey = enforceRateLimitForKey;
 const https_1 = require("firebase-functions/v2/https");
 // Per-instance in-memory store — fonksiyon soğuk başlatılırsa sıfırlanır
 // Yeterli: kısa-süreli saldırıları durdurur, persistent quota için Firestore eklenebilir
@@ -45,6 +46,19 @@ function enforceRateLimit(uid, action, limit, windowSec) {
     const nowMs = Date.now();
     _maybeCleanup(nowMs);
     const key = `${action}:${uid}`;
+    _enforceRateLimitForStoreKey(key, action, limit, windowSec, nowMs);
+}
+function enforceRateLimitForKey(keySubject, action, limit, windowSec) {
+    const normalized = String(keySubject || "").trim().toLowerCase();
+    if (!normalized) {
+        throw new https_1.HttpsError("invalid-argument", "rate_limit_key_required");
+    }
+    const nowMs = Date.now();
+    _maybeCleanup(nowMs);
+    const key = `${action}:${normalized}`;
+    _enforceRateLimitForStoreKey(key, action, limit, windowSec, nowMs);
+}
+function _enforceRateLimitForStoreKey(key, action, limit, windowSec, nowMs) {
     const windowMs = windowSec * 1000;
     const entry = _store.get(key);
     if (!entry || nowMs - entry.windowStart >= windowMs) {
@@ -66,6 +80,8 @@ exports.RateLimits = {
     like: (uid) => enforceRateLimit(uid, "like", 120, 60),
     /** Yorum: 30/dk */
     comment: (uid) => enforceRateLimit(uid, "comment", 30, 60),
+    /** Report: 20 / 10dk */
+    report: (uid) => enforceRateLimit(uid, "report", 20, 600),
     /** Takip: 60/dk */
     follow: (uid) => enforceRateLimit(uid, "follow", 60, 60),
     /** Gönderi oluşturma: 10/dk */

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview_controller.dart';
 
-class OpticalPreview extends StatelessWidget {
+part 'optical_preview_intro_part.dart';
+part 'optical_preview_exam_part.dart';
+
+class OpticalPreview extends StatefulWidget {
   final OpticalFormModel model;
   final Function? update;
 
@@ -14,428 +18,42 @@ class OpticalPreview extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      OpticalPreviewController(model, update),
-    );
+  State<OpticalPreview> createState() => _OpticalPreviewState();
+}
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            Obx(
-              () => controller.selection.value == 1
-                  ? Column(
-                      children: [
-                        Container(
-                          height: 70,
-                          color: Colors.white,
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            child: Text(
-                              controller.fullName.text,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 25,
-                                fontFamily: "MontserratBold",
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            color: Colors.white,
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: ListView.builder(
-                                    itemCount: model.cevaplar.length,
-                                    itemBuilder: (context, index) {
-                                      return Padding(
-                                        padding: EdgeInsets.only(
-                                          left: 10,
-                                          right: 20,
-                                          top: index == 0 ? 10 : 0,
-                                        ),
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: index % 2 == 0
-                                                ? Colors.pink.withValues(
-                                                    alpha: 0.05,
-                                                  )
-                                                : Colors.pink.withValues(
-                                                    alpha: 0.2,
-                                                  ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              SizedBox(
-                                                width: 35,
-                                                height: 35,
-                                                child: Center(
-                                                  child: Text(
-                                                    "${index + 1}.",
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 20,
-                                                      fontFamily:
-                                                          "MontserratBold",
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              for (var item in model.max == 5
-                                                  ? [
-                                                      "A",
-                                                      "B",
-                                                      "C",
-                                                      "D",
-                                                      "E",
-                                                    ]
-                                                  : ["A", "B", "C", "D"])
-                                                Padding(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 4.0,
-                                                  ),
-                                                  child: GestureDetector(
-                                                    onTap: () =>
-                                                        controller.toggleAnswer(
-                                                      index,
-                                                      item,
-                                                    ),
-                                                    child: Obx(
-                                                      () => Container(
-                                                        width: 40,
-                                                        height: 40,
-                                                        alignment:
-                                                            Alignment.center,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: controller
-                                                                          .cevaplar[
-                                                                      index] ==
-                                                                  item
-                                                              ? Colors.black
-                                                              : Colors.white,
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                            50,
-                                                          ),
-                                                          border: Border.all(
-                                                            color: Colors.black,
-                                                            width: 1.5,
-                                                          ),
-                                                        ),
-                                                        child: Text(
-                                                          item,
-                                                          style: TextStyle(
-                                                            color: controller
-                                                                            .cevaplar[
-                                                                        index] ==
-                                                                    item
-                                                                ? Colors.white
-                                                                : Colors.black,
-                                                            fontSize: 20,
-                                                            fontFamily:
-                                                                "MontserratBold",
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: GestureDetector(
-                                    onTap: () => controller.handleFinishTest(
-                                      context,
-                                    ),
-                                    child: Container(
-                                      height: 45,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: Colors.indigo,
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        "Test'i Bitir",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : controller.selection.value == 0
-                      ? Container(
-                          color: Colors.white,
-                          child: ListView(
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.all(25),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(height: 20),
-                                    Text(
-                                      "Test Başlamıştır!",
-                                      style: TextStyle(
-                                        color: Colors.purple,
-                                        fontSize: 25,
-                                        fontFamily: "MontserratBold",
-                                      ),
-                                    ),
-                                    SizedBox(height: 12),
-                                    Text(
-                                      "Bilgilerini doldurup testi başlatabilirsin. Tüm cevapların sınav sonunda kaydedilecektir.",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 18,
-                                        fontFamily: "MontserratMedium",
-                                      ),
-                                    ),
-                                    SizedBox(height: 12),
-                                    Divider(color: Colors.grey),
-                                    SizedBox(height: 12),
-                                    Text(
-                                      "Test Bilgilendirmesi",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 18,
-                                        fontFamily: "MontserratBold",
-                                      ),
-                                    ),
-                                    SizedBox(height: 15),
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        SizedBox(
-                                          width: 30,
-                                          height: 30,
-                                          child: Text(
-                                            "1-)",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18,
-                                              fontFamily: "MontserratBold",
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            "Ad soyad ve öğrenci numaranı girdikten sonra testi başlatabilirsin.",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18,
-                                              fontFamily: "MontserratMedium",
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 15),
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        SizedBox(
-                                          width: 30,
-                                          height: 30,
-                                          child: Text(
-                                            "2-)",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18,
-                                              fontFamily: "MontserratBold",
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            "Cevaplarını tamamladığında alttaki butonla sınavı bitirip yanıtlarını gönderebilirsin.",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18,
-                                              fontFamily: "MontserratMedium",
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 15),
-                                    Container(
-                                      height: 50,
-                                      alignment: Alignment.centerLeft,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.grey.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12),
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 15,
-                                        ),
-                                        child: TextField(
-                                          controller: controller.fullName,
-                                          maxLines: 1,
-                                          keyboardType: TextInputType.text,
-                                          textAlign: TextAlign.center,
-                                          decoration: InputDecoration(
-                                            hintText: "Ad Soyad",
-                                            hintStyle: TextStyle(
-                                              color: Colors.grey,
-                                              fontFamily: "MontserratMedium",
-                                            ),
-                                            border: InputBorder.none,
-                                          ),
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 15),
-                                    Container(
-                                      height: 50,
-                                      alignment: Alignment.centerLeft,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.grey.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(12),
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 15,
-                                        ),
-                                        child: TextField(
-                                          controller: controller.ogrenciNo,
-                                          maxLines: 1,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          decoration: InputDecoration(
-                                            hintText: "Öğrenci Numaranız",
-                                            hintStyle: TextStyle(
-                                              color: Colors.grey,
-                                              fontFamily: "MontserratMedium",
-                                            ),
-                                            border: InputBorder.none,
-                                          ),
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 15),
-                                    GestureDetector(
-                                      onTap: () {
-                                        if (controller.fullName.text
-                                                .trim()
-                                                .length <
-                                            6) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Ad ve soyad en az 6 karakter olmalı.",
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      "MontserratMedium",
-                                                ),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                              duration: Duration(seconds: 3),
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                        if (controller.ogrenciNo.text
-                                            .trim()
-                                            .isEmpty) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Öğrenci numarası boş olamaz.",
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      "MontserratMedium",
-                                                ),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                              duration: Duration(seconds: 3),
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                        controller.startTest();
-                                      },
-                                      child: Container(
-                                        height: 45,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: controller.canStartTest()
-                                              ? Colors.indigo
-                                              : Colors.grey,
-                                          borderRadius: BorderRadius.all(
-                                            Radius.circular(12),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "Test'e Başla",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 20),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : SizedBox(),
-            ),
-          ],
-        ),
-      ),
+class _OpticalPreviewState extends State<OpticalPreview> {
+  late final OpticalPreviewController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  OpticalFormModel get model => widget.model;
+  Function? get update => widget.update;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'optical_preview_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        OpticalPreviewController.maybeFind(tag: _controllerTag) == null;
+    controller = OpticalPreviewController.ensure(
+      widget.model,
+      widget.update,
+      tag: _controllerTag,
     );
   }
+
+  @override
+  void dispose() {
+    final registeredController = OpticalPreviewController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
+      Get.delete<OpticalPreviewController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _buildPage(context);
 }

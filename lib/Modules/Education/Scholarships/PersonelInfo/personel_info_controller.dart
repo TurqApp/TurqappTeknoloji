@@ -1,15 +1,18 @@
-import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+part 'personel_info_controller_data_part.dart';
+part 'personel_info_controller_form_part.dart';
 
 class FieldConfig {
   final String label;
@@ -31,22 +34,68 @@ class FieldConfig {
 
 class PersonelInfoController extends GetxController
     with GetTickerProviderStateMixin {
+  static PersonelInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(PersonelInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static PersonelInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<PersonelInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<PersonelInfoController>(tag: tag);
+  }
+
+  static const String _countryFieldLabel = 'Ülke';
+  static const String _maritalStatusFieldLabel = 'Medeni Hal';
+  static const String _genderFieldLabel = 'Cinsiyet';
+  static const String _disabilityFieldLabel = 'Engel Durumu';
+  static const String _employmentFieldLabel = 'Çalışma Durumu';
+  static const String _cityFieldLabel = 'İl';
+  static const String _districtFieldLabel = 'İlçe';
+  static const String _countryFieldTitleKey =
+      'personal_info.select_country_title';
+  static const String _maritalStatusFieldTitleKey =
+      'personal_info.select_marital_status_title';
+  static const String _genderFieldTitleKey =
+      'personal_info.select_gender_title';
+  static const String _disabilityFieldTitleKey =
+      'personal_info.select_disability_title';
+  static const String _employmentFieldTitleKey =
+      'personal_info.select_work_status_title';
+  static const String _single = 'Bekar';
+  static const String _married = 'Evli';
+  static const String _divorced = 'Boşanmış';
+  static const String _turkey = 'Türkiye';
+  static const String _selectValue = 'Seçim Yap';
+  static const String _none = 'Yok';
+  static const String _working = 'Çalışıyor';
+  static const String _notWorking = 'Çalışmıyor';
+  static const String _male = 'Erkek';
+  static const String _female = 'Kadın';
+  static const String _hasReport = 'Var';
+  final UserRepository _userRepository = UserRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   final tc = ''.obs;
-  final medeniHal = 'Bekar'.obs;
-  final county = 'Türkiye'.obs;
-  final cinsiyet = 'Seçim Yap'.obs;
-  final engelliRaporu = 'Yok'.obs;
-  final calismaDurumu = 'Çalışmıyor'.obs;
+  final medeniHal = _single.obs;
+  final county = _turkey.obs;
+  final cinsiyet = _selectValue.obs;
+  final engelliRaporu = _none.obs;
+  final calismaDurumu = _notWorking.obs;
   final city = ''.obs;
   final town = ''.obs;
   final selectedDate = Rxn<DateTime>();
 
   final originalTC = ''.obs;
-  final originalMedeniHal = 'Bekar'.obs;
-  final originalCounty = 'Türkiye'.obs;
-  final originalCinsiyet = 'Seçim Yap'.obs;
-  final originalEngelliRaporu = 'Yok'.obs;
-  final originalCalismaDurumu = 'Çalışmıyor'.obs;
+  final originalMedeniHal = _single.obs;
+  final originalCounty = _turkey.obs;
+  final originalCinsiyet = _selectValue.obs;
+  final originalEngelliRaporu = _none.obs;
+  final originalCalismaDurumu = _notWorking.obs;
   final originalCity = ''.obs;
   final originalTown = ''.obs;
   final originalSelectedDate = Rxn<DateTime>();
@@ -56,403 +105,35 @@ class PersonelInfoController extends GetxController
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   final sehirler = <String>[].obs;
 
-  final medeniHalList = ['Bekar', 'Evli', 'Boşanmış'];
-  final cinsiyetList = ['Erkek', 'Kadın'];
-  final engelliRaporuList = ['Var', 'Yok'];
-  final calismaDurumuList = ['Çalışıyor', 'Çalışmıyor'];
-  final countryList = [
-    "Türkiye",
-    "Afganistan",
-    "Almanya",
-    "Amerika Birleşik Devletleri",
-    "Arjantin",
-    "Avustralya",
-    "Avusturya",
-    "Azerbaycan",
-    "Bahreyn",
-    "Bangladeş",
-    "Belçika",
-    "Birleşik Arap Emirlikleri",
-    "Birleşik Krallık",
-    "Bosna-Hersek",
-    "Brezilya",
-    "Çekya",
-    "Çin",
-    "Danimarka",
-    "Endonezya",
-    "Ermenistan",
-    "Etiyopya",
-    "Filipinler",
-    "Finlandiya",
-    "Fransa",
-    "Gana",
-    "Güney Afrika",
-    "Güney Kore",
-    "Gürcistan",
-    "Hindistan",
-    "Hırvatistan",
-    "Hollanda",
-    "Irak",
-    "İran",
-    "İsrail",
-    "İsveç",
-    "İsviçre",
-    "İspanya",
-    "İtalya",
-    "Japonya",
-    "Kamboçya",
-    "Kanada",
-    "Katar",
-    "Kenya",
-    "Kırgızistan",
-    "Kuveyt",
-    "Laos",
-    "Lübnan",
-    "Macaristan",
-    "Malezya",
-    "Meksika",
-    "Moğolistan",
-    "Mısır",
-    "Myanmar",
-    "Nepal",
-    "Nijerya",
-    "Norveç",
-    "Özbekistan",
-    "Pakistan",
-    "Polonya",
-    "Portekiz",
-    "Rusya",
-    "Singapur",
-    "Slovakya",
-    "Slovenya",
-    "Sri Lanka",
-    "Sırbistan",
-    "Suudi Arabistan",
-    "Suriye",
-    "Tacikistan",
-    "Tayland",
-    "Türkmenistan",
-    "Umman",
-    "Ürdün",
-    "Vietnam",
-    "Yemen",
-    "Yunanistan",
-    "Yeni Zelanda",
-  ];
+  final medeniHalList = [_single, _married, _divorced];
+  final cinsiyetList = [_male, _female];
+  final engelliRaporuList = [_hasReport, _none];
+  final calismaDurumuList = [_working, _notWorking];
+  final countryList = _countryList;
 
   late final List<FieldConfig> fieldConfigs;
   final Map<String, AnimationController> _animationControllers = {};
   final Map<String, RxDouble> _animationTurns = {};
+
+  String get defaultSelectValue => _selectValue;
+  String get turkeyValue => _turkey;
+  String get singleValue => _single;
+  String get noneValue => _none;
+  String get notWorkingValue => _notWorking;
+  bool get isTurkeySelected => county.value == _turkey;
 
   @override
   void onInit() {
     super.onInit();
     loadCitiesAndTowns();
     fetchData();
-    _initFieldConfigs();
-    _initAnimationControllers();
-  }
-
-  void _initFieldConfigs() {
-    fieldConfigs = [
-      FieldConfig(
-        label: "Ülke",
-        title: "Ülke Seç",
-        value: county,
-        items: countryList,
-        onSelect: (val) {
-          county.value = val;
-          if (val != "Türkiye") {
-            city.value = '';
-            town.value = '';
-          }
-        },
-        isSearchable: true,
-      ),
-      FieldConfig(
-        label: "Medeni Hal",
-        title: "Medeni Hal Seç",
-        value: medeniHal,
-        items: medeniHalList,
-        onSelect: (val) => medeniHal.value = val,
-      ),
-      FieldConfig(
-        label: "Cinsiyet",
-        title: "Cinsiyet Seç",
-        value: cinsiyet,
-        items: cinsiyetList,
-        onSelect: (val) => cinsiyet.value = val,
-      ),
-      FieldConfig(
-        label: "Engel Durumu",
-        title: "Engel Durumu Seç",
-        value: engelliRaporu,
-        items: engelliRaporuList,
-        onSelect: (val) => engelliRaporu.value = val,
-      ),
-      FieldConfig(
-        label: "Çalışma Durumu",
-        title: "Çalışma Durumu Seç",
-        value: calismaDurumu,
-        items: calismaDurumuList,
-        onSelect: (val) => calismaDurumu.value = val,
-      ),
-    ];
-  }
-
-  void _initAnimationControllers() {
-    for (var config in fieldConfigs) {
-      _animationControllers[config.label] = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 200),
-      );
-      _animationTurns[config.label] = 0.0.obs;
-      _animationControllers[config.label]!.addListener(() {
-        _animationTurns[config.label]!.value =
-            _animationControllers[config.label]!.value * 0.5;
-      });
-    }
-    // Initialize for city and town dropdowns
-    _animationControllers["İl"] = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _animationTurns["İl"] = 0.0.obs;
-    _animationControllers["İl"]!.addListener(() {
-      _animationTurns["İl"]!.value = _animationControllers["İl"]!.value * 0.5;
-    });
-    _animationControllers["İlçe"] = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _animationTurns["İlçe"] = 0.0.obs;
-    _animationControllers["İlçe"]!.addListener(() {
-      _animationTurns["İlçe"]!.value =
-          _animationControllers["İlçe"]!.value * 0.5;
-    });
-  }
-
-  AnimationController getAnimationController(String label) {
-    return _animationControllers[label]!;
-  }
-
-  RxDouble getAnimationTurns(String label) {
-    return _animationTurns[label]!;
-  }
-
-  Future<void> toggleDropdown(BuildContext context, FieldConfig config) async {
-    final animationController = _animationControllers[config.label];
-    if (animationController == null) return;
-
-    animationController.forward();
-
-    // Use AppBottomSheet for Medeni Hal, Cinsiyet, Engel Durumu, Çalışma Durumu
-    if ([
-      "Medeni Hal",
-      "Cinsiyet",
-      "Engel Durumu",
-      "Çalışma Durumu",
-    ].contains(config.label)) {
-      await AppBottomSheet.show(
-        context: context,
-        items: config.items,
-        title: config.title,
-        onSelect: (dynamic val) => config.onSelect(val as String),
-        selectedItem: config.value.value.isEmpty ? null : config.value.value,
-        isSearchable: config.isSearchable,
-      );
-    } else {
-      // Use ListBottomSheet for other fields (e.g., Ülke, İl, İlçe)
-      await ListBottomSheet.show(
-        context: context,
-        items: config.items,
-        title: config.title,
-        onSelect: (dynamic val) => config.onSelect(val as String),
-        selectedItem: config.value.value.isEmpty ? null : config.value.value,
-        isSearchable: config.isSearchable,
-      );
-    }
-
-    animationController.reverse();
+    initializeFieldConfigs();
+    initializeAnimationControllers();
   }
 
   @override
   void onClose() {
-    for (var controller in _animationControllers.values) {
-      controller.dispose();
-    }
-    _animationControllers.clear();
-    _animationTurns.clear();
+    disposeAnimationControllers();
     super.onClose();
-  }
-
-  Future<void> loadCitiesAndTowns() async {
-    isLoading.value = true;
-    try {
-      final String response = await rootBundle.loadString(
-        'assets/data/CityDistrict.json',
-      );
-      final List<dynamic> data = json.decode(
-        utf8.decode(utf8.encode(response)),
-      );
-      sehirlerVeIlcelerData.value =
-          data.map((e) => CitiesModel.fromJson(e)).toList();
-      sehirler.value = sehirlerVeIlcelerData.map((e) => e.il).toSet().toList()
-        ..sort();
-    } catch (e, stackTrace) {
-      print("Şehir ve ilçe verileri yüklenirken hata: $e\n$stackTrace");
-      AppSnackbar("Hata", "Şehir ve ilçe verileri yüklenemedi.");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void updateCity(String newCity) {
-    if (sehirler.contains(newCity)) {
-      city.value = newCity;
-      town.value = '';
-    }
-  }
-
-  void updateTown(String newTown) {
-    final validTowns = sehirlerVeIlcelerData
-        .where((e) => e.il == city.value)
-        .map((e) => e.ilce)
-        .toList();
-    if (validTowns.contains(newTown)) {
-      town.value = newTown;
-    }
-  }
-
-  Future<void> fetchData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      AppSnackbar("Hata", "Kullanıcı oturumu bulunamadı.");
-      isLoading.value = false;
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        tc.value = originalTC.value = data["tc"] ?? "";
-        medeniHal.value =
-            originalMedeniHal.value = data["medeniHal"] ?? "Bekar";
-        county.value =
-            originalCounty.value = (data["ulke"] ?? "Türkiye").trim();
-        cinsiyet.value =
-            originalCinsiyet.value = data["cinsiyet"] ?? "Seçim Yap";
-        engelliRaporu.value =
-            originalEngelliRaporu.value = data["engelliRaporu"] ?? "Yok";
-        calismaDurumu.value =
-            originalCalismaDurumu.value = data["calismaDurumu"] ?? "Çalışmıyor";
-        city.value = originalCity.value =
-            (county.value == "Türkiye" ? data["nufusSehir"] ?? "" : "");
-        town.value = originalTown.value =
-            (county.value == "Türkiye" ? data["nufusIlce"] ?? "" : "");
-
-        final dateStr = data["dogumTarihi"];
-        if (dateStr != null && dateStr.isNotEmpty) {
-          try {
-            selectedDate.value = originalSelectedDate.value = DateFormat(
-              "dd.MM.yyyy",
-              "tr_TR",
-            ).parse(dateStr);
-          } catch (e) {
-            print("Tarih parse hatası: $e");
-            selectedDate.value = originalSelectedDate.value = null;
-          }
-        } else {
-          selectedDate.value = originalSelectedDate.value = null;
-        }
-      } else {
-        AppSnackbar(
-          "Bilgi",
-          "Kullanıcı verisi bulunamadı. Yeni kayıt oluşturabilirsiniz.",
-        );
-        resetToOriginal();
-      }
-    } catch (e) {
-      print("Veri yüklenirken hata.");
-      AppSnackbar("Hata", "Veriler yüklenemedi.");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void resetToOriginal() {
-    tc.value = originalTC.value;
-    medeniHal.value = originalMedeniHal.value;
-    county.value = originalCounty.value;
-    cinsiyet.value = originalCinsiyet.value;
-    engelliRaporu.value = originalEngelliRaporu.value;
-    calismaDurumu.value = originalCalismaDurumu.value;
-    city.value = originalCity.value;
-    town.value = originalTown.value;
-    selectedDate.value = originalSelectedDate.value;
-  }
-
-  Future<void> saveData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      AppSnackbar("Hata", "Kullanıcı oturumu bulunamadı.");
-      return;
-    }
-
-    if (county.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen ülkeyi seçin.");
-      return;
-    }
-
-    if (county.value == "Türkiye" &&
-        (city.value.isEmpty || town.value.isEmpty)) {
-      AppSnackbar("Hata", "Lütfen şehir ve ilçe bilgilerini doldurun.");
-      return;
-    }
-
-    try {
-      isSaving.value = true;
-      final formattedDate = selectedDate.value != null
-          ? DateFormat("dd.MM.yyyy", "tr_TR").format(selectedDate.value!)
-          : "";
-
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .update({
-        "tc": tc.value,
-        "medeniHal": medeniHal.value,
-        "ulke": county.value,
-        "nufusSehir": county.value == "Türkiye" ? city.value : "",
-        "nufusIlce": county.value == "Türkiye" ? town.value : "",
-        "cinsiyet": cinsiyet.value,
-        "engelliRaporu": engelliRaporu.value,
-        "calismaDurumu": calismaDurumu.value,
-        "dogumTarihi": formattedDate,
-      });
-
-      originalTC.value = tc.value;
-      originalMedeniHal.value = medeniHal.value;
-      originalCounty.value = county.value;
-      originalCinsiyet.value = cinsiyet.value;
-      originalEngelliRaporu.value = engelliRaporu.value;
-      originalCalismaDurumu.value = calismaDurumu.value;
-      originalCity.value = county.value == "Türkiye" ? city.value : "";
-      originalTown.value = county.value == "Türkiye" ? town.value : "";
-      originalSelectedDate.value = selectedDate.value;
-      Get.back();
-
-      AppSnackbar("Başarılı", "Kişisel Bilgileriniz kaydedildi.");
-    } catch (e) {
-      print("Veri kaydedilirken hata.");
-      AppSnackbar("Hata", "Bilgiler kaydedilemedi.");
-    } finally {
-      isSaving.value = false;
-    }
   }
 }

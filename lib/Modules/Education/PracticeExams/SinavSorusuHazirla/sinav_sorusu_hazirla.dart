@@ -6,7 +6,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sin
 import 'package:turqappv2/Modules/Education/PracticeExams/SoruContent/soru_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
-class SinavSorusuHazirla extends StatelessWidget {
+class SinavSorusuHazirla extends StatefulWidget {
   final String docID;
   final String sinavTuru;
   final List<String> tumDersler;
@@ -23,17 +23,46 @@ class SinavSorusuHazirla extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      SinavSorusuHazirlaController(
-        docID: docID,
-        sinavTuru: sinavTuru,
-        tumDersler: tumDersler,
-        derslerinSoruSayilari: derslerinSoruSayilari,
-        complated: complated,
-      ),
-    );
+  State<SinavSorusuHazirla> createState() => _SinavSorusuHazirlaState();
+}
 
+class _SinavSorusuHazirlaState extends State<SinavSorusuHazirla> {
+  late final String _tag;
+  late final SinavSorusuHazirlaController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'practice_question_prepare_${widget.docID}_${identityHashCode(this)}';
+    final existing = SinavSorusuHazirlaController.maybeFind(tag: _tag);
+    _ownsController = existing == null;
+    controller = existing ??
+        SinavSorusuHazirlaController.ensure(
+          tag: _tag,
+          docID: widget.docID,
+          sinavTuru: widget.sinavTuru,
+          tumDersler: widget.tumDersler,
+          derslerinSoruSayilari: widget.derslerinSoruSayilari,
+          complated: widget.complated,
+        );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          SinavSorusuHazirlaController.maybeFind(tag: _tag),
+          controller,
+        )) {
+      Get.delete<SinavSorusuHazirlaController>(tag: _tag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     Widget buildQuestionSection(String ders, List<SoruModel> questions) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,10 +84,10 @@ class SinavSorusuHazirla extends StatelessWidget {
             ),
           ),
           questions.isEmpty
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Text(
-                    "Bu ders için soru bulunamadı. Lütfen soruları ekleyin veya sınav türünü kontrol edin.",
+                    "tests.no_questions_for_lesson".tr,
                     style: TextStyle(
                       color: Colors.red,
                       fontSize: 15,
@@ -78,8 +107,8 @@ class SinavSorusuHazirla extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 20),
                               child: SoruContent(
                                 model: entry.value,
-                                sinavTuru: sinavTuru,
-                                mainID: docID,
+                                sinavTuru: widget.sinavTuru,
+                                mainID: widget.docID,
                                 index: entry.key,
                                 ders: entry.value.ders,
                               ),
@@ -88,7 +117,8 @@ class SinavSorusuHazirla extends StatelessWidget {
                               top: 10,
                               left: 10,
                               child: Text(
-                                "${entry.key + 1}. Soru",
+                                'tests.question_number'
+                                    .trParams({'index': '${entry.key + 1}'}),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 18,
@@ -114,7 +144,7 @@ class SinavSorusuHazirla extends StatelessWidget {
           children: [
             Column(
               children: [
-                BackButtons(text: "Soru Hazırla"),
+                BackButtons(text: 'tests.prepare_questions'.tr),
                 Expanded(
                   child: Obx(
                     () => controller.isLoading.value
@@ -123,11 +153,11 @@ class SinavSorusuHazirla extends StatelessWidget {
                           )
                         : controller.isInitialized.value &&
                                 controller.list.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 20),
                                   child: Text(
-                                    "Hiç soru bulunamadı. Lütfen soruları ekleyin veya sınav türünü kontrol edin.",
+                                    "tests.no_questions_at_all".tr,
                                     style: TextStyle(
                                       color: Colors.red,
                                       fontSize: 15,
@@ -145,7 +175,7 @@ class SinavSorusuHazirla extends StatelessWidget {
                                   children: [
                                     Column(
                                       children: [
-                                        for (var ders in tumDersler)
+                                        for (var ders in widget.tumDersler)
                                           Obx(
                                             () => buildQuestionSection(
                                               ders,
@@ -166,8 +196,8 @@ class SinavSorusuHazirla extends StatelessWidget {
                                               height: 50,
                                               alignment: Alignment.center,
                                               color: Colors.green,
-                                              child: const Text(
-                                                "Tamamla",
+                                              child: Text(
+                                                'tests.complete'.tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 15,

@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyCreatingOption/answer_key_creating_option.dart';
@@ -21,6 +23,21 @@ import 'package:turqappv2/Themes/app_assets.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
+String _answerKeyExamLabel(String raw) {
+  switch (raw) {
+    case 'Dil':
+      return 'common.language'.tr;
+    case 'Yazılım':
+      return 'tutoring.branch.software'.tr;
+    case 'Spor':
+      return 'tutoring.branch.sports'.tr;
+    case 'Tasarım':
+      return 'common.design'.tr;
+    default:
+      return raw;
+  }
+}
+
 class AnswerKey extends StatelessWidget {
   AnswerKey({
     super.key,
@@ -30,15 +47,12 @@ class AnswerKey extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AnswerKeyController controller = Get.put(AnswerKeyController());
+  final AnswerKeyController controller =
+      AnswerKeyController.ensure(permanent: true);
   ScrollController get _scrollController => controller.scrollController;
 
   @override
   Widget build(BuildContext context) {
-    _scrollController.addListener(() {
-      controller.scrollOffset.value = _scrollController.offset;
-    });
-
     final bodyContent = Expanded(
       child: RefreshIndicator(
         color: Colors.white,
@@ -48,76 +62,114 @@ class AnswerKey extends StatelessWidget {
           controller: _scrollController, // _scrollController'ı buraya bağla
           children: [
             Obx(
-              () => Column(
-                children: [
-                  EducationSlider(
-                    sliderId: 'cevap_anahtari',
-                    imageList: [
-                      AppAssets.optical1,
-                      AppAssets.optical2,
-                      AppAssets.optical3
-                    ],
-                  ),
-                  8.ph,
-                  lessonsCategory(),
-                  if (!embedded) search(),
-                  controller.isLoading.value
-                      ? const Center(child: CupertinoActivityIndicator())
-                      : controller.bookList.isNotEmpty
-                          ? Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 15),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 4,
-                                  mainAxisSpacing: 4,
-                                  childAspectRatio: 0.45,
-                                ),
-                                itemCount: controller.bookList.length,
-                                itemBuilder: (context, index) {
-                                  final item = controller.bookList[index];
-                                  return AnswerKeyContent(
-                                    key: ValueKey(item.docID),
-                                    model: item,
-                                    onUpdate: (v) => controller.refreshData(),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              color: Colors.white,
-                              child: const Padding(
-                                padding: EdgeInsets.only(top: 15),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.lightbulb_outline,
-                                            color: Colors.black),
-                                        SizedBox(height: 7),
-                                        Text(
-                                          "Herhangi bir optik form yok.",
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "Montserrat",
-                                          ),
-                                        ),
-                                      ],
+              () {
+                if (!controller.listingSelectionReady.value) {
+                  return const Center(child: CupertinoActivityIndicator());
+                }
+                final items = controller.hasActiveSearch
+                    ? controller.searchResults
+                    : controller.bookList;
+                return Column(
+                  children: [
+                    EducationSlider(
+                      sliderId: 'cevap_anahtari',
+                      imageList: [
+                        AppAssets.optical1,
+                        AppAssets.optical2,
+                        AppAssets.optical3
+                      ],
+                    ),
+                    8.ph,
+                    lessonsCategory(),
+                    if (!embedded) search(),
+                    controller.isLoading.value
+                        ? const Center(child: CupertinoActivityIndicator())
+                        : controller.isSearchLoading.value
+                            ? const Center(child: CupertinoActivityIndicator())
+                            : items.isNotEmpty
+                                ? Obx(
+                                    () => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 15),
+                                      child: controller
+                                                  .listingSelection.value ==
+                                              0
+                                          ? Column(
+                                              children: PasajListingAdLayout
+                                                  .buildListChildren(
+                                                items: items,
+                                                itemBuilder: (item, index) =>
+                                                    AnswerKeyContent(
+                                                  key: ValueKey(item.docID),
+                                                  model: item,
+                                                  onUpdate: (v) =>
+                                                      controller.refreshData(),
+                                                  isListLayout: true,
+                                                ),
+                                                adBuilder: (slot) => AdmobKare(
+                                                  key: ValueKey(
+                                                      'answer-key-list-ad-$slot'),
+                                                ),
+                                              ),
+                                            )
+                                          : Column(
+                                              children: PasajListingAdLayout
+                                                  .buildTwoColumnGridChildren(
+                                                items: items,
+                                                horizontalSpacing: 4,
+                                                rowSpacing: 4,
+                                                itemBuilder: (item, index) =>
+                                                    AnswerKeyContent(
+                                                  key: ValueKey(item.docID),
+                                                  model: item,
+                                                  onUpdate: (v) =>
+                                                      controller.refreshData(),
+                                                ),
+                                                adBuilder: (slot) => AdmobKare(
+                                                  key: ValueKey(
+                                                      'answer-key-grid-ad-$slot'),
+                                                ),
+                                              ),
+                                            ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                ],
-              ),
+                                  )
+                                : Container(
+                                    color: Colors.white,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 15),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              const Icon(
+                                                  Icons.lightbulb_outline,
+                                                  color: Colors.black),
+                                              const SizedBox(height: 7),
+                                              Text(
+                                                controller.hasActiveSearch
+                                                    ? "answer_key.search_empty"
+                                                        .tr
+                                                    : "answer_key.no_optical_forms"
+                                                        .tr,
+                                                style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 15,
+                                                  fontFamily: "Montserrat",
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -136,38 +188,38 @@ class AnswerKey extends StatelessWidget {
               visible: controller.scrollOffset.value <= 350,
               child: ActionButton(context: context, menuItems: [
                 PullDownMenuItem(
-                  title: 'Yayınladıklarım',
+                  title: 'answer_key.published'.tr,
                   icon: AppIcons.book,
                   onTap: () => Get.to(OpticsAndBooksPublished()),
                 ),
                 PullDownMenuItem(
-                  title: 'Kaydedilenler',
+                  title: 'common.saved'.tr,
                   icon: AppIcons.save,
                   onTap: () => Get.to(SavedOpticalForms()),
                 ),
                 PullDownMenuItem(
-                  title: 'Sonuçlarım',
+                  title: 'answer_key.my_results'.tr,
                   icon: AppIcons.question,
                   onTap: () => Get.to(MyBookletResults()),
                 ),
                 PullDownMenuItem(
-                  title: 'Oluştur',
+                  title: 'common.create'.tr,
                   icon: AppIcons.addCircled,
                   onTap: () => Get.to(
                       AnswerKeyCreatingOption(onBack: controller.refreshData)),
                 ),
                 PullDownMenuItem(
-                  title: 'Katıl',
+                  title: 'pasaj.answer_key.join'.tr,
                   icon: AppIcons.arrowRight,
                   onTap: () => Get.to(OpticalFormEntry()),
                 ),
                 PullDownMenuItem(
-                  title: 'Slider Yönetimi',
+                  title: 'practice.slider_management'.tr,
                   icon: CupertinoIcons.slider_horizontal_3,
                   onTap: () => Get.to(
-                    () => const SliderAdminView(
+                    () => SliderAdminView(
                       sliderId: 'cevap_anahtari',
-                      title: 'Cevap Anahtarı',
+                      title: 'answer_key.title'.tr,
                     ),
                   ),
                 ),
@@ -196,7 +248,7 @@ class AnswerKey extends StatelessWidget {
                     icon:
                         Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
                   ),
-                  TypewriterText(text: "Cevap Anahtarları"),
+                  TypewriterText(text: "answer_key.answer_keys".tr),
                 ],
               ),
               bodyContent,
@@ -223,7 +275,7 @@ class AnswerKey extends StatelessWidget {
             color: Colors.grey.withValues(alpha: 0.1),
             borderRadius: const BorderRadius.all(Radius.circular(12)),
           ),
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
@@ -231,8 +283,8 @@ class AnswerKey extends StatelessWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "Ara",
-                    style: TextStyle(
+                    "common.search".tr,
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontFamily: "Montserrat",
                       fontSize: 15,
@@ -280,7 +332,7 @@ class AnswerKey extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    controller.lessons[index],
+                    _answerKeyExamLabel(controller.lessons[index]),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 13,

@@ -1,9 +1,38 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/report_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Models/report_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReportUserController extends GetxController {
+  static ReportUserController ensure({
+    required String userID,
+    required String postID,
+    required String commentID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ReportUserController(
+        userID: userID,
+        postID: postID,
+        commentID: commentID,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ReportUserController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<ReportUserController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ReportUserController>(tag: tag);
+  }
+
   String userID;
   String postID;
   String commentID;
@@ -15,67 +44,100 @@ class ReportUserController extends GetxController {
 
   var step = 0.50.obs;
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var fullName = "".obs;
+  var selectedKey = "".obs;
   var selectedTitle = "".obs;
   var selectedDesc = "".obs;
   var blockedUser = false.obs;
+  var isSubmitting = false.obs;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final ReportRepository _reportRepository = ReportRepository.ensure();
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
-      fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
-    });
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final data = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
+    if (data == null) return;
+    nickname.value = data.nickname;
+    avatarUrl.value = data.avatarUrl;
+    fullName.value = data.displayName;
   }
 
   Future<void> report() async {
-    FirebaseFirestore.instance.collection("reports").add({
-      "userID": userID,
-      "postID": postID,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "sikayetTitle": selectedTitle.value,
-      "sikayetDesc": selectedDesc.value,
-      "yorumID": commentID
-    });
+    if (isSubmitting.value) return;
+    if (selectedKey.value.trim().isEmpty ||
+        selectedTitle.value.trim().isEmpty ||
+        selectedDesc.value.trim().isEmpty) {
+      AppSnackbar(
+        'report.select_reason_title'.tr,
+        'report.select_reason_body'.tr,
+      );
+      return;
+    }
 
-    Get.back();
+    isSubmitting.value = true;
+    try {
+      await _reportRepository.submitReport(
+        targetUserId: userID,
+        postId: postID,
+        commentId: commentID,
+        selection: ReportModel(
+          key: selectedKey.value,
+          title: selectedTitle.value,
+          description: selectedDesc.value,
+        ),
+      );
 
-    AppSnackbar("Talebiniz Bize Ulaştı!",
-        "${nickname.value} kullanıcısını inceleme altına alacağız. Talebinizden dolayı teşekkür ederiz");
+      Get.back();
+
+      AppSnackbar(
+        'report.submitted_title'.tr,
+        'report.submitted_body'.trParams({
+          'nickname': nickname.value,
+        }),
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   Future<void> block() async {
-    final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-    final docRef = FirebaseFirestore.instance.collection("users").doc(userID);
-
-    // Öncelikle belgeyi çekiyoruz.
-    final snapshot = await docRef.get();
-    if (snapshot.exists) {
-      final data = snapshot.data();
-      final blockedUsers = List<String>.from(data?["blockedUsers"] ?? []);
-
-      // Eğer mevcut kullanıcı ID'si blockedUsers'da varsa, kaldır.
-      if (blockedUsers.contains(currentUserID)) {
-        await docRef.update({
-          "blockedUsers": FieldValue.arrayRemove([currentUserID])
-        });
-      } else {
-        // Aksi halde ekle.
-        await docRef.update({
-          "blockedUsers": FieldValue.arrayUnion([currentUserID])
-        });
-      }
-      blockedUser.value = true;
-    } else {
-      // Eğer belge yoksa hata fırlatabilir veya yeni bir belge oluşturabilirsiniz.
-      print("Belge bulunamadı.");
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
+    final blockedEntries = await _userSubcollectionRepository.getEntries(
+      userID,
+      subcollection: "blockedUsers",
+      preferCache: true,
+    );
+    final exists = blockedEntries.any((entry) => entry.id == currentUserID);
+    if (exists) {
+      await _userSubcollectionRepository.deleteEntry(
+        userID,
+        subcollection: "blockedUsers",
+        docId: currentUserID,
+      );
+      blockedUser.value = false;
+      return;
     }
+
+    await _userSubcollectionRepository.upsertEntry(
+      userID,
+      subcollection: "blockedUsers",
+      docId: currentUserID,
+      data: {
+        "userID": currentUserID,
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+    blockedUser.value = true;
   }
 }

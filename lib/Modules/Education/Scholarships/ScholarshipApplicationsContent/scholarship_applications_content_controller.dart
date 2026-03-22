@@ -1,16 +1,44 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:get/get.dart';
 
 class ScholarshipApplicationsContentController extends GetxController {
+  static ScholarshipApplicationsContentController ensure({
+    required String tag,
+    required String userID,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ScholarshipApplicationsContentController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ScholarshipApplicationsContentController? maybeFind({
+    required String tag,
+  }) {
+    final isRegistered =
+        Get.isRegistered<ScholarshipApplicationsContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ScholarshipApplicationsContentController>(tag: tag);
+  }
+
   final String userID;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  Future<Map<String, dynamic>?>? _userRawFuture;
 
   ScholarshipApplicationsContentController({required this.userID});
 
   // Observable variables
   var fullName = "".obs;
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var showDetails = false.obs;
   var isLoading = false.obs;
   var isDetailsLoading = false.obs;
@@ -68,103 +96,118 @@ class ScholarshipApplicationsContentController extends GetxController {
     isDetailsLoading.value = true;
     Future.wait([getData(), ogrenciBilgileriniKontrolEt()]).then((_) {
       isDetailsLoading.value = false;
-    }).catchError((e) {
-      print("Error loading detailed data: $e");
+    }).catchError((_) {
       isDetailsLoading.value = false;
-      AppSnackbar('Hata', 'Veriler yüklenirken bir hata oluştu');
+      AppSnackbar('common.error'.tr, 'scholarship.applicant_load_failed'.tr);
     });
   }
 
   Future<void> loadInitialData() async {
     try {
       isLoading.value = true;
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (doc.exists) {
-        nickname.value = doc.get("nickname") ?? "";
-        pfImage.value = doc.get("pfImage") ?? "";
-        fullName.value =
-            "${doc.get("firstName") ?? ""} ${doc.get("lastName") ?? ""}";
+      final data = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      if (data != null) {
+        nickname.value = data.nickname;
+        avatarUrl.value = data.avatarUrl;
+        fullName.value = data.displayName;
       }
-    } catch (e) {
-      print("Error loading initial data: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
   }
 
+  Future<Map<String, dynamic>?> _loadUserRaw({bool forceRefresh = false}) {
+    if (!forceRefresh && _userRawFuture != null) {
+      return _userRawFuture!;
+    }
+    final future = _userRepository.getUserRaw(
+      userID,
+      preferCache: !forceRefresh,
+      forceServer: forceRefresh,
+    );
+    _userRawFuture = future;
+    return future;
+  }
+
   Future<void> getData() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (doc.exists) {
+      final data = await _loadUserRaw();
+      if (data != null) {
         // ad.value = doc.get("firstName") ?? "";
         // soyad.value = doc.get("lastName") ?? "";
-        phoneNumber.value = doc.get("phoneNumber") ?? "";
-        email.value = doc.get("email") ?? "";
-        universite.value = doc.get("universite") ?? "";
-        lise.value = doc.get("lise") ?? "";
-        ortaOkul.value = doc.get("ortaOkul") ?? "";
-        educationLevel.value = doc.get("educationLevel") ?? "";
-        bolum.value = doc.get("bolum") ?? "";
-        ulke.value = doc.get("ulke") ?? "";
-        nufusSehir.value = doc.get("nufusSehir") ?? "";
-        nufusIlce.value = doc.get("nufusIlce") ?? "";
-        fakulte.value = doc.get("fakulte") ?? "";
+        phoneNumber.value = userString(data, key: "phoneNumber");
+        email.value = userString(data, key: "email");
+        universite.value =
+            userString(data, key: "universite", scope: "education");
+        lise.value = userString(data, key: "lise", scope: "education");
+        ortaOkul.value = userString(data, key: "ortaOkul", scope: "education");
+        educationLevel.value =
+            userString(data, key: "educationLevel", scope: "education");
+        bolum.value = userString(data, key: "bolum", scope: "education");
+        ulke.value = userString(data, key: "ulke", scope: "profile");
+        nufusSehir.value =
+            userString(data, key: "nufusSehir", scope: "profile");
+        nufusIlce.value = userString(data, key: "nufusIlce", scope: "profile");
+        fakulte.value = userString(data, key: "fakulte", scope: "education");
       }
-    } catch (e) {
-      print("Error getting data: $e");
-    }
+    } catch (_) {}
   }
 
   Future<void> ogrenciBilgileriniKontrolEt() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
+      final data = await _loadUserRaw();
+      if (data != null) {
+        dogumTarigi.value =
+            userString(data, key: "dogumTarihi", scope: "profile");
+        medeniHal.value = userString(data, key: "medeniHal", scope: "profile");
+        cinsiyet.value = userString(data, key: "cinsiyet", scope: "profile");
+        engelliRaporu.value =
+            userString(data, key: "engelliRaporu", scope: "family");
+        calismaDurumu.value =
+            userString(data, key: "calismaDurumu", scope: "profile");
 
-      if (doc.exists) {
-        dogumTarigi.value = doc.get("dogumTarihi") ?? "";
-        medeniHal.value = doc.get("medeniHal") ?? "";
-        cinsiyet.value = doc.get("cinsiyet") ?? "";
-        engelliRaporu.value = doc.get("engelliRaporu") ?? "";
-        calismaDurumu.value = doc.get("calismaDurumu") ?? "";
+        babaAdi.value = userString(data, key: "fatherName", scope: "family");
+        babaSoyadi.value =
+            userString(data, key: "fatherSurname", scope: "family");
+        babaHayata.value =
+            userString(data, key: "fatherLiving", scope: "family");
+        babaPhone.value = userString(data, key: "fatherPhone", scope: "family");
+        babaJob.value = userString(data, key: "fatherJob", scope: "family");
+        babaSalary.value =
+            userString(data, key: "fatherSalary", scope: "family");
 
-        babaAdi.value = doc.get("fatherName") ?? "";
-        babaSoyadi.value = doc.get("fatherSurname") ?? "";
-        babaHayata.value = doc.get("fatherLiving") ?? "";
-        babaPhone.value = doc.get("fatherPhone") ?? "";
-        babaJob.value = doc.get("fatherJob") ?? "";
-        babaSalary.value = doc.get("fatherSalary") ?? "";
+        anneAdi.value = userString(data, key: "motherName", scope: "family");
+        anneSoyadi.value =
+            userString(data, key: "motherSurname", scope: "family");
+        anneHayata.value =
+            userString(data, key: "motherLiving", scope: "family");
+        annePhone.value = userString(data, key: "motherPhone", scope: "family");
+        anneJob.value = userString(data, key: "motherJob", scope: "family");
+        anneSalary.value =
+            userString(data, key: "motherSalary", scope: "family");
 
-        anneAdi.value = doc.get("motherName") ?? "";
-        anneSoyadi.value = doc.get("motherSurname") ?? "";
-        anneHayata.value = doc.get("motherLiving") ?? "";
-        annePhone.value = doc.get("motherPhone") ?? "";
-        anneJob.value = doc.get("motherJob") ?? "";
-        anneSalary.value = doc.get("motherSalary") ?? "";
-
-        evMulkiyeti.value = doc.get("evMulkiyeti") ?? "";
-        ikametSehir.value = doc.get("ikametSehir") ?? "";
-        ikametIlce.value = doc.get("ikametIlce") ?? "";
+        evMulkiyeti.value =
+            userString(data, key: "evMulkiyeti", scope: "family");
+        ikametSehir.value =
+            userString(data, key: "ikametSehir", scope: "profile");
+        ikametIlce.value =
+            userString(data, key: "ikametIlce", scope: "profile");
       }
-    } catch (e) {
-      print("Error checking student info: $e");
-    }
+    } catch (_) {}
   }
 
   Future<void> toggleDetails() async {
     showDetails.value = !showDetails.value;
     if (showDetails.value) {
       isDetailsLoading.value = true;
-      await Future.wait([getData(), ogrenciBilgileriniKontrolEt()]);
+      await Future.wait([
+        getData(),
+        ogrenciBilgileriniKontrolEt(),
+      ]);
       isDetailsLoading.value = false;
     }
   }

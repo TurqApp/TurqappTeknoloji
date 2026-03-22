@@ -1,24 +1,72 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AboutProfileController extends GetxController {
+  static AboutProfileController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AboutProfileController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AboutProfileController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<AboutProfileController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<AboutProfileController>(tag: tag);
+  }
+
   // 🎯 Using CurrentUserService for optimized access
   final userService = CurrentUserService.instance;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
-  var pfImage = "".obs;
+  String get _currentUid => userService.effectiveUserId;
+
+  var avatarUrl = "".obs;
   var nickname = "".obs;
   var fullName = "".obs;
   var createdDate = "".obs;
+  String? _loadedUserId;
+  Future<void>? _pendingLoad;
 
   Future<void> getUserData(String userID) async {
+    final normalizedUserId = userID.trim();
+    if (normalizedUserId.isEmpty) return;
+    if (_loadedUserId == normalizedUserId &&
+        _pendingLoad == null &&
+        (nickname.value.isNotEmpty ||
+            fullName.value.isNotEmpty ||
+            createdDate.value.isNotEmpty)) {
+      return;
+    }
+    if (_pendingLoad != null && _loadedUserId == normalizedUserId) {
+      return _pendingLoad!;
+    }
+
+    _loadedUserId = normalizedUserId;
+    _pendingLoad = _loadUserData(normalizedUserId);
+    try {
+      await _pendingLoad;
+    } finally {
+      _pendingLoad = null;
+    }
+  }
+
+  Future<void> _loadUserData(String userID) async {
     try {
       // 🎯 If viewing own profile, use cache (instant!)
-      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      final currentUserId = _currentUid;
       if (currentUserId == userID && userService.currentUser != null) {
         final user = userService.currentUser!;
-        pfImage.value = user.pfImage;
+        avatarUrl.value = user.avatarUrl;
         nickname.value = user.nickname;
         createdDate.value = user.createdDate;
         fullName.value = user.fullName;
@@ -26,24 +74,30 @@ class AboutProfileController extends GetxController {
       }
 
       // For other users, fetch from Firebase
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (!doc.exists) return;
-
-      final data = doc.data() ?? {};
-
-      pfImage.value = data.containsKey("pfImage") ? data["pfImage"] ?? "" : "";
-      nickname.value =
-          data.containsKey("nickname") ? data["nickname"] ?? "" : "";
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      if (summary != null) {
+        avatarUrl.value = summary.avatarUrl;
+        nickname.value = summary.nickname;
+        fullName.value = summary.displayName;
+      }
+      if (createdDate.value.isNotEmpty && fullName.value.trim().isNotEmpty) {
+        return;
+      }
+      final data = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (data == null) return;
       createdDate.value =
           data.containsKey("createdDate") ? data["createdDate"] ?? "" : "";
-      fullName.value =
-          "${data["firstName"] ?? ""} ${data["lastName"] ?? ""}".trim();
-    } catch (e) {
-      print("Profil verisi alınamadı: $e");
-    }
+      if (fullName.value.trim().isEmpty) {
+        fullName.value =
+            "${data["firstName"] ?? ""} ${data["lastName"] ?? ""}".trim();
+      }
+    } catch (_) {}
   }
 }

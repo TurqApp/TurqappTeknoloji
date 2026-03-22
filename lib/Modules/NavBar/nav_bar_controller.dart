@@ -1,8 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,17 +14,41 @@ import 'dart:async';
 import '../Short/short_controller.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Explore/explore_controller.dart';
+import '../Education/education_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';
+import '../../Core/Services/integration_test_mode.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Services/current_user_service.dart';
+import '../Profile/Settings/settings_controller.dart';
+
+part 'nav_bar_controller_lifecycle_part.dart';
+part 'nav_bar_controller_update_part.dart';
 
 typedef TextUpdate = String;
 
 class NavBarController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
+  static NavBarController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(NavBarController());
+  }
+
+  static NavBarController? maybeFind() {
+    final isRegistered = Get.isRegistered<NavBarController>();
+    if (!isRegistered) return null;
+    return Get.find<NavBarController>();
+  }
+
+  static const String _appVersionDocId = 'appVersion';
+  static const String _selectedIndexPrefKeyPrefix = 'nav_selected_index';
+  static const String _ratingFirstSeenAtKey = 'rating_prompt_first_seen_at';
+  static const String _ratingLastShownAtKey = 'rating_prompt_last_shown_at';
+  static const String _ratingLastStoreTapAtKey =
+      'rating_prompt_last_store_tap_at';
   var selectedIndex = 0.obs;
   var showBar = true.obs;
   ShortController?
@@ -30,16 +56,7 @@ class NavBarController extends GetxController
   final String fullText = "TurqApp";
 
   // ⚠️ CRITICAL FIX: Safe getter for ShortController
-  ShortController get shortCtrl {
-    if (_shortCtrl == null) {
-      if (Get.isRegistered<ShortController>()) {
-        _shortCtrl = Get.find<ShortController>();
-      } else {
-        _shortCtrl = Get.put(ShortController());
-      }
-    }
-    return _shortCtrl!;
-  }
+  ShortController get shortCtrl => _shortCtrl ??= ShortController.ensure();
 
   late final Rx<AnimationController> typingController;
   late final Rx<AnimationController> deletingController;
@@ -55,9 +72,55 @@ class NavBarController extends GetxController
   // ⚠️ CRITICAL FIX: Track disposal state to prevent animation errors
   bool _isDisposed = false;
   bool _proactiveShortPreloadStarted = false;
+  bool _isForceUpdateVisible = false;
+  bool _ratingSheetShownThisSession = false;
+  String _androidMinVersion = '';
+  String _iosMinVersion = '';
+  String _updateTitle = 'app_update.title'.tr;
+  String _updateBody = 'app_update.body'.tr;
+  String? _androidStoreUrlOverride;
+  String? _iosStoreUrlOverride;
+  bool _ratingPromptEnabled = true;
+  Duration _ratingPromptEnabledAfter = const Duration(days: 7);
+  Duration _ratingPromptRepeatAfter = const Duration(days: 7);
+  Duration _ratingPromptStoreCooldown = const Duration(days: 90);
   Timer? _backgroundCacheTimer;
   Timer? _uploadIndicatorTimer;
-  Timer? _emailVerifyPromptTimer;
+  Timer? _ratingPromptTimer;
+
+  String _selectedIndexKeyFor(String uid) =>
+      '${_selectedIndexPrefKeyPrefix}_$uid';
+
+  int _normalizeSelectedIndex(int value) {
+    if (value == 2) return 0;
+    if (value < 0) return 0;
+    if (value > 4) return 4;
+    return value;
+  }
+
+  Future<void> restorePersistedIndex() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_selectedIndexKeyFor(uid));
+      if (stored == null) return;
+      selectedIndex.value = _normalizeSelectedIndex(stored);
+    } catch (_) {}
+  }
+
+  Future<void> _persistSelectedIndex(int index) async {
+    if (index == 2) return;
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _selectedIndexKeyFor(uid),
+        _normalizeSelectedIndex(index),
+      );
+    } catch (_) {}
+  }
 
   @override
   void onInit() {
@@ -89,100 +152,30 @@ class NavBarController extends GetxController
           (deletingController.value.value * fullText.length).floor();
     });
 
+    unawaited(restorePersistedIndex());
     _runAcilisAnimation();
-    // Açılış akışını bloklamasın; version kontrolünü gecikmeli başlat.
-    Future.delayed(const Duration(seconds: 12), () {
-      if (!_isDisposed) {
-        checkAppVersion();
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!_isDisposed && !IntegrationTestMode.suppressPeriodicSideEffects) {
+        unawaited(checkAppVersion());
       }
     });
-
-    // ⚠️ CRITICAL FIX: Safely initialize ShortController
-    try {
-      shortCtrl.preloadRange(7);
-    } catch (e) {
-      print('[NavBar] ShortController preload error: $e');
+    if (!IntegrationTestMode.suppressPeriodicSideEffects) {
+      _scheduleRatingPrompt(const Duration(seconds: 25));
     }
 
-    _startBackgroundCacheLoop();
+    if (!GetPlatform.isIOS &&
+        !IntegrationTestMode.suppressPeriodicSideEffects) {
+      _startBackgroundCacheLoop();
+    }
     _startUploadIndicatorSync();
     // Baslangicta e-posta dogrulama popup'i kapali.
   }
 
-  void _startBackgroundCacheLoop() {
-    _backgroundCacheTimer?.cancel();
-    _backgroundCacheTimer =
-        Timer.periodic(const Duration(seconds: 20), (_) async {
-      if (_isDisposed) return;
-      if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
-        return;
-      }
+  void _startBackgroundCacheLoop() => _startBackgroundCacheLoopImpl();
 
-      try {
-        if (Get.isRegistered<AgendaController>()) {
-          Get.find<AgendaController>().ensureFeedCacheWarm();
-        }
-      } catch (_) {}
+  void _startUploadIndicatorSync() => _startUploadIndicatorSyncImpl();
 
-      try {
-        if (Get.isRegistered<ShortController>()) {
-          shortCtrl.warmStart(targetCount: 8, maxPages: 2);
-        }
-      } catch (_) {}
-
-      try {
-        if (Get.isRegistered<StoryRowController>()) {
-          await Get.find<StoryRowController>().loadStories(
-            limit: 30,
-            cacheFirst: true,
-            silentLoad: true,
-          );
-        }
-      } catch (_) {}
-    });
-  }
-
-  void _startUploadIndicatorSync() {
-    _uploadIndicatorTimer?.cancel();
-    _uploadIndicatorTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_isDisposed) return;
-      if (!Get.isRegistered<UploadQueueService>()) {
-        uploadingPosts.value = false;
-        return;
-      }
-      final queue = Get.find<UploadQueueService>();
-      final stats = queue.getQueueStats();
-      final pending = (stats['pending'] as int?) ?? 0;
-      final processing = (stats['processing'] as bool?) ?? false;
-      uploadingPosts.value = processing || pending > 0;
-    });
-  }
-
-  void _startEmailVerificationPromptLoop() {
-    _emailVerifyPromptTimer?.cancel();
-    _emailVerifyPromptTimer = null;
-  }
-
-  Future<void> _runAcilisAnimation() async {
-    try {
-      // ⚠️ CRITICAL FIX: Check if controller is still alive before animating
-      if (!_isDisposed) {
-        await typingController.value.forward();
-      }
-      if (!_isDisposed) {
-        await Future.delayed(const Duration(seconds: 1));
-      }
-      if (!_isDisposed) {
-        await deletingController.value.forward();
-      }
-      if (!_isDisposed) {
-        hideAcilis.value = true;
-      }
-    } catch (e) {
-      // Animation was interrupted (controller disposed), silently ignore
-      print('[NavBar] Animation interrupted: $e');
-    }
-  }
+  Future<void> _runAcilisAnimation() => _runAcilisAnimationImpl();
 
   @override
   void onClose() {
@@ -193,303 +186,45 @@ class NavBarController extends GetxController
     _backgroundCacheTimer = null;
     _uploadIndicatorTimer?.cancel();
     _uploadIndicatorTimer = null;
-    _emailVerifyPromptTimer?.cancel();
-    _emailVerifyPromptTimer = null;
+    _ratingPromptTimer?.cancel();
+    _ratingPromptTimer = null;
     WidgetsBinding.instance.removeObserver(this);
 
     // Dispose animation controllers safely
     try {
       typingController.value.dispose();
-    } catch (e) {
-      print('[NavBar] typingController dispose error: $e');
-    }
+    } catch (_) {}
 
     try {
       deletingController.value.dispose();
-    } catch (e) {
-      print('[NavBar] deletingController dispose error: $e');
-    }
+    } catch (_) {}
 
     try {
       animationController.value.dispose();
-    } catch (e) {
-      print('[NavBar] animationController dispose error: $e');
-    }
+    } catch (_) {}
 
     super.onClose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_isDisposed) return;
+  void didChangeAppLifecycleState(AppLifecycleState state) =>
+      _didChangeAppLifecycleStateImpl(state);
 
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
-      } catch (_) {}
-      try {
-        AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-      } catch (_) {}
-      return;
-    }
+  void changeIndex(int index) => _changeIndexImpl(index);
 
-    if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
-      try {
-        if (Get.isRegistered<AgendaController>()) {
-          Get.find<AgendaController>().resumeFeedPlayback();
-        }
-      } catch (_) {}
-    }
-  }
+  void pauseGlobalTabMedia() => _pauseGlobalTabMediaImpl();
 
-  void changeIndex(int index) {
-    final previous = selectedIndex.value;
-    selectedIndex.value = index;
+  void suspendFeedForTabExit() => _suspendFeedForTabExitImpl();
 
-    if (previous == 0 && index != 0) {
-      try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
-      } catch (_) {}
-      try {
-        AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-      } catch (_) {}
-    }
+  void resumeFeedIfNeeded() => _resumeFeedIfNeededImpl();
 
-    if (index == 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_isDisposed) return;
-        try {
-          if (Get.isRegistered<AgendaController>()) {
-            Get.find<AgendaController>().resumeFeedPlayback();
-          }
-        } catch (_) {}
-      });
-    }
+  Future<void> ensureProactiveShortPreloadStarted() =>
+      _ensureProactiveShortPreloadStartedImpl();
 
-    if (previous == 1 && index != 1 && Get.isRegistered<ExploreController>()) {
-      // Keşfet'ten çıkarken resetle; geri dönünce Gündem ile açılır.
-      Get.find<ExploreController>().resetSearchToDefault();
-    }
-  }
+  Future<void> checkAppVersion() => _checkAppVersionImpl();
 
-  Future<void> ensureProactiveShortPreloadStarted() async {
-    if (_proactiveShortPreloadStarted) return;
-    _proactiveShortPreloadStarted = true;
-    try {
-      await shortCtrl.backgroundPreload();
-    } catch (_) {}
-  }
+  void _scheduleRatingPrompt(Duration delay) =>
+      _scheduleRatingPromptImpl(delay);
 
-  Future<void> checkAppVersion() async {
-    try {
-      // Debug modda version kontrolünü bypass et
-      if (kDebugMode) {
-        print("🔧 DEBUG MODE: Version kontrolü bypass edildi");
-        return;
-      }
-
-      // Mevcut uygulama bilgilerini al
-      PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      String currentVersion = packageInfo.version;
-      print("📱 Cihaz versiyonu: $currentVersion");
-
-      // Firebase'den minimum version bilgilerini al
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("Yönetim")
-          .doc("Genel")
-          .get();
-
-      String requiredVersion = "";
-      if (Platform.isAndroid) {
-        requiredVersion = doc.get("androidMinVersion") ?? "";
-      } else if (Platform.isIOS) {
-        requiredVersion = doc.get("iosMinVersion") ?? "";
-      }
-
-      print("🔥 Firebase minimum versiyon: $requiredVersion");
-
-      // Version karşılaştırması yap
-      if (requiredVersion.isNotEmpty &&
-          _isVersionLower(currentVersion, requiredVersion)) {
-        print(
-            "⚠️ Güncelleme gerekli: Mevcut $currentVersion < Gerekli $requiredVersion");
-        _showUpdateDialog();
-      } else {
-        print("✅ Version uygun: $currentVersion");
-      }
-    } catch (e) {
-      print("❌ Version kontrolü hatası: $e");
-      // Fail-open: ağ/izin/Firestore hatasında kullanıcıyı kilitleme.
-    }
-  }
-
-  bool _isVersionLower(String currentVersion, String requiredVersion) {
-    List<int> current = currentVersion.split('.').map(int.parse).toList();
-    List<int> required = requiredVersion.split('.').map(int.parse).toList();
-
-    // Version numaralarını karşılaştır
-    for (int i = 0; i < 3; i++) {
-      int currentPart = i < current.length ? current[i] : 0;
-      int requiredPart = i < required.length ? required[i] : 0;
-
-      if (currentPart < requiredPart) return true;
-      if (currentPart > requiredPart) return false;
-    }
-
-    return false; // Eşit version
-  }
-
-  void _showUpdateDialog() {
-    Get.bottomSheet(
-      isDismissible: false,
-      enableDrag: false,
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle çubuğu
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Güncelleme ikonu
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Container(
-                  //   width: 80,
-                  //   height: 80,
-                  //   decoration: BoxDecoration(
-                  //     color: Colors.blue.withValues(alpha: 0.1),
-                  //     borderRadius: BorderRadius.circular(40),
-                  //   ),
-                  //   child: const Icon(
-                  //     Icons.system_update,
-                  //     size: 40,
-                  //     color: Colors.blue,
-                  //   ),
-                  // ),
-                  // 12.pw,
-                  Image.asset(
-                    "assets/logo/logo.webp",
-                    color: Colors.black,
-                    height: 80,
-                    width: 80,
-                  )
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Başlık
-              const Text(
-                "Yeni Güncelleme Mevcut",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: "MontserratBold",
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-
-              // Açıklama
-              const Text(
-                "TurqApp'in yeni versiyonu mevcut. Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyin.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontFamily: "MontserratMedium",
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              30.ph,
-
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _launchStore,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    "Şimdi Güncelle",
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium",
-                        color: Colors.white),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Daha sonra butonu
-              // SizedBox(
-              //   width: double.infinity,
-              //   height: 50,
-              //   child: TextButton(
-              //     onPressed: () => Get.back(),
-              //     child: const Text(
-              //       "Daha Sonra",
-              //       style: TextStyle(
-              //         fontSize: 16,
-              //         color: Colors.grey,
-              //         fontFamily: "MontserratMedium",
-              //       ),
-              //     ),
-              //   ),
-              // ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _launchStore() async {
-    String storeUrl = "";
-
-    if (Platform.isAndroid) {
-      storeUrl =
-          "https://play.google.com/store/apps/details?id=com.turqapp.app";
-    } else if (Platform.isIOS) {
-      storeUrl = "https://apps.apple.com/tr/app/turqapp/id6740809479?l=tr";
-    }
-
-    if (storeUrl.isNotEmpty) {
-      final Uri url = Uri.parse(storeUrl);
-      try {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } catch (e) {
-        print("Mağaza açma hatası: $e");
-        AppSnackbar(
-          "Hata",
-          "Mağaza açılırken bir hata oluştu",
-          backgroundColor: Colors.red.withValues(alpha: 0.7),
-        );
-      }
-    }
-  }
+  Future<void> _launchStore() => _launchStoreImpl();
 }

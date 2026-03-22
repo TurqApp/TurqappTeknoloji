@@ -1,19 +1,42 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class CreateBookController extends GetxController {
+  static CreateBookController ensure(
+    Function? onBack, {
+    BookletModel? existingBook,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateBookController(onBack, existingBook: existingBook),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateBookController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<CreateBookController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<CreateBookController>(tag: tag);
+  }
+
   final Function? onBack;
   final BookletModel? existingBook;
   final baslikController = TextEditingController();
@@ -26,6 +49,7 @@ class CreateBookController extends GetxController {
   final showIndicator = false.obs;
   late final String docID;
   final picker = ImagePicker();
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
 
   CreateBookController(this.onBack, {this.existingBook}) {
     docID =
@@ -114,9 +138,13 @@ class CreateBookController extends GetxController {
 
   Future<void> _analyzeImage() async {
     if (imageFile.value == null) return;
-    final detector = await NsfwDetector.load(threshold: 0.3);
-    final result = await detector.detectNSFWFromFile(imageFile.value!);
-    if (result?.isNsfw == true) {
+    try {
+      final detector = await NsfwDetector.load(threshold: 0.3);
+      final result = await detector.detectNSFWFromFile(imageFile.value!);
+      if (result == null || result.isNsfw) {
+        imageFile.value = null;
+      }
+    } catch (_) {
       imageFile.value = null;
     }
   }
@@ -128,38 +156,27 @@ class CreateBookController extends GetxController {
       "baslik": baslikController.text,
       "cover": existingBook?.cover ?? "",
       "dil": "Türkçe",
-      "kaydet": existingBook?.kaydet ?? [],
       "sinavTuru": sinavTuru.value,
       "timeStamp":
           existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
       "yayinEvi": yayinEviController.text,
-      "userID": existingBook?.userID ?? FirebaseAuth.instance.currentUser!.uid,
-      "goruntuleme": existingBook?.goruntuleme ?? [],
-    });
-    SetOptions(merge: true);
+      "userID":
+          existingBook?.userID ?? CurrentUserService.instance.effectiveUserId,
+      "viewCount": existingBook?.viewCount ?? 0,
+    }, SetOptions(merge: true));
 
-    final oldAnswers = await FirebaseFirestore.instance
-        .collection("books")
-        .doc(docID)
-        .collection("CevapAnahtarlari")
-        .get();
-    for (final doc in oldAnswers.docs) {
-      await doc.reference.delete();
-    }
-
-    for (var item in list) {
-      await FirebaseFirestore.instance
-          .collection("books")
-          .doc(docID)
-          .collection("CevapAnahtarlari")
-          .doc(DateTime.now().microsecondsSinceEpoch.toString())
-          .set({
-        "baslik": item.baslik,
-        "sira": item.sira,
-        "dogruCevaplar": item.dogruCevaplar,
-      });
-      SetOptions(merge: true);
-    }
+    await _bookletRepository.replaceAnswerKeys(
+      docID,
+      list
+          .map(
+            (item) => <String, dynamic>{
+              "baslik": item.baslik,
+              "sira": item.sira,
+              "dogruCevaplar": item.dogruCevaplar,
+            },
+          )
+          .toList(growable: false),
+    );
 
     if (imageFile.value != null) {
       await uploadImageToFirebaseStorage(imageFile.value!, context);
@@ -178,21 +195,21 @@ class CreateBookController extends GetxController {
     basimTarihiController.text = book.basimTarihi;
     sinavTuru.value = book.sinavTuru;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection("books")
-        .doc(book.docID)
-        .collection("CevapAnahtarlari")
-        .get();
-    final items = snapshot.docs
-        .map(
-          (doc) => CevapAnahtariHazirlikModel(
-            baslik: (doc.data()['baslik'] ?? '').toString(),
-            dogruCevaplar:
-                List<String>.from(doc.data()['dogruCevaplar'] ?? const []),
-            sira: (doc.data()['sira'] as num?)?.toInt() ?? 0,
-          ),
-        )
-        .toList()
+    final answers = await _bookletRepository.fetchAnswerKeys(
+      book.docID,
+      preferCache: true,
+    );
+    final items = answers.map(
+      (item) {
+        final data = Map<String, dynamic>.from(
+            item['data'] ?? const <String, dynamic>{});
+        return CevapAnahtariHazirlikModel(
+          baslik: (data['baslik'] ?? '').toString(),
+          dogruCevaplar: List<String>.from(data['dogruCevaplar'] ?? const []),
+          sira: (data['sira'] as num?)?.toInt() ?? 0,
+        );
+      },
+    ).toList()
       ..sort((a, b) => a.sira.compareTo(b.sira));
     list.assignAll(items);
   }
@@ -202,8 +219,8 @@ class CreateBookController extends GetxController {
     BuildContext context,
   ) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      final userId = CurrentUserService.instance.effectiveUserId;
+      if (userId.isEmpty) {
         showIndicator.value = false;
         return;
       }
@@ -256,22 +273,46 @@ class CreateBookController extends GetxController {
         "coverFormat": "webp",
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Resim başarıyla yüklendi!')),
+      AppSnackbar(
+        'answer_key.cover_updated'.tr,
+        'answer_key.cover_updated_body'.tr,
       );
       showIndicator.value = false;
       onBack?.call(true);
       Get.back();
     } catch (e) {
       showIndicator.value = false;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Bir hata oluştu')));
+      AppSnackbar(
+        'common.error'.tr,
+        'answer_key.cover_update_failed'.tr,
+      );
     }
   }
 }
 
 class CreateBookAnswerKeyController extends GetxController {
+  static CreateBookAnswerKeyController ensure(
+    CevapAnahtariHazirlikModel model,
+    Function onBack, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateBookAnswerKeyController(model, onBack),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateBookAnswerKeyController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<CreateBookAnswerKeyController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<CreateBookAnswerKeyController>(tag: tag);
+  }
+
   final CevapAnahtariHazirlikModel model;
   final Function onBack;
   final baslikController = TextEditingController();

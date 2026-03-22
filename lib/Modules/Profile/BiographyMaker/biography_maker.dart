@@ -4,9 +4,39 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'biography_maker_controller.dart';
 
-class BiographyMaker extends StatelessWidget {
-  BiographyMaker({super.key});
-  final controller = Get.put(BiographyMakerController());
+class BiographyMaker extends StatefulWidget {
+  const BiographyMaker({super.key});
+
+  @override
+  State<BiographyMaker> createState() => _BiographyMakerState();
+}
+
+class _BiographyMakerState extends State<BiographyMaker> {
+  late final BiographyMakerController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = BiographyMakerController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = BiographyMakerController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(BiographyMakerController.maybeFind(), controller)) {
+      Get.delete<BiographyMakerController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -14,7 +44,7 @@ class BiographyMaker extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Biyografi"),
+            BackButtons(text: 'biography.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -36,10 +66,10 @@ class BiographyMaker extends StatelessWidget {
                           maxLength: 100,
                           maxLines: null,
                           keyboardType: TextInputType.multiline,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: "Kendini anlat..",
-                            hintStyle: TextStyle(
+                            hintText: 'biography.hint'.tr,
+                            hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
                                 fontSize: 15),
@@ -73,8 +103,15 @@ class BiographyMaker extends StatelessWidget {
                       SizedBox(
                         height: 12,
                       ),
-                      TurqAppButton(onTap: () {
-                        controller.setData();
+                      Obx(() {
+                        return AbsorbPointer(
+                          absorbing: controller.isSaving.value,
+                          child: TurqAppButton(
+                            onTap: () {
+                              controller.setData();
+                            },
+                          ),
+                        );
                       }),
                       SizedBox(
                         height: 12,

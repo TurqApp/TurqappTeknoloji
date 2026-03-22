@@ -1,18 +1,49 @@
-import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/high_school_model.dart';
 import 'package:turqappv2/Models/Education/higher_education_model.dart';
 import 'package:turqappv2/Models/middle_school_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+part 'education_info_controller_data_part.dart';
+part 'education_info_controller_actions_part.dart';
 
 class EducationInfoController extends GetxController
     with GetTickerProviderStateMixin {
+  static EducationInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(EducationInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static EducationInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<EducationInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<EducationInfoController>(tag: tag);
+  }
+
+  static const String _middleSchool = 'Ortaokul';
+  static const String _highSchool = 'Lise';
+  static const String _associate = 'Önlisans';
+  static const String _bachelor = 'Lisans';
+  static const String _masters = 'Yüksek Lisans';
+  static const String _doctorate = 'Doktora';
+  final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _currentUserService = CurrentUserService.instance;
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
+  final EducationReferenceDataService _referenceDataService =
+      EducationReferenceDataService.ensure();
   RxString selectedEducationLevel = ''.obs;
   RxString content = ''.obs;
   RxBool isLoading = false.obs;
@@ -41,11 +72,88 @@ class EducationInfoController extends GetxController
   final Map<String, AnimationController> _animationControllers = {};
   final Map<String, RxDouble> _animationTurns = {};
 
+  String get middleSchoolValue => _middleSchool;
+  String get highSchoolValue => _highSchool;
+  String get associateValue => _associate;
+  String get bachelorValue => _bachelor;
+  String get mastersValue => _masters;
+  String get doctorateValue => _doctorate;
+
   @override
   void onInit() {
     super.onInit();
     _initAnimationControllers();
     loadInitialData();
+  }
+
+  String localizedFieldLabel(String label) {
+    switch (label) {
+      case 'Eğitim Seviyesi':
+        return 'scholarship.education_level_label'.tr;
+      case 'Ülke':
+        return 'scholarship.country_label'.tr;
+      case 'İl':
+        return 'common.city'.tr;
+      case 'İlçe':
+        return 'common.district'.tr;
+      case 'Okul':
+        return 'education_info.middle_school'.tr;
+      case 'Lise':
+        return 'education_info.high_school'.tr;
+      case 'Üniversite':
+        return 'scholarship.applicant.university'.tr;
+      case 'Fakülte':
+        return 'scholarship.applicant.faculty'.tr;
+      case 'Bölüm':
+        return 'scholarship.applicant.department'.tr;
+      case 'Sınıf':
+        return 'education_info.class_level'.tr;
+      default:
+        return label;
+    }
+  }
+
+  String localizedOption(String value) {
+    switch (value) {
+      case _middleSchool:
+        return 'education_info.level_middle_school'.tr;
+      case _highSchool:
+        return 'education_info.level_high_school'.tr;
+      case _associate:
+        return 'education_info.level_associate'.tr;
+      case _bachelor:
+        return 'education_info.level_bachelor'.tr;
+      case _masters:
+        return 'education_info.level_masters'.tr;
+      case _doctorate:
+        return 'education_info.level_doctorate'.tr;
+      case '5. Sınıf':
+      case '6. Sınıf':
+      case '7. Sınıf':
+      case '8. Sınıf':
+      case '9. Sınıf':
+      case '10. Sınıf':
+      case '11. Sınıf':
+      case '12. Sınıf':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '10':
+      case '11':
+      case '12':
+        return 'education_info.class_grade'.trParams({
+          'grade': value.split('.').first,
+        });
+      default:
+        return value;
+    }
+  }
+
+  String localizedPlaceholder(String label) {
+    return 'education_info.select_field'
+        .trParams({'field': localizedFieldLabel(label)});
   }
 
   void _initAnimationControllers() {
@@ -82,431 +190,27 @@ class EducationInfoController extends GetxController
     return _animationTurns[label]!;
   }
 
-  Future<void> loadInitialData() async {
-    try {
-      isInitialLoading.value = true;
-      isLoading.value = true;
-      await Future.wait([
-        loadCountriesData(),
-        loadCityDistrictData(),
-        loadMiddleSchools(),
-        loadHighSchools(),
-        loadHigherEducations(),
-        loadSavedData(),
-      ]);
-    } catch (e) {
-      AppSnackbar("Hata", "Başlangıç verileri yüklenemedi.");
-    } finally {
-      isInitialLoading.value = false;
-      isLoading.value = false;
-    }
-  }
+  Future<void> loadInitialData() => _loadInitialDataImpl();
 
-  Future<void> loadCountriesData() async {
-    try {
-      final String response = await rootBundle.loadString(
-        'assets/data/Countries.json',
-      );
-      final List<dynamic> data = json.decode(response);
-      countries.value = data.map((json) => json['name'] as String).toList();
-    } catch (e) {
-      AppSnackbar("Hata", "Ülkeler yüklenemedi.");
-    }
-  }
+  Future<void> loadSavedData() => _loadSavedDataImpl();
 
-  Future<void> loadCityDistrictData() async {
-    try {
-      final String response = await rootBundle.loadString(
-        'assets/data/CityDistrict.json',
-      );
-      final List<dynamic> data = json.decode(response);
-      cityDistrictData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      cities.value = cityDistrictData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      AppSnackbar("Hata", "İl-ilçe verileri yüklenemedi.");
-    }
-  }
+  void updateContent() => content.value = '';
 
-  Future<void> loadMiddleSchools() async {
-    try {
-      final String response = await rootBundle.loadString(
-        'assets/data/MiddleSchool.json',
-      );
-      final List<dynamic> data = json.decode(response);
-      middleSchools.value =
-          data.map((json) => MiddleSchoolModel.fromJson(json)).toList();
-    } catch (e) {
-      AppSnackbar("Hata", "Okul verileri yüklenemedi.");
-    }
-  }
+  Future<void> loadSavedDataForLevel(String level) =>
+      _loadSavedDataForLevelImpl(level);
 
-  Future<void> loadHighSchools() async {
-    try {
-      final String response = await rootBundle.loadString(
-        'assets/data/HighSchool.json',
-      );
-      final List<dynamic> data = json.decode(response);
-      highSchools.value =
-          data.map((json) => HighSchoolModel.fromJson(json)).toList();
-    } catch (e) {
-      AppSnackbar("Hata", "Lise verileri yüklenemedi.");
-    }
-  }
+  bool hasDataForLevel(String level) => _hasDataForLevelImpl(level);
 
-  Future<void> loadHigherEducations() async {
-    try {
-      final String response = await rootBundle.loadString(
-        'assets/data/HigherEducation.json',
-      );
-      final List<dynamic> data = json.decode(response);
-      higherEducations.value =
-          data.map((json) => HigherEducationModel.fromJson(json)).toList();
-    } catch (e) {
-      AppSnackbar("Hata", "Yükseköğretim verileri yüklenemedi.");
-    }
-  }
+  void clearFields() => _clearFieldsImpl();
 
-  void updateContent() {
-    content.value = '';
-  }
+  void clearOtherEducationFields(String currentLevel) =>
+      _clearOtherEducationFieldsImpl(currentLevel);
 
-  Future<void> loadSavedData() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        AppSnackbar("Hata", "Kullanıcı oturumu açık değil");
-        return;
-      }
+  Future<void> saveMiddleSchool() => _saveMiddleSchoolImpl();
 
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        String educationLevel = data['educationLevel'] ?? '';
-        selectedEducationLevel.value = educationLevel;
+  Future<void> saveHighSchool() => _saveHighSchoolImpl();
 
-        clearFields();
-
-        if (educationLevel == 'Ortaokul') {
-          selectedCountry.value = data['ulke'] ?? '';
-          selectedCity.value = data['il'] ?? '';
-          selectedDistrict.value = data['ilce'] ?? '';
-          selectedSchool.value = data['ortaOkul'] ?? '';
-          selectedClassLevel.value = data['sinif'] ?? '';
-          hasMiddleSchoolData.value = true;
-        } else if (educationLevel == 'Lise') {
-          selectedCountry.value = data['ulke'] ?? '';
-          selectedCity.value = data['il'] ?? '';
-          selectedDistrict.value = data['ilce'] ?? '';
-          selectedHighSchool.value = data['lise'] ?? '';
-          selectedClassLevel.value = data['sinif'] ?? '';
-          hasHighSchoolData.value = true;
-        } else if ([
-          'Önlisans',
-          'Lisans',
-          'Yüksek Lisans',
-          'Doktora',
-        ].contains(educationLevel)) {
-          selectedCountry.value = data['ulke'] ?? '';
-          selectedCity.value = data['il'] ?? '';
-          selectedUniversity.value = data['universite'] ?? '';
-          selectedFaculty.value = data['fakulte'] ?? '';
-          selectedDepartment.value = data['bolum'] ?? '';
-          hasHigherEducationData.value = true;
-        }
-      }
-    } catch (e) {
-      AppSnackbar("Hata", "Kayıtlı veriler yüklenemedi.");
-    }
-  }
-
-  Future<void> loadSavedDataForLevel(String level) async {
-    try {
-      isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        AppSnackbar("Hata", "Kullanıcı oturumu açık değil");
-        return;
-      }
-
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        String savedLevel = data['educationLevel'] ?? '';
-
-        clearFields();
-
-        if (level == savedLevel) {
-          if (level == 'Ortaokul') {
-            selectedCountry.value = data['ulke'] ?? '';
-            selectedCity.value = data['il'] ?? '';
-            selectedDistrict.value = data['ilce'] ?? '';
-            selectedSchool.value = data['ortaOkul'] ?? '';
-            selectedClassLevel.value = data['sinif'] ?? '';
-            hasMiddleSchoolData.value = true;
-          } else if (level == 'Lise') {
-            selectedCountry.value = data['ulke'] ?? '';
-            selectedCity.value = data['il'] ?? '';
-            selectedDistrict.value = data['ilce'] ?? '';
-            selectedHighSchool.value = data['lise'] ?? '';
-            selectedClassLevel.value = data['sinif'] ?? '';
-            hasHighSchoolData.value = true;
-          } else if ([
-            'Önlisans',
-            'Lisans',
-            'Yüksek Lisans',
-            'Doktora',
-          ].contains(level)) {
-            selectedCountry.value = data['ulke'] ?? '';
-            selectedCity.value = data['il'] ?? '';
-            selectedUniversity.value = data['universite'] ?? '';
-            selectedFaculty.value = data['fakulte'] ?? '';
-            selectedDepartment.value = data['bolum'] ?? '';
-            hasHigherEducationData.value = true;
-          }
-        }
-        selectedEducationLevel.value = level;
-      }
-    } catch (e) {
-      AppSnackbar("Hata", "Seviye verileri yüklenemedi.");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  bool hasDataForLevel(String level) {
-    if (level == 'Ortaokul') return hasMiddleSchoolData.value;
-    if (level == 'Lise') return hasHighSchoolData.value;
-    if (['Önlisans', 'Lisans', 'Yüksek Lisans', 'Doktora'].contains(level)) {
-      return hasHigherEducationData.value;
-    }
-    return false;
-  }
-
-  void clearFields() {
-    selectedCountry.value = '';
-    selectedCity.value = '';
-    selectedDistrict.value = '';
-    selectedSchool.value = '';
-    selectedHighSchool.value = '';
-    selectedUniversity.value = '';
-    selectedFaculty.value = '';
-    selectedDepartment.value = '';
-    selectedClassLevel.value = '';
-  }
-
-  void clearOtherEducationFields(String currentLevel) {
-    if (currentLevel != 'Ortaokul') {
-      selectedSchool.value = '';
-      selectedClassLevel.value = '';
-      hasMiddleSchoolData.value = false;
-    }
-    if (currentLevel != 'Lise') {
-      selectedHighSchool.value = '';
-      selectedClassLevel.value = '';
-      hasHighSchoolData.value = false;
-    }
-    if (![
-      'Önlisans',
-      'Lisans',
-      'Yüksek Lisans',
-      'Doktora',
-    ].contains(currentLevel)) {
-      selectedUniversity.value = '';
-      selectedFaculty.value = '';
-      selectedDepartment.value = '';
-      hasHigherEducationData.value = false;
-    }
-    if (currentLevel != 'Ortaokul' && currentLevel != 'Lise') {
-      selectedDistrict.value = '';
-    }
-    if (![
-      'Ortaokul',
-      'Lise',
-      'Önlisans',
-      'Lisans',
-      'Yüksek Lisans',
-      'Doktora',
-    ].contains(currentLevel)) {
-      selectedCountry.value = '';
-      selectedCity.value = '';
-    }
-  }
-
-  Future<void> saveMiddleSchool() async {
-    if (selectedCountry.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir ülke seçin.");
-      return;
-    }
-    if (selectedCity.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir il seçin.");
-      return;
-    }
-    if (selectedDistrict.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir ilçe seçin.");
-      return;
-    }
-    if (selectedSchool.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir ortaokul seçin.");
-      return;
-    }
-    if (selectedClassLevel.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir sınıf seviyesi seçin.");
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        AppSnackbar("Hata", "Kullanıcı oturumu açık değil.");
-        return;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-        'ulke': selectedCountry.value,
-        'il': selectedCity.value,
-        'ilce': selectedDistrict.value,
-        'ortaOkul': selectedSchool.value,
-        'sinif': selectedClassLevel.value,
-        'educationLevel': 'Ortaokul',
-      });
-
-      hasMiddleSchoolData.value = true;
-      selectedEducationLevel.value = 'Ortaokul';
-      clearOtherEducationFields('Ortaokul');
-      Get.back();
-
-      AppSnackbar("Başarılı", "Eğitim Bilgileriniz kaydedildi.");
-    } catch (e) {
-      print("Firestore Error: $e");
-      AppSnackbar("Hata", "Kayıt başarısız.");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> saveHighSchool() async {
-    if (selectedCountry.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir ülke seçin.");
-      return;
-    }
-    if (selectedCity.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir il seçin.");
-      return;
-    }
-    if (selectedDistrict.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir ilçe seçin.");
-      return;
-    }
-    if (selectedHighSchool.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir lise seçin.");
-      return;
-    }
-    if (selectedClassLevel.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir sınıf seviyesi seçin.");
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        AppSnackbar("Hata", "Kullanıcı oturumu açık değil.");
-        return;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-        'ulke': selectedCountry.value,
-        'il': selectedCity.value,
-        'ilce': selectedDistrict.value,
-        'lise': selectedHighSchool.value,
-        'sinif': selectedClassLevel.value,
-        'educationLevel': 'Lise',
-      });
-
-      hasHighSchoolData.value = true;
-      selectedEducationLevel.value = 'Lise';
-      clearOtherEducationFields('Lise');
-      Get.back();
-
-      AppSnackbar("Başarılı", "Eğitim Bilgileriniz Kaydedildi.");
-    } catch (e) {
-      print("Firestore Error: $e");
-      AppSnackbar("Hata", "Kayıt başarısız.");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> saveHigherEducation() async {
-    if (selectedCountry.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir ülke seçin.");
-      return;
-    }
-    if (selectedCity.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir il seçin.");
-      return;
-    }
-    if (selectedUniversity.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir üniversite seçin.");
-      return;
-    }
-    if (selectedFaculty.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir fakülte seçin.");
-      return;
-    }
-    if (selectedDepartment.value.isEmpty) {
-      AppSnackbar("Hata", "Lütfen bir bölüm seçin.");
-      return;
-    }
-
-    try {
-      isLoading.value = true;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        AppSnackbar("Hata", "Kullanıcı oturumu açık değil.");
-        return;
-      }
-
-      String educationLevel = selectedEducationLevel.value;
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-        'ulke': selectedCountry.value,
-        'il': selectedCity.value,
-        'universite': selectedUniversity.value,
-        'fakulte': selectedFaculty.value,
-        'bolum': selectedDepartment.value,
-        'educationLevel': educationLevel,
-      });
-
-      hasHigherEducationData.value = true;
-      clearOtherEducationFields(educationLevel);
-      Get.back();
-
-      AppSnackbar("Başarılı", "Eğitim Bilgileriniz Kaydedildi.");
-    } catch (e) {
-      print("Firestore Error: $e");
-      AppSnackbar("Hata", "Kayıt başarısız.");
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  Future<void> saveHigherEducation() => _saveHigherEducationImpl();
 
   Future<void> showBottomSheet(
     BuildContext context,
@@ -515,23 +219,15 @@ class EducationInfoController extends GetxController
     Function(String) onSelect, {
     String? selectedItem,
     bool isSearchable = false,
-  }) async {
-    final animationController = _animationControllers[title];
-    if (animationController == null) return;
-
-    animationController.forward();
-
-    await ListBottomSheet.show(
-      context: context,
-      items: items,
-      title: title,
-      onSelect: (dynamic val) => onSelect(val as String),
-      selectedItem: selectedItem,
-      isSearchable: isSearchable,
-    );
-
-    animationController.reverse();
-  }
+  }) =>
+      _showBottomSheetImpl(
+        context,
+        items,
+        title,
+        onSelect,
+        selectedItem: selectedItem,
+        isSearchable: isSearchable,
+      );
 
   @override
   void onClose() {

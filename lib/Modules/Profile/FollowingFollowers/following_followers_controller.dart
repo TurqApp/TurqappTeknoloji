@@ -1,9 +1,36 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+
+part 'following_followers_controller_cache_part.dart';
+part 'following_followers_controller_search_part.dart';
 
 class FollowingFollowersController extends GetxController {
+  static const Duration _nicknameCacheTtl = Duration(minutes: 5);
+  static const Duration _nicknameCacheStaleRetention = Duration(minutes: 20);
+  static const int _maxNicknameCacheEntries = 300;
+  static const Duration _searchResultCacheTtl = Duration(seconds: 30);
+  static const Duration _searchResultStaleRetention = Duration(minutes: 3);
+  static const int _maxSearchResultEntries = 400;
+  static const Duration _counterCacheTtl = Duration(seconds: 30);
+  static const Duration _counterCacheStaleRetention = Duration(minutes: 3);
+  static const int _maxCounterCacheEntries = 300;
+  static const Duration _relationListCacheTtl = Duration(minutes: 10);
+  static const Duration _relationListCacheStaleRetention = Duration(hours: 1);
+  static const int _maxRelationListCacheEntries = 400;
+  static final Map<String, _NicknameCacheEntry> _nicknameCacheByUserId =
+      <String, _NicknameCacheEntry>{};
+  static final Map<String, _CounterCacheEntry> _counterCacheByUserId =
+      <String, _CounterCacheEntry>{};
+  static final Map<String, _RelationListCacheEntry>
+      _followersListCacheByUserId = <String, _RelationListCacheEntry>{};
+  static final Map<String, _RelationListCacheEntry>
+      _followingsListCacheByUserId = <String, _RelationListCacheEntry>{};
+
   @override
   void onClose() {
     pageController.dispose();
@@ -20,8 +47,6 @@ class FollowingFollowersController extends GetxController {
   static const int _selfInitialLimit = 40;
   static const int _selfRefreshLimit = 30;
   static const int _otherUserLimit = 50;
-  DocumentSnapshot? lastFollowerDoc;
-  DocumentSnapshot? lastFollowingDoc;
   bool isLoadingFollowers = false;
   bool isLoadingFollowing = false;
   bool hasMoreFollowers = true;
@@ -33,8 +58,42 @@ class FollowingFollowersController extends GetxController {
   final TextEditingController searchTakipEdilenController =
       TextEditingController();
   final String userId;
+  static const Duration _relationSearchCacheTtl = Duration(seconds: 30);
+  final Map<String, _RelationIdSetCacheEntry> _relationIdSetCache =
+      <String, _RelationIdSetCacheEntry>{};
+  final Map<String, _SearchResultCacheEntry> _searchResultCache =
+      <String, _SearchResultCacheEntry>{};
 
   var nickname = "".obs;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
+
+  static FollowingFollowersController ensure({
+    required String userId,
+    required int initialPage,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      FollowingFollowersController(
+        userId: userId,
+        initialPage: initialPage,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static FollowingFollowersController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<FollowingFollowersController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<FollowingFollowersController>(tag: tag);
+  }
 
   FollowingFollowersController(
       {required this.userId, required int initialPage}) {
@@ -44,200 +103,198 @@ class FollowingFollowersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .get()
-        .then((doc) {
-      nickname.value = doc.get("nickname");
-    });
+    _loadNicknameCached();
     getCounters();
-    getFollowers(initial: true);
-    getFollowing(initial: true);
+    final followersCached = _restoreRelationListCache(isFollowers: true);
+    final followingsCached = _restoreRelationListCache(isFollowers: false);
+    if (!followersCached) {
+      getFollowers(initial: true);
+    }
+    if (!followingsCached) {
+      getFollowing(initial: true);
+    }
   }
 
-  bool get isSelf => FirebaseAuth.instance.currentUser?.uid == userId;
+  bool get isSelf => isCurrentUserId(userId);
 
-  int _resolveLimit({required bool initial}) {
-    if (isSelf) {
-      return initial ? _selfInitialLimit : _selfRefreshLimit;
-    }
-    return _otherUserLimit;
-  }
-
-  Future<void> getCounters() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("Takipciler")
-        .count()
-        .get()
-        .then((aggregateQuerySnapshot) {
-      takipciCounter.value = aggregateQuerySnapshot.count ?? 0;
-      print("CEKILDI SETEDILDI");
-    });
-
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("TakipEdilenler")
-        .count()
-        .get()
-        .then((aggregateQuerySnapshot) {
-      takipedilenCounter.value = aggregateQuerySnapshot.count ?? 0;
-      print("CEKILDI SETEDILDI");
-    });
-  }
-
-  Future<void> getFollowers({bool initial = false}) async {
-    if (isLoadingFollowers) return;
-    if (!isSelf && takipciler.isNotEmpty) return; // başkasında tek sefer getir
-
-    isLoadingFollowers = true;
-    if (initial) {
-      takipciler.clear();
-      lastFollowerDoc = null;
-      hasMoreFollowers = true;
-    }
-
-    final fetchLimit = _resolveLimit(initial: initial);
-
-    Query query = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("Takipciler")
-        .orderBy("timeStamp", descending: true)
-        .limit(fetchLimit);
-
-    if (isSelf && lastFollowerDoc != null) {
-      query = query.startAfterDocument(lastFollowerDoc!);
-    }
-
-    final snap = await query.get();
-    if (snap.docs.isNotEmpty) {
-      lastFollowerDoc = snap.docs.last;
-      for (var doc in snap.docs) {
-        final id = doc.id;
-        if (!takipciler.contains(id)) takipciler.add(id);
+  static void applyFollowMutationToCaches({
+    required String currentUid,
+    required String otherUserID,
+    required bool nowFollowing,
+  }) {
+    final now = DateTime.now();
+    final myFollowingEntry = _followingsListCacheByUserId[currentUid];
+    if (myFollowingEntry != null) {
+      final list = List<String>.from(myFollowingEntry.ids);
+      if (nowFollowing) {
+        if (!list.contains(otherUserID)) list.insert(0, otherUserID);
+      } else {
+        list.remove(otherUserID);
       }
+      _followingsListCacheByUserId[currentUid] =
+          _RelationListCacheEntry(ids: list, cachedAt: now);
     }
 
-    if (!isSelf || snap.docs.length < fetchLimit) {
-      // başkasında her zaman kapat; kendinde bittiğinde kapat
-      hasMoreFollowers = false;
-    }
-
-    isLoadingFollowers = false;
-  }
-
-  Future<void> getFollowing({bool initial = false}) async {
-    if (isLoadingFollowing) return;
-    if (!isSelf && takipEdilenler.isNotEmpty) return; // başkasında tek sefer getir
-
-    isLoadingFollowing = true;
-    if (initial) {
-      takipEdilenler.clear();
-      lastFollowingDoc = null;
-      hasMoreFollowing = true;
-    }
-
-    final fetchLimit = _resolveLimit(initial: initial);
-
-    Query query = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("TakipEdilenler")
-        .orderBy("timeStamp", descending: true)
-        .limit(fetchLimit);
-
-    if (isSelf && lastFollowingDoc != null) {
-      query = query.startAfterDocument(lastFollowingDoc!);
-    }
-
-    final snap = await query.get();
-    if (snap.docs.isNotEmpty) {
-      lastFollowingDoc = snap.docs.last;
-      for (var doc in snap.docs) {
-        final id = doc.id;
-        if (!takipEdilenler.contains(id)) takipEdilenler.add(id);
+    final otherFollowersEntry = _followersListCacheByUserId[otherUserID];
+    if (otherFollowersEntry != null) {
+      final list = List<String>.from(otherFollowersEntry.ids);
+      if (nowFollowing) {
+        if (!list.contains(currentUid)) list.insert(0, currentUid);
+      } else {
+        list.remove(currentUid);
       }
+      _followersListCacheByUserId[otherUserID] =
+          _RelationListCacheEntry(ids: list, cachedAt: now);
     }
 
-    if (!isSelf || snap.docs.length < fetchLimit) {
-      hasMoreFollowing = false;
+    final myCounter = _counterCacheByUserId[currentUid];
+    if (myCounter != null) {
+      final nextFollowings = nowFollowing
+          ? myCounter.followings + 1
+          : (myCounter.followings - 1).clamp(0, 1 << 30);
+      _counterCacheByUserId[currentUid] = _CounterCacheEntry(
+        followers: myCounter.followers,
+        followings: nextFollowings,
+        cachedAt: now,
+      );
     }
 
-    isLoadingFollowing = false;
+    final otherCounter = _counterCacheByUserId[otherUserID];
+    if (otherCounter != null) {
+      final nextFollowers = nowFollowing
+          ? otherCounter.followers + 1
+          : (otherCounter.followers - 1).clamp(0, 1 << 30);
+      _counterCacheByUserId[otherUserID] = _CounterCacheEntry(
+        followers: nextFollowers,
+        followings: otherCounter.followings,
+        cachedAt: now,
+      );
+    }
+
+    final currentController = maybeFind(tag: currentUid);
+    if (currentController != null) {
+      final c = currentController;
+      c._applyLocalMutation(
+        currentUid: currentUid,
+        otherUserID: otherUserID,
+        nowFollowing: nowFollowing,
+      );
+    }
+    final otherController = maybeFind(tag: otherUserID);
+    if (otherController != null) {
+      final c = otherController;
+      c._applyLocalMutation(
+        currentUid: currentUid,
+        otherUserID: otherUserID,
+        nowFollowing: nowFollowing,
+      );
+    }
   }
 
-  Future<void> searchTakipci() async {
-    final q = searchTakipciController.text.toLowerCase();
-    if (q.length < 3) return;
-
-    final next = q.substring(0, q.length - 1) +
-        String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
-
-    // 1. Bu kullanıcının tüm takipçi ID'lerini çek
-    final allFollowersSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("Takipciler")
-        .get();
-    final followerIDs = allFollowersSnap.docs.map((doc) => doc.id).toSet();
-
-    // 2. Nickname'e göre filtrele
-    final querySnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where('nickname', isGreaterThanOrEqualTo: q)
-        .where('nickname', isLessThan: next)
-        .get();
-
-    final results = <String>[];
-    for (var doc in querySnap.docs) {
-      if (followerIDs.contains(doc.id)) {
-        results.add(doc.id);
+  void _applyLocalMutation({
+    required String currentUid,
+    required String otherUserID,
+    required bool nowFollowing,
+  }) {
+    if (userId == currentUid) {
+      if (nowFollowing) {
+        if (!takipEdilenler.contains(otherUserID)) {
+          takipEdilenler.insert(0, otherUserID);
+        }
+      } else {
+        takipEdilenler.remove(otherUserID);
       }
+      takipedilenCounter.value = nowFollowing
+          ? takipedilenCounter.value + 1
+          : (takipedilenCounter.value - 1).clamp(0, 1 << 30);
+      _saveRelationListCache(isFollowers: false);
+      _relationIdSetCache['followings'] = _RelationIdSetCacheEntry(
+        ids: takipEdilenler.toSet(),
+        cachedAt: DateTime.now(),
+      );
     }
-    takipciler.value = results;
-  }
-
-  Future<void> searchTakipEdilenler() async {
-    final q = searchTakipEdilenController.text.toLowerCase();
-    if (q.length < 3) return;
-
-    final next = q.substring(0, q.length - 1) +
-        String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
-
-    // 1. Tüm takip edilen ID'leri çek
-    final allFollowingSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("TakipEdilenler")
-        .get();
-    final followingIDs = allFollowingSnap.docs.map((doc) => doc.id).toSet();
-
-    // 2. Nickname'e göre filtrele
-    final querySnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where('nickname', isGreaterThanOrEqualTo: q)
-        .where('nickname', isLessThan: next)
-        .get();
-
-    final results = <String>[];
-    for (var doc in querySnap.docs) {
-      if (followingIDs.contains(doc.id)) {
-        results.add(doc.id);
+    if (userId == otherUserID) {
+      if (nowFollowing) {
+        if (!takipciler.contains(currentUid)) {
+          takipciler.insert(0, currentUid);
+        }
+      } else {
+        takipciler.remove(currentUid);
       }
+      takipciCounter.value = nowFollowing
+          ? takipciCounter.value + 1
+          : (takipciCounter.value - 1).clamp(0, 1 << 30);
+      _saveRelationListCache(isFollowers: true);
+      _relationIdSetCache['followers'] = _RelationIdSetCacheEntry(
+        ids: takipciler.toSet(),
+        cachedAt: DateTime.now(),
+      );
     }
-    takipEdilenler.value = results;
   }
+}
 
-  /// Sayfa değiştirme
-  void goToPage(int index) {
-    pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
+class _NicknameCacheEntry {
+  final String nickname;
+  final DateTime cachedAt;
+
+  const _NicknameCacheEntry({
+    required this.nickname,
+    required this.cachedAt,
+  });
+}
+
+class _RelationIdSetCacheEntry {
+  final Set<String> ids;
+  final DateTime cachedAt;
+
+  const _RelationIdSetCacheEntry({
+    required this.ids,
+    required this.cachedAt,
+  });
+}
+
+class _SearchResultCacheEntry {
+  final List<String> ids;
+  final DateTime cachedAt;
+
+  const _SearchResultCacheEntry({
+    required this.ids,
+    required this.cachedAt,
+  });
+}
+
+class _CounterCacheEntry {
+  final int followers;
+  final int followings;
+  final DateTime cachedAt;
+
+  const _CounterCacheEntry({
+    required this.followers,
+    required this.followings,
+    required this.cachedAt,
+  });
+}
+
+class _RelationListCacheEntry {
+  final List<String> ids;
+  final DateTime cachedAt;
+
+  const _RelationListCacheEntry({
+    required this.ids,
+    required this.cachedAt,
+  });
+}
+
+class _RelationSearchPlan {
+  const _RelationSearchPlan({
+    required this.query,
+    required this.cacheKey,
+    required this.relation,
+    required this.assignResult,
+  });
+
+  final String query;
+  final String cacheKey;
+  final String relation;
+  final void Function(List<String> ids) assignResult;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail_controller.dart';
 
@@ -18,18 +19,11 @@ void showTutoringReviewBottomSheet({
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Değerlendirme Yap",
-            style: TextStyle(
-              fontFamily: "MontserratBold",
-              fontSize: 18,
-              color: Colors.black,
-            ),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          AppSheetHeader(title: 'tutoring.review_title'.tr),
           const SizedBox(height: 16),
           // Star rating
           Center(
@@ -62,7 +56,7 @@ void showTutoringReviewBottomSheet({
             controller: commentController,
             maxLines: 3,
             decoration: InputDecoration(
-              hintText: "Yorumunuzu yazın (opsiyonel)",
+              hintText: 'tutoring.review_hint'.tr,
               hintStyle: const TextStyle(
                 fontFamily: "MontserratMedium",
                 fontSize: 14,
@@ -92,7 +86,9 @@ void showTutoringReviewBottomSheet({
                       : () async {
                           if (selectedRating.value == 0) {
                             AppSnackbar(
-                                "Hata", "Lütfen bir puan seçin.");
+                              'common.error'.tr,
+                              'tutoring.review_select_rating'.tr,
+                            );
                             return;
                           }
                           isSubmitting.value = true;
@@ -103,8 +99,8 @@ void showTutoringReviewBottomSheet({
                           );
                           isSubmitting.value = false;
                           Get.back();
-                          AppSnackbar("Başarılı",
-                              "Değerlendirmeniz kaydedildi.");
+                          AppSnackbar('common.done'.tr,
+                              'tutoring.review_saved'.tr);
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
@@ -118,13 +114,12 @@ void showTutoringReviewBottomSheet({
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation(Colors.white),
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
                           ),
                         )
-                      : const Text(
-                          "Gönder",
-                          style: TextStyle(
+                      : Text(
+                          'common.send'.tr,
+                          style: const TextStyle(
                             fontFamily: "MontserratBold",
                             fontSize: 16,
                             color: Colors.white,

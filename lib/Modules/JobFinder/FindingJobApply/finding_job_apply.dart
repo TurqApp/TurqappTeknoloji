@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -9,9 +7,39 @@ import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 
 import 'finding_job_apply_controller.dart';
 
-class FindingJobApply extends StatelessWidget {
-  FindingJobApply({super.key});
-  final controller = Get.put(FindingJobApplyController());
+class FindingJobApply extends StatefulWidget {
+  const FindingJobApply({super.key});
+
+  @override
+  State<FindingJobApply> createState() => _FindingJobApplyState();
+}
+
+class _FindingJobApplyState extends State<FindingJobApply> {
+  late final String _controllerTag;
+  late final FindingJobApplyController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'finding_job_apply_${identityHashCode(this)}';
+    _ownsController =
+        FindingJobApplyController.maybeFind(tag: _controllerTag) == null;
+    controller = FindingJobApplyController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          FindingJobApplyController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<FindingJobApplyController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,7 +54,9 @@ class FindingJobApply extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.all(15),
                   child: Row(
-                    children: [BackButtons(text: "İş Arıyorum Platformu")],
+                    children: [
+                      BackButtons(text: "pasaj.job_finder.finding_platform".tr)
+                    ],
                   ),
                 ),
                 Padding(
@@ -35,7 +65,7 @@ class FindingJobApply extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "İş Arıyorum Platformu Nasıl Çalışır ?",
+                        "pasaj.job_finder.finding_how".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -45,7 +75,7 @@ class FindingJobApply extends StatelessWidget {
                         height: 12,
                       ),
                       Text(
-                        "Özgeçmişiniz, onayınız doğrultusunda işverenlerle paylaşılacaktır. İşverenler, ilan yayınlamadan önce ihtiyaç duydukları pozisyonlara uygun adayları sistemimiz üzerinden inceleyebilir. Böylece hem işverenler aradıkları çalışanlara daha hızlı ulaşabilir hem de siz iş arayanlar daha kısa sürede iş fırsatlarına erişebilirsiniz. Amacımız, işe alım sürecini her iki taraf için de daha hızlı ve etkili hale getirmektir.",
+                        "pasaj.job_finder.finding_body".tr,
                         style: TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -58,15 +88,7 @@ class FindingJobApply extends StatelessWidget {
                         return controller.cvVar.value
                             ? GestureDetector(
                                 onTap: () {
-                                  controller.isFinding.value =
-                                      !controller.isFinding.value;
-                                  FirebaseFirestore.instance
-                                      .collection("CV")
-                                      .doc(FirebaseAuth
-                                          .instance.currentUser?.uid ?? '')
-                                      .update({
-                                    "findingJob": controller.isFinding.value
-                                  });
+                                  controller.toggleFindingJob();
                                 },
                                 child: Container(
                                   height: 50,
@@ -83,7 +105,8 @@ class FindingJobApply extends StatelessWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "İş Arıyorum",
+                                            "pasaj.job_finder.looking_for_job"
+                                                .tr,
                                             style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -116,7 +139,7 @@ class FindingJobApply extends StatelessWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            "CV Oluştur",
+                                            "pasaj.job_finder.create_cv".tr,
                                             style: TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,

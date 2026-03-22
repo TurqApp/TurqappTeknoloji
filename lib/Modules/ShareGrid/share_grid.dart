@@ -5,16 +5,51 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'share_grid_controller.dart';
 
-class ShareGrid extends StatelessWidget {
+class ShareGrid extends StatefulWidget {
   final String postID;
   final String postType;
 
-  ShareGrid({super.key, required this.postID, required this.postType});
+  const ShareGrid({super.key, required this.postID, required this.postType});
+
+  @override
+  State<ShareGrid> createState() => _ShareGridState();
+}
+
+class _ShareGridState extends State<ShareGrid> {
+  late final String _tag;
   late final ShareGridController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag =
+        'ShareGrid_${widget.postType}_${widget.postID}_${identityHashCode(this)}';
+    final existingController = ShareGridController.maybeFind(tag: _tag);
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = ShareGridController.ensure(
+        postType: widget.postType,
+        postID: widget.postID,
+        tag: _tag,
+      );
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(ShareGridController.maybeFind(tag: _tag), controller)) {
+      Get.delete<ShareGridController>(tag: _tag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    controller =
-        Get.put(ShareGridController(postType: postType, postID: postID));
     return Column(
       children: [
         Padding(
@@ -31,7 +66,7 @@ class ShareGrid extends StatelessWidget {
               child: TextField(
                 controller: controller.search,
                 decoration: InputDecoration(
-                  hintText: "Ara",
+                  hintText: 'common.search'.tr,
                   icon: Icon(
                     CupertinoIcons.search,
                     color: Colors.black,
@@ -92,7 +127,7 @@ class ShareGrid extends StatelessWidget {
                                   width: 55,
                                   height: 55,
                                   child: CachedNetworkImage(
-                                    imageUrl: model.pfImage,
+                                    imageUrl: model.avatarUrl,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
                                       color: Colors.grey.shade200,
@@ -135,7 +170,7 @@ class ShareGrid extends StatelessWidget {
               onTap: () {
                 controller.sendIt();
               },
-              text: "Gönder",
+              text: 'common.send'.tr,
             );
           }),
         )

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,29 +7,64 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyPastTestResultsPreview.dart/my_past_test_results_preview_controller.dart';
 
-class MyPastTestResultsPreview extends StatelessWidget {
+class MyPastTestResultsPreview extends StatefulWidget {
   final TestsModel model;
 
   const MyPastTestResultsPreview({super.key, required this.model});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(MyPastTestResultsPreviewController(model));
+  State<MyPastTestResultsPreview> createState() =>
+      _MyPastTestResultsPreviewState();
+}
 
+class _MyPastTestResultsPreviewState extends State<MyPastTestResultsPreview> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final MyPastTestResultsPreviewController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'test_results_preview_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        MyPastTestResultsPreviewController.maybeFind(tag: _controllerTag) ==
+            null;
+    controller = MyPastTestResultsPreviewController.ensure(
+      widget.model,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController =
+          MyPastTestResultsPreviewController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<MyPastTestResultsPreviewController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sonuçlar"),
+            BackButtons(text: "tests.results_title".tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
                     ? Center(child: CupertinoActivityIndicator())
                     : controller.soruList.isEmpty || controller.yanitlar.isEmpty
-                        ? EmptyRow(
-                            text:
-                                "Sonuç bulunamadı.\nBu test için yanıt veya soru verisi mevcut değil.")
+                        ? EmptyRow(text: "tests.results_empty".tr)
                         : SingleChildScrollView(
                             child: Column(
                               children: [
@@ -54,7 +90,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Doğru",
+                                              "tests.correct".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -85,7 +121,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Yanlış",
+                                              "tests.wrong".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -116,7 +152,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Boş",
+                                              "tests.blank".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -146,7 +182,7 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             ),
                                             SizedBox(height: 4),
                                             Text(
-                                              "Puan",
+                                              "tests.score".tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -167,7 +203,8 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                       color: Colors.white,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.grey.withValues(alpha: 0.3),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.3),
                                           blurRadius: 10,
                                           spreadRadius: 2,
                                           offset: Offset(4, 4),
@@ -185,7 +222,11 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                                 top: 15,
                                               ),
                                               child: Text(
-                                                "${index + 1}. Soru",
+                                                "tests.question_number"
+                                                    .trParams({
+                                                  'index':
+                                                      (index + 1).toString(),
+                                                }),
                                                 style: TextStyle(
                                                   color: Colors.black,
                                                   fontSize: 20,
@@ -200,9 +241,20 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             vertical: 10,
                                             horizontal: 20,
                                           ),
-                                          child: Image.network(
-                                            controller.soruList[index].img,
+                                          child: CachedNetworkImage(
+                                            imageUrl:
+                                                controller.soruList[index].img,
                                             fit: BoxFit.cover,
+                                            placeholder: (context, url) =>
+                                                const Center(
+                                              child:
+                                                  CupertinoActivityIndicator(),
+                                            ),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    const Icon(
+                                              Icons.broken_image,
+                                            ),
                                           ),
                                         ),
                                         buildChoices(controller, index),

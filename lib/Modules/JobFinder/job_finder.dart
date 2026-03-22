@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
+import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
@@ -23,10 +29,20 @@ class JobFinder extends StatelessWidget {
   });
   final bool embedded;
   final bool showEmbeddedControls;
-  final controller = Get.put(JobFinderController());
+  static bool _bannerWarmupTriggered = false;
+  final controller = JobFinderController.ensure(permanent: true);
 
   @override
   Widget build(BuildContext context) {
+    if (!_bannerWarmupTriggered) {
+      _bannerWarmupTriggered = true;
+      unawaited(
+        AdmobBannerWarmupService.ensure().warmForPasajEntry(
+          surfaceKey: 'job_finder',
+        ),
+      );
+    }
+
     final content = Column(
       children: [
         const Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -52,11 +68,11 @@ class JobFinder extends StatelessWidget {
                 menuItems: [
                   PullDownMenuItem(
                     icon: CupertinoIcons.slider_horizontal_3,
-                    title: 'Slider Yönetimi',
+                    title: 'pasaj.common.slider_admin'.tr,
                     onTap: () => Get.to(
-                      () => const SliderAdminView(
+                      () => SliderAdminView(
                         sliderId: 'is_bul',
-                        title: 'İş Bul',
+                        title: 'pasaj.job_finder.title'.tr,
                       ),
                     ),
                   ),
@@ -78,21 +94,9 @@ class JobFinder extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(CupertinoIcons.arrow_left,
-                            color: Colors.black, size: 25),
-                      ),
-                    ),
-                    TypewriterText(text: "İş Bul"),
+                    const AppBackButton(),
+                    const SizedBox(width: 8),
+                    TypewriterText(text: "pasaj.job_finder.title".tr),
                   ],
                 ),
                 Obx(() {
@@ -112,7 +116,7 @@ class JobFinder extends StatelessWidget {
                           Text(
                             controller.sehir.value.isNotEmpty
                                 ? controller.sehir.value
-                                : "Tüm Türkiye",
+                                : "pasaj.common.all_turkiye".tr,
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 15,
@@ -137,11 +141,11 @@ class JobFinder extends StatelessWidget {
               menuItems: [
                 PullDownMenuItem(
                   icon: CupertinoIcons.slider_horizontal_3,
-                  title: 'Slider Yönetimi',
+                  title: 'pasaj.common.slider_admin'.tr,
                   onTap: () => Get.to(
-                    () => const SliderAdminView(
+                    () => SliderAdminView(
                       sliderId: 'is_bul',
-                      title: 'İş Bul',
+                      title: 'pasaj.job_finder.title'.tr,
                     ),
                   ),
                 ),
@@ -154,28 +158,36 @@ class JobFinder extends StatelessWidget {
   // ─── Tab 1: Keşfet ───
   Widget _kesfetTab(BuildContext context) {
     return Obx(() {
+      if (!controller.listingSelectionReady.value) {
+        return const Center(child: CupertinoActivityIndicator());
+      }
+      if (controller.isLoading.value && controller.list.isEmpty) {
+        return Column(
+          children: [
+            _kesfetHeader(isSearching: false, context: context),
+            const Expanded(
+              child: Center(child: CupertinoActivityIndicator()),
+            ),
+          ],
+        );
+      }
       if (controller.list.isEmpty) {
         return Column(
           children: [
             _kesfetHeader(isSearching: false, context: context),
             const SizedBox(height: 50),
-            EmptyRow(text: "Sonuç bulunamadı"),
+            EmptyRow(text: "common.no_results".tr),
           ],
         );
       }
 
       final query = controller.search.text.trim();
       final isSearching = query.length >= 2;
-      final tumTurkiye = controller.sehir.value.isEmpty ||
-          controller.sehir.value == "Tüm Türkiye";
+      final tumTurkiye =
+          controller.isAllTurkeySelection(controller.sehir.value);
 
       final dataList = isSearching
-          ? (tumTurkiye
-              ? controller.aramaSonucu
-              : controller.aramaSonucu
-                  .where(
-                      (e) => e.city.toString().contains(controller.sehir.value))
-                  .toList())
+          ? controller.aramaSonucu
           : (tumTurkiye
               ? controller.list
               : controller.list
@@ -183,30 +195,38 @@ class JobFinder extends StatelessWidget {
                       (e) => e.city.toString().contains(controller.sehir.value))
                   .toList());
 
-      final screenWidth = MediaQuery.of(context).size.width;
-      final itemWidth = screenWidth * 0.5;
-      final itemHeight = itemWidth / 0.56;
-      final aspectRatio = itemWidth / itemHeight;
-
       if (controller.listingSelection.value == 0) {
         if (dataList.isEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _kesfetHeader(isSearching: isSearching, context: context),
-              EmptyRow(text: "Şehrinde bir ilan bulunmuyor"),
+              EmptyRow(
+                text: isSearching
+                    ? "pasaj.job_finder.no_search_result".tr
+                    : "pasaj.job_finder.no_city_listing".tr,
+              ),
             ],
           );
         }
-        return ListView.builder(
-          itemCount: dataList.length + 1,
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return _kesfetHeader(isSearching: isSearching, context: context);
-            }
-            final model = dataList[index - 1];
-            return JobContent(model: model, isGrid: false);
-          },
+        return ListView(
+          children: [
+            _kesfetHeader(isSearching: isSearching, context: context),
+            ...PasajListingAdLayout.buildListChildren(
+              items: dataList,
+              itemBuilder: (item, index) => JobContent(
+                model: item,
+                isGrid: false,
+              ),
+              adBuilder: (slot) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                child: AdmobKare(
+                  key: ValueKey('job-list-ad-$slot'),
+                ),
+              ),
+            ),
+          ],
         );
       } else {
         if (dataList.isEmpty) {
@@ -214,7 +234,11 @@ class JobFinder extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _kesfetHeader(isSearching: isSearching, context: context),
-              EmptyRow(text: "Şehrinde bir ilan bulunmuyor"),
+              EmptyRow(
+                text: isSearching
+                    ? "pasaj.job_finder.no_search_result".tr
+                    : "pasaj.job_finder.no_city_listing".tr,
+              ),
             ],
           );
         }
@@ -225,19 +249,20 @@ class JobFinder extends StatelessWidget {
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: GridView.builder(
-                  itemCount: dataList.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: screenWidth * 0.5,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: aspectRatio,
+                child: Column(
+                  children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                    items: dataList,
+                    horizontalSpacing: 8,
+                    rowSpacing: 8,
+                    itemBuilder: (item, index) =>
+                        JobContent(model: item, isGrid: true),
+                    adBuilder: (slot) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: AdmobKare(
+                        key: ValueKey('job-grid-ad-$slot'),
+                      ),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    return JobContent(model: dataList[index], isGrid: true);
-                  },
                 ),
               ),
             ],
@@ -261,20 +286,20 @@ class JobFinder extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: TurqSearchBar(
               controller: controller.search,
-              hintText: "Ne tür iş arıyorsun ?",
+              hintText: "pasaj.job_finder.search_hint".tr,
             ),
           ),
         ],
-        if (!isSearching)
+        if (!isSearching && !embedded)
           Obx(() {
             return Padding(
               padding: const EdgeInsets.only(
                   left: 15, right: 15, top: 15, bottom: 7),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      "Sana En Yakın İlanlar",
+                      "pasaj.job_finder.nearby_listings".tr,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -297,12 +322,12 @@ class JobFinder extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           controller.short.value == 0
-                              ? "Sırala"
+                              ? "pasaj.common.sort".tr
                               : controller.short.value == 1
-                                  ? "Yüksek Maaş"
+                                  ? "pasaj.job_finder.sort_high_salary".tr
                                   : controller.short.value == 2
-                                      ? "Düşük Maaş"
-                                      : "En Yakın",
+                                      ? "pasaj.job_finder.sort_low_salary".tr
+                                      : "pasaj.job_finder.sort_nearest".tr,
                           style: TextStyle(
                             color: controller.short.value != 0
                                 ? Colors.pinkAccent
@@ -339,8 +364,7 @@ class JobFinder extends StatelessWidget {
                       fixedSize: const Size(30, 30),
                     ),
                     onPressed: () {
-                      controller.listingSelection.value =
-                          controller.listingSelection.value == 0 ? 1 : 0;
+                      controller.toggleListingSelection();
                     },
                     child: Icon(
                       controller.listingSelection.value == 0

@@ -1,13 +1,30 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorEmailController extends GetxController {
+  static EditorEmailController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      EditorEmailController(),
+      permanent: permanent,
+    );
+  }
+
+  static EditorEmailController? maybeFind() {
+    final isRegistered = Get.isRegistered<EditorEmailController>();
+    if (!isRegistered) return null;
+    return Get.find<EditorEmailController>();
+  }
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController codeController = TextEditingController();
 
@@ -17,11 +34,16 @@ class EditorEmailController extends GetxController {
   final isEmailConfirmed = false.obs;
 
   Timer? _timer;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
+
+  String get _currentUid => _userService.effectiveUserId;
 
   @override
   void onInit() {
     super.onInit();
-    fetchAndSetUserData();
+    _seedFromCurrentSources();
+    unawaited(fetchAndSetUserData());
   }
 
   @override
@@ -32,15 +54,36 @@ class EditorEmailController extends GetxController {
     super.onClose();
   }
 
+  void _seedFromCurrentSources() {
+    final authUser = FirebaseAuth.instance.currentUser;
+    final currentUser = _userService.currentUser;
+    final seededEmail = currentUser?.email.trim().isNotEmpty == true
+        ? currentUser!.email.trim()
+        : (authUser?.email ?? '').trim();
+    if (seededEmail.isNotEmpty) {
+      emailController.text = seededEmail;
+    }
+    isEmailConfirmed.value = (currentUser?.email.isNotEmpty == true &&
+            _userService.emailVerifiedRx.value) ||
+        authUser?.emailVerified == true;
+  }
+
   Future<void> fetchAndSetUserData() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(uid).get();
-    if (doc.exists) {
-      final data = doc.data() ?? const {};
-      emailController.text = data["email"]?.toString() ?? "";
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
+    final data = await _userRepository.getUserRaw(
+      uid,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (data != null) {
+      final rawEmail = data["email"]?.toString().trim() ?? "";
+      if (rawEmail.isNotEmpty) {
+        emailController.text = rawEmail;
+      }
       final firestoreVerified = data["emailVerified"] == true;
-      final authVerified = FirebaseAuth.instance.currentUser?.emailVerified == true;
+      final authVerified =
+          FirebaseAuth.instance.currentUser?.emailVerified == true;
       isEmailConfirmed.value = firestoreVerified || authVerified;
     }
   }
@@ -48,18 +91,21 @@ class EditorEmailController extends GetxController {
   Future<void> sendEmailCode() async {
     if (isBusy.value) return;
     if (countdown.value > 0) {
-      AppSnackbar("Uyarı", "Lütfen $countdown saniye bekleyin.");
+      AppSnackbar(
+        'common.info'.tr,
+        'editor_email.wait'.trParams({'seconds': '$countdown'}),
+      );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
-    final email = emailController.text.trim().toLowerCase();
+    final email = normalizeEmailAddress(emailController.text);
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      AppSnackbar('common.info'.tr, 'editor_email.session_missing'.tr);
       return;
     }
     if (email.isEmpty) {
-      AppSnackbar("Uyarı", "Hesabınızda e-posta bulunamadı.");
+      AppSnackbar('common.info'.tr, 'editor_email.email_missing'.tr);
       return;
     }
     isBusy.value = true;
@@ -84,11 +130,14 @@ class EditorEmailController extends GetxController {
         }
       });
 
-      AppSnackbar("Başarılı", "Onay kodu e-posta adresinize gönderildi.");
+      AppSnackbar('common.success'.tr, 'editor_email.code_sent'.tr);
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar("Uyarı", e.message ?? "Onay kodu gönderilemedi.");
+      AppSnackbar(
+        'common.info'.tr,
+        e.message ?? 'editor_email.code_send_failed'.tr,
+      );
     } catch (_) {
-      AppSnackbar("Hata", "Onay kodu gönderilemedi.");
+      AppSnackbar('common.error'.tr, 'editor_email.code_send_failed'.tr);
     } finally {
       isBusy.value = false;
     }
@@ -98,19 +147,19 @@ class EditorEmailController extends GetxController {
     if (isBusy.value) return;
 
     final user = FirebaseAuth.instance.currentUser;
-    final email = emailController.text.trim().toLowerCase();
+    final email = normalizeEmailAddress(emailController.text);
     final code = codeController.text.trim();
 
     if (user == null) {
-      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      AppSnackbar('common.info'.tr, 'editor_email.session_missing'.tr);
       return;
     }
     if (email.isEmpty) {
-      AppSnackbar("Uyarı", "Hesabınızda e-posta bulunamadı.");
+      AppSnackbar('common.info'.tr, 'editor_email.email_missing'.tr);
       return;
     }
     if (code.length != 6) {
-      AppSnackbar("Uyarı", "Lütfen 6 haneli onay kodunu girin.");
+      AppSnackbar('common.info'.tr, 'editor_email.enter_code'.tr);
       return;
     }
 
@@ -133,17 +182,21 @@ class EditorEmailController extends GetxController {
           .call({"idToken": idToken});
 
       await FirebaseAuth.instance.currentUser?.reload();
-      await CurrentUserService.instance.refreshEmailVerificationStatus(
+      await _userService.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );
+      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
       isEmailConfirmed.value = true;
 
       Get.back();
-      AppSnackbar("Başarılı", "E-posta adresiniz onaylandı.");
+      AppSnackbar('common.success'.tr, 'editor_email.verified'.tr);
     } on FirebaseFunctionsException catch (e) {
-      AppSnackbar("Uyarı", e.message ?? "E-posta onaylanamadı.");
+      AppSnackbar(
+        'common.info'.tr,
+        e.message ?? 'editor_email.verify_failed'.tr,
+      );
     } catch (_) {
-      AppSnackbar("Hata", "E-posta onaylanamadı.");
+      AppSnackbar('common.error'.tr, 'editor_email.verify_failed'.tr);
     } finally {
       isBusy.value = false;
     }

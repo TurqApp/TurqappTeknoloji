@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,8 +10,44 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sinav_sorusu_hazirla.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+const _sinavTuruLgs = 'LGS';
+const _sinavTuruTyt = 'TYT';
+const _sinavTuruAyt = 'AYT';
+const _sinavTuruKpss = 'KPSS';
+const _sinavTuruAles = 'ALES';
+const _sinavTuruDgs = 'DGS';
+
+const _kpssLisansOrtaogretim = 'Ortaöğretim';
+const _kpssLisansLegacyOrtaOgretim = 'Orta Öğretim';
+const _kpssLisansOnLisans = 'Ön Lisans';
+const _kpssLisansLisans = 'Lisans';
+const _kpssLisansEgitimBirimleri = 'Eğitim Birimleri';
+const _kpssLisansAGrubu1 = 'A Grubu 1';
+const _kpssLisansAGrubu2 = 'A Grubu 2';
 
 class SinavHazirlaController extends GetxController {
+  static SinavHazirlaController ensure({
+    required String tag,
+    SinavModel? sinavModel,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SinavHazirlaController(sinavModel: sinavModel),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SinavHazirlaController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<SinavHazirlaController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SinavHazirlaController>(tag: tag);
+  }
+
   var sinavIsmi = TextEditingController().obs;
   var aciklama = TextEditingController().obs;
   var startDate = DateTime.now().obs;
@@ -35,6 +70,13 @@ class SinavHazirlaController extends GetxController {
 
   SinavHazirlaController({this.sinavModel});
 
+  String _normalizeKpssLisans(String value) {
+    if (value == _kpssLisansLegacyOrtaOgretim) {
+      return _kpssLisansOrtaogretim;
+    }
+    return value;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -42,7 +84,8 @@ class SinavHazirlaController extends GetxController {
       sinavTuru.value = sinavModel!.sinavTuru;
       sinavIsmi.value.text = sinavModel!.sinavAdi;
       aciklama.value.text = sinavModel!.sinavAciklama;
-      kpssSecilenLisans.value = sinavModel!.kpssSecilenLisans;
+      kpssSecilenLisans.value =
+          _normalizeKpssLisans(sinavModel!.kpssSecilenLisans);
       yanlisDogruyuGotururMu.value = true;
       currentDersler.assignAll(sinavModel!.dersler);
       docID.value = sinavModel!.docID;
@@ -85,7 +128,7 @@ class SinavHazirlaController extends GetxController {
         await _analyzeImage();
       }
     } catch (e) {
-      AppSnackbar("Hata", "Resim seçilemedi.");
+      AppSnackbar('common.error'.tr, 'tests.image_pick_failed'.tr);
     } finally {
       isLoadingImage.value = false;
     }
@@ -96,12 +139,13 @@ class SinavHazirlaController extends GetxController {
     try {
       NsfwDetector detector = await NsfwDetector.load(threshold: 0.3);
       NsfwResult? result = await detector.detectNSFWFromFile(cover.value!);
-      if (result?.isNsfw ?? false) {
-        AppSnackbar("Hata", "Seçilen resim uygun değil!");
+      if (result == null || result.isNsfw) {
+        AppSnackbar('common.error'.tr, 'tests.image_invalid'.tr);
         cover.value = null;
       }
     } catch (e) {
-      AppSnackbar("Hata", "Resim analizi yapılamadı.");
+      AppSnackbar('common.error'.tr, 'tests.image_analyze_failed'.tr);
+      cover.value = null;
     }
   }
 
@@ -120,14 +164,16 @@ class SinavHazirlaController extends GetxController {
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
         storage: FirebaseStorage.instance,
         file: imageFile,
-        storagePathWithoutExt:
-            'practiceExams/$docID/cover',
+        storagePathWithoutExt: 'practiceExams/$docID/cover',
       );
-      await FirebaseFirestore.instance.collection("practiceExams").doc(docID).update(
+      await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .doc(docID)
+          .update(
         {"cover": downloadUrl},
       );
     } catch (e) {
-      AppSnackbar("Hata", "Resim yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'tests.image_upload_failed_short'.tr);
     }
   }
 
@@ -151,14 +197,14 @@ class SinavHazirlaController extends GetxController {
         "timeStamp": combinedDateTime.millisecondsSinceEpoch,
         "dersler": currentDersler,
         "sinavTuru": sinavTuru.value,
-        "kpssSecilenLisans": sinavTuru.value == "KPSS"
-            ? kpssSecilenLisans.value
+        "kpssSecilenLisans": sinavTuru.value == _sinavTuruKpss
+            ? _normalizeKpssLisans(kpssSecilenLisans.value)
             : sinavTuru.value,
         "soruSayilari":
             soruSayisiTextFields.map((controller) => controller.text).toList(),
         "taslak": true,
         "public": public.value,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
+        "userID": CurrentUserService.instance.effectiveUserId,
         "bitisDk": sure.value,
         "bitis": combinedDateTime.millisecondsSinceEpoch + (sure.value * 60000),
       }, SetOptions(merge: true));
@@ -179,7 +225,7 @@ class SinavHazirlaController extends GetxController {
         ),
       );
     } catch (e) {
-      AppSnackbar("Hata", "Sınav kaydedilemedi.");
+      AppSnackbar('common.error'.tr, 'tests.save_failed'.tr);
     } finally {
       isSaving.value = false;
     }
@@ -190,16 +236,16 @@ class SinavHazirlaController extends GetxController {
     for (var controller in soruSayisiTextFields) {
       controller.dispose();
     }
-    if (newTuru == "LGS") {
+    if (newTuru == _sinavTuruLgs) {
       currentDersler.assignAll(lgsDersler);
-    } else if (newTuru == "TYT") {
+    } else if (newTuru == _sinavTuruTyt) {
       currentDersler.assignAll(tytDersler);
-    } else if (newTuru == "AYT") {
+    } else if (newTuru == _sinavTuruAyt) {
       currentDersler.assignAll(aytDersler);
-    } else if (newTuru == "KPSS") {
-      kpssSecilenLisans.value = "Ortaöğretim";
+    } else if (newTuru == _sinavTuruKpss) {
+      kpssSecilenLisans.value = _kpssLisansOrtaogretim;
       currentDersler.assignAll(kpssDerslerOrtaVeOnLisans);
-    } else if (newTuru == "ALES" || newTuru == "DGS") {
+    } else if (newTuru == _sinavTuruAles || newTuru == _sinavTuruDgs) {
       currentDersler.assignAll(alesVeDgsDersler);
     } else {
       currentDersler.assignAll(ydsDersler);
@@ -210,19 +256,20 @@ class SinavHazirlaController extends GetxController {
   }
 
   void updateKpssLisans(String newLisans) {
-    kpssSecilenLisans.value = newLisans;
+    kpssSecilenLisans.value = _normalizeKpssLisans(newLisans);
     for (var controller in soruSayisiTextFields) {
       controller.dispose();
     }
-    if (newLisans == "Ortaöğretim" ||
-        newLisans == "Lisans" ||
-        newLisans == "Ön Lisans") {
+    final normalizedLisans = _normalizeKpssLisans(newLisans);
+    if (normalizedLisans == _kpssLisansOrtaogretim ||
+        normalizedLisans == _kpssLisansLisans ||
+        normalizedLisans == _kpssLisansOnLisans) {
       currentDersler.assignAll(kpssDerslerOrtaVeOnLisans);
-    } else if (newLisans == "Eğitim Birimleri") {
+    } else if (normalizedLisans == _kpssLisansEgitimBirimleri) {
       currentDersler.assignAll(kpssDerslerEgitimbirimleri);
-    } else if (newLisans == "A Grubu 1") {
+    } else if (normalizedLisans == _kpssLisansAGrubu1) {
       currentDersler.assignAll(kpssDerslerAgrubu1);
-    } else if (newLisans == "A Grubu 2") {
+    } else if (normalizedLisans == _kpssLisansAGrubu2) {
       currentDersler.assignAll(kpssDerslerAgrubu2);
     }
     soruSayisiTextFields.assignAll(

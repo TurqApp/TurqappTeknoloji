@@ -5,16 +5,50 @@ import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer_controller.dart';
 
-class BookletAnswer extends StatelessWidget {
+class BookletAnswer extends StatefulWidget {
   final AnswerKeySubModel model;
   final BookletModel anaModel;
 
   const BookletAnswer({required this.model, required this.anaModel, super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(BookletAnswerController(model, anaModel));
+  State<BookletAnswer> createState() => _BookletAnswerState();
+}
 
+class _BookletAnswerState extends State<BookletAnswer> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final BookletAnswerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'booklet_answer_${widget.anaModel.docID}_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        BookletAnswerController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletAnswerController.ensure(
+      widget.model,
+      widget.anaModel,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = BookletAnswerController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<BookletAnswerController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -61,8 +95,8 @@ class BookletAnswer extends StatelessWidget {
                         height: 50,
                         color: Colors.green,
                         alignment: Alignment.center,
-                        child: const Text(
-                          "Testi Bitir",
+                        child: Text(
+                          "tests.finish_test".tr,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -95,7 +129,8 @@ class BookletAnswer extends StatelessWidget {
                   child: Container(color: Colors.black.withValues(alpha: 0.5)),
                 ),
                 Container(
-                  height: 320,
+                  height: (MediaQuery.of(context).size.height * 0.42)
+                      .clamp(260.0, 320.0),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -112,11 +147,11 @@ class BookletAnswer extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Row(
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  "Tebrikler!",
+                                  "practice.congrats_title".tr,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 25,
@@ -126,8 +161,8 @@ class BookletAnswer extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              "Testi tamamladınız!",
+                            Text(
+                              "tests.completed_short".tr,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 height: 1.4,
@@ -151,19 +186,19 @@ class BookletAnswer extends StatelessWidget {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     _resultItem(
-                                      "Doğru",
+                                      "tests.correct".tr,
                                       controller.correctCount.value.toString(),
                                     ),
                                     _resultItem(
-                                      "Yanlış",
+                                      "tests.wrong".tr,
                                       controller.wrongCount.value.toString(),
                                     ),
                                     _resultItem(
-                                      "Boş",
+                                      "tests.blank".tr,
                                       controller.emptyCount.value.toString(),
                                     ),
                                     _resultItem(
-                                      "Net",
+                                      "tests.net".tr,
                                       controller.netScore.value
                                           .toStringAsFixed(2),
                                     ),
@@ -174,7 +209,7 @@ class BookletAnswer extends StatelessWidget {
                             const SizedBox(height: 8),
                             Obx(
                               () => Text(
-                                "Puan: ${controller.scorePercent.value.toStringAsFixed(1)}",
+                                "${'tests.score'.tr}: ${controller.scorePercent.value.toStringAsFixed(1)}",
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.black87,
@@ -195,8 +230,8 @@ class BookletAnswer extends StatelessWidget {
                                   ),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Text(
-                                  "Devam Et",
+                                child: Text(
+                                  "common.continue".tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,

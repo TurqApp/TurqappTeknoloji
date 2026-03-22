@@ -26,22 +26,22 @@ class AgendaSpacing {
 
   /// Modern style: Text padding from left edge
   static EdgeInsets get modernTextPadding => EdgeInsets.only(
-    left: modernContentLeftMargin,
-    top: _unit,
-  );
+        left: modernContentLeftMargin,
+        top: _unit,
+      );
 
   /// Modern style: Media (image/video) padding
   static EdgeInsets get modernMediaPadding => EdgeInsets.only(
-    top: _unit,
-    left: modernContentLeftMargin,
-    right: _unit,
-  );
+        top: _unit,
+        left: modernContentLeftMargin,
+        right: _unit,
+      );
 
   /// Modern style: Location pin padding
   static EdgeInsets get modernLocationPadding => EdgeInsets.only(
-    top: _unit * 0.875,
-    left: modernContentLeftMargin - _unit * 0.625, // Slight left of content
-  );
+        top: _unit * 0.875,
+        left: modernContentLeftMargin - _unit * 0.625, // Slight left of content
+      );
 
   /// Modern style: Post container padding
   static const EdgeInsets modernContainerPadding = EdgeInsets.symmetric(
@@ -66,8 +66,8 @@ class AgendaSpacing {
 
   /// Classic style: Text-only post padding
   static EdgeInsets get classicTextPadding => const EdgeInsets.symmetric(
-    horizontal: _unit * 1.875, // 15px
-  );
+        horizontal: _unit * 1.875, // 15px
+      );
 
   /// Classic style: Quotation mark positioning
   static const double quotationMarkLeftOffset = _unit * 1.875; // 15px
@@ -168,8 +168,8 @@ class AgendaSpacing {
   /// Get media aspect ratio constraints
   static double constrainAspectRatio(double original) {
     // Prevent too tall/wide images
-    if (original < 0.5) return 0.5;   // Max height
-    if (original > 2.0) return 2.0;   // Max width
+    if (original < 0.5) return 0.5; // Max height
+    if (original > 2.0) return 2.0; // Max width
     return original;
   }
 
@@ -216,12 +216,12 @@ class AgendaSpacing {
 
   /// Subtle shadow for depth
   static List<BoxShadow> get subtleShadow => [
-    BoxShadow(
-      color: Colors.black.withValues(alpha: 0.05),
-      blurRadius: _unit,
-      offset: Offset(0, _unit * 0.25),
-    ),
-  ];
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: _unit,
+          offset: Offset(0, _unit * 0.25),
+        ),
+      ];
 }
 
 /// Extension methods for convenient spacing access

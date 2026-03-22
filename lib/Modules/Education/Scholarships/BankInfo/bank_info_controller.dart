@@ -1,22 +1,43 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class BankInfoController extends GetxController {
+  static BankInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(BankInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static BankInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<BankInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<BankInfoController>(tag: tag);
+  }
+
+  static const String _selectBank = "Banka Seç";
+  static const String _email = "E-Posta";
+  static const String _phone = "Telefon";
+  static const String _ibanType = "IBAN";
+  final UserRepository _userRepository = UserRepository.ensure();
   // Reactive variables
   final RxInt color = 0xFF000000.obs;
-  final RxString selectedBank = "Banka Seç".obs;
-  final RxString kolayAdres = "E-Posta".obs;
+  final RxString selectedBank = _selectBank.obs;
+  final RxString kolayAdres = _email.obs;
   final RxBool isLoading = true.obs;
   final TextEditingController iban = TextEditingController();
 
   // Lists
-  final List<String> kolayAdresList = ["E-Posta", "Telefon", "IBAN"];
+  final List<String> kolayAdresList = [_email, _phone, _ibanType];
   final List<String> banks = [
     "Akbank",
     "Albaraka Türk Katılım Bankası",
@@ -47,43 +68,65 @@ class BankInfoController extends GetxController {
     "Ziraat Katılım Bankası",
   ];
 
+  String get defaultBankSelection => _selectBank;
+  String get defaultFastTypeEmail => _email;
+  bool get isIbanSelected => kolayAdres.value == _ibanType;
+  bool get isPhoneSelected => kolayAdres.value == _phone;
+  bool get isEmailSelected => kolayAdres.value == _email;
+
   @override
   void onInit() {
     super.onInit();
-    bindStream();
+    loadData();
   }
 
-  void bindStream() {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .listen(
-      (DocumentSnapshot doc) {
-        isLoading.value = false;
-        String bank = doc.get("bank") ?? "";
-        String iban = doc.get("iban") ?? "";
-        String kolayAdresFromDb = doc.get("kolayAdresSelection") ?? "E-Posta";
-        selectedBank.value = bank.isNotEmpty ? bank : "Banka Seç";
-        this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
-        kolayAdres.value = kolayAdresList.contains(kolayAdresFromDb)
-            ? kolayAdresFromDb
-            : "E-Posta";
-      },
-      onError: (e) {
-        isLoading.value = false;
-        AppSnackbar('Hata', 'Veri yüklenemedi.');
-      },
-    );
+  String localizedFastType(String value) {
+    switch (value) {
+      case _selectBank:
+        return 'bank_info.select_bank'.tr;
+      case _email:
+        return 'bank_info.fast_email'.tr;
+      case _phone:
+        return 'bank_info.fast_phone'.tr;
+      case _ibanType:
+        return 'bank_info.fast_iban'.tr;
+      default:
+        return value;
+    }
+  }
+
+  Future<void> loadData() async {
+    try {
+      final data = await _userRepository.getUserRaw(
+            CurrentUserService.instance.effectiveUserId,
+          ) ??
+          const <String, dynamic>{};
+      final bank = userString(data, key: "bank", scope: "finance");
+      final iban = userString(data, key: "iban", scope: "finance");
+      final kolayAdresFromDb = userString(
+        data,
+        key: "kolayAdresSelection",
+        scope: "preferences",
+        fallback: _email,
+      );
+      selectedBank.value = bank.isNotEmpty ? bank : _selectBank;
+      this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
+      kolayAdres.value =
+          kolayAdresList.contains(kolayAdresFromDb) ? kolayAdresFromDb : _email;
+    } catch (e) {
+      AppSnackbar('common.error'.tr, 'bank_info.load_failed'.tr);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void showBankBottomSheet(BuildContext context) {
     ListBottomSheet.show(
       context: context,
       items: banks,
-      title: "Banka Seç",
+      title: 'bank_info.select_bank'.tr,
       selectedItem:
-          selectedBank.value == "Banka Seç" ? null : selectedBank.value,
+          selectedBank.value == _selectBank ? null : selectedBank.value,
       onSelect: (item) {
         selectedBank.value = item;
       },
@@ -93,11 +136,14 @@ class BankInfoController extends GetxController {
   void showKolayAdresBottomSheet(BuildContext context) {
     AppBottomSheet.show(
       context: context,
-      items: kolayAdresList,
-      title: "Kolay Adres Tipi Seç",
-      selectedItem: kolayAdres.value,
+      items: kolayAdresList.map(localizedFastType).toList(),
+      title: 'bank_info.select_fast_type'.tr,
+      selectedItem: localizedFastType(kolayAdres.value),
       onSelect: (item) {
-        kolayAdres.value = item;
+        final selectedIndex =
+            kolayAdresList.map(localizedFastType).toList().indexOf(item);
+        kolayAdres.value =
+            selectedIndex >= 0 ? kolayAdresList[selectedIndex] : item;
         iban.text = ''; // Clear the TextField when kolayAdres changes
       },
     );
@@ -108,7 +154,7 @@ class BankInfoController extends GetxController {
     if (data != null) {
       // Remove spaces and "TR" prefix for IBAN
       String cleanedText = data.text!.replaceAll(' ', '');
-      if (kolayAdres.value == "IBAN" && cleanedText.startsWith("TR")) {
+      if (kolayAdres.value == _ibanType && cleanedText.startsWith("TR")) {
         cleanedText = cleanedText.substring(2);
       }
       iban.text = cleanedText;
@@ -117,38 +163,40 @@ class BankInfoController extends GetxController {
 
   void saveData() {
     if (iban.text.isEmpty) {
-      AppSnackbar(
-        'Tamamlanmadı',
-        'IBAN bilgisini tamamlamadan devam edemeyiz.',
-      );
+      AppSnackbar('common.warning'.tr, 'bank_info.missing_value'.tr);
       return;
     }
-    if (selectedBank.value == "Banka Seç") {
-      AppSnackbar(
-        'Tamamlanmadı',
-        'Ödeme alacağınız banka seçmediniz. Bursunuz onaylanması durumunda bu bilgi paylaşılacaktır.',
-      );
+    if (selectedBank.value == _selectBank) {
+      AppSnackbar('common.warning'.tr, 'bank_info.missing_bank'.tr);
       return;
     }
-    if (kolayAdres.value == "E-Posta" &&
+    if (kolayAdres.value == _email &&
         !RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(iban.text)) {
-      AppSnackbar('Hata', 'Lütfen geçerli bir e-posta adresi girin.');
+      AppSnackbar('common.error'.tr, 'bank_info.invalid_email'.tr);
       return;
     }
 
     // Save to Firestore
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({
-      "iban": kolayAdres.value == "IBAN" ? "TR${iban.text}" : iban.text,
-      "bank": selectedBank.value,
-      "kolayAdresSelection": kolayAdres.value,
+    _userRepository
+        .updateUserFields(CurrentUserService.instance.effectiveUserId, {
+      ...scopedUserUpdate(
+        scope: 'finance',
+        values: {
+          "iban": kolayAdres.value == _ibanType ? "TR${iban.text}" : iban.text,
+          "bank": selectedBank.value,
+        },
+      ),
+      ...scopedUserUpdate(
+        scope: 'preferences',
+        values: {
+          "kolayAdresSelection": kolayAdres.value,
+        },
+      ),
     }).then((_) {
       Get.back();
-      AppSnackbar('Başarılı', 'Banka bilgileri kaydedildi.');
+      AppSnackbar('common.success'.tr, 'bank_info.saved'.tr);
     }).catchError((e) {
-      AppSnackbar('Hata', 'Bilgiler kaydedilemedi.');
+      AppSnackbar('common.error'.tr, 'bank_info.save_failed'.tr);
     });
   }
 }

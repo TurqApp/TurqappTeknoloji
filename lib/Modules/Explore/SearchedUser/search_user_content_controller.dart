@@ -1,10 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchUserContentController extends GetxController {
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
   final String userID;
   var isNavigated = false.obs;
   SearchUserContentController({required this.userID});
@@ -13,32 +15,44 @@ class SearchUserContentController extends GetxController {
     if (userID.trim().isEmpty) return;
     isNavigated.value = true;
     try {
+      final explore = ExploreController.maybeFind();
+      explore?.suspendExplorePreview();
       // Sayfa kapandığında isNavigated sıfırlanır (finally)
       await Get.to(
         () => SocialProfile(userID: userID),
         preventDuplicates: false,
       );
+      explore?.resumeExplorePreview();
 
-      final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserID)
-          .update({
-        "lastSearchList": FieldValue.arrayUnion([userID])
-      });
+      final currentUserID = CurrentUserService.instance.effectiveUserId;
+      if (currentUserID.isEmpty) return;
+      await _userSubcollectionRepository.upsertEntry(
+        currentUserID,
+        subcollection: 'lastSearches',
+        docId: userID,
+        data: {
+          'userID': userID,
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          'timeStamp': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
 
-      Get.find<FirebaseMyStore>().getUserData();
+      await CurrentUserService.instance.forceRefresh();
     } catch (_) {
     } finally {
+      ExploreController.maybeFind()?.resumeExplorePreview();
       isNavigated.value = false;
     }
   }
 
-  void removeFromLastSearch() {
-    final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-    FirebaseFirestore.instance.collection("users").doc(currentUserID).update({
-      "lastSearchList": FieldValue.arrayRemove([userID])
-    });
-    Get.find<FirebaseMyStore>().lastSearchList.remove(userID);
+  Future<void> removeFromLastSearch() async {
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
+    if (currentUserID.isEmpty) return;
+    await _userSubcollectionRepository.deleteEntry(
+      currentUserID,
+      subcollection: 'lastSearches',
+      docId: userID,
+    );
+    await CurrentUserService.instance.forceRefresh();
   }
 }

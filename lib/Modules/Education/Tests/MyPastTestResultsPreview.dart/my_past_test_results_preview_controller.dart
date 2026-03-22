@@ -1,10 +1,35 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class MyPastTestResultsPreviewController extends GetxController {
+  static MyPastTestResultsPreviewController ensure(
+    TestsModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyPastTestResultsPreviewController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyPastTestResultsPreviewController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<MyPastTestResultsPreviewController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyPastTestResultsPreviewController>(tag: tag);
+  }
+
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final yanitlar = <String>[].obs;
   final timeStamp = 0.obs;
@@ -14,63 +39,77 @@ class MyPastTestResultsPreviewController extends GetxController {
   final bosSayisi = 0.obs;
   final totalPuan = 0.0.obs;
   final isLoading = true.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   MyPastTestResultsPreviewController(this.model);
 
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
+    final cachedAnswers = await _testRepository.fetchAnswers(
+      model.docID,
+      cacheOnly: true,
+    );
+    final cachedQuestions = await _testRepository.fetchQuestions(
+      model.docID,
+      cacheOnly: true,
+    );
+    if (cachedAnswers.isNotEmpty || cachedQuestions.isNotEmpty) {
+      _applyAnswers(cachedAnswers);
+      soruList.assignAll(cachedQuestions);
+      updateStats();
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:preview:${model.docID}',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
     try {
-      // Fetch answers
-      final yanitSnapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(model.docID)
-              .collection("Yanitlar")
-              .get();
+      final yanitSnapshot = await _testRepository.fetchAnswers(
+        model.docID,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      _applyAnswers(yanitSnapshot);
 
-      for (var doc in yanitSnapshot.docs) {
-        yanitlar.assignAll(List<String>.from(doc['cevaplar']));
-        timeStamp.value = doc.get("timeStamp");
-      }
-
-      // Fetch questions
-      final soruSnapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(model.docID)
-              .collection("Sorular")
-              .orderBy("id", descending: false)
-              .get();
-
-      soruList.clear();
-      for (var doc in soruSnapshot.docs) {
-        final img = doc.get("img") as String;
-        final id = doc.get("id") as num;
-        final dogruCevap = doc.get("dogruCevap") as String;
-        final max = doc.get("max") as num;
-
-        soruList.add(
-          TestReadinessModel(
-            id: id.toInt(),
-            img: img,
-            max: max.toInt(),
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
+      final soruSnapshot = await _testRepository.fetchQuestions(
+        model.docID,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      soruList.assignAll(soruSnapshot);
 
       updateStats();
-    } catch (e) {
-      print("Error fetching test results: $e");
+      SilentRefreshGate.markRefreshed('tests:preview:${model.docID}');
+    } catch (_) {
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void _applyAnswers(List<Map<String, dynamic>> snapshot) {
+    yanitlar.clear();
+    timeStamp.value = 0;
+    for (final doc in snapshot) {
+      yanitlar.assignAll(List<String>.from(doc['cevaplar'] ?? const []));
+      timeStamp.value = ((doc["timeStamp"] ?? 0) as num).toInt();
     }
   }
 

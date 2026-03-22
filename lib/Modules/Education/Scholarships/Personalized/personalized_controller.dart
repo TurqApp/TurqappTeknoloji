@@ -1,16 +1,57 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/location_text_utils.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class PersonalizedController extends GetxController {
+  static String? _activeTag;
+
+  static PersonalizedController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) {
+      _activeTag = tag;
+      return existing;
+    }
+    final created = Get.put(
+      PersonalizedController(),
+      tag: tag,
+      permanent: permanent,
+    );
+    created.controllerTag = tag;
+    _activeTag = tag;
+    return created;
+  }
+
+  static PersonalizedController? maybeFind({String? tag}) {
+    final resolvedTag = (tag ?? _activeTag)?.trim();
+    if (resolvedTag != null && resolvedTag.isNotEmpty) {
+      final isRegistered =
+          Get.isRegistered<PersonalizedController>(tag: resolvedTag);
+      if (!isRegistered) return null;
+      return Get.find<PersonalizedController>(tag: resolvedTag);
+    }
+    final isRegistered = Get.isRegistered<PersonalizedController>();
+    if (!isRegistered) return null;
+    return Get.find<PersonalizedController>();
+  }
+
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
+  String? controllerTag;
   // Observable lists
   final RxList<IndividualScholarshipsModel> list =
       <IndividualScholarshipsModel>[].obs;
@@ -43,7 +84,7 @@ class PersonalizedController extends GetxController {
   final RxBool isUserDataLoaded = false.obs;
   final RxBool usedFallback = false.obs;
 
-  static const String _cacheKey = 'personalized_scholarships_cache_v1';
+  static const String _cacheKeyPrefix = 'personalized_scholarships_cache_v1';
   static const int _cacheLimit = 30;
 
   // Controllers and listeners
@@ -56,8 +97,17 @@ class PersonalizedController extends GetxController {
     _setupScrollListener();
   }
 
+  String get _cacheKey {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return '$_cacheKeyPrefix:guest';
+    return '$_cacheKeyPrefix:$uid';
+  }
+
   @override
   void onClose() {
+    if (_activeTag == controllerTag) {
+      _activeTag = null;
+    }
     scrollController.dispose();
     super.onClose();
   }
@@ -79,8 +129,7 @@ class PersonalizedController extends GetxController {
 
       // Load scholarships data
       await _loadScholarshipsData();
-    } catch (e) {
-      print('Error initializing data: $e');
+    } catch (_) {
     } finally {
       isInitialLoading.value = false;
     }
@@ -111,28 +160,24 @@ class PersonalizedController extends GetxController {
   // Load user data from Firestore
   Future<void> _loadUserData() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.effectiveUserId;
+      if (uid.isEmpty) return;
 
-      final doc =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
-
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
+      final data = await _userRepository.getUserRaw(uid);
+      if (data != null) {
         _updateUserData(data);
         isUserDataLoaded.value = true;
       }
-    } catch (e) {
-      print('Error loading user data: $e');
-    }
+    } catch (_) {}
   }
 
   // Update user data observables
   void _updateUserData(Map<String, dynamic> data) {
-    final educationLevel = (data['educationLevel'] ?? '').toString();
-    final uni = (data['universite'] ?? '').toString();
-    final hs = (data['lise'] ?? '').toString();
-    final ms = (data['ortaOkul'] ?? '').toString();
+    final educationLevel =
+        userString(data, key: 'educationLevel', scope: 'education');
+    final uni = userString(data, key: 'universite', scope: 'education');
+    final hs = userString(data, key: 'lise', scope: 'education');
+    final ms = userString(data, key: 'ortaOkul', scope: 'education');
     final il = (data['il'] ?? '').toString();
 
     hasSchoolInfo.value = educationLevel.isNotEmpty ||
@@ -146,31 +191,23 @@ class PersonalizedController extends GetxController {
     ikametIlce.value = data['ikametIlce'] ?? '';
     nufusSehir.value = data['nufusSehir'] ?? '';
     nufusIlce.value = data['nufusIlce'] ?? '';
-    universite.value = data['universite'] ?? '';
-    ortaokul.value = data['ortaOkul'] ?? '';
-    lise.value = data['lise'] ?? '';
+    universite.value = uni;
+    ortaokul.value = ms;
+    lise.value = hs;
     cinsiyet.value = data['cinsiyet'] ?? '';
     locationSehir.value = data['locationSehir'] ?? '';
   }
 
   // Load vitrin data
   void _loadVitrinData() {
-    FirebaseFirestore.instance
-        .collection("scholarships")
-        .orderBy("timeStamp", descending: true)
-        .limit(10)
-        .get()
-        .then((QuerySnapshot snap) {
-      if (snap.docs.isNotEmpty) {
-        final tempList = snap.docs
-            .map((doc) => IndividualScholarshipsModel.fromJson(
-                doc.data() as Map<String, dynamic>))
-            .toList();
+    _scholarshipRepository.fetchLatestRaw(limit: 10).then((items) {
+      if (items.isNotEmpty) {
+        final tempList = items
+            .map((item) => IndividualScholarshipsModel.fromJson(item))
+            .toList(growable: false);
         vitrin.value = tempList;
       }
-    }).catchError((error) {
-      print('Error loading vitrin data: $error');
-    });
+    }).catchError((_) {});
   }
 
   // Load scholarships data (pull-based)
@@ -178,27 +215,24 @@ class PersonalizedController extends GetxController {
     if (!isUserDataLoaded.value) return;
 
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("scholarships")
-          .orderBy("timeStamp", descending: true)
-          .limit(50)
-          .get();
-      _processScholarshipsData(snapshot.docs);
-    } catch (error) {
-      print('Error loading scholarships data: $error');
+      final items = await _scholarshipRepository.fetchLatestRaw(limit: 50);
+      _processScholarshipsData(items);
+    } catch (_) {
       isLoading.value = false;
     }
   }
 
   // Process scholarships data
-  void _processScholarshipsData(List<QueryDocumentSnapshot> docs) {
+  void _processScholarshipsData(List<Map<String, dynamic>> docs) {
     try {
       final allItems = <IndividualScholarshipsModel>[];
       for (final doc in docs) {
-        final model = IndividualScholarshipsModel.fromJson(
-            doc.data() as Map<String, dynamic>);
+        final model = IndividualScholarshipsModel.fromJson(doc);
         allItems.add(model);
-        docIdByTimestamp[model.timeStamp] = doc.id;
+        final docId = (doc['docId'] ?? '').toString().trim();
+        if (docId.isNotEmpty) {
+          docIdByTimestamp[model.timeStamp] = docId;
+        }
       }
 
       final scored = allItems
@@ -220,8 +254,7 @@ class PersonalizedController extends GetxController {
       _saveCachedList(allItems);
       count.value = list.length;
       isLoading.value = false;
-    } catch (e) {
-      print('Error processing scholarships data: $e');
+    } catch (_) {
       isLoading.value = false;
     }
   }
@@ -229,8 +262,9 @@ class PersonalizedController extends GetxController {
   // Score by priority: location (3), school (2), target audience (1)
   int _scoreScholarship(IndividualScholarshipsModel item) {
     int score = 0;
-    final locationCity =
-        locationSehir.value.isNotEmpty ? locationSehir.value : ikametSehir.value;
+    final locationCity = locationSehir.value.isNotEmpty
+        ? locationSehir.value
+        : ikametSehir.value;
     final hasLocation = locationCity.trim().isNotEmpty;
     final hasSchoolCity = hasSchoolInfo.value && schoolCity.value.isNotEmpty;
 
@@ -247,31 +281,12 @@ class PersonalizedController extends GetxController {
     return score;
   }
 
-  String _normalizeCity(String input) {
-    var s = input.toLowerCase().trim();
-    s = s
-        .replaceAll('ç', 'c')
-        .replaceAll('ğ', 'g')
-        .replaceAll('ı', 'i')
-        .replaceAll('i̇', 'i')
-        .replaceAll('ö', 'o')
-        .replaceAll('ş', 's')
-        .replaceAll('ü', 'u');
-    s = s.replaceAll(' province', '');
-    s = s.replaceAll(' ili', '');
-    s = s.replaceAll(' il', '');
-    s = s.replaceAll(' sehri', '');
-    s = s.replaceAll(' şehir', '');
-    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return s;
-  }
-
   bool _matchesTargetCity(IndividualScholarshipsModel item, String city) {
-    final normalizedTarget = _normalizeCity(city);
+    final normalizedTarget = normalizeCityText(city);
 
     bool cityMatch(List<String> list) {
       for (final raw in list) {
-        final normalized = _normalizeCity(raw);
+        final normalized = normalizeCityText(raw);
         if (normalized == normalizedTarget) return true;
         if (normalized.contains(normalizedTarget) ||
             normalizedTarget.contains(normalized)) {
@@ -288,15 +303,15 @@ class PersonalizedController extends GetxController {
     final level = educationLevel.value.trim();
     if (level.isEmpty) return false;
 
-    final normLevel = _normalizeCity(level);
-    final hedef = _normalizeCity(item.hedefKitle);
+    final normLevel = normalizeCityText(level);
+    final hedef = normalizeCityText(item.hedefKitle);
     if (hedef.contains(normLevel) || normLevel.contains(hedef)) return true;
 
-    final egitim = _normalizeCity(item.egitimKitlesi);
+    final egitim = normalizeCityText(item.egitimKitlesi);
     if (egitim.contains(normLevel) || normLevel.contains(egitim)) return true;
 
     for (final alt in item.altEgitimKitlesi) {
-      final n = _normalizeCity(alt);
+      final n = normalizeCityText(alt);
       if (n.contains(normLevel) || normLevel.contains(n)) return true;
     }
 
@@ -309,7 +324,6 @@ class PersonalizedController extends GetxController {
       final permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        print("Konum izni verilmedi.");
         return;
       }
 
@@ -329,9 +343,7 @@ class PersonalizedController extends GetxController {
         final place = placemarks[0];
         await _updateLocationData(place);
       }
-    } catch (e) {
-      print("Konum bilgisi alınırken hata oluştu: $e");
-    }
+    } catch (_) {}
   }
 
   // Update location data
@@ -349,19 +361,22 @@ class PersonalizedController extends GetxController {
 
     // Update in Firestore
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
-        await FirebaseFirestore.instance.collection("users").doc(uid).set({
-          "locationSehir": newLocationSehir,
-          "ikametSehir": newIkametSehir,
-          "ikametIlce": newIkametIlce,
-          "nufusSehir": newIkametSehir,
-          "nufusIlce": newIkametIlce,
-        }, SetOptions(merge: true));
+      final uid = CurrentUserService.instance.effectiveUserId;
+      if (uid.isNotEmpty) {
+        await _userRepository.updateUserFields(uid, {
+          ...scopedUserUpdate(
+            scope: 'profile',
+            values: {
+              "locationSehir": newLocationSehir,
+              "ikametSehir": newIkametSehir,
+              "ikametIlce": newIkametIlce,
+              "nufusSehir": newIkametSehir,
+              "nufusIlce": newIkametIlce,
+            },
+          ),
+        });
       }
-    } catch (e) {
-      print('Error updating location in Firestore: $e');
-    }
+    } catch (_) {}
   }
 
   // Refresh list
@@ -371,7 +386,6 @@ class PersonalizedController extends GetxController {
     isInitialLoading.value = true;
 
     await _initializeData();
-    print("List refreshed!");
   }
 
   Future<void> _loadCachedList() async {
@@ -394,7 +408,8 @@ class PersonalizedController extends GetxController {
     }
   }
 
-  Future<void> _saveCachedList(List<IndividualScholarshipsModel> allItems) async {
+  Future<void> _saveCachedList(
+      List<IndividualScholarshipsModel> allItems) async {
     try {
       if (allItems.isEmpty) return;
       final sorted = List<IndividualScholarshipsModel>.from(allItems)

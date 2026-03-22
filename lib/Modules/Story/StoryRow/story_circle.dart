@@ -1,293 +1,287 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker.dart';
-import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories.dart';
+import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 
 class StoryCircle extends StatefulWidget {
   final StoryUserModel model;
   final List<StoryUserModel> users;
+  final bool isFirst;
 
-  StoryCircle({super.key, required this.model, required this.users});
+  StoryCircle({
+    super.key,
+    required this.model,
+    required this.users,
+    this.isFirst = false,
+  });
 
   @override
   State<StoryCircle> createState() => _StoryCircleState();
 }
 
 class _StoryCircleState extends State<StoryCircle> {
-  final userStore = Get.find<FirebaseMyStore>();
   final userService = CurrentUserService.instance;
-  final storeController = Get.find<StoryRowController>();
+  StoryInteractionOptimizer get _storyOptimizer => StoryInteractionOptimizer.to;
+  static const double _storyCircleSize = 74;
+  static const double _storyAvatarRadius = 37;
+  static const double _labelWidth = 78;
+  static const double _addBadgeSize = 18;
+
+  String get _currentUid => userService.effectiveUserId;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Flexible(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    final cont = Get.isRegistered<AgendaController>()
-                        ? Get.find<AgendaController>()
-                        : null;
-                    final prevIndex = cont?.lastCenteredIndex;
-                    cont?.centeredIndex.value = -1;
-                    final myUserID = FirebaseAuth.instance.currentUser?.uid;
-                    final isMe =
-                        myUserID != null && widget.model.userID == myUserID;
+        SizedBox(
+          width: _storyCircleSize,
+          height: _storyCircleSize,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  final cont = AgendaController.maybeFind();
+                  final prevIndex = cont?.lastCenteredIndex;
+                  cont?.lastCenteredIndex = prevIndex;
+                  cont?.centeredIndex.value = -1;
+                  final myUserID = _currentUid;
+                  final isMe =
+                      myUserID.isNotEmpty && widget.model.userID == myUserID;
 
-                    // Eğer tıklanan çember bana aitse
-                    if (isMe) {
-                      // Story'im var mı? Model'deki story'leri kontrol et
-                      final hasMyStory = widget.model.stories.isNotEmpty;
+                  // Eğer tıklanan çember bana aitse
+                  if (isMe) {
+                    // Story'im var mı? Model'deki story'leri kontrol et
+                    final hasMyStory = widget.model.stories.isNotEmpty;
 
-                      if (hasMyStory) {
-                        // Kendi story'ime git - users listesinden değil, model'den al
-                        Get.to(() => StoryViewer(
-                            startedUser: widget.model,
-                            storyOwnerUsers: widget.users))?.then((_) {
-                          if (cont != null) {
-                            cont.centeredIndex.value = prevIndex ?? 0;
-                          }
-                        });
-                      } else {
-                        // Story'im yok, StoryMaker'a git
-                        Get.to(() => StoryMaker())?.then((_) {
-                          if (cont != null) {
-                            cont.centeredIndex.value = prevIndex ?? 0;
-                          }
-                        });
-                      }
-                    } else {
-                      // Başkasına tıkladıysan, onun hikayesini aç
+                    if (hasMyStory) {
+                      // Kendi story'ime git - users listesinden değil, model'den al
                       Get.to(() => StoryViewer(
                           startedUser: widget.model,
                           storyOwnerUsers: widget.users))?.then((_) {
                         if (cont != null) {
-                          cont.centeredIndex.value = prevIndex ?? 0;
+                          cont.resumeFeedPlayback();
+                        }
+                      });
+                    } else {
+                      // Story'im yok, StoryMaker'a git
+                      Get.to(() => StoryMaker())?.then((_) {
+                        if (cont != null) {
+                          cont.resumeFeedPlayback();
                         }
                       });
                     }
-                  },
-                  onLongPress: () {
-                    final myId = FirebaseAuth.instance.currentUser?.uid;
-                    final isMe = myId != null && widget.model.userID == myId;
-                    if (isMe) {
-                      // Uzun basınca silinmiş hikayeler – arka plan videolarını durdur
-                      final agenda = Get.isRegistered<AgendaController>()
-                          ? Get.find<AgendaController>()
-                          : null;
-                      final prevIndex = agenda?.lastCenteredIndex;
+                  } else {
+                    // Başkasına tıkladıysan, onun hikayesini aç
+                    Get.to(() => StoryViewer(
+                        startedUser: widget.model,
+                        storyOwnerUsers: widget.users))?.then((_) {
+                      if (cont != null) {
+                        cont.resumeFeedPlayback();
+                      }
+                    });
+                  }
+                },
+                onLongPress: () {
+                  final myId = _currentUid;
+                  final isMe = myId.isNotEmpty && widget.model.userID == myId;
+                  if (isMe) {
+                    // Uzun basınca silinmiş hikayeler – arka plan videolarını durdur
+                    final agenda = AgendaController.maybeFind();
+                    final prevIndex = agenda?.lastCenteredIndex;
+                    if (agenda != null) {
+                      agenda.lastCenteredIndex = prevIndex;
+                      agenda.centeredIndex.value = -1;
+                      agenda.pauseAll.value = true;
+                    }
+                    if (DeletedStoriesController.maybeFind() != null) {
+                      Get.delete<DeletedStoriesController>(force: true);
+                    }
+                    Get.to(() => const DeletedStoriesView())?.then((_) {
                       if (agenda != null) {
-                        agenda.centeredIndex.value = -1;
-                        agenda.pauseAll.value = true;
+                        agenda.pauseAll.value = false;
+                        agenda.resumeFeedPlayback();
                       }
-                      Get.to(() => DeletedStoriesView())?.then((_) {
-                        if (agenda != null) {
-                          agenda.pauseAll.value = false;
-                          agenda.centeredIndex.value = prevIndex ?? 0;
-                        }
-                      });
-                    }
-                  },
-                  child: Obx(() {
-                    final myId = FirebaseAuth.instance.currentUser?.uid;
-                    final isMe = myId != null && widget.model.userID == myId;
-                    final hasStory = widget.model.stories.isNotEmpty;
+                    });
+                  }
+                },
+                child: Obx(() {
+                  final myId = _currentUid;
+                  final isMe = myId.isNotEmpty && widget.model.userID == myId;
+                  final hasStory = widget.model.stories.isNotEmpty;
 
-                    // OPTİMİZE EDİLMİŞ CACHE'DEN HIZLI KONTROL
-                    final allSeen = StoryInteractionOptimizer.to
-                        .areAllStoriesSeenCached(
-                            widget.model.userID, widget.model.stories);
+                  // OPTİMİZE EDİLMİŞ CACHE'DEN HIZLI KONTROL
+                  final allSeen = _storyOptimizer.areAllStoriesSeenCached(
+                    widget.model.userID,
+                    widget.model.stories,
+                  );
 
-                    final uploading =
-                        StoryMakerController.isUploadingStory.value; // RxBool
-                    final isUploading = isMe && uploading;
+                  final uploading =
+                      StoryMakerController.isUploadingStory.value; // RxBool
+                  final isUploading = isMe && uploading;
 
-                    final highlight = hasStory && !allSeen;
+                  final highlight = hasStory && !allSeen;
 
-                    // Görülmemiş story sayısını hesapla
-                    int unseenCount = 0;
-                    if (hasStory && !isMe) {
-                      final lastSeenTime =
-                          userStore.readStoriesTimes[widget.model.userID] ?? 0;
-                      for (final s in widget.model.stories) {
-                        if (s.createdAt.millisecondsSinceEpoch > lastSeenTime) {
-                          unseenCount++;
-                        }
-                      }
-                    }
-
-                    Widget avatarImage() {
-                      // Use CachedUserAvatar for all users (instant for current user)
-                      final imageUrl = isMe
-                          ? (userService.currentUser?.pfImage ?? '')
-                          : widget.model.pfImage;
-
-                      if (imageUrl.isEmpty) {
-                        return Container(color: Colors.grey.withAlpha(60));
-                      }
-
-                      return ClipRect(
-                        child: CachedUserAvatar(
-                          userId: widget.model.userID,
-                          imageUrl: imageUrl,
-                          radius: 100, // Large enough to fill container
+                  Widget avatarImage() {
+                    // Use CachedUserAvatar for all users (instant for current user)
+                    final imageUrl =
+                        isMe ? userService.avatarUrl : widget.model.avatarUrl;
+                    return ClipRect(
+                      child: CachedUserAvatar(
+                        userId: widget.model.userID,
+                        imageUrl: imageUrl,
+                        radius: _storyAvatarRadius,
+                        backgroundColor: Colors.transparent,
+                        placeholder: const DefaultAvatar(
+                          radius: _storyAvatarRadius,
+                          backgroundColor: Colors.transparent,
                         ),
-                      );
-                    }
-
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(
-                          decoration: isUploading
-                              ? const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.transparent,
-                                )
-                              : (highlight
-                                  ? ShapeDecoration(
-                                      shape: CircleBorder(),
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          AppColors.textBlue,
-                                          AppColors.textPink,
-                                          AppColors.textPink,
-                                        ],
-                                      ),
-                                    )
-                                  : BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.grey.withAlpha(20),
-                                      border: Border.all(
-                                          color: Colors.grey.withAlpha(50),
-                                          width: 2),
-                                    )),
-                          child: Padding(
-                            padding: const EdgeInsets.all(2),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.transparent,
-                                border: Border.all(
-                                  color:
-                                      Theme.of(context).scaffoldBackgroundColor,
-                                  width: 2,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: avatarImage(),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (isUploading)
-                          Positioned.fill(child: StoryUploadingRing()),
-                        // Görülmemiş story sayısı badge
-                        if (unseenCount > 1)
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: AppColors.textBlue,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context)
-                                      .scaffoldBackgroundColor,
-                                  width: 1.5,
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                unseenCount > 9
-                                    ? '9+'
-                                    : unseenCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontFamily: 'MontserratMedium',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+                      ),
                     );
-                  }),
-                ),
-                Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: (FirebaseAuth.instance.currentUser != null &&
-                            widget.model.userID ==
-                                FirebaseAuth.instance.currentUser!.uid)
-                        ? GestureDetector(
-                            onTap: () {
-                              // Agenda'daki oynatmayi durdur ve StoryMaker'a git
-                              final cont = Get.isRegistered<AgendaController>()
-                                  ? Get.find<AgendaController>()
-                                  : null;
-                              final prevIndex = cont?.lastCenteredIndex;
-                              cont?.centeredIndex.value = -1;
+                  }
 
-                              Get.to(() => StoryMaker())?.then((_) {
-                                // Geri dönünce merkezdeki gönderiyi geri yükle
-                                if (cont != null) {
-                                  cont.centeredIndex.value = prevIndex ?? 0;
-                                }
-                              });
+                  final baseRingDecoration = BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.withAlpha(20),
+                    border:
+                        Border.all(color: Colors.grey.withAlpha(50), width: 2),
+                  );
+
+                  const highlightRingDecoration = ShapeDecoration(
+                    shape: CircleBorder(),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFB7D8FF),
+                        Color(0xFF6EB6FF),
+                        Color(0xFF2C8DFF),
+                        Color(0xFF0E5BFF),
+                      ],
+                    ),
+                  );
+
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (widget.isFirst && hasStory)
+                        Positioned(
+                          left: -34,
+                          top: (_storyCircleSize / 2) - 2,
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 30),
+                            duration: const Duration(milliseconds: 900),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, width, child) {
+                              return Container(
+                                width: width,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFFB7D8FF).withAlpha(0),
+                                      const Color(0xFF6EB6FF),
+                                      const Color(0xFF0E5BFF),
+                                    ],
+                                  ),
+                                ),
+                              );
                             },
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                  shape: BoxShape.circle, color: Colors.green),
-                              child: Icon(
-                                CupertinoIcons.add,
-                                color: Colors.white,
-                                size: 15,
+                          ),
+                        ),
+                      Container(
+                        decoration: highlight
+                            ? highlightRingDecoration
+                            : baseRingDecoration,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.transparent,
+                              border: Border.all(
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
+                                width: 2,
                               ),
                             ),
-                          )
-                        : RozetContent(size: 20, userID: widget.model.userID))
-              ],
+                            child: ClipOval(
+                              child: avatarImage(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (isUploading)
+                        Positioned.fill(child: StoryUploadingRing()),
+                    ],
+                  );
+                }),
+              ),
+              Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: (_currentUid.isNotEmpty &&
+                          widget.model.userID == _currentUid)
+                      ? GestureDetector(
+                          onTap: () {
+                            // Agenda'daki oynatmayi durdur ve StoryMaker'a git
+                            final cont = AgendaController.maybeFind();
+                            final prevIndex = cont?.lastCenteredIndex;
+                            cont?.lastCenteredIndex = prevIndex;
+                            cont?.centeredIndex.value = -1;
+
+                            Get.to(() => StoryMaker())?.then((_) {
+                              // Geri dönünce merkezdeki gönderiyi geri yükle
+                              if (cont != null) {
+                                cont.resumeFeedPlayback();
+                              }
+                            });
+                          },
+                          child: Container(
+                            width: _addBadgeSize,
+                            height: _addBadgeSize,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle, color: Colors.green),
+                            child: Icon(
+                              CupertinoIcons.add,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink())
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        SizedBox(
+          width: _labelWidth,
+          child: Text(
+            widget.model.nickname,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 10,
+              height: 1,
+              fontFamily: "MontserratMedium",
             ),
           ),
         ),
-        SizedBox(
-          height: 3,
-        ),
-        Text(
-          widget.model.nickname,
-          style: TextStyle(
-              color: Colors.black,
-              fontSize: 12,
-              fontFamily: "MontserratMedium"),
-        )
       ],
     );
   }

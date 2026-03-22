@@ -3,15 +3,25 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 
 /// Instagram tarzı akıcı video deneyimi için video durumu yöneticisi
 /// Her videonun oynatma pozisyonunu ve durumunu bellekte tutar
 class VideoStateManager extends GetxController {
-  static VideoStateManager get instance {
-    if (!Get.isRegistered<VideoStateManager>()) {
-      Get.put(VideoStateManager());
-    }
+  static VideoStateManager? maybeFind() {
+    final isRegistered = Get.isRegistered<VideoStateManager>();
+    if (!isRegistered) return null;
     return Get.find<VideoStateManager>();
+  }
+
+  static VideoStateManager ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(VideoStateManager());
+  }
+
+  static VideoStateManager get instance {
+    return ensure();
   }
 
   // Video docID -> VideoState mapping
@@ -122,7 +132,8 @@ class VideoStateManager extends GetxController {
     if (_allVideoControllers.length > _maxTrackedControllers) {
       // Şu an oynamayan en eski kaydı bul ve sil
       final toRemove = _allVideoControllers.entries
-          .where((e) => e.key != _currentPlayingDocID && e.key != _exclusiveDocID)
+          .where(
+              (e) => e.key != _currentPlayingDocID && e.key != _exclusiveDocID)
           .map((e) => e.key)
           .firstOrNull;
       if (toRemove != null) {
@@ -155,8 +166,10 @@ class VideoStateManager extends GetxController {
 
       try {
         final handle = entry.value;
-        if (handle.isInitialized && handle.isPlaying) {
+        if (handle.isInitialized) {
           handle.pause();
+          // iOS'ta bazı durumlarda pause gecikmeli gelebiliyor; sesi hemen kes.
+          handle.setVolume(0.0);
         }
       } catch (e) {
         // Hata varsa sessizce devam et
@@ -200,6 +213,28 @@ class VideoStateManager extends GetxController {
     });
   }
 
+  void reassertOnlyThis(String docID) {
+    if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
+      return;
+    }
+
+    final handle = _allVideoControllers[docID];
+    if (handle == null || !handle.isInitialized) return;
+
+    _playRequestSeq++;
+    final int requestSeq = _playRequestSeq;
+    pauseAllExcept(docID);
+    _pendingPlayTimer?.cancel();
+    _pendingPlayTimer = Timer(_playResumeDelay, () {
+      if (requestSeq != _playRequestSeq) return;
+      if (_currentPlayingDocID != docID) return;
+      final currentHandle = _allVideoControllers[docID];
+      if (currentHandle != null && currentHandle.isInitialized) {
+        currentHandle.play();
+      }
+    });
+  }
+
   /// GLOBAL VIDEO CONTROL: Video oynatma isteği
   void requestPlayVideo(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;
@@ -232,6 +267,9 @@ class VideoStateManager extends GetxController {
     _pendingPlayTimer = null;
     _playRequestSeq++;
     pauseAllExcept(null);
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
   }
 
   void enterExclusiveMode(String docID) {

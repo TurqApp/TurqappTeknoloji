@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 
-class AppBottomSheet extends StatelessWidget {
+class AppBottomSheet extends StatefulWidget {
   final List<dynamic> list;
   final Function(dynamic) onBackData;
   final Function(List<dynamic>)? onBackUpdatedList;
   final String title;
   final dynamic startSelection;
+  final String Function(dynamic)? itemLabelBuilder;
 
   const AppBottomSheet({
     required this.list,
     required this.onBackData,
     required this.title,
     required this.startSelection,
+    this.itemLabelBuilder,
     this.onBackUpdatedList,
     super.key,
   });
@@ -24,6 +27,7 @@ class AppBottomSheet extends StatelessWidget {
     required Function(dynamic) onSelect,
     dynamic selectedItem,
     bool isSearchable = false,
+    String Function(dynamic)? itemLabelBuilder,
   }) async {
     await showModalBottomSheet(
       context: context,
@@ -38,44 +42,60 @@ class AppBottomSheet extends StatelessWidget {
           title: title,
           startSelection: selectedItem,
           onBackData: onSelect,
+          itemLabelBuilder: itemLabelBuilder,
         );
       },
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(AppBottomSheetController());
-    controller.initSelection(list, startSelection);
+  State<AppBottomSheet> createState() => _AppBottomSheetState();
+}
 
+class _AppBottomSheetState extends State<AppBottomSheet> {
+  late final String _controllerTag;
+  late final AppBottomSheetController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'app_bottom_sheet_${identityHashCode(this)}';
+    _ownsController =
+        AppBottomSheetController.maybeFind(tag: _controllerTag) == null;
+    controller = AppBottomSheetController.ensure(tag: _controllerTag);
+    controller.initSelection(widget.list, widget.startSelection);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppBottomSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.list != widget.list ||
+        oldWidget.startSelection != widget.startSelection) {
+      controller.initSelection(widget.list, widget.startSelection);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          AppBottomSheetController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<AppBottomSheetController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(15),
+      padding: const EdgeInsets.all(15),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 50,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey,
-              borderRadius: BorderRadius.all(Radius.circular(50)),
-            ),
-          ),
-          SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
+          AppSheetHeader(title: widget.title),
           Wrap(
             children: [
               SizedBox(
@@ -90,9 +110,9 @@ class AppBottomSheet extends StatelessWidget {
 
                       return GestureDetector(
                         onTap: () {
-                          controller.selectItem(item, onBackData);
-                          if (onBackUpdatedList != null) {
-                            onBackUpdatedList!(controller.list.toList());
+                          controller.selectItem(item, widget.onBackData);
+                          if (widget.onBackUpdatedList != null) {
+                            widget.onBackUpdatedList!(controller.list.toList());
                           }
                         },
                         child: Container(
@@ -103,7 +123,8 @@ class AppBottomSheet extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      item.toString(),
+                                      widget.itemLabelBuilder?.call(item) ??
+                                          item.toString(),
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 16,
@@ -147,6 +168,25 @@ class AppBottomSheet extends StatelessWidget {
 }
 
 class AppBottomSheetController extends GetxController {
+  static AppBottomSheetController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AppBottomSheetController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AppBottomSheetController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<AppBottomSheetController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<AppBottomSheetController>(tag: tag);
+  }
+
   final list = <dynamic>[].obs;
   final startSelection = "".obs;
 

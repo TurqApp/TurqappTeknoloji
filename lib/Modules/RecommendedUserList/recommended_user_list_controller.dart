@@ -1,15 +1,32 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/recommended_users_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/recommended_user_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class RecommendedUserListController extends GetxController {
+  static RecommendedUserListController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(RecommendedUserListController());
+  }
+
+  static RecommendedUserListController? maybeFind() {
+    final isRegistered = Get.isRegistered<RecommendedUserListController>();
+    if (!isRegistered) return null;
+    return Get.find<RecommendedUserListController>();
+  }
+
   RxList<RecommendedUserModel> list = <RecommendedUserModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool hasError = false.obs;
 
   final RxList<String> takipEdilenler = <String>[].obs;
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
 
   DocumentSnapshot? lastFollowingDoc;
   bool hasMoreFollowing = true;
@@ -29,14 +46,14 @@ class RecommendedUserListController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Lazy-load: RecommendedUserList görünürlüğe yaklaştığında tetiklenecek
-    // İlk yükleme için arka planda cache'e al
+    // İlk feed turunda slotun en sona düşmüş gibi görünmemesi için
+    // ön yüklemeyi geciktirmeden başlat.
     _preloadInBackground();
   }
 
   /// Arka planda sessizce cache'e al
   void _preloadInBackground() {
-    Future.delayed(const Duration(seconds: 1), () async {
+    Future.microtask(() async {
       try {
         await ensureLoaded(limit: usersLimitInitial);
       } catch (_) {
@@ -54,7 +71,8 @@ class RecommendedUserListController extends GetxController {
   /// Takip listesi cache'i geçerli mi?
   bool _isFollowingCacheValid() {
     if (_lastFollowingLoadTime == null) return false;
-    return DateTime.now().difference(_lastFollowingLoadTime!) < _followingCacheValidDuration;
+    return DateTime.now().difference(_lastFollowingLoadTime!) <
+        _followingCacheValidDuration;
   }
 
   /// Zorunlu olmayan: mevcut listeyi yeniden karıştır (ağ isteği olmadan)
@@ -83,43 +101,19 @@ class RecommendedUserListController extends GetxController {
       return;
     }
 
-    if (isLoadingFollowing || !hasMoreFollowing) return;
+    if (isLoadingFollowing) return;
     isLoadingFollowing = true;
 
     try {
-      final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-      Query query = FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserId)
-          .collection("TakipEdilenler")
-          .orderBy("timeStamp", descending: true)
-          .limit(followingLimit);
-
-      if (lastFollowingDoc != null) {
-        query = query.startAfterDocument(lastFollowingDoc!);
-      }
-
-      final snap = await query.get(const GetOptions(
-        source: Source.serverAndCache, // Cache öncelikli
-      ));
-
-      if (snap.docs.isNotEmpty) {
-        lastFollowingDoc = snap.docs.last;
-        for (var doc in snap.docs) {
-          final id = doc.id;
-          if (!takipEdilenler.contains(id)) {
-            takipEdilenler.add(id);
-          }
-        }
-        if (snap.docs.length < followingLimit) {
-          hasMoreFollowing = false;
-        }
-        _lastFollowingLoadTime = DateTime.now();
-      } else {
-        hasMoreFollowing = false;
-      }
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
+      final ids = await _visibilityPolicy.loadViewerFollowingIds(
+        viewerUserId: currentUserId,
+        preferCache: true,
+      );
+      takipEdilenler.assignAll(ids.toList());
+      hasMoreFollowing = false;
+      _lastFollowingLoadTime = DateTime.now();
     } catch (e) {
-      print('Error loading following list: $e');
       // Takip listesi yüklenemezse boş devam et
       hasError.value = true;
     } finally {
@@ -141,7 +135,7 @@ class RecommendedUserListController extends GetxController {
     hasError.value = false;
 
     try {
-      final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
 
       // Takip ettiklerimizi yükleyelim (cache'ten gelirse hızlı)
       await getFollowing();
@@ -150,40 +144,31 @@ class RecommendedUserListController extends GetxController {
       final lim = limit ?? usersLimitFull;
 
       // Timeout ekle - 10 saniye içinde cevap gelmezse iptal et
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('gizliHesap', isEqualTo: false)
-          .orderBy('createdDate', descending: true)
-          .limit(lim)
-          .get(const GetOptions(source: Source.serverAndCache))
+      final candidates = await RecommendedUsersRepository.ensure()
+          .fetchCandidates(limit: lim, preferCache: true)
           .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              throw TimeoutException('Kullanıcılar yüklenemedi');
-            },
-          );
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Kullanıcılar yüklenemedi');
+        },
+      );
 
       // Filtre: ne kendimiz ne de takip ettiklerimiz; rozetler client-side elenir
-      final filtered = snap.docs
-          .where((doc) {
-            if (doc.id == currentUserId) return false;
-            if (takipEdilenler.contains(doc.id)) return false;
-            final r = (doc.data())['rozet'] as String? ?? '';
-            return r.isNotEmpty && r != 'Kirmizi' && r != 'Gri';
-          })
-          .map((doc) => RecommendedUserModel.fromDocument(doc))
-          .toList()
+      final filtered = candidates.where((user) {
+        if (user.userID == currentUserId) return false;
+        if (takipEdilenler.contains(user.userID)) return false;
+        final normalizedRozet = normalizeRozetValue(user.rozet);
+        return normalizedRozet.isNotEmpty &&
+            normalizedRozet != 'kirmizi' &&
+            normalizedRozet != 'gri';
+      }).toList()
         ..shuffle();
 
       // Listeye ata
       list.assignAll(filtered);
       _lastLoadTime = DateTime.now();
-    } catch (e) {
+    } catch (_) {
       hasError.value = true;
-      // Hata olsa bile cache'te varsa göster
-      if (list.isEmpty) {
-        print('Error loading recommended users: $e');
-      }
     } finally {
       isLoading.value = false;
     }

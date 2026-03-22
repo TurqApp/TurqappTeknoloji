@@ -62,9 +62,9 @@ dependencies:
   video_compress: ^3.1.4
   dio: ^5.9.1
   shared_preferences: ^2.5.4
+  flutter_secure_storage: ^9.2.4
   flutter_local_notifications: ^20.1.0
   firebase_messaging: ^16.1.1
-  app_tracking_transparency: ^2.0.6+1
   google_mobile_ads: ^7.0.0
   flutter_reorderable_grid_view: ^5.5.2
   package_info_plus: ^9.0.0
@@ -73,12 +73,17 @@ dependencies:
   firebase_crashlytics: ^5.0.7
   firebase_performance: ^0.11.1+4
   firebase_remote_config: ^6.1.1
-  app_links: ^6.4.1
   giphy_get: ^3.6.1+1
   flutter_cache_manager: ^3.4.1
+  firebase_app_check: ^0.4.1+5
+  flutter_onnxruntime: ^1.6.3
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  mockito: ^5.4.0
+  build_runner: ^2.4.0
+  integration_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
@@ -98,10 +103,13 @@ flutter:
     - assets/data/HighSchool.json
     - assets/data/HigherEducation.json
     - assets/data/Dormitory.json
+    - assets/data/market_schema.json
     - assets/bursSablonlar/
     - assets/tutorings/
     - assets/education/
     - assets/logo/
+    - assets/models/
+    - assets/models/nudenet/
   fonts:
     - family: Montserrat
       fonts:

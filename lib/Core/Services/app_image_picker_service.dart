@@ -3,9 +3,21 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 class AppImagePickerService {
   static final ImagePicker _picker = ImagePicker();
+  static const Set<String> _videoExtensions = <String>{
+    '.mp4',
+    '.mov',
+    '.m4v',
+    '.avi',
+    '.mkv',
+    '.webm',
+    '.3gp',
+    '.mpeg',
+    '.mpg',
+  };
 
   static Future<List<File>> pickImages(
     BuildContext context, {
@@ -38,9 +50,19 @@ class AppImagePickerService {
     BuildContext context, {
     required int maxAssets,
   }) async {
-    final picked = await _picker.pickVideo(source: ImageSource.gallery);
-    if (picked == null) return <File>[];
-    return <File>[File(picked.path)];
+    if (Platform.isAndroid) {
+      final photoStatus = await Permission.photos.request();
+      if (photoStatus.isDenied || photoStatus.isPermanentlyDenied) {
+        return <File>[];
+      }
+    }
+    final picked = await _picker.pickMultipleMedia(limit: maxAssets);
+    if (picked.isEmpty) return <File>[];
+    final videos = picked.where((x) {
+      final lowerPath = normalizeLowercase(x.path);
+      return _videoExtensions.any(lowerPath.endsWith);
+    }).toList();
+    return videos.map((x) => File(x.path)).toList();
   }
 
   static Future<File?> pickSingleVideo(BuildContext context) async {

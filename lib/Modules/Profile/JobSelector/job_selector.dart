@@ -5,9 +5,38 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'job_selector_controller.dart';
 
-class JobSelector extends StatelessWidget {
-  JobSelector({super.key});
-  final controller = Get.put(JobSelectorController());
+class JobSelector extends StatefulWidget {
+  const JobSelector({super.key});
+
+  @override
+  State<JobSelector> createState() => _JobSelectorState();
+}
+
+class _JobSelectorState extends State<JobSelector> {
+  late final JobSelectorController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = JobSelectorController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = JobSelectorController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(JobSelectorController.maybeFind(), controller)) {
+      Get.delete<JobSelectorController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +51,11 @@ class JobSelector extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  children: [BackButtons(text: "Meslek & Kategori")],
+                  children: [BackButtons(text: 'job_selector.title'.tr)],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Kategorin, profilinin keşfedilmesini kolaylaştırır.",
+                  'job_selector.subtitle'.tr,
                   style: const TextStyle(
                     color: Colors.black,
                     fontSize: 14,
@@ -46,10 +75,10 @@ class JobSelector extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: TextField(
                       onChanged: controller.filterJobs,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         icon: Icon(Icons.search, color: Colors.grey),
-                        hintText: "Ara",
-                        hintStyle: TextStyle(
+                        hintText: 'job_selector.search_hint'.tr,
+                        hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: "Montserrat",
                           fontSize: 14,
@@ -119,14 +148,16 @@ class JobSelector extends StatelessWidget {
                                   height: 20,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color:
-                                        isSelected ? Colors.black : Colors.white,
+                                    color: isSelected
+                                        ? Colors.black
+                                        : Colors.white,
                                     borderRadius: const BorderRadius.all(
                                       Radius.circular(15),
                                     ),
                                     border: Border.all(
-                                      color:
-                                          isSelected ? Colors.black : Colors.grey,
+                                      color: isSelected
+                                          ? Colors.black
+                                          : Colors.grey,
                                     ),
                                   ),
                                   child: isSelected
@@ -147,7 +178,7 @@ class JobSelector extends StatelessWidget {
                 }),
                 const SizedBox(height: 14),
                 TurqAppButton(
-                  text: "Kaydet",
+                  text: 'common.save'.tr,
                   onTap: () {
                     controller.setData();
                   },

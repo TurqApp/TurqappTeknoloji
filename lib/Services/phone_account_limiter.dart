@@ -1,8 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/phone_utils.dart';
 
 class PhoneAccountLimitReached implements Exception {
   final String message;
-  PhoneAccountLimitReached([this.message = 'Bu telefon numarası için limit dolu.']);
+  PhoneAccountLimitReached(
+      [this.message = 'Bu telefon numarası için limit dolu.']);
+  @override
+  String toString() => message;
+}
+
+class UsernameAlreadyTaken implements Exception {
+  final String message;
+  UsernameAlreadyTaken([this.message = 'Bu kullanıcı adı kullanımda.']);
   @override
   String toString() => message;
 }
@@ -12,7 +21,7 @@ class PhoneAccountLimiter {
   static const String collectionName = 'phoneAccounts';
 
   String normalize(String raw) {
-    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = phoneDigitsOnly(raw);
     // App currently uses 10-digit TR numbers starting with '5'
     if (digits.length >= 10) {
       return digits.substring(digits.length - 10);
@@ -27,7 +36,8 @@ class PhoneAccountLimiter {
         .doc(normalized);
   }
 
-  Future<({bool allowed, int count, int limit})> checkCanCreate(String phone) async {
+  Future<({bool allowed, int count, int limit})> checkCanCreate(
+      String phone) async {
     final ref = _phoneDocRef(phone);
     final snap = await ref.get();
     if (!snap.exists) {
@@ -49,6 +59,7 @@ class PhoneAccountLimiter {
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final phoneSnap = await tx.get(phoneRef);
+
       final data = phoneSnap.data() ?? <String, dynamic>{};
       final int count = (data['count'] ?? 0) as int;
       final int limit = (data['limit'] ?? defaultLimit) as int;
@@ -72,7 +83,7 @@ class PhoneAccountLimiter {
           'count': 1,
           'limit': defaultLimit,
           'accounts': [uid],
-          'createdAt': now,
+          'createdDate': now,
           'lastCreatedAt': now,
         });
       }
@@ -123,7 +134,7 @@ class PhoneAccountLimiter {
           'count': 1,
           'limit': defaultLimit,
           'accounts': [uid],
-          'createdAt': now,
+          'createdDate': now,
           'lastCreatedAt': now,
         });
       }

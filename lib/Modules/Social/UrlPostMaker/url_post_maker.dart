@@ -7,38 +7,58 @@ import 'package:turqappv2/Core/Helpers/ImagePreview/image_preview.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Modules/Social/UrlPostMaker/url_post_maker_controller.dart';
 
-class UrlPostMaker extends StatelessWidget {
+class UrlPostMaker extends StatefulWidget {
   final String video;
   final List<String> imgs;
   final double aspectRatio;
   final String thumbnail;
+  final String initialText;
   final String? originalUserID;
   final String? originalPostID;
   final bool sharedAsPost;
 
-  UrlPostMaker({
+  const UrlPostMaker({
     super.key,
     required this.video,
     required this.aspectRatio,
     required this.imgs,
     required this.thumbnail,
+    this.initialText = '',
     this.originalUserID,
     this.originalPostID,
     this.sharedAsPost = false,
   });
 
-  final controller = Get.put(UrlPostMakerController());
+  @override
+  State<UrlPostMaker> createState() => _UrlPostMakerState();
+}
 
-  void _initVideo() {
-    if (video.isNotEmpty && controller.videoPlayerController.value == null) {
-      controller.getReadyVideoPlayer(video);
+class _UrlPostMakerState extends State<UrlPostMaker> {
+  late final String _tag;
+  late final UrlPostMakerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag = UniqueKey().toString();
+    controller = UrlPostMakerController.ensure(tag: _tag);
+    controller.textEditingController.text = widget.initialText;
+    if (widget.video.isNotEmpty) {
+      controller.getReadyVideoPlayer(widget.video);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    _initVideo();
+  void dispose() {
+    final existing = UrlPostMakerController.maybeFind(tag: _tag);
+    if (identical(existing, controller)) {
+      Get.delete<UrlPostMakerController>(tag: _tag);
+    }
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -53,29 +73,31 @@ class UrlPostMaker extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          BackButtons(text: "Yeni Gönderi"),
+                          BackButtons(text: 'post_creator.title_new'.tr),
                           Obx(() => GestureDetector(
-                            onTap: controller.isSharing.value ? null : () {
-                              controller.setData(
-                                imgs,
-                                video,
-                                thumbnail,
-                                aspectRatio,
-                                originalUserID: originalUserID,
-                                originalPostID: originalPostID,
-                                sharedAsPost: sharedAsPost,
-                              );
-                            },
-                            child: Text(
-                              "Paylaş",
-                              style: TextStyle(
-                                  color: controller.isSharing.value
-                                      ? Colors.grey
-                                      : Colors.blueAccent,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratMedium"),
-                            ),
-                          ))
+                                onTap: controller.isSharing.value
+                                    ? null
+                                    : () {
+                                        controller.setData(
+                                          widget.imgs,
+                                          widget.video,
+                                          widget.thumbnail,
+                                          widget.aspectRatio,
+                                          originalUserID: widget.originalUserID,
+                                          originalPostID: widget.originalPostID,
+                                          sharedAsPost: widget.sharedAsPost,
+                                        );
+                                      },
+                                child: Text(
+                                  'common.share'.tr,
+                                  style: TextStyle(
+                                      color: controller.isSharing.value
+                                          ? Colors.grey
+                                          : Colors.blueAccent,
+                                      fontSize: 15,
+                                      fontFamily: "MontserratMedium"),
+                                ),
+                              ))
                         ],
                       ),
                     ),
@@ -92,10 +114,10 @@ class UrlPostMaker extends StatelessWidget {
                           maxLength: 100,
                           maxLines: null,
                           keyboardType: TextInputType.multiline,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: "Gönderi metini oluştur",
-                            hintStyle: TextStyle(
+                            hintText: 'post_creator.text_hint'.tr,
+                            hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
                                 fontSize: 15),
@@ -136,15 +158,19 @@ class UrlPostMaker extends StatelessWidget {
                           : SizedBox();
                     }),
                     videobody(),
-                    if (imgs.isNotEmpty)
+                    if (widget.imgs.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 15),
                         child: GestureDetector(
                           onTap: () {
                             Get.to(
-                                () => ImagePreview(imgs: imgs, startIndex: 0));
+                              () => ImagePreview(
+                                imgs: widget.imgs,
+                                startIndex: 0,
+                              ),
+                            );
                           },
-                          child: buildImageGrid(imgs),
+                          child: buildImageGrid(widget.imgs),
                         ),
                       ),
                   ],
@@ -167,7 +193,7 @@ class UrlPostMaker extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(left: 15, right: 15),
           child: AspectRatio(
-            aspectRatio: aspectRatio,
+            aspectRatio: widget.aspectRatio,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Stack(
@@ -182,12 +208,13 @@ class UrlPostMaker extends StatelessWidget {
                     ),
                   ),
                   // Sağ alt köşe play/pause butonu
-                  if (sharedAsPost && (originalUserID ?? '').isNotEmpty)
+                  if (widget.sharedAsPost &&
+                      (widget.originalUserID ?? '').isNotEmpty)
                     Positioned(
                       left: 10,
                       bottom: 10,
                       child: SharedPostLabel(
-                        originalUserID: originalUserID!,
+                        originalUserID: widget.originalUserID!,
                         textColor: Colors.white,
                         fontSize: 12,
                       ),
@@ -256,7 +283,7 @@ class UrlPostMaker extends StatelessWidget {
     switch (images.length) {
       case 1:
         return AspectRatio(
-          aspectRatio: aspectRatio,
+          aspectRatio: widget.aspectRatio,
           child: _buildImage(images[0], radius: BorderRadius.circular(12)),
         );
       case 2:

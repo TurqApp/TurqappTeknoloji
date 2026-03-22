@@ -1,36 +1,99 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyApplicationsController extends GetxController {
+  static MyApplicationsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyApplicationsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyApplicationsController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<MyApplicationsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyApplicationsController>(tag: tag);
+  }
+
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  final JobRepository _jobRepository = JobRepository.ensure();
   RxList<JobApplicationModel> applications = <JobApplicationModel>[].obs;
   var isLoading = false.obs;
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
   @override
   void onInit() {
     super.onInit();
-    loadApplications();
+    unawaited(_bootstrapApplications());
   }
 
-  Future<void> loadApplications() async {
-    isLoading.value = true;
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('myApplications')
-          .orderBy('timeStamp', descending: true)
-          .get();
+  Future<void> _bootstrapApplications() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    final cached = await _subcollectionRepository.getEntries(
+      uid,
+      subcollection: 'myApplications',
+      orderByField: 'timeStamp',
+      descending: true,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      applications.value = cached
+          .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
+          .toList(growable: false);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'jobs:my_applications:$uid',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(loadApplications(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await loadApplications();
+  }
 
-      applications.value = snapshot.docs
-          .map((doc) => JobApplicationModel.fromMap(doc.data(), doc.id))
-          .toList();
-    } catch (e) {
-      print("Başvurular yüklenirken hata: $e");
+  Future<void> loadApplications({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      final uid = CurrentUserService.instance.effectiveUserId;
+      if (uid.isEmpty) return;
+      final items = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'myApplications',
+        orderByField: 'timeStamp',
+        descending: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+
+      applications.value = items
+          .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
+          .toList(growable: false);
+      SilentRefreshGate.markRefreshed('jobs:my_applications:$uid');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -38,49 +101,27 @@ class MyApplicationsController extends GetxController {
 
   Future<void> cancelApplication(String jobDocID) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final uid = CurrentUserService.instance.effectiveUserId;
+      if (uid.isEmpty) return;
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      batch.delete(FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('myApplications')
-          .doc(jobDocID));
-
-      batch.delete(FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(jobDocID)
-          .collection('Applications')
-          .doc(uid));
-
-      batch.update(
-          FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(jobDocID),
-          {'applicationCount': FieldValue.increment(-1)});
-
-      await batch.commit();
-
-      // Prevent negative count
-      final jobSnap = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(jobDocID)
-          .get();
-      if (jobSnap.exists) {
-        final count = (jobSnap.data()?['applicationCount'] ?? 0) as num;
-        if (count < 0) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(jobDocID)
-              .update({'applicationCount': 0});
-        }
-      }
+      await _jobRepository.cancelApplication(
+        jobDocId: jobDocID,
+        userId: uid,
+      );
 
       applications.removeWhere((a) => a.jobDocID == jobDocID);
-    } catch (e) {
-      print("Başvuru iptal hatası: $e");
-    }
+      await _subcollectionRepository.setEntries(
+        uid,
+        subcollection: 'myApplications',
+        items: applications
+            .map(
+              (e) => UserSubcollectionEntry(
+                id: e.jobDocID,
+                data: e.toMap(),
+              ),
+            )
+            .toList(growable: false),
+      );
+    } catch (_) {}
   }
 }

@@ -1,15 +1,37 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
 
 class TestEntryController extends GetxController {
+  static TestEntryController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TestEntryController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TestEntryController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<TestEntryController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<TestEntryController>(tag: tag);
+  }
+
   final textController = TextEditingController();
   final focusNode = FocusNode();
   final model = Rx<TestsModel?>(null);
   final isLoading = false.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
+  final _helper = CreateTestController(null);
 
   @override
   void onInit() {
@@ -39,32 +61,27 @@ class TestEntryController extends GetxController {
   Future<void> getTests(String testID) async {
     isLoading.value = true;
     try {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(testID)
-              .get();
-      if (doc.exists) {
-        final data = doc.data()!;
+      final data = await _testRepository.fetchRawById(
+        testID,
+        preferCache: true,
+      );
+      if (data != null) {
         model.value = TestsModel(
           userID: data['userID'] as String,
           timeStamp: data['timeStamp'] as String,
           aciklama: data['aciklama'] as String,
           dersler: List<String>.from(data['dersler'] ?? []),
           img: data['img'] as String,
-          docID: doc.id,
+          docID: testID,
           paylasilabilir: data['paylasilabilir'] as bool,
           testTuru: data['testTuru'] as String,
           taslak: data['taslak'] as bool,
         );
-        print("buldu");
         closeKeyboard(Get.context!);
       } else {
         model.value = null;
-        print("veriyok");
       }
     } catch (e) {
-      print("Error fetching test: $e");
       model.value = null;
     } finally {
       isLoading.value = false;
@@ -82,11 +99,16 @@ class TestEntryController extends GetxController {
     }
   }
 
+  String localizedTestType(String raw) => _helper.localizedTestType(raw);
+
+  String localizedLessons(List<String> lessons) =>
+      _helper.localizedLessons(lessons);
+
   void showAlert() {
     showAlertDialog(
       Get.context!,
-      "Testi Bitirdin!",
-      "Sonuçlarım ekranında puanına ve doğru yanlış oranlarına bakabilirsin.",
+      "tests.completed_title".tr,
+      "tests.completed_body".tr,
     );
   }
 }

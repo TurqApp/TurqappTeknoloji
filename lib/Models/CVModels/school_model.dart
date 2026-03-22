@@ -10,16 +10,16 @@ class CvSchoolModel {
   });
 
   Map<String, dynamic> toMap() => {
-    "school": school,
-    "branch": branch,
-    "lastYear": lastYear,
-  };
+        "school": school,
+        "branch": branch,
+        "lastYear": lastYear,
+      };
 
   factory CvSchoolModel.fromMap(Map<String, dynamic> map) => CvSchoolModel(
-    school: map["school"] ?? "",
-    branch: map["branch"] ?? "",
-    lastYear: map["lastYear"] ?? "",
-  );
+        school: map["school"] ?? "",
+        branch: map["branch"] ?? "",
+        lastYear: map["lastYear"] ?? "",
+      );
 }
 
 class CVLanguegeModel {
@@ -34,16 +34,16 @@ class CVLanguegeModel {
   });
 
   Map<String, dynamic> toMap() => {
-    "languege": languege,
-    "level": level,
-    "index": index,
-  };
+        "languege": languege,
+        "level": level,
+        "index": index,
+      };
 
   factory CVLanguegeModel.fromMap(Map<String, dynamic> map) => CVLanguegeModel(
-    languege: map["languege"] ?? "",
-    level: map["level"] ?? 0,
-    index: map["index"] ?? 0,
-  );
+        languege: map["languege"] ?? "",
+        level: map["level"] ?? 0,
+        index: map["index"] ?? 0,
+      );
 }
 
 class CVExperinceModel {
@@ -62,20 +62,21 @@ class CVExperinceModel {
   });
 
   Map<String, dynamic> toMap() => {
-    "company": company,
-    "position": position,
-    "year1": year1,
-    "year2": year2,
-    "description": description,
-  };
+        "company": company,
+        "position": position,
+        "year1": year1,
+        "year2": year2,
+        "description": description,
+      };
 
-  factory CVExperinceModel.fromMap(Map<String, dynamic> map) => CVExperinceModel(
-    company: map["company"] ?? "",
-    position: map["position"] ?? "",
-    year1: map["year1"] ?? "",
-    year2: map["year2"] ?? "",
-    description: map["description"] ?? "",
-  );
+  factory CVExperinceModel.fromMap(Map<String, dynamic> map) =>
+      CVExperinceModel(
+        company: map["company"] ?? "",
+        position: map["position"] ?? "",
+        year1: map["year1"] ?? "",
+        year2: map["year2"] ?? "",
+        description: map["description"] ?? "",
+      );
 }
 
 class CVReferenceHumans {
@@ -88,14 +89,15 @@ class CVReferenceHumans {
   });
 
   Map<String, dynamic> toMap() => {
-    "nameSurname": nameSurname,
-    "phone": phone,
-  };
+        "nameSurname": nameSurname,
+        "phone": phone,
+      };
 
-  factory CVReferenceHumans.fromMap(Map<String, dynamic> map) => CVReferenceHumans(
-    nameSurname: map["nameSurname"] ?? "",
-    phone: map["phone"] ?? "",
-  );
+  factory CVReferenceHumans.fromMap(Map<String, dynamic> map) =>
+      CVReferenceHumans(
+        nameSurname: map["nameSurname"] ?? "",
+        phone: map["phone"] ?? "",
+      );
 }
 
 class CvModel {
@@ -128,42 +130,42 @@ class CvModel {
   });
 
   Map<String, dynamic> toMap() => {
-    "firstName": firstName,
-    "lastName": lastName,
-    "mail": mail,
-    "phone": phone,
-    "linkedin": linkedin,
-    "about": about,
-    "okullar": schools.map((e) => e.toMap()).toList(),
-    "diller": languages.map((e) => e.toMap()).toList(),
-    "deneyim": experiences.map((e) => e.toMap()).toList(),
-    "referans": references.map((e) => e.toMap()).toList(),
-    "findingJob": findingJob,
-    "skills": skills,
-  };
+        "firstName": firstName,
+        "lastName": lastName,
+        "mail": mail,
+        "phone": phone,
+        "linkedin": linkedin,
+        "about": about,
+        "okullar": schools.map((e) => e.toMap()).toList(),
+        "diller": languages.map((e) => e.toMap()).toList(),
+        "deneyim": experiences.map((e) => e.toMap()).toList(),
+        "referans": references.map((e) => e.toMap()).toList(),
+        "findingJob": findingJob,
+        "skills": skills,
+      };
 
   factory CvModel.fromMap(Map<String, dynamic> map) => CvModel(
-    firstName: map["firstName"] ?? "",
-    lastName: map["lastName"] ?? "",
-    findingJob: map["findingJob"] ?? false,
-    mail: map["mail"] ?? "",
-    phone: map["phone"] ?? "",
-    linkedin: map["linkedin"] ?? "",
-    about: map["about"] ?? "",
-    schools: (map["okullar"] as List<dynamic>? ?? [])
-        .map((e) => CvSchoolModel.fromMap(e))
-        .toList(),
-    languages: (map["diller"] as List<dynamic>? ?? [])
-        .map((e) => CVLanguegeModel.fromMap(e))
-        .toList(),
-    experiences: (map["deneyim"] as List<dynamic>? ?? [])
-        .map((e) => CVExperinceModel.fromMap(e))
-        .toList(),
-    references: (map["referans"] as List<dynamic>? ?? [])
-        .map((e) => CVReferenceHumans.fromMap(e))
-        .toList(),
-    skills: (map["skills"] as List<dynamic>? ?? [])
-        .map((e) => e.toString())
-        .toList(),
-  );
+        firstName: map["firstName"] ?? "",
+        lastName: map["lastName"] ?? "",
+        findingJob: map["findingJob"] ?? false,
+        mail: map["mail"] ?? "",
+        phone: map["phone"] ?? "",
+        linkedin: map["linkedin"] ?? "",
+        about: map["about"] ?? "",
+        schools: (map["okullar"] as List<dynamic>? ?? [])
+            .map((e) => CvSchoolModel.fromMap(e))
+            .toList(),
+        languages: (map["diller"] as List<dynamic>? ?? [])
+            .map((e) => CVLanguegeModel.fromMap(e))
+            .toList(),
+        experiences: (map["deneyim"] as List<dynamic>? ?? [])
+            .map((e) => CVExperinceModel.fromMap(e))
+            .toList(),
+        references: (map["referans"] as List<dynamic>? ?? [])
+            .map((e) => CVReferenceHumans.fromMap(e))
+            .toList(),
+        skills: (map["skills"] as List<dynamic>? ?? [])
+            .map((e) => e.toString())
+            .toList(),
+      );
 }

@@ -4,7 +4,7 @@ import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'type_writer_controller.dart';
 
-class TypewriterText extends StatelessWidget {
+class TypewriterText extends StatefulWidget {
   final String text;
   final Color textColor;
   final double fontSize;
@@ -17,9 +17,35 @@ class TypewriterText extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(TypewriterController(text), tag: text);
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
 
+class _TypewriterTextState extends State<TypewriterText> {
+  late final TypewriterController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'typewriter_${widget.text.hashCode}_${identityHashCode(this)}';
+    controller = TypewriterController.ensure(
+      fullText: widget.text,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    final existing = TypewriterController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
+      Get.delete<TypewriterController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(() {
       return ShaderMask(
         shaderCallback: (bounds) => LinearGradient(
@@ -31,7 +57,7 @@ class TypewriterText extends StatelessWidget {
           controller.displayedText.value,
           style: TextStyle(
             color: Colors.white,
-            fontSize: fontSize, // 🔹 Burada kullanılıyor
+            fontSize: widget.fontSize, // 🔹 Burada kullanılıyor
             fontFamily: AppFontFamilies.mbold,
           ),
         ),

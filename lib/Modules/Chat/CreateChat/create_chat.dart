@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,17 +6,71 @@ import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/Chat/CreateChat/CreateChatContent/create_chat_content.dart';
 import 'package:turqappv2/Modules/Chat/CreateChat/create_chat_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../Profile/FollowingFollowers/following_followers_controller.dart';
 
-class CreateChat extends StatelessWidget {
-  CreateChat({super.key});
-  final followersFollowing = Get.put(
-    FollowingFollowersController(
-        initialPage: 0, userId: FirebaseAuth.instance.currentUser!.uid),
-  );
-  final controllerr = Get.put(CreateChatController());
-  final chatListingController = Get.find<ChatListingController>();
+class CreateChat extends StatefulWidget {
+  const CreateChat({super.key});
+
+  @override
+  State<CreateChat> createState() => _CreateChatState();
+}
+
+class _CreateChatState extends State<CreateChat> {
+  late final FollowingFollowersController followersFollowing;
+  late final CreateChatController controllerr;
+  late final ChatListingController chatListingController;
+  bool _ownsFollowersController = false;
+  bool _ownsCreateChatController = false;
+  bool _ownsChatListingController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingFollowers = FollowingFollowersController.maybeFind();
+    if (existingFollowers != null) {
+      followersFollowing = existingFollowers;
+    } else {
+      followersFollowing = FollowingFollowersController.ensure(
+        initialPage: 0,
+        userId: CurrentUserService.instance.effectiveUserId,
+      );
+      _ownsFollowersController = true;
+    }
+    final existingCreateChat = CreateChatController.maybeFind();
+    if (existingCreateChat != null) {
+      controllerr = existingCreateChat;
+    } else {
+      controllerr = CreateChatController.ensure();
+      _ownsCreateChatController = true;
+    }
+    final existingChatListing = ChatListingController.maybeFind();
+    if (existingChatListing != null) {
+      chatListingController = existingChatListing;
+    } else {
+      chatListingController = ChatListingController.ensure();
+      _ownsChatListingController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsFollowersController &&
+        identical(
+            FollowingFollowersController.maybeFind(), followersFollowing)) {
+      Get.delete<FollowingFollowersController>(force: true);
+    }
+    if (_ownsCreateChatController &&
+        identical(CreateChatController.maybeFind(), controllerr)) {
+      Get.delete<CreateChatController>(force: true);
+    }
+    if (_ownsChatListingController &&
+        identical(ChatListingController.maybeFind(), chatListingController)) {
+      Get.delete<ChatListingController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +106,8 @@ class CreateChat extends StatelessWidget {
                           CupertinoIcons.search,
                           color: Colors.black,
                         ),
-                        hintText: "Ara",
-                        hintStyle: TextStyle(
+                        hintText: 'common.search'.tr,
+                        hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
                         ),
@@ -97,7 +150,7 @@ class CreateChat extends StatelessWidget {
                             ));
                       } else {
                         final chatId = buildConversationId(
-                          FirebaseAuth.instance.currentUser!.uid,
+                          CurrentUserService.instance.effectiveUserId,
                           selectedUserId,
                         );
                         await Get.to(() => ChatView(

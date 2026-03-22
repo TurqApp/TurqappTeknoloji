@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/slider_cache_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Slider/slider_catalog.dart';
 
-class EducationSlider extends StatelessWidget {
+class EducationSlider extends StatefulWidget {
   final List<String> imageList;
   final String? sliderId;
 
@@ -15,60 +18,87 @@ class EducationSlider extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (sliderId == null || sliderId!.isEmpty) {
-      return _buildCarousel(context, imageList);
+  State<EducationSlider> createState() => _EducationSliderState();
+}
+
+class _EducationSliderState extends State<EducationSlider> {
+  final SliderCacheService _cache = SliderCacheService();
+  List<String> _sources = const <String>[];
+  bool _bootstrapped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sources = _defaultSources();
+    unawaited(_bootstrap());
+  }
+
+  @override
+  void didUpdateWidget(covariant EducationSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.sliderId != widget.sliderId ||
+        oldWidget.imageList != widget.imageList) {
+      _sources = _defaultSources();
+      _bootstrapped = false;
+      unawaited(_bootstrap());
+    }
+  }
+
+  List<String> _defaultSources() {
+    final sliderId = widget.sliderId?.trim() ?? '';
+    if (sliderId.isNotEmpty) {
+      final defaults = SliderCatalog.defaultImagesFor(sliderId);
+      if (defaults.isNotEmpty) return defaults;
+    }
+    return widget.imageList;
+  }
+
+  Future<void> _bootstrap() async {
+    if (_bootstrapped) return;
+    _bootstrapped = true;
+
+    final sliderId = widget.sliderId?.trim() ?? '';
+    if (sliderId.isEmpty) {
+      _setSources(_defaultSources());
+      return;
     }
 
-    final sliderRef =
-        FirebaseFirestore.instance.collection('sliders').doc(sliderId);
+    final snapshot = await _cache.readSnapshot(sliderId);
+    if (snapshot.hasItems) {
+      _setSources(snapshot.items);
+      unawaited(_cache.warmImages(snapshot.items));
+    }
+    unawaited(_refreshRemote(sliderId));
+  }
 
-    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: sliderRef.snapshots(),
-      builder: (context, metaSnapshot) {
-        final hiddenDefaults =
-            ((metaSnapshot.data?.data()?['hiddenDefaults'] as List<dynamic>?) ??
-                    const <dynamic>[])
-                .map((e) => e is num ? e.toInt() : -1)
-                .where((e) => e >= 0)
-                .toSet();
+  Future<void> _refreshRemote(String sliderId) async {
+    try {
+      final remote = await _cache.refreshAndCacheSources(sliderId);
+      final resolved = remote.isEmpty ? _defaultSources() : remote;
+      _setSources(resolved);
+    } catch (_) {}
+  }
 
-        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: sliderRef.collection('items').orderBy('order').snapshots(),
-          builder: (context, itemsSnapshot) {
-            final defaults = SliderCatalog.defaultImagesFor(sliderId!);
-            final sourceImages = <String>[];
-            final remoteDocs = itemsSnapshot.data?.docs ?? const [];
-            final remoteByOrder = <int, String>{};
-            final extras = <String>[];
+  void _setSources(List<String> next) {
+    if (!mounted) return;
+    if (_sources.length == next.length) {
+      var changed = false;
+      for (var i = 0; i < next.length; i++) {
+        if (_sources[i] != next[i]) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return;
+    }
+    setState(() {
+      _sources = next;
+    });
+  }
 
-            for (final doc in remoteDocs) {
-              final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
-              final url = (doc.data()['imageUrl'] ?? '').toString();
-              if (url.isEmpty) continue;
-              if (order < defaults.length) {
-                remoteByOrder[order] = url;
-              } else {
-                extras.add(url);
-              }
-            }
-
-            for (var i = 0; i < defaults.length; i++) {
-              if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
-                continue;
-              }
-              sourceImages.add(remoteByOrder[i] ?? defaults[i]);
-            }
-            sourceImages.addAll(extras);
-
-            return _buildCarousel(
-              context,
-              sourceImages.isEmpty ? imageList : sourceImages,
-            );
-          },
-        );
-      },
-    );
+  @override
+  Widget build(BuildContext context) {
+    return _buildCarousel(context, _sources);
   }
 
   Widget _buildCarousel(BuildContext context, List<String> sources) {
@@ -79,16 +109,23 @@ class EducationSlider extends StatelessWidget {
           builder: (BuildContext context) {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: isRemote
-                        ? CachedNetworkImageProvider(imgPath)
-                        : AssetImage(imgPath) as ImageProvider,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: isRemote
+                    ? CachedNetworkImage(
+                        imageUrl: imgPath,
+                        cacheManager: TurqImageCacheManager.instance,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        placeholder: (context, _) => _buildFallbackCard(),
+                        errorWidget: (context, _, __) => _buildFallbackCard(),
+                      )
+                    : Image.asset(
+                        imgPath,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, _, __) => _buildFallbackCard(),
+                      ),
               ),
             );
           },
@@ -98,9 +135,17 @@ class EducationSlider extends StatelessWidget {
         autoPlay: true,
         height: MediaQuery.of(context).size.width / 2.7,
         enlargeCenterPage: false,
-        autoPlayInterval: const Duration(seconds: 10),
+        autoPlayInterval: const Duration(seconds: 2),
         viewportFraction: 0.9,
       ),
+    );
+  }
+
+  Widget _buildFallbackCard() {
+    return Container(
+      color: Colors.grey.shade200,
+      alignment: Alignment.center,
+      child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
     );
   }
 }

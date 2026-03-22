@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
-import 'package:turqappv2/Modules/JobFinder/MyJobAds/my_job_ads_controller.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 import 'package:turqappv2/Modules/Profile/LikedPosts/liked_posts_controller.dart';
-import 'package:turqappv2/Modules/Profile/Policies/policies_controller.dart';
 import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart';
-import 'package:turqappv2/Modules/SpotifySelector/spotify_selector_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/SocialProfileFollowers/social_profile_followers_controller.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+
+const String kExplorePageLineBarTag = 'explore_page_line_bar';
+const String kSavedPostsPageLineBarTag = 'saved_posts_page_line_bar';
+const String kLikedPostsPageLineBarTag = 'liked_posts_page_line_bar';
+const String kNotificationsPageLineBarTag = 'notifications_page_line_bar';
+const String kDeletedStoriesPageLineBarTag = 'deleted_stories_page_line_bar';
+const String kFollowersPageLineBarTag = 'followers_page_line_bar';
+const String kFollowersSocialProfilePageLineBarTag =
+    'followers_social_profile_page_line_bar';
+
+PageLineBarController? maybeFindPageLineBarController(String tag) {
+  return PageLineBarController.maybeFind(tag: tag);
+}
+
+void syncPageLineBarSelection(String tag, int index) {
+  maybeFindPageLineBarController(tag)?.selection.value = index;
+}
 
 class PageLineBar extends StatefulWidget {
   final List<String> barList;
@@ -34,31 +49,71 @@ class PageLineBar extends StatefulWidget {
 class _PageLineBarState extends State<PageLineBar> {
   late PageLineBarController controller;
   bool _didInit = false;
+  bool _ownsController = false;
+
+  void _syncExternalPageController(
+    int index, {
+    required bool animate,
+  }) {
+    final pageController = widget.pageController;
+    if (pageController == null) {
+      controller.setSelectionTo(index);
+      return;
+    }
+
+    void syncAfterFrame() {
+      if (!mounted) return;
+      if (!pageController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => syncAfterFrame());
+        return;
+      }
+      if (animate) {
+        pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        pageController.jumpToPage(index);
+      }
+    }
+
+    syncAfterFrame();
+  }
 
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<PageLineBarController>(tag: widget.pageName)) {
-      controller = Get.find<PageLineBarController>(tag: widget.pageName);
-    } else {
-      controller = Get.put(
-        PageLineBarController(pageName: widget.pageName),
-        tag: widget.pageName,
-      );
-    }
+    _ownsController =
+        PageLineBarController.maybeFind(tag: widget.pageName) == null;
+    controller = PageLineBarController.ensure(
+      pageName: widget.pageName,
+      tag: widget.pageName,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_didInit) return;
       _didInit = true;
       if (widget.initialIndex != controller.selection.value) {
         controller.selection.value = widget.initialIndex;
-        if (widget.pageController != null) {
-          widget.pageController!.jumpToPage(widget.initialIndex);
-        } else {
-          controller.setSelectionTo(widget.initialIndex);
-        }
+        _syncExternalPageController(
+          widget.initialIndex,
+          animate: false,
+        );
       }
     });
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        maybeFindPageLineBarController(widget.pageName) == controller) {
+      Get.delete<PageLineBarController>(
+        tag: widget.pageName,
+        force: true,
+      );
+    }
+    super.dispose();
   }
 
   @override
@@ -69,17 +124,12 @@ class _PageLineBarState extends State<PageLineBar> {
           final item = widget.barList[index];
           return Expanded(
             child: GestureDetector(
+              key: ValueKey(
+                IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
+              ),
               onTap: () {
                 controller.selection.value = index;
-                if (widget.pageController != null) {
-                  widget.pageController!.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                } else {
-                  controller.setSelectionTo(index);
-                }
+                _syncExternalPageController(index, animate: true);
               },
               child: Container(
                 height: 40,
@@ -88,14 +138,22 @@ class _PageLineBarState extends State<PageLineBar> {
                   alignment: Alignment.bottomCenter,
                   children: [
                     Center(
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: widget.fontSize,
-                          fontFamily: controller.selection.value == index
-                              ? AppFontFamilies.mbold
-                              : AppFontFamilies.mmedium,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            item,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: widget.fontSize,
+                              fontFamily: controller.selection.value == index
+                                  ? AppFontFamilies.mbold
+                                  : AppFontFamilies.mmedium,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -119,44 +177,87 @@ class _PageLineBarState extends State<PageLineBar> {
 }
 
 class PageLineBarController extends GetxController {
+  static PageLineBarController ensure({
+    required String pageName,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      PageLineBarController(pageName: pageName),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static PageLineBarController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<PageLineBarController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<PageLineBarController>(tag: tag);
+  }
+
   final String pageName;
   PageLineBarController({required this.pageName});
 
   var selection = 0.obs;
   final PageController pageController = PageController();
 
+  bool _matchesTag(String baseTag) {
+    return pageName == baseTag || pageName.startsWith('${baseTag}_');
+  }
+
+  String? _scopedSuffix(String baseTag) {
+    final prefix = '${baseTag}_';
+    if (!pageName.startsWith(prefix)) {
+      return null;
+    }
+    return pageName.substring(prefix.length);
+  }
+
+  T? _maybeFindController<T>({String? tag}) {
+    if (tag != null && Get.isRegistered<T>(tag: tag)) {
+      return Get.find<T>(tag: tag);
+    }
+    final isRegistered = Get.isRegistered<T>();
+    if (!isRegistered) return null;
+    return Get.find<T>();
+  }
+
   void setSelectionTo(int index) {
     selection.value = index;
-    switch (pageName) {
-      case 'Explore':
-        Get.find<ExploreController>().goToPage(index);
-        break;
-      case 'SavedPosts':
-        Get.find<SavedPostsController>().goToPage(index);
-        break;
-      case 'LikedPosts':
-        Get.find<LikedPostControllers>().goToPage(index);
-        break;
-      case 'Policies':
-        Get.find<PoliciesController>().goToPage(index);
-        break;
-      case 'Notifications':
-        Get.find<InAppNotificationsController>().goToPage(index);
-        break;
-      case 'Spotify':
-        Get.find<SpotifySelectorController>().goToPage(index);
-        break;
-      case 'MyTutorings':
-        Get.find<MyTutoringsController>().goToPage(index);
-        break;
-      case 'MyJobAds':
-        Get.find<MyJobAdsController>().goToPage(index);
-        break;
-      case 'Followers':
-        Get.find<FollowingFollowersController>().goToPage(index);
-        break;
-      default:
-        break;
+    if (_matchesTag(kExplorePageLineBarTag)) {
+      _maybeFindController<ExploreController>()?.goToPage(index);
+      return;
+    }
+    if (_matchesTag(kSavedPostsPageLineBarTag)) {
+      final controller = _maybeFindController<SavedPostsController>();
+      controller?.pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+      return;
+    }
+    if (_matchesTag(kLikedPostsPageLineBarTag)) {
+      _maybeFindController<LikedPostControllers>()?.goToPage(index);
+      return;
+    }
+    if (_matchesTag(kNotificationsPageLineBarTag)) {
+      _maybeFindController<InAppNotificationsController>()?.goToPage(index);
+      return;
+    }
+    if (_matchesTag(kFollowersPageLineBarTag)) {
+      _maybeFindController<FollowingFollowersController>(
+        tag: _scopedSuffix(kFollowersPageLineBarTag),
+      )?.goToPage(index);
+      return;
+    }
+    if (_matchesTag(kFollowersSocialProfilePageLineBarTag)) {
+      _maybeFindController<SocialProfileFollowersController>(
+        tag: _scopedSuffix(kFollowersSocialProfilePageLineBarTag),
+      )?.goToPage(index);
+      return;
     }
   }
 

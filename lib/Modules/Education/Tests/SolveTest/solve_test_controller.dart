@@ -1,10 +1,37 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SolveTestController extends GetxController {
+  static SolveTestController ensure({
+    required String testID,
+    required Function showSucces,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SolveTestController(
+        testID: testID,
+        showSucces: showSucces,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SolveTestController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<SolveTestController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SolveTestController>(tag: tag);
+  }
+
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final TestRepository _testRepository = TestRepository.ensure();
   final String testID;
   final Function showSucces;
   final soruList = <TestReadinessModel>[].obs;
@@ -47,33 +74,16 @@ class SolveTestController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID)
-          .collection("Sorular")
-          .orderBy("id", descending: false)
-          .get();
-
-      soruList.clear();
-      for (var doc in snapshot.docs) {
-        final img = doc.get("img") as String;
-        final id = doc.get("id") as num;
-        final dogruCevap = doc.get("dogruCevap") as String;
-        final max = doc.get("max") as num;
-
-        soruList.add(
-          TestReadinessModel(
-            id: id.toInt(),
-            img: img,
-            max: max.toInt(),
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
+      soruList.assignAll(
+        await _testRepository.fetchQuestions(
+          testID,
+          preferCache: true,
+        ),
+      );
       cevaplar.assignAll(List.generate(soruList.length, (index) => ""));
     } catch (e) {
-      print("Error fetching questions: $e");
+      soruList.clear();
+      cevaplar.clear();
     } finally {
       isLoading.value = false;
     }
@@ -81,15 +91,12 @@ class SolveTestController extends GetxController {
 
   Future<void> getUserFullName() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      final firstName = doc.get("firstName") as String;
-      final lastName = doc.get("lastName") as String;
-      fullname.value = "$firstName $lastName";
+      final summary = await _userSummaryResolver.resolve(
+        CurrentUserService.instance.effectiveUserId,
+        preferCache: true,
+      );
+      fullname.value = summary?.preferredName ?? "";
     } catch (e) {
-      print("Error fetching user data: $e");
       fullname.value = "";
     }
   }
@@ -99,20 +106,13 @@ class SolveTestController extends GetxController {
   }
 
   void testiBitir() {
-    FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID)
-        .collection("Yanitlar")
-        .doc(DateTime.now().millisecondsSinceEpoch.toString())
-        .set({
-      "cevaplar": cevaplar.toList(),
-      "timeStamp": DateTime.now().millisecondsSinceEpoch.toInt(),
-      "userID": FirebaseAuth.instance.currentUser!.uid,
-    }).then((value) {
-      print("Yanitlar başarıyla eklendi: $testID");
-    }).catchError((error) {
-      print("Yanitlar eklenirken hata: $error");
-    });
+    _testRepository
+        .submitAnswers(
+          testID,
+          userId: CurrentUserService.instance.effectiveUserId,
+          answers: cevaplar.toList(growable: false),
+        )
+        .catchError((error) {});
     Get.back();
     showSucces();
   }

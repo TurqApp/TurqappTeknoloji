@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,18 +8,55 @@ import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplications
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/scholarship_applications_content_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class ScholarshipApplicationsContent extends StatelessWidget {
+class ScholarshipApplicationsContent extends StatefulWidget {
   final String userID;
 
   const ScholarshipApplicationsContent({super.key, required this.userID});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      ScholarshipApplicationsContentController(userID: userID),
-      tag: userID,
-    );
+  State<ScholarshipApplicationsContent> createState() =>
+      _ScholarshipApplicationsContentState();
+}
 
+class _ScholarshipApplicationsContentState
+    extends State<ScholarshipApplicationsContent> {
+  late final ScholarshipApplicationsContentController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  String get userID => widget.userID;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'scholarship_application_tile_${widget.userID}_${identityHashCode(this)}';
+    final existing = ScholarshipApplicationsContentController.maybeFind(
+      tag: _controllerTag,
+    );
+    _ownsController = existing == null;
+    controller = existing ??
+        ScholarshipApplicationsContentController.ensure(
+          tag: _controllerTag,
+          userID: widget.userID,
+        );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          ScholarshipApplicationsContentController.maybeFind(
+              tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ScholarshipApplicationsContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 15),
       child: Obx(() {
@@ -49,26 +87,18 @@ class ScholarshipApplicationsContent extends StatelessWidget {
                   child: SizedBox(
                     width: 50,
                     height: 50,
-                    child: controller.pfImage.value.isNotEmpty
-                        ? Image.network(
-                            controller.pfImage.value,
+                    child: controller.avatarUrl.value.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: controller.avatarUrl.value,
                             fit: BoxFit.cover,
-                            loadingBuilder: (
+                            placeholder: (context, url) =>
+                                CupertinoActivityIndicator(
+                              radius: 8,
+                            ),
+                            errorWidget: (
                               context,
-                              child,
-                              loadingProgress,
-                            ) {
-                              if (loadingProgress == null) {
-                                return child;
-                              }
-                              return CupertinoActivityIndicator(
-                                radius: 8,
-                              );
-                            },
-                            errorBuilder: (
-                              context,
+                              url,
                               error,
-                              stackTrace,
                             ) {
                               return Container(
                                 color: Colors.grey.withAlpha(50),

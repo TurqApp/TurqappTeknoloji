@@ -1,84 +1,159 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyScholarshipController extends GetxController {
+  static MyScholarshipController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(MyScholarshipController(), tag: tag, permanent: permanent);
+  }
+
+  static MyScholarshipController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<MyScholarshipController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyScholarshipController>(tag: tag);
+  }
+
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   var isLoading = true.obs;
   final myScholarships = <Map<String, dynamic>>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    fetchMyScholarships();
+    unawaited(_bootstrapMyScholarships());
   }
 
-  Future<void> fetchMyScholarships() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+  Future<void> _bootstrapMyScholarships() async {
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
       return;
     }
 
-    isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('scholarships')
-          .where('userID', isEqualTo: user.uid)
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
-
-      final scholarships = <Map<String, dynamic>>[];
-
-      // Batch fetch users
-      final userIds = <String>{};
-      for (var doc in snapshot.docs) {
-        final userID = doc.data()['userID'] as String? ?? '';
-        if (userID.isNotEmpty) userIds.add(userID);
-      }
-
-      final userDataMap = <String, Map<String, dynamic>>{};
-      for (var i = 0; i < userIds.length; i += 10) {
-        final batch = userIds.skip(i).take(10).toList();
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (final d in usersSnap.docs) {
-          userDataMap[d.id] = {
-            'pfImage': d.data()['pfImage'] as String? ?? '',
-            'nickname': d.data()['nickname'] as String? ?? '',
-            'userID': d.id,
-          };
+      final cachedRaw = await _scholarshipRepository.fetchMyScholarshipsRaw(
+        userId,
+        limit: 50,
+        cacheOnly: true,
+      );
+      if (cachedRaw.isNotEmpty) {
+        myScholarships.assignAll(
+          await _buildScholarshipCards(cachedRaw, userCacheOnly: true),
+        );
+        isLoading.value = false;
+        if (SilentRefreshGate.shouldRefresh(
+          'scholarships:mine:$userId',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(fetchMyScholarships(silent: true, forceRefresh: true));
         }
+        return;
       }
+    } catch (_) {}
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        try {
-          final userID = data['userID'] as String? ?? '';
-          final userData = userDataMap[userID] ??
-              {'pfImage': '', 'nickname': '', 'userID': userID};
+    await fetchMyScholarships();
+  }
 
-          scholarships.add({
-            'model': IndividualScholarshipsModel.fromJson(data),
-            'type': 'bireysel',
-            'userData': userData,
-            'docId': doc.id,
-          });
-        } catch (e) {
-          AppSnackbar('Hata', 'Burs verisi işlenemedi.');
-        }
-      }
-
-      myScholarships.value = scholarships;
-    } catch (e) {
-      AppSnackbar('Hata', 'Veriler yüklenemedi.');
-    } finally {
+  Future<void> fetchMyScholarships({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
+      return;
     }
+
+    final shouldShowLoader = !silent && myScholarships.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
+    try {
+      final rawScholarships =
+          await _scholarshipRepository.fetchMyScholarshipsRaw(
+        userId,
+        limit: 50,
+        forceRefresh: forceRefresh,
+      );
+      myScholarships.value = await _buildScholarshipCards(rawScholarships);
+      SilentRefreshGate.markRefreshed('scholarships:mine:$userId');
+    } catch (e) {
+      AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
+    } finally {
+      if (shouldShowLoader || myScholarships.isEmpty) {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _buildScholarshipCards(
+    List<Map<String, dynamic>> rawScholarships, {
+    bool userCacheOnly = false,
+  }) async {
+    final scholarships = <Map<String, dynamic>>[];
+    final userIds = <String>{};
+    for (final data in rawScholarships) {
+      final userID = data['userID'] as String? ?? '';
+      if (userID.isNotEmpty) userIds.add(userID);
+    }
+
+    final userDataMap = <String, Map<String, dynamic>>{};
+    final fetchedUsers = userIds.isEmpty
+        ? <String, UserSummary>{}
+        : await _userSummaryResolver.resolveMany(
+            userIds.toList(),
+            preferCache: true,
+            cacheOnly: userCacheOnly,
+          );
+    for (final entry in fetchedUsers.entries) {
+      final user = entry.value;
+      userDataMap[entry.key] = {
+        'avatarUrl': user.avatarUrl,
+        'nickname': user.nickname,
+        'displayName': user.preferredName,
+        'userID': entry.key,
+      };
+    }
+
+    for (final data in rawScholarships) {
+      try {
+        final userID = data['userID'] as String? ?? '';
+        final userData = userDataMap[userID] ??
+            {
+              'avatarUrl': '',
+              'nickname': '',
+              'displayName': '',
+              'userID': userID
+            };
+
+        scholarships.add({
+          'model': IndividualScholarshipsModel.fromJson(data),
+          'type': kIndividualScholarshipType,
+          'userData': userData,
+          'docId': (data['docId'] ?? '').toString(),
+        });
+      } catch (_) {
+        AppSnackbar('common.error'.tr, 'common.item_process_failed'.tr);
+      }
+    }
+    return scholarships;
   }
 }

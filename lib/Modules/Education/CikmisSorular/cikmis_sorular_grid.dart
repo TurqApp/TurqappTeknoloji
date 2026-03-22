@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_road.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
 
 import 'cikmis_sorular_yil_sectirme.dart';
 
@@ -15,14 +15,23 @@ class CikmisSorularGrid extends StatefulWidget {
 }
 
 class _CikmisSorularGridState extends State<CikmisSorularGrid> {
+  static const _yks = 'YKS';
+  static const _tus = 'TUS';
+  static const _yds = 'YDS';
+  static const _kpss = 'KPSS';
+  static const _dgs = 'DGS';
+  static const _lgs = 'LGS';
+  static const _dus = 'DUS';
+  static const _ales = 'ALES';
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (widget.anaBaslik == "YKS" ||
-            widget.anaBaslik == "TUS" ||
-            widget.anaBaslik == "YDS" ||
-            widget.anaBaslik == "KPSS") {
+        if (widget.anaBaslik == _yks ||
+            widget.anaBaslik == _tus ||
+            widget.anaBaslik == _yds ||
+            widget.anaBaslik == _kpss) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -30,9 +39,9 @@ class _CikmisSorularGridState extends State<CikmisSorularGrid> {
                   CikmisSorularRoad(anaBaslik: widget.anaBaslik),
             ),
           );
-        } else if (widget.anaBaslik == "DGS" ||
-            widget.anaBaslik == "LGS" ||
-            widget.anaBaslik == "DUS") {
+        } else if (widget.anaBaslik == _dgs ||
+            widget.anaBaslik == _lgs ||
+            widget.anaBaslik == _dus) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -44,15 +53,15 @@ class _CikmisSorularGridState extends State<CikmisSorularGrid> {
               ),
             ),
           );
-        } else if (widget.anaBaslik == "ALES") {
+        } else if (widget.anaBaslik == _ales) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => CikmisSorularYilSectirme(
                 anaBaslik: widget.anaBaslik,
                 sinavTuru: widget.anaBaslik,
-                baslik2: "ALES",
-                baslik3: "ALES",
+                baslik2: _ales,
+                baslik3: _ales,
               ),
             ),
           );
@@ -77,37 +86,52 @@ class _CikmisSorularGridState extends State<CikmisSorularGrid> {
               ),
               borderRadius: BorderRadius.all(Radius.circular(4)),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxHeight < 210;
+                final titleSize = compact ? 32.0 : 35.0;
+                final subtitleSize = compact ? 18.0 : 20.0;
+                return Padding(
+                  padding: EdgeInsets.all(compact ? 16 : 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        widget.anaBaslik,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 35,
-                          fontFamily: "MontserratBold",
+                      SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            widget.anaBaslik,
+                            textScaler: TextScaler.noScaling,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: titleSize,
+                              fontFamily: "MontserratBold",
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'education.previous_questions'.tr,
+                            textScaler: TextScaler.noScaling,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: subtitleSize,
+                              fontFamily: "MontserratBold",
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  Spacer(),
-                  4.ph,
-                  Text(
-                    "Denemeler",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
           Padding(

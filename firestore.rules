@@ -11,12 +11,764 @@ service cloud.firestore {
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
     }
+    function ownerMatches(data, key) {
+      return data.keys().hasAny([key])
+        && data[key] is string
+        && data[key] == request.auth.uid;
+    }
+    function isOwnerData(data) {
+      return ownerMatches(data, 'userID')
+        || ownerMatches(data, 'userId')
+        || ownerMatches(data, 'uid')
+        || ownerMatches(data, 'ownerId')
+        || ownerMatches(data, 'ownerID');
+    }
+    function isDocOwnerFromRequest() {
+      return isAuth() && isOwnerData(request.resource.data);
+    }
+    function isDocOwnerFromResource() {
+      return isAuth() && isOwnerData(resource.data);
+    }
     function isAdmin() {
-      return isAuth() && (
-        request.auth.token.admin == true ||
-        request.auth.uid == "rlvJgi4VAoO7O78OwrooZc6puPW2" ||
-        request.auth.uid == "pGlxhtQEVEYeLIa1G2IKhb743E73"
+      return isAuth()
+        && request.auth.token is map
+        && request.auth.token.keys().hasAny(['admin'])
+        && request.auth.token.admin == true;
+    }
+    function isAllowlistedAdmin() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/adminConfig/admin)
+        && get(/databases/$(database)/documents/adminConfig/admin).data.allowedUserIds is list
+        && request.auth.uid in get(/databases/$(database)/documents/adminConfig/admin).data.allowedUserIds;
+    }
+    function canManageAdminPanels() {
+      return isAdmin() || isAllowlistedAdmin();
+    }
+    function hasAssignedAdminTask(taskId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid))
+        && get(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid)).data.taskIds is list
+        && taskId in get(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid)).data.taskIds;
+    }
+    function canCreateAdminApproval() {
+      return canManageAdminPanels()
+        || (
+          isAuth()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.type is string
+          && (
+            (request.resource.data.type == 'user_ban' && hasAssignedAdminTask('user_bans'))
+            || ((request.resource.data.type == 'badge'
+                || request.resource.data.type == 'badge_change')
+                && hasAssignedAdminTask('badges'))
+            || (request.resource.data.type == 'report' && hasAssignedAdminTask('reports'))
+            || (request.resource.data.type == 'approval' && hasAssignedAdminTask('approvals'))
+          )
+        );
+    }
+    function isBlackBadge() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'siyah'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'Siyah'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'black'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'Black'
+        );
+    }
+    function moderationClientKeys() {
+      return [
+        'flagCount', 'flaggedBy', 'reasonsSummary', 'status',
+        'thresholdReachedAt', 'shadowHiddenAt', 'lastFlagAt', 'ownerNotified'
+      ];
+    }
+    function moderationReasonKeys() {
+      return ['drugs', 'gambling', 'nudity', 'scam', 'violence', 'spam', 'other'];
+    }
+    function isAllowedModerationStatus(v) {
+      return v in ['active', 'shadow_hidden'];
+    }
+    function canFlagPostModerationUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderation'])
+        && request.resource.data.moderation is map
+        && (
+          (
+            resource.data.moderation is map
+            && request.resource.data.moderation.diff(resource.data.moderation)
+                 .affectedKeys().hasOnly(moderationClientKeys())
+          )
+          || (
+            !resource.data.keys().hasAny(['moderation'])
+            && request.resource.data.moderation.keys().hasOnly(moderationClientKeys())
+          )
+        )
+        && request.resource.data.moderation.flagCount is int
+        && request.resource.data.moderation.flagCount >= 1
+        && request.resource.data.moderation.flaggedBy is list
+        && request.auth.uid in request.resource.data.moderation.flaggedBy
+        && request.resource.data.moderation.lastFlagAt is int
+        && (!request.resource.data.moderation.keys().hasAny(['thresholdReachedAt'])
+          || request.resource.data.moderation.thresholdReachedAt is int)
+        && (!request.resource.data.moderation.keys().hasAny(['shadowHiddenAt'])
+          || request.resource.data.moderation.shadowHiddenAt is int)
+        && (!request.resource.data.moderation.keys().hasAny(['ownerNotified'])
+          || request.resource.data.moderation.ownerNotified is bool)
+        && (!request.resource.data.moderation.keys().hasAny(['status'])
+          || isAllowedModerationStatus(request.resource.data.moderation.status))
+        && (!request.resource.data.moderation.keys().hasAny(['reasonsSummary'])
+          || (
+            request.resource.data.moderation.reasonsSummary is map
+            && request.resource.data.moderation.reasonsSummary.keys().hasOnly(moderationReasonKeys())
+          ))
+        && (
+          !resource.data.keys().hasAny(['moderation'])
+          || !(
+            resource.data.moderation is map
+            && resource.data.moderation.keys().hasAny(['flaggedBy'])
+            && resource.data.moderation.flaggedBy is list
+            && request.auth.uid in resource.data.moderation.flaggedBy
+          )
+        )
+        && isBlackBadge();
+    }
+    function isAllowlistedPushSender() {
+      return canManageAdminPanels()
+        && get(/databases/$(database)/documents/adminConfig/admin).data.pushSend == true;
+    }
+    function canUseAdminPushBypass() {
+      return isAdmin() || isAllowlistedPushSender();
+    }
+    function isFollowerEdgeWrite(followerId) {
+      return isAuth()
+        && request.auth.uid == followerId
+        && request.resource.data.keys().hasOnly(['timeStamp'])
+        && request.resource.data.timeStamp is int;
+    }
+    function isFollowingEdgeWrite(uid) {
+      return isOwner(uid)
+        && request.resource.data.keys().hasOnly(['timeStamp'])
+        && request.resource.data.timeStamp is int;
+    }
+    function isValidFutureSafeTimestamp(v) {
+      return v is int
+        && v > 0
+        && v <= request.time.toMillis() + 900000;
+    }
+    function isValidUidDocInteractionPayload(docId) {
+      return isAuth()
+        && docId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        );
+    }
+    function isValidViewerPayload(docId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          docId == request.auth.uid
+          || (
+            request.resource.data.keys().hasAny(['userID'])
+            && request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        );
+    }
+    function isValidPostCommentCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'likes', 'text', 'imgs', 'videos', 'timeStamp', 'userID',
+          'edited', 'editTimestamp', 'deleted', 'deletedTimeStamp',
+          'hasReplies', 'repliesCount'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 5000
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.likes is list
+        && request.resource.data.likes.size() == 0
+        && request.resource.data.imgs is list
+        && request.resource.data.videos is list
+        && request.resource.data.edited is bool
+        && request.resource.data.edited == false
+        && request.resource.data.editTimestamp is int
+        && request.resource.data.editTimestamp == 0
+        && request.resource.data.deleted is bool
+        && request.resource.data.deleted == false
+        && request.resource.data.deletedTimeStamp is int
+        && request.resource.data.deletedTimeStamp == 0
+        && request.resource.data.hasReplies is bool
+        && request.resource.data.hasReplies == false
+        && request.resource.data.repliesCount is int
+        && request.resource.data.repliesCount == 0
+        && (
+          request.resource.data.text.size() > 0
+          || request.resource.data.imgs.size() > 0
+          || request.resource.data.videos.size() > 0
+        );
+    }
+    function isValidSubCommentCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'likes', 'text', 'imgs', 'videos', 'timeStamp', 'userID',
+          'edited', 'editTimestamp', 'deleted', 'deletedTimeStamp'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 5000
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.likes is list
+        && request.resource.data.likes.size() == 0
+        && request.resource.data.imgs is list
+        && request.resource.data.videos is list
+        && request.resource.data.edited is bool
+        && request.resource.data.edited == false
+        && request.resource.data.editTimestamp is int
+        && request.resource.data.editTimestamp == 0
+        && request.resource.data.deleted is bool
+        && request.resource.data.deleted == false
+        && request.resource.data.deletedTimeStamp is int
+        && request.resource.data.deletedTimeStamp == 0
+        && (
+          request.resource.data.text.size() > 0
+          || request.resource.data.imgs.size() > 0
+          || request.resource.data.videos.size() > 0
+        );
+    }
+    function canSoftDeleteOwnedComment() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['deleted', 'deletedTimeStamp'])
+        && request.resource.data.deleted is bool
+        && request.resource.data.deleted == true
+        && request.resource.data.deletedTimeStamp is int
+        && request.resource.data.deletedTimeStamp >= resource.data.deletedTimeStamp;
+    }
+    function isValidStoryCommentCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'userID', 'metin', 'timeStamp', 'gif'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.metin is string
+        && request.resource.data.metin.size() <= 5000
+        && request.resource.data.gif is string
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function canClientUpdateStoryReactions() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        && request.resource.data.reactions is map;
+    }
+    function canOwnerUpdateStoryDocument() {
+      return isAuth()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'deleted', 'deletedAt', 'deleteReason', 'reactions'
+        ])
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deleted'])
+          || request.resource.data.deleted is bool
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt'])
+          || request.resource.data.deletedAt is int
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deleteReason'])
+          || !request.resource.data.keys().hasAny(['deleteReason'])
+          || request.resource.data.deleteReason is string
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reactions'])
+          || request.resource.data.reactions is map
+        );
+    }
+    function isValidQuestionsAnswersCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'cevaplar', 'dogruCevaplar', 'timeStamp', 'anaBaslik',
+          'sinavTuru', 'yil', 'baslik2', 'baslik3', 'cikmisSoruID', 'userID'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.cevaplar is list
+        && request.resource.data.dogruCevaplar is list
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.anaBaslik is string
+        && request.resource.data.sinavTuru is string
+        && request.resource.data.yil is string
+        && request.resource.data.baslik2 is string
+        && request.resource.data.baslik3 is string
+        && request.resource.data.cikmisSoruID is string;
+    }
+    function isValidOptikFormCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'max', 'cevaplar', 'name', 'userID', 'baslangic', 'bitis', 'kisitlama'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.max is int
+        && request.resource.data.max > 0
+        && request.resource.data.cevaplar is list
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.baslangic is int
+        && request.resource.data.bitis is int
+        && request.resource.data.bitis >= request.resource.data.baslangic
+        && request.resource.data.kisitlama is bool;
+    }
+    function isValidOptikFormAnswerCreatePayload(userId) {
+      return isOwner(userId)
+        && request.resource.data.keys().hasOnly(['timeStamp', 'cevaplar'])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.cevaplar is list;
+    }
+    function isValidOptikFormAnswerUpdatePayload(userId) {
+      return isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'timeStamp', 'cevaplar', 'ogrenciNo', 'fullName'
+        ])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.cevaplar is list
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ogrenciNo'])
+          || request.resource.data.ogrenciNo is string
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['fullName'])
+          || request.resource.data.fullName is string
+        );
+    }
+    function isValidUserBookletAnswerCreatePayload(uid) {
+      return isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'timeStamp', 'kitapcikID', 'baslik', 'cevaplar', 'dogruCevaplar',
+          'dogru', 'yanlis', 'bos', 'puan', 'net'
+        ])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.kitapcikID is string
+        && request.resource.data.kitapcikID.size() > 0
+        && request.resource.data.kitapcikID.size() <= 128
+        && request.resource.data.baslik is string
+        && request.resource.data.baslik.size() > 0
+        && request.resource.data.baslik.size() <= 256
+        && request.resource.data.cevaplar is list
+        && request.resource.data.dogruCevaplar is list
+        && request.resource.data.cevaplar.size() == request.resource.data.dogruCevaplar.size()
+        && request.resource.data.dogru is int
+        && request.resource.data.yanlis is int
+        && request.resource.data.bos is int
+        && request.resource.data.dogru >= 0
+        && request.resource.data.yanlis >= 0
+        && request.resource.data.bos >= 0
+        && request.resource.data.dogru + request.resource.data.yanlis + request.resource.data.bos == request.resource.data.dogruCevaplar.size()
+        && (request.resource.data.puan is int || request.resource.data.puan is float)
+        && (request.resource.data.net is int || request.resource.data.net is float);
+    }
+    function isValidBookCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'basimTarihi', 'baslik', 'cover', 'dil', 'sinavTuru',
+          'timeStamp', 'yayinEvi', 'userID', 'viewCount'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.basimTarihi is string
+        && request.resource.data.basimTarihi.size() > 0
+        && request.resource.data.basimTarihi.size() <= 64
+        && request.resource.data.baslik is string
+        && request.resource.data.baslik.size() > 0
+        && request.resource.data.baslik.size() <= 256
+        && request.resource.data.cover is string
+        && request.resource.data.cover.size() <= 4096
+        && request.resource.data.dil is string
+        && request.resource.data.dil.size() > 0
+        && request.resource.data.dil.size() <= 64
+        && request.resource.data.sinavTuru is string
+        && request.resource.data.sinavTuru.size() > 0
+        && request.resource.data.sinavTuru.size() <= 128
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.yayinEvi is string
+        && request.resource.data.yayinEvi.size() > 0
+        && request.resource.data.yayinEvi.size() <= 256
+        && request.resource.data.viewCount is int
+        && request.resource.data.viewCount >= 0;
+    }
+    function isValidBookAnswerKeyPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['baslik', 'sira', 'dogruCevaplar'])
+        && request.resource.data.baslik is string
+        && request.resource.data.baslik.size() > 0
+        && request.resource.data.baslik.size() <= 256
+        && request.resource.data.sira is int
+        && request.resource.data.sira >= 0
+        && request.resource.data.dogruCevaplar is list;
+    }
+    function isValidPracticeExamFinishPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidResharePayload(docId) {
+      return isAuth()
+        && docId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userID', 'timeStamp', 'originalUserID',
+          'originalPostID', 'sharedPostID', 'quotedPost'
+        ])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['originalUserID'])
+          || request.resource.data.originalUserID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['originalPostID'])
+          || request.resource.data.originalPostID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['sharedPostID'])
+          || request.resource.data.sharedPostID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['quotedPost'])
+          || request.resource.data.quotedPost is bool
+        );
+    }
+    function isValidPostSharerPayload(docId) {
+      return isAuth()
+        && docId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userID', 'timestamp', 'sharedPostID', 'quotedPost'
+        ])
+        && request.resource.data.timestamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timestamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['sharedPostID'])
+          || request.resource.data.sharedPostID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['quotedPost'])
+          || request.resource.data.quotedPost is bool
+        );
+    }
+    function postCounterTopLevelKeys() {
+      return [
+        'stats',
+        'goruntulenmeSayisi', 'viewCount', 'seenCount',
+        'begeniSayisi', 'likeCount',
+        'yorumSayisi', 'commentCount',
+        'kaydetmeSayisi', 'savedCount',
+        'paylasilmaSayisi', 'shareCount'
+      ];
+    }
+    function postStatsKeys() {
+      return [
+        'statsCount', 'likeCount', 'commentCount',
+        'savedCount', 'retryCount', 'reportedCount'
+      ];
+    }
+    function postDocStatValue(docData, key) {
+      return docData is map
+        && docData.keys().hasAny(['stats'])
+        && docData.stats is map
+        && docData.stats.keys().hasAny([key])
+        && docData.stats[key] is int
+        ? docData.stats[key]
+        : 0;
+    }
+    function hasValidPostStatsShape(docData) {
+      return !(docData is map && docData.keys().hasAny(['stats']))
+        || (
+          docData.stats is map
+          && docData.stats.keys().hasOnly(postStatsKeys())
+          && (!docData.stats.keys().hasAny(['statsCount'])
+            || (docData.stats.statsCount is int && docData.stats.statsCount >= 0))
+          && (!docData.stats.keys().hasAny(['likeCount'])
+            || (docData.stats.likeCount is int && docData.stats.likeCount >= 0))
+          && (!docData.stats.keys().hasAny(['commentCount'])
+            || (docData.stats.commentCount is int && docData.stats.commentCount >= 0))
+          && (!docData.stats.keys().hasAny(['savedCount'])
+            || (docData.stats.savedCount is int && docData.stats.savedCount >= 0))
+          && (!docData.stats.keys().hasAny(['retryCount'])
+            || (docData.stats.retryCount is int && docData.stats.retryCount >= 0))
+          && (!docData.stats.keys().hasAny(['reportedCount'])
+            || (docData.stats.reportedCount is int && docData.stats.reportedCount >= 0))
+        );
+    }
+    function postStatDelta(key) {
+      return postDocStatValue(request.resource.data, key)
+        - postDocStatValue(resource.data, key);
+    }
+    function changedOnlyPostStatKey(key) {
+      return (
+        resource.data.keys().hasAny(['stats'])
+        && resource.data.stats is map
+        && request.resource.data.stats.diff(resource.data.stats).affectedKeys().hasOnly([key])
+      )
+      || (
+        !(resource.data.keys().hasAny(['stats']) && resource.data.stats is map)
+        && request.resource.data.stats.keys().hasOnly([key])
       );
+    }
+    function canChangePostStatDeltaOne(key) {
+      return changedOnlyPostStatKey(key)
+        && postStatDelta(key) >= -1
+        && postStatDelta(key) <= 1;
+    }
+    function canIncrementPostStatOnce(key) {
+      return changedOnlyPostStatKey(key)
+        && postStatDelta(key) >= 0
+        && postStatDelta(key) <= 1;
+    }
+    function canUpdatePostStatsCounters() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats'])
+        && request.resource.data.stats is map
+        && hasValidPostStatsShape(request.resource.data)
+        && (
+          canIncrementPostStatOnce('statsCount')
+          || canChangePostStatDeltaOne('likeCount')
+          || canChangePostStatDeltaOne('commentCount')
+          || canChangePostStatDeltaOne('savedCount')
+          || canChangePostStatDeltaOne('retryCount')
+          || canIncrementPostStatOnce('reportedCount')
+        );
+    }
+    function canOwnerUpdatePostContent() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postCounterTopLevelKeys());
+    }
+    function isAllowedNotificationType(v) {
+      return v in [
+        'Posts', 'posts', 'Comment', 'comment',
+        'like', 'reshared_posts', 'shared_as_posts',
+        'job_application', 'tutoring_application', 'tutoring_status',
+        'chat', 'message', 'follow', 'user', 'User', 'Chat',
+        'market_offer', 'market_offer_status'
+      ];
+    }
+    function isActiveSender(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.isBanned != true
+        && get(/databases/$(database)/documents/users/$(uid)).data.isDeleted != true;
+    }
+    function canCreateNotification(uid) {
+      return canUseAdminPushBypass()
+        || (isAuth()
+          && request.auth.uid != uid
+          && request.resource.data.fromUserID == request.auth.uid
+          && isActiveSender(request.auth.uid)
+          && (!request.resource.data.keys().hasAny(['hideInAppInbox'])
+            || request.resource.data.hideInAppInbox != true)
+          && (!request.resource.data.keys().hasAny(['adminPush'])
+            || request.resource.data.adminPush != true));
+    }
+    function isValidNotificationPayload(uid) {
+      return request.resource.data.keys().hasOnly([
+          'type', 'fromUserID', 'postID', 'timeStamp', 'read',
+          'title', 'body', 'imageUrl', 'adminPush', 'hideInAppInbox',
+          'isRead', 'postType', 'thumbnail', 'userID', 'desc',
+          'marketItemId', 'marketSellerId'
+        ])
+        && request.resource.data.keys().hasAll(['type', 'fromUserID', 'timeStamp'])
+        && request.resource.data.type is string
+        && request.resource.data.type.size() > 0
+        && request.resource.data.type.size() <= 64
+        && isAllowedNotificationType(request.resource.data.type)
+        && request.resource.data.fromUserID is string
+        && request.resource.data.fromUserID.size() > 0
+        && request.resource.data.fromUserID.size() <= 128
+        && request.resource.data.timeStamp is int
+        && request.resource.data.fromUserID != uid
+        && request.resource.data.timeStamp > 0
+        && request.resource.data.timeStamp <= request.time.toMillis() + 900000
+        && (!request.resource.data.keys().hasAny(['postID'])
+          || (request.resource.data.postID is string
+            && request.resource.data.postID.size() <= 256))
+        && (!request.resource.data.keys().hasAny(['read']) || request.resource.data.read is bool)
+        && (!request.resource.data.keys().hasAny(['title'])
+          || (request.resource.data.title is string
+            && request.resource.data.title.size() <= 160))
+        && (!request.resource.data.keys().hasAny(['body'])
+          || (request.resource.data.body is string
+            && request.resource.data.body.size() <= 4000))
+        && (!request.resource.data.keys().hasAny(['imageUrl'])
+          || (request.resource.data.imageUrl is string
+            && request.resource.data.imageUrl.size() <= 4096))
+        && (!request.resource.data.keys().hasAny(['adminPush']) || request.resource.data.adminPush is bool)
+        && (!request.resource.data.keys().hasAny(['hideInAppInbox']) || request.resource.data.hideInAppInbox is bool)
+        && (!request.resource.data.keys().hasAny(['isRead']) || request.resource.data.isRead is bool)
+        && (!request.resource.data.keys().hasAny(['postType']) || request.resource.data.postType is string)
+        && (!request.resource.data.keys().hasAny(['thumbnail'])
+          || (request.resource.data.thumbnail is string
+            && request.resource.data.thumbnail.size() <= 4096))
+        && (!request.resource.data.keys().hasAny(['userID'])
+          || (request.resource.data.userID is string && request.resource.data.userID == uid))
+        && (!request.resource.data.keys().hasAny(['desc'])
+          || (request.resource.data.desc is string
+            && request.resource.data.desc.size() <= 4000))
+        && (!request.resource.data.keys().hasAny(['marketItemId'])
+          || (request.resource.data.marketItemId is string
+            && request.resource.data.marketItemId.size() <= 256))
+        && (!request.resource.data.keys().hasAny(['marketSellerId'])
+          || (request.resource.data.marketSellerId is string
+            && request.resource.data.marketSellerId.size() <= 128));
+    }
+    function isValidUsernameLower(v) {
+      return v is string
+        && v.size() >= 3
+        && v.size() <= 30
+        && v.matches('^[a-z0-9._]+$');
+    }
+    function isMarketContactPreference(v) {
+      return v in ['message_only', 'phone'];
+    }
+    function isMarketStatus(v) {
+      return v in ['draft', 'active', 'reserved', 'sold', 'archived'];
+    }
+    function isValidMarketItemPayload() {
+      return request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 20000
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0
+        && request.resource.data.currency is string
+        && request.resource.data.categoryKey is string
+        && request.resource.data.categoryPath is list
+        && request.resource.data.city is string
+        && request.resource.data.district is string
+        && request.resource.data.locationText is string
+        && request.resource.data.contactPreference is string
+        && isMarketContactPreference(request.resource.data.contactPreference)
+        && request.resource.data.status is string
+        && isMarketStatus(request.resource.data.status)
+        && request.resource.data.imageUrls is list
+        && request.resource.data.coverImageUrl is string
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int
+        && request.resource.data.attributes is map;
+    }
+    function marketIntFieldUnchangedOrDeltaOne(field) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
+        || (
+          (!(field in resource.data) || resource.data[field] is int)
+          && request.resource.data[field] is int
+          && request.resource.data[field] >= 0
+          && (
+            request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) + 1
+            || request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) - 1
+          )
+        );
+    }
+    function marketIntFieldUnchangedOrIncrement(field) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
+        || (
+          (!(field in resource.data) || resource.data[field] is int)
+          && request.resource.data[field] is int
+          && request.resource.data[field] >= ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0)
+          && request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) + 1
+        );
+    }
+    function canClientUpdateMarketCounters() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'favoriteCount', 'offerCount', 'viewCount', 'lastOfferAt', 'updatedAt',
+          'averageRating', 'reviewCount'
+        ])
+        && marketIntFieldUnchangedOrDeltaOne('favoriteCount')
+        && marketIntFieldUnchangedOrIncrement('offerCount')
+        && marketIntFieldUnchangedOrIncrement('viewCount')
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reviewCount'])
+          || (request.resource.data.reviewCount is int && request.resource.data.reviewCount >= 0)
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['averageRating'])
+          || request.resource.data.averageRating == null
+          || (
+            request.resource.data.averageRating is number
+            && request.resource.data.averageRating >= 0
+            && request.resource.data.averageRating <= 5
+          )
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastOfferAt'])
+          || request.resource.data.lastOfferAt is int
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt'])
+          || request.resource.data.updatedAt is int
+        );
+    }
+    function canSellerRespondToMarketOffer(itemId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/marketStore/$(itemId))
+        && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId == request.auth.uid
+        && resource.data.sellerId == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'updatedAt', 'respondedAt'
+        ])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.updatedAt is int
+        && request.resource.data.respondedAt is int;
+    }
+    function canCreateMarketOffer(itemId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/marketStore/$(itemId))
+        && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId is string
+        && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId != request.auth.uid
+        && request.resource.data.buyerId is string
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.sellerId is string
+        && request.resource.data.sellerId
+            == get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId
+        && request.resource.data.itemId is string
+        && request.resource.data.itemId == itemId
+        && request.resource.data.offerPrice is number
+        && request.resource.data.offerPrice > 0
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int;
     }
 
     // ──────────────────────────────────────────────
@@ -25,33 +777,109 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuth();
       allow create: if isOwner(uid);
-      // Kullanıcı kendi profilini güncelleyebilir — ancak role ve stats alanlarına yazamaz
-      // Bu alanlar yalnızca Cloud Functions / Admin SDK tarafından yazılır
+      // Kullanıcı kendi profilini güncelleyebilir; ancak moderasyon, rol ve
+      // sayaç alanlarını client değiştiremez.
       allow update: if isOwner(uid)
-        && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['role', 'admin', 'takipciSayisi', 'takipEdilenSayisi',
-                     'gonderSayisi', 'followerCount', 'followingCount', 'postCount']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'role', 'admin',
+          'isBanned', 'isDeleted', 'isApproved', 'isBot', 'isAdvertiser',
+          'accountStatus', 'deletedAt',
+          'nickname', 'username', 'usernameLower',
+          'nicknameChangedAt', 'nicknameLastChangedAt',
+          'nicknameGraceWindowStartAt', 'nicknameGraceChangeCount',
+          'oldNicknames', 'nicknameHistory',
+          'takipciSayisi', 'takipEdilenSayisi', 'gonderSayisi',
+          'followerCount', 'followingCount', 'postCount',
+          'counterOfFollowers', 'counterOfFollowings', 'counterOfPosts'
+        ]);
       allow delete: if false;
 
-      // Takipciler (followers)
-      match /Takipciler/{followerId} {
+      // followers (followers)
+      match /followers/{followerId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create: if isFollowerEdgeWrite(followerId) || isAdmin();
+        allow update: if isAdmin();
         allow delete: if isAuth() && (request.auth.uid == followerId || request.auth.uid == uid);
       }
 
-      // TakipEdilenler (following)
-      match /TakipEdilenler/{followingId} {
+      // followings (following)
+      match /followings/{followingId} {
         allow read: if isAuth();
-        allow create, update: if isOwner(uid);
+        allow create: if isFollowingEdgeWrite(uid);
+        allow update: if isAdmin();
         allow delete: if isOwner(uid);
       }
 
       // Notifications
       match /notifications/{notifId} {
         allow read: if isOwner(uid);
-        allow create: if isAuth();
+        allow create: if canCreateNotification(uid) && isValidNotificationPayload(uid);
         allow update, delete: if isOwner(uid);
+      }
+
+      match /marketOffersSent/{offerId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isAuth()
+          && request.resource.data.buyerId is string
+          && request.resource.data.buyerId == uid
+          && request.resource.data.sellerId is string
+          && request.auth.uid in [
+            request.resource.data.buyerId,
+            request.resource.data.sellerId
+          ];
+        allow delete: if isOwner(uid);
+      }
+
+      match /marketOffersReceived/{offerId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isAuth()
+          && request.resource.data.sellerId is string
+          && request.resource.data.sellerId == uid
+          && request.resource.data.buyerId is string
+          && request.auth.uid in [
+            request.resource.data.buyerId,
+            request.resource.data.sellerId
+          ];
+        allow delete: if isOwner(uid);
+      }
+
+      // Canonical user sub-docs
+      match /private/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /education/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /family/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /stats/{docId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) || isAdmin();
+      }
+      match /settings/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Canonical growing sets as subcollections
+      match /blockedUsers/{otherUid} {
+        allow read, write: if isOwner(uid);
+      }
+      match /readStories/{storyId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /lastSearches/{searchId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /chatArchives/{chatId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /chatDeletions/{chatId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /highlights/{highlightId} {
+        allow read: if isAuth();
+        allow write: if isOwner(uid);
       }
 
       // User interaction subcollections
@@ -59,9 +887,43 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow write: if isOwner(uid);
       }
+      // Social media links (profile)
+      match /SosyalMedyaLinkleri/{docId} {
+        allow read: if isAuth();
+        allow write: if isOwner(uid);
+      }
       match /saved_posts/{postId} {
         allow read: if isOwner(uid);
         allow write: if isOwner(uid);
+      }
+      match /savedMarket/{itemId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.userId is string
+          && request.resource.data.userId == uid
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId == itemId
+          && request.resource.data.createdAt is int;
+        allow delete: if isOwner(uid);
+      }
+      match /savedJobs/{jobId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.userID is string
+          && request.resource.data.userID == uid
+          && request.resource.data.jobID is string
+          && request.resource.data.jobID == jobId
+          && request.resource.data.timeStamp is int;
+        allow delete: if isOwner(uid);
+      }
+      match /saved_practice_exams/{examId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /books/{bookId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /educators/{educatorId} {
+        allow read, write: if isOwner(uid);
       }
       match /commented_posts/{postId} {
         allow read: if isOwner(uid);
@@ -70,6 +932,9 @@ service cloud.firestore {
       match /reshared_posts/{postId} {
         allow read: if isOwner(uid);
         allow write: if isOwner(uid);
+      }
+      match /giphyGif/{gifId} {
+        allow read, write: if isOwner(uid);
       }
       match /qProgress/{categoryKey} {
         allow read, write: if isOwner(uid);
@@ -95,6 +960,20 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      // Job applications
+      match /myApplications/{docId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) || (
+          isAuth()
+          && exists(/databases/$(database)/documents/isBul/$(docId))
+          && (
+            isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+            || canManageAdminPanels()
+          )
+        );
+        allow delete: if isOwner(uid);
+      }
+
       // Education results (dual-write targets)
       match /examResults/{examId} {
         allow read, write: if isOwner(uid);
@@ -102,16 +981,248 @@ service cloud.firestore {
       match /bookletResults/{bookId} {
         allow read, write: if isOwner(uid);
       }
+      match /KitapcikCevaplari/{docId} {
+        allow read: if isOwner(uid);
+        allow create: if isValidUserBookletAnswerCreatePayload(uid);
+        allow update, delete: if false;
+      }
 
       // Stats (follow rate limiting)
       match /Stats/{statId} {
-        allow read, write: if isOwner(uid);
+        allow read, write: if false; // Legacy path disabled
       }
 
-      // Analytics subcollections
-      match /{analyticsCollection}/{docId} {
+      // Unknown subcollections are denied by default.
+      match /{anySubcollection}/{docId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /userFeeds/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /items/{itemId} {
         allow read: if isOwner(uid);
-        allow write: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    match /celebAccounts/{uid} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Username reservation (uniqueness lock)
+    match /users_usernames/{usernameLower} {
+      allow read, create, update, delete: if false; // Deprecated legacy path disabled
+    }
+
+    // Ad center (owner + admin). Reports write-side is server only.
+    match /adCampaigns/{campaignId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow create: if isAuth()
+        && (isAdmin() || request.resource.data.ownerId == request.auth.uid);
+      allow update, delete: if isAuth()
+        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+    match /adCreatives/{creativeId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow create: if isAuth()
+        && (isAdmin() || request.resource.data.ownerId == request.auth.uid);
+      allow update, delete: if isAuth()
+        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+    match /adPlacements/{placementId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+    match /adImpressions/{docId} {
+      allow create: if isAuth();
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow update, delete: if false;
+    }
+    match /adClicks/{docId} {
+      allow create: if isAuth();
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow update, delete: if false;
+    }
+    match /adBudgets/{docId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow write: if isAuth() && (isAdmin() || request.resource.data.ownerId == request.auth.uid);
+    }
+    match /adReportsDaily/{docId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+    match /adBilling/{docId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // New Ads Center (admin internal only)
+    match /ads_campaigns/{campaignId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /ads_creatives/{creativeId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /ads_advertisers/{advertiserId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /ads_targeting_index/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /ads_delivery_logs/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false; // Cloud Functions only
+    }
+
+    match /ads_impressions/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false; // Cloud Functions only
+    }
+
+    match /ads_clicks/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false; // Cloud Functions only
+    }
+
+    match /ads_daily_stats/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false; // Cloud Functions only
+    }
+
+    match /system_flags/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /adminTaskAssignments/{uid} {
+      allow read: if canManageAdminPanels() || isOwner(uid);
+      allow write: if canManageAdminPanels();
+    }
+
+    match /adminConfig/{configId} {
+      match /adminApprovals/{docId} {
+        allow read: if canManageAdminPanels()
+          || (isAuth()
+            && resource.data.createdBy is string
+            && resource.data.createdBy == request.auth.uid);
+        allow create: if canCreateAdminApproval();
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    match /supportMessages/{docId} {
+      allow create: if isAuth()
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow read: if (isAuth()
+          && resource.data.userId is string
+          && resource.data.userId == request.auth.uid)
+        || canManageAdminPanels()
+        || hasAssignedAdminTask('support');
+      allow update, delete: if canManageAdminPanels()
+        || hasAssignedAdminTask('support');
+    }
+
+    match /storyMusic/{docId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isAdmin() || isAllowlistedAdmin();
+
+      match /stories/{storyId} {
+        allow read: if isAuth();
+        allow create, update: if isAdmin()
+          || isAllowlistedAdmin()
+          || (isAuth() && request.resource.data.userId == request.auth.uid);
+        allow delete: if isAdmin()
+          || isAllowlistedAdmin()
+          || (isAuth() && resource.data.userId == request.auth.uid);
+      }
+
+      match /posts/{postId} {
+        allow read: if isAuth();
+        allow create, update, delete: if isAdmin() || isAllowlistedAdmin();
+      }
+    }
+
+    match /users/{uid}/savedMusic/{musicId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // ──────────────────────────────────────────────
+    // MARKET
+    // ──────────────────────────────────────────────
+    match /marketStore/{itemId} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid
+        && isValidMarketItemPayload();
+      allow update: if isAuth() && (
+        resource.data.userId == request.auth.uid
+        || canClientUpdateMarketCounters()
+      );
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+
+      match /favorites/{favoriteId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+          && request.auth.uid == favoriteId
+          && request.resource.data.userId is string
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId == itemId
+          && request.resource.data.createdAt is int;
+        allow delete: if isAuth() && request.auth.uid == favoriteId;
+      }
+
+      match /offers/{offerId} {
+        allow read: if isAuth()
+          && (
+            resource.data.buyerId == request.auth.uid
+            || resource.data.sellerId == request.auth.uid
+          );
+        allow create: if canCreateMarketOffer(itemId);
+        allow update: if canSellerRespondToMarketOffer(itemId);
+        allow delete: if false;
+      }
+
+      match /Reviews/{reviewerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+          && reviewerId == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'userID', 'itemId', 'rating', 'comment', 'timeStamp'
+          ])
+          && request.resource.data.userID is string
+          && request.resource.data.userID == request.auth.uid
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId == itemId
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.comment is string
+          && request.resource.data.comment.size() <= 1000
+          && request.resource.data.timeStamp is int
+          && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+          && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId is string
+          && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId != request.auth.uid;
+        allow delete: if isAuth() && reviewerId == request.auth.uid;
+      }
+
+      match /reports/{reportId} {
+        allow read: if false;
+        allow create: if isAuth();
+        allow update, delete: if false;
       }
     }
 
@@ -121,39 +1232,38 @@ service cloud.firestore {
     match /Posts/{postId} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
-      // Sahip: tüm alanları güncelleyebilir (istatistik alanları hariç — bunlar CF yazar)
-      // Diğer kullanıcılar: yalnızca izin verilen istatistik sayaçlarını yazabilir
-      allow update: if isAuth() && (
+      // Sahip: içerik alanlarını güncelleyebilir.
+      // İstemci sayaçları ise yalnızca tek alan ve izinli delta ile değiştirilebilir.
+      allow update: if isAuth() && canUpdatePostStatsCounters();
+      allow update: if isAuth() && canOwnerUpdatePostContent();
+      allow update: if isAuth() && canFlagPostModerationUpdate();
+      allow update: if isAdmin();
+      allow update: if isAllowlistedAdmin();
+      allow delete: if isAuth() && (
         resource.data.userID == request.auth.uid
-        || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-             'goruntulenmeSayisi', 'viewCount', 'seenCount',
-             'begeniSayisi', 'likeCount',
-             'yorumSayisi', 'commentCount',
-             'kaydetmeSayisi', 'savedCount',
-             'paylasilmaSayisi', 'shareCount'
-           ])
+        || isAdmin()
+        || isAllowlistedAdmin()
       );
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
       // Likes
       match /likes/{likeId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create, update: if isValidUidDocInteractionPayload(likeId);
         allow delete: if isAuth() && request.auth.uid == likeId;
       }
 
       // Comments
       match /comments/{commentId} {
         allow read: if isAuth();
-        allow create: if isAuth();
-        allow update: if isAuth() && resource.data.userID == request.auth.uid;
+        allow create: if isValidPostCommentCreatePayload();
+        allow update: if canSoftDeleteOwnedComment();
         allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
         // Sub-comments (replies)
         match /sub_comments/{replyId} {
           allow read: if isAuth();
-          allow create: if isAuth();
-          allow update: if isAuth() && resource.data.userID == request.auth.uid;
+          allow create: if isValidSubCommentCreatePayload();
+          allow update: if canSoftDeleteOwnedComment();
           allow delete: if isAuth() && resource.data.userID == request.auth.uid;
         }
       }
@@ -161,33 +1271,62 @@ service cloud.firestore {
       // Saveds
       match /saveds/{savedId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == savedId;
+        allow create, update: if isValidUidDocInteractionPayload(savedId);
+        allow delete: if isAuth() && request.auth.uid == savedId;
       }
 
       // Reshares
       match /reshares/{reshareId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == reshareId;
+        allow create, update: if isValidResharePayload(reshareId);
+        allow delete: if isAuth() && request.auth.uid == reshareId;
+      }
+
+      // Shared-as-post attribution records
+      match /postSharers/{sharerId} {
+        allow read: if isAuth();
+        allow create, update: if isValidPostSharerPayload(sharerId);
+        allow delete: if isAuth() && request.auth.uid == sharerId;
+      }
+
+      // Iz Birak subscribers
+      match /izBirakSubscribers/{subscriberId} {
+        allow read: if false;
+        allow create, update: if isValidUidDocInteractionPayload(subscriberId);
+        allow delete: if isAuth() && request.auth.uid == subscriberId;
       }
 
       // Reporters
       match /reporters/{reporterId} {
         allow read: if false;
-        allow create: if isAuth() && request.auth.uid == reporterId;
+        allow create, update: if isValidUidDocInteractionPayload(reporterId);
         allow delete: if false;
       }
 
       // Viewers
       match /viewers/{viewerId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
         allow delete: if false;
       }
       match /Viewers/{viewerId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
         allow delete: if false;
       }
+    }
+
+    // Collection group erişimi için reshare alt koleksiyonunu açık tanımla
+    match /{path=**}/reshares/{reshareId} {
+      allow read: if isAuth();
+      allow create, update: if isValidResharePayload(reshareId);
+      allow delete: if isAuth() && request.auth.uid == reshareId;
+    }
+
+    match /{path=**}/postSharers/{sharerId} {
+      allow read: if isAuth();
+      allow create, update: if isValidPostSharerPayload(sharerId);
+      allow delete: if isAuth() && request.auth.uid == sharerId;
     }
 
     // ──────────────────────────────────────────────
@@ -195,23 +1334,52 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Stories/{storyId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if canOwnerUpdateStoryDocument() || canClientUpdateStoryReactions();
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
 
       match /likes/{likeId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow create, update: if isValidUidDocInteractionPayload(likeId);
+        allow delete: if isAuth() && request.auth.uid == likeId;
       }
       match /viewers/{viewerId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
+        allow delete: if false;
       }
     }
     match /stories/{storyId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if canOwnerUpdateStoryDocument() || canClientUpdateStoryReactions();
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+
+      match /likes/{likeId} {
+        allow read: if isAuth();
+        allow create, update: if isValidUidDocInteractionPayload(likeId);
+        allow delete: if isAuth() && request.auth.uid == likeId;
+      }
+
+      match /viewers/{viewerId} {
+        allow read: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
+        allow delete: if false;
+      }
+
+      match /Viewers/{viewerId} {
+        allow read: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
+        allow delete: if false;
+      }
+
+      match /Yorumlar/{commentId} {
+        allow read: if isAuth();
+        allow create: if isValidStoryCommentCreatePayload();
+        allow update: if false;
+        allow delete: if isAuth()
+          && resource.data.userID == request.auth.uid;
+      }
     }
 
     // ──────────────────────────────────────────────
@@ -239,26 +1407,119 @@ service cloud.firestore {
       allow create: if isChatParticipantFromRequest();
     }
     match /conversations/{conversationId} {
+      function hasValidParticipantsFromRequest() {
+        return request.resource.data.participants is list
+          && request.resource.data.participants.size() == 2
+          && request.auth.uid in request.resource.data.participants;
+      }
+      function hasParticipantsInResource() {
+        return request.auth.uid in resource.data.participants;
+      }
       function isParticipantFromResource() {
+        return isAuth() && hasParticipantsInResource();
+      }
+      function isLegacyParticipantFromResource() {
         return isAuth() &&
-          request.auth.uid in resource.data.participants;
+          (
+            (resource.data.userID1 is string && request.auth.uid == resource.data.userID1) ||
+            (resource.data.userID2 is string && request.auth.uid == resource.data.userID2)
+          );
+      }
+      function isParticipantFromResourceOrLegacy() {
+        return isParticipantFromResource()
+          || isLegacyParticipantFromResource()
+          || isParticipantFromConversationId();
+      }
+      function isParticipantFromConversationId() {
+        return isAuth()
+          && conversationId.matches('.*' + request.auth.uid + '.*');
       }
       function isParticipantFromRequest() {
         return isAuth() &&
-          request.resource.data.participants is list &&
-          request.auth.uid in request.resource.data.participants;
+          hasValidParticipantsFromRequest();
+      }
+      function canBackfillParticipants() {
+        return hasValidParticipantsFromRequest()
+          && request.resource.data.diff(resource.data).affectedKeys().hasAny(['participants'])
+          && (
+            !resource.data.keys().hasAny(['userID1'])
+            || !(resource.data.userID1 is string)
+            || resource.data.userID1 in request.resource.data.participants
+          )
+          && (
+            !resource.data.keys().hasAny(['userID2'])
+            || !(resource.data.userID2 is string)
+            || resource.data.userID2 in request.resource.data.participants
+          );
       }
       function isParticipantFromConversationDoc() {
-        return isAuth() &&
-          exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
-          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        return isParticipantFromConversationId()
+          || (
+            isAuth() &&
+            exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
+            (
+              (
+                get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants is list
+                && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+              )
+              || (
+                get(/databases/$(database)/documents/conversations/$(conversationId)).data.userID1 is string
+                && request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.userID1
+              )
+              || (
+                get(/databases/$(database)/documents/conversations/$(conversationId)).data.userID2 is string
+                && request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.userID2
+              )
+            )
+          );
       }
 
       allow create: if isParticipantFromRequest();
-      allow read, update, delete: if isParticipantFromResource();
+      allow list: if isParticipantFromResource();
+      allow get: if isParticipantFromResourceOrLegacy();
+      allow delete: if false;
+      allow update: if isParticipantFromResourceOrLegacy()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lastMessage', 'lastMessageAt', 'lastMessageAtMs', 'lastSenderId',
+          'unread', 'typing', 'archived', 'muted', 'pinned', 'chatBg',
+          'participants', 'userID1', 'userID2'
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSenderId'])
+          || request.resource.data.lastSenderId == request.auth.uid)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userID1'])
+          || request.resource.data.userID1 is string)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userID2'])
+          || request.resource.data.userID2 is string);
 
       match /messages/{messageId} {
-        allow create, read, update, delete: if isParticipantFromConversationDoc();
+        function isSender() {
+          return request.auth.uid == resource.data.senderId;
+        }
+        function validMessageCreate() {
+          return request.resource.data.senderId == request.auth.uid
+            && request.resource.data.createdDate is int
+            && request.resource.data.createdDate > 0
+            && request.resource.data.keys().hasAll(['senderId', 'createdDate', 'type', 'seenBy'])
+            && request.resource.data.seenBy is list
+            && request.auth.uid in request.resource.data.seenBy;
+        }
+        function senderEditableKeys() {
+          return [
+            'text', 'isEdited', 'unsent', 'mediaUrls', 'location', 'contact',
+            'postRef', 'videoUrl', 'videoThumbnail', 'audioUrl', 'audioDurationMs',
+            'replyTo', 'status', 'isDeleted'
+          ];
+        }
+        function participantEditableKeys() {
+          return ['seenBy', 'status', 'reactions', 'likes', 'deletedFor', 'isStarred'];
+        }
+        allow read: if isParticipantFromConversationDoc();
+        allow create: if isParticipantFromConversationDoc() && validMessageCreate();
+        allow update: if isParticipantFromConversationDoc() && (
+          (isSender() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(senderEditableKeys()))
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(participantEditableKeys())
+        );
+        allow delete: if false;
       }
     }
     match /message/{chatId} {
@@ -279,8 +1540,8 @@ service cloud.firestore {
         );
       }
 
-      allow create: if isLegacyParticipantFromRequest();
-      allow read, update, delete: if isLegacyParticipant();
+      allow create, update, delete: if false;
+      allow read: if isLegacyParticipant();
       match /Chat/{msgId} {
         function legacyParent() {
           return get(/databases/$(database)/documents/message/$(chatId));
@@ -293,7 +1554,8 @@ service cloud.firestore {
              request.auth.uid in legacyParent().data.participants)
           );
         }
-        allow create, read, update, delete: if isLegacyParentParticipant();
+        allow create, update, delete: if false;
+        allow read: if isLegacyParentParticipant();
       }
     }
 
@@ -348,11 +1610,13 @@ service cloud.firestore {
       }
     }
 
-    // Burslar
-    match /scholarships/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
-      allow update: if isAuth() && (
+    // Burslar (root yerine katalog altı)
+    match /catalog/{catalogId}/scholarships/{docId} {
+      allow read: if isAuth() && catalogId == "education";
+      allow create: if isAuth()
+        && catalogId == "education"
+        && request.resource.data.userID == request.auth.uid;
+      allow update: if isAuth() && catalogId == "education" && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly([
@@ -364,16 +1628,16 @@ service cloud.firestore {
              'bookmarksCount'
            ])
       );
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow delete: if isAuth() && catalogId == "education" && resource.data.userID == request.auth.uid;
 
       match /Basvurular/{applicantId} {
-        allow read: if isAuth();
-        allow create: if isOwner(applicantId);
-        allow update: if isAuth() && (
+        allow read: if isAuth() && catalogId == "education";
+        allow create: if isOwner(applicantId) && catalogId == "education";
+        allow update: if isAuth() && catalogId == "education" && (
           request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/scholarships/$(docId)).data.userID == request.auth.uid
+          || get(/databases/$(database)/documents/catalog/$(catalogId)/scholarships/$(docId)).data.userID == request.auth.uid
         );
-        allow delete: if isOwner(applicantId);
+        allow delete: if isOwner(applicantId) && catalogId == "education";
       }
     }
 
@@ -412,6 +1676,15 @@ service cloud.firestore {
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
+      match /Basvurular/{applicantId} {
+        allow read: if isAuth();
+        allow create: if isOwner(applicantId);
+        allow update: if isOwner(applicantId)
+          || get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+        allow delete: if isOwner(applicantId)
+          || get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+      }
+
       // Sınav soruları - sadece sınav sahibi yazabilir
       match /Sorular/{soruId} {
         allow read: if isAuth();
@@ -425,44 +1698,49 @@ service cloud.firestore {
         allow create, update: if isOwner(userId);
         allow delete: if false;
       }
+
+      match /SinaviBitenler/{entryId} {
+        allow read: if isAuth();
+        allow create: if isValidPracticeExamFinishPayload();
+        allow update, delete: if false;
+      }
     }
 
     // Çıkmış Sorular (admin/system tarafından eklenen içerik)
     match /CikmisSorular/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow create, update, delete: if canManageAdminPanels();
     }
 
     // Çıkmış soru verileri
     match /questions/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth() && (
-        resource.data.userID == request.auth.uid
-        || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['viewCount', 'correctCount', 'wrongCount'])
-      );
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow create, update, delete: if canManageAdminPanels();
+      match /questions/{questionItemId} {
+        allow read: if isAuth();
+        allow write: if canManageAdminPanels();
+      }
+      match /Sorular/{questionItemId} {
+        allow read: if isAuth();
+        allow write: if canManageAdminPanels();
+      }
       match /{sub=**} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow write: if false;
       }
     }
 
     // Soru cevapları - kullanıcı kendi cevabını yazar
     match /questionsAnswers/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.userID == request.auth.uid;
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow create: if isValidQuestionsAnswersCreatePayload();
+      allow update, delete: if false;
     }
 
     // Kitapçık Cevapları
     match /KitapcikCevaplari/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow write: if false;
     }
 
     // Cevap Anahtarları — client doğrudan okuyamaz; Cloud Functions Admin SDK kullanır
@@ -475,38 +1753,51 @@ service cloud.firestore {
     // Sorular (ek koleksiyon)
     match /Sorular/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow write: if false;
     }
 
     // Optik Kodlar
     match /optikForm/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isValidOptikFormCreatePayload();
       allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      match /Yanitlar/{userId} {
+        allow read: if isAuth();
+        allow create: if isValidOptikFormAnswerCreatePayload(userId);
+        allow update: if isValidOptikFormAnswerUpdatePayload(userId);
+        allow delete: if false;
+      }
     }
 
     // Kitaplar / Cevap Anahtarı Kitapları
     match /books/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isValidBookCreatePayload();
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['viewCount', 'solveCount'])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      match /CevapAnahtarlari/{answerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+          && isValidBookAnswerKeyPayload()
+          && get(/databases/$(database)/documents/books/$(docId)).data.userID == request.auth.uid;
+        allow delete: if isAuth()
+          && get(/databases/$(database)/documents/books/$(docId)).data.userID == request.auth.uid;
+      }
       match /{sub=**} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow write: if false;
       }
     }
 
     // Sınavı Bitenler
     match /SinaviBitenler/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow write: if false;
     }
 
     // ──────────────────────────────────────────────
@@ -518,7 +1809,7 @@ service cloud.firestore {
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['viewCount', 'applicationCount'])
+           .hasOnly(['viewCount', 'applicationCount', 'averageRating', 'reviewCount'])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
@@ -527,9 +1818,19 @@ service cloud.firestore {
         allow create: if isOwner(applicantId);
         allow update: if isAuth() && (
           request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/isBul/$(docId)).data.userID == request.auth.uid
+          || isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+          || canManageAdminPanels()
         );
-        allow delete: if isOwner(applicantId);
+        allow delete: if isAuth() && (
+          request.auth.uid == applicantId
+          || isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+          || canManageAdminPanels()
+        );
+      }
+
+      match /Reviews/{reviewerId} {
+        allow read: if isAuth();
+        allow create, update, delete: if isOwner(reviewerId);
       }
     }
     match /SavedIsBul/{docId} {
@@ -541,7 +1842,7 @@ service cloud.firestore {
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['favorites', 'viewCount', 'applicationCount', 'averageRating', 'reviewCount'])
+           .hasOnly(['viewCount', 'applicationCount', 'averageRating', 'reviewCount'])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
@@ -550,9 +1851,14 @@ service cloud.firestore {
         allow create: if isOwner(applicantId);
         allow update: if isAuth() && (
           request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/educators/$(docId)).data.userID == request.auth.uid
+          || isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+          || canManageAdminPanels()
         );
-        allow delete: if isOwner(applicantId);
+        allow delete: if isAuth() && (
+          request.auth.uid == applicantId
+          || isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+          || canManageAdminPanels()
+        );
       }
 
       match /Reviews/{reviewerId} {
@@ -566,8 +1872,8 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Bildirimler/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
 
     // ──────────────────────────────────────────────
@@ -575,12 +1881,40 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /reports/{docId} {
       allow read: if false;
-      allow create: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.keys().hasOnly([
+          'postID', 'sikayetDesc', 'sikayetTitle',
+          'timeStamp', 'userID', 'yorumID'
+        ])
+        && request.resource.data.keys().hasAll([
+          'postID', 'sikayetDesc', 'sikayetTitle',
+          'timeStamp', 'userID', 'yorumID'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.postID is string
+        && request.resource.data.postID.size() <= 256
+        && request.resource.data.yorumID is string
+        && request.resource.data.yorumID.size() <= 256
+        && (
+          request.resource.data.postID.size() > 0
+          || request.resource.data.yorumID.size() > 0
+        )
+        && request.resource.data.sikayetTitle is string
+        && request.resource.data.sikayetTitle.size() > 0
+        && request.resource.data.sikayetTitle.size() <= 200
+        && request.resource.data.sikayetDesc is string
+        && request.resource.data.sikayetDesc.size() > 0
+        && request.resource.data.sikayetDesc.size() <= 4000
+        && request.resource.data.timeStamp is int
+        && request.resource.data.timeStamp > 0
+        && request.resource.data.timeStamp <= request.time.toMillis() + 900000;
       allow update, delete: if false;
     }
     match /Basvurular/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
 
     // ──────────────────────────────────────────────
@@ -597,20 +1931,18 @@ service cloud.firestore {
       allow write: if false; // Admin SDK only
     }
     match /adminConfig/{docId}/pushReports/{reportId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
-      allow delete: if isAdmin();
+      allow read: if canUseAdminPushBypass();
+      allow create: if canUseAdminPushBypass();
+      allow delete: if canUseAdminPushBypass();
       allow update: if false;
     }
     match /sliders/{sliderId} {
       allow read: if isAuth();
-      allow create, update: if isAuth();
-      allow delete: if false;
+      allow create, update, delete: if isAdmin();
 
       match /items/{itemId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
-        allow delete: if isAuth();
+        allow create, update, delete: if isAdmin();
       }
     }
     match /Analytics/{docId} {
@@ -630,6 +1962,24 @@ service cloud.firestore {
     match /phoneAccounts/{phone} {
       allow read: if false;
 
+      function hasAllowedPhoneAccountKeys(data) {
+        return data.keys().hasOnly([
+          'phone', 'count', 'limit', 'accounts',
+          'createdAt', 'createdDate', 'lastCreatedAt', 'lastUpdatedAt'
+        ]);
+      }
+      function hasValidPhoneAccountTypes(data) {
+        return data.phone is string
+          && data.phone == phone
+          && data.count is int
+          && data.accounts is list
+          && (!data.keys().hasAny(['limit']) || data.limit == null || data.limit is int)
+          && (!data.keys().hasAny(['createdAt']) || data.createdAt is int)
+          && (!data.keys().hasAny(['createdDate']) || data.createdDate is int)
+          && (!data.keys().hasAny(['lastCreatedAt']) || data.lastCreatedAt is int)
+          && (!data.keys().hasAny(['lastUpdatedAt']) || data.lastUpdatedAt is int);
+      }
+
       function isSelfAdd(prev, next) {
         return next.count == prev.count + 1
           && !(request.auth.uid in prev.accounts)
@@ -648,12 +1998,17 @@ service cloud.firestore {
       }
 
       allow create: if isAuth()
+        && hasAllowedPhoneAccountKeys(request.resource.data)
+        && hasValidPhoneAccountTypes(request.resource.data)
         && request.resource.data.count == 1
         && request.resource.data.accounts.size() == 1
         && (request.auth.uid in request.resource.data.accounts)
         && (request.resource.data.limit == null || request.resource.data.limit >= 1)
         && request.resource.data.phone == phone;
       allow update: if isAuth()
+        && hasAllowedPhoneAccountKeys(request.resource.data)
+        && hasValidPhoneAccountTypes(request.resource.data)
+        && request.resource.data.phone == resource.data.phone
         && (isSelfAdd(resource.data, request.resource.data)
             || isSelfRemove(resource.data, request.resource.data));
       allow delete: if false;
@@ -664,7 +2019,7 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Hashtags/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if false; // Legacy hashtag path disabled
     }
     match /tags/{docId} {
       allow read: if isAuth();
@@ -676,23 +2031,37 @@ service cloud.firestore {
     }
     match /HashTags/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if false; // Legacy hashtag path disabled
     }
-    match /TurqAppVerified/{docId} {
-      allow read: if isAuth();
+    match /adminConfig/admin/TurqAppVerified/{docId} {
+      allow read: if isOwner(docId) || isAdmin();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update: if isAdmin() || (
+        isOwner(docId)
+        && resource.data.status in ['approved', 'expired', 'renewal_open', 'rejected']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.userID == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+    match /adminConfig/admin/bannedUser/{docId} {
+      allow read: if canManageAdminPanels() || hasAssignedAdminTask('user_bans');
       allow write: if false;
     }
     match /SosyalMedyaLinkleri/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /Sosyal/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /Applications/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /CV/{docId} {
       allow read: if isAuth();
@@ -700,25 +2069,38 @@ service cloud.firestore {
     }
     match /HiddenPosts/{docId} {
       allow read: if false;
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /ProfileVisits/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /Saved/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+    }
+    match /giphyGif/{gifId} {
+      allow read: if isAuth();
+      allow create, update: if isAuth();
+      allow delete: if canManageAdminPanels();
     }
     match /Yanitlar/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /Yorumlar/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
     match /List/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
+      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
     }
   }
 }

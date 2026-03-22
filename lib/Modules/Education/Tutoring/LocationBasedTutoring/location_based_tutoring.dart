@@ -9,16 +9,37 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dar
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class LocationBasedTutoring extends StatelessWidget {
+class LocationBasedTutoring extends StatefulWidget {
   const LocationBasedTutoring({super.key});
 
   @override
+  State<LocationBasedTutoring> createState() => _LocationBasedTutoringState();
+}
+
+class _LocationBasedTutoringState extends State<LocationBasedTutoring> {
+  late final LocationBasedTutoringController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = LocationBasedTutoringController.maybeFind() == null;
+    controller = LocationBasedTutoringController.ensure();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(LocationBasedTutoringController.maybeFind(), controller)) {
+      Get.delete<LocationBasedTutoringController>();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final LocationBasedTutoringController controller = Get.put(
-      LocationBasedTutoringController(),
-    );
     final ViewModeController viewModeController =
-        Get.find<ViewModeController>();
+        ViewModeController.ensure(permanent: true);
 
     return Scaffold(
       body: SafeArea(
@@ -28,7 +49,7 @@ class LocationBasedTutoring extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                BackButtons(text: "Özel Ders"),
+                BackButtons(text: 'tutoring.title'.tr),
                 Padding(
                   padding: EdgeInsets.only(right: 15),
                   child: Row(
@@ -37,10 +58,10 @@ class LocationBasedTutoring extends StatelessWidget {
                       Obx(
                         () => Text(
                           controller.isLoading.value
-                              ? 'Yükleniyor..'
+                              ? 'common.loading'.tr
                               : controller.tutoringList.isNotEmpty
                                   ? controller.tutoringList.first.sehir
-                                  : 'Konum Bulunamadı',
+                                  : 'tutoring.location_missing'.tr,
                           style: TextStyles.bold16Black,
                         ),
                       ),
@@ -50,29 +71,32 @@ class LocationBasedTutoring extends StatelessWidget {
               ],
             ),
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return Center(child: CupertinoActivityIndicator());
-                  } else if (controller.tutoringList.isEmpty) {
-                    return Center(
-                      child: Text("Bu bölgede ders ilanı bulunmuyor."),
-                    );
-                  } else {
-                    return SingleChildScrollView(
-                      child: TutoringWidgetBuilder(
-                        tutoringList: controller.tutoringList,
-                        users: controller.users,
-                        isGridView: viewModeController.isGridView.value,
-                        infoMessage: Infomessage(
-                          infoMessage: "Bu bölgede ders ilanı bulunmuyor.",
-                        ),
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return Center(child: CupertinoActivityIndicator());
+                } else if (controller.tutoringList.isEmpty) {
+                  return Center(
+                    child: Text('tutoring.no_listings_in_region'.tr),
+                  );
+                } else {
+                  final content = SingleChildScrollView(
+                    child: TutoringWidgetBuilder(
+                      tutoringList: controller.tutoringList,
+                      isGridView: viewModeController.isGridView.value,
+                      infoMessage: Infomessage(
+                        infoMessage: 'tutoring.no_listings_in_region'.tr,
                       ),
+                    ),
+                  );
+                  if (viewModeController.isGridView.value) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: content,
                     );
                   }
-                }),
-              ),
+                  return content;
+                }
+              }),
             ),
           ],
         ),

@@ -36,6 +36,11 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        if call.method == "getActiveSmokeSnapshot" {
+            result(PlaybackHealthStore.shared.snapshot())
+            return
+        }
+
         guard let args = call.arguments as? [String: Any],
               let viewId = args["viewId"] as? Int64 else {
             result(FlutterError(
@@ -79,6 +84,15 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
 
         case "isPlaying":
             handleIsPlaying(viewId: viewId, result: result)
+
+        case "isBuffering":
+            handleIsBuffering(viewId: viewId, result: result)
+
+        case "getPlaybackDiagnostics":
+            handleGetPlaybackDiagnostics(viewId: viewId, result: result)
+
+        case "getProcessDiagnostics":
+            handleGetProcessDiagnostics(viewId: viewId, result: result)
 
         case "stopPlayback":
             handleStopPlayback(viewId: viewId, result: result)
@@ -249,6 +263,45 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         }
 
         result(playerView.isPlaying())
+    }
+
+    private func handleIsBuffering(viewId: Int64, result: FlutterResult) {
+        guard let playerView = playerViews[viewId] else {
+            result(FlutterError(
+                code: "NO_PLAYER",
+                message: "Player view not found",
+                details: nil
+            ))
+            return
+        }
+
+        result(playerView.isBuffering())
+    }
+
+    private func handleGetPlaybackDiagnostics(viewId: Int64, result: FlutterResult) {
+        guard let playerView = playerViews[viewId] else {
+            result(FlutterError(
+                code: "NO_PLAYER",
+                message: "Player view not found",
+                details: nil
+            ))
+            return
+        }
+
+        result(playerView.getPlaybackDiagnostics())
+    }
+
+    private func handleGetProcessDiagnostics(viewId: Int64, result: FlutterResult) {
+        guard let playerView = playerViews[viewId] else {
+            result(FlutterError(
+                code: "NO_PLAYER",
+                message: "Player view not found",
+                details: nil
+            ))
+            return
+        }
+
+        result(playerView.getProcessDiagnostics())
     }
 
     private func handleStopPlayback(viewId: Int64, result: FlutterResult) {

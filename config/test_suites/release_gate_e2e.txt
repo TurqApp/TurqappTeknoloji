@@ -1,0 +1,9 @@
+# Official release-blocking mobile E2E entrypoints.
+integration_test/turqapp_complete_e2e_test.dart
+integration_test/feed/feed_black_flash_smoke_test.dart
+integration_test/feed/feed_fullscreen_audio_smoke_test.dart
+integration_test/feed/feed_network_resilience_smoke_test.dart
+integration_test/feed/feed_normal_scroll_playback_smoke_test.dart
+integration_test/shorts/short_first_two_playback_test.dart
+integration_test/feed/turqapp_audio_ownership_e2e_test.dart
+integration_test/feed/hls_data_usage_suite_test.dart

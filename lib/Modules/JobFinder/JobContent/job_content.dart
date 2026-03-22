@@ -1,363 +1,403 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_card_styles.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 
 import '../job_finder_controller.dart';
 
-class JobContent extends StatelessWidget {
+class JobContent extends StatefulWidget {
   final bool isGrid;
   final JobModel model;
-  JobContent({super.key, required this.model, required this.isGrid});
-  late final JobContentController controller;
+  const JobContent({super.key, required this.model, required this.isGrid});
+
   @override
-  Widget build(BuildContext context) {
-    controller = Get.put(JobContentController(), tag: model.docID);
-    controller.checkSaved(model.docID);
-    return isGrid ? gridView() : listingView();
+  State<JobContent> createState() => _JobContentState();
+}
+
+class _JobContentState extends State<JobContent> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final JobContentController controller;
+
+  bool get isGrid => widget.isGrid;
+  JobModel get model => widget.model;
+
+  String get _workTypeText {
+    if (model.calismaTuru.isEmpty) {
+      return 'pasaj.job_finder.salary_not_specified'.tr;
+    }
+    return model.calismaTuru.join(', ');
   }
 
-  Widget listingView() {
-    return GestureDetector(
-      onLongPress: () => controller.reactivateEndedJob(model),
-      child: Column(
-        children: [
-          Padding(
-            padding:
-                const EdgeInsets.only(left: 15, right: 15, bottom: 6, top: 6),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                  child: SizedBox(
-                      width: 65,
-                      height: 65,
-                      child: CachedNetworkImage(
-                        imageUrl: model.logo,
-                        fit: BoxFit.cover,
-                      )),
-                ),
-                SizedBox(
-                  width: 12,
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      await Get.to(() => JobDetails(model: model));
-                      final finderController = Get.find<JobFinderController>();
-                      await finderController.refreshJob(model.docID);
-                    },
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  model.ilanBasligi.isNotEmpty
-                                      ? model.ilanBasligi
-                                      : model.meslek,
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratBold"),
-                                ),
-                              ),
-                              Text(
-                                model.calismaTuru.length <= 1
-                                    ? model.calismaTuru.join(", ")
-                                    : "${model.calismaTuru.take(1).join(", ")} +${model.calismaTuru.length - 1}",
-                                maxLines: 1,
-                                style: TextStyle(
-                                  color: Colors.pinkAccent,
-                                  fontSize: 14,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (model.deneyimSeviyesi.isNotEmpty ||
-                              model.ilanBasligi.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Row(
-                                children: [
-                                  if (model.ilanBasligi.isNotEmpty)
-                                    Text(
-                                      model.meslek,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 12,
-                                        fontFamily: "Montserrat",
-                                      ),
-                                    ),
-                                  if (model.ilanBasligi.isNotEmpty &&
-                                      model.deneyimSeviyesi.isNotEmpty)
-                                    Text(
-                                      " • ",
-                                      style: TextStyle(
-                                        color: Colors.grey.shade400,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  if (model.deneyimSeviyesi.isNotEmpty)
-                                    Text(
-                                      model.deneyimSeviyesi,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 12,
-                                        fontFamily: "MontserratMedium",
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      model.brand,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          color: Colors.blueAccent,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium"),
-                                    ),
-                                    Text(
-                                      "${model.kacKm == 0 ? "" : "${model.kacKm.toStringAsFixed(2)} km • "}${model.city}, ${model.town}",
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 13,
-                                        fontFamily: "Montserrat",
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Transform.translate(
-                                    offset: Offset(6, 0),
-                                    child: IconButton(
-                                      onPressed: () =>
-                                          controller.shareJob(model),
-                                      icon: Icon(
-                                        CupertinoIcons.share_up,
-                                        color: Colors.grey,
-                                        size: 19,
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                      constraints: BoxConstraints(
-                                        minWidth: 0,
-                                        minHeight: 0,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      style: ButtonStyle(
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        fixedSize: WidgetStateProperty.all(
-                                          Size(35, 35),
-                                        ),
-                                        alignment: Alignment.center,
-                                      ),
-                                    ),
-                                  ),
-                                  Obx(() {
-                                    return Transform.translate(
-                                      offset: Offset(10, 0),
-                                      child: IconButton(
-                                        onPressed: () {
-                                          controller.toggleSave(model.docID);
-                                        },
-                                        icon: Icon(
-                                          controller.saved.value
-                                              ? CupertinoIcons.bookmark_fill
-                                              : CupertinoIcons.bookmark,
-                                          color: controller.saved.value
-                                              ? Colors.orange
-                                              : Colors.grey,
-                                          size: 19,
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        constraints: BoxConstraints(
-                                          minWidth: 0,
-                                          minHeight: 0,
-                                        ),
-                                        visualDensity: VisualDensity.compact,
-                                        style: ButtonStyle(
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                          fixedSize: WidgetStateProperty.all(
-                                            Size(35, 35),
-                                          ),
-                                          alignment: Alignment.center,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 15, left: 90),
-            child: SizedBox(
-              height: 1,
-              child: Divider(
-                color: Colors.grey.withAlpha(20),
-              ),
-            ),
-          )
-        ],
+  String get _cityTownText {
+    final city = model.city.trim();
+    final town = model.town.trim();
+    if (city.isNotEmpty && town.isNotEmpty) {
+      return '$city, $town';
+    }
+    if (city.isNotEmpty) return city;
+    if (town.isNotEmpty) return town;
+    return 'pasaj.market.location_missing'.tr;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'job_content_${_baseTag}_${identityHashCode(this)}';
+    _ownsController =
+        JobContentController.maybeFind(tag: _controllerTag) == null;
+    controller = JobContentController.ensure(tag: _controllerTag);
+    _primeSavedState();
+  }
+
+  @override
+  void didUpdateWidget(covariant JobContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.docID != model.docID) {
+      _primeSavedState();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+            JobContentController.maybeFind(tag: _controllerTag), controller)) {
+      Get.delete<JobContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  String get _baseTag {
+    final docId = model.docID.trim();
+    if (docId.isNotEmpty) return docId;
+    return 'job_fallback_${model.timeStamp}_${model.brand.hashCode}_${model.logo.hashCode}_${model.meslek.hashCode}';
+  }
+
+  void _primeSavedState() {
+    if (model.docID.trim().isNotEmpty) {
+      controller.primeSavedState(model.docID);
+    }
+  }
+
+  Widget _buildLogo({
+    required String imageUrl,
+    double? width,
+    double? height,
+    BorderRadius? borderRadius,
+  }) {
+    final normalizedUrl = imageUrl.trim();
+    final hasLogoValue = normalizedUrl.isNotEmpty;
+    final fallback = Container(
+      width: width,
+      height: height,
+      color: const Color(0xFFF1F4F7),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.work_outline_rounded,
+        color: Colors.grey.shade500,
+        size: ((width ?? height ?? 96) * 0.32).clamp(22, 40).toDouble(),
       ),
     );
+
+    if (!hasLogoValue) {
+      return borderRadius == null
+          ? fallback
+          : ClipRRect(borderRadius: borderRadius, child: fallback);
+    }
+
+    final image = CachedNetworkImage(
+      imageUrl: normalizedUrl,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => fallback,
+      errorWidget: (_, __, ___) => fallback,
+    );
+    return borderRadius == null
+        ? image
+        : ClipRRect(borderRadius: borderRadius, child: image);
   }
 
-  Widget gridView() {
+  @override
+  Widget build(BuildContext context) {
+    return isGrid ? gridView(controller) : listingView(controller);
+  }
+
+  Widget listingView(JobContentController controller) {
+    const metrics = PasajListCardMetrics.regular;
     return GestureDetector(
-      onTap: () => Get.to(JobDetails(model: model)),
+      key: ValueKey(IntegrationTestKeys.jobItem(_baseTag)),
       onLongPress: () => controller.reactivateEndedJob(model),
-      child: Container(
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-            border: Border.all(color: Colors.grey.withAlpha(50))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: ClipRRect(
-                borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(8), topLeft: Radius.circular(8)),
-                child: CachedNetworkImage(
-                  imageUrl: model.logo,
-                  fit: BoxFit.cover,
-                ),
-              ),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 15, right: 15, bottom: 6, top: 6),
+        child: GestureDetector(
+          onTap: () async {
+            await Get.to(() => JobDetails(model: model));
+            final finderController = JobFinderController.maybeFind();
+            if (finderController != null) {
+              await finderController.refreshJob(model.docID);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+              color: Colors.white,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 7, 8, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    model.ilanBasligi.isNotEmpty
-                        ? model.ilanBasligi
-                        : model.meslek,
-                    maxLines: 1,
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontFamily: "MontserratBold"),
-                  ),
-                  if (model.deneyimSeviyesi.isNotEmpty)
-                    Text(
-                      model.deneyimSeviyesi,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 10,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  Text(
-                    model.calismaTuru.length <= 1
-                        ? model.calismaTuru.join(", ")
-                        : "${model.calismaTuru.take(1).join(", ")} +${model.calismaTuru.length - 1}",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.pinkAccent,
-                      fontSize: 12,
-                      fontFamily: "MontserratMedium",
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(10)),
+                  child: SizedBox(
+                    width: metrics.mediaSize,
+                    height: metrics.railHeight,
+                    child: _buildLogo(
+                      imageUrl: model.logo.trim(),
+                      width: metrics.mediaSize,
+                      height: metrics.railHeight,
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
                     ),
                   ),
-                  Text(
-                    model.brand,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 12,
-                        fontFamily: "MontserratMedium"),
-                  ),
-                  Text(
-                    "${model.kacKm.toStringAsFixed(2)} km\n${model.city}, ${model.town}",
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontFamily: "MontserratMedium",
-                      height: 1.05,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        onPressed: () => controller.shareJob(model),
-                        icon: const Icon(
-                          CupertinoIcons.share_up,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 28,
-                          minHeight: 28,
-                        ),
-                      ),
-                      Obx(
-                        () => IconButton(
-                          onPressed: () => controller.toggleSave(model.docID),
-                          icon: Icon(
-                            controller.saved.value
-                                ? CupertinoIcons.bookmark_fill
-                                : CupertinoIcons.bookmark,
-                            size: 17,
-                            color: controller.saved.value
-                                ? Colors.orange
-                                : Colors.grey,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: metrics.railHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              model.ilanBasligi.isNotEmpty
+                                  ? model.meslek
+                                  : model.brand,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.lineOne,
+                            ),
                           ),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 28,
-                            minHeight: 28,
+                        ),
+                        SizedBox(height: metrics.contentGap),
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              model.ilanBasligi.isNotEmpty
+                                  ? model.ilanBasligi
+                                  : model.meslek,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.lineTwo,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: metrics.contentGap),
+                        SizedBox(
+                          height: metrics.detailRowHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _workTypeText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.detail,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: metrics.contentGap),
+                        SizedBox(
+                          height: metrics.ctaHeight,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _cityTownText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: PasajCardStyles.lineFour,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: metrics.railWidth,
+                  height: metrics.railHeight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppHeaderActionButton(
+                            onTap: () => controller.shareJob(model),
+                            size: metrics.actionButtonSize,
+                            child: Icon(
+                              AppIcons.share,
+                              size: metrics.actionIconSize,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(width: metrics.railActionGap),
+                          Obx(() {
+                            return AppHeaderActionButton(
+                              onTap: model.docID.trim().isEmpty
+                                  ? null
+                                  : () => controller.toggleSave(model.docID),
+                              size: metrics.actionButtonSize,
+                              child: Icon(
+                                controller.saved.value
+                                    ? AppIcons.saved
+                                    : AppIcons.save,
+                                size: metrics.actionIconSize,
+                                color: controller.saved.value
+                                    ? Colors.orange
+                                    : Colors.black87,
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                      SizedBox(height: metrics.railSectionGap),
+                      SizedBox(height: metrics.middleSlotHeight),
+                      const Spacer(),
+                      SizedBox(
+                        width: metrics.railWidth,
+                        child: GestureDetector(
+                          onTap: () async {
+                            await Get.to(() => JobDetails(model: model));
+                            final finderController =
+                                JobFinderController.maybeFind();
+                            if (finderController != null) {
+                              await finderController.refreshJob(model.docID);
+                            }
+                          },
+                          child: Container(
+                            height: metrics.ctaHeight,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: Colors.black,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(8)),
+                            ),
+                            child: Text(
+                              'pasaj.market.inspect'.tr,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: metrics.ctaFontSize,
+                                fontFamily: 'MontserratMedium',
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget gridView(JobContentController controller) {
+    return PasajGridCard(
+      key: ValueKey(IntegrationTestKeys.jobItem(_baseTag)),
+      onTap: () => Get.to(JobDetails(model: model)),
+      onLongPress: () => controller.reactivateEndedJob(model),
+      media: _buildLogo(
+        imageUrl: model.logo.trim(),
+        width: null,
+        height: null,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(12),
+        ),
+      ),
+      overlay: Obx(
+        () => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: model.docID.trim().isEmpty
+              ? null
+              : () => controller.toggleSave(model.docID),
+          child: SizedBox(
+            width: PasajListCardMetrics.gridOverlayButtonSize,
+            height: PasajListCardMetrics.gridOverlayButtonSize,
+            child: Center(
+              child: Icon(
+                controller.saved.value ? AppIcons.saved : AppIcons.save,
+                size: PasajListCardMetrics.gridOverlayIconSize,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x66000000),
+                    blurRadius: 8,
+                  ),
                 ],
               ),
-            )
-          ],
+            ),
+          ),
+        ),
+      ),
+      lines: [
+        Text(
+          model.ilanBasligi.isNotEmpty ? model.meslek : model.brand,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.lineOne,
+        ),
+        Text(
+          model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.gridLineTwo(PasajCardStyles.lineTwoColor),
+        ),
+        Text(
+          _workTypeText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.detail,
+        ),
+        Text(
+          _cityTownText,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: PasajCardStyles.gridLineFour(PasajCardStyles.lineFourColor),
+        ),
+      ],
+      cta: GestureDetector(
+        onTap: () => Get.to(JobDetails(model: model)),
+        child: Container(
+          height: PasajListCardMetrics.gridCtaHeight,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.all(
+              Radius.circular(PasajListCardMetrics.gridCtaRadius),
+            ),
+          ),
+          child: Text(
+            'pasaj.market.inspect'.tr,
+            style: PasajCardStyles.gridCta,
+          ),
         ),
       ),
     );

@@ -7,12 +7,41 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class SavedItemsView extends StatelessWidget {
-  SavedItemsView({super.key});
+class SavedItemsView extends StatefulWidget {
+  const SavedItemsView({super.key});
 
-  final SavedItemsController controller = Get.put(SavedItemsController());
+  @override
+  State<SavedItemsView> createState() => _SavedItemsViewState();
+}
+
+class _SavedItemsViewState extends State<SavedItemsView> {
+  late final SavedItemsController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'saved_items_${identityHashCode(this)}';
+    final existing = SavedItemsController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? SavedItemsController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          SavedItemsController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SavedItemsController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +77,7 @@ class SavedItemsView extends StatelessWidget {
                               GestureDetector(
                                 onTap: () => controller.onTabChanged(0),
                                 child: Text(
-                                  'Kaydedilenler (${controller.bookmarkedScholarships.length})',
+                                  '${'common.saved'.tr} (${controller.bookmarkedScholarships.length})',
                                   style: TextStyle(
                                     color:
                                         controller.selectedTabIndex.value == 0
@@ -75,7 +104,7 @@ class SavedItemsView extends StatelessWidget {
                               GestureDetector(
                                 onTap: () => controller.onTabChanged(1),
                                 child: Text(
-                                  'Beğenilenler (${controller.likedScholarships.length})',
+                                  '${'common.liked'.tr} (${controller.likedScholarships.length})',
                                   style: TextStyle(
                                     color:
                                         controller.selectedTabIndex.value == 1
@@ -117,13 +146,13 @@ class SavedItemsView extends StatelessWidget {
                           buildScholarshipList(
                             context,
                             controller.bookmarkedScholarships,
-                            'Kaydedilen burs bulunamadı.',
+                            'scholarship.saved_empty'.tr,
                             true,
                           ),
                           buildScholarshipList(
                             context,
                             controller.likedScholarships,
-                            'Beğenilen burs bulunamadı.',
+                            'scholarship.liked_empty'.tr,
                             false,
                           ),
                         ],
@@ -177,6 +206,11 @@ class SavedItemsView extends StatelessWidget {
                   final userData =
                       scholarshipData['userData'] as Map<String, dynamic>?;
                   final docId = scholarshipData['docId'] as String;
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final thumbnailWidth =
+                      (screenWidth * 0.31).clamp(96.0, 120.0);
+                  final thumbnailHeight =
+                      (thumbnailWidth * 0.75).clamp(72.0, 90.0);
 
                   return GestureDetector(
                     onTap: () {
@@ -192,8 +226,8 @@ class SavedItemsView extends StatelessWidget {
                         children: [
                           if (burs.img.isNotEmpty)
                             SizedBox(
-                              width: 120,
-                              height: 90,
+                              width: thumbnailWidth,
+                              height: thumbnailHeight,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
                                 child: CachedNetworkImage(
@@ -213,8 +247,8 @@ class SavedItemsView extends StatelessWidget {
                             )
                           else
                             Container(
-                              width: 120,
-                              height: 90,
+                              width: thumbnailWidth,
+                              height: thumbnailHeight,
                               decoration: BoxDecoration(
                                 color: Colors.grey.withAlpha(20),
                                 borderRadius: BorderRadius.circular(12),
@@ -236,8 +270,11 @@ class SavedItemsView extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        type == 'bireysel'
-                                            ? "${burs.baslik} BURS BAŞVURULARI"
+                                        isIndividualScholarshipType(type)
+                                            ? 'scholarship.applications_suffix'
+                                                .trParams({
+                                                'title': burs.baslik.toString(),
+                                              })
                                             : burs.baslik,
                                         style: TextStyle(
                                           fontSize: 16,
@@ -257,16 +294,20 @@ class SavedItemsView extends StatelessWidget {
                                               : CupertinoIcons
                                                   .hand_thumbsup_fill,
                                           title: isBookmarked
-                                              ? 'Kaydedilenlerden Kaldır'
-                                              : 'Beğenilenlerden Kaldır',
+                                              ? 'scholarship.remove_saved'.tr
+                                              : 'scholarship.remove_liked'.tr,
                                           onTap: () {
                                             noYesAlert(
                                               title: isBookmarked
-                                                  ? 'Kaydedilenlerden Kaldır'
-                                                  : 'Beğenilenlerden Kaldır',
+                                                  ? 'scholarship.remove_saved'
+                                                      .tr
+                                                  : 'scholarship.remove_liked'
+                                                      .tr,
                                               message: isBookmarked
-                                                  ? 'Bu bursu kaydedilenlerden kaldırmak istediğinize emin misiniz?'
-                                                  : 'Bu bursu beğenilenlerden kaldırmak istediğinize emin misiniz?',
+                                                  ? 'scholarship.remove_saved_confirm'
+                                                      .tr
+                                                  : 'scholarship.remove_liked_confirm'
+                                                      .tr,
                                               onYesPressed: () {
                                                 if (isBookmarked) {
                                                   controller.toggleBookmark(
@@ -280,14 +321,16 @@ class SavedItemsView extends StatelessWidget {
                                                   );
                                                 }
                                                 AppSnackbar(
-                                                  "Başarılı",
+                                                  'common.success'.tr,
                                                   isBookmarked
-                                                      ? "Burs Kaydedilenlerden Kaldırıldı."
-                                                      : "Burs Beğenilenlerden Kaldırıldı.",
+                                                      ? 'scholarship.removed_saved'
+                                                          .tr
+                                                      : 'scholarship.removed_liked'
+                                                          .tr,
                                                 );
                                               },
-                                              yesText: "Kaldır",
-                                              cancelText: "Vazgeç",
+                                              yesText: 'common.remove'.tr,
+                                              cancelText: 'common.cancel'.tr,
                                             );
                                           },
                                         ),
@@ -306,14 +349,21 @@ class SavedItemsView extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  type == 'bireysel'
-                                      ? (userData?['nickname']?.isNotEmpty ??
-                                              false
-                                          ? userData!['nickname']
-                                          : 'Bilinmeyen Kullanıcı')
+                                  isIndividualScholarshipType(type)
+                                      ? (((userData?['displayName'] ??
+                                                      userData?['username'] ??
+                                                      userData?['nickname'])
+                                                  ?.toString()
+                                                  .isNotEmpty ??
+                                              false)
+                                          ? (userData?['displayName'] ??
+                                                  userData?['username'] ??
+                                                  userData?['nickname'])
+                                              .toString()
+                                          : 'common.unknown_user'.tr)
                                       : (burs.kategori?.isNotEmpty ?? false
                                           ? burs.kategori
-                                          : 'Bilinmeyen Kategori'),
+                                          : 'common.unknown_category'.tr),
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontFamily: 'MontserratMedium',

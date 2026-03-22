@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';
 import '../Core/Services/SegmentCache/hls_proxy_server.dart';
@@ -11,6 +10,8 @@ class HLSVideoValue {
   final bool isInitialized;
   final bool isPlaying;
   final bool isBuffering;
+  final bool isCompleted;
+  final bool hasRenderedFirstFrame;
   final Duration position;
   final Duration duration;
   final Size size;
@@ -21,6 +22,8 @@ class HLSVideoValue {
     this.isInitialized = false,
     this.isPlaying = false,
     this.isBuffering = false,
+    this.isCompleted = false,
+    this.hasRenderedFirstFrame = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.size = const Size(1920, 1080),
@@ -51,12 +54,9 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// CDN URL'yi proxy URL'ye çevir. Proxy başlamadıysa orijinal URL döner.
   static String _resolveToProxy(String originalUrl) {
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
-    try {
-      final proxy = Get.find<HLSProxyServer>();
-      return proxy.resolveUrl(originalUrl);
-    } catch (_) {
-      return originalUrl;
-    }
+    final proxy = HLSProxyServer.maybeFind();
+    if (proxy == null) return originalUrl;
+    return proxy.resolveUrl(originalUrl);
   }
 
   HLSVideoValue _value = const HLSVideoValue();
@@ -65,6 +65,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   StreamSubscription? _stateSub;
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
+  StreamSubscription? _firstFrameSub;
 
   bool _viewReady = false;
   bool _disposed = false;
@@ -80,8 +81,37 @@ class HLSVideoAdapter extends ChangeNotifier {
   double _pendingVolume = 1.0;
   bool _hasPendingVolume = false;
   Duration? _pendingSeek;
+  double? _pendingPreferredBufferDurationSeconds;
 
   HLSController get hlsController => _hls;
+  int get rendererStallCount => _hls.rendererStallCount;
+  int get surfaceRebindCount => _hls.surfaceRebindCount;
+  Future<bool> isPlayingNative() => _hls.isPlayingNative();
+  Future<bool> isBufferingNative() => _hls.isBufferingNative();
+  Future<Map<String, dynamic>> getPlaybackDiagnostics() =>
+      _hls.getPlaybackDiagnostics();
+  Future<Map<String, dynamic>> getProcessDiagnostics() =>
+      _hls.getProcessDiagnostics();
+
+  Future<void> recoverFrozenPlayback() async {
+    if (_disposed) return;
+    final resumeAt = _value.position;
+    await stopPlayback();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await reloadVideo();
+    if (resumeAt > Duration.zero) {
+      _pendingSeek = resumeAt;
+    }
+    _wantPlay = true;
+    _wantPause = false;
+    if (_viewReady) {
+      await _hls.loadVideo(url, autoPlay: true, loop: loop);
+      if (resumeAt > Duration.zero) {
+        await _hls.seekTo(resumeAt.inMilliseconds / 1000.0);
+      }
+      await _hls.play();
+    }
+  }
 
   HLSVideoAdapter({
     required String url,
@@ -110,6 +140,27 @@ class HLSVideoAdapter extends ChangeNotifier {
     }
   }
 
+  /// Warm pool'dan geri gelen adapter yeni native view'a bağlanmadan önce
+  /// stale ready state'ini bırakmalı; aksi halde volume/seek/play eski view'a gider.
+  void prepareForReuse() {
+    if (_disposed) return;
+    _viewReady = false;
+    _isStopped = false;
+    _value = HLSVideoValue(
+      isInitialized: false,
+      isPlaying: false,
+      isBuffering: false,
+      isCompleted: false,
+      hasRenderedFirstFrame: false,
+      position: _value.position,
+      duration: _value.duration,
+      size: _value.size,
+      aspectRatio: _value.aspectRatio,
+      buffered: _value.buffered,
+    );
+    notifyListeners();
+  }
+
   void _subscribeToStreams() {
     _stateSub = _hls.onStateChanged.listen((state) {
       if (_disposed) return;
@@ -121,6 +172,8 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _viewReady,
         isPlaying: state == PlayerState.playing,
         isBuffering: state == PlayerState.buffering,
+        isCompleted: state == PlayerState.completed,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: _value.position,
         duration: _value.duration,
         size: _value.size,
@@ -141,6 +194,8 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: pos,
         duration: _value.duration,
         size: _value.size,
@@ -156,8 +211,27 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: _value.position,
         duration: dur,
+        size: _value.size,
+        aspectRatio: _value.aspectRatio,
+        buffered: _value.buffered,
+      );
+      notifyListeners();
+    });
+
+    _firstFrameSub = _hls.onFirstFrameChanged.listen((hasRenderedFirstFrame) {
+      if (_disposed) return;
+      _value = HLSVideoValue(
+        isInitialized: _value.isInitialized,
+        isPlaying: _value.isPlaying,
+        isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
+        hasRenderedFirstFrame: hasRenderedFirstFrame,
+        position: _value.position,
+        duration: _value.duration,
         size: _value.size,
         aspectRatio: _value.aspectRatio,
         buffered: _value.buffered,
@@ -167,6 +241,10 @@ class HLSVideoAdapter extends ChangeNotifier {
   }
 
   void _executePendingCommands() {
+    if (_pendingPreferredBufferDurationSeconds != null) {
+      _hls.setPreferredBufferDuration(_pendingPreferredBufferDurationSeconds!);
+      _pendingPreferredBufferDurationSeconds = null;
+    }
     if (_hasPendingVolume) {
       _hls.setVolume(_pendingVolume);
       _hasPendingVolume = false;
@@ -236,6 +314,22 @@ class HLSVideoAdapter extends ChangeNotifier {
     return Future.value();
   }
 
+  Future<void> forceSilence() async {
+    if (_disposed) return;
+    _wantPlay = false;
+    _wantPause = true;
+    _pendingVolume = 0.0;
+    _hasPendingVolume = true;
+    _hls.cancelPendingResume();
+
+    try {
+      if (_viewReady) {
+        await _hls.setVolume(0.0);
+        await _hls.pause();
+      }
+    } catch (_) {}
+  }
+
   Future<void> setVolume(double v) {
     if (_disposed) return Future.value();
     if (_viewReady) return _hls.setVolume(v);
@@ -248,6 +342,11 @@ class HLSVideoAdapter extends ChangeNotifier {
     if (_disposed) return Future.value();
     if (_viewReady) return _hls.setLoop(v);
     return Future.value();
+  }
+
+  Future<bool> isMutedNative() {
+    if (_disposed) return Future.value(false);
+    return _hls.isMutedNative();
   }
 
   Future<void> seekTo(Duration pos) {
@@ -264,6 +363,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     _isStopped = true;
     _wantPlay = false;
     _wantPause = false;
+    _hls.cancelPendingResume();
     if (_viewReady) {
       return _hls.stopPlayback();
     }
@@ -285,6 +385,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   Future<void> setPreferredBufferDuration(double seconds) {
     if (_disposed) return Future.value();
     if (_viewReady) return _hls.setPreferredBufferDuration(seconds);
+    _pendingPreferredBufferDurationSeconds = seconds;
     return Future.value();
   }
 
@@ -306,6 +407,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     double aspectRatio = 16 / 9,
     bool useAspectRatio = true,
     bool? overrideAutoPlay,
+    bool forceFullscreenOnAndroid = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
     _refreshProxyUrlIfNeeded();
@@ -318,6 +420,7 @@ class HLSVideoAdapter extends ChangeNotifier {
       showControls: false,
       aspectRatio: aspectRatio,
       useAspectRatio: useAspectRatio,
+      forceFullscreenOnAndroid: forceFullscreenOnAndroid,
     );
   }
 
@@ -333,6 +436,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     _stateSub?.cancel();
     _posSub?.cancel();
     _durSub?.cancel();
+    _firstFrameSub?.cancel();
     _hls.dispose();
     super.dispose();
   }

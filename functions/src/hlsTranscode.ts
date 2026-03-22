@@ -8,10 +8,24 @@ import * as fs from "fs";
 
 const execFileAsync = promisify(execFile);
 
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 const storage = admin.storage();
 
 const CDN_DOMAIN = "cdn.turqapp.com";
+
+const TURQ_CLEAN_VISION = Object.freeze({
+  brightness: 0.05,
+  contrast: 0.88,
+  saturation: 1.06,
+  gamma: 1.06,
+  sharpenAmount: 0.65,
+  bloomOpacity: 0.20,
+  bloomSigma: 7,
+});
 
 const clampSegment = (value: unknown, fallback: number): number => {
   const n = Number(value);
@@ -79,11 +93,48 @@ const buildForceKeyFrames = (
   return marks.join(",");
 };
 
+const buildTurqCleanVisionFilterComplex = (
+  renditionLabel: string,
+  scaleFilter: string
+): string => {
+  const baseLabel = `${renditionLabel}base`;
+  const bloomSourceLabel = `${renditionLabel}bloomsrc`;
+  const bloomLabel = `${renditionLabel}bloom`;
+  const outputLabel = `${renditionLabel}out`;
+
+  const baseChain = [
+    scaleFilter,
+    `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
+    "curves=all='0/0.04 0.22/0.30 0.58/0.75 0.84/0.95 1/1'",
+    "colorbalance=rs=-0.01:bs=0.02",
+    `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
+  ].join(",");
+
+  const bloomIsolation = [
+    "curves=all='0/0 0.70/0 0.80/0.42 0.90/0.82 1/1'",
+    `gblur=sigma=${TURQ_CLEAN_VISION.bloomSigma}:steps=1`,
+  ].join(",");
+
+  return [
+    `[0:v]${baseChain},split=2[${baseLabel}][${bloomSourceLabel}]`,
+    `[${bloomSourceLabel}]${bloomIsolation}[${bloomLabel}]`,
+    `[${baseLabel}][${bloomLabel}]blend=all_mode='screen':all_opacity=${TURQ_CLEAN_VISION.bloomOpacity}[${outputLabel}]`,
+  ].join(";");
+};
+
+const buildTurqCleanVisionThumbnailFilter = (): string =>
+  [
+    `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
+    "curves=all='0/0 0.28/0.33 0.62/0.78 0.82/0.94 1/1'",
+    "colorbalance=rs=-0.01:bs=0.02",
+    `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
+  ].join(",");
+
 /**
  * Video tipi bilgisi: path pattern'e göre belirlenir.
  */
 interface VideoTarget {
-  type: "post" | "chat" | "story";
+  type: "post" | "story";
   /** Temp dizin ve log için kullanılan benzersiz ID */
   id: string;
   /** HLS dosyalarının Storage'daki hedef dizini */
@@ -140,34 +191,7 @@ function resolveTarget(filePath: string): VideoTarget | null {
     };
   }
 
-  // Pattern 2: Chat mesaj videosu
-  const chatMatch = filePath.match(
-    /^ChatAssets\/([^/]+)\/messages\/([^/]+)\/video\.mp4$/i
-  );
-  if (chatMatch) {
-    const chatID = chatMatch[1];
-    const msgID = chatMatch[2];
-    return {
-      type: "chat",
-      id: `chat_${chatID}_${msgID}`,
-      hlsOutputPrefix: `ChatAssets/${chatID}/messages/${msgID}/hls`,
-      firestoreDoc: `conversations/${chatID}/messages/${msgID}`,
-      generateThumbnail: false,
-      buildProcessingData: () => ({
-        hlsStatus: "processing",
-      }),
-      buildSuccessData: (hlsUrl) => ({
-        videoUrl: hlsUrl,
-        hlsMasterUrl: hlsUrl,
-        hlsStatus: "ready",
-      }),
-      buildFailData: () => ({
-        hlsStatus: "failed",
-      }),
-    };
-  }
-
-  // Pattern 3: Story videosu
+  // Pattern 2: Story videosu
   const storyMatch = filePath.match(
     /^stories\/([^/]+)\/([^/]+)\/[^/]+\.(mp4|mov|m4v|webm)$/i
   );
@@ -214,9 +238,7 @@ export const onVideoUpload = functions
 
     const bucket = storage.bucket(object.bucket);
 
-    console.log(
-      `[HLS] Processing video for ${target.type}: ${target.id}`
-    );
+    console.log(`[HLS] Processing video for ${target.type}`);
 
     // Firestore'da processing durumunu set et.
     await db.doc(target.firestoreDoc).set(
@@ -305,15 +327,20 @@ export const onVideoUpload = functions
 
       // ffmpeg multi-output ABR encoding
       const ffmpegArgs = ["-i", inputPath];
+      const filterComplexParts: string[] = [];
+      const outputArgs: string[] = [];
 
       for (let i = 0; i < renditions.length; i++) {
         const r = renditions[i];
         const scale = isPortrait
-          ? `scale=${r.height}:-2`
-          : `scale=-2:${r.height}`;
-        ffmpegArgs.push(
-          "-map", "0:v:0", "-map", "0:a:0?",
-          `-filter:v:${i}`, scale,
+          ? `scale=${r.height}:-2:flags=lanczos`
+          : `scale=-2:${r.height}:flags=lanczos`;
+        const renditionLabel = `r${i}`;
+        filterComplexParts.push(
+          buildTurqCleanVisionFilterComplex(renditionLabel, scale)
+        );
+        outputArgs.push(
+          "-map", `[${renditionLabel}out]`, "-map", "0:a:0?",
           `-c:v:${i}`, "libx264",
           `-b:v:${i}`, `${r.bitrate}k`,
           `-maxrate:v:${i}`, `${r.maxrate}k`,
@@ -329,6 +356,9 @@ export const onVideoUpload = functions
           `-ar:${i}`, "48000",
         );
       }
+
+      ffmpegArgs.push("-filter_complex", filterComplexParts.join(";"));
+      ffmpegArgs.push(...outputArgs);
 
       // forceKeyFrames tüm stream'lere
       if (forceKeyFrames) {
@@ -413,6 +443,7 @@ export const onVideoUpload = functions
             "-i", inputPath,
             "-ss", "1",
             "-vframes", "1",
+            "-vf", buildTurqCleanVisionThumbnailFilter(),
             "-q:v", "2",
             thumbnailJpgPath,
           ]);
@@ -443,7 +474,7 @@ export const onVideoUpload = functions
                 contentType: "image/webp",
                 cacheControl: "public, max-age=86400, s-maxage=86400",
               },
-            }).catch((e) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
+            }).catch((e: unknown) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
           ]);
 
           thumbnailUrl = `https://${CDN_DOMAIN}/${target.thumbnailStoragePath}`;
@@ -500,35 +531,29 @@ export const onVideoUpload = functions
             );
           }
         } catch (storyPatchErr) {
-          console.warn(
-            `[HLS] Story element URL patch failed (ignored): ${storyPatchErr}`
-          );
+          console.warn("[HLS] Story element URL patch failed (ignored)", storyPatchErr);
         }
       }
 
-      console.log(
-        `[HLS] Complete for ${target.type}:${target.id}. HLS URL: ${hlsUrl}`
-      );
+      console.log(`[HLS] Complete for ${target.type}`);
 
       // Story için orijinal video dosyasını tutma: HLS hazır olduktan sonra sil.
       if (target.type === "story") {
         try {
           await bucket.file(filePath).delete({ ignoreNotFound: true });
-          console.log(`[HLS] Story source deleted: ${filePath}`);
+          console.log("[HLS] Story source deleted");
         } catch (deleteErr) {
-          console.warn(
-            `[HLS] Story source delete failed (ignored): ${deleteErr}`
-          );
+          console.warn("[HLS] Story source delete failed (ignored)", deleteErr);
         }
       }
 
       // Temp dosyaları temizle
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch (error) {
-      console.error(
-        `[HLS] Error processing ${target.type}:${target.id}:`,
-        error
-      );
+      console.error("[HLS] Error processing video", {
+        type: target.type,
+        error,
+      });
 
       await db.doc(target.firestoreDoc).set(
         target.buildFailData(),

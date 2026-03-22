@@ -3,9 +3,26 @@ import 'package:get/get.dart';
 
 class PostCountManager extends GetxController {
   static PostCountManager? _instance;
+
+  static PostCountManager? maybeFind() {
+    final isRegistered = Get.isRegistered<PostCountManager>();
+    if (!isRegistered) return null;
+    return Get.find<PostCountManager>();
+  }
+
+  static PostCountManager ensure() {
+    final existing = maybeFind();
+    if (existing != null) {
+      _instance = existing;
+      return existing;
+    }
+    final created = Get.put(PostCountManager());
+    _instance = created;
+    return created;
+  }
+
   static PostCountManager get instance {
-    _instance ??= Get.put(PostCountManager());
-    return _instance!;
+    return _instance ??= ensure();
   }
 
   final Map<String, RxInt> _likeCounts = {};
@@ -62,29 +79,14 @@ class PostCountManager extends GetxController {
         : getLikeCount(postID).value - 1;
     getLikeCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
-    // Firebase atomic increment
     try {
-      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
-        "stats.likeCount": FieldValue.increment(increment ? 1 : -1),
-      });
-
-      // Eğer bu paylaşılmış bir post ise, orijinal postun sayacını da güncelle
-      if (originalPostID != null &&
-          originalPostID.isNotEmpty &&
-          originalPostID != postID) {
-        final originalNewCount = increment
-            ? getLikeCount(originalPostID).value + 1
-            : getLikeCount(originalPostID).value - 1;
-        getLikeCount(originalPostID).value =
-            originalNewCount.clamp(0, double.infinity).toInt();
-
-        await FirebaseFirestore.instance
-            .collection("Posts")
-            .doc(originalPostID)
-            .update({
-          "stats.likeCount": FieldValue.increment(increment ? 1 : -1),
-        });
-      }
+      await _updateLinkedPostCounts(
+        postID: postID,
+        originalPostID: originalPostID,
+        fieldPath: "stats.likeCount",
+        increment: increment ? 1 : -1,
+        readLocal: getLikeCount,
+      );
     } catch (e) {
       print("PostCountManager - updateLikeCount error: $e");
     }
@@ -97,29 +99,14 @@ class PostCountManager extends GetxController {
         : getCommentCount(postID).value - 1;
     getCommentCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
-    // Firebase atomic increment
     try {
-      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
-        "stats.commentCount": FieldValue.increment(increment ? 1 : -1),
-      });
-
-      // Eğer bu paylaşılmış bir post ise, orijinal postun sayacını da güncelle
-      if (originalPostID != null &&
-          originalPostID.isNotEmpty &&
-          originalPostID != postID) {
-        final originalNewCount = increment
-            ? getCommentCount(originalPostID).value + 1
-            : getCommentCount(originalPostID).value - 1;
-        getCommentCount(originalPostID).value =
-            originalNewCount.clamp(0, double.infinity).toInt();
-
-        await FirebaseFirestore.instance
-            .collection("Posts")
-            .doc(originalPostID)
-            .update({
-          "stats.commentCount": FieldValue.increment(increment ? 1 : -1),
-        });
-      }
+      await _updateLinkedPostCounts(
+        postID: postID,
+        originalPostID: originalPostID,
+        fieldPath: "stats.commentCount",
+        increment: increment ? 1 : -1,
+        readLocal: getCommentCount,
+      );
     } catch (e) {
       print("PostCountManager - updateCommentCount error: $e");
     }
@@ -132,29 +119,14 @@ class PostCountManager extends GetxController {
         : getSavedCount(postID).value - 1;
     getSavedCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
-    // Firebase atomic increment
     try {
-      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
-        "stats.savedCount": FieldValue.increment(increment ? 1 : -1),
-      });
-
-      // Eğer bu paylaşılmış bir post ise, orijinal postun sayacını da güncelle
-      if (originalPostID != null &&
-          originalPostID.isNotEmpty &&
-          originalPostID != postID) {
-        final originalNewCount = increment
-            ? getSavedCount(originalPostID).value + 1
-            : getSavedCount(originalPostID).value - 1;
-        getSavedCount(originalPostID).value =
-            originalNewCount.clamp(0, double.infinity).toInt();
-
-        await FirebaseFirestore.instance
-            .collection("Posts")
-            .doc(originalPostID)
-            .update({
-          "stats.savedCount": FieldValue.increment(increment ? 1 : -1),
-        });
-      }
+      await _updateLinkedPostCounts(
+        postID: postID,
+        originalPostID: originalPostID,
+        fieldPath: "stats.savedCount",
+        increment: increment ? 1 : -1,
+        readLocal: getSavedCount,
+      );
     } catch (e) {
       print("PostCountManager - updateSavedCount error: $e");
     }
@@ -167,29 +139,14 @@ class PostCountManager extends GetxController {
         : getRetryCount(postID).value - 1;
     getRetryCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
-    // Firebase atomic increment
     try {
-      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
-        "stats.retryCount": FieldValue.increment(increment ? 1 : -1),
-      });
-
-      // Eğer bu paylaşılmış bir post ise, orijinal postun sayacını da güncelle
-      if (originalPostID != null &&
-          originalPostID.isNotEmpty &&
-          originalPostID != postID) {
-        final originalNewCount = increment
-            ? getRetryCount(originalPostID).value + 1
-            : getRetryCount(originalPostID).value - 1;
-        getRetryCount(originalPostID).value =
-            originalNewCount.clamp(0, double.infinity).toInt();
-
-        await FirebaseFirestore.instance
-            .collection("Posts")
-            .doc(originalPostID)
-            .update({
-          "stats.retryCount": FieldValue.increment(increment ? 1 : -1),
-        });
-      }
+      await _updateLinkedPostCounts(
+        postID: postID,
+        originalPostID: originalPostID,
+        fieldPath: "stats.retryCount",
+        increment: increment ? 1 : -1,
+        readLocal: getRetryCount,
+      );
     } catch (e) {
       print("PostCountManager - updateRetryCount error: $e");
     }
@@ -202,10 +159,7 @@ class PostCountManager extends GetxController {
     getStatsCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
     try {
-      await FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(postID)
-          .update({
+      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
         "stats.statsCount": FieldValue.increment(inc),
       });
     } catch (e) {
@@ -227,5 +181,35 @@ class PostCountManager extends GetxController {
     _savedCounts.clear();
     _retryCounts.clear();
     _statsCounts.clear();
+  }
+
+  Future<void> _updateLinkedPostCounts({
+    required String postID,
+    required String? originalPostID,
+    required String fieldPath,
+    required int increment,
+    required RxInt Function(String postId) readLocal,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+
+    batch.update(
+      firestore.collection("Posts").doc(postID),
+      {fieldPath: FieldValue.increment(increment)},
+    );
+
+    if (originalPostID != null &&
+        originalPostID.isNotEmpty &&
+        originalPostID != postID) {
+      final originalNewCount = readLocal(originalPostID).value + increment;
+      readLocal(originalPostID).value =
+          originalNewCount.clamp(0, double.infinity).toInt();
+      batch.update(
+        firestore.collection("Posts").doc(originalPostID),
+        {fieldPath: FieldValue.increment(increment)},
+      );
+    }
+
+    await batch.commit();
   }
 }

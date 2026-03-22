@@ -1,16 +1,46 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/ders_ve_sonuclar_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinaviYapController extends GetxController
     with WidgetsBindingObserver {
+  static DenemeSinaviYapController ensure({
+    required String tag,
+    required SinavModel model,
+    required Function sinaviBitir,
+    required Function showGecersizAlert,
+    required bool uyariAtla,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      DenemeSinaviYapController(
+        model: model,
+        sinaviBitir: sinaviBitir,
+        showGecersizAlert: showGecersizAlert,
+        uyariAtla: uyariAtla,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static DenemeSinaviYapController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<DenemeSinaviYapController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DenemeSinaviYapController>(tag: tag);
+  }
+
   var fullName = "".obs;
   var list = <SoruModel>[].obs;
   var selectedAnswers = <String>[].obs;
@@ -25,6 +55,10 @@ class DenemeSinaviYapController extends GetxController
   final Function sinaviBitir;
   final Function showGecersizAlert;
   final bool uyariAtla;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   DenemeSinaviYapController({
     required this.model,
@@ -60,8 +94,8 @@ class DenemeSinaviYapController extends GetxController
         sinaviGecersizSay();
       } else {
         AppSnackbar(
-          "Uyarı !",
-          "Uygulamayı arka plana almanız gibi kritik durumlarda, sınavınız geçersiz sayılacaktır. Lütfen dikkatli olun ve kurallara uygun hareket edin.",
+          'common.warning'.tr,
+          'practice.background_warning'.tr,
         );
       }
       hataCount.value += 1;
@@ -73,15 +107,13 @@ class DenemeSinaviYapController extends GetxController
 
   Future<void> fetchUserData() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      String firstName = doc.get("firstName");
-      String lastName = doc.get("lastName");
-      fullName.value = "$firstName $lastName";
+      final data = await _userSummaryResolver.resolve(
+        _currentUserId,
+        preferCache: true,
+      );
+      fullName.value = data?.displayName.trim() ?? '';
     } catch (error) {
-      AppSnackbar("Hata", "Kullanıcı bilgileri yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -90,36 +122,14 @@ class DenemeSinaviYapController extends GetxController
 
   Future<void> getSorular() async {
     try {
-      QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Sorular")
-          .get();
-
-      List<SoruModel> tempList = [];
-      for (var doc in snap.docs) {
-        String ders = doc.get("ders");
-        String dogruCevap = doc.get("dogruCevap");
-        num id = doc.get("id");
-        String konu = doc.get("konu");
-        String soru = doc.get("soru");
-
-        tempList.add(
-          SoruModel(
-            id: id.toInt(),
-            soru: soru,
-            ders: ders,
-            konu: konu,
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
-
-      list.value = tempList;
-      selectedAnswers.value = List<String>.filled(tempList.length, "");
+      final questions = await _practiceExamRepository.fetchQuestions(
+        model.docID,
+        preferCache: true,
+      );
+      list.value = questions;
+      selectedAnswers.value = List<String>.filled(questions.length, "");
     } catch (error) {
-      AppSnackbar("Hata", "Sorular yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -131,16 +141,19 @@ class DenemeSinaviYapController extends GetxController
       isConnected.value = results.any((r) => r != ConnectivityResult.none);
       print(
         isConnected.value
-            ? "İnternet bağlantısı var."
-            : "İnternet bağlantısı yok.",
+            ? 'Connectivity available.'
+            : 'No internet connection.',
       );
     });
   }
 
   void sinaviGecersizSay() {
-    FirebaseFirestore.instance.collection("practiceExams").doc(model.docID).set({
+    FirebaseFirestore.instance
+        .collection("practiceExams")
+        .doc(model.docID)
+        .set({
       "gecersizSayilanlar": FieldValue.arrayUnion([
-        FirebaseAuth.instance.currentUser!.uid,
+        _currentUserId,
       ]),
     }, SetOptions(merge: true));
     Get.back();
@@ -157,7 +170,7 @@ class DenemeSinaviYapController extends GetxController
           .doc(docID)
           .set({
         "yanitlar": selectedAnswers,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
+        "userID": _currentUserId,
         "timeStamp": DateTime.now().millisecondsSinceEpoch.toInt(),
       });
       SetOptions(merge: true);
@@ -209,7 +222,7 @@ class DenemeSinaviYapController extends GetxController
       Get.back();
       sinaviBitir();
     } catch (error) {
-      AppSnackbar("Hata", "Yanıtlar kaydedilemedi.");
+      AppSnackbar('common.error'.tr, 'practice.answers_save_failed'.tr);
     }
   }
 

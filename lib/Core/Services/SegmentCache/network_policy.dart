@@ -1,6 +1,4 @@
-import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
-import 'cache_manager.dart';
+import '../PlaybackIntelligence/playback_policy_engine.dart';
 import '../network_awareness_service.dart';
 
 /// Cache sistemi için ağ politikası.
@@ -8,79 +6,113 @@ import '../network_awareness_service.dart';
 ///
 /// Politika:
 /// - Wi-Fi: prefetch + on-demand CDN fetch
-/// - Cellular: sadece cache'den serv et (cache miss = oynatma yok)
+/// - Cellular: arka plan prefetch kapalı, on-demand segment fetch açık
 /// - Offline: sadece cache'den serv et
 class CacheNetworkPolicy {
+  static PlaybackPolicyEngine? get _engine => PlaybackPolicyEngine.maybeFind();
+
   /// Wi-Fi'de mi? Prefetch sadece Wi-Fi'de çalışır.
   static bool get canPrefetch {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnWiFi;
-    } catch (_) {
-      return false;
+    final engine = _engine;
+    if (engine != null) {
+      return engine.snapshot().allowBackgroundPrefetch;
     }
+    return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;
+  }
+
+  static PlaybackPolicySnapshot? get currentSnapshot {
+    final engine = _engine;
+    if (engine == null) return null;
+    return engine.snapshot();
   }
 
   /// On-demand CDN fetch izni.
-  /// SADECE Wi-Fi'de true — mobil veride cache miss olursa CDN'e gitmez.
+  /// Wi-Fi'de her zaman true.
+  /// Cellular'da sadece oynatma anındaki cache-miss segmentleri için true.
+  /// (Arka plan prefetch yine canPrefetch ile Wi-Fi'a bağlıdır.)
   static bool get canFetchOnDemand {
-    try {
-      final net = Get.find<NetworkAwarenessService>();
-      if (net.isOnWiFi) return true;
-
-      // Mobilde istisna: keş 50 videonun altındaysa, izlenen videodan
-      // gelen anlık segment isteğine izin ver (izledikçe keş dolsun).
-      if (net.isOnCellular) {
-
-        // Cache manager henüz ayağa kalkmadıysa bootstrap için izin ver.
-        if (!Get.isRegistered<SegmentCacheManager>()) {
-          return true;
-        }
-        final cache = Get.find<SegmentCacheManager>();
-        return cache.cachedVideoCount < ContentPolicy.minGlobalCachedVideos;
-      }
-      // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
-      return net.isConnected;
-    } catch (_) {
+    final engine = _engine;
+    if (engine != null) {
+      return engine.snapshot().allowOnDemandSegmentFetch;
+    }
+    final net = NetworkAwarenessService.maybeFind();
+    if (net == null) {
       // Fail-open: policy servisleri geç yüklenirse oynatma kilitlenmesin.
       return true;
     }
+    if (net.isOnWiFi) return true;
+
+    // Mobilde oynatma akışını kilitlememek için on-demand segment'e izin ver.
+    if (net.isOnCellular) {
+      return net.isConnected;
+    }
+    // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
+    return net.isConnected;
   }
 
   /// Playlist fetch izni — playlist'ler küçük olduğu için cellular'da da izin ver.
   /// Segment fetch'ten farklı: m3u8 birkaç KB, segment onlarca MB olabilir.
   static bool get canFetchPlaylist {
-    try {
-      return Get.find<NetworkAwarenessService>().isConnected;
-    } catch (_) {
-      return true;
+    final engine = _engine;
+    if (engine != null) {
+      return engine.snapshot().allowPlaylistFetch;
     }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? true;
   }
 
-  /// Cache-only mod: cellular veya offline ise segment CDN fetch yapma.
+  /// Cache-only mod: offline veya kullanici mobil veride durdurduysa segment CDN fetch yapma.
   static bool get cacheOnlyMode {
-    try {
-      final net = Get.find<NetworkAwarenessService>();
-      return !net.isOnWiFi; // Wi-Fi değilse sadece cache'den serv et
-    } catch (_) {
-      return true;
+    final engine = _engine;
+    if (engine != null) {
+      return engine.snapshot().cacheOnlyMode;
     }
+    final net = NetworkAwarenessService.maybeFind();
+    if (net == null) return true;
+    if (!net.isConnected) return true;
+    if (net.isOnWiFi) return false;
+    if (net.isOnCellular) {
+      return net.settings.pauseOnCellular;
+    }
+    return false;
+  }
+
+  static String get playlistFetchBlockedReason {
+    final snapshot = currentSnapshot;
+    if (snapshot != null) {
+      if (snapshot.mode == PlaybackMode.offlineGuard) {
+        return 'Offline - playlist not cached';
+      }
+      return 'Playback policy blocked playlist fetch';
+    }
+    return 'Offline - playlist not cached';
+  }
+
+  static String get segmentFetchBlockedReason {
+    final snapshot = currentSnapshot;
+    if (snapshot != null) {
+      if (snapshot.mode == PlaybackMode.offlineGuard) {
+        return 'Offline - segment not cached';
+      }
+      if (snapshot.cacheOnlyMode) {
+        return 'Cache-only mode - segment not cached';
+      }
+      if (snapshot.mode == PlaybackMode.cellularGuard) {
+        return 'Cellular guard blocked segment fetch';
+      }
+      return 'Playback policy blocked segment fetch';
+    }
+    return cacheOnlyMode
+        ? 'Cache-only mode - segment not cached'
+        : 'Segment fetch blocked by policy';
   }
 
   /// Mobil veri mi?
   static bool get isOnCellular {
-    try {
-      return Get.find<NetworkAwarenessService>().isOnCellular;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
   }
 
   /// Herhangi bir bağlantı var mı? (wifi, cellular, vs)
   static bool get isConnected {
-    try {
-      return Get.find<NetworkAwarenessService>().isConnected;
-    } catch (_) {
-      return false;
-    }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 }

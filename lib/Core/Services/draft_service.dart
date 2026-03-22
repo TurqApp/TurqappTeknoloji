@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 
 class PostDraft {
   final String id;
@@ -82,11 +85,24 @@ class PostDraft {
 }
 
 class DraftService extends GetxController {
+  static DraftService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DraftService());
+  }
+
+  static DraftService? maybeFind() {
+    final isRegistered = Get.isRegistered<DraftService>();
+    if (!isRegistered) return null;
+    return Get.find<DraftService>();
+  }
+
   final RxList<PostDraft> _drafts = <PostDraft>[].obs;
   final RxBool _autoSaveEnabled = true.obs;
   final RxInt _autoSaveInterval = 30.obs; // seconds
+  StreamSubscription<User?>? _authSub;
 
-  static const String _draftsKey = 'post_drafts';
+  static const String _draftsKeyPrefix = 'post_drafts';
   static const String _autoSaveKey = 'auto_save_enabled';
   static const int _maxDrafts = 20;
 
@@ -99,6 +115,13 @@ class DraftService extends GetxController {
     super.onInit();
     _loadDraftsFromStorage();
     _loadSettings();
+    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+      unawaited(_loadDraftsFromStorage());
+    });
+  }
+
+  String get _activeDraftsKey {
+    return userScopedKey(_draftsKeyPrefix);
   }
 
   /// Save draft automatically
@@ -257,23 +280,22 @@ class DraftService extends GetxController {
       if (await draftDir.exists()) {
         await draftDir.delete(recursive: true);
       }
-    } catch (e) {
-      print('Error cleaning up draft media: $e');
-    }
+    } catch (_) {}
   }
 
   /// Save drafts to storage
   Future<void> _saveDraftsToStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final draftsJson = _drafts.map((draft) => draft.toJson()).toList();
-    await prefs.setString(_draftsKey, jsonEncode(draftsJson));
+    await prefs.setString(_activeDraftsKey, jsonEncode(draftsJson));
   }
 
   /// Load drafts from storage
   Future<void> _loadDraftsFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    final draftsString = prefs.getString(_draftsKey);
+    final draftsString = prefs.getString(_activeDraftsKey);
 
+    _drafts.clear();
     if (draftsString != null) {
       final draftsJson = jsonDecode(draftsString) as List;
       _drafts.assignAll(
@@ -319,5 +341,11 @@ class DraftService extends GetxController {
       'hasGif': draft.gif.isNotEmpty,
       'lastModified': draft.lastModified.toIso8601String(),
     };
+  }
+
+  @override
+  void onClose() {
+    _authSub?.cancel();
+    super.onClose();
   }
 }

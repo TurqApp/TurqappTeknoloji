@@ -1,0 +1,14 @@
+{
+  "feed": {
+    "minCount": 1
+  },
+  "profile": {
+    "minCount": 1
+  },
+  "short": {
+    "minCount": 0
+  },
+  "notifications": {
+    "maxUnread": 250
+  }
+}

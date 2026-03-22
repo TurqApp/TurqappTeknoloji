@@ -11,10 +11,10 @@ interface Env {
   SHORT_LINK_RESOLVE_URL?: string;
 }
 
-type LinkType = "p" | "s" | "u" | "e" | "i";
+type LinkType = "p" | "s" | "u" | "e" | "i" | "m";
 
 type LinkMeta = {
-  type?: "post" | "story" | "user" | "edu" | "job";
+  type?: "post" | "story" | "user" | "edu" | "job" | "market";
   entityId?: string;
   shortId?: string;
   slug?: string;
@@ -52,7 +52,7 @@ export default {
       });
     }
 
-const route = parseRoute(path);
+    const route = parseRoute(path);
     if (!route) {
       return new Response("Not found", { status: 404 });
     }
@@ -87,7 +87,7 @@ const route = parseRoute(path);
           ctaLabel: "İçeriği İncele",
         });
         return new Response(fallback, {
-          headers: { "content-type": "text/html; charset=utf-8" },
+          headers: htmlHeaders(),
         });
       } else {
         return notFoundHtml("Link bulunamadı");
@@ -138,17 +138,17 @@ const route = parseRoute(path);
           if (!response.ok) {
             return new Response(
               "<!doctype html><html><body><h3>Bağlantı geçersiz veya süresi dolmuş.</h3></body></html>",
-              { status: 410, headers: { "content-type": "text/html; charset=utf-8" } }
+              { status: 410, headers: htmlHeaders() }
             );
           }
           return new Response(
             "<!doctype html><html><body><h3>Onaylandı. Uygulamaya geri dönebilirsiniz.</h3></body></html>",
-            { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+            { status: 200, headers: htmlHeaders() }
           );
         } catch {
           return new Response(
             "<!doctype html><html><body><h3>Onay servisine ulaşılamadı. Lütfen tekrar deneyin.</h3></body></html>",
-            { status: 503, headers: { "content-type": "text/html; charset=utf-8" } }
+            { status: 503, headers: htmlHeaders() }
           );
         }
       }
@@ -167,10 +167,9 @@ const route = parseRoute(path);
 
     if (isBot(ua)) {
       return new Response(ogHtml({ title, desc, image, canonical }), {
-        headers: {
-          "content-type": "text/html; charset=utf-8",
+        headers: htmlHeaders({
           "cache-control": `public, max-age=${CACHE_TTL_SECONDS}`,
-        },
+        }),
       });
     }
 
@@ -186,10 +185,9 @@ const route = parseRoute(path);
         ctaLabel: ctaLabelFor(route, meta),
       }),
       {
-        headers: {
-          "content-type": "text/html; charset=utf-8",
+        headers: htmlHeaders({
           "cache-control": "no-store",
-        },
+        }),
       }
     );
   },
@@ -218,6 +216,9 @@ async function proxyOgImage(request: Request, url: URL, env: Env): Promise<Respo
     const headers = new Headers(upstream.headers);
     headers.set("cache-control", `public, max-age=${CACHE_TTL_SECONDS}`);
     headers.set("access-control-allow-origin", "*");
+    headers.set("cross-origin-resource-policy", "cross-origin");
+    headers.set("x-content-type-options", "nosniff");
+    headers.set("referrer-policy", "no-referrer");
     return new Response(upstream.body, {
       status: upstream.status,
       headers,
@@ -231,7 +232,7 @@ async function proxyOgImage(request: Request, url: URL, env: Env): Promise<Respo
 }
 
 function parseRoute(pathname: string): { kind: LinkType; id: string } | null {
-  const match = pathname.match(/^\/(p|s|u|e|i)\/([A-Za-z0-9._-]{2,80})$/);
+  const match = pathname.match(/^\/(p|s|u|e|i|m)\/([A-Za-z0-9._-]{2,80})$/);
   if (!match) return null;
   return { kind: match[1] as LinkType, id: match[2] };
 }
@@ -242,6 +243,7 @@ function buildDeepLink(appScheme: string, kind: LinkType, id: string): string {
   if (kind === "s") return `${base}://story/${id}`;
   if (kind === "e") return `${base}://e/${id}`;
   if (kind === "i") return `${base}://job/${id}`;
+  if (kind === "m") return `${base}://market/${id}`;
   return `${base}://profile/${id}`;
 }
 
@@ -263,6 +265,9 @@ function ctaLabelFor(route: { kind: LinkType; id: string }, meta?: LinkMeta): st
     return "Özel Dersi İncele";
   }
   if (entityId.startsWith("job:") || route.kind === "i") {
+    return "İlanı İncele";
+  }
+  if (route.kind === "m" || String(meta?.type || "") === "market") {
     return "İlanı İncele";
   }
   return "Uygulamada Aç";
@@ -300,6 +305,25 @@ function safeUrl(value: string): string {
     return value;
   }
   return "";
+}
+
+function baseSecurityHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
+    "x-frame-options": "DENY",
+    "permissions-policy": "camera=(), microphone=(), geolocation=()",
+    ...(extra || {}),
+  };
+}
+
+function htmlHeaders(extra?: Record<string, string>): Record<string, string> {
+  return baseSecurityHeaders({
+    "content-type": "text/html; charset=utf-8",
+    "content-security-policy":
+      "default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    ...(extra || {}),
+  });
 }
 
 function ogHtml(input: { title: string; desc: string; image: string; canonical: string }): string {
@@ -406,24 +430,24 @@ function fallbackHtml(input: {
 function expiredHtml(): Response {
   return new Response(
     "<!doctype html><html><body><h3>Story süresi dolmuş.</h3></body></html>",
-    { status: 410, headers: { "content-type": "text/html; charset=utf-8" } }
+    { status: 410, headers: htmlHeaders() }
   );
 }
 
 function notFoundHtml(message: string): Response {
   return new Response(
     `<!doctype html><html><body><h3>${safeText(message)}</h3></body></html>`,
-    { status: 404, headers: { "content-type": "text/html; charset=utf-8" } }
+    { status: 404, headers: htmlHeaders() }
   );
 }
 
 function jsonResponse(jsonText: string, status = 200, extraHeaders?: Record<string, string>): Response {
   return new Response(jsonText, {
     status,
-    headers: {
+    headers: baseSecurityHeaders({
       "content-type": "application/json; charset=utf-8",
       ...(extraHeaders || {}),
-    },
+    }),
   });
 }
 
@@ -439,6 +463,8 @@ async function resolveFromFunction(
     ? "user"
     : route.kind === "i"
     ? "job"
+    : route.kind === "m"
+    ? "market"
     : "edu";
 
   const explicitUrl = String(env.SHORT_LINK_RESOLVE_URL || "").trim();

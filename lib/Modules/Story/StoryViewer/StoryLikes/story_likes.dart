@@ -1,49 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 
 import '../../../../Core/empty_row.dart';
 import '../StoryContentProfiles/story_content_profiles.dart';
 import 'story_likes_controller.dart';
 
-class StoryLikes extends StatelessWidget {
+class StoryLikes extends StatefulWidget {
   final String storyID;
-  StoryLikes({super.key, required this.storyID});
+  const StoryLikes({super.key, required this.storyID});
+
+  @override
+  State<StoryLikes> createState() => _StoryLikesState();
+}
+
+class _StoryLikesState extends State<StoryLikes> {
+  late final String _controllerTag;
+  late final StoryLikesController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'story_likes_${widget.storyID}_${identityHashCode(this)}';
+    final existingController =
+        StoryLikesController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = StoryLikesController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
+    controller.getData(widget.storyID);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          StoryLikesController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<StoryLikesController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StoryLikesController(), tag: storyID);
-    controller.getData(storyID);
     return SafeArea(
       child: Obx(() {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Text(
-                    "Beğeniler (${controller.totalLike})",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold"),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  )
-                ],
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: AppSheetHeader(
+                title: "story.likes_title"
+                    .trParams({"count": controller.totalLike.toString()}),
               ),
             ),
             Expanded(
@@ -56,7 +70,7 @@ class StoryLikes extends StatelessWidget {
                       },
                     )
                   : Center(
-                      child: EmptyRow(text: "Kimse hikayeni beğenmedi"),
+                      child: EmptyRow(text: "story.no_likes".tr),
                     ),
             )
           ],

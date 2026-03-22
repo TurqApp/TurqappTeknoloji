@@ -1,14 +1,45 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ApplicationReviewController extends GetxController {
+  static ApplicationReviewController ensure({
+    required String jobDocID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ApplicationReviewController(jobDocID: jobDocID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ApplicationReviewController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<ApplicationReviewController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ApplicationReviewController>(tag: tag);
+  }
+
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final CvRepository _cvRepository = CvRepository.ensure();
+  final JobRepository _jobRepository = JobRepository.ensure();
   final String jobDocID;
   ApplicationReviewController({required this.jobDocID});
 
   RxList<JobApplicationModel> applicants = <JobApplicationModel>[].obs;
   var isLoading = false.obs;
+  static const Duration _silentRefreshInterval = Duration(minutes: 3);
 
   final RxMap<String, Map<String, dynamic>> cvCache =
       <String, Map<String, dynamic>>{}.obs;
@@ -16,38 +47,44 @@ class ApplicationReviewController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadApplicants();
+    unawaited(_bootstrapApplicants());
   }
 
-  Future<void> loadApplicants() async {
-    isLoading.value = true;
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(jobDocID)
-          .collection('Applications')
-          .orderBy('timeStamp', descending: true)
-          .get();
+  Future<void> _bootstrapApplicants() async {
+    final cached = await _jobRepository.fetchApplications(
+      jobDocID,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      applicants.assignAll(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'jobs:applications_review:$jobDocID',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(loadApplicants(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await loadApplicants();
+  }
 
-      applicants.value = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return JobApplicationModel(
-          jobDocID: jobDocID,
-          userID: doc.id,
-          jobTitle: data['jobTitle'] ?? '',
-          companyName: data['companyName'] ?? '',
-          companyLogo: data['companyLogo'] ?? '',
-          applicantName: data['applicantName'] ?? '',
-          applicantNickname: data['applicantNickname'] ?? '',
-          applicantPfImage: data['applicantPfImage'] ?? '',
-          status: data['status'] ?? 'pending',
-          timeStamp: data['timeStamp'] ?? 0,
-          statusUpdatedAt: data['statusUpdatedAt'] ?? 0,
-          note: data['note'] ?? '',
-        );
-      }).toList();
-    } catch (e) {
-      print("Başvuranlar yüklenirken hata: $e");
+  Future<void> loadApplicants({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      applicants.value = await _jobRepository.fetchApplications(
+        jobDocID,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      SilentRefreshGate.markRefreshed('jobs:applications_review:$jobDocID');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -58,70 +95,52 @@ class ApplicationReviewController extends GetxController {
   Future<Map<String, dynamic>?> getApplicantCV(String userID) async {
     if (cvCache.containsKey(userID)) return cvCache[userID];
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('CV').doc(userID).get();
-      if (doc.exists && doc.data() != null) {
+      final data = await _cvRepository.getCv(userID, preferCache: true);
+      if (data != null) {
         // Eski cache'i temizle
         if (cvCache.length >= _maxCacheSize) {
           final oldestKey = cvCache.keys.first;
           cvCache.remove(oldestKey);
         }
-        cvCache[userID] = doc.data()!;
-        return doc.data();
+        cvCache[userID] = data;
+        return data;
       }
-    } catch (e) {
-      print("CV yükleme hatası: $e");
-    }
+    } catch (_) {}
     return null;
   }
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      if (doc.exists && doc.data() != null) {
-        return doc.data();
-      }
-    } catch (e) {
-      print("Profil yükleme hatası: $e");
-    }
+      final summary = await _userSummaryResolver.resolve(
+        userID,
+        preferCache: true,
+      );
+      return summary?.toMap();
+    } catch (_) {}
     return null;
   }
 
   Future<void> updateStatus(String userID, String newStatus) async {
     try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-
-      final batch = FirebaseFirestore.instance.batch();
-
-      batch.update(
-          FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(jobDocID)
-              .collection('Applications')
-              .doc(userID),
-          {
-            'status': newStatus,
-            'statusUpdatedAt': now,
-          });
-
-      batch.update(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(userID)
-              .collection('myApplications')
-              .doc(jobDocID),
-          {
-            'status': newStatus,
-          });
-
-      await batch.commit();
+      final actorUid = CurrentUserService.instance.effectiveUserId;
+      if (actorUid.isEmpty) {
+        AppSnackbar(
+          'common.error'.tr,
+          'pasaj.job_finder.relogin_required'.tr,
+        );
+        return;
+      }
+      await _jobRepository.updateApplicationStatus(
+        jobDocId: jobDocID,
+        applicantUserId: userID,
+        actorUid: actorUid,
+        newStatus: newStatus,
+      );
 
       final index = applicants.indexWhere((a) => a.userID == userID);
       if (index != -1) {
         final old = applicants[index];
+        final now = DateTime.now().millisecondsSinceEpoch;
         applicants[index] = JobApplicationModel(
           jobDocID: old.jobDocID,
           userID: old.userID,
@@ -138,8 +157,16 @@ class ApplicationReviewController extends GetxController {
         );
         applicants.refresh();
       }
-    } catch (e) {
-      print("Durum güncelleme hatası: $e");
+      AppSnackbar(
+        'common.success'.tr,
+        'pasaj.job_finder.status_updated'.tr,
+      );
+      await loadApplicants(silent: true, forceRefresh: true);
+    } catch (_) {
+      AppSnackbar(
+        'common.error'.tr,
+        'pasaj.job_finder.status_update_failed'.tr,
+      );
     }
   }
 }

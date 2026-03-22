@@ -8,7 +8,8 @@ import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts_controller.dar
 class PhotoShorts extends StatefulWidget {
   final List<PostsModel> fetchedList;
   final PostsModel startModel;
-  const PhotoShorts({super.key, required this.fetchedList, required this.startModel});
+  const PhotoShorts(
+      {super.key, required this.fetchedList, required this.startModel});
 
   @override
   State<PhotoShorts> createState() => _PhotoShortsState();
@@ -17,14 +18,20 @@ class PhotoShorts extends StatefulWidget {
 class _PhotoShortsState extends State<PhotoShorts> {
   late final PhotoShortsController controller;
   late final PageController pageController;
+  late final String _controllerTag;
+  late final bool _ownsController;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(PhotoShortsController());
+    _controllerTag = 'PhotoShorts_${identityHashCode(this)}';
+    _ownsController =
+        PhotoShortsController.maybeFind(tag: _controllerTag) == null;
+    controller = PhotoShortsController.ensure(tag: _controllerTag);
 
     // fetchedList'i kopyala ve gerekirse startModel'i başa ekle
-    final List<PostsModel> initialList = List<PostsModel>.from(widget.fetchedList);
+    final List<PostsModel> initialList =
+        List<PostsModel>.from(widget.fetchedList);
     if (!initialList.any((e) => e.docID == widget.startModel.docID)) {
       initialList.insert(0, widget.startModel);
     }
@@ -44,6 +51,13 @@ class _PhotoShortsState extends State<PhotoShorts> {
   @override
   void dispose() {
     pageController.dispose();
+    if (_ownsController &&
+        identical(
+          PhotoShortsController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PhotoShortsController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
   }
 

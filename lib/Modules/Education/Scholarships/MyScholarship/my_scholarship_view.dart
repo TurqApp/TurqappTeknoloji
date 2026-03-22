@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,15 +8,52 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_type_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class MyScholarshipView extends StatelessWidget {
+class MyScholarshipView extends StatefulWidget {
   MyScholarshipView({super.key});
 
-  final MyScholarshipController controller = Get.put(MyScholarshipController());
-  final ScholarshipDetailController detailController = Get.put(
-    ScholarshipDetailController(),
-  );
+  @override
+  State<MyScholarshipView> createState() => _MyScholarshipViewState();
+}
+
+class _MyScholarshipViewState extends State<MyScholarshipView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final MyScholarshipController controller;
+  late final bool _ownsDetailController;
+  late final ScholarshipDetailController detailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_my_${identityHashCode(this)}';
+    final existing = MyScholarshipController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller =
+        existing ?? MyScholarshipController.ensure(tag: _controllerTag);
+    final existingDetail = ScholarshipDetailController.maybeFind();
+    _ownsDetailController = existingDetail == null;
+    detailController = existingDetail ?? ScholarshipDetailController.ensure();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          MyScholarshipController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyScholarshipController>(tag: _controllerTag, force: true);
+    }
+    if (_ownsDetailController &&
+        identical(ScholarshipDetailController.maybeFind(), detailController)) {
+      Get.delete<ScholarshipDetailController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +62,14 @@ class MyScholarshipView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Burs İlanlarım"),
+            BackButtons(text: 'scholarship.my_listings'.tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value &&
                         controller.myScholarships.isEmpty
                     ? Center(child: CupertinoActivityIndicator())
                     : controller.myScholarships.isEmpty
-                        ? EmptyRow(text: "Burs İlanınız Bulunmamaktadır!")
+                        ? EmptyRow(text: 'scholarship.no_my_listings'.tr)
                         : ListView.builder(
                             itemCount: controller.myScholarships.length,
                             itemBuilder: (context, index) {
@@ -113,8 +149,11 @@ class MyScholarshipView extends StatelessWidget {
                                           children: [
                                             10.ph,
                                             Text(
-                                              type == 'bireysel'
-                                                  ? "${burs.baslik} BURS BAŞVURULARI"
+                                              isIndividualScholarshipType(type)
+                                                  ? 'scholarship.applications_suffix'
+                                                      .trParams({
+                                                      'title': burs.baslik,
+                                                    })
                                                   : burs.baslik,
                                               style: TextStyle(
                                                 fontSize: 16,
@@ -127,18 +166,21 @@ class MyScholarshipView extends StatelessWidget {
                                             Row(
                                               children: [
                                                 Text(
-                                                  type == 'bireysel'
+                                                  isIndividualScholarshipType(
+                                                          type)
                                                       ? (userData?['nickname']
                                                                   ?.isNotEmpty ??
                                                               false
                                                           ? userData![
                                                               'nickname']
-                                                          : 'Bilinmeyen Kullanıcı')
+                                                          : 'common.unknown_user'
+                                                              .tr)
                                                       : (firmaData?['adi']
                                                                   ?.isNotEmpty ??
                                                               false
                                                           ? firmaData!['adi']
-                                                          : 'Bilinmeyen Firma'),
+                                                          : 'common.unknown_company'
+                                                              .tr),
                                                   style: TextStyle(
                                                     fontSize: 14,
                                                     fontFamily:
@@ -151,9 +193,8 @@ class MyScholarshipView extends StatelessWidget {
                                                 ),
                                                 RozetContent(
                                                   size: 15,
-                                                  userID: FirebaseAuth.instance
-                                                          .currentUser?.uid ??
-                                                      '',
+                                                  userID: CurrentUserService
+                                                      .instance.userId,
                                                 ),
                                               ],
                                             ),

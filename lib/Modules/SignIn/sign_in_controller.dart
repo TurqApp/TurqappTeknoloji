@@ -1,25 +1,68 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
+import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
+import 'package:turqappv2/Core/Services/user_document_schema.dart';
+import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
-import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
+import 'package:turqappv2/Modules/Splash/splash_view.dart';
+import 'package:turqappv2/Models/stored_account.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/account_session_vault.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/phone_account_limiter.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Services/device_session_service.dart';
+import 'package:turqappv2/Services/phone_account_limiter.dart';
+
+part 'sign_in_controller_auth_part.dart';
+part 'sign_in_controller_signup_part.dart';
 
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
-  late AnimationController animationController;
+  static SignInController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SignInController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SignInController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<SignInController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SignInController>(tag: tag);
+  }
+
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSubdocRepository _userSubdocRepository =
+      UserSubdocRepository.ensure();
+  static const String _loginWord = 'TurqApp';
 
   var selection = 0.obs;
+  final typedBrandLength = 0.obs;
+  final showBrandCursor = true.obs;
 
-  // Text controllers
   TextEditingController emailcontroller = TextEditingController();
   TextEditingController passwordcontroller = TextEditingController();
   TextEditingController nicknamecontroller = TextEditingController();
@@ -32,7 +75,6 @@ class SignInController extends GetxController
   TextEditingController newPasswordController = TextEditingController();
   TextEditingController newPasswordRepeatController = TextEditingController();
 
-  // Focus nodes
   Rx<FocusNode> emailFocus = FocusNode().obs;
   Rx<FocusNode> passwordFocus = FocusNode().obs;
   Rx<FocusNode> nicknameFocus = FocusNode().obs;
@@ -45,8 +87,6 @@ class SignInController extends GetxController
   Rx<FocusNode> newPasswordFocus = FocusNode().obs;
   Rx<FocusNode> newPasswordRepeatFocus = FocusNode().obs;
 
-  var wasSentCode = generateRandomNumber(100000, 999999).obs;
-  // Rx values
   var firstName = ''.obs;
   var lastName = ''.obs;
   var phoneNumber = ''.obs;
@@ -62,112 +102,225 @@ class SignInController extends GetxController
   var emailAvilable = false.obs;
   var passwordAvilable = false.obs;
   var wait = false.obs;
+  var signupIdentityCheckLoading = false.obs;
+  var signupPoliciesAccepted = false.obs;
   var showPassword = false.obs;
+  var showNewPassword = false.obs;
+  var showNewPasswordRepeat = false.obs;
 
   var isFormValid = false.obs;
+  final Rxn<StoredAccount> selectedStoredAccount = Rxn<StoredAccount>();
 
-  var otpTimer = 120.obs;
+  var otpTimer = 0.obs;
   Timer? _timer;
+  Timer? _emailAvailabilityDebounce;
+  Timer? _nicknameAvailabilityDebounce;
+  Timer? _typewriterTimer;
+  Timer? _cursorBlinkTimer;
+  Worker? _selectionWorker;
+  var signupCodeRequested = false.obs;
+  var otpRequestInFlight = false.obs;
 
   var resetPhoneNumber = "".obs;
   var resetOldPassword = "".obs;
   var resetUserID = "".obs;
-  var otpTimerReset = 120.obs;
+  var otpTimerReset = 0.obs;
   Timer? _timerReset;
+  var resetCodeRequested = false.obs;
+  var resetOtpRequestInFlight = false.obs;
 
   var signInEmail = "".obs;
+  final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: 'europe-west3');
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ),
+  );
+  int _emailAvailabilityRequestId = 0;
+  int _nicknameAvailabilityRequestId = 0;
+  static const String _signupAvailabilityUrl =
+      'https://europe-west3-turqappteknoloji.cloudfunctions.net/checkSignupAvailabilityHttp';
 
-  Future<void> _restoreAccountIfPendingDeletion() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
+  void _logSignupOtp(String stage, [Map<String, Object?> details = const {}]) {
+    debugPrint('[SignupOtp] $stage ${details.isEmpty ? "" : details}');
+  }
 
-    final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
-    final userSnap = await userRef.get();
-    final userData = userSnap.data();
-    if (userData == null) return;
+  void _ensureFeedTabSelected() {
+    final nav = NavBarController.maybeFind() ?? NavBarController.ensure();
+    nav.selectedIndex.value = 0;
+  }
 
-    final status = (userData["accountStatus"] ?? "").toString().toLowerCase();
-    if (status != "pending_deletion") return;
+  String _formatSeconds(int seconds) {
+    final safe = seconds < 0 ? 0 : seconds;
+    final m = (safe ~/ 60).toString().padLeft(2, '0');
+    final s = (safe % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
 
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    int? scheduledAtMs;
-    final dynamic scheduledRaw = userData["deletionScheduledAt"];
-    if (scheduledRaw is Timestamp) {
-      scheduledAtMs = scheduledRaw.millisecondsSinceEpoch;
-    } else if (scheduledRaw is num) {
-      scheduledAtMs = scheduledRaw.toInt();
+  Future<void> _clearSessionCachesAfterAccountSwitch() async {
+    // User switch should preserve global content caches.
+    // Warmup methods refresh user-scoped overlays and controllers afterward.
+  }
+
+  Future<void> _trackCurrentAccountForDevice() async {
+    final userService = CurrentUserService.instance;
+    final firebaseUser = userService.currentAuthUser;
+    final currentUser = userService.currentUser;
+    if (firebaseUser == null) return;
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenterTrack] start uid=${firebaseUser.uid} currentUserReady=${currentUser != null}',
+      );
     }
+    final service = AccountCenterService.ensure();
+    await service.init();
+    if (currentUser != null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AccountCenterTrack] source=currentUser nickname=${currentUser.nickname} uid=${currentUser.userID}',
+        );
+      }
+      await service.addCurrentAccount(
+        currentUser: currentUser,
+        firebaseUser: firebaseUser,
+      );
+    } else {
+      final summary = await _userRepository.getUser(
+        firebaseUser.uid,
+        preferCache: true,
+      );
+      if (summary != null) {
+        if (kDebugMode) {
+          debugPrint(
+            '[AccountCenterTrack] source=userSummary username=${summary.username} uid=${summary.userID}',
+          );
+        }
+        await service.addOrUpdateAccount(
+          StoredAccount.fromUserSummary(
+            user: summary,
+            firebaseUser: firebaseUser,
+          ),
+        );
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+            '[AccountCenterTrack] source=firebaseUser email=${firebaseUser.email} uid=${firebaseUser.uid}',
+          );
+        }
+        await service.addOrUpdateAccount(
+          StoredAccount.fromFirebaseUser(firebaseUser),
+        );
+      }
+    }
+    await service.markSuccessfulSignIn(firebaseUser.uid);
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenterTrack] done uid=${firebaseUser.uid} accounts=${service.accounts.map((e) => e.uid).toList()}',
+      );
+    }
+  }
 
-    // Süresi dolmuşsa (silinme zamanı geçmişse) otomatik geri açma yapma.
-    if (scheduledAtMs != null && scheduledAtMs <= nowMs) {
+  String _resolvedSignInEmail() {
+    final raw = emailcontroller.text.trim();
+    if (raw.contains('@')) return normalizeEmailAddress(raw);
+    return normalizeEmailAddress(signInEmail.value);
+  }
+
+  Future<void> _persistStoredSessionCredential({
+    String? email,
+    String? password,
+  }) async {
+    final userService = CurrentUserService.instance;
+    final authUser = userService.currentAuthUser;
+    final resolvedEmail =
+        normalizeEmailAddress(email ?? userService.effectiveEmail);
+    final resolvedPassword = (password ?? '').trim();
+    if (authUser == null || resolvedEmail.isEmpty || resolvedPassword.isEmpty) {
       return;
     }
+    await AccountSessionVault.instance.saveEmailPassword(
+      uid: authUser.uid,
+      email: resolvedEmail,
+      password: resolvedPassword,
+    );
+  }
 
-    // Hesabı yeniden aktif et
-    await userRef.set({
-      "accountStatus": "active",
-      "deletedAccount": false,
-      "gizliHesap": false,
-      "updatedAt": FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+  Future<String> preferredIdentifierForStoredAccount(
+      StoredAccount account) async {
+    final emailFromAccount = normalizeEmailAddress(account.email);
+    if (emailFromAccount.isNotEmpty) return emailFromAccount;
+    if (account.hasPasswordProvider) {
+      final credential = await AccountSessionVault.instance.read(account.uid);
+      final email = normalizeEmailAddress(credential?.email);
+      if (email.isNotEmpty) return email;
+    }
+    return account.username;
+  }
 
-    // Bekleyen silme aksiyonunu iptal işaretle
-    try {
-      final actionSnap = await userRef
-          .collection("account_actions")
-          .where("type", isEqualTo: "deletion")
-          .where("status", isEqualTo: "pending")
-          .limit(1)
-          .get();
-      if (actionSnap.docs.isNotEmpty) {
-        await actionSnap.docs.first.reference.set({
-          "status": "cancelled",
-          "cancelledAt": FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
-    } catch (_) {}
+  void prepareSignInPrefill(String identifier) {
+    final normalized = identifier.trim();
+    if (normalized.isEmpty) {
+      emailcontroller.clear();
+      passwordcontroller.clear();
+      email.value = '';
+      password.value = '';
+      signInEmail.value = '';
+      selection.value = 0;
+      return;
+    }
+    emailcontroller.text = normalized;
+    email.value = normalized;
+    signInEmail.value = normalized.contains('@') ? normalized : '';
+    passwordcontroller.clear();
+    password.value = '';
+    selection.value = 1;
+  }
 
-    // Silme sırasında gizlenen postları geri aç
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("userID", isEqualTo: uid)
-        .where("deletedPost", isEqualTo: true)
-        .limit(400);
+  void prepareStoredAccountContext(String uid) {
+    final normalized = uid.trim();
+    if (normalized.isEmpty) {
+      selectedStoredAccount.value = null;
+      return;
+    }
+    selectedStoredAccount.value =
+        AccountCenterService.ensure().accountByUid(normalized);
+  }
 
-    while (true) {
-      final snap = await query.get();
-      if (snap.docs.isEmpty) break;
+  Future<void> continueWithStoredAccount(StoredAccount account) async {
+    if (account.hasPasswordProvider) {
+      final switched = await signInWithStoredAccount(account);
+      if (switched) return;
+    }
+    prepareSignInPrefill(await preferredIdentifierForStoredAccount(account));
+    selectedStoredAccount.value = account;
+  }
 
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in snap.docs) {
-        batch.update(doc.reference, {
-          "deletedPost": false,
-          "deletedPostTime": 0,
-          "updatedAt": FieldValue.serverTimestamp(),
-        });
-      }
-      await batch.commit();
+  void clearStoredAccountContext() {
+    selectedStoredAccount.value = null;
+  }
 
-      if (snap.docs.length < 400) break;
-      query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("userID", isEqualTo: uid)
-          .where("deletedPost", isEqualTo: true)
-          .startAfterDocument(snap.docs.last)
-          .limit(400);
+  void maybeClearStoredAccountContextForIdentifier(String identifier) {
+    final selected = selectedStoredAccount.value;
+    if (selected == null) return;
+    final normalized = normalizeNicknameInput(identifier);
+    final selectedUsername = normalizeNicknameInput(selected.username);
+    if (normalized.isEmpty || normalized != selectedUsername) {
+      selectedStoredAccount.value = null;
     }
   }
 
   @override
   void onInit() {
     super.onInit();
+    _startBrandTypewriter();
+    _selectionWorker = ever<int>(selection, (value) {
+      if (value == 0 || value == 1) {
+        _startBrandTypewriter();
+      }
+    });
 
-    animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-
-    // Dinleyiciler
     emailFocus.value.addListener(() => emailFocus.refresh());
     passwordFocus.value.addListener(() => passwordFocus.refresh());
     nicknameFocus.value.addListener(() => nicknameFocus.refresh());
@@ -182,7 +335,6 @@ class SignInController extends GetxController
       () => newPasswordRepeatFocus.refresh(),
     );
 
-    // Text dinleyiciler
     phoneNumberController.addListener(() {
       phoneNumber.value = phoneNumberController.text;
       _validateForm();
@@ -233,7 +385,6 @@ class SignInController extends GetxController
 
   @override
   void onClose() {
-    // Text controllers
     emailcontroller.dispose();
     passwordcontroller.dispose();
     nicknamecontroller.dispose();
@@ -245,9 +396,62 @@ class SignInController extends GetxController
     resetOtpController.dispose();
     newPasswordController.dispose();
     newPasswordRepeatController.dispose();
-    animationController.dispose();
-    _timer?.cancel(); // Timer'ı durdur
+    _timer?.cancel();
+    _timerReset?.cancel();
+    _emailAvailabilityDebounce?.cancel();
+    _nicknameAvailabilityDebounce?.cancel();
+    _typewriterTimer?.cancel();
+    _cursorBlinkTimer?.cancel();
+    _selectionWorker?.dispose();
     super.onClose();
+  }
+
+  String get typedBrandText => _loginWord.substring(
+      0, typedBrandLength.value.clamp(0, _loginWord.length));
+
+  void _startBrandTypewriter() {
+    _typewriterTimer?.cancel();
+    _cursorBlinkTimer?.cancel();
+    typedBrandLength.value = 1;
+    showBrandCursor.value = true;
+
+    final remainingChars = (_loginWord.length - 1).clamp(0, _loginWord.length);
+    if (remainingChars == 0) {
+      showBrandCursor.value = false;
+      return;
+    }
+
+    _typewriterTimer = Timer.periodic(
+      const Duration(milliseconds: 110),
+      (timer) {
+        if (isClosed) {
+          timer.cancel();
+          return;
+        }
+        if (typedBrandLength.value >= _loginWord.length) {
+          showBrandCursor.value = false;
+          timer.cancel();
+          return;
+        }
+        typedBrandLength.value += 1;
+      },
+    );
+
+    _cursorBlinkTimer = Timer.periodic(
+      const Duration(milliseconds: 220),
+      (timer) {
+        if (isClosed) {
+          timer.cancel();
+          return;
+        }
+        if (typedBrandLength.value >= _loginWord.length) {
+          showBrandCursor.value = false;
+          timer.cancel();
+          return;
+        }
+        showBrandCursor.value = !showBrandCursor.value;
+      },
+    );
   }
 
   void _validateForm() {
@@ -255,647 +459,5 @@ class SignInController extends GetxController
         phoneNumberController.text.trim().length == 10 &&
         phoneNumberController.text.trim().startsWith("5");
     isFormValid.value = valid;
-  }
-
-  void addToFirestore(BuildContext context) async {
-    closeKeyboard(context);
-    wait.value = true;
-    try {
-      // 🔥 CRITICAL: Clear old user cache before creating new account
-      await CurrentUserService.instance.logout();
-
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final Map<String, dynamic> userDoc = {
-        "adres": "",
-        "antPoint": 100,
-        "aramaIzin": false,
-        "ban": false,
-        "bank": "",
-        "bildirim": false,
-        "bio": "",
-        "blockedUsers": [],
-        "bolum": "",
-        "bot": false,
-        "bursVerebilir": false,
-        "calismaDurumu": "",
-        "canliYayin": "",
-        "cinsiyet": "",
-        "city": "",
-        "counterOfFollowers": 0,
-        "counterOfFollowings": 1,
-        "counterOfLikes": 0,
-        "counterOfPosts": 0,
-        "createdDate": "${DateTime.now().millisecondsSinceEpoch.toInt()}",
-        "dailyDurations": 0,
-        "defAnaBaslik": "YKS",
-        "defDers": "Türkçe",
-        "defSinavTuru": "TYT",
-        "deletedAccount": false,
-        "device": "",
-        "deviceID": "",
-        "deviceVersion": "",
-        "dogumTarihi": "",
-        "educationLevel": "",
-        "email": email.value,
-        "engelliRaporu": "",
-        "evMulkiyeti": "",
-        "fakulte": "",
-        "familyInfo": "",
-        "fatherJob": "",
-        "fatherLiving": "",
-        "fatherName": "",
-        "fatherPhone": "",
-        "fatherSalary": "",
-        "fatherSurname": "",
-        "favoriMuzikler": [],
-        "firstName": firstName.value,
-        "gizliHesap": false,
-        "hesapOnayi": false,
-        "iban": "",
-        "ikametIlce": "",
-        "ikametSehir": "",
-        "il": "",
-        "ilce": "",
-        "ilgialanlari": [],
-        "isDisabled": false,
-        "kolayAdresSelection": "",
-        "lastName": lastName.value,
-        "lastSearchList": [],
-        "lise": "",
-        "locationSehir": "",
-        "mail": "",
-        "mailIzin": false,
-        "medeniHal": "",
-        "meslekKategori": "",
-        "motherJob": "",
-        "motherLiving": "",
-        "motherName": "",
-        "motherPhone": "",
-        "motherSalary": "",
-        "motherSurname": "",
-        "mulkiyet": "",
-        "nickname": nickname.value,
-        "nufusIlce": "",
-        "nufusSehir": "",
-        "nufusaKayitliOlduguYer": "",
-        "ogrenciNo": "",
-        "ogretimTipi": "",
-        "okul": "",
-        "okulIlce": "",
-        "okulSehir": "",
-        "ortaOkul": "",
-        "ortalamaPuan": "",
-        "ortalamaPuan1": "",
-        "ortalamaPuan2": "",
-        "osymPuanTuru": "",
-        "osysPuan": "",
-        "osysPuani1": "",
-        "osysPuani2": "",
-        "pfImage":
-            "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2",
-        "phoneNumber": phoneNumber.value,
-        "readStories": [],
-        "refCode": "",
-        "rehber": false,
-        "rozet": "",
-        "settings": "",
-        "sifre": password.value,
-        "signInMethod": "Email",
-        "sinif": "",
-        "tc": "",
-        "themeSettings": "",
-        "token": "",
-        "totalLiving": 0,
-        "town": "",
-        "ulke": "",
-        "universite": "",
-        "viewSelection": 1,
-        "whatsappIzin": false,
-        "yurt": "",
-        "yuzlukSistem": true,
-      };
-
-      // Transactional create + increment phone limiter
-      await PhoneAccountLimiter().createUserWithLimit(
-        uid: uid,
-        phone: phoneNumber.value,
-        userData: userDoc,
-      );
-
-      const requiredFollowUids = <String>[
-        'rlvJgi4VAoO7O78OwrooZc6puPW2',
-        'pGlxhtQEVEYeLIa1G2IKhb743E73',
-      ];
-      final currentUid = FirebaseAuth.instance.currentUser!.uid;
-      final followBatch = FirebaseFirestore.instance.batch();
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      for (final adminUid in requiredFollowUids) {
-        followBatch.set(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUid)
-              .collection('TakipEdilenler')
-              .doc(adminUid),
-          {"timeStamp": nowMs},
-        );
-        followBatch.set(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(adminUid)
-              .collection('Takipciler')
-              .doc(currentUid),
-          {"timeStamp": nowMs},
-        );
-      }
-      await followBatch.commit();
-
-      // 🔥 CRITICAL: Initialize CurrentUserService with new user data
-      print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
-      await CurrentUserService.instance.initialize();
-      await NotificationService.instance.initialize();
-
-      // Force refresh to load newly created user document
-      await CurrentUserService.instance.forceRefresh();
-      print("✅ Yeni kullanıcı verisi yüklendi");
-
-      // 🔥 CRITICAL: Load stories and posts after registration
-      try {
-        final storyController = Get.find<StoryRowController>();
-        print("📚 Hikayeler yükleniyor...");
-        await storyController.loadStories(limit: 100, cacheFirst: false);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-        print(
-            "✅ Hikayeler yüklendi: ${storyController.users.length} kullanıcı");
-      } catch (e) {
-        print("⚠️ Hikaye yükleme hatası: $e");
-      }
-
-      // ⚠️ CRITICAL FIX: Ensure AgendaController is created and initialized
-      late AgendaController agendaController;
-      try {
-        // Create or get AgendaController
-        if (Get.isRegistered<AgendaController>()) {
-          agendaController = Get.find<AgendaController>();
-        } else {
-          agendaController = Get.put(AgendaController());
-        }
-
-        print("📝 Postlar yükleniyor...");
-
-        // Try loading with retry logic
-        int retries = 0;
-        while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
-          if (agendaController.agendaList.isEmpty && retries < 2) {
-            print("⚠️ Postlar boş, yeniden deneniyor... (${retries + 1}/3)");
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          retries++;
-        }
-
-        print(
-            "✅ Postlar yüklendi: ${agendaController.agendaList.length} gönderi");
-      } catch (e) {
-        print("⚠️ Post yükleme hatası: $e");
-        // If error, still create controller
-        agendaController = Get.put(AgendaController());
-      }
-
-      // ⚠️ CRITICAL FIX: Start UnreadMessagesController after login
-      try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-          print("✅ UnreadMessagesController başlatıldı");
-        }
-      } catch (e) {
-        print("⚠️ UnreadMessagesController başlatma hatası: $e");
-      }
-
-      wait.value = false;
-
-      // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // Giris akisinda e-posta dogrulama popup/mesajlarini gosterme.
-
-      Get.off(() => NavBarView());
-    } on PhoneAccountLimitReached catch (e) {
-      // Rollback newly created auth user to avoid orphaned accounts
-      try {
-        await FirebaseAuth.instance.currentUser?.delete();
-      } catch (_) {}
-      AppSnackbar(
-          'Limit Aşıldı',
-          e.message.isNotEmpty
-              ? e.message
-              : 'Bu telefon numarası için en fazla 5 hesap oluşturulabilir.');
-      wait.value = false;
-    } catch (e) {
-      print('Hata: $e');
-      wait.value = false;
-    }
-  }
-
-  Future<void> searchEmail() async {
-    emailAvilable.value = false;
-    if (isValidEmail(emailcontroller.text.trim())) {
-      if (FirebaseAuth.instance.currentUser == null) {
-        // Giriş öncesi users koleksiyonu auth ister; bloklama yapma.
-        emailAvilable.value = true;
-        return;
-      }
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("email", isEqualTo: emailcontroller.text)
-          .get();
-
-      emailAvilable.value = snap.docs.isEmpty;
-    }
-  }
-
-  bool isValidEmail(String value) {
-    final email = value.trim();
-    if (email.isEmpty) return false;
-    final emailRegex =
-        RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
-    return emailRegex.hasMatch(email);
-  }
-
-  Future<void> verifyPassword() async {
-    final pasword = password.value.toString();
-    final containsLetter = RegExp(r'[a-zA-ZçÇğĞıİöÖşŞüÜ]').hasMatch(pasword);
-    final containsNumber = RegExp(r'[0-9]').hasMatch(pasword);
-    // En az bir noktalama/simge: yaygın sembol kümesi
-    final containsPunct =
-        RegExp(r'[!@#\$%\^&*()_+\-=\[\]{};:\\|,.<>\/?~]').hasMatch(pasword);
-    final minLen = pasword.length >= 6;
-
-    passwordAvilable.value =
-        containsLetter && containsNumber && containsPunct && minLen;
-  }
-
-  Future<void> searchNickname() async {
-    nicknameAvilable.value = false;
-
-    if (nickname.value.length >= 6) {
-      if (FirebaseAuth.instance.currentUser == null) {
-        // Giriş öncesi users koleksiyonu auth ister; UI akışını kilitleme.
-        nicknameAvilable.value = true;
-        return;
-      }
-      final plainNickname = nickname.value;
-      final plainSnap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isEqualTo: plainNickname)
-          .get();
-
-      nicknameAvilable.value = plainSnap.docs.isEmpty;
-    }
-  }
-
-  Future<void> sendOtpCode() async {
-    selection.value = 4;
-    wasSentCode.value = generateRandomNumber(100000, 999999);
-    sendRequest(wasSentCode.value.toString(), phoneNumber.value);
-    startOtpTimer(); // TIMER BAŞLAT
-  }
-
-  void startOtpTimer() {
-    _timer?.cancel(); // Var olan timer varsa iptal et
-    otpTimer.value = 120;
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (otpTimer.value > 0) {
-        otpTimer.value--;
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  Future<void> sendOtpCodeForReset() async {
-    wasSentCode.value = generateRandomNumber(100000, 999999);
-    sendRequest(wasSentCode.value.toString(), phoneNumber.value);
-    startOtpTimerForTimer(); // TIMER BAŞLAT
-  }
-
-  void startOtpTimerForTimer() {
-    _timerReset?.cancel(); // Var olan timer varsa iptal et
-    otpTimerReset.value = 120;
-
-    _timerReset = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (otpTimerReset.value > 0) {
-        otpTimerReset.value--;
-      } else {
-        timer.cancel();
-      }
-    });
-  }
-
-  Future<void> getResetUserData(String email, String nickname) async {
-    resetPhoneNumber.value = "";
-    // 1. Önce email ile ara
-    final emailSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where("email", isEqualTo: email)
-        .get();
-
-    if (emailSnap.docs.isNotEmpty) {
-      // Email ile eşleşen kayıt bulundu
-      final doc = emailSnap.docs.first;
-      resetPhoneNumber.value = doc.get("phoneNumber");
-      resetOldPassword.value = doc.get("sifre");
-      resetUserID.value = doc.id;
-      return;
-    }
-
-    // 2. Email bulunamadıysa nickname ile ara
-    final nickSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where("nickname", isEqualTo: nickname)
-        .get();
-
-    if (nickSnap.docs.isNotEmpty) {
-      final doc = nickSnap.docs.first;
-      resetPhoneNumber.value = doc.get("phoneNumber");
-      resetOldPassword.value = doc.get("sifre");
-      resetUserID.value = doc.id;
-    }
-  }
-
-  Future<void> setNewPassword(String newPassword) async {
-    wait.value = true;
-    try {
-      // 1. Kullanıcıyı mevcut e-posta ve şifre ile giriş yaptır
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: resetMail.value,
-        password: newPassword,
-      );
-      await _restoreAccountIfPendingDeletion();
-
-      // 2. Giriş başarılıysa, şifreyi güncelle
-      await userCredential.user!.updatePassword(newPassword);
-
-      FirebaseFirestore.instance
-          .collection("users")
-          .doc(resetUserID.value)
-          .update({"sifre": newPassword});
-      print("Şifre başarıyla güncellendi.");
-
-      // 🔥 CRITICAL: Re-initialize CurrentUserService after password reset login
-      print("🔄 CurrentUserService yeniden başlatılıyor...");
-      await CurrentUserService.instance.initialize();
-      await NotificationService.instance.initialize();
-      await CurrentUserService.instance.forceRefresh();
-      print("✅ CurrentUserService başarıyla yüklendi");
-
-      // 🔥 CRITICAL: Load stories and posts after password reset login
-      try {
-        final storyController = Get.find<StoryRowController>();
-        print("📚 Hikayeler yükleniyor...");
-        await storyController.loadStories(limit: 100, cacheFirst: false);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-        print(
-            "✅ Hikayeler yüklendi: ${storyController.users.length} kullanıcı");
-      } catch (e) {
-        print("⚠️ Hikaye yükleme hatası: $e");
-      }
-
-      // ⚠️ CRITICAL FIX: Ensure AgendaController is created and initialized
-      late AgendaController agendaController;
-      try {
-        // Create or get AgendaController
-        if (Get.isRegistered<AgendaController>()) {
-          agendaController = Get.find<AgendaController>();
-        } else {
-          agendaController = Get.put(AgendaController());
-        }
-
-        print("📝 Postlar yükleniyor...");
-
-        // Try loading with retry logic
-        int retries = 0;
-        while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
-          if (agendaController.agendaList.isEmpty && retries < 2) {
-            print("⚠️ Postlar boş, yeniden deneniyor... (${retries + 1}/3)");
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          retries++;
-        }
-
-        print(
-            "✅ Postlar yüklendi: ${agendaController.agendaList.length} gönderi");
-      } catch (e) {
-        print("⚠️ Post yükleme hatası: $e");
-        // If error, still create controller
-        agendaController = Get.put(AgendaController());
-      }
-
-      // ⚠️ CRITICAL FIX: Start UnreadMessagesController after login
-      try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-          print("✅ UnreadMessagesController başlatıldı");
-        }
-      } catch (e) {
-        print("⚠️ UnreadMessagesController başlatma hatası: $e");
-      }
-
-      wait.value = false;
-
-      // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      Get.offAll(() => NavBarView());
-      AppSnackbar(
-        "Şifreniz Değiştirildi",
-        "Şifreniz başarılı bir şekilde değiştirildi ve giriş yapıldı",
-      );
-    } on FirebaseAuthException catch (e) {
-      print("Hata: ${e.code} - ${e.message}");
-      AppSnackbar(
-        "Bir şeyler ters gitti",
-        "Bilinmeyen bir hata oluştu. Hata devam ederse bize ulaşın.",
-      );
-    } catch (e) {
-      print("Beklenmeyen hata: $e");
-    }
-  }
-
-  Future<void> signIn() async {
-    print("Giriş işlemi başlatılıyor...");
-    bool authSucceeded = false;
-    try {
-      print("Email: ${signInEmail.value}");
-      print("Şifre: ${'*' * password.value.length}");
-      final userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailcontroller.text.contains("@")
-            ? emailcontroller.text
-            : signInEmail.value,
-        password: password.value,
-      );
-      authSucceeded = true;
-      print("Giriş başarılı! Kullanıcı UID: ${userCredential.user?.uid}");
-      await _restoreAccountIfPendingDeletion();
-      await CurrentUserService.instance.refreshEmailVerificationStatus(
-        reloadAuthUser: true,
-      );
-
-      // 🔥 CRITICAL: Re-initialize CurrentUserService after login
-      print("🔄 CurrentUserService yeniden başlatılıyor...");
-      await CurrentUserService.instance.initialize();
-      await NotificationService.instance.initialize();
-
-      // Force refresh to ensure latest data
-      await CurrentUserService.instance.forceRefresh();
-      print("✅ CurrentUserService başarıyla yüklendi");
-
-      // 🔥 CRITICAL: Load stories and posts after fresh login
-      try {
-        final storyController = Get.find<StoryRowController>();
-        print("📚 Hikayeler yükleniyor...");
-        await storyController.loadStories(limit: 100, cacheFirst: false);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-        print(
-            "✅ Hikayeler yüklendi: ${storyController.users.length} kullanıcı");
-      } catch (e) {
-        print("⚠️ Hikaye yükleme hatası: $e");
-      }
-
-      // ⚠️ CRITICAL FIX: Ensure AgendaController is created and initialized BEFORE navigation
-      late AgendaController agendaController;
-      try {
-        // Create or get AgendaController
-        if (Get.isRegistered<AgendaController>()) {
-          agendaController = Get.find<AgendaController>();
-        } else {
-          agendaController = Get.put(AgendaController());
-        }
-
-        print("📝 Postlar yükleniyor...");
-
-        // Try loading with retry logic
-        int retries = 0;
-        while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
-          if (agendaController.agendaList.isEmpty && retries < 2) {
-            print("⚠️ Postlar boş, yeniden deneniyor... (${retries + 1}/3)");
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          retries++;
-        }
-
-        print(
-            "✅ Postlar yüklendi: ${agendaController.agendaList.length} gönderi");
-      } catch (e) {
-        print("⚠️ Post yükleme hatası: $e");
-        // If error, still create controller with empty list
-        agendaController = Get.put(AgendaController());
-      }
-
-      // ⚠️ CRITICAL FIX: Start UnreadMessagesController after login
-      try {
-        if (Get.isRegistered<UnreadMessagesController>()) {
-          final unreadController = Get.find<UnreadMessagesController>();
-          unreadController.startListeners();
-          print("✅ UnreadMessagesController başlatıldı");
-        }
-      } catch (e) {
-        print("⚠️ UnreadMessagesController başlatma hatası: $e");
-      }
-
-      wait.value = false;
-
-      // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // Giris akisinda e-posta dogrulama popup/mesajlarini gosterme.
-
-      Get.offAll(() => NavBarView());
-    } on FirebaseAuthException catch (e) {
-      print("Giriş hatası oluştu: ${e.code} - ${e.message}");
-      wait.value = false;
-      String message;
-      switch (e.code) {
-        case 'invalid-credential':
-        case 'wrong-password':
-        case 'user-not-found':
-          message = "E-posta veya şifre hatalı. (${e.code})";
-          break;
-        case 'invalid-email':
-          message = "E-posta formatı geçersiz. (${e.code})";
-          break;
-        case 'too-many-requests':
-          message =
-              "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin. (${e.code})";
-          break;
-        case 'network-request-failed':
-          message = "İnternet bağlantısı hatası. (${e.code})";
-          break;
-        case 'user-disabled':
-          message = "Bu kullanıcı hesabı devre dışı bırakılmış. (${e.code})";
-          break;
-        default:
-          message =
-              "${e.message ?? 'Giriş sırasında hata oluştu.'} (${e.code})";
-      }
-      AppSnackbar("Giriş yapılamadı", message);
-    } catch (e) {
-      print("Beklenmeyen bir hata oluştu: $e");
-      wait.value = false;
-      if (authSucceeded || FirebaseAuth.instance.currentUser != null) {
-        // Giriş tamamlandıysa, sonraki hazırlık hataları kullanıcıyı login ekranında tutmasın.
-        Get.offAll(() => NavBarView());
-        return;
-      }
-      AppSnackbar("Giriş Başarısız",
-          "Sistemlerimizde planlı bir bakım çalışması gerçekleştirilmektedir. Lütfen daha sonra tekrar deneyiniz. Anlayışınız için teşekkür ederiz. (-2)");
-    }
-  }
-
-  Future<void> nicknameFinder() async {
-    try {
-      print("yazildi");
-      final search = emailcontroller.text.toLowerCase();
-      if (search.length < 2) return; // gereksiz sorgu atmayı engelle
-
-      // Auth yoksa users sorgusu permission-denied verir.
-      // Email formatı yazıldıysa doğrudan kullan; username araması yapma.
-      if (FirebaseAuth.instance.currentUser == null) {
-        signInEmail.value = search.contains("@") ? search : "";
-        return;
-      }
-
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isGreaterThanOrEqualTo: search)
-          .where("nickname", isLessThan: '$search\uf8ff')
-          .limit(1)
-          .get();
-
-      if (snap.docs.isNotEmpty) {
-        final nickname = snap.docs.first.get("nickname");
-        final email = snap.docs.first.get("email");
-        print("nickname bulundu: $nickname");
-        signInEmail.value = email;
-      } else {
-        signInEmail.value = "";
-        print("nickname bulunamadı");
-      }
-    } catch (e, stack) {
-      print("nicknameFinder hata: $e");
-      print("Detaylı StackTrace: $stack");
-    }
   }
 }

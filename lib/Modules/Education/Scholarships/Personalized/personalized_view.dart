@@ -7,17 +7,46 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class PersonalizedView extends StatelessWidget {
+class PersonalizedView extends StatefulWidget {
   const PersonalizedView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final PersonalizedController controller = Get.put(PersonalizedController());
+  State<PersonalizedView> createState() => _PersonalizedViewState();
+}
 
+class _PersonalizedViewState extends State<PersonalizedView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final PersonalizedController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_personalized_${identityHashCode(this)}';
+    final existing = PersonalizedController.maybeFind(tag: _controllerTag);
+    _ownsController = existing == null;
+    controller = existing ?? PersonalizedController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          PersonalizedController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PersonalizedController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -31,7 +60,7 @@ class PersonalizedView extends StatelessWidget {
   Widget _buildHeader(PersonalizedController controller) {
     return Row(
       children: [
-        Expanded(child: BackButtons(text: "Sana Özel")),
+        Expanded(child: BackButtons(text: 'explore.tab.for_you'.tr)),
         Obx(
           () => Text(
             controller.locationSehir.value,
@@ -94,7 +123,7 @@ class PersonalizedView extends StatelessWidget {
           options: CarouselOptions(
             autoPlay: true,
             enlargeCenterPage: false,
-            autoPlayInterval: Duration(seconds: 10),
+            autoPlayInterval: Duration(seconds: 2),
             viewportFraction: 1,
             aspectRatio: 4 / 3,
             onPageChanged: (index, reason) {
@@ -214,12 +243,12 @@ class PersonalizedView extends StatelessWidget {
     );
   }
 
-  Future<void> _navigateToIndividualDetail(IndividualScholarshipsModel item) async {
-    final controller = Get.find<PersonalizedController>();
+  Future<void> _navigateToIndividualDetail(
+      IndividualScholarshipsModel item) async {
     final docId = controller.docIdByTimestamp[item.timeStamp] ?? '';
     final scholarshipData = {
       'model': item,
-      'type': 'bireysel',
+      'type': kIndividualScholarshipType,
       'userData': null,
       'docId': docId,
       'scholarshipId': docId,

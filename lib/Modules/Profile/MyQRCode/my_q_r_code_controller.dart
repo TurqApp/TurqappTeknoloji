@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show ImageByteFormat;
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,12 +11,33 @@ import 'package:saver_gallery/saver_gallery.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
-import '../../../Services/firebase_my_store.dart';
 
 class MyQRCodeController extends GetxController {
-  final user = Get.find<FirebaseMyStore>();
+  static MyQRCodeController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyQRCodeController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyQRCodeController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<MyQRCodeController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyQRCodeController>(tag: tag);
+  }
+
+  final CurrentUserService userService = CurrentUserService.instance;
   final ShortLinkService _shortLinkService = ShortLinkService();
   final RxString profileLink = ''.obs;
 
@@ -27,28 +47,37 @@ class MyQRCodeController extends GetxController {
     unawaited(_prepareProfileLink());
   }
 
-  Future<String> _buildProfileLink() async {
-    final slug = user.nickname.value.trim().toLowerCase();
-    final safeSlug = slug.isEmpty ? user.userID.value : slug;
-    final result = await _shortLinkService.upsertUser(
-      userId: user.userID.value,
-      slug: safeSlug,
-      title: '@${user.nickname.value} - TurqApp',
-      desc: 'TurqApp profilini görüntüle',
-      imageUrl: user.pfImage.value,
-    );
-    final url = (result['url'] ?? '').toString().trim();
-    return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
+  String _buildProfileLink() {
+    final nickname = normalizeProfileSlug(userService.nickname);
+    if (nickname.isNotEmpty) {
+      return buildTurqAppProfileUrl(nickname);
+    }
+    final uid = userService.effectiveUserId;
+    if (uid.isNotEmpty) {
+      return buildTurqAppProfileUrl(uid);
+    }
+    return buildTurqAppProfileUrl('guest');
+  }
+
+  String _fallbackProfileLink() {
+    return _buildProfileLink();
   }
 
   Future<void> _prepareProfileLink() async {
+    final link = _buildProfileLink();
+    profileLink.value = link;
+    final uid = userService.effectiveUserId;
+    final nickname = normalizeProfileSlug(userService.nickname);
+    if (uid.isEmpty || nickname.isEmpty) return;
     try {
-      profileLink.value = await _buildProfileLink();
-    } catch (_) {
-      final slug = user.nickname.value.trim().toLowerCase();
-      profileLink.value =
-          'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
-    }
+      await _shortLinkService.upsertUser(
+        userId: uid,
+        slug: nickname,
+        title: '@$nickname - TurqApp',
+        desc: 'qr.profile_desc'.tr,
+        imageUrl: userService.avatarUrl,
+      );
+    } catch (_) {}
   }
 
   void showQrScannerModal() {
@@ -65,21 +94,24 @@ class MyQRCodeController extends GetxController {
 
   Future<void> shareProfile() async {
     await ShareActionGuard.run(() async {
-      final link = await _buildProfileLink();
+      String link = _buildProfileLink();
+      if (link.trim().isEmpty) {
+        link = _fallbackProfileLink();
+      }
       profileLink.value = link;
       await ShareLinkService.shareUrl(
         url: link,
-        title: '@${user.nickname.value} - TurqApp',
-        subject: 'TurqApp Profili',
+        title: '@${userService.nickname} - TurqApp',
+        subject: 'qr.profile_subject'.tr,
       );
     });
   }
 
   Future<void> copyLink() async {
-    final link = await _buildProfileLink();
+    final link = _buildProfileLink();
     profileLink.value = link;
     await Clipboard.setData(ClipboardData(text: link));
-    AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
+    AppSnackbar('qr.link_copied_title'.tr, 'qr.link_copied_body'.tr);
   }
 
   Future<void> downloadQRCode() async {
@@ -98,7 +130,9 @@ class MyQRCodeController extends GetxController {
 
     if (!status.isGranted) {
       AppSnackbar(
-          "İzin Gerekli", 'Kaydetmek için galeri erişim izni vermelisiniz.');
+        'qr.permission_required'.tr,
+        'qr.gallery_permission_body'.tr,
+      );
       return;
     }
 
@@ -106,23 +140,21 @@ class MyQRCodeController extends GetxController {
       final qrPainter = QrPainter(
         data: profileLink.value.isNotEmpty
             ? profileLink.value
-            : await _buildProfileLink(),
+            : _buildProfileLink(),
         version: QrVersions.auto,
         gapless: true,
         eyeStyle:
             const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
         dataModuleStyle: const QrDataModuleStyle(
             dataModuleShape: QrDataModuleShape.square, color: Colors.black),
-        embeddedImage: await _loadLogoImage(),
-        embeddedImageStyle: QrEmbeddedImageStyle(size: Size(200, 200)),
       );
 
       final picData = await qrPainter.toImageData(
         1000,
-        format: ui.ImageByteFormat.png,
+        format: ImageByteFormat.png,
       );
       if (picData == null) {
-        AppSnackbar('Hata', 'QR kod verisi oluşturulamadı.');
+        AppSnackbar('common.error'.tr, 'qr.data_failed'.tr);
         return;
       }
 
@@ -136,19 +168,12 @@ class MyQRCodeController extends GetxController {
       );
 
       if (result.isSuccess) {
-        AppSnackbar("Başarılı", 'QR kodu galeriye kaydedildi.');
+        AppSnackbar('common.success'.tr, 'qr.saved'.tr);
       } else {
-        AppSnackbar('Hata', 'QR kod kaydedilemedi.');
+        AppSnackbar('common.error'.tr, 'qr.save_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'İndirme sırasında hata oluştu.');
+      AppSnackbar('common.error'.tr, 'qr.download_failed'.tr);
     }
-  }
-
-  Future<ui.Image?> _loadLogoImage() async {
-    final byteData = await rootBundle.load("assets/images/logogradient.webp");
-    final codec = await ui.instantiateImageCodec(byteData.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    return frame.image;
   }
 }

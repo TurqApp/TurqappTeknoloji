@@ -1,13 +1,24 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryInteractionOptimizer extends GetxService {
-  static StoryInteractionOptimizer get to => Get.find();
+  static StoryInteractionOptimizer? maybeFind() {
+    final isRegistered = Get.isRegistered<StoryInteractionOptimizer>();
+    if (!isRegistered) return null;
+    return Get.find<StoryInteractionOptimizer>();
+  }
 
-  final FirebaseMyStore _userStore = Get.find<FirebaseMyStore>();
+  static StoryInteractionOptimizer ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(StoryInteractionOptimizer(), permanent: true);
+  }
+
+  static StoryInteractionOptimizer get to => ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   // Debouncing ve batching için
   Timer? _writeTimer;
@@ -23,8 +34,7 @@ class StoryInteractionOptimizer extends GetxService {
   final RxMap<String, int> localTimeCache = <String, int>{}.obs;
 
   // Stream subscriptions for cleanup
-  StreamSubscription<List<String>>? _readStoriesSubscription;
-  StreamSubscription<Map<String, int>>? _readTimesSubscription;
+  StreamSubscription? _userSubscription;
 
   @override
   void onInit() {
@@ -34,15 +44,15 @@ class StoryInteractionOptimizer extends GetxService {
 
   /// Local cache'i Firestore data ile sync et
   void _initializeLocalCache() {
-    // Stream subscriptions'ları kaydet (cleanup için)
-    _readStoriesSubscription = _userStore.readStories.listen((stories) {
-      for (String userId in stories) {
+    _userSubscription = _userService.userStream.listen((user) {
+      localStoryCache.clear();
+      localTimeCache.clear();
+      if (user == null) return;
+
+      for (final userId in user.readStories) {
         localStoryCache[userId] = true;
       }
-    });
-
-    _readTimesSubscription = _userStore.readStoriesTimes.listen((times) {
-      localTimeCache.assignAll(times);
+      localTimeCache.assignAll(user.readStoriesTimes);
     });
   }
 
@@ -62,11 +72,8 @@ class StoryInteractionOptimizer extends GetxService {
       _writeTimer?.cancel();
       _writeTimer =
           Timer(const Duration(milliseconds: 500), _flushPendingWrites);
-
-      print(
-          "📝 Queued story view - Owner: $storyOwnerId, Story: $storyId, Time: $storyTime");
     } catch (e) {
-      print("🚨 markStoryViewed error: $e");
+      debugPrint("markStoryViewed error: $e");
       // Error durumunda bile UI responsiveness için local cache güncelle
       localStoryCache[storyOwnerId] = true;
       localTimeCache[storyOwnerId] = storyTime;
@@ -81,8 +88,8 @@ class StoryInteractionOptimizer extends GetxService {
     _isWriting = true;
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
+      final uid = _userService.effectiveUserId;
+      if (uid.isEmpty) {
         _isWriting = false;
         return;
       }
@@ -100,28 +107,23 @@ class StoryInteractionOptimizer extends GetxService {
       final userDocRef =
           FirebaseFirestore.instance.collection('users').doc(uid);
 
-      // Tüm pending updates'i tek batch'te yap
-      final Map<String, dynamic> updates = {};
-
-      // readStories array update
-      if (currentUsers.isNotEmpty) {
-        updates['readStories'] = FieldValue.arrayUnion(currentUsers.toList());
-      }
-
-      // readStoriesTimes map updates
+      // readStories subcollection updates
       for (var entry in currentWrites.entries) {
-        updates['readStoriesTimes.${entry.key}'] = entry.value;
+        batch.set(
+          userDocRef.collection('readStories').doc(entry.key),
+          {
+            'storyId': entry.key,
+            'readDate': entry.value,
+            'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          },
+          SetOptions(merge: true),
+        );
       }
-
-      if (updates.isNotEmpty) {
-        batch.update(userDocRef, updates);
+      if (currentUsers.isNotEmpty || currentWrites.isNotEmpty) {
         await batch.commit();
-
-        print(
-            "✅ Batch write completed - ${currentWrites.length} story updates");
       }
     } catch (e) {
-      print("🚨 Batch write error: $e");
+      debugPrint("Story batch write error: $e");
 
       // Retry logic - pending writes'a geri ekle (data loss önlemek için)
       try {
@@ -136,7 +138,7 @@ class StoryInteractionOptimizer extends GetxService {
         // 2 saniye sonra tekrar dene
         Timer(const Duration(seconds: 2), _flushPendingWrites);
       } catch (retryError) {
-        print("🚨 Retry preparation error: $retryError");
+        debugPrint("Story retry preparation error: $retryError");
       }
     } finally {
       _isWriting = false;
@@ -180,20 +182,17 @@ class StoryInteractionOptimizer extends GetxService {
 
   /// App kapatılırken çağrılacak
   Future<void> cleanup() async {
-    print("🧹 StoryInteractionOptimizer cleanup starting...");
-
     _writeTimer?.cancel();
 
     // Stream subscriptions'ları temizle
-    await _readStoriesSubscription?.cancel();
-    await _readTimesSubscription?.cancel();
+    await _userSubscription?.cancel();
 
     // Pending operations'ları bekle ve temizle
     if (_pendingOperations.isNotEmpty) {
       try {
         await Future.wait(_pendingOperations, eagerError: false);
       } catch (e) {
-        print("🚨 Error waiting for pending operations: $e");
+        debugPrint("Story cleanup pending operation error: $e");
       }
       _pendingOperations.clear();
     }
@@ -204,8 +203,6 @@ class StoryInteractionOptimizer extends GetxService {
     // Local cache'leri temizle
     localStoryCache.clear();
     localTimeCache.clear();
-
-    print("✅ StoryInteractionOptimizer cleanup completed");
   }
 
   @override
@@ -213,8 +210,7 @@ class StoryInteractionOptimizer extends GetxService {
     _writeTimer?.cancel();
 
     // Stream subscriptions'ları temizle
-    _readStoriesSubscription?.cancel();
-    _readTimesSubscription?.cancel();
+    _userSubscription?.cancel();
 
     // Pending operations'ları temizle
     _pendingOperations.clear();

@@ -1,18 +1,42 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticalFormEntryController extends GetxController {
+  static OpticalFormEntryController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      OpticalFormEntryController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static OpticalFormEntryController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<OpticalFormEntryController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<OpticalFormEntryController>(tag: tag);
+  }
+
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
   final search = TextEditingController();
   final focusNode = FocusNode();
   final searchText = ''.obs; // Reactive search text
   final model = Rx<OpticalFormModel?>(null);
   final fullName = ''.obs;
-  final pfImage = ''.obs;
+  final avatarUrl = ''.obs;
 
   @override
   void onInit() {
@@ -31,67 +55,54 @@ class OpticalFormEntryController extends GetxController {
   }
 
   Future<void> searchDocID() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(search.text)
-        .get();
+    final opticalForm = await _opticalFormRepository.fetchById(search.text);
+    if (opticalForm == null) return;
 
-    if (!doc.exists) return;
-
-    final cevaplar = List<String>.from(doc.get("cevaplar") ?? []);
-    final max = doc.get("max") as num;
-    final bitis = doc.get("bitis") as num;
-    final baslangic = doc.get("baslangic") as num;
-    final name = doc.get("name") as String;
-    final userID = doc.get("userID") as String;
-    final kisitlama = doc.get("kisitlama") as bool;
+    final bitis = opticalForm.bitis;
+    final baslangic = opticalForm.baslangic;
+    final userID = opticalForm.userID;
 
     if (bitis.toInt() > DateTime.now().millisecondsSinceEpoch) {
       focusNode.unfocus();
       model.value = OpticalFormModel(
-        docID: doc.id,
-        name: name,
-        cevaplar: cevaplar,
-        max: max,
-        userID: userID,
+        docID: opticalForm.docID,
+        name: opticalForm.name,
+        cevaplar: opticalForm.cevaplar,
+        max: opticalForm.max,
+        userID: opticalForm.userID,
         baslangic: baslangic,
         bitis: bitis,
-        kisitlama: kisitlama,
+        kisitlama: opticalForm.kisitlama,
       );
       getUserData(userID);
     } else {
       focusNode.unfocus();
       showAlertDialog(
-        "Sınavın süresi doldu!",
-        "Aradığınız sınavın süresi dolmuştur!",
+        "answer_key.exam_expired_title".tr,
+        "answer_key.exam_expired_body".tr,
       );
       model.value = null;
     }
   }
 
   Future<void> getUserData(String userID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(userID).get();
-    final firstName = doc.get("firstName") as String;
-    final lastName = doc.get("lastName") as String;
-    final pfImage = doc.get("pfImage") as String;
-
-    fullName.value = "$firstName $lastName";
-    this.pfImage.value = pfImage;
+    final data = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
+    fullName.value = data?.displayName.trim() ?? '';
+    avatarUrl.value = data?.avatarUrl ?? '';
   }
 
   Future<void> showAlert() async {
     final currentModel = model.value;
     if (currentModel != null) {
       try {
-        final yanitDoc = await FirebaseFirestore.instance
-            .collection("optikForm")
-            .doc(currentModel.docID)
-            .collection("Yanitlar")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .get();
-
-        final userAnswers = List<String>.from(yanitDoc.get("cevaplar") ?? []);
+        final userAnswers = await _opticalFormRepository.fetchUserAnswers(
+          currentModel.docID,
+          CurrentUserService.instance.effectiveUserId,
+          forceRefresh: true,
+        );
         final answerKey = currentModel.cevaplar;
 
         int dogru = 0;
@@ -118,15 +129,25 @@ class OpticalFormEntryController extends GetxController {
 
         final net = dogru - (yanlis * 0.25);
         showAlertDialog(
-          "Tebrikler, Sınavı Tamamladın!",
-          "Doğru: $dogru   •   Yanlış: $yanlis   •   Boş: $bos   •   Net: ${net.toStringAsFixed(2)}",
+          "tests.completed_title".tr,
+          "tests.result_breakdown".trParams({
+            "correct": "$dogru",
+            "wrong": "$yanlis",
+            "blank": "$bos",
+            "net": net.toStringAsFixed(2),
+          }),
         );
       } catch (_) {
         showAlertDialog(
-            "Tebrikler, Sınavı Tamamladın!", "Sonuç hesaplanamadı.");
+          "tests.completed_title".tr,
+          "tests.result_unavailable".tr,
+        );
       }
     } else {
-      showAlertDialog("Tebrikler, Sınavı Tamamladın!", "Sonuç hesaplanamadı.");
+      showAlertDialog(
+        "tests.completed_title".tr,
+        "tests.result_unavailable".tr,
+      );
     }
     model.value = null;
     search.text = "";
@@ -137,8 +158,8 @@ class OpticalFormEntryController extends GetxController {
     if (model.value!.baslangic.toInt() >
         DateTime.now().millisecondsSinceEpoch) {
       showAlertDialog(
-        "Sınav Başlamadı!",
-        "Sınavınız başlamadı. Başladıktan sonra tekrar deneyin!",
+        "answer_key.exam_not_started_title".tr,
+        "answer_key.exam_not_started_body".tr,
       );
     } else {
       Get.to(
@@ -155,61 +176,9 @@ class OpticalFormEntryController extends GetxController {
   }
 
   void showAlertDialog(String title, String desc) {
-    Get.bottomSheet(
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                desc,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () => Get.back(),
-                child: Container(
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: const Text(
-                    "Tamam",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    infoAlert(
+      title: title,
+      message: desc,
     );
   }
 }

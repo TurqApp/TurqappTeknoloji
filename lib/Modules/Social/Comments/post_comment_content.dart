@@ -1,43 +1,90 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/sizes.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Models/post_interactions_models_new.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class PostCommentContent extends StatelessWidget {
-  PostCommentContent({
+class PostCommentContent extends StatefulWidget {
+  const PostCommentContent({
     super.key,
     required this.model,
     required this.postID,
+    required this.commentControllerTag,
+    this.isPending = false,
     this.onReplyTap,
-  }) {
-    Get.put(
-      PostCommentContentController(model: model, postID: postID),
-      tag: model.docID,
-    );
-  }
+  });
 
   final PostCommentModel model;
   final String postID;
+  final String commentControllerTag;
+  final bool isPending;
   final void Function(String commentId, String nickname)? onReplyTap;
 
   @override
+  State<PostCommentContent> createState() => _PostCommentContentState();
+}
+
+class _PostCommentContentState extends State<PostCommentContent> {
+  late final PostCommentContentController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  PostCommentModel get model => widget.model;
+  String get postID => widget.postID;
+  bool get isPending => widget.isPending;
+  String get commentControllerTag => widget.commentControllerTag;
+  void Function(String commentId, String nickname)? get onReplyTap =>
+      widget.onReplyTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'post_comment_content_${widget.postID}_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        PostCommentContentController.maybeFind(tag: _controllerTag) == null;
+    controller = PostCommentContentController.ensure(
+      model: widget.model,
+      postID: widget.postID,
+      commentControllerTag: widget.commentControllerTag,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          PostCommentContentController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<PostCommentContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.find<PostCommentContentController>(tag: model.docID);
     return Obx(() {
-      final currentUID = FirebaseAuth.instance.currentUser?.uid;
+      final currentUID = CurrentUserService.instance.effectiveUserId;
       final hasLiked =
-          currentUID != null && controller.likes.contains(currentUID);
+          currentUID.isNotEmpty && controller.likes.contains(currentUID);
       return Padding(
+        key: ValueKey(IntegrationTestKeys.commentItem(model.docID)),
         padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,23 +95,14 @@ class PostCommentContent extends StatelessWidget {
                   Get.to(() => SocialProfile(userID: model.userID));
                 }
               },
-              child: ClipOval(
-                child: SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: controller.pfImage.value.isNotEmpty
-                      ? Image.network(
-                          controller.pfImage.value,
-                          fit: BoxFit.cover,
-                        )
-                      : Container(
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            CupertinoIcons.person_fill,
-                            size: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
+              child: SizedBox(
+                width: 34,
+                height: 34,
+                child: CachedUserAvatar(
+                  userId: model.userID,
+                  imageUrl: controller.avatarUrl.value,
+                  radius: 17,
+                  backgroundColor: Colors.grey.shade200,
                 ),
               ),
             ),
@@ -101,50 +139,20 @@ class PostCommentContent extends StatelessWidget {
                           fontFamily: AppFontFamilies.mmedium,
                         ),
                       ),
-                    ],
-                  ),
-                  2.ph,
-                  Text(
-                    model.text,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontFamily: AppFontFamilies.mregular,
-                      height: 1.2,
-                    ),
-                  ),
-                  4.ph,
-                  Row(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          onReplyTap?.call(
-                            model.docID,
-                            controller.nickname.value.trim().isEmpty
-                                ? 'kullanıcı'
-                                : controller.nickname.value.trim(),
-                          );
-                        },
-                        child: Text(
-                          'Yanıtla',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                            fontFamily: AppFontFamilies.mmedium,
+                      if (isPending) ...[
+                        8.pw,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                      ),
-                      if (model.userID == currentUID) ...[
-                        10.pw,
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => _showActionsMenu(context, controller),
                           child: Text(
-                            'Sil',
+                            'comments.sending'.tr,
                             style: TextStyle(
-                              color: AppColors.deleteText,
-                              fontSize: 12,
+                              color: Colors.orange,
+                              fontSize: 10,
                               fontFamily: AppFontFamilies.mmedium,
                             ),
                           ),
@@ -152,96 +160,156 @@ class PostCommentContent extends StatelessWidget {
                       ],
                     ],
                   ),
+                  2.ph,
+                  if (model.text.trim().isNotEmpty)
+                    Text(
+                      model.text,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: AppFontFamilies.mregular,
+                        height: 1.2,
+                      ),
+                    ),
+                  if (model.imgs.isNotEmpty) ...[
+                    6.ph,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: model.imgs.first,
+                        cacheManager: TurqImageCacheManager.instance,
+                        width: 140,
+                        height: 140,
+                        fit: BoxFit.cover,
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholderFadeInDuration: Duration.zero,
+                        placeholder: (context, _) => Container(
+                          width: 140,
+                          height: 140,
+                          color: Colors.grey.shade100,
+                          child: const Center(
+                            child: CupertinoActivityIndicator(),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          width: 140,
+                          height: 140,
+                          color: Colors.grey.shade100,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Colors.black38,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  4.ph,
+                  if (!isPending)
+                    Row(
+                      children: [
+                        GestureDetector(
+                          key: ValueKey(
+                            IntegrationTestKeys.commentReplyButton(model.docID),
+                          ),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            onReplyTap?.call(
+                              model.docID,
+                              controller.nickname.value.trim().isEmpty
+                                  ? 'common.unknown_user'.tr
+                                  : controller.nickname.value.trim(),
+                            );
+                          },
+                          child: Text(
+                            'comments.reply'.tr,
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                              fontFamily: AppFontFamilies.mmedium,
+                            ),
+                          ),
+                        ),
+                        if (model.userID == currentUID) ...[
+                          10.pw,
+                          GestureDetector(
+                            key: ValueKey(
+                              IntegrationTestKeys.commentDeleteButton(
+                                model.docID,
+                              ),
+                            ),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _confirmDelete(controller),
+                            child: Text(
+                              'common.delete'.tr,
+                              style: TextStyle(
+                                color: AppColors.deleteText,
+                                fontSize: 12,
+                                fontFamily: AppFontFamilies.mmedium,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                 ],
               ),
             ),
-            SizedBox(
-              width: 30,
-              child: GestureDetector(
+            if (!isPending)
+              GestureDetector(
+                key: ValueKey(
+                  IntegrationTestKeys.commentLikeButton(model.docID),
+                ),
                 onTap: controller.toggleLike,
                 behavior: HitTestBehavior.opaque,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Kalp yok: referansa göre yalnızca beğeni (thumb) ikonu
-                    Icon(
-                      hasLiked
-                          ? CupertinoIcons.hand_thumbsup_fill
-                          : CupertinoIcons.hand_thumbsup,
-                      color: hasLiked ? Colors.blueAccent : Colors.black54,
-                      size: 18,
-                    ),
-                    if (controller.likes.isNotEmpty)
-                      Text(
-                        controller.likes.length.toString(),
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 11,
-                          fontFamily: 'MontserratMedium',
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasLiked
+                            ? CupertinoIcons.hand_thumbsup_fill
+                            : CupertinoIcons.hand_thumbsup,
+                        color: hasLiked ? Colors.blueAccent : Colors.black54,
+                        size: 18,
                       ),
-                  ],
+                      if (controller.likes.isNotEmpty) ...[
+                        4.pw,
+                        Text(
+                          controller.likes.length.toString(),
+                          style: TextStyle(
+                            color:
+                                hasLiked ? Colors.blueAccent : Colors.black54,
+                            fontSize: 11,
+                            fontFamily: AppFontFamilies.mmedium,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       );
     });
   }
 
-  Future<void> _showActionsMenu(
-      BuildContext context, PostCommentContentController controller) async {
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (popupContext) {
-        return CupertinoActionSheet(
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(popupContext);
-                AppSnackbar('Bilgi', 'Hikayeye ekleme yakında aktif.');
-              },
-              child: const Text(
-                'Hikayene ekleme yap',
-                style: TextStyle(
-                  fontFamily: 'MontserratMedium',
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () async {
-                final ok = await controller.deleteComment();
-                if (popupContext.mounted) {
-                  Navigator.pop(popupContext);
-                }
-                if (!ok) {
-                  AppSnackbar('Hata', 'Yorum silinemedi.');
-                }
-              },
-              child: const Text(
-                'Sil',
-                style: TextStyle(
-                  fontFamily: 'MontserratBold',
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(popupContext),
-            child: const Text(
-              'Vazgeç',
-              style: TextStyle(
-                fontFamily: 'MontserratMedium',
-                fontSize: 16,
-              ),
-            ),
-          ),
-        );
+  void _confirmDelete(PostCommentContentController controller) {
+    noYesAlert(
+      title: 'common.delete'.tr,
+      message: 'comments.delete_message'.tr,
+      cancelText: 'common.cancel'.tr,
+      yesText: 'common.delete'.tr,
+      onYesPressed: () async {
+        final ok = await controller.deleteComment();
+        if (!ok) {
+          AppSnackbar('common.error'.tr, 'comments.delete_failed'.tr);
+        }
       },
     );
   }

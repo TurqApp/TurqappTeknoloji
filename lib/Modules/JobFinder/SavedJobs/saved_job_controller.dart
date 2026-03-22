@@ -1,96 +1,244 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Services/job_saved_store.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedJobsController extends GetxController {
+  static SavedJobsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SavedJobsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SavedJobsController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<SavedJobsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SavedJobsController>(tag: tag);
+  }
+
+  final JobRepository _jobRepository = JobRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<JobModel> list = <JobModel>[].obs;
   RxBool isLoading = false.obs;
+  static const int _whereInChunkSize = 10;
+  Position? _lastResolvedPosition;
 
-  Future<void> getStartData() async {
-    isLoading.value = true;
+  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
+    final currentKeys = current
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_bootstrapSavedJobs());
+  }
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
+  }
+
+  Future<void> _bootstrapSavedJobs() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      list.clear();
+      isLoading.value = false;
+      return;
+    }
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final cachedSavedRecords = await JobSavedStore.getSavedJobs(
+        uid,
+        cacheOnly: true,
+      );
+      if (cachedSavedRecords.isNotEmpty) {
+        await _loadSavedJobs(
+          uid,
+          cachedSavedRecords,
+          silent: true,
+          cacheOnlyJobs: true,
+        );
+        if (list.isNotEmpty) {
+          if (SilentRefreshGate.shouldRefresh(
+            'jobs:saved:$uid',
+            minInterval: _silentRefreshInterval,
+          )) {
+            unawaited(getStartData(silent: true, forceRefresh: true));
+          }
+          return;
+        }
+      }
+    } catch (_) {}
 
-      final savedSnap = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("SavedIsBul")
-          .get();
+    await getStartData();
+  }
 
-      final savedIds = savedSnap.docs.map((e) => e.id).toList();
+  Future<void> getStartData({
+    bool silent = false,
+    bool forceRefresh = false,
+    bool allowLocationPrompt = false,
+  }) async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      list.clear();
+      isLoading.value = false;
+      return;
+    }
+
+    final savedRecords = await JobSavedStore.getSavedJobs(
+      uid,
+      forceRefresh: forceRefresh,
+    );
+    await _loadSavedJobs(
+      uid,
+      savedRecords,
+      silent: silent,
+      allowLocationPrompt: allowLocationPrompt,
+    );
+    SilentRefreshGate.markRefreshed('jobs:saved:$uid');
+  }
+
+  Future<void> _loadSavedJobs(
+    String uid,
+    List<SavedJobRecord> savedRecords, {
+    bool silent = false,
+    bool cacheOnlyJobs = false,
+    bool allowLocationPrompt = false,
+  }) async {
+    final shouldShowLoader = !silent && list.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
+
+    try {
+      final savedIds = savedRecords.map((e) => e.jobId).toList();
 
       if (savedIds.isEmpty) {
-        list.clear();
-        isLoading.value = false;
+        if (list.isNotEmpty) {
+          list.clear();
+        }
         return;
       }
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
-      List<JobModel> jobs = [];
+      final jobsById = <String, JobModel>{};
+      final staleSavedIds = <String>[];
+      final idsToMarkEnded = <String>[];
 
-      for (String docId in savedIds) {
-        final jobDoc = await FirebaseFirestore.instance
-            .collection(JobCollection.name)
-            .doc(docId)
-            .get();
-
-        if (!jobDoc.exists) {
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(uid)
-              .collection("SavedIsBul")
-              .doc(docId)
-              .delete();
-          continue;
+      for (final chunk in _chunkList(savedIds, _whereInChunkSize)) {
+        final fetched = await _jobRepository.fetchByIds(
+          chunk,
+          cacheOnly: cacheOnlyJobs,
+        );
+        final foundIds = fetched.map((job) => job.docID).toSet();
+        for (final missingId in chunk.where((id) => !foundIds.contains(id))) {
+          if (cacheOnlyJobs) continue;
+          staleSavedIds.add(missingId);
         }
 
-        final data = jobDoc.data()!;
-        final job = JobModel.fromMap(data, docId);
-
-        if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(docId)
-              .update({"ended": true});
-          continue;
-        }
-
-        if (!job.ended) {
-          jobs.add(job);
+        for (final job in fetched) {
+          if (job.timeStamp < thirtyDaysAgo && !job.ended) {
+            idsToMarkEnded.add(job.docID);
+            continue;
+          }
+          if (!job.ended) {
+            jobsById[job.docID] = job;
+          }
         }
       }
 
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
+      // DB yan etkilerini batch ile uygula (tek tek write yerine).
+      if (!cacheOnlyJobs && staleSavedIds.isNotEmpty) {
+        for (final chunk in _chunkList(staleSavedIds, 450)) {
+          await JobSavedStore.removeSavedJobs(uid, chunk);
+        }
+      }
+      if (!cacheOnlyJobs && idsToMarkEnded.isNotEmpty) {
+        for (final chunk in _chunkList(idsToMarkEnded, 450)) {
+          final batch = FirebaseFirestore.instance.batch();
+          for (final docId in chunk) {
+            final ref = FirebaseFirestore.instance
+                .collection(JobCollection.name)
+                .doc(docId);
+            batch.update(ref, {"ended": true});
+          }
+          await batch.commit();
+        }
+      }
 
-      if (!serviceEnabled ||
-          permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      final jobs = savedIds
+          .where(jobsById.containsKey)
+          .map((id) => jobsById[id]!)
+          .toList();
+
+      final position = await _resolveUserPosition(
+        allowPermissionPrompt: allowLocationPrompt,
+      );
+      if (position == null) {
         jobs.shuffle();
-        list.value = jobs;
+        if (!_sameJobEntries(list, jobs)) {
+          list.value = jobs;
+        }
         return;
       }
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          list.value = jobs;
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
       double userLat = position.latitude;
       double userLong = position.longitude;
 
@@ -109,11 +257,58 @@ class SavedJobsController extends GetxController {
       }).toList();
 
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
-      list.value = updatedJobs;
-    } catch (e) {
-      print("Kaydedilen ilanlar hatası: $e");
+      if (!_sameJobEntries(list, updatedJobs)) {
+        list.value = updatedJobs;
+      }
+    } catch (_) {
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader || list.isEmpty) {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  Future<Position?> _resolveUserPosition({
+    required bool allowPermissionPrompt,
+  }) async {
+    try {
+      final lastResolved = _lastResolvedPosition;
+      if (lastResolved != null) {
+        return lastResolved;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return null;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        if (!allowPermissionPrompt) {
+          return await Geolocator.getLastKnownPosition();
+        }
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return await Geolocator.getLastKnownPosition();
+      }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        _lastResolvedPosition = lastKnown;
+        return lastKnown;
+      }
+
+      final current = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+      _lastResolvedPosition = current;
+      return current;
+    } catch (_) {
+      return null;
     }
   }
 }

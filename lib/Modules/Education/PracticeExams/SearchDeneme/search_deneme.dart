@@ -5,19 +5,42 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SearchDeneme/search_deneme_controller.dart';
 
-class SearchDeneme extends StatelessWidget {
+class SearchDeneme extends StatefulWidget {
   const SearchDeneme({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final SearchDenemeController controller = Get.put(SearchDenemeController());
+  State<SearchDeneme> createState() => _SearchDenemeState();
+}
 
+class _SearchDenemeState extends State<SearchDeneme> {
+  late final SearchDenemeController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = SearchDenemeController.maybeFind();
+    _ownsController = existing == null;
+    controller = existing ?? SearchDenemeController.ensure();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(SearchDenemeController.maybeFind(), controller)) {
+      Get.delete<SearchDenemeController>();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Deneme Sınavı Ara"),
+            BackButtons(text: 'practice.search_title'.tr),
             Container(
               color: Colors.white,
               child: Padding(
@@ -39,10 +62,10 @@ class SearchDeneme extends StatelessWidget {
                             controller: controller.searchController,
                             focusNode: controller.focusNode,
                             onChanged: controller.filterSearchResults,
-                            decoration: const InputDecoration(
-                              hintText: 'Ara',
-                              hintStyle: TextStyle(color: Colors.grey),
-                              border: OutlineInputBorder(
+                            decoration: InputDecoration(
+                              hintText: 'common.search'.tr,
+                              hintStyle: const TextStyle(color: Colors.grey),
+                              border: const OutlineInputBorder(
                                 borderSide: BorderSide.none,
                               ),
                             ),
@@ -79,8 +102,8 @@ class SearchDeneme extends StatelessWidget {
                             color: Colors.grey,
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Hiçbir Deneme Sınavı Bulunamadı",
+                          Text(
+                            'practice.search_empty_title'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -91,8 +114,8 @@ class SearchDeneme extends StatelessWidget {
                           const SizedBox(height: 10),
                           Text(
                             controller.searchController.text.isEmpty
-                                ? "Sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir."
-                                : "Arama kriterlerinize uygun deneme sınavı bulunamadı. Lütfen farklı bir arama terimi deneyin.",
+                                ? 'practice.search_empty_body_empty'.tr
+                                : 'practice.search_empty_body_query'.tr,
                             style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 16,
@@ -119,7 +142,7 @@ class SearchDeneme extends StatelessWidget {
                           crossAxisCount: 2,
                           crossAxisSpacing: 10.0,
                           mainAxisSpacing: 10.0,
-                          childAspectRatio: 2.0 / 4,
+                          childAspectRatio: 0.52,
                         ),
                         itemCount: controller.filteredList.length,
                         itemBuilder: (context, index) {

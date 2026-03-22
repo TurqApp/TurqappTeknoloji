@@ -1,12 +1,34 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class BookletAnswerController extends GetxController {
+  static BookletAnswerController ensure(
+    AnswerKeySubModel model,
+    BookletModel anaModel, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BookletAnswerController(model, anaModel),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BookletAnswerController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<BookletAnswerController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<BookletAnswerController>(tag: tag);
+  }
+
+  final ConfigRepository _configRepository = ConfigRepository.ensure();
   final AnswerKeySubModel model;
   final BookletModel anaModel;
 
@@ -30,24 +52,20 @@ class BookletAnswerController extends GetxController {
     fetchAds();
   }
 
-
   Future<void> fetchAds() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("Yönetim")
-          .doc("Genel")
-          .get();
-      iosList.value = doc.get("iosFullReklamlar") ?? '';
-      androidList.value = doc.get("androidFullReklamlar") ?? '';
+      final doc = await _configRepository.getLegacyConfigDoc(
+        collection: 'Yönetim',
+        docId: 'Genel',
+      );
+      iosList.value = (doc?["iosFullReklamlar"] ?? '').toString();
+      androidList.value = (doc?["androidFullReklamlar"] ?? '').toString();
       runAds();
-    } catch (e) {
-      log("Reklam verisi çekme hatası: $e");
-    }
+    } catch (_) {}
   }
 
   void runAds() {
     final adUnitId = Platform.isIOS ? iosList.value : androidList.value;
-    log("GOOGLE ADMOB RANDOM ID: $adUnitId");
     if (adUnitId.isNotEmpty) {}
   }
 
@@ -78,12 +96,10 @@ class BookletAnswerController extends GetxController {
     scorePercent.value = score;
     netScore.value = net;
 
-    log("Doğru: $correct, Yanlış: $wrong, Puan: $score");
-
     try {
       await FirebaseFirestore.instance
           .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .doc(CurrentUserService.instance.effectiveUserId)
           .collection("KitapcikCevaplari")
           .add({
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
@@ -98,8 +114,6 @@ class BookletAnswerController extends GetxController {
         "net": net,
       });
       completed.value = true;
-    } catch (e) {
-      log("Test sonucu kaydetme hatası: $e");
-    }
+    } catch (_) {}
   }
 }

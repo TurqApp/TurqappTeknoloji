@@ -1,18 +1,24 @@
 import 'dart:async';
 
-import 'package:app_links/app_links.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/Utils/deep_link_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -20,42 +26,78 @@ import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+part 'deep_link_service_lookup_part.dart';
+part 'deep_link_service_parse_part.dart';
+part 'deep_link_service_open_part.dart';
 
 class DeepLinkService extends GetxService {
-  final AppLinks _appLinks = AppLinks();
+  static DeepLinkService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DeepLinkService(), permanent: true);
+  }
+
+  static DeepLinkService? maybeFind() {
+    final isRegistered = Get.isRegistered<DeepLinkService>();
+    if (!isRegistered) return null;
+    return Get.find<DeepLinkService>();
+  }
+
   final ShortLinkService _shortLinkService = ShortLinkService();
-  StreamSubscription<Uri>? _subscription;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
+  static const Duration _lookupTtl = Duration(seconds: 30);
+  static final Map<String, _PostLookupCache> _postLookupCache =
+      <String, _PostLookupCache>{};
+  static final Map<String, _JobLookupCache> _jobLookupCache =
+      <String, _JobLookupCache>{};
+  static final Map<String, _MarketLookupCache> _marketLookupCache =
+      <String, _MarketLookupCache>{};
+  static final Map<String, _UserLookupCache> _userLookupCache =
+      <String, _UserLookupCache>{};
+  static final Map<String, _StoryListLookupCache> _storyListLookupCache =
+      <String, _StoryListLookupCache>{};
+  static final Map<String, _StoryDocLookupCache> _storyDocLookupCache =
+      <String, _StoryDocLookupCache>{};
+  static const Duration _staleRetention = Duration(minutes: 3);
+  static const int _maxLookupEntries = 400;
   bool _started = false;
   bool _handling = false;
   final RxBool initialLinkResolved = false.obs;
+
+  Future<_PostLookupCache> _getPostLookup(String postId) =>
+      _performGetPostLookup(postId);
+
+  Future<_JobLookupCache> _getJobLookup(String jobId) =>
+      _performGetJobLookup(jobId);
+
+  Future<_UserLookupCache> _getUserLookup(String userId) =>
+      _performGetUserLookup(userId);
+
+  Future<_MarketLookupCache> _getMarketLookup(String itemId) =>
+      _performGetMarketLookup(itemId);
+
+  Future<_StoryDocLookupCache> _getStoryDocLookup(String storyId) =>
+      _performGetStoryDocLookup(storyId);
 
   void start() {
     if (_started) return;
     _started = true;
     initialLinkResolved.value = false;
-
-    _appLinks.getInitialLink().then((initial) async {
-      if (initial != null) {
-        await _handle(initial);
-      }
-    }).catchError((_) {}).whenComplete(() {
-      initialLinkResolved.value = true;
-    });
-
-    _subscription = _appLinks.uriLinkStream.listen(
-      (uri) => unawaited(_handle(uri)),
-      onError: (_) {},
-    );
+    initialLinkResolved.value = true;
   }
 
-  Future<void> _handle(Uri uri) async {
+  Future<void> handle(Uri uri) async {
     if (_handling) return;
     final parsed = _parse(uri);
     if (parsed == null) return;
 
     _handling = true;
     try {
-      if (FirebaseAuth.instance.currentUser == null) {
+      if (CurrentUserService.instance.effectiveUserId.isEmpty) {
         return;
       }
 
@@ -71,6 +113,10 @@ class DeepLinkService extends GetxService {
         await _openEducationLink(parsed.id);
         return;
       }
+      if (parsed.type == 'market') {
+        await _openMarket(parsed.id);
+        return;
+      }
 
       final resolved = await _shortLinkService.resolve(
         type: parsed.type,
@@ -84,7 +130,7 @@ class DeepLinkService extends GetxService {
       if (entityId.isEmpty) {
         final handled = await _tryDirectFallback(parsed);
         if (!handled) {
-          AppSnackbar('Bilgi', 'Link çözülemedi.');
+          AppSnackbar('common.info'.tr, 'deep_link.resolve_failed'.tr);
         }
         return;
       }
@@ -97,285 +143,62 @@ class DeepLinkService extends GetxService {
           await _openStory(entityId);
           return;
         case 'user':
-          Get.to(() => SocialProfile(userID: entityId));
+          await _openUserProfile(entityId);
           return;
         case 'edu':
           await _openEducationLink(entityId);
+          return;
+        case 'market':
+          await _openMarket(entityId);
           return;
       }
     } catch (_) {
       final handled = await _tryDirectFallback(parsed);
       if (!handled) {
-        AppSnackbar('Bilgi', 'Link açılamadı.');
+        AppSnackbar('common.info'.tr, 'deep_link.open_failed'.tr);
       }
     } finally {
       _handling = false;
     }
   }
 
-  Future<bool> _tryDirectFallback(_ParsedDeepLink parsed) async {
-    final rawId = parsed.id.trim();
-    if (rawId.isEmpty) return false;
-    try {
-      switch (parsed.type) {
-        case 'post':
-          await _openPost(rawId);
-          return true;
-        case 'story':
-          await _openStory(rawId);
-          return true;
-        case 'user':
-          Get.to(() => SocialProfile(userID: rawId));
-          return true;
-        case 'edu':
-          await _openEducationLink(rawId);
-          return true;
-      }
-    } catch (_) {
-      return false;
-    }
-    return false;
-  }
+  Future<bool> _tryDirectFallback(_ParsedDeepLink parsed) =>
+      _performTryDirectFallback(parsed);
 
-  _ParsedDeepLink? _parse(Uri uri) {
-    final scheme = uri.scheme.toLowerCase();
-    final host = uri.host.toLowerCase();
-    final segments = uri.pathSegments.where((e) => e.isNotEmpty).toList();
+  _ParsedDeepLink? _parse(Uri uri) => _performParse(uri);
 
-    if (scheme == 'http' || scheme == 'https') {
-      if (!(host == 'turqapp.com' ||
-          host == 'www.turqapp.com' ||
-          host == 'go.turqapp.com' ||
-          host == 'turqqapp.com' ||
-          host == 'www.turqqapp.com' ||
-          host == 'go.turqqapp.com')) {
-        return null;
-      }
-      if (segments.length < 2) return null;
-      final type = _normalizeType(segments[0]);
-      if (type == null) return null;
-      final id = _normalizeId(segments[1]);
-      if (id.isEmpty) return null;
-      return _ParsedDeepLink(type: type, id: id);
-    }
+  Future<void> _openPost(String postId) => _performOpenPost(postId);
 
-    if (scheme == 'turqapp') {
-      if (host.isNotEmpty) {
-        final mappedHostType = _normalizeType(host);
-        if (mappedHostType != null && segments.isNotEmpty) {
-          final id = _normalizeId(segments.first);
-          if (id.isEmpty) return null;
-          return _ParsedDeepLink(type: mappedHostType, id: id);
-        }
-      }
-      if (segments.length >= 2) {
-        final type = _normalizeType(segments[0]);
-        if (type != null) {
-          final id = _normalizeId(segments[1]);
-          if (id.isEmpty) return null;
-          return _ParsedDeepLink(type: type, id: id);
-        }
-      }
-    }
+  Future<void> _openStory(String storyId) => _performOpenStory(storyId);
 
-    return null;
-  }
+  Future<void> _openUserProfile(String userId) =>
+      _performOpenUserProfile(userId);
 
-  String? _normalizeType(String raw) {
-    final value = raw.toLowerCase();
-    if (value == 'p' || value == 'post') return 'post';
-    if (value == 's' || value == 'story') return 'story';
-    if (value == 'u' || value == 'user' || value == 'profile') return 'user';
-    if (value == 'i' ||
-        value == 'e' ||
-        value == 'edu' ||
-        value == 'education') {
-      return 'edu';
-    }
-    return null;
-  }
+  Future<bool> _canOpenUserContent(
+    String userId, {
+    UserSummary? summary,
+  }) =>
+      _performCanOpenUserContent(
+        userId,
+        summary: summary,
+      );
 
-  String _normalizeId(String raw) {
-    var id = raw.trim();
-    // Mesaj içinde yazılırken sona gelen noktalama/boş karakterleri temizle.
-    id = id.replaceAll(RegExp(r'^[^A-Za-z0-9_-]+'), '');
-    id = id.replaceAll(RegExp(r'[^A-Za-z0-9_-]+$'), '');
-    return id;
-  }
+  Future<void> _openMarket(String itemId) => _performOpenMarket(itemId);
 
-  Future<void> _openPost(String postId) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(postId).get();
-    if (!doc.exists) {
-      AppSnackbar('Bilgi', 'Gönderi bulunamadı.');
-      return;
-    }
+  Future<List<StoryModel>> _fetchStoriesByUserIndexSafe(String userId) =>
+      _performFetchStoriesByUserIndexSafe(userId);
 
-    final model = PostsModel.fromFirestore(doc);
-    if (model.deletedPost) {
-      AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
-      return;
-    }
+  void _pruneStaleLookups() => _performPruneStaleLookups();
 
-    if (model.video.trim().isNotEmpty) {
-      await Get.to(() => SingleShortView(
-            startModel: model,
-            startList: [model],
-          ));
-      return;
-    }
+  void _trimOldestIfNeeded() => _performTrimOldestIfNeeded();
 
-    if (model.flood == false && model.floodCount > 1) {
-      await Get.to(() => FloodListing(mainModel: model));
-      return;
-    }
+  Future<void> _openEducationLink(String entityId) =>
+      _performOpenEducationLink(entityId);
 
-    if (model.img.isNotEmpty) {
-      await Get.to(() => PhotoShorts(
-            fetchedList: [model],
-            startModel: model,
-          ));
-      return;
-    }
-
-    // İçerik tipi çözülemezse web fallback
-    await RedirectionLink().goToLink('https://turqapp.com/p/$postId');
-  }
-
-  Future<void> _openStory(String storyId) async {
-    final storyRef =
-        FirebaseFirestore.instance.collection('stories').doc(storyId);
-    final storyDoc = await storyRef.get();
-    if (!storyDoc.exists) {
-      AppSnackbar('Bilgi', 'Hikaye bulunamadı.');
-      return;
-    }
-
-    final storyData = storyDoc.data() as Map<String, dynamic>;
-    if ((storyData['deleted'] ?? false) == true) {
-      AppSnackbar('Bilgi', 'Hikaye süresi dolmuş veya silinmiş.');
-      return;
-    }
-
-    final userId = (storyData['userId'] ?? '').toString().trim();
-    if (userId.isEmpty) {
-      AppSnackbar('Bilgi', 'Hikaye sahibi bulunamadı.');
-      return;
-    }
-
-    final userSnap =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    if (!userSnap.exists) {
-      AppSnackbar('Bilgi', 'Hikaye sahibi bulunamadı.');
-      return;
-    }
-
-    final storiesSnap = await FirebaseFirestore.instance
-        .collection('stories')
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .get();
-
-    final stories = storiesSnap.docs
-        .where((d) => (d.data()['deleted'] ?? false) != true)
-        .map(StoryModel.fromDoc)
-        .toList();
-
-    if (stories.isEmpty) {
-      AppSnackbar('Bilgi', 'Hikaye bulunamadı.');
-      return;
-    }
-
-    final index = stories.indexWhere((e) => e.id == storyId);
-    if (index > 0) {
-      final target = stories.removeAt(index);
-      stories.insert(0, target);
-    }
-
-    final userData = userSnap.data() as Map<String, dynamic>;
-    final user = StoryUserModel(
-      nickname: (userData['nickname'] ?? '').toString(),
-      pfImage: (userData['pfImage'] ?? '').toString(),
-      fullName:
-          '${(userData['firstName'] ?? '').toString()} ${(userData['lastName'] ?? '').toString()}'
-              .trim(),
-      userID: userId,
-      stories: stories,
-    );
-
-    await Get.to(() => StoryViewer(
-          startedUser: user,
-          storyOwnerUsers: [user],
-        ));
-  }
-
-  Future<void> _openEducationLink(String entityId) async {
-    final normalized = entityId.trim().toLowerCase();
-    if (normalized.startsWith('job:')) {
-      await _openJob(entityId.split(':').last.trim());
-      return;
-    }
-
-    final navController = Get.isRegistered<NavBarController>()
-        ? Get.find<NavBarController>()
-        : Get.put(NavBarController());
-    final educationController = Get.isRegistered<EducationController>()
-        ? Get.find<EducationController>()
-        : Get.put(EducationController());
-
-    // Eğitim ana ekranı sekmesi
-    navController.changeIndex(3);
-
-    int targetTab = 0;
-    if (normalized.startsWith('scholarship:')) {
-      targetTab = 0;
-    } else if (normalized.startsWith('question:') ||
-        normalized.startsWith('question-')) {
-      targetTab = 1;
-    } else if (normalized.startsWith('practiceexam:')) {
-      targetTab = 2;
-    } else if (normalized.startsWith('pastquestion:')) {
-      targetTab = 3;
-    } else if (normalized.startsWith('answerkey:')) {
-      targetTab = 4;
-    } else if (normalized.startsWith('tutoring:')) {
-      targetTab = 5;
-    } else if (normalized.startsWith('job:')) {
-      targetTab = 6;
-    }
-
-    educationController.onTabTap(targetTab);
-  }
-
-  Future<void> _openJob(String jobId) async {
-    final cleanId = jobId.trim();
-    if (cleanId.isEmpty) {
-      AppSnackbar('Bilgi', 'İlan bulunamadı.');
-      return;
-    }
-
-    final doc = await FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(cleanId)
-        .get();
-    if (!doc.exists || doc.data() == null) {
-      AppSnackbar('Bilgi', 'İlan bulunamadı.');
-      return;
-    }
-
-    final model = JobModel.fromMap(doc.data()!, doc.id);
-    if (model.ended) {
-      AppSnackbar('Bilgi', 'İlan yayından kaldırılmış.');
-      return;
-    }
-
-    await Get.to(() => JobDetails(model: model));
-  }
+  Future<void> _openJob(String jobId) => _performOpenJob(jobId);
 
   @override
   void onClose() {
-    _subscription?.cancel();
-    _subscription = null;
     _started = false;
     super.onClose();
   }
@@ -386,4 +209,64 @@ class _ParsedDeepLink {
   final String id;
 
   _ParsedDeepLink({required this.type, required this.id});
+}
+
+class _PostLookupCache {
+  final PostsModel? model;
+  final DateTime cachedAt;
+
+  const _PostLookupCache({
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _JobLookupCache {
+  final JobModel? model;
+  final DateTime cachedAt;
+
+  const _JobLookupCache({
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _MarketLookupCache {
+  final dynamic model;
+  final DateTime cachedAt;
+
+  const _MarketLookupCache({
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _UserLookupCache {
+  final UserSummary? data;
+  final DateTime cachedAt;
+
+  const _UserLookupCache({
+    required this.data,
+    required this.cachedAt,
+  });
+}
+
+class _StoryListLookupCache {
+  final List<StoryModel> stories;
+  final DateTime cachedAt;
+
+  const _StoryListLookupCache({
+    required this.stories,
+    required this.cachedAt,
+  });
+}
+
+class _StoryDocLookupCache {
+  final Map<String, dynamic>? data;
+  final DateTime cachedAt;
+
+  const _StoryDocLookupCache({
+    required this.data,
+    required this.cachedAt,
+  });
 }

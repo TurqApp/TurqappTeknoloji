@@ -7,9 +7,38 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import '../JobContent/job_content.dart';
 import 'my_job_ads_controller.dart';
 
-class MyJobAds extends StatelessWidget {
+class MyJobAds extends StatefulWidget {
   MyJobAds({super.key});
-  final controller = Get.put(MyJobAdsController());
+
+  @override
+  State<MyJobAds> createState() => _MyJobAdsState();
+}
+
+class _MyJobAdsState extends State<MyJobAds> {
+  late final MyJobAdsController controller;
+  late final String _controllerTag = 'my_job_ads_${identityHashCode(this)}';
+  late final String _pageLineBarTag = 'MyJobAds_${identityHashCode(this)}';
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = MyJobAdsController.maybeFind(tag: _controllerTag) == null;
+    controller = MyJobAdsController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          MyJobAdsController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyJobAdsController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,23 +49,30 @@ class MyJobAds extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
-                children: [BackButtons(text: "İlanlarım")],
+                children: [BackButtons(text: "pasaj.job_finder.my_ads".tr)],
               ),
             ),
             PageLineBar(
-                barList: ["Yayında", "Süresi Doldu"],
-                pageName: "MyJobAds",
+                barList: [
+                  "pasaj.job_finder.published_tab".tr,
+                  "pasaj.job_finder.expired_tab".tr,
+                ],
+                pageName: _pageLineBarTag,
                 pageController: controller.pageController),
             Expanded(
               child: PageView(
                 controller: controller.pageController,
                 onPageChanged: (v) {
-                  Get.find<PageLineBarController>(tag: "MyJobAds")
-                      .selection
-                      .value = v;
+                  syncPageLineBarSelection(_pageLineBarTag, v);
                 },
                 children: [
                   Obx(() {
+                    if (controller.isLoadingActive.value &&
+                        controller.active.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      );
+                    }
                     return controller.active.isNotEmpty
                         ? ListView.builder(
                             itemCount: controller.active.length,
@@ -53,9 +89,15 @@ class MyJobAds extends StatelessWidget {
                               );
                             },
                           )
-                        : EmptyRow(text: "İlan Bulunamadı");
+                        : EmptyRow(text: "pasaj.job_finder.no_my_ads".tr);
                   }),
                   Obx(() {
+                    if (controller.isLoadingDeactive.value &&
+                        controller.deactive.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      );
+                    }
                     return controller.deactive.isNotEmpty
                         ? ListView.builder(
                             itemCount: controller.deactive.length,
@@ -72,7 +114,7 @@ class MyJobAds extends StatelessWidget {
                               );
                             },
                           )
-                        : EmptyRow(text: "İlan Bulunamadı");
+                        : EmptyRow(text: "pasaj.job_finder.no_my_ads".tr);
                   })
                 ],
               ),

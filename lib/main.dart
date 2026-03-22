@@ -1,14 +1,22 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Localization/app_language_service.dart';
+import 'package:turqappv2/Core/Localization/app_translations.dart';
+import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -22,24 +30,51 @@ late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    _reportStartupFallbackError(details);
+    return Material(
+      color: Colors.white,
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Uygulama başlatılırken bir hata oluştu.\nLütfen tekrar deneyin.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontFamily: AppFontFamilies.mmedium,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  };
 
-  // C-004: Decoded image cache artır (varsayılan 100MB → 200MB, 1000 → 2000)
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 * 1024 * 1024;
-  PaintingBinding.instance.imageCache.maximumSize = 2000;
+  // iOS'ta launch anında jetsam/watchdog riskini azaltmak için
+  // decode image cache'i daha dengeli tut.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 1200;
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  // Native launch ekranını uzatmamak için Firebase bootstrap'ı
-  // ilk frame sonrasına ertelenir.
-  final bootstrapCompleter = Completer<void>();
-  firebaseBootstrapFuture = bootstrapCompleter.future;
+  // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
+  // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
+  // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
+  // cagrilip startup fallback ekranina dusuyordu.
+  firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
+  await firebaseBootstrapFuture;
 
-  // VideoStateManager lazy olarak yüklensin
-  Get.lazyPut(() => VideoStateManager());
+  // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
+  VideoStateManager.instance;
+  NetworkAwarenessService.ensure();
+  await AppLanguageService.ensureInitialized();
 
   runApp(const MyApp());
 
@@ -49,16 +84,8 @@ void main() {
     onDetach: _handleAppBackgroundTransition,
   );
 
-  // İlk frame'i geciktirmemek için sistem UI ayarlarını sonrasına bırak.
+  // Ilk frame sonrasi yalnizca sistem UI ayarlari.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _bootstrapFirebaseAndCrashlytics().then((_) {
-      if (!bootstrapCompleter.isCompleted) bootstrapCompleter.complete();
-    }).catchError((e, st) {
-      if (!bootstrapCompleter.isCompleted) {
-        bootstrapCompleter.completeError(e, st);
-      }
-    });
-
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -68,10 +95,29 @@ void main() {
   });
 }
 
+void _reportStartupFallbackError(FlutterErrorDetails details) {
+  final error = details.exception;
+  if (_isExpectedNonFatalNoise(error)) {
+    debugPrint('Suppressed fallback error: $error');
+    return;
+  }
+
+  FlutterError.presentError(details);
+  debugPrint('Fallback ErrorWidget triggered by: $error');
+  if (details.stack != null) {
+    debugPrintStack(stackTrace: details.stack);
+  }
+
+  try {
+    FirebaseCrashlytics.instance.recordFlutterError(details);
+  } catch (_) {}
+}
+
 void _clearConsumedCacheIfNeeded() {
   try {
-    if (Get.isRegistered<SegmentCacheManager>()) {
-      unawaited(Get.find<SegmentCacheManager>().clearConsumedCache());
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager != null) {
+      unawaited(cacheManager.clearConsumedCache());
     }
   } catch (_) {}
 }
@@ -79,8 +125,12 @@ void _clearConsumedCacheIfNeeded() {
 void _handleAppBackgroundTransition() {
   _clearConsumedCacheIfNeeded();
   try {
-    if (Get.isRegistered<VideoStateManager>()) {
-      Get.find<VideoStateManager>().pauseAllVideos(force: true);
+    VideoStateManager.maybeFind()?.pauseAllVideos(force: true);
+  } catch (_) {}
+  try {
+    final agendaController = AgendaController.maybeFind();
+    if (agendaController != null) {
+      unawaited(agendaController.persistWarmLaunchCache());
     }
   } catch (_) {}
   try {
@@ -92,22 +142,25 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await _activateAppCheck();
 
   FlutterError.onError = (FlutterErrorDetails details) {
     final error = details.exception;
     final stack = details.stack;
-    if (_isFirestoreConfigError(error)) {
-      debugPrint('Ignored non-fatal firestore error: $error');
+    if (_isExpectedNonFatalNoise(error)) {
+      debugPrint('Suppressed non-fatal: $error');
       return;
     }
+    FlutterError.presentError(details);
     FirebaseCrashlytics.instance.recordFlutterError(details);
+    debugPrint('FlutterError captured: $error');
     if (stack != null) {
       debugPrintStack(stackTrace: stack);
     }
   };
   PlatformDispatcher.instance.onError = (error, stack) {
-    if (_isFirestoreConfigError(error)) {
-      debugPrint('Ignored platform firestore error: $error');
+    if (_isExpectedNonFatalNoise(error)) {
+      debugPrint('Platform suppressed non-fatal: $error');
       return true;
     }
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
@@ -115,11 +168,49 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   };
 }
 
+Future<void> _activateAppCheck() async {
+  if (kDebugMode) {
+    debugPrint('[AppCheck] debug mode: activation skipped.');
+    return;
+  }
+
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleDeviceCheckProvider(),
+    );
+
+    if (!kReleaseMode) {
+      final mode = kDebugMode ? 'debug' : 'profile';
+      debugPrint(
+        '[AppCheck] $mode provider enabled for local development.',
+      );
+    }
+  } catch (e, st) {
+    debugPrint('[AppCheck] activation failed: $e');
+    FirebaseCrashlytics.instance.recordError(e, st, fatal: false);
+  }
+}
+
 bool _isFirestoreConfigError(Object error) {
-  final text = error.toString().toLowerCase();
+  final text = normalizeLowercase(error.toString());
   return text.contains('cloud_firestore/permission-denied') ||
       text.contains('cloud_firestore/failed-precondition') ||
       text.contains('requires an index');
+}
+
+bool _isExpectedNonFatalNoise(Object error) {
+  final text = normalizeLowercase(error.toString());
+  if (_isFirestoreConfigError(error)) return true;
+  return text.contains('firebase_app_check/unknown') ||
+      text.contains('exchangedevicechecktoken') ||
+      text.contains('exchangedebugtoken') ||
+      text.contains('app attestation failed') ||
+      text.contains('app not registered');
 }
 
 class MyApp extends StatelessWidget {
@@ -129,110 +220,183 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final languageService = AppLanguageService.maybeFind();
     return GetMaterialApp(
-        navigatorKey: navigatorKey,
-        navigatorObservers: [routeObserver],
-        defaultTransition: Transition.fade,
-        locale: const Locale('tr', 'TR'),
-        supportedLocales: const [Locale('tr', 'TR')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        title: 'TurqApp',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          fontFamily: AppFontFamilies.mregular,
-          scaffoldBackgroundColor: Colors.white,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.black,
-            primary: Colors.black,
-            secondary: Colors.black,
-            surface: Colors.white,
-            brightness: Brightness.light,
-          ),
-          cupertinoOverrideTheme: const CupertinoThemeData(
-            primaryColor: Colors.black,
-          ),
-          textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
-          textTheme: const TextTheme(
-            bodySmall: TextStyle(
-              fontSize: 12,
-              fontFamily: AppFontFamilies.mregular,
-              color: Colors.black,
-            ),
-            bodyMedium: TextStyle(
-              fontSize: 14,
-              fontFamily: AppFontFamilies.mregular,
-              color: Colors.black,
-            ),
-            bodyLarge: TextStyle(
-              fontSize: 16,
-              fontFamily: AppFontFamilies.mregular,
-              color: Colors.black,
-            ),
-            titleSmall: TextStyle(
-              fontSize: 14,
-              fontFamily: AppFontFamilies.mmedium,
-              color: Colors.black,
-            ),
-            titleMedium: TextStyle(
-              fontSize: 16,
-              fontFamily: AppFontFamilies.mmedium,
-              color: Colors.black,
-            ),
-            titleLarge: TextStyle(
-              fontSize: 20,
-              fontFamily: AppFontFamilies.mbold,
-              color: Colors.black,
-            ),
-            labelLarge: TextStyle(
-              fontSize: 15,
-              fontFamily: AppFontFamilies.mmedium,
-              color: Colors.white,
-            ),
-          ),
-          progressIndicatorTheme: const ProgressIndicatorThemeData(
+      navigatorKey: navigatorKey,
+      navigatorObservers: [routeObserver],
+      routingCallback: (routing) {
+        if (routing == null) return;
+        final current = routing.current;
+        final previous = routing.previous;
+        if (current == previous) return;
+      },
+      defaultTransition: Transition.fade,
+      translations: AppTranslations(),
+      locale: languageService?.currentLocale ?? AppLanguageService.fallbackLocale,
+      fallbackLocale: AppLanguageService.fallbackLocale,
+      supportedLocales: AppLanguageService.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      title: 'TurqApp',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        fontFamily: AppFontFamilies.mregular,
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.black,
+          primary: Colors.black,
+          secondary: Colors.black,
+          surface: Colors.white,
+          brightness: Brightness.light,
+        ),
+        cupertinoOverrideTheme: const CupertinoThemeData(
+          primaryColor: Colors.black,
+        ),
+        textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
+        textTheme: const TextTheme(
+          bodySmall: TextStyle(
+            fontSize: 12,
+            fontFamily: AppFontFamilies.mregular,
             color: Colors.black,
           ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-              disabledBackgroundColor: Colors.black26,
-              disabledForegroundColor: Colors.white70,
-            ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            fontFamily: AppFontFamilies.mregular,
+            color: Colors.black,
           ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.black,
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-            ),
+          bodyLarge: TextStyle(
+            fontSize: 16,
+            fontFamily: AppFontFamilies.mregular,
+            color: Colors.black,
           ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black,
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-              side: const BorderSide(color: Colors.black),
-            ),
+          titleSmall: TextStyle(
+            fontSize: 14,
+            fontFamily: AppFontFamilies.mmedium,
+            color: Colors.black,
           ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          titleMedium: TextStyle(
+            fontSize: 16,
+            fontFamily: AppFontFamilies.mmedium,
+            color: Colors.black,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 20,
+            fontFamily: AppFontFamilies.mbold,
+            color: Colors.black,
+          ),
+          labelLarge: TextStyle(
+            fontSize: 15,
+            fontFamily: AppFontFamilies.mmedium,
+            color: Colors.white,
+          ),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Colors.black,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            disabledBackgroundColor: Colors.black26,
+            disabledForegroundColor: Colors.white70,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
           ),
-          appBarTheme: const AppBarTheme(
-            systemOverlayStyle: SystemUiOverlayStyle(
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, TurqButtonTokens.height),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TurqButtonTokens.horizontalPadding,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+            ),
+            side: const BorderSide(color: Colors.black),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+            ),
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+        appBarTheme: const AppBarTheme(
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: Brightness.dark,
+            systemNavigationBarContrastEnforced: false,
+          ),
+        ),
+      ),
+      builder: (ctx, child) {
+        final mq = MediaQuery.of(ctx);
+        final topGap =
+            GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
+        final adjustedPadding = mq.padding.copyWith(
+          top: mq.padding.top + topGap,
+        );
+        final adjustedViewPadding = mq.viewPadding.copyWith(
+          top: mq.viewPadding.top + topGap,
+        );
+        return MediaQuery(
+          data: mq.copyWith(
+            padding: adjustedPadding,
+            viewPadding: adjustedViewPadding,
+          ),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: const SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
               statusBarIconBrightness: Brightness.dark,
               statusBarBrightness: Brightness.light,
@@ -240,57 +404,32 @@ class MyApp extends StatelessWidget {
               systemNavigationBarIconBrightness: Brightness.dark,
               systemNavigationBarContrastEnforced: false,
             ),
-          ),
-        ),
-        builder: (ctx, child) {
-          final mq = MediaQuery.of(ctx);
-          final topGap =
-              GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
-          final adjustedPadding = mq.padding.copyWith(
-            top: mq.padding.top + topGap,
-          );
-          final adjustedViewPadding = mq.viewPadding.copyWith(
-            top: mq.viewPadding.top + topGap,
-          );
-          return MediaQuery(
-            data: mq.copyWith(
-              padding: adjustedPadding,
-              viewPadding: adjustedViewPadding,
-            ),
-            child: AnnotatedRegion<SystemUiOverlayStyle>(
-              value: const SystemUiOverlayStyle(
-                statusBarColor: Colors.transparent,
-                statusBarIconBrightness: Brightness.dark,
-                statusBarBrightness: Brightness.light,
-                systemNavigationBarColor: Colors.transparent,
-                systemNavigationBarIconBrightness: Brightness.dark,
-                systemNavigationBarContrastEnforced: false,
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: IgnorePointer(
-                      child: Container(
-                        height: adjustedViewPadding.top,
-                        color: Colors.white,
-                      ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: adjustedViewPadding.top,
+                      color: Colors.white,
                     ),
                   ),
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                    },
-                    child: child ?? const SizedBox.shrink(),
-                  ),
-                ],
-              ),
+                ),
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
+                  child: child ?? const SplashView(),
+                ),
+              ],
             ),
-          );
-        },
-        home: const SplashView());
+          ),
+        );
+      },
+      home: const SplashView(),
+    );
   }
 }

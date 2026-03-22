@@ -1,9 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik2_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik3_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_preview.dart';
+
+part 'cikmis_sorular_yil_sectirme_actions_part.dart';
+part 'cikmis_sorular_yil_sectirme_content_part.dart';
 
 class CikmisSorularYilSectirme extends StatefulWidget {
   final String anaBaslik;
@@ -25,394 +29,116 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 }
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> yillar = [];
+  static const _english = 'İngilizce';
+  static const _german = 'Almanca';
+  static const _arabic = 'Arapça';
+  static const _french = 'Fransızca';
+  static const _russian = 'Rusça';
+  static const _associate = 'Ön Lisans';
+  static const _undergraduate = 'Lisans';
+  static const _aGroup = 'A Grubu';
+  static const _fieldKnowledge = 'Alan Bilgisi';
+  static const _educationSciences = 'Eğitim Bilimleri';
+  static const _generalAbilityCulture = 'GK - GY';
+  static const _ydt = 'YDT';
+  static const _tyt = 'TYT';
+  static const _ayt = 'AYT';
+  static const _dgs = 'DGS';
+  static const _lgs = 'LGS';
+  static const _kpss = 'KPSS';
+  static const _ktbt = 'KTBT';
+  static const _ttbt = 'TTBT';
+  static const _ales = 'ALES';
+  static const _yks = 'YKS';
 
-  String _denemeLabel(int index) => "Deneme ${index + 1}";
+  String _denemeLabel(int index) =>
+      'past_questions.mock_label'.trParams({'index': '${index + 1}'});
 
-  @override
-  void initState() {
-    super.initState();
-    print("DEVELOPER ${widget.anaBaslik}");
-    print("DEVELOPER ${widget.baslik2}");
-    print("DEVELOPER ${widget.baslik3}");
-
-    getData();
+  String _localizedExamType(String raw) {
+    switch (raw) {
+      case _english:
+        return 'tests.language.english'.tr;
+      case _german:
+        return 'tests.language.german'.tr;
+      case _arabic:
+        return 'tests.language.arabic'.tr;
+      case _french:
+        return 'tests.language.french'.tr;
+      case _russian:
+        return 'tests.language.russian'.tr;
+      case _associate:
+        return 'past_questions.exam_type.associate'.tr;
+      case _undergraduate:
+        return 'past_questions.exam_type.undergraduate'.tr;
+      case _generalAbilityCulture:
+        return 'past_questions.branch.general_ability_culture'.tr;
+      case _aGroup:
+        return 'past_questions.branch.group_a'.tr;
+      case _educationSciences:
+        return 'past_questions.branch.education_sciences'.tr;
+      case _fieldKnowledge:
+        return 'past_questions.branch.field_knowledge'.tr;
+      default:
+        return raw;
+    }
   }
 
-  void getData() {
-    if (widget.baslik2 == "TTBT" ||
-        widget.baslik2 == "KTBT" ||
-        widget.baslik2 == "ALES" ||
-        widget.baslik2 == "Almanca" ||
-        widget.baslik2 == "İngilizce" ||
-        widget.baslik2 == "Fransızca" ||
-        widget.baslik2 == "Rusça" ||
-        widget.baslik2 == "Arapça") {
-      print("DEVELOPER 3");
-      FirebaseFirestore.instance
-          .collection("questions")
-          .where("anaBaslik", isEqualTo: widget.anaBaslik)
-          .where("sinavTuru", isEqualTo: widget.sinavTuru)
-          .get()
-          .then((QuerySnapshot snapshot) {
-        for (var doc in snapshot.docs) {
-          String yil = doc.get("yil");
-          String baslik3 = doc.get("baslik3");
-
-          if (!yillar.contains(yil)) {
-            print("DEVELOPER $baslik3");
-            if (mounted) {
-              setState(() {
-                yillar.add(yil);
-                yillar.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-              });
-            }
-          }
-        }
-      });
-    } else if (widget.baslik3 != "") {
-      print("DEVELOPER 1");
-      FirebaseFirestore.instance
-          .collection("questions")
-          .where("anaBaslik", isEqualTo: widget.anaBaslik)
-          .where("sinavTuru", isEqualTo: widget.sinavTuru)
-          .get()
-          .then((QuerySnapshot snapshot) {
-        for (var doc in snapshot.docs) {
-          String yil = doc.get("yil");
-          String baslik3 = doc.get("baslik3");
-          String baslik2 = doc.get("baslik2");
-
-          if (!yillar.contains(yil) &&
-              baslik3 == widget.baslik3 &&
-              baslik2 == widget.baslik2) {
-            print("DEVELOPER $baslik3");
-            if (mounted) {
-              setState(() {
-                yillar.add(yil);
-                yillar.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-              });
-            }
-          }
-        }
-      });
-    } else if (widget.baslik2 != "") {
-      print("DEVELOPER 2");
-      FirebaseFirestore.instance
-          .collection("questions")
-          .where("anaBaslik", isEqualTo: widget.anaBaslik)
-          .where("sinavTuru", isEqualTo: widget.sinavTuru)
-          .get()
-          .then((QuerySnapshot snapshot) {
-        for (var doc in snapshot.docs) {
-          String yil = doc.get("yil");
-          String baslik2 = doc.get("baslik2");
-
-          if (!yillar.contains(yil) && baslik2 == widget.baslik2) {
-            if (mounted) {
-              setState(() {
-                yillar.add(yil);
-                yillar.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-              });
-            }
-          }
-        }
-      });
+  bool _isLanguageOrDirectBranch(String raw) {
+    switch (raw) {
+      case _ttbt:
+      case _ktbt:
+      case _ales:
+      case _german:
+      case _english:
+      case _french:
+      case _russian:
+      case _arabic:
+        return true;
+      default:
+        return false;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: "${widget.sinavTuru} Denemeleri"),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                child: ListView(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: GridView.builder(
-                        physics: NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 0.78,
-                        ),
-                        itemCount: yillar.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              if (widget.sinavTuru == "KTBT" ||
-                                  widget.sinavTuru == "TTBT" ||
-                                  widget.sinavTuru == "İngilizce" ||
-                                  widget.sinavTuru == "Fransızca" ||
-                                  widget.sinavTuru == "Arapça" ||
-                                  widget.sinavTuru == "Almanca" ||
-                                  widget.sinavTuru == "Rusça" ||
-                                  widget.sinavTuru == "ALES") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        CikmisSorularBaslik2Secimi(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "A Grubu") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        CikmisSorularBaslik3Secimi(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: widget.baslik2,
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "Alan Bilgisi") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: widget.baslik2,
-                                      baslik3: widget.baslik3,
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "Eğitim Bilimleri") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: widget.baslik2,
-                                      baslik3: widget.baslik3,
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.sinavTuru == "Lisans" &&
-                                  widget.baslik2 == "GK - GY") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: widget.baslik2,
-                                      baslik3: widget.sinavTuru,
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.anaBaslik == "YKS" &&
-                                  widget.sinavTuru == "YDT") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: widget.baslik2,
-                                      baslik3: widget.sinavTuru,
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.anaBaslik == "YKS" &&
-                                  widget.sinavTuru == "TYT") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: "TYT",
-                                      baslik3: "TYT",
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.anaBaslik == "YKS" &&
-                                  widget.sinavTuru == "AYT") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: "AYT",
-                                      baslik3: "AYT",
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.anaBaslik == "DGS" &&
-                                  widget.sinavTuru == "DGS") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: "DGS",
-                                      baslik3: "DGS",
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.anaBaslik == "LGS" &&
-                                  widget.sinavTuru == "LGS") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: "LGS",
-                                      baslik3: "LGS",
-                                    ),
-                                  ),
-                                );
-                              } else if (widget.anaBaslik == "KPSS" &&
-                                  widget.sinavTuru == "Ön Lisans") {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: "Ön Lisans",
-                                      baslik3: "Ön Lisans",
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CikmisSorularPreview(
-                                      anaBaslik: widget.anaBaslik,
-                                      sinavTuru: widget.sinavTuru,
-                                      yil: yillar[index],
-                                      baslik2: widget.baslik2,
-                                      baslik3: widget.baslik3,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 2),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black,
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(4),
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.cyan,
-                                          Colors.black.withValues(alpha: 0.9),
-                                        ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(4),
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 0),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        children: [
-                                          Expanded(
-                                            child: Center(
-                                              child: Text(
-                                                widget.sinavTuru,
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 22,
-                                                  fontFamily: "MontserratBold",
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            _denemeLabel(index),
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 16,
-                                              fontFamily: "MontserratBold",
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(10),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 0.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    getData();
   }
+
+  void getData() {
+    _repository
+        .distinctValues(
+      where: (doc) {
+        if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
+            (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
+          return false;
+        }
+        if (_isLanguageOrDirectBranch(widget.baslik2)) {
+          return true;
+        }
+        if (widget.baslik3.isNotEmpty) {
+          return (doc['baslik3'] ?? '').toString() == widget.baslik3 &&
+              (doc['baslik2'] ?? '').toString() == widget.baslik2;
+        }
+        if (widget.baslik2.isNotEmpty) {
+          return (doc['baslik2'] ?? '').toString() == widget.baslik2;
+        }
+        return true;
+      },
+      field: 'yil',
+      descendingNumeric: true,
+    )
+        .then((items) {
+      if (mounted) {
+        setState(() {
+          yillar = items;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => _buildPage(context);
 }

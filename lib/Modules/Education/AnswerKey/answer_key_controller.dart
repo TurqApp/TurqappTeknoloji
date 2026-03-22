@@ -1,30 +1,158 @@
-import 'dart:developer';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
+import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AnswerKeyController extends GetxController {
+  static AnswerKeyController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(AnswerKeyController(), permanent: permanent);
+  }
+
+  static AnswerKeyController? maybeFind() {
+    final isRegistered = Get.isRegistered<AnswerKeyController>();
+    if (!isRegistered) return null;
+    return Get.find<AnswerKeyController>();
+  }
+
+  static const String _listingSelectionPrefKeyPrefix =
+      'pasaj_answer_key_listing_selection';
+  final AnswerKeySnapshotRepository _answerKeySnapshotRepository =
+      AnswerKeySnapshotRepository.ensure();
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
   var isLoading = false.obs;
+  var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
+  final RxInt listingSelection = 0.obs;
+  final RxBool listingSelectionReady = false.obs;
   var bookList = <BookletModel>[].obs;
+  var searchResults = <BookletModel>[].obs;
+  final RxString searchQuery = ''.obs;
   ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
   DocumentSnapshot? _lastDocument;
   static const int _pageSize = 30;
+  StreamSubscription<CachedResource<List<BookletModel>>>? _homeSnapshotSub;
+  Timer? _searchDebounce;
+  int _searchToken = 0;
+
+  bool _sameBookletList(List<BookletModel> next) {
+    return _sameBookletEntries(bookList, next);
+  }
+
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
+  String _listingSelectionKeyFor(String uid) =>
+      '${_listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelection() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      listingSelectionReady.value = true;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      listingSelection.value =
+          (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
+  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreListingSelection());
     scrollController.addListener(_onScroll);
-    refreshData();
+    unawaited(_bootstrapInitialData());
+  }
+
+  void toggleListingSelection() {
+    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
+  }
+
+  Future<void> _bootstrapInitialData() async {
+    await AnswerKeyContentController.warmSavedIdsForCurrentUser();
+    final userId = CurrentUserService.instance.effectiveUserId;
+    _homeSnapshotSub?.cancel();
+    _homeSnapshotSub = _answerKeySnapshotRepository
+        .openHome(
+          userId: userId,
+          limit: _pageSize,
+        )
+        .listen(_applyHomeSnapshotResource);
   }
 
   void _onScroll() {
+    scrollOffset.value = scrollController.offset;
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
+        !hasActiveSearch &&
         !isLoadingMore.value &&
         hasMore.value) {
       loadMore();
@@ -93,48 +221,24 @@ class AnswerKeyController extends GetxController {
     Icons.design_services,
   ];
 
-  BookletModel _fromDoc(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return BookletModel(
-      dil: (data["dil"] ?? '').toString(),
-      sinavTuru: (data["sinavTuru"] ?? '').toString(),
-      cover: (data["cover"] ?? '').toString(),
-      baslik: (data["baslik"] ?? '').toString(),
-      timeStamp: data["timeStamp"] is num
-          ? data["timeStamp"] as num
-          : num.tryParse((data["timeStamp"] ?? "0").toString()) ?? 0,
-      kaydet: (data["kaydet"] is List)
-          ? (data["kaydet"] as List).map((e) => e.toString()).toList()
-          : <String>[],
-      basimTarihi: (data["basimTarihi"] ?? '').toString(),
-      yayinEvi: (data["yayinEvi"] ?? '').toString(),
-      docID: doc.id,
-      userID: (data["userID"] ?? '').toString(),
-      goruntuleme: (data["goruntuleme"] is List)
-          ? (data["goruntuleme"] as List).map((e) => e.toString()).toList()
-          : <String>[],
-    );
-  }
-
   Future<void> refreshData() async {
-    isLoading.value = true;
+    final hadLocalItems = bookList.isNotEmpty;
+    if (!hadLocalItems) {
+      isLoading.value = true;
+    }
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final snapshots = await FirebaseFirestore.instance
-          .collection("books")
-          .orderBy("timeStamp", descending: true)
-          .limit(_pageSize)
-          .get();
-
-      bookList.assignAll(snapshots.docs.map(_fromDoc).toList());
-
-      if (snapshots.docs.isNotEmpty) _lastDocument = snapshots.docs.last;
-      if (snapshots.docs.length < _pageSize) hasMore.value = false;
-
-      log("Çekilen kitapçık sayısı: ${bookList.length}");
-    } catch (e) {
-      log("Veri çekme hatası: $e");
+      final resource = await _answerKeySnapshotRepository.loadHome(
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: _pageSize,
+      );
+      final items = resource.data ?? const <BookletModel>[];
+      if (!_sameBookletList(items)) {
+        bookList.assignAll(items);
+      }
+      hasMore.value = items.length >= _pageSize;
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -145,21 +249,90 @@ class AnswerKeyController extends GetxController {
 
     isLoadingMore.value = true;
     try {
-      final snapshots = await FirebaseFirestore.instance
-          .collection("books")
-          .orderBy("timeStamp", descending: true)
-          .startAfterDocument(_lastDocument!)
-          .limit(_pageSize)
-          .get();
-
-      bookList.addAll(snapshots.docs.map(_fromDoc).toList());
-
-      if (snapshots.docs.isNotEmpty) _lastDocument = snapshots.docs.last;
-      if (snapshots.docs.length < _pageSize) hasMore.value = false;
-    } catch (e) {
-      log("AnswerKeyController.loadMore error: $e");
+      final page = await _bookletRepository.fetchPage(
+        startAfter: _lastDocument,
+        limit: _pageSize,
+      );
+      bookList.addAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
+    } catch (_) {
     } finally {
       isLoadingMore.value = false;
     }
+  }
+
+  void setSearchQuery(String query) {
+    searchQuery.value = query.trim();
+    _searchDebounce?.cancel();
+    if (!hasActiveSearch) {
+      isSearchLoading.value = false;
+      searchResults.clear();
+      _searchToken++;
+      return;
+    }
+
+    final token = ++_searchToken;
+    isSearchLoading.value = true;
+    _searchDebounce = Timer(const Duration(milliseconds: 150), () async {
+      await _searchFromTypesense(searchQuery.value, token);
+    });
+  }
+
+  Future<void> _searchFromTypesense(String query, int token) async {
+    final normalized = query.trim();
+    try {
+      final resource = await _answerKeySnapshotRepository.search(
+        query: normalized,
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 40,
+        forceSync: true,
+      );
+      if (token != _searchToken || searchQuery.value.trim() != normalized)
+        return;
+
+      final results = resource.data ?? const <BookletModel>[];
+      if (token != _searchToken || searchQuery.value.trim() != normalized)
+        return;
+      if (!_sameBookletEntries(searchResults, results)) {
+        searchResults.assignAll(results);
+      }
+    } catch (_) {
+      if (token == _searchToken) {
+        searchResults.clear();
+      }
+    } finally {
+      if (token == _searchToken) {
+        isSearchLoading.value = false;
+      }
+    }
+  }
+
+  void _applyHomeSnapshotResource(
+    CachedResource<List<BookletModel>> resource,
+  ) {
+    final items = resource.data ?? const <BookletModel>[];
+    if (items.isNotEmpty) {
+      if (!_sameBookletList(items)) {
+        bookList.assignAll(items);
+      }
+      hasMore.value = items.length >= _pageSize;
+    }
+
+    if (!resource.isRefreshing || items.isNotEmpty) {
+      isLoading.value = false;
+      return;
+    }
+    if (bookList.isEmpty) {
+      isLoading.value = true;
+    }
+  }
+
+  @override
+  void onClose() {
+    _homeSnapshotSub?.cancel();
+    _searchDebounce?.cancel();
+    scrollController.dispose();
+    super.onClose();
   }
 }

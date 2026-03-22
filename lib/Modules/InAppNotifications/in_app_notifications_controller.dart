@@ -1,45 +1,59 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/notification_model.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+part 'in_app_notifications_controller_data_part.dart';
+part 'in_app_notifications_controller_actions_part.dart';
 
 class InAppNotificationsController extends GetxController {
+  static InAppNotificationsController ensure({String? tag}) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(InAppNotificationsController(), tag: tag);
+  }
+
+  static InAppNotificationsController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<InAppNotificationsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<InAppNotificationsController>(tag: tag);
+  }
+
   var selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
   RxList<NotificationModel> list = <NotificationModel>[].obs;
   var complatedDataFetch = false.obs;
   var busyMarkAllRead = false.obs;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _notificationSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _newNotificationHeadSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
   final List<NotificationModel> _allNotifications = <NotificationModel>[];
   Map<String, dynamic> _preferences = NotificationPreferencesService.defaults();
+  final RxInt unreadTotal = 0.obs;
+  final NotificationsRepository _notificationsRepository =
+      NotificationsRepository.ensure();
+  final NotificationsSnapshotRepository _notificationsSnapshotRepository =
+      NotificationsSnapshotRepository.ensure();
+  bool _markAllReadQueued = false;
+  bool _inboxSeenRequested = false;
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {
     super.onInit();
     _bindPreferences();
     getData();
-  }
-
-  void _bindPreferences() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    _settingsSub?.cancel();
-    _settingsSub = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('settings')
-        .doc('notifications')
-        .snapshots()
-        .listen((snapshot) {
-      _preferences =
-          NotificationPreferencesService.mergeWithDefaults(snapshot.data());
-      _applyFilters();
-    });
   }
 
   void goToPage(int index) {
@@ -50,310 +64,12 @@ class InAppNotificationsController extends GetxController {
     );
   }
 
-  Future<void> getData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      complatedDataFetch.value = true;
-      list.clear();
-      return;
-    }
-
-    _notificationSub?.cancel();
-    _notificationSub = FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .collection("notifications")
-        .orderBy("timeStamp", descending: true)
-        .limit(300)
-        .snapshots()
-        .listen((snapshot) {
-      final allNotifications = snapshot.docs.where((doc) {
-        final data = doc.data();
-        final hideByFlag = data["hideInAppInbox"] == true;
-        final hideByLegacyPostId =
-            (data["postID"] ?? "").toString() == "admin-manual-push";
-        return !hideByFlag && !hideByLegacyPostId;
-      }).map((doc) {
-        final data = doc.data();
-
-        // Yeni şema: type/fromUserID/postID/read/timeStamp
-        if (data.containsKey("type") || data.containsKey("fromUserID")) {
-          final type = (data["type"] ?? "").toString();
-          final postType = _postTypeFromType(type);
-          final title = (data["title"] ?? "").toString();
-          final body = (data["body"] ?? "").toString();
-
-          return NotificationModel(
-            docID: doc.id,
-            isRead: (data["read"] ?? false) == true,
-            type: type,
-            postID: (data["postID"] ?? "").toString(),
-            postType: postType,
-            thumbnail: (data["thumbnail"] ?? "").toString(),
-            timeStamp: data["timeStamp"] ?? 0,
-            title: title,
-            userID: (data["fromUserID"] ?? "").toString(),
-            desc: body.isNotEmpty ? body : _descFromType(type, title: title),
-          );
-        }
-
-        // Eski şema desteği (geriye dönük)
-        return NotificationModel.fromJson(data, doc.id);
-      }).toList();
-
-      complatedDataFetch.value = true;
-      _allNotifications
-        ..clear()
-        ..addAll(allNotifications);
-      _applyFilters();
-    }, onError: (_) {
-      complatedDataFetch.value = true;
-    });
-  }
-
-  void _applyFilters() {
-    list.value = _allNotifications
-        .where((notification) => NotificationPreferencesService.isTypeEnabled(
-              notification.type.isEmpty
-                  ? notification.postType
-                  : notification.type,
-              _preferences,
-            ))
-        .toList(growable: false);
-  }
-
-  Future<void> delete(String docID) async {
-    // Firestore’dan sil
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("notifications")
-        .doc(docID)
-        .delete();
-
-    // Arayüz listesinden de kaldır
-    list.removeWhere((n) => n.docID == docID);
-  }
-
-  Future<void> deleteMany(List<String> docIDs) async {
-    if (docIDs.isEmpty) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final uniqueIds = docIDs.toSet().toList(growable: false);
-
-    for (var i = 0; i < uniqueIds.length; i += 450) {
-      final batch = FirebaseFirestore.instance.batch();
-      final chunk = uniqueIds.skip(i).take(450);
-      for (final docID in chunk) {
-        batch.delete(
-          FirebaseFirestore.instance
-              .collection("users")
-              .doc(uid)
-              .collection("notifications")
-              .doc(docID),
-        );
-      }
-      await batch.commit();
-    }
-    list.removeWhere((n) => uniqueIds.contains(n.docID));
-  }
-
-  Future<void> markAsRead(String docID) async {
-    final idx = list.indexWhere((n) => n.docID == docID);
-    if (idx < 0 || list[idx].isRead) return;
-
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    list[idx].isRead = true;
-    list.refresh();
-
-    try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("notifications")
-          .doc(docID)
-          .set({"read": true}, SetOptions(merge: true));
-    } catch (_) {
-      list[idx].isRead = false;
-      list.refresh();
-    }
-  }
-
-  Future<void> markManyAsRead(List<String> docIDs) async {
-    if (docIDs.isEmpty) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final uniqueIds = docIDs.toSet().toList(growable: false);
-
-    final changed = <int>[];
-    for (var i = 0; i < list.length; i++) {
-      if (!uniqueIds.contains(list[i].docID) || list[i].isRead) continue;
-      list[i].isRead = true;
-      changed.add(i);
-    }
-    if (changed.isNotEmpty) {
-      list.refresh();
-    }
-
-    try {
-      for (var i = 0; i < uniqueIds.length; i += 450) {
-        final batch = FirebaseFirestore.instance.batch();
-        final chunk = uniqueIds.skip(i).take(450);
-        for (final docID in chunk) {
-          batch.set(
-            FirebaseFirestore.instance
-                .collection("users")
-                .doc(uid)
-                .collection("notifications")
-                .doc(docID),
-            {"read": true},
-            SetOptions(merge: true),
-          );
-        }
-        await batch.commit();
-      }
-    } catch (_) {
-      for (final idx in changed) {
-        list[idx].isRead = false;
-      }
-      if (changed.isNotEmpty) {
-        list.refresh();
-      }
-    }
-  }
-
-  Future<void> markAllAsRead() async {
-    if (busyMarkAllRead.value) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    busyMarkAllRead.value = true;
-    final unread = list
-        .where((n) => !n.isRead)
-        .map((n) => n.docID)
-        .toList(growable: false);
-    if (unread.isEmpty) {
-      busyMarkAllRead.value = false;
-      return;
-    }
-
-    try {
-      for (var i = 0; i < unread.length; i += 450) {
-        final batch = FirebaseFirestore.instance.batch();
-        final chunk = unread.skip(i).take(450);
-        for (final docID in chunk) {
-          batch.set(
-            FirebaseFirestore.instance
-                .collection("users")
-                .doc(uid)
-                .collection("notifications")
-                .doc(docID),
-            {"read": true},
-            SetOptions(merge: true),
-          );
-        }
-        await batch.commit();
-      }
-      for (final item in list) {
-        item.isRead = true;
-      }
-      list.refresh();
-    } finally {
-      busyMarkAllRead.value = false;
-    }
-  }
-
-  int get unreadCount => list.where((n) => !n.isRead).length;
-
-  Future<void> bildirimleriTopluSil() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final bildirimlerRef = FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .collection("notifications");
-
-    while (true) {
-      final snapshot = await bildirimlerRef.limit(500).get();
-      if (snapshot.docs.isEmpty) {
-        break; // Silinecek doküman kalmadı
-      }
-      WriteBatch batch = FirebaseFirestore.instance.batch();
-      for (var doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-      // Firestore batch işlemi sonrası kısa bir bekleme, overload'u önler
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-    print("Tüm bildirimler toplu olarak silindi!");
-  }
-
-  String _postTypeFromType(String type) {
-    switch (type) {
-      case "follow":
-      case "User":
-        return "User";
-      case "comment":
-      case "Comment":
-        return "Comment";
-      case "message":
-      case "Chat":
-        return "Chat";
-      case "job_application":
-        return "JobApplication";
-      case "tutoring_application":
-      case "tutoring_status":
-        return "TutoringApplication";
-      case "like":
-      case "reshared_posts":
-      case "shared_as_posts":
-      case "Posts":
-      default:
-        return "Posts";
-    }
-  }
-
-  bool isMentionNotification(NotificationModel model) {
-    final desc = model.desc.toLowerCase();
-    final title = model.title.toLowerCase();
-    final isComment = model.postType == "Comment";
-    return desc.contains("@") ||
-        title.contains("@") ||
-        desc.contains("etiket") ||
-        title.contains("etiket") ||
-        isComment;
-  }
-
-  String _descFromType(String type, {String title = ""}) {
-    switch (type) {
-      case "like":
-        return "gönderini beğendi";
-      case "comment":
-        return "gönderine yorum yaptı";
-      case "reshared_posts":
-        return "gönderini yeniden paylaştı";
-      case "shared_as_posts":
-        return "gönderini paylaştı";
-      case "follow":
-      case "User":
-        return "seni takip etmeye başladı";
-      case "message":
-      case "Chat":
-        return "sana mesaj gönderdi";
-      case "job_application":
-        return "ilanına başvuru yaptı";
-      case "tutoring_application":
-        return "özel ders ilanına başvuru yaptı";
-      case "tutoring_status":
-        return "özel ders başvuru durumunu güncelledi";
-      default:
-        return "";
-    }
-  }
+  int get unreadCount => unreadTotal.value;
 
   @override
   void onClose() {
     _notificationSub?.cancel();
+    _newNotificationHeadSub?.cancel();
     _settingsSub?.cancel();
     pageController.dispose();
     super.onClose();

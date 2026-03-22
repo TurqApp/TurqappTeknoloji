@@ -1,6 +1,38 @@
 part of 'message_content.dart';
 
+class _ReplyPostFutureCacheEntry {
+  final Future<NotifyPostLookup> future;
+  final DateTime createdAt;
+
+  const _ReplyPostFutureCacheEntry({
+    required this.future,
+    required this.createdAt,
+  });
+}
+
+final Map<String, _ReplyPostFutureCacheEntry> _replyPostFutureCache = {};
+const Duration _replyPostFutureTtl = Duration(seconds: 30);
+
 extension MessageContentReplyParts on MessageContent {
+  Future<NotifyPostLookup> _getReplyPostFuture(String target) {
+    final key = target.trim();
+    final now = DateTime.now();
+    final cached = _replyPostFutureCache[key];
+    if (cached != null &&
+        now.difference(cached.createdAt) < _replyPostFutureTtl) {
+      return cached.future;
+    }
+
+    final future = NotifyLookupRepository.ensure().getPostLookup(key);
+    _replyPostFutureCache[key] =
+        _ReplyPostFutureCacheEntry(future: future, createdAt: now);
+
+    if (_replyPostFutureCache.length > 400) {
+      _replyPostFutureCache.clear();
+    }
+    return future;
+  }
+
   Widget _buildMessageMetaRow(bool isMine) {
     final metaColor = isMine ? const Color(0xFF6D9E6B) : Colors.black38;
     return Padding(
@@ -13,11 +45,9 @@ extension MessageContentReplyParts on MessageContent {
             const SizedBox(width: 3),
           ],
           if (model.isEdited) ...[
-            Text("düzenlendi",
+            Text('common.edited'.tr,
                 style: TextStyle(
-                    color: metaColor,
-                    fontSize: 10,
-                    fontFamily: "Montserrat")),
+                    color: metaColor, fontSize: 10, fontFamily: "Montserrat")),
             const SizedBox(width: 3),
           ],
           Text(
@@ -42,29 +72,29 @@ extension MessageContentReplyParts on MessageContent {
   }
 
   String _replySenderLabel() {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (model.replySenderId.trim().isNotEmpty &&
         model.replySenderId.trim() == currentUid) {
-      return "Siz";
+      return 'chat.you'.tr;
     }
     final peer = chatController.nickname.value.trim();
-    return peer.isEmpty ? "TurqApp" : peer;
+    return peer.isEmpty ? 'app.name'.tr : peer;
   }
 
   String _replyPreviewText() {
     final text = model.replyText.trim();
     if (text.isNotEmpty) return text;
-    switch (model.replyType.trim().toLowerCase()) {
+    switch (normalizeSearchText(model.replyType)) {
       case "media":
-        return "Fotoğraf";
+        return 'chat.photo'.tr;
       case "video":
-        return "Video";
+        return 'chat.video'.tr;
       case "audio":
-        return "Ses";
+        return 'chat.audio'.tr;
       case "location":
-        return "Konum";
+        return 'chat.location'.tr;
       case "post":
-        return "Gönderi";
+        return 'chat.post'.tr;
       default:
         return "";
     }
@@ -72,7 +102,7 @@ extension MessageContentReplyParts on MessageContent {
 
   Widget _buildReplyCard() {
     final target = model.replyMessageId.trim();
-    final type = model.replyType.trim().toLowerCase();
+    final type = normalizeSearchText(model.replyType);
     final preview = _replyPreviewText();
     final canOpenMedia =
         (type == "media" || type == "video") && target.isNotEmpty;
@@ -281,15 +311,12 @@ extension MessageContentReplyParts on MessageContent {
         );
       }
 
-      return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future:
-            FirebaseFirestore.instance.collection("Posts").doc(target).get(),
+      return FutureBuilder<NotifyPostLookup>(
+        future: _getReplyPostFuture(target),
         builder: (context, snapshot) {
-          final data = snapshot.data?.data();
-          final imgList = List<String>.from(
-            data?["imgs"] ?? data?["img"] ?? const [],
-          );
-          final thumb = (data?["thumbnail"] ?? "").toString().trim();
+          final model = snapshot.data?.model;
+          final imgList = model?.img ?? const <String>[];
+          final thumb = (model?.thumbnail ?? '').trim();
           final fallbackImg = imgList.isNotEmpty ? imgList.first.trim() : "";
           final resolvedThumb = thumb.isNotEmpty ? thumb : fallbackImg;
           if (resolvedThumb.isNotEmpty) {

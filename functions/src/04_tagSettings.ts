@@ -315,7 +315,7 @@ export async function writeTagIndex(
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize);
     await db.runTransaction(async (tx) => {
-      const now = FieldValue.serverTimestamp();
+      const now = Date.now();
       const baseMs = toMillis(meta.createdAt);
       const tagPostRefs = chunk.map((tag) => db.doc(`tags/${tag}/posts/${postId}`));
       const postTagRefs = chunk.map((tag) => db.doc(`Posts/${postId}/tags/${tag}`));

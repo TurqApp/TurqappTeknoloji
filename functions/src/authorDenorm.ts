@@ -4,16 +4,20 @@
  * Problem: Her post gösterildiğinde users/{uid} okunuyor → N+1 Firestore read
  *          100 post feed = 100 ekstra okuma → $300/ay gereksiz maliyet
  *
- * Çözüm: Post belgelerine authorNickname + authorAvatarUrl inline yaz.
+ * Çözüm: Post belgelerine authorNickname + authorDisplayName + authorAvatarUrl + rozet inline yaz.
  *   - Post oluşturulduğunda (onPostWrite) author alanları post'a eklenir
  *   - Kullanıcı profili güncellendiğinde (onUserProfileUpdate) son 500 post senkronize edilir
  *
- * Flutter tarafı: PostsModel.fromMap() zaten authorNickname/authorAvatarUrl okuyor.
+ * Flutter tarafı: PostsModel.fromMap() zaten authorNickname/authorDisplayName/authorAvatarUrl okuyor.
  *   Feed widget'larında: post.authorNickname.isNotEmpty → direkt kullan, empty → users fetch.
  */
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
 const db = admin.firestore();
 
@@ -32,20 +36,33 @@ export const denormAuthorOnPostWrite = functions
     if (!userID) return;
 
     // Author alanları zaten doluysa atlat
-    if (data.authorNickname && data.authorAvatarUrl) return;
+    if (data.authorNickname && data.authorDisplayName && data.authorAvatarUrl && data.rozet) return;
 
     try {
       const userDoc = await db.collection("users").doc(userID).get();
       const userData = userDoc.data();
       if (!userData) return;
 
-      const authorNickname = String(userData.nickname || userData.displayName || "");
-      const authorAvatarUrl = String(userData.pfImage || userData.photoURL || "");
+      const authorNickname = String(userData.nickname || "").trim();
+      const authorDisplayName = String(
+        userData.displayName ||
+          userData.fullName ||
+          [userData.firstName, userData.lastName].filter(Boolean).join(" ") ||
+          authorNickname ||
+          ""
+      ).trim();
+      const authorAvatarUrl = String(userData.avatarUrl || "").trim();
+      const rozet = String(userData.rozet || "").trim();
 
-      if (!authorNickname && !authorAvatarUrl) return;
+      if (!authorNickname && !authorDisplayName && !authorAvatarUrl && !rozet) return;
 
-      await snap.ref.update({ authorNickname, authorAvatarUrl });
-      console.log(`[AuthorDenorm] Post ${context.params.postId} author alanları güncellendi`);
+      await snap.ref.update({
+        authorNickname,
+        authorDisplayName,
+        authorAvatarUrl,
+        rozet,
+      });
+      console.log("[AuthorDenorm] Post author alanları güncellendi");
     } catch (e) {
       console.error(`[AuthorDenorm] denormAuthorOnPostWrite error:`, e);
     }
@@ -63,23 +80,35 @@ export const syncAuthorFieldsOnProfileUpdate = functions
     const before = change.before.data();
     const after = change.after.data();
 
-    const nicknameChanged = before?.nickname !== after?.nickname ||
-      before?.displayName !== after?.displayName;
-    const avatarChanged = before?.pfImage !== after?.pfImage ||
-      before?.photoURL !== after?.photoURL;
+    const nicknameChanged = before?.nickname !== after?.nickname;
+    const displayNameChanged =
+      before?.displayName !== after?.displayName ||
+      before?.fullName !== after?.fullName ||
+      before?.firstName !== after?.firstName ||
+      before?.lastName !== after?.lastName;
+    const avatarChanged = before?.avatarUrl !== after?.avatarUrl;
+    const rozetChanged = before?.rozet !== after?.rozet;
 
-    if (!nicknameChanged && !avatarChanged) return;
+    if (!nicknameChanged && !displayNameChanged && !avatarChanged && !rozetChanged) return;
 
-    const newNickname = String(after?.nickname || after?.displayName || "");
-    const newAvatarUrl = String(after?.pfImage || after?.photoURL || "");
+    const newNickname = String(after?.nickname || "").trim();
+    const newDisplayName = String(
+      after?.displayName ||
+        after?.fullName ||
+        [after?.firstName, after?.lastName].filter(Boolean).join(" ") ||
+        newNickname ||
+        ""
+    ).trim();
+    const newAvatarUrl = String(after?.avatarUrl || "");
+    const newRozet = String(after?.rozet || "");
 
     try {
-      // Son 500 postu güncelle (daha eskisi düşük öncelikli)
+      // Son 200 postu güncelle (maliyet/latency kontrolü için)
       const postsSnap = await db
         .collection("Posts")
         .where("userID", "==", uid)
         .orderBy("timeStamp", "desc")
-        .limit(500)
+        .limit(200)
         .get();
 
       if (postsSnap.empty) return;
@@ -96,14 +125,16 @@ export const syncAuthorFieldsOnProfileUpdate = functions
         for (const doc of chunk) {
           const update: Record<string, string> = {};
           if (nicknameChanged) update.authorNickname = newNickname;
+          if (displayNameChanged) update.authorDisplayName = newDisplayName;
           if (avatarChanged) update.authorAvatarUrl = newAvatarUrl;
+          if (rozetChanged) update.rozet = newRozet;
           wb.update(doc.ref, update);
         }
         await wb.commit();
       }
 
       console.log(
-        `[AuthorDenorm] ${uid} profil değişikliği → ${postsSnap.size} post güncellendi`
+        `[AuthorDenorm] Profil değişikliği işlendi → ${postsSnap.size} post güncellendi`
       );
     } catch (e) {
       console.error(`[AuthorDenorm] syncAuthorFieldsOnProfileUpdate error:`, e);

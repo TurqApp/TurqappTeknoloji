@@ -18,13 +18,18 @@ class TagPosts extends StatefulWidget {
 
 class _TagPostsState extends State<TagPosts> {
   late TagPostsController controller;
+  late final bool _ownsController;
   final ScrollController scrollController = ScrollController();
-  int centeredIndex = 0;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(TagPostsController(tag: widget.tag));
+    _controllerTag = widget.tag.trim();
+    final existingController =
+        TagPostsController.maybeFind(tag: _controllerTag);
+    controller = TagPostsController.ensure(tag: widget.tag);
+    _ownsController = existingController == null;
     scrollController.addListener(_onScroll);
   }
 
@@ -32,17 +37,18 @@ class _TagPostsState extends State<TagPosts> {
   void dispose() {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
+    if (_ownsController &&
+        identical(
+          TagPostsController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<TagPostsController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
   }
 
   void _onScroll() {
-    // Yaklaşık kart yüksekliği ile merkezdeki indexi hesapla
-    final idx = ((scrollController.offset + (Get.height * 0.35)) / 700).floor();
-    if (idx != centeredIndex && idx >= 0) {
-      setState(() {
-        centeredIndex = idx;
-      });
-    }
+    controller.updateVisibleIndexByPosition(scrollController);
   }
 
   @override
@@ -58,7 +64,9 @@ class _TagPostsState extends State<TagPosts> {
                 Column(
                   children: [
                     BackButtons(
-                      text: widget.tag.contains("#") ? widget.tag : "#${widget.tag}",
+                      text: widget.tag.contains("#")
+                          ? widget.tag
+                          : "#${widget.tag}",
                     ),
                     const Expanded(
                       child: Center(child: CupertinoActivityIndicator()),
@@ -66,34 +74,47 @@ class _TagPostsState extends State<TagPosts> {
                   ],
                 )
               else
-                ListView.builder(
-                  controller: scrollController,
-                  itemCount: list.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return BackButtons(
-                        text: widget.tag.contains("#") ? widget.tag : "#${widget.tag}",
-                      );
-                    }
-                    final actualIndex = index - 1;
-                    final model = list[actualIndex];
-                    return Padding(
-                      padding: EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
-                      child: Column(
-                        children: [
-                          AgendaContent(
-                            model: model,
-                            isPreview: false,
-                            shouldPlay: centeredIndex == actualIndex,
-                          ),
-                          SizedBox(
-                            height: 1,
-                            child: Divider(color: Colors.grey.withAlpha(40)),
-                          ),
-                        ],
-                      ),
-                    );
+                NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    controller.updateVisibleIndexByPosition(scrollController);
+                    return false;
                   },
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: list.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return BackButtons(
+                          text: widget.tag.contains("#")
+                              ? widget.tag
+                              : "#${widget.tag}",
+                        );
+                      }
+                      final actualIndex = index - 1;
+                      final model = list[actualIndex];
+                      return Padding(
+                        padding:
+                            EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
+                        child: Column(
+                          children: [
+                            AgendaContent(
+                              key: controller.getAgendaKey(docId: model.docID),
+                              model: model,
+                              isPreview: false,
+                              instanceTag:
+                                  controller.agendaInstanceTag(model.docID),
+                              shouldPlay:
+                                  controller.centeredIndex.value == actualIndex,
+                            ),
+                            SizedBox(
+                              height: 1,
+                              child: Divider(color: Colors.grey.withAlpha(40)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               if (list.isNotEmpty)
                 Positioned(

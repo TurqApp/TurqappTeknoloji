@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class UploadProgressController extends GetxController {
+  static UploadProgressController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(UploadProgressController(), permanent: permanent);
+  }
+
+  static UploadProgressController? maybeFind() {
+    final isRegistered = Get.isRegistered<UploadProgressController>();
+    if (!isRegistered) return null;
+    return Get.find<UploadProgressController>();
+  }
+
   final RxDouble progress = 0.0.obs;
   final RxString status = ''.obs;
   final RxString currentFile = ''.obs;
@@ -46,7 +58,7 @@ class UploadProgressController extends GetxController {
   void setError(String error) {
     hasError.value = true;
     errorMessage.value = error;
-    status.value = 'Hata oluştu';
+    status.value = 'progress.error_occurred'.tr;
   }
 
   void complete(String message) {
@@ -63,7 +75,7 @@ class UploadProgressController extends GetxController {
 
   void pause() {
     isPaused.value = true;
-    status.value = 'Duraklatıldı';
+    status.value = 'progress.paused'.tr;
   }
 
   void resume() {
@@ -153,7 +165,7 @@ class UploadProgressWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Yükleniyor...',
+                  'common.loading'.tr,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -183,9 +195,8 @@ class UploadProgressWidget extends StatelessWidget {
               controller.status.value,
               style: TextStyle(
                 fontSize: 14,
-                color: controller.hasError.value
-                  ? Colors.red
-                  : Colors.grey[700],
+                color:
+                    controller.hasError.value ? Colors.red : Colors.grey[700],
               ),
               textAlign: TextAlign.center,
             ),
@@ -222,14 +233,14 @@ class UploadProgressWidget extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: () => controller.hide(),
-                    child: const Text('İptal'),
+                    child: Text('common.cancel'.tr),
                   ),
                   ElevatedButton(
                     onPressed: () {
                       controller.hasError.value = false;
                       controller.resume();
                     },
-                    child: const Text('Tekrar Dene'),
+                    child: Text('common.retry'.tr),
                   ),
                 ],
               ),
@@ -237,7 +248,7 @@ class UploadProgressWidget extends StatelessWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => controller.resume(),
-                child: const Text('Devam Et'),
+                child: Text('common.continue'.tr),
               ),
             ],
           ],
@@ -322,20 +333,20 @@ class StepProgressIndicator extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isActive
-                  ? (activeColor ?? Theme.of(context).primaryColor)
-                  : (inactiveColor ?? Colors.grey[300]),
+                    ? (activeColor ?? Theme.of(context).primaryColor)
+                    : (inactiveColor ?? Colors.grey[300]),
               ),
               child: Center(
                 child: isCompleted
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isActive ? Colors.white : Colors.grey[600],
-                        fontWeight: FontWeight.bold,
+                    ? const Icon(Icons.check, size: 12, color: Colors.white)
+                    : Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isActive ? Colors.white : Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
               ),
             ),
             const SizedBox(width: 12),

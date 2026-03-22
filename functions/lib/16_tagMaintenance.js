@@ -6,6 +6,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const _04_tagSettings_1 = require("./04_tagSettings");
+const rateLimiter_1 = require("./rateLimiter");
 function getEnv(name) {
     return String(process.env[name] || "").trim();
 }
@@ -141,7 +142,7 @@ function buildMeta(data) {
         isHidden: data.isHidden === true || data.gizlendi === true,
         isUploading: data.isUploading === true,
         hlsReady,
-        createdAt: data.createdAt || data.timeStamp || firestore_1.FieldValue.serverTimestamp(),
+        createdAt: data.createdAt || data.timeStamp || Date.now(),
     };
 }
 function shouldKeepPostInTagIndex(data) {
@@ -216,6 +217,7 @@ function validateAuth(request) {
     if (request.auth?.token?.admin !== true) {
         throw new https_1.HttpsError("permission-denied", "admin_required");
     }
+    rateLimiter_1.RateLimits.admin(uid);
 }
 async function fetchPosts(limit, cursor) {
     const db = (0, firestore_1.getFirestore)();
@@ -229,7 +231,7 @@ exports.f15_reconcilePostTags = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
 }, async (request) => {
     ensureAdmin();
     validateAuth(request);
@@ -289,7 +291,7 @@ exports.f15_pruneTagsCollection = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
 }, async (request) => {
     ensureAdmin();
     validateAuth(request);

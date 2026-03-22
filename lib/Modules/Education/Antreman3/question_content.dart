@@ -1,25 +1,28 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/full_screen_image_viewer.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
+const _antremanLgsType = 'LGS';
+
 class QuestionContent extends StatelessWidget {
   QuestionContent({super.key});
 
-  final AntremanController controller = Get.find<AntremanController>();
+  final AntremanController controller = AntremanController.ensure();
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -58,95 +61,8 @@ class QuestionContent extends StatelessWidget {
                           controller.onScreenReEnter();
                           Get.back();
                         },
-                        child: BackButtons(text: "Çöz Geç"),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Get.to(() => AntremanScore());
-                      },
-                      child: Row(
-                        children: [
-                          StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('questionBankSkor')
-                                .doc(
-                                  '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-                                )
-                                .collection('items')
-                                .doc(controller.userID)
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Text("0");
-                              } else if (snapshot.hasError) {
-                                return const Text("0");
-                              } else if (!snapshot.hasData ||
-                                  !snapshot.data!.exists) {
-                                return StreamBuilder<DocumentSnapshot>(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(controller.userID)
-                                      .snapshots(),
-                                  builder: (context, userSnapshot) {
-                                    if (!userSnapshot.hasData ||
-                                        !userSnapshot.data!.exists) {
-                                      return const Text("0");
-                                    }
-                                    final antPoint =
-                                        userSnapshot.data!['antPoint'] ?? 100;
-                                    return Text(
-                                      antPoint.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 25,
-                                        fontFamily: "MontserratMedium",
-                                      ),
-                                    );
-                                  },
-                                );
-                              } else {
-                                int antPoint = snapshot.data!['antPoint'] ?? 0;
-                                return AnimatedContainer(
-                                  duration: Duration(milliseconds: 500),
-                                  curve: Curves.easeInOut,
-                                  child: Obx(() {
-                                    Color textColor = Colors.black;
-                                    // Check if the answer was just submitted
-                                    if (controller.justAnswered.isNotEmpty) {
-                                      textColor =
-                                          controller.justAnswered.value ==
-                                                  'correct'
-                                              ? Colors.green
-                                              : controller.justAnswered.value ==
-                                                      'incorrect'
-                                                  ? Colors.red
-                                                  : Colors.black;
-                                      // Reset the justAnswered state after animation
-                                      Future.delayed(
-                                          Duration(milliseconds: 500), () {
-                                        controller.justAnswered.value = '';
-                                      });
-                                    }
-                                    return Text(
-                                      antPoint.toString(),
-                                      style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 25,
-                                          fontFamily: "MontserratMedium"),
-                                    );
-                                  }),
-                                );
-                              }
-                            },
-                          ),
-                          Image.asset(
-                            "assets/icons/trophy.webp",
-                            color: Colors.black,
-                            height: 25,
-                          ),
-                        ],
+                        child: BackButtons(
+                            text: "training.question_bank_title".tr),
                       ),
                     ),
                     IconButton(
@@ -172,7 +88,7 @@ class QuestionContent extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "Sorular Yükleniyor...",
+                              "training.questions_loading".tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black,
@@ -197,16 +113,19 @@ class QuestionContent extends StatelessWidget {
                     }
 
                     if (controller.questions.isEmpty) {
-                      return Center(child: Text("Soru bulunamadı!"));
+                      return Center(child: Text("training.no_questions".tr));
                     }
+
+                    final adCount = controller.questions.length ~/ 3;
+                    final contentCount = controller.questions.length + adCount;
 
                     return ListView.builder(
                       controller: _scrollController,
                       physics: AlwaysScrollableScrollPhysics(),
                       cacheExtent: 1000,
-                      itemCount: controller.questions.length + 1,
+                      itemCount: contentCount + 1,
                       itemBuilder: (context, index) {
-                        if (index == controller.questions.length) {
+                        if (index == contentCount) {
                           return Obx(() {
                             if (controller.loadingProgress.value < 1.0) {
                               return Padding(
@@ -220,7 +139,15 @@ class QuestionContent extends StatelessWidget {
                           });
                         }
 
-                        final question = controller.questions[index];
+                        if ((index + 1) % 4 == 0) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Center(child: AdmobKare()),
+                          );
+                        }
+
+                        final questionIndex = index - ((index + 1) ~/ 4);
+                        final question = controller.questions[questionIndex];
                         final aspectRatio =
                             controller.imageAspectRatios[question.soru] ?? 1.0;
 
@@ -252,7 +179,7 @@ class QuestionContent extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      "${index + 1}. Soru ${question.ders} (${question.sinavTuru == question.anaBaslik ? question.anaBaslik : "${question.sinavTuru} - ${question.anaBaslik}"})",
+                                      "${questionIndex + 1}. Soru ${question.ders} (${question.sinavTuru == question.anaBaslik ? question.anaBaslik : "${question.sinavTuru} - ${question.anaBaslik}"})",
                                       style: TextStyles.bold18Black,
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
@@ -332,7 +259,7 @@ class QuestionContent extends StatelessWidget {
                                       false;
                               // LGS için şık sayısını 4 ile sınırlandır (A, B, C, D)
                               final int optionCount =
-                                  question.sinavTuru == "LGS"
+                                  question.sinavTuru == _antremanLgsType
                                       ? 4
                                       : question.kacCevap.toInt();
 
@@ -410,11 +337,14 @@ class QuestionContent extends StatelessWidget {
                               );
                             }),
                             SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            Wrap(
+                              alignment: WrapAlignment.spaceAround,
+                              runSpacing: 4,
+                              spacing: 12,
                               children: [
                                 Obx(
                                   () => Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         icon: Icon(
@@ -449,6 +379,7 @@ class QuestionContent extends StatelessWidget {
                                                 '')
                                             .isNotEmpty;
                                     return Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
                                           icon:
@@ -465,24 +396,21 @@ class QuestionContent extends StatelessWidget {
                                               );
                                             } else {
                                               AppSnackbar(
-                                                "Bilgi",
-                                                "Önce soruyu cevaplayın!",
+                                                "common.info".tr,
+                                                "training.answer_first".tr,
                                               );
                                             }
                                           },
                                         ),
-                                        StreamBuilder<QuerySnapshot>(
-                                          stream: FirebaseFirestore.instance
-                                              .collection('questionBank')
-                                              .doc(question.docID)
-                                              .collection('Yorumlar')
-                                              .snapshots(),
+                                        StreamBuilder<int>(
+                                          stream: _antremanRepository
+                                              .commentCountStream(
+                                            question.docID,
+                                          ),
                                           builder: (context, snapshot) {
                                             if (snapshot.hasData) {
-                                              int commentCount =
-                                                  snapshot.data!.docs.length;
                                               return Text(
-                                                "$commentCount",
+                                                "${snapshot.data}",
                                                 style: TextStyle(fontSize: 14),
                                               );
                                             }
@@ -498,6 +426,7 @@ class QuestionContent extends StatelessWidget {
                                 ),
                                 Obx(
                                   () => Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         onPressed: controller
@@ -520,11 +449,13 @@ class QuestionContent extends StatelessWidget {
                                           height: 24,
                                         ),
                                       ),
-                                      Text("Sonra Çöz"),
+                                      Text(
+                                          "pasaj.question_bank.solve_later".tr),
                                     ],
                                   ),
                                 ),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       icon: Icon(AppIcons.share, size: 20),
@@ -534,7 +465,7 @@ class QuestionContent extends StatelessWidget {
                                         question,
                                       ),
                                     ),
-                                    Text("Paylaş"),
+                                    Text("training.share".tr),
                                   ],
                                 ),
                               ],

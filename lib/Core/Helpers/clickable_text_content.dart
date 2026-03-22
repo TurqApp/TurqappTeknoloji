@@ -1,8 +1,54 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Themes/app_colors.dart';
 
 class ClickableTextController extends GetxController {
+  static const double defaultCaptionFontSize = 13;
+  static ClickableTextController ensure({
+    required String text,
+    void Function(String url)? onUrlTap,
+    void Function(String hashtag)? onHashtagTap,
+    void Function(String mention)? onMentionTap,
+    void Function(String plain)? onPlainTextTap,
+    double? fontSize,
+    Color? fontColor,
+    Color? urlColor,
+    Color? mentionColor,
+    Color? hashtagColor,
+    bool startWith7line = false,
+    Color? interactiveColor,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ClickableTextController(
+        text: text,
+        onUrlTap: onUrlTap,
+        onHashtagTap: onHashtagTap,
+        onMentionTap: onMentionTap,
+        onPlainTextTap: onPlainTextTap,
+        fontSize: fontSize,
+        fontColor: fontColor,
+        urlColor: urlColor,
+        mentionColor: mentionColor,
+        hashtagColor: hashtagColor,
+        startWith7line: startWith7line,
+        interactiveColor: interactiveColor,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ClickableTextController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<ClickableTextController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ClickableTextController>(tag: tag);
+  }
+
   final String text;
   final void Function(String url)? onUrlTap;
   final void Function(String hashtag)? onHashtagTap;
@@ -43,14 +89,20 @@ class ClickableTextController extends GetxController {
     _buildSpans();
   }
 
-  void _buildSpans() {
-    for (final span in spans) {
-      span.recognizer?.dispose();
-    }
-
+  static List<TextSpan> buildSpans({
+    required String text,
+    required TextStyle plainStyle,
+    required TextStyle urlStyle,
+    required TextStyle hashtagStyle,
+    required TextStyle mentionStyle,
+    void Function(String url)? onUrlTap,
+    void Function(String hashtag)? onHashtagTap,
+    void Function(String mention)? onMentionTap,
+    void Function(String plain)? onPlainTextTap,
+  }) {
     final List<TextSpan> result = [];
     final pattern = RegExp(
-      r'(https?:\/\/[^\s]+)|(@[^\s@#]+)|(#[^\s#@]+)',
+      r'(\[([^\]]+)\]\(([^)\s]+)\))|((?:https?:\/\/)[^\s]+)|(@[^\s@#]+)|(#[^\s#@]+)',
       caseSensitive: false,
       unicode: true,
     );
@@ -59,36 +111,47 @@ class ClickableTextController extends GetxController {
     for (final m in pattern.allMatches(text)) {
       if (m.start > lastEnd) {
         final plain = text.substring(lastEnd, m.start);
-        result.add(TextSpan(
-          text: plain,
-          style: _plainStyle(),
-          recognizer: TapGestureRecognizer()
-            ..onTap = () => onPlainTextTap?.call(plain.trim()),
-        ));
+        result.add(
+          TextSpan(
+            text: plain,
+            style: plainStyle,
+            recognizer: onPlainTextTap == null
+                ? null
+                : (TapGestureRecognizer()
+                  ..onTap = () => onPlainTextTap.call(plain.trim())),
+          ),
+        );
       }
 
       final match = m.group(0)!;
+      final markdownLabel = m.group(2);
+      final markdownTarget = m.group(3);
 
-      if (match.startsWith('http')) {
+      if (markdownLabel != null && markdownTarget != null) {
+        result.add(TextSpan(
+          text: markdownLabel,
+          style: urlStyle,
+          recognizer: TapGestureRecognizer()
+            ..onTap = () => onUrlTap?.call(markdownTarget),
+        ));
+      } else if (match.startsWith('http')) {
         result.add(TextSpan(
           text: match,
-          style: _urlStyle(),
+          style: urlStyle,
           recognizer: TapGestureRecognizer()
             ..onTap = () => onUrlTap?.call(match),
         ));
       } else if (match.startsWith('#')) {
         result.add(TextSpan(
           text: match,
-          style: _hashtagStyle(),
+          style: hashtagStyle,
           recognizer: TapGestureRecognizer()
             ..onTap = () => onHashtagTap?.call(match.substring(1)),
         ));
       } else if (match.startsWith('@')) {
-        // Mentions: sadece '@' işaretinden önce boşluk veya satır başı varsa tıkla/renkli yap
         bool validBoundary = true;
         if (m.start > 0) {
           final prevChar = text[m.start - 1];
-          // Öncesi boşluk değilse (ör. e‑posta 'abc@domain' gibi) mention sayma
           if (!RegExp(r'\s').hasMatch(prevChar)) {
             validBoundary = false;
           }
@@ -96,17 +159,18 @@ class ClickableTextController extends GetxController {
         if (validBoundary) {
           result.add(TextSpan(
             text: match,
-            style: _mentionStyle(),
+            style: mentionStyle,
             recognizer: TapGestureRecognizer()
               ..onTap = () => onMentionTap?.call(match.substring(1)),
           ));
         } else {
-          // Normal metin olarak ekle
           result.add(TextSpan(
             text: match,
-            style: _plainStyle(),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => onPlainTextTap?.call(match.trim()),
+            style: plainStyle,
+            recognizer: onPlainTextTap == null
+                ? null
+                : (TapGestureRecognizer()
+                  ..onTap = () => onPlainTextTap.call(match.trim())),
           ));
         }
       }
@@ -118,13 +182,34 @@ class ClickableTextController extends GetxController {
       final plain = text.substring(lastEnd);
       result.add(TextSpan(
         text: plain,
-        style: _plainStyle(),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () => onPlainTextTap?.call(plain.trim()),
+        style: plainStyle,
+        recognizer: onPlainTextTap == null
+            ? null
+            : (TapGestureRecognizer()
+              ..onTap = () => onPlainTextTap.call(plain.trim())),
       ));
     }
 
-    spans.assignAll(result);
+    return result;
+  }
+
+  void _buildSpans() {
+    for (final span in spans) {
+      span.recognizer?.dispose();
+    }
+    spans.assignAll(
+      buildSpans(
+        text: text,
+        plainStyle: _plainStyle(),
+        urlStyle: _urlStyle(),
+        hashtagStyle: _hashtagStyle(),
+        mentionStyle: _mentionStyle(),
+        onUrlTap: onUrlTap,
+        onHashtagTap: onHashtagTap,
+        onMentionTap: onMentionTap,
+        onPlainTextTap: onPlainTextTap,
+      ),
+    );
   }
 
   void toggleExpand() {
@@ -149,28 +234,28 @@ class ClickableTextController extends GetxController {
   }
 
   TextStyle _plainStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: fontColor ?? Colors.black,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _urlStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: interactiveColor ?? urlColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _hashtagStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: interactiveColor ?? hashtagColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _mentionStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: interactiveColor ?? mentionColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
@@ -185,7 +270,7 @@ class ClickableTextController extends GetxController {
   }
 }
 
-class ClickableTextContent extends StatelessWidget {
+class ClickableTextContent extends StatefulWidget {
   final String text;
   final void Function(String url)? onUrlTap;
   final void Function(String hashtag)? onHashtagTap;
@@ -200,6 +285,9 @@ class ClickableTextContent extends StatelessWidget {
   final bool startWith7line;
   final Color? interactiveColor; // YENİ
   final bool showEllipsisOverlay; // YENİ: 7 satır kısaltmada sağ-altta '…'
+  final bool toggleExpandOnTextTap;
+  final Color? expandButtonColor;
+  final double? expandButtonFontSize;
 
   const ClickableTextContent({
     super.key,
@@ -216,42 +304,96 @@ class ClickableTextContent extends StatelessWidget {
     this.startWith7line = false,
     this.interactiveColor, // YENİ
     this.showEllipsisOverlay = false,
+    this.toggleExpandOnTextTap = false,
+    this.expandButtonColor,
+    this.expandButtonFontSize,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Controller tag must reflect style so different contexts don't reuse
-    // a controller with stale colors (e.g., fullscreen vs feed).
-    String colorKey(Color? c) => c?.toARGB32().toRadixString(16) ?? 'n';
-    final tag = 'click_${text.hashCode}_'
-        '${colorKey(fontColor)}_'
-        '${colorKey(urlColor)}_'
-        '${colorKey(mentionColor)}_'
-        '${colorKey(hashtagColor)}_'
-        '${colorKey(interactiveColor)}_'
-        '${startWith7line ? '7' : '2'}';
+  State<ClickableTextContent> createState() => _ClickableTextContentState();
+}
 
-    final controller = Get.put(
-      ClickableTextController(
-        text: text,
-        onUrlTap: onUrlTap,
-        onHashtagTap: onHashtagTap,
-        onMentionTap: onMentionTap,
-        onPlainTextTap: onPlainTextTap,
-        fontSize: fontSize,
-        fontColor: fontColor,
-        urlColor: urlColor,
-        mentionColor: mentionColor,
-        hashtagColor: hashtagColor,
-        startWith7line: startWith7line,
-        interactiveColor: interactiveColor, // YENİ
-      ),
-      tag: tag,
+class _ClickableTextContentState extends State<ClickableTextContent> {
+  late String _controllerTag;
+  late ClickableTextController controller;
+  bool _ownsController = false;
+
+  String _colorKey(Color? c) => c?.toARGB32().toRadixString(16) ?? 'n';
+
+  String _buildControllerTag() {
+    final signature = 'click_${widget.text.hashCode}_'
+        '${_colorKey(widget.fontColor)}_'
+        '${_colorKey(widget.urlColor)}_'
+        '${_colorKey(widget.mentionColor)}_'
+        '${_colorKey(widget.hashtagColor)}_'
+        '${_colorKey(widget.interactiveColor)}_'
+        '${widget.startWith7line ? '7' : '2'}_'
+        '${widget.toggleExpandOnTextTap ? 'tap' : 'btn'}_'
+        '${identityHashCode(widget.onUrlTap)}_'
+        '${identityHashCode(widget.onHashtagTap)}_'
+        '${identityHashCode(widget.onMentionTap)}_'
+        '${identityHashCode(widget.onPlainTextTap)}';
+    return '${signature}_${identityHashCode(this)}';
+  }
+
+  void _bindController() {
+    _ownsController =
+        ClickableTextController.maybeFind(tag: _controllerTag) == null;
+    controller = ClickableTextController.ensure(
+      text: widget.text,
+      onUrlTap: widget.onUrlTap,
+      onHashtagTap: widget.onHashtagTap,
+      onMentionTap: widget.onMentionTap,
+      onPlainTextTap: widget.onPlainTextTap,
+      fontSize: widget.fontSize,
+      fontColor: widget.fontColor,
+      urlColor: widget.urlColor,
+      mentionColor: widget.mentionColor,
+      hashtagColor: widget.hashtagColor,
+      startWith7line: widget.startWith7line,
+      interactiveColor: widget.interactiveColor,
+      tag: _controllerTag,
     );
+  }
 
+  void _disposeOwnedController() {
+    if (_ownsController &&
+        identical(
+          ClickableTextController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ClickableTextController>(tag: _controllerTag);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = _buildControllerTag();
+    _bindController();
+  }
+
+  @override
+  void didUpdateWidget(covariant ClickableTextContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextTag = _buildControllerTag();
+    if (nextTag == _controllerTag) return;
+    _disposeOwnedController();
+    _controllerTag = nextTag;
+    _bindController();
+  }
+
+  @override
+  void dispose() {
+    _disposeOwnedController();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final baseStyle = TextStyle(
-      fontSize: fontSize ?? 15,
-      color: fontColor ?? Colors.black,
+      fontSize: widget.fontSize ?? 15,
+      color: widget.fontColor ?? Colors.black,
       fontFamily: "Montserrat",
       height: 1.4,
     );
@@ -259,7 +401,8 @@ class ClickableTextContent extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (Get.isRegistered<ClickableTextController>(tag: tag)) {
+          if (!mounted) return;
+          if (ClickableTextController.maybeFind(tag: _controllerTag) != null) {
             controller.checkIfExceeds(constraints, baseStyle);
           }
         });
@@ -268,16 +411,13 @@ class ClickableTextContent extends StatelessWidget {
           final collapsed = !controller.expanded.value;
           final maxLines =
               collapsed ? (controller.startWith7line ? 7 : 2) : null;
-          final showOverlay = showEllipsisOverlay &&
+          final showOverlay = widget.showEllipsisOverlay &&
               collapsed &&
               controller.showExpandButton.value;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (showOverlay)
-                // Yerleşim problemi olmadan, 7. satırın sonunda yerinde
-                // gözükecek şekilde RichText'in kendi ellipsis'ini kullan
-                RichText(
+          Widget textBody = showOverlay
+              // Yerleşim problemi olmadan, 7. satırın sonunda yerinde
+              // gözükecek şekilde RichText'in kendi ellipsis'ini kullan
+              ? RichText(
                   key: ValueKey(controller.expanded.value),
                   text: TextSpan(
                     style: baseStyle,
@@ -286,14 +426,27 @@ class ClickableTextContent extends StatelessWidget {
                   maxLines: maxLines,
                   overflow: TextOverflow.ellipsis,
                 )
-              else
-                RichText(
+              : RichText(
                   key: ValueKey(controller.expanded.value),
                   text: TextSpan(style: baseStyle, children: controller.spans),
                   maxLines: maxLines,
                   overflow:
                       collapsed ? TextOverflow.ellipsis : TextOverflow.visible,
-                ),
+                );
+
+          if (widget.toggleExpandOnTextTap &&
+              controller.showExpandButton.value) {
+            textBody = GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: controller.toggleExpand,
+              child: textBody,
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              textBody,
               if (controller.showExpandButton.value)
                 TextButton(
                   style: TextButton.styleFrom(
@@ -304,11 +457,15 @@ class ClickableTextContent extends StatelessWidget {
                   onPressed: controller.toggleExpand,
                   child: Text(
                     controller.expanded.value
-                        ? 'Daha az göster'
-                        : 'Daha fazla göster',
+                        ? 'common.show_less'.tr
+                        : 'common.show_more'.tr,
                     style: TextStyle(
-                      fontSize: (fontSize ?? 15) - 1,
-                      color: interactiveColor ?? urlColor ?? Colors.white,
+                      fontSize: widget.expandButtonFontSize ??
+                          ((widget.fontSize ?? 15) - 1),
+                      color: widget.expandButtonColor ??
+                          widget.interactiveColor ??
+                          widget.urlColor ??
+                          AppColors.primaryColor,
                       fontFamily: "Montserrat",
                     ),
                   ),

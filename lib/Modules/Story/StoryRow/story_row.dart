@@ -1,23 +1,53 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_circle.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 
-class StoryRow extends StatelessWidget {
-  StoryRow({super.key});
-  final controller = Get.isRegistered<StoryRowController>()
-      ? Get.find<StoryRowController>()
-      : Get.put(StoryRowController());
-  final userStore = Get.find<FirebaseMyStore>();
+class StoryRow extends StatefulWidget {
+  const StoryRow({super.key});
+  static const double _storyRowHeight = 90;
+  static const double _storyRowLeadingPadding = 10;
+  static const double _storyRowItemSpacing = 10;
+
+  @override
+  State<StoryRow> createState() => _StoryRowState();
+}
+
+class _StoryRowState extends State<StoryRow> {
+  late final StoryRowController controller;
+  bool _ownsController = false;
+
+  StoryInteractionOptimizer get _storyOptimizer => StoryInteractionOptimizer.to;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = StoryRowController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = StoryRowController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(StoryRowController.maybeFind(), controller)) {
+      Get.delete<StoryRowController>();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       // OPTİMİZE EDİLMİŞ REACTİVE: Local cache'den dinle
-      StoryInteractionOptimizer.to.localStoryCache.length;
-      StoryInteractionOptimizer.to.localTimeCache.length;
+      _storyOptimizer.localStoryCache.length;
+      _storyOptimizer.localTimeCache.length;
 
       final hasData = controller.users.isNotEmpty;
 
@@ -27,29 +57,42 @@ class StoryRow extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: hasData
             ? SizedBox(
-                height: 95,
+                height: StoryRow._storyRowHeight,
                 width: double.infinity,
                 child: ListView.builder(
-                  key: const ValueKey('story_real'),
+                  key: const ValueKey(IntegrationTestKeys.storyRow),
                   scrollDirection: Axis.horizontal,
                   itemCount: controller.users.length,
                   itemBuilder: (context, index) {
                     final user = controller.users[index];
                     return Padding(
                       padding: EdgeInsets.only(
-                        left: index == 0 ? 15 : 0,
-                        right: 15,
+                        left: index == 0 ? StoryRow._storyRowLeadingPadding : 0,
+                        right: StoryRow._storyRowItemSpacing,
                       ),
                       child: StoryCircle(
                         key: ValueKey('circle_${user.userID}'),
                         model: user,
                         users: controller.users,
+                        isFirst: index == 0,
                       ),
                     );
                   },
                 ),
               )
-            : const SizedBox.shrink(),
+            : SizedBox(
+                height: StoryRow._storyRowHeight,
+                width: double.infinity,
+                child: Builder(
+                  builder: (context) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      controller.addMyUserImmediately();
+                    });
+                    return const StoryRowPlaceholder();
+                  },
+                ),
+              ),
       );
     });
   }
@@ -93,7 +136,10 @@ class _StoryRowPlaceholderState extends State<StoryRowPlaceholder>
           itemCount: items.length,
           itemBuilder: (context, index) {
             return Padding(
-              padding: EdgeInsets.only(left: index == 0 ? 15 : 0, right: 15),
+              padding: EdgeInsets.only(
+                left: index == 0 ? StoryRow._storyRowLeadingPadding : 0,
+                right: StoryRow._storyRowItemSpacing,
+              ),
               child: _ShimmerCircle(progress: t, index: index),
             );
           },
@@ -124,7 +170,8 @@ class _ShimmerCircle extends StatelessWidget {
       height: width,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.28), width: 2),
+        border:
+            Border.all(color: Colors.grey.withValues(alpha: 0.28), width: 2),
       ),
       child: ShaderMask(
         shaderCallback: (rect) {

@@ -1,12 +1,35 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
 class OpticalFormContentController extends GetxController {
+  static OpticalFormContentController ensure(
+    OpticalFormModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      OpticalFormContentController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static OpticalFormContentController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<OpticalFormContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<OpticalFormContentController>(tag: tag);
+  }
+
   final OpticalFormModel model;
   final total = 0.obs;
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
 
   OpticalFormContentController(this.model) {
     fetchTotal();
@@ -14,13 +37,7 @@ class OpticalFormContentController extends GetxController {
 
   Future<void> fetchTotal() async {
     total.value = 0;
-    final snapshot = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .get();
-
-    total.value = snapshot.docs.length;
+    total.value = await _opticalFormRepository.fetchAnswerCount(model.docID);
   }
 
   void copyDocID() {
@@ -39,8 +56,8 @@ class OpticalFormContentController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Cevapların gönderildi",
+            Text(
+              "answer_key.answers_sent_title".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -49,8 +66,8 @@ class OpticalFormContentController extends GetxController {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Yanıtınız optik form sahibine iletildi!",
+            Text(
+              "answer_key.answers_sent_body".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -68,8 +85,8 @@ class OpticalFormContentController extends GetxController {
                   color: Colors.black,
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                child: const Text(
-                  "Tamam",
+                child: Text(
+                  "common.ok".tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -97,8 +114,8 @@ class OpticalFormContentController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Sınavınız Geçersiz Sayılmıştır!",
+            Text(
+              "answer_key.invalid_exam_title".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -107,8 +124,8 @@ class OpticalFormContentController extends GetxController {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Sizi uyardık! Kural ihlali yaptığınız için sınavınız geçersiz sayılmıştır!",
+            Text(
+              "answer_key.invalid_exam_body".tr,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -126,8 +143,8 @@ class OpticalFormContentController extends GetxController {
                   color: Colors.black,
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                child: const Text(
-                  "Tamam",
+                child: Text(
+                  "common.ok".tr,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -145,12 +162,7 @@ class OpticalFormContentController extends GetxController {
 
   Future<void> deleteOpticalForm() async {
     try {
-      await FirebaseFirestore.instance
-          .collection("optikForm")
-          .doc(model.docID)
-          .delete();
-    } catch (e) {
-      print("Error deleting optical form: $e");
-    }
+      await _opticalFormRepository.deleteForm(model.docID);
+    } catch (_) {}
   }
 }

@@ -36,19 +36,11 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
   }
 
   SegmentCacheManager? get _cache {
-    try {
-      return Get.find<SegmentCacheManager>();
-    } catch (_) {
-      return null;
-    }
+    return SegmentCacheManager.maybeFind();
   }
 
   PrefetchScheduler? get _prefetch {
-    try {
-      return Get.find<PrefetchScheduler>();
-    } catch (_) {
-      return null;
-    }
+    return PrefetchScheduler.maybeFind();
   }
 
   @override
@@ -90,18 +82,49 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
 
   Widget _buildExpanded(CacheMetrics metrics, SegmentCacheManager cache) {
     final prefetch = _prefetch;
+    final soft = cache.softLimitBytes;
+    final hard = cache.hardLimitBytes;
+    final used = cache.totalSizeBytes;
+    final usagePct = hard > 0 ? ((used / hard) * 100).clamp(0, 999) : 0;
+    final softPct = hard > 0 ? ((soft / hard) * 100).clamp(0, 999) : 0;
 
     final lines = <String>[
-      'HIT: ${metrics.cacheHits}  MISS: ${metrics.cacheMisses}',
-      'Rate: ${(metrics.cacheHitRate * 100).toStringAsFixed(1)}%',
-      'Served: ${CacheMetrics.formatBytes(metrics.bytesServedFromCache)}',
-      'Downloaded: ${CacheMetrics.formatBytes(metrics.bytesDownloaded)}',
-      'Evictions: ${metrics.evictions}',
-      'Entries: ${cache.entryCount}',
-      'Disk: ${CacheMetrics.formatBytes(cache.totalSizeBytes)}',
+      'segment_cache.hit_miss'.trParams(
+          {'hits': '${metrics.cacheHits}', 'misses': '${metrics.cacheMisses}'}),
+      'segment_cache.rate'
+          .trParams({'rate': (metrics.cacheHitRate * 100).toStringAsFixed(1)}),
+      'segment_cache.served'.trParams(
+          {'bytes': CacheMetrics.formatBytes(metrics.bytesServedFromCache)}),
+      'segment_cache.downloaded'.trParams(
+          {'bytes': CacheMetrics.formatBytes(metrics.bytesDownloaded)}),
+      'segment_cache.evictions'.trParams({'count': '${metrics.evictions}'}),
+      'segment_cache.entries'.trParams({'count': '${cache.entryCount}'}),
+      'segment_cache.disk'
+          .trParams({'bytes': CacheMetrics.formatBytes(cache.totalSizeBytes)}),
+      'segment_cache.soft'.trParams({
+        'bytes': CacheMetrics.formatBytes(soft),
+        'pct': softPct.toStringAsFixed(0),
+      }),
+      'segment_cache.hard'.trParams({'bytes': CacheMetrics.formatBytes(hard)}),
+      'segment_cache.usage'.trParams({'pct': usagePct.toStringAsFixed(1)}),
       if (prefetch != null) ...[
-        'Prefetch: ${prefetch.isPaused ? "PAUSED" : "ACTIVE"}',
-        'Queue: ${prefetch.queueSize}  DL: ${prefetch.activeDownloads}',
+        'segment_cache.prefetch'.trParams({
+          'status': prefetch.isPaused
+              ? 'segment_cache.status_paused'.tr
+              : 'segment_cache.status_active'.tr,
+        }),
+        'segment_cache.queue'.trParams({
+          'queue': '${prefetch.queueSize}',
+          'downloads': '${prefetch.activeDownloads}',
+        }),
+        'segment_cache.ready'.trParams({
+          'ready': '${prefetch.feedReadyCount}',
+          'window': '${prefetch.feedWindowCount}',
+          'pct': (prefetch.feedReadyRatio * 100).toStringAsFixed(0),
+        }),
+        'segment_cache.latency'.trParams({
+          'ms': prefetch.avgQueueDispatchLatencyMs.toStringAsFixed(0),
+        }),
       ],
     ];
 
@@ -109,8 +132,8 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'SEGMENT CACHE',
+        Text(
+          'segment_cache.title'.tr,
           style: TextStyle(
             color: Colors.green,
             fontSize: 10,

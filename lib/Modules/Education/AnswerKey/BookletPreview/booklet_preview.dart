@@ -1,271 +1,405 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Utils/current_user_utils.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
 
-class BookletPreview extends StatelessWidget {
-  final BookletModel model;
-
+class BookletPreview extends StatefulWidget {
   const BookletPreview({required this.model, super.key});
 
+  final BookletModel model;
+
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(BookletPreviewController(model));
+  State<BookletPreview> createState() => _BookletPreviewState();
+}
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Obx(
-          () => Column(
-            children: [
-              _buildHeader(context, controller),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildCoverImage(context, controller),
-                    _buildContent(context, controller),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+class _BookletPreviewState extends State<BookletPreview> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final BookletPreviewController controller;
+
+  BookletModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'booklet_preview_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        BookletPreviewController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletPreviewController.ensure(model, tag: _controllerTag);
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    BookletPreviewController controller,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        BackButtons(text: controller.model.yayinEvi),
-        IconButton(
-          onPressed: controller.toggleBookmark,
-          icon: Icon(
-            controller.isBookmarked.value ? AppIcons.save : AppIcons.saved,
-            color: controller.isBookmarked.value ? Colors.black : Colors.orange,
-            size: 20,
-          ),
-        ),
-      ],
-    );
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = BookletPreviewController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<BookletPreviewController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
   }
 
-  Widget _buildCoverImage(
-    BuildContext context,
-    BookletPreviewController controller,
-  ) {
-    return SizedBox(
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.width,
-      child: CachedNetworkImage(
-        imageUrl: controller.model.cover,
-        fit: BoxFit.cover,
-        placeholder: (context, url) =>
-            const Center(child: CupertinoActivityIndicator()),
-        errorWidget: (context, url, error) => const Icon(Icons.error),
-      ),
-    );
-  }
-
-  Widget _buildContent(
-    BuildContext context,
-    BookletPreviewController controller,
-  ) {
+  Widget _infoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.all(15),
-      child: Column(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            controller.model.baslik,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontFamily: "MontserratBold",
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            controller.model.yayinEvi,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 15,
-              fontFamily: "MontserratBold",
-            ),
-          ),
-          const SizedBox(height: 5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                controller.model.sinavTuru,
-                style: const TextStyle(
-                  color: Colors.indigo,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontFamily: 'MontserratBold',
               ),
-              Text(
-                controller.model.basimTarihi,
-                style: const TextStyle(
-                  color: Colors.indigo,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-            ],
-          ),
-          8.ph,
-          _buildUserInfo(controller),
-          8.ph,
-          const Text(
-            "Cevap Anahtarları",
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontFamily: "MontserratBold",
             ),
           ),
-          const SizedBox(height: 15),
-          _buildAnswerKeysList(controller),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildUserInfo(BookletPreviewController controller) {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    return GestureDetector(
-      onTap: () {
-        if (currentUserId != null && currentUserId != controller.model.userID) {
-          Get.to(() => SocialProfile(userID: controller.model.userID));
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-            color: Colors.grey.withAlpha(20),
-            borderRadius: const BorderRadius.all(Radius.circular(12)),
-            border: Border.all(color: Colors.black, width: 1)),
-        // Keep X axis unchanged; only reduce vertical scale slightly.
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13.5),
+  Widget _infoCard({required String title, required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFF6F7FB),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerKeysList(BookletPreviewController controller) {
+    return Column(
+      children: controller.answerKeys.map((item) {
+        return GestureDetector(
+          onTap: () => controller.navigateToAnswerKey(Get.context!, item),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.14)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.baslik,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'tests.questions_prepared_count'.trParams({
+                            'count': item.dogruCevaplar.length.toString(),
+                          }),
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 13,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    CupertinoIcons.chevron_right,
+                    color: Colors.black45,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(growable: false),
+    );
+  }
+
+  Widget _buildAuthorCard(BookletPreviewController controller) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFF6F7FB),
+      ),
+      child: GestureDetector(
+        onTap: isCurrentUserId(controller.model.userID)
+            ? null
+            : () =>
+                Get.to(() => SocialProfile(userID: controller.model.userID)),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(20)),
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: controller.pfImage.value.isNotEmpty
-                    ? Image.network(
-                        controller.pfImage.value,
-                        fit: BoxFit.cover,
-                      )
-                    : const CupertinoActivityIndicator(),
-              ),
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFFE5E7EB),
+              backgroundImage: controller.avatarUrl.value.trim().isNotEmpty
+                  ? NetworkImage(controller.avatarUrl.value)
+                  : null,
+              child: controller.avatarUrl.value.trim().isEmpty
+                  ? const Icon(
+                      CupertinoIcons.person_fill,
+                      color: Colors.black54,
+                      size: 18,
+                    )
+                  : null,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    controller.fullName.value,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          controller.nickname.value.isEmpty
+                              ? 'answer_key.default_user'.tr
+                              : controller.nickname.value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 16,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
+                      ),
+                      RozetContent(size: 14, userID: controller.model.userID),
+                    ],
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    "@${controller.nickname.value}",
+                    isCurrentUserId(controller.model.userID)
+                        ? 'answer_key.book_owner'.tr
+                        : 'answer_key.view_profile'.tr,
                     style: const TextStyle(
-                      color: Colors.pink,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
+                      color: Colors.black54,
+                      fontSize: 13,
+                      fontFamily: 'MontserratMedium',
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            const Icon(Icons.arrow_forward_ios, color: Colors.black),
+            if (!isCurrentUserId(controller.model.userID))
+              const Icon(
+                CupertinoIcons.chevron_right,
+                color: Colors.black45,
+                size: 18,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAnswerKeysList(BookletPreviewController controller) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: controller.answerKeys.length,
-      itemBuilder: (context, index) {
-        final item = controller.answerKeys[index];
-        return GestureDetector(
-          onTap: () => controller.navigateToAnswerKey(context, item),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 15),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
+  Widget _pullDownMenu(BookletPreviewController controller) {
+    return PullDownButton(
+      itemBuilder: (context) => [
+        PullDownMenuItem(
+          onTap: () {
+            Get.to(
+              () => ReportUser(
+                userID: controller.model.userID,
+                postID: controller.model.docID,
+                commentID: '',
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 10,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.baslik,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "${item.dogruCevaplar.length} Soru",
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.indigo,
-                      size: 15,
-                    ),
-                  ],
+            );
+          },
+          title: 'answer_key.report_book'.tr,
+          icon: CupertinoIcons.exclamationmark_circle,
+        ),
+      ],
+      buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+        onTap: showMenu,
+        child: Icon(
+          AppIcons.ellipsisVertical,
+          color: Colors.black,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: const AppPageTitle(
+          'answer_key.book_detail',
+          translate: true,
+          fontSize: 20,
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: Obx(
+              () => AppHeaderActionButton(
+                onTap: controller.toggleBookmark,
+                child: Icon(
+                  controller.isBookmarked.value
+                      ? CupertinoIcons.bookmark_fill
+                      : CupertinoIcons.bookmark,
+                  color: controller.isBookmarked.value
+                      ? Colors.orange
+                      : Colors.black87,
+                  size: 20,
                 ),
               ),
             ),
           ),
-        );
-      },
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: _pullDownMenu(controller),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Obx(
+          () => ListView(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: CachedNetworkImage(
+                    imageUrl: controller.model.cover,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        const Center(child: CupertinoActivityIndicator()),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.error),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                controller.model.baslik,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${controller.model.yayinEvi}  •  ${controller.model.sinavTuru}',
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+              const SizedBox(height: 18),
+              _infoCard(
+                title: 'answer_key.book_info'.tr,
+                children: [
+                  _infoRow(
+                      'answer_key.exam_type'.tr, controller.model.sinavTuru),
+                  _infoRow(
+                    'answer_key.publisher_hint'.tr,
+                    controller.model.yayinEvi,
+                  ),
+                  _infoRow(
+                    'answer_key.publish_date'.tr,
+                    controller.model.basimTarihi,
+                  ),
+                  _infoRow(
+                    'common.language'.tr,
+                    controller.model.dil.isEmpty ? '-' : controller.model.dil,
+                  ),
+                  _infoRow(
+                      'common.views'.tr, controller.model.viewCount.toString()),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _buildAuthorCard(controller),
+              const SizedBox(height: 18),
+              _infoCard(
+                title: 'answer_key.answer_keys'.tr,
+                children: controller.answerKeys.isEmpty
+                    ? [
+                        Text(
+                          'answer_key.no_answer_keys'.tr,
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 14,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                      ]
+                    : [_buildAnswerKeysList(controller)],
+              ),
+              const SizedBox(height: 12),
+              const AdmobKare(
+                key: ValueKey('answer-key-detail-ad-end'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

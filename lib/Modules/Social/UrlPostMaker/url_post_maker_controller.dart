@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +14,27 @@ import '../../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../../Core/LocationFinderView/location_finder_view.dart';
 
 class UrlPostMakerController extends GetxController {
+  static UrlPostMakerController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      UrlPostMakerController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static UrlPostMakerController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<UrlPostMakerController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<UrlPostMakerController>(tag: tag);
+  }
+
   TextEditingController textEditingController = TextEditingController();
-  Rx<HLSVideoAdapter?> videoPlayerController =
-      Rx<HLSVideoAdapter?>(null);
+  Rx<HLSVideoAdapter?> videoPlayerController = Rx<HLSVideoAdapter?>(null);
   RxBool isPlaying = false.obs;
   RxBool yorum = true.obs;
   RxBool isSharing = false.obs;
@@ -22,6 +43,10 @@ class UrlPostMakerController extends GetxController {
   // Orijinal post bilgileri
   String? originalUserID;
   String? originalPostID;
+
+  String _resolvePostLocationCity() {
+    return CurrentUserService.instance.preferredLocationCity;
+  }
 
   Future<void> getReadyVideoPlayer(String url) async {
     final ctrl = HLSVideoAdapter(url: url, autoPlay: false, loop: false);
@@ -49,7 +74,6 @@ class UrlPostMakerController extends GetxController {
     String? originalPostID,
     bool sharedAsPost = false,
   }) async {
-
     // Eğer zaten paylaşım işlemi devam ediyorsa, yeni işlem başlatma
     if (isSharing.value) return;
 
@@ -58,12 +82,22 @@ class UrlPostMakerController extends GetxController {
     // Orijinal kullanıcı bilgilerini kaydet
     this.originalUserID = originalUserID;
     this.originalPostID = originalPostID;
-    print('UrlPostMakerController setData: originalUserID = $originalUserID, originalPostID = $originalPostID');
+    print(
+        'UrlPostMakerController setData: originalUserID = $originalUserID, originalPostID = $originalPostID');
 
     try {
-      Get.find<GlobalLoaderController>().isOn.value = true;
+      GlobalLoaderController.ensure().isOn.value = true;
       final uuid = Uuid().v4();
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
       final normalizedAR = double.parse(aspectRatio.toStringAsFixed(4));
+      final imageUrls =
+          imgs.map((url) => url.trim()).where((url) => url.isNotEmpty).toList();
+      final imgMap = imageUrls
+          .map((url) => {
+                'url': url,
+                'aspectRatio': normalizedAR,
+              })
+          .toList();
 
       // Eğer "Gönderi olarak paylaş" ise, dinamik original bilgileri hesapla
       String finalOriginalUserID = "";
@@ -73,133 +107,162 @@ class UrlPostMakerController extends GetxController {
         // Burada originalUserID aslında paylaşılan postun userID'si
         // Eğer paylaşılan post zaten bir paylaşım ise, onun original bilgilerini almalıyız
         // Bu durumda ReshareHelper kullanarak doğru mantığı uygulayalım
-        print('UrlPostMaker: Creating shared post - need to determine original chain');
+        print(
+            'UrlPostMaker: Creating shared post - need to determine original chain');
         finalOriginalUserID = originalUserID;
         finalOriginalPostID = originalPostID ?? "";
       }
 
+      final locationCity = _resolvePostLocationCity();
+
       await FirebaseFirestore.instance.collection("Posts").doc(uuid).set({
-      "arsiv": false,
-      "aspectRatio": normalizedAR,
-      "debugMode": false,
-      "deletedPost": false,
-      "deletedPostTime": 0,
-      "flood": false,
-      "floodCount": 1,
-      "gizlendi": false,
-      "img": imgs,
-      "isAd": false,
-      "ad": false,
-      "izBirakYayinTarihi": 0,
-      "konum": "",
-      "mainFlood": uuid,
-      "metin": textEditingController.text,
-      "paylasGizliligi": 0,
-      "scheduledAt": 0,
-      "sikayetEdildi": false,
-      "stabilized": false,
-      "stats": {
-        "commentCount": 0,
-        "likeCount": 0,
-        "reportedCount": 0,
-        "retryCount": 0,
-        "savedCount": 0,
-        "statsCount": 0
-      },
-      "tags": [],
-      "thumbnail": thumbnail,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "userID": FirebaseAuth.instance.currentUser!.uid,
-      "video": video,
-      "yorum": yorum.value,
+        "arsiv": false,
+        if (imageUrls.isEmpty) "aspectRatio": normalizedAR,
+        "debugMode": false,
+        "deletedPost": false,
+        "deletedPostTime": 0,
+        "flood": false,
+        "floodCount": 1,
+        "gizlendi": false,
+        "img": imageUrls,
+        "imgMap": imgMap,
+        "isAd": false,
+        "ad": false,
+        "izBirakYayinTarihi": 0,
+        "konum": "",
+        "locationCity": locationCity,
+        "mainFlood": uuid,
+        "metin": textEditingController.text,
+        "reshareMap": {
+          "visibility": 0,
+        },
+        "scheduledAt": 0,
+        "sikayetEdildi": false,
+        "stabilized": false,
+        "stats": {
+          "commentCount": 0,
+          "likeCount": 0,
+          "reportedCount": 0,
+          "retryCount": 0,
+          "savedCount": 0,
+          "statsCount": 0
+        },
+        "tags": [],
+        "thumbnail": thumbnail,
+        "timeStamp": DateTime.now().millisecondsSinceEpoch,
+        "userID": currentUserId,
+        "video": video,
+        "hlsStatus": "none",
+        "hlsMasterUrl": "",
+        "hlsUpdatedAt": 0,
+        "yorum": yorum.value,
+        "yorumMap": {
+          "visibility": yorum.value ? 0 : 3,
+        },
 
-      // Dinamik original bilgileri
-      "originalUserID": finalOriginalUserID,
-      "originalPostID": finalOriginalPostID,
-      "sharedAsPost": sharedAsPost,
-
-    });
-    print('UrlPostMakerController: Post saved with originalUserID: $originalUserID, originalPostID: $originalPostID');
-
-    // Eğer bu bir "Gönderi olarak paylaş" ise, orijinal gönderi sahibinin postSharers koleksiyonuna bu paylaşımı kaydet
-    if (sharedAsPost && finalOriginalUserID.isNotEmpty) {
-      try {
-        // postSharers alt koleksiyonunu güncellemek için orijinal post ID'sini bul
-        String targetPostID = finalOriginalPostID.isNotEmpty ? finalOriginalPostID : originalPostID ?? "";
-
-        if (targetPostID.isNotEmpty) {
-          await FirebaseFirestore.instance
-              .collection("Posts")
-              .doc(targetPostID)
-              .collection("postSharers")
-              .doc(FirebaseAuth.instance.currentUser!.uid)
-              .set({
-            "userID": FirebaseAuth.instance.currentUser!.uid,
-            "timestamp": DateTime.now().millisecondsSinceEpoch,
-            "sharedPostID": uuid, // Paylaşılan yeni post ID'si
-          });
-          print('postSharers updated for post: $targetPostID by user: ${FirebaseAuth.instance.currentUser!.uid}');
-        }
-      } catch (e) {
-        print('Error updating postSharers: $e');
-        // Hata durumunda ana işlemi etkilemesin
-      }
-    }
-
-    // Yeni oluşturulan postu AgendaController'a ekle
-    final agendaController = Get.find<AgendaController>();
-    final newPost = PostsModel(
-      arsiv: false,
-      aspectRatio: normalizedAR,
-      debugMode: false,
-      deletedPost: false,
-      deletedPostTime: 0,
-      docID: uuid,
-      editTime: null,
-      flood: false,
-      floodCount: 1,
-      gizlendi: false,
-      img: imgs,
-      isAd: false,
-      ad: false,
-      izBirakYayinTarihi: 0,
-      stats: PostStats(),
-      konum: "",
-      mainFlood: uuid,
-      metin: textEditingController.text,
-      paylasGizliligi: 0,
-      scheduledAt: 0,
-      sikayetEdildi: false,
-      stabilized: false,
-      tags: const [],
-      thumbnail: thumbnail,
-      timeStamp: DateTime.now().millisecondsSinceEpoch,
-      userID: FirebaseAuth.instance.currentUser!.uid,
-      video: video,
-      yorum: yorum.value,
-      originalUserID: finalOriginalUserID,
-      originalPostID: finalOriginalPostID,
-    );
-
-    // Yeni postu agenda listesinin başına ekle
-    agendaController.addUploadedPostsAtTop([newPost]);
-
-    // Agenda sayfasını en üste scroll yap
-    if (agendaController.scrollController.hasClients) {
-      agendaController.scrollController.animateTo(
-        0.0,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
+        // Dinamik original bilgileri
+        "originalUserID": finalOriginalUserID,
+        "originalPostID": finalOriginalPostID,
+        "sharedAsPost": sharedAsPost,
+      });
+      unawaited(
+        TypesensePostService.instance.syncPostById(uuid).catchError((_) {}),
       );
-    }
+      print(
+          'UrlPostMakerController: Post saved with originalUserID: $originalUserID, originalPostID: $originalPostID');
 
-    final mystore = Get.find<ProfileController>();
-    mystore.getLastPostAndAddToAllPosts();
-      Get.find<GlobalLoaderController>().isOn.value = false;
+      // Eğer bu bir "Gönderi olarak paylaş" ise, orijinal gönderi sahibinin postSharers koleksiyonuna bu paylaşımı kaydet
+      if (sharedAsPost && finalOriginalUserID.isNotEmpty) {
+        try {
+          // postSharers alt koleksiyonunu güncellemek için orijinal post ID'sini bul
+          String targetPostID = finalOriginalPostID.isNotEmpty
+              ? finalOriginalPostID
+              : originalPostID ?? "";
+
+          if (targetPostID.isNotEmpty) {
+            await FirebaseFirestore.instance
+                .collection("Posts")
+                .doc(targetPostID)
+                .collection("postSharers")
+                .doc(currentUserId)
+                .set({
+              "userID": currentUserId,
+              "timestamp": DateTime.now().millisecondsSinceEpoch,
+              "sharedPostID": uuid, // Paylaşılan yeni post ID'si
+              "quotedPost": false,
+            });
+            print(
+                'postSharers updated for post: $targetPostID by user: $currentUserId');
+          }
+        } catch (e) {
+          print('Error updating postSharers: $e');
+          // Hata durumunda ana işlemi etkilemesin
+        }
+      }
+
+      // Yeni oluşturulan postu AgendaController'a ekle
+      final newPost = PostsModel(
+        arsiv: false,
+        aspectRatio: normalizedAR,
+        debugMode: false,
+        deletedPost: false,
+        deletedPostTime: 0,
+        docID: uuid,
+        editTime: null,
+        flood: false,
+        floodCount: 1,
+        gizlendi: false,
+        img: imageUrls,
+        isAd: false,
+        ad: false,
+        izBirakYayinTarihi: 0,
+        stats: PostStats(),
+        konum: "",
+        locationCity: locationCity,
+        mainFlood: uuid,
+        metin: textEditingController.text,
+        paylasGizliligi: 0,
+        reshareMap: const {
+          "visibility": 0,
+        },
+        scheduledAt: 0,
+        sikayetEdildi: false,
+        stabilized: false,
+        tags: const [],
+        thumbnail: thumbnail,
+        timeStamp: DateTime.now().millisecondsSinceEpoch,
+        userID: currentUserId,
+        video: video,
+        hlsStatus: 'none',
+        hlsMasterUrl: '',
+        hlsUpdatedAt: 0,
+        yorum: yorum.value,
+        yorumMap: {
+          "visibility": yorum.value ? 0 : 3,
+        },
+        originalUserID: finalOriginalUserID,
+        originalPostID: finalOriginalPostID,
+      );
+
+      final agendaController = AgendaController.maybeFind();
+      if (agendaController != null) {
+        agendaController.addUploadedPostsAtTop([newPost]);
+
+        if (agendaController.scrollController.hasClients) {
+          agendaController.scrollController.animateTo(
+            0.0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+
+      ProfileController.maybeFind()?.getLastPostAndAddToAllPosts();
+      GlobalLoaderController.ensure().isOn.value = false;
       isSharing.value = false;
       Get.back();
     } catch (e) {
-      Get.find<GlobalLoaderController>().isOn.value = false;
+      GlobalLoaderController.ensure().isOn.value = false;
       isSharing.value = false;
       print('UrlPostMaker setData error: $e');
       // Hata durumunda kullanıcıya bilgi verilebilir
@@ -236,7 +299,7 @@ class UrlPostMakerController extends GetxController {
                   Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
                   SizedBox(width: 12),
                   Text(
-                    "Yorumlar",
+                    "comments.title".tr,
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -303,7 +366,7 @@ class UrlPostMakerController extends GetxController {
                     children: [
                       Expanded(
                         child: Text(
-                          "Hiç kimse yorum yapamaz.",
+                          "post.comments_disabled_none".tr,
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.black,

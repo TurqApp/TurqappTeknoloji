@@ -2,12 +2,44 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'dart:io';
 
+const _addQuestionMiddleSchoolType = 'Ortaokul';
+
 class AddTestQuestionController extends GetxController {
+  static AddTestQuestionController ensure({
+    required List<TestReadinessModel> initialSoruList,
+    required String testID,
+    required String testTuru,
+    required Function onUpdate,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      AddTestQuestionController(
+        initialSoruList: initialSoruList,
+        testID: testID,
+        testTuru: testTuru,
+        onUpdate: onUpdate,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static AddTestQuestionController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<AddTestQuestionController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<AddTestQuestionController>(tag: tag);
+  }
+
   final List<TestReadinessModel> initialSoruList;
   final String testID;
   final String testTuru;
@@ -19,6 +51,7 @@ class AddTestQuestionController extends GetxController {
   final selections = ['A'].obs;
   final isLoading = true.obs;
   final ImagePicker picker = ImagePicker();
+  final TestRepository _testRepository = TestRepository.ensure();
 
   AddTestQuestionController({
     required this.initialSoruList,
@@ -37,31 +70,11 @@ class AddTestQuestionController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      final snapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(testID)
-              .collection("Sorular")
-              .orderBy("id", descending: true)
-              .get();
-
-      soruList.clear();
-      for (var doc in snapshot.docs) {
-        final img = doc.get("img") as String;
-        final id = doc.get("id") as num;
-        final dogruCevap = doc.get("dogruCevap") as String;
-        final max = doc.get("max") as num;
-
-        soruList.add(
-          TestReadinessModel(
-            id: id.toInt(),
-            img: img,
-            max: max.toInt(),
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
+      final questions = await _testRepository.fetchQuestions(
+        testID,
+        preferCache: true,
+      );
+      soruList.assignAll(questions.reversed);
     } catch (e) {
       print("Error fetching questions: $e");
     } finally {
@@ -73,11 +86,11 @@ class AddTestQuestionController extends GetxController {
     try {
       final nsfw = await OptimizedNSFWService.checkImage(imageFile);
       if (nsfw.errorMessage != null) {
-        Get.snackbar('Hata', 'NSFW görsel kontrolü başarısız.');
+        AppSnackbar('common.error'.tr, 'tests.nsfw_check_failed'.tr);
         return;
       }
       if (nsfw.isNSFW) {
-        Get.snackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+        AppSnackbar('common.error'.tr, 'tests.nsfw_detected'.tr);
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
@@ -86,7 +99,6 @@ class AddTestQuestionController extends GetxController {
         storagePathWithoutExt:
             'Testler/$testID/${DateTime.now().millisecondsSinceEpoch}',
       );
-      print("Download URL: $downloadUrl");
 
       await FirebaseFirestore.instance
           .collection("Testler")
@@ -94,12 +106,12 @@ class AddTestQuestionController extends GetxController {
           .collection("Sorular")
           .doc(soruList[index].docID)
           .set({
-            "img": downloadUrl,
-            "id": soruList[index].id,
-            "dogruCevap": soruList[index].dogruCevap,
-            "yanitlayanlar": [],
-            "max": 5,
-          }, SetOptions(merge: true));
+        "img": downloadUrl,
+        "id": soruList[index].id,
+        "dogruCevap": soruList[index].dogruCevap,
+        "yanitlayanlar": [],
+        "max": 5,
+      }, SetOptions(merge: true));
 
       soruList[index] = TestReadinessModel(
         id: soruList[index].id,
@@ -119,7 +131,7 @@ class AddTestQuestionController extends GetxController {
       TestReadinessModel(
         id: docID,
         img: "",
-        max: testTuru == "Ortaokul" ? 4 : 5,
+        max: testTuru == _addQuestionMiddleSchoolType ? 4 : 5,
         dogruCevap: "",
         docID: docID.toString(),
       ),

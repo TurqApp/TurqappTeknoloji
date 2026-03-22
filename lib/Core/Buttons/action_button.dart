@@ -1,82 +1,177 @@
 import 'dart:ui';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 
-class ActionButton extends StatelessWidget {
+enum ActionButtonPermissionScope {
+  none,
+  scholarships,
+  practiceExams,
+  jobFinder,
+}
+
+class ActionButton extends StatefulWidget {
   final BuildContext context;
   final List<PullDownMenuItem> menuItems;
+  final ActionButtonPermissionScope permissionScope;
+  final String? semanticsLabel;
+  final double size;
+  final double lift;
+  final Color backgroundColor;
+  final Color iconColor;
 
   const ActionButton({
     super.key,
     required this.context,
     required this.menuItems,
+    this.permissionScope = ActionButtonPermissionScope.none,
+    this.semanticsLabel,
+    this.size = 60,
+    this.lift = 60,
+    this.backgroundColor = Colors.white,
+    this.iconColor = Colors.black,
   });
 
-  Future<bool> _canCreateScholarship() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return false;
-    }
+  @override
+  State<ActionButton> createState() => _ActionButtonState();
+}
 
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
+class _ActionButtonState extends State<ActionButton> {
+  late final Future<Map<String, bool>> _permissionsFuture;
+  static const String _yellowBadgeTier = 'sari';
+  static const Map<String, Set<String>> _menuTitleVariantsByKey = {
+    'scholarship.create_title': {
+      'scholarship.create_title',
+      'burs oluştur',
+      'create scholarship',
+      'stipendium erstellen',
+      'creer une bourse',
+      'créer une bourse',
+      'crea borsa di studio',
+      'создать стипендию',
+    },
+    'scholarship.my_listings': {
+      'scholarship.my_listings',
+      'burs ilanlarım',
+      'my scholarship listings',
+      'meine stipendienanzeigen',
+      'mes annonces de bourse',
+      'i miei annunci di borsa',
+      'мои объявления о стипендии',
+    },
+    'common.create': {
+      'common.create',
+      'oluştur',
+      'create',
+      'erstellen',
+      'creer',
+      'créer',
+      'crea',
+      'создать',
+    },
+    'pasaj.common.published': {
+      'pasaj.common.published',
+      'yayınladıklarım',
+      'published',
+      'veröffentlichte',
+      'publiées',
+      'pubblicati',
+      'опубликованные',
+    },
+    'pasaj.common.post_listing': {
+      'pasaj.common.post_listing',
+      'ilan ver',
+      'post listing',
+      'inserat erstellen',
+      'publier une annonce',
+      'pubblica annuncio',
+      'разместить объявление',
+    },
+    'pasaj.market.my_listings': {
+      'pasaj.market.my_listings',
+      'ilanlarım',
+      'my listings',
+      'meine anzeigen',
+      'mes annonces',
+      'i miei annunci',
+      'мои объявления',
+    },
+    'pasaj.common.slider_admin': {
+      'pasaj.common.slider_admin',
+      'slider yönetimi',
+      'slider management',
+      'slider-verwaltung',
+    },
+  };
 
-      if (!doc.exists) {
-        return false;
-      }
-
-      final rozet = doc.get("rozet") as String? ?? "";
-      return ["Kirmizi", "Sari", "Turkuaz"].contains(rozet);
-    } catch (e) {
-      AppSnackbar("Hata!", "Rozet kontrolü başarısız oldu.");
-      print("Rozet kontrol hatası: $e");
-      return false;
-    }
-  }
-
-  Future<bool> _canCreateExam() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return false;
-    }
-
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
-
-      if (!doc.exists) {
-        return false;
-      }
-
-      final rozet = doc.get("rozet") as String? ?? "";
-      return ["Turkuaz", "Sari"].contains(rozet);
-    } catch (e) {
-      AppSnackbar("Hata!", "Rozet kontrolü başarısız oldu.");
-      print("Rozet kontrol hatası: $e");
-      return false;
-    }
+  @override
+  void initState() {
+    super.initState();
+    _permissionsFuture = _loadPermissions();
   }
 
   Future<bool> _canManageSliders() async {
     return AdminAccessService.canManageSliders();
   }
 
+  Future<Map<String, bool>> _loadPermissions() async {
+    final canUseYellowTier = await currentUserHasRozetPermission(
+      _yellowBadgeTier,
+    );
+    final canManageSliders = await _canManageSliders();
+    return {
+      'canUseYellowTier': canUseYellowTier,
+      'canManageSliders': canManageSliders,
+    };
+  }
+
+  bool _matchesLocalizedTitle(PullDownMenuItem item, List<String> titleKeys) {
+    final title = normalizeSearchText(item.title);
+    for (final key in titleKeys) {
+      final variants = _menuTitleVariantsByKey[key] ?? {key};
+      if (variants.contains(title)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _shouldHideForScope(PullDownMenuItem item, bool canUseYellowTier) {
+    if (canUseYellowTier) return false;
+
+    switch (widget.permissionScope) {
+      case ActionButtonPermissionScope.scholarships:
+        return _matchesLocalizedTitle(item, [
+          'scholarship.create_title',
+          'scholarship.my_listings',
+        ]);
+      case ActionButtonPermissionScope.practiceExams:
+        return _matchesLocalizedTitle(item, [
+          'common.create',
+          'pasaj.common.published',
+        ]);
+      case ActionButtonPermissionScope.jobFinder:
+        return _matchesLocalizedTitle(item, [
+          'pasaj.common.post_listing',
+          'pasaj.market.my_listings',
+        ]);
+      case ActionButtonPermissionScope.none:
+        return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPressed = false.obs;
+    final effectiveBackgroundColor = widget.backgroundColor == Colors.white
+        ? Colors.white.withValues(alpha: 0.88)
+        : widget.backgroundColor;
     return Transform.translate(
-      offset: const Offset(0, -60),
+      offset: Offset(0, -widget.lift),
       child: GestureDetector(
         onTapDown: (_) => isPressed.value = true,
         onTapUp: (_) => isPressed.value = false,
@@ -85,40 +180,24 @@ class ActionButton extends StatelessWidget {
           () => Opacity(
             opacity: isPressed.value ? 0.5 : 1.0,
             child: SizedBox(
-              width: 60,
-              height: 60,
+              width: widget.size,
+              height: widget.size,
               child: FutureBuilder<Map<String, bool>>(
-                future: Future.wait([
-                  _canCreateScholarship(),
-                  _canCreateExam(),
-                  _canManageSliders(),
-                ]).then(
-                  (results) => {
-                    'canCreateScholarship': results[0],
-                    'canCreateExam': results[1],
-                    'canManageSliders': results[2],
-                  },
-                ),
+                future: _permissionsFuture,
                 builder: (context, snapshot) {
-                  final canCreateScholarship =
-                      snapshot.data?['canCreateScholarship'] ?? false;
-                  final canCreateExam =
-                      snapshot.data?['canCreateExam'] ?? false;
+                  final canUseYellowTier =
+                      snapshot.data?['canUseYellowTier'] ?? false;
                   final canManageSliders =
                       snapshot.data?['canManageSliders'] ?? false;
                   return PullDownButton(
-                    itemBuilder: (context) => menuItems
+                    itemBuilder: (context) => widget.menuItems
                         .map((item) {
-                          if ((item.title == 'Burs Oluştur' ||
-                                  item.title == 'İlanlarım') &&
-                              !canCreateScholarship) {
+                          if (_shouldHideForScope(item, canUseYellowTier)) {
                             return null;
                           }
-                          if (item.title == 'Deneme Oluştur' &&
-                              !canCreateExam) {
-                            return null;
-                          }
-                          if (item.title == 'Slider Yönetimi' &&
+                          if (_matchesLocalizedTitle(item, [
+                                'pasaj.common.slider_admin',
+                              ]) &&
                               !canManageSliders) {
                             return null;
                           }
@@ -126,34 +205,41 @@ class ActionButton extends StatelessWidget {
                         })
                         .whereType<PullDownMenuItem>()
                         .toList(),
-                    buttonBuilder: (context, showMenu) => ClipOval(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.88),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.black.withValues(alpha: 0.06),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x22000000),
-                                blurRadius: 16,
-                                offset: Offset(0, 5),
+                    buttonBuilder: (context, showMenu) => Semantics(
+                      label: widget.semanticsLabel,
+                      button: true,
+                      child: ClipOval(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                          child: Container(
+                            width: widget.size,
+                            height: widget.size,
+                            decoration: BoxDecoration(
+                              color: effectiveBackgroundColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: widget.backgroundColor == Colors.white
+                                    ? Colors.black.withValues(alpha: 0.06)
+                                    : widget.backgroundColor
+                                        .withValues(alpha: 0.24),
                               ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.grid_view_outlined,
-                              color: Colors.black,
-                              size: Theme.of(context).iconTheme.size ?? 25,
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 5),
+                                ),
+                              ],
                             ),
-                            onPressed: showMenu,
+                            alignment: Alignment.center,
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.grid_view_outlined,
+                                color: widget.iconColor,
+                                size: widget.size <= 56 ? 23 : 25,
+                              ),
+                              onPressed: showMenu,
+                            ),
                           ),
                         ),
                       ),

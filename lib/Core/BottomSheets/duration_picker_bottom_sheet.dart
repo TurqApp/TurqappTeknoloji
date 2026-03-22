@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -87,16 +88,7 @@ class DurationPickerBottomSheet extends StatelessWidget {
         color: Colors.white,
         child: Column(
           children: [
-            Container(
-              width: 50,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.all(Radius.circular(50)),
-              ),
-            ),
-            8.ph,
-            Text(title, style: TextStyles.bold20Black),
+            AppSheetHeader(title: title),
             Expanded(
               child: Align(
                 alignment: Alignment.center,
@@ -115,17 +107,16 @@ class DurationPickerBottomSheet extends StatelessWidget {
                     scrollController: FixedExtentScrollController(
                       initialItem: durations.indexOf(tempPicked),
                     ),
-                    children:
-                        durations
-                            .map(
-                              (duration) => Center(
-                                child: Text(
-                                  '$duration dk',
-                                  style: TextStyles.bold20Black,
-                                ),
-                              ),
-                            )
-                            .toList(),
+                    children: durations
+                        .map(
+                          (duration) => Center(
+                            child: Text(
+                              '$duration dk',
+                              style: TextStyles.bold20Black,
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
@@ -144,7 +135,7 @@ class DurationPickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "İptal",
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -169,7 +160,7 @@ class DurationPickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "Tamam",
+                        'common.ok'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,

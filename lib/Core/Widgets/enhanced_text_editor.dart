@@ -34,7 +34,7 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
   @override
   void initState() {
     super.initState();
-    _editingService = Get.put(PostEditingService());
+    _editingService = PostEditingService.ensure();
     widget.controller.addListener(_onTextChanged);
   }
 
@@ -71,28 +71,28 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
 
               // Main text field
               Obx(() => TextField(
-                controller: widget.controller,
-                focusNode: _focusNode,
-                maxLines: widget.maxLines,
-                maxLength: widget.maxLength,
-                style: _editingService.currentFormatting.toTextStyle(),
-                decoration: InputDecoration(
-                  hintText: widget.hintText,
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(16),
-                  counterText: '', // Hide character counter
-                ),
-                onChanged: (text) {
-                  final oldText = widget.controller.text;
-                  _editingService.recordAction(
-                    type: 'text_change',
-                    beforeState: {'text': oldText},
-                    afterState: {'text': text},
-                  );
-                  _onTextChanged();
-                },
-              )),
+                    controller: widget.controller,
+                    focusNode: _focusNode,
+                    maxLines: widget.maxLines,
+                    maxLength: widget.maxLength,
+                    style: _editingService.currentFormatting.toTextStyle(),
+                    decoration: InputDecoration(
+                      hintText: widget.hintText,
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.all(16),
+                      counterText: '', // Hide character counter
+                    ),
+                    onChanged: (text) {
+                      final oldText = widget.controller.text;
+                      _editingService.recordAction(
+                        type: 'text_change',
+                        beforeState: {'text': oldText},
+                        afterState: {'text': text},
+                      );
+                      _onTextChanged();
+                    },
+                  )),
 
               // Character count
               if (widget.maxLength != null) _buildCharacterCount(),
@@ -119,12 +119,14 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
       child: Obx(() {
         final actions = _editingService.getFormattingActions();
         return Row(
-          children: actions.map((action) => _buildFormattingButton(
-            icon: action['icon'] as IconData,
-            label: action['label'] as String,
-            isActive: action['active'] as bool,
-            onPressed: action['action'] as VoidCallback,
-          )).toList(),
+          children: actions
+              .map((action) => _buildFormattingButton(
+                    icon: action['icon'] as IconData,
+                    label: action['label'] as String,
+                    isActive: action['active'] as bool,
+                    onPressed: action['action'] as VoidCallback,
+                  ))
+              .toList(),
         );
       }),
     );
@@ -157,32 +159,32 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
       child: Row(
         children: [
           Obx(() => IconButton(
-            icon: const Icon(Icons.undo, size: 18),
-            onPressed: _editingService.canUndo ? _performUndo : null,
-            color: _editingService.canUndo ? Colors.blue : Colors.grey,
-            splashRadius: 18,
-          )),
+                icon: const Icon(Icons.undo, size: 18),
+                onPressed: _editingService.canUndo ? _performUndo : null,
+                color: _editingService.canUndo ? Colors.blue : Colors.grey,
+                splashRadius: 18,
+              )),
           Obx(() => IconButton(
-            icon: const Icon(Icons.redo, size: 18),
-            onPressed: _editingService.canRedo ? _performRedo : null,
-            color: _editingService.canRedo ? Colors.blue : Colors.grey,
-            splashRadius: 18,
-          )),
+                icon: const Icon(Icons.redo, size: 18),
+                onPressed: _editingService.canRedo ? _performRedo : null,
+                color: _editingService.canRedo ? Colors.blue : Colors.grey,
+                splashRadius: 18,
+              )),
           const Spacer(),
           // Smart suggestions toggle
           Obx(() => IconButton(
-            icon: Icon(
-              _editingService.smartSuggestionsEnabled
-                  ? Icons.auto_awesome
-                  : Icons.auto_awesome_outlined,
-              size: 18,
-            ),
-            onPressed: _editingService.toggleSmartSuggestions,
-            color: _editingService.smartSuggestionsEnabled
-                ? Colors.blue
-                : Colors.grey,
-            splashRadius: 18,
-          )),
+                icon: Icon(
+                  _editingService.smartSuggestionsEnabled
+                      ? Icons.auto_awesome
+                      : Icons.auto_awesome_outlined,
+                  size: 18,
+                ),
+                onPressed: _editingService.toggleSmartSuggestions,
+                color: _editingService.smartSuggestionsEnabled
+                    ? Colors.blue
+                    : Colors.grey,
+                splashRadius: 18,
+              )),
         ],
       ),
     );
@@ -235,9 +237,10 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
             Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: suggestions.take(5).map((suggestion) =>
-                _buildSuggestionChip(suggestion)
-              ).toList(),
+              children: suggestions
+                  .take(5)
+                  .map((suggestion) => _buildSuggestionChip(suggestion))
+                  .toList(),
             ),
           ],
         ),
@@ -314,7 +317,7 @@ class _EnhancedTextEditorState extends State<EnhancedTextEditor> {
 
     // Show feedback
     AppSnackbar(
-      'Applied',
+      'common.success'.tr,
       suggestion.suggestion,
       duration: const Duration(seconds: 2),
       backgroundColor: Colors.green,
@@ -351,12 +354,16 @@ class FormattingToolbar extends StatelessWidget {
         final actions = editingService.getFormattingActions();
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: actions.map((action) => IconButton(
-            icon: Icon(action['icon'] as IconData),
-            onPressed: action['action'] as VoidCallback,
-            color: action['active'] as bool ? Colors.blue : Colors.grey[600],
-            splashRadius: 20,
-          )).toList(),
+          children: actions
+              .map((action) => IconButton(
+                    icon: Icon(action['icon'] as IconData),
+                    onPressed: action['action'] as VoidCallback,
+                    color: action['active'] as bool
+                        ? Colors.blue
+                        : Colors.grey[600],
+                    splashRadius: 20,
+                  ))
+              .toList(),
         );
       }),
     );

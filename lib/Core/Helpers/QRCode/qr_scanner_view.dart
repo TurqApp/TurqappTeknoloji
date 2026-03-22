@@ -7,10 +7,44 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
-class QrScannerView extends StatelessWidget {
-  final controller = Get.put(QrScannerController());
+class QrScannerView extends StatefulWidget {
+  const QrScannerView({super.key});
 
-  QrScannerView({super.key});
+  @override
+  State<QrScannerView> createState() => _QrScannerViewState();
+}
+
+class _QrScannerViewState extends State<QrScannerView> {
+  late final String _controllerTag;
+  late final QrScannerController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'qr_scanner_${identityHashCode(this)}';
+    final existingController =
+        QrScannerController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = QrScannerController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          QrScannerController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<QrScannerController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -23,23 +57,20 @@ class QrScannerView extends StatelessWidget {
             height: 3,
             decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.all(Radius.circular(40))
-            ),
+                borderRadius: BorderRadius.all(Radius.circular(40))),
           ),
         ),
-
         Padding(
           padding: const EdgeInsets.all(15),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "QR Kodu Tara",
+                'qr.scan_title'.tr,
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: FontSizes.size20,
-                    fontFamily: AppFontFamilies.mbold
-                ),
+                    fontFamily: AppFontFamilies.mbold),
               ),
             ],
           ),
@@ -56,24 +87,22 @@ class QrScannerView extends StatelessWidget {
                 if (code != null && code.isNotEmpty) {
                   controller.onDetect(code);
                 }
-                if (code.toString().length == 28){
+                if (code.toString().length == 28) {
                   Get.to(() => SocialProfile(userID: code.toString()));
                 }
               },
             ),
           ),
         ),
-
         Padding(
           padding: const EdgeInsets.all(25),
           child: Text(
-            "Yeni tanıştığınız insanların profilinde bulunan qr kodunu okutarak, onun profiline\nanına gidebilirsin",
+            'qr.scan_body'.tr,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textBlack,
-              fontSize: FontSizes.size14,
-              fontFamily: AppFontFamilies.mmedium
-            ),
+                color: AppColors.textBlack,
+                fontSize: FontSizes.size14,
+                fontFamily: AppFontFamilies.mmedium),
           ),
         ),
       ],

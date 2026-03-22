@@ -5,21 +5,42 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGecmisSonucContent/deneme_gecmis_sonuc_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_sonuclarim_controller.dart';
 
-class SinavSonuclarim extends StatelessWidget {
+class SinavSonuclarim extends StatefulWidget {
   const SinavSonuclarim({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final SinavSonuclarimController controller = Get.put(
-      SinavSonuclarimController(),
-    );
+  State<SinavSonuclarim> createState() => _SinavSonuclarimState();
+}
 
+class _SinavSonuclarimState extends State<SinavSonuclarim> {
+  late final SinavSonuclarimController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = SinavSonuclarimController.maybeFind();
+    _ownsController = existing == null;
+    controller = existing ?? SinavSonuclarimController.ensure();
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(SinavSonuclarimController.maybeFind(), controller)) {
+      Get.delete<SinavSonuclarimController>();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Deneme Sonuçlarım"),
+            BackButtons(text: 'practice.results_title'.tr),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
@@ -40,8 +61,8 @@ class SinavSonuclarim extends StatelessWidget {
                             color: Colors.grey,
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Henüz Sınava Girmediniz",
+                          Text(
+                            'practice.results_empty_title'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -50,8 +71,8 @@ class SinavSonuclarim extends StatelessWidget {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 10),
-                          const Text(
-                            "Henüz herhangi bir deneme sınavına katılmadınız. Sınavlara katıldığınızda sonuçlarınız burada görünecektir.",
+                          Text(
+                            'practice.results_empty_body'.tr,
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 16,

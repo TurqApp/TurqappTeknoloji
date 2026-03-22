@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
+
+const bool _suppressHlsSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
 
 enum PlayerState {
   idle,
@@ -17,6 +22,20 @@ class HLSController {
   static const MethodChannel _methodChannel =
       MethodChannel('turqapp.hls_player/method');
 
+  static Future<Map<String, dynamic>> getActiveSmokeSnapshot() async {
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'getActiveSmokeSnapshot',
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return const <String, dynamic>{};
+    } on PlatformException {
+      return const <String, dynamic>{};
+    }
+  }
+
   int? _viewId;
   EventChannel? _eventChannel;
   StreamSubscription? _eventSubscription;
@@ -29,6 +48,11 @@ class HLSController {
   bool _isMuted = false;
   bool _isLooping = false;
   String? _errorMessage;
+  bool _hasRenderedFirstFrame = false;
+  double? _pendingReattachSeekSeconds;
+  bool _pendingReattachShouldPlay = false;
+  int _rendererStallCount = 0;
+  int _surfaceRebindCount = 0;
 
   // Fallback support
   String? _fallbackUrl;
@@ -45,6 +69,7 @@ class HLSController {
   final _durationController = StreamController<Duration>.broadcast();
   final _bufferingController = StreamController<bool>.broadcast();
   final _errorController = StreamController<String>.broadcast();
+  final _firstFrameController = StreamController<bool>.broadcast();
 
   // Getters
   PlayerState get state => _state;
@@ -57,6 +82,21 @@ class HLSController {
   bool get isPlaying => _state == PlayerState.playing;
   bool get isPaused => _state == PlayerState.paused;
   bool get isReady => _state == PlayerState.ready;
+  bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
+  int get rendererStallCount => _rendererStallCount;
+  int get surfaceRebindCount => _surfaceRebindCount;
+
+  bool get _isAtPlaybackEnd {
+    if (!_duration.isFinite || _duration <= 0) return false;
+    if (!_currentPosition.isFinite) return false;
+    final remaining = _duration - _currentPosition;
+    return remaining <= 0.35;
+  }
+
+  void cancelPendingResume() {
+    _pendingReattachSeekSeconds = null;
+    _pendingReattachShouldPlay = false;
+  }
 
   // Streams
   Stream<PlayerState> get onStateChanged => _stateController.stream;
@@ -64,15 +104,59 @@ class HLSController {
   Stream<Duration> get onDurationChanged => _durationController.stream;
   Stream<bool> get onBufferingChanged => _bufferingController.stream;
   Stream<String> get onError => _errorController.stream;
+  Stream<bool> get onFirstFrameChanged => _firstFrameController.stream;
 
   // Initialize controller with view ID
   void initialize(int viewId) {
+    final previousViewId = _viewId;
+    final hadBoundView = previousViewId != null;
+    if (hadBoundView) {
+      final previousPosition =
+          _currentPosition.isFinite ? _currentPosition : 0.0;
+      final shouldRestorePosition = previousPosition > 0.05;
+      final shouldResumePlay =
+          _state == PlayerState.playing || _state == PlayerState.buffering;
+      if (shouldRestorePosition || shouldResumePlay) {
+        _pendingReattachSeekSeconds = previousPosition;
+        _pendingReattachShouldPlay = shouldResumePlay;
+      }
+    }
+
+    if (previousViewId != null && previousViewId != viewId) {
+      unawaited(_silencePreviousView(previousViewId));
+    }
+
     // Rebind güvenliği: aynı controller yeni view'a bağlanıyorsa eski stream'i kapat.
     _eventSubscription?.cancel();
     _eventSubscription = null;
+    _hasRenderedFirstFrame = false;
+    _firstFrameController.add(false);
+    _rendererStallCount = 0;
+    _surfaceRebindCount = 0;
     _viewId = viewId;
     _eventChannel = EventChannel('turqapp.hls_player/events_$viewId');
     _listenToEvents();
+  }
+
+  Future<void> _silencePreviousView(int previousViewId) async {
+    try {
+      await _methodChannel.invokeMethod('setVolume', {
+        'viewId': previousViewId,
+        'volume': 0.0,
+      });
+    } catch (_) {}
+
+    try {
+      await _methodChannel.invokeMethod('pause', {
+        'viewId': previousViewId,
+      });
+    } catch (_) {}
+
+    try {
+      await _methodChannel.invokeMethod('stopPlayback', {
+        'viewId': previousViewId,
+      });
+    } catch (_) {}
   }
 
   // Load video with mp4 fallback on HLS failure
@@ -98,7 +182,8 @@ class HLSController {
   }
 
   // Load video URL
-  Future<void> loadVideo(String url, {bool autoPlay = true, bool loop = false}) async {
+  Future<void> loadVideo(String url,
+      {bool autoPlay = true, bool loop = false}) async {
     if (_viewId == null) {
       throw Exception('Controller not initialized. Call initialize() first.');
     }
@@ -107,6 +192,10 @@ class HLSController {
     _isLooping = loop;
     _updateState(PlayerState.loading);
     _firstFrameEmitted = false;
+    _hasRenderedFirstFrame = false;
+    _firstFrameController.add(false);
+    _rendererStallCount = 0;
+    _surfaceRebindCount = 0;
     if (_telemetryVideoId != null) {
       _telemetry.startSession(_telemetryVideoId!, url);
     }
@@ -137,6 +226,7 @@ class HLSController {
   // Pause
   Future<void> pause() async {
     if (_viewId == null) return;
+    cancelPendingResume();
 
     try {
       await _methodChannel.invokeMethod('pause', {'viewId': _viewId});
@@ -195,6 +285,7 @@ class HLSController {
   // Stop playback — network ve decoder serbest, controller hayatta kalır
   Future<void> stopPlayback() async {
     if (_viewId == null) return;
+    cancelPendingResume();
     try {
       await _methodChannel.invokeMethod('stopPlayback', {'viewId': _viewId});
     } on PlatformException catch (e) {
@@ -235,7 +326,8 @@ class HLSController {
     if (_viewId == null) return 0.0;
 
     try {
-      final result = await _methodChannel.invokeMethod<double>('getCurrentTime', {
+      final result =
+          await _methodChannel.invokeMethod<double>('getCurrentTime', {
         'viewId': _viewId,
       });
       return result ?? 0.0;
@@ -257,6 +349,84 @@ class HLSController {
     } on PlatformException catch (e) {
       _handleError('Failed to get duration: ${e.message}');
       return 0.0;
+    }
+  }
+
+  Future<bool> isMutedNative() async {
+    if (_viewId == null) return false;
+
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isMuted', {
+        'viewId': _viewId,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      _handleError('Failed to get mute state: ${e.message}');
+      return false;
+    }
+  }
+
+  Future<bool> isPlayingNative() async {
+    if (_viewId == null) return false;
+
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isPlaying', {
+        'viewId': _viewId,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      _handleError('Failed to get play state: ${e.message}');
+      return false;
+    }
+  }
+
+  Future<bool> isBufferingNative() async {
+    if (_viewId == null) return false;
+
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isBuffering', {
+        'viewId': _viewId,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      _handleError('Failed to get buffering state: ${e.message}');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getPlaybackDiagnostics() async {
+    if (_viewId == null) return const <String, dynamic>{};
+
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'getPlaybackDiagnostics',
+        {'viewId': _viewId},
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return const <String, dynamic>{};
+    } on PlatformException catch (e) {
+      _handleError('Failed to get playback diagnostics: ${e.message}');
+      return const <String, dynamic>{};
+    }
+  }
+
+  Future<Map<String, dynamic>> getProcessDiagnostics() async {
+    if (_viewId == null) return const <String, dynamic>{};
+
+    try {
+      final result = await _methodChannel.invokeMethod<dynamic>(
+        'getProcessDiagnostics',
+        {'viewId': _viewId},
+      );
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return const <String, dynamic>{};
+    } on PlatformException catch (e) {
+      _handleError('Failed to get process diagnostics: ${e.message}');
+      return const <String, dynamic>{};
     }
   }
 
@@ -292,6 +462,7 @@ class HLSController {
     await _durationController.close();
     await _bufferingController.close();
     await _errorController.close();
+    await _firstFrameController.close();
 
     _viewId = null;
     _eventChannel = null;
@@ -307,25 +478,48 @@ class HLSController {
         if (event is! Map) return;
 
         final eventType = event['event'] as String?;
+        if (kDebugMode && !_suppressHlsSmokeLogs) {
+          debugPrint(
+            '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] event=$eventType payload=$event url=$_currentUrl',
+          );
+        }
 
         switch (eventType) {
           case 'ready':
-            final durationSeconds = (event['duration'] as num?)?.toDouble() ?? 0.0;
+            final durationSeconds =
+                (event['duration'] as num?)?.toDouble() ?? 0.0;
             _duration = durationSeconds;
-            _durationController.add(Duration(milliseconds: (durationSeconds * 1000).toInt()));
+            _durationController
+                .add(Duration(milliseconds: (durationSeconds * 1000).toInt()));
             _updateState(PlayerState.ready);
+            final pendingSeek = _pendingReattachSeekSeconds;
+            final pendingPlay = _pendingReattachShouldPlay;
+            _pendingReattachSeekSeconds = null;
+            _pendingReattachShouldPlay = false;
+            if ((pendingSeek != null && pendingSeek > 0.05) || pendingPlay) {
+              unawaited(
+                _restorePlaybackAfterReattach(
+                  seekSeconds: pendingSeek,
+                  resumePlay: pendingPlay,
+                ),
+              );
+            }
             break;
 
           case 'play':
-            if (!_firstFrameEmitted && _telemetryVideoId != null) {
-              _firstFrameEmitted = true;
-              _telemetry.onFirstFrame(_telemetryVideoId!);
-            }
             _updateState(PlayerState.playing);
             break;
 
+          case 'firstFrame':
+            _markFirstFrameRendered();
+            break;
+
           case 'pause':
-            _updateState(PlayerState.paused);
+            if (_state == PlayerState.completed || _isAtPlaybackEnd) {
+              _updateState(PlayerState.completed);
+            } else {
+              _updateState(PlayerState.paused);
+            }
             break;
 
           case 'buffering':
@@ -349,14 +543,27 @@ class HLSController {
             final duration = (event['duration'] as num?)?.toDouble() ?? 0.0;
             _currentPosition = position;
             _duration = duration;
-            _positionController.add(Duration(milliseconds: (position * 1000).toInt()));
-            _durationController.add(Duration(milliseconds: (duration * 1000).toInt()));
+            _positionController
+                .add(Duration(milliseconds: (position * 1000).toInt()));
+            _durationController
+                .add(Duration(milliseconds: (duration * 1000).toInt()));
             if (_telemetryVideoId != null) {
-              _telemetry.onPositionUpdate(_telemetryVideoId!, position, duration);
+              _telemetry.onPositionUpdate(
+                  _telemetryVideoId!, position, duration);
+            }
+            if (!_hasRenderedFirstFrame && position > 0) {
+              _markFirstFrameRendered();
+            }
+            if (_state != PlayerState.completed &&
+                duration.isFinite &&
+                duration > 0 &&
+                (duration - position) <= 0.2) {
+              _updateState(PlayerState.completed);
             }
             // Native tarafında 'ready/play' eventi erken kaçarsa timeUpdate ile state'i toparla.
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
-              _updateState(position > 0 ? PlayerState.playing : PlayerState.ready);
+              _updateState(
+                  position > 0 ? PlayerState.playing : PlayerState.ready);
             }
             break;
 
@@ -367,12 +574,32 @@ class HLSController {
             _updateState(PlayerState.completed);
             break;
 
+          case 'rendererStall':
+            _rendererStallCount += 1;
+            if (kDebugMode && !_suppressHlsSmokeLogs) {
+              debugPrint(
+                '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] rendererStall payload=$event url=$_currentUrl',
+              );
+            }
+            break;
+
+          case 'surfaceRebind':
+            _surfaceRebindCount += 1;
+            if (kDebugMode && !_suppressHlsSmokeLogs) {
+              debugPrint(
+                '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] surfaceRebind payload=$event url=$_currentUrl',
+              );
+            }
+            break;
+
           case 'stopped':
             _updateState(PlayerState.idle);
             break;
 
           case 'error':
-            final message = event['message'] as String? ?? 'Unknown error';
+            final message =
+                event['message'] as String? ??
+                'error_handling.category_unknown'.tr;
             if (_telemetryVideoId != null) {
               _telemetry.onError(_telemetryVideoId!, message);
             }
@@ -382,7 +609,8 @@ class HLSController {
           case 'seekCompleted':
             final position = (event['position'] as num?)?.toDouble() ?? 0.0;
             _currentPosition = position;
-            _positionController.add(Duration(milliseconds: (position * 1000).toInt()));
+            _positionController
+                .add(Duration(milliseconds: (position * 1000).toInt()));
             if (_telemetryVideoId != null) {
               _telemetry.onSeek(_telemetryVideoId!);
             }
@@ -390,6 +618,11 @@ class HLSController {
         }
       },
       onError: (dynamic error) {
+        if (kDebugMode && !_suppressHlsSmokeLogs) {
+          debugPrint(
+            '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] streamError=$error url=$_currentUrl',
+          );
+        }
         _handleError('Event stream error: $error');
       },
     );
@@ -402,7 +635,22 @@ class HLSController {
     }
   }
 
+  void _markFirstFrameRendered() {
+    if (_hasRenderedFirstFrame) return;
+    _hasRenderedFirstFrame = true;
+    _firstFrameController.add(true);
+    if (!_firstFrameEmitted && _telemetryVideoId != null) {
+      _firstFrameEmitted = true;
+      _telemetry.onFirstFrame(_telemetryVideoId!);
+    }
+  }
+
   void _handleError(String message) {
+    if (kDebugMode && !_suppressHlsSmokeLogs) {
+      debugPrint(
+        '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] error=$message url=$_currentUrl fallback=$_fallbackUrl attempted=$_fallbackAttempted',
+      );
+    }
     // Try mp4 fallback before reporting error
     if (_fallbackUrl != null && !_fallbackAttempted) {
       _fallbackAttempted = true;
@@ -413,5 +661,21 @@ class HLSController {
     _errorMessage = message;
     _updateState(PlayerState.error);
     _errorController.add(message);
+  }
+
+  Future<void> _restorePlaybackAfterReattach({
+    required double? seekSeconds,
+    required bool resumePlay,
+  }) async {
+    if (_viewId == null) return;
+    if (seekSeconds != null && seekSeconds > 0.05) {
+      try {
+        await seekTo(seekSeconds);
+      } catch (_) {}
+    }
+    if (!resumePlay) return;
+    try {
+      await play();
+    } catch (_) {}
   }
 }

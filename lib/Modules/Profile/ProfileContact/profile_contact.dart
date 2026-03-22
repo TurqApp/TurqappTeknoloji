@@ -5,9 +5,45 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contant_controller.dart';
 
-class ProfileContact extends StatelessWidget {
-  ProfileContact({super.key});
-  final controller = Get.put(ProfileContactController());
+class ProfileContact extends StatefulWidget {
+  const ProfileContact({super.key});
+
+  @override
+  State<ProfileContact> createState() => _ProfileContactState();
+}
+
+class _ProfileContactState extends State<ProfileContact> {
+  late final String _controllerTag;
+  late final ProfileContactController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'profile_contact_${identityHashCode(this)}';
+    final existingController =
+        ProfileContactController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = ProfileContactController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          ProfileContactController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ProfileContactController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,7 +51,7 @@ class ProfileContact extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "İletişim"),
+            BackButtons(text: 'profile_contact.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -40,7 +76,7 @@ class ProfileContact extends StatelessWidget {
                                           color: Colors.black),
                                       SizedBox(width: 12),
                                       Text(
-                                        "Arama",
+                                        'profile_contact.call'.tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 15,
@@ -79,7 +115,7 @@ class ProfileContact extends StatelessWidget {
                                           color: Colors.black),
                                       SizedBox(width: 12),
                                       Text(
-                                        "E-Posta",
+                                        'profile_contact.email'.tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 15,

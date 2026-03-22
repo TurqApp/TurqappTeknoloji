@@ -3,6 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onTutoringApplicationUpdate = exports.onTutoringApplicationCreate = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const notificationInbox_1 = require("./notificationInbox");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 /**
  * Yeni başvuru oluşturulduğunda öğretmene bildirim gönder.
@@ -24,13 +28,13 @@ exports.onTutoringApplicationCreate = functions.firestore
             return;
         // Başvuranın adını bul
         const applicantDoc = await db.collection("users").doc(applicantId).get();
-        const applicantName = String(applicantDoc.data()?.nickname || "Bir kullanıcı");
+        const applicantData = applicantDoc.data() || {};
+        const applicantName = String(applicantData.displayName ||
+            applicantData.username ||
+            applicantData.nickname ||
+            "Bir kullanıcı");
         // Öğretmene bildirim oluştur
-        await db
-            .collection("users")
-            .doc(tutorUID)
-            .collection("notifications")
-            .add({
+        await (0, notificationInbox_1.addInboxItem)(db, tutorUID, {
             type: "tutoring_application",
             fromUserID: applicantId,
             title: "Yeni Başvuru",
@@ -39,7 +43,7 @@ exports.onTutoringApplicationCreate = functions.firestore
             timeStamp: Date.now(),
             read: false,
         });
-        console.log(`[TutoringNotif] Application notification sent to ${tutorUID} for ${docId}`);
+        console.log("[TutoringNotif] Application notification sent");
     }
     catch (e) {
         console.error("[TutoringNotif] onCreate error:", e);
@@ -70,11 +74,7 @@ exports.onTutoringApplicationUpdate = functions.firestore
         if (!statusText)
             return;
         // Başvurana bildirim oluştur
-        await db
-            .collection("users")
-            .doc(applicantId)
-            .collection("notifications")
-            .add({
+        await (0, notificationInbox_1.addInboxItem)(db, applicantId, {
             type: "tutoring_status",
             fromUserID: "",
             title: "Başvuru Durumu Güncellendi",
@@ -83,7 +83,7 @@ exports.onTutoringApplicationUpdate = functions.firestore
             timeStamp: Date.now(),
             read: false,
         });
-        console.log(`[TutoringNotif] Status update notification sent to ${applicantId}: ${newStatus}`);
+        console.log("[TutoringNotif] Status update notification sent");
     }
     catch (e) {
         console.error("[TutoringNotif] onUpdate error:", e);

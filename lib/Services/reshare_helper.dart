@@ -1,6 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReshareHelper {
+  static final UserSummaryResolver _userSummaryResolver =
+      UserSummaryResolver.ensure();
   // Nickname cache - bellekte tutulan kullanıcı adları
   static final Map<String, String> _nicknameCache = {};
   static final Map<String, String> _displayNameCache = {};
@@ -8,70 +14,116 @@ class ReshareHelper {
   // Cache temizleme için zaman damgası
   static DateTime? _lastCacheCleanup;
 
+  static String get _unknownUser => 'common.unknown_user'.tr;
+  static const Set<String> _unknownUserVariants = <String>{
+    '',
+    'common.unknown_user',
+    'bilinmeyen kullanıcı',
+    'unknown user',
+    'unbekannter benutzer',
+    'utilisateur inconnu',
+    'utente sconosciuto',
+    'неизвестный пользователь',
+  };
+
+  static bool isUnknownUserLabel(String? value) {
+    final normalized = normalizeSearchText(value ?? '');
+    return _unknownUserVariants.contains(normalized) ||
+        normalized == normalizeSearchText(_unknownUser);
+  }
+
   /// Kullanıcının nickname'ini userID'den alır (cache ile)
   static Future<String> getUserNickname(String userID) async {
     try {
-      // Cache'te var mı kontrol et
-      if (_nicknameCache.containsKey(userID)) {
-        return _nicknameCache[userID]!;
+      final safeUserID = userID.trim();
+      if (safeUserID.isEmpty) return _unknownUser;
+
+      final me = CurrentUserService.instance.effectiveUserId;
+      final current = CurrentUserService.maybeFind();
+      if (me.isNotEmpty && safeUserID == me && current != null) {
+        final myNickname = current.nickname.trim();
+        if (myNickname.isNotEmpty) {
+          _nicknameCache[safeUserID] = myNickname;
+          return myNickname;
+        }
       }
 
-      // Cache'te yok, Firebase'den çek
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
+      // Cache'te var mı kontrol et
+      if (_nicknameCache.containsKey(safeUserID)) {
+        return _nicknameCache[safeUserID]!;
+      }
 
-      String nickname = 'Bilinmeyen Kullanıcı';
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        nickname = data?['nickname'] ?? 'Bilinmeyen Kullanıcı';
+      String nickname = _unknownUser;
+      final summary = await _userSummaryResolver.resolve(
+        safeUserID,
+        preferCache: true,
+      );
+      if (summary != null) {
+        final resolved = summary.nickname.trim().isNotEmpty
+            ? summary.nickname.trim()
+            : (summary.username.trim().isNotEmpty
+                ? summary.username.trim()
+                : summary.preferredName.trim());
+        if (resolved.isNotEmpty) {
+          nickname = resolved;
+        }
       }
 
       // Cache'e ekle
-      _nicknameCache[userID] = nickname;
+      _nicknameCache[safeUserID] = nickname;
 
       // Periodik cache temizleme (her 30 dakikada bir)
       _cleanupCacheIfNeeded();
 
       return nickname;
     } catch (e) {
-      print('ReshareHelper: getUserNickname error: $e');
-      return 'Bilinmeyen Kullanıcı';
+      debugPrint('ReshareHelper nickname lookup error: $e');
+      return _unknownUser;
     }
   }
 
   /// Kullanıcının görüntülenecek adını alır (displayName/fullName fallback nickname)
   static Future<String> getUserDisplayName(String userID) async {
     try {
-      if (_displayNameCache.containsKey(userID)) {
-        return _displayNameCache[userID]!;
-      }
+      final safeUserID = userID.trim();
+      if (safeUserID.isEmpty) return _unknownUser;
 
-      final userDoc =
-          await FirebaseFirestore.instance.collection('users').doc(userID).get();
-
-      String displayName = 'Bilinmeyen Kullanıcı';
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        final firstName = (data?['firstName'] ?? '').toString().trim();
-        final lastName = (data?['lastName'] ?? '').toString().trim();
-        final fullName = '$firstName $lastName'.trim();
-        final fallbackNickname = (data?['nickname'] ?? '').toString().trim();
-
-        if (fullName.isNotEmpty) {
-          displayName = fullName;
-        } else if (fallbackNickname.isNotEmpty) {
-          displayName = fallbackNickname;
+      final me = CurrentUserService.instance.effectiveUserId;
+      final current = CurrentUserService.maybeFind();
+      if (me.isNotEmpty && safeUserID == me && current != null) {
+        final myFullName = current.fullName.trim();
+        final myNickname = current.nickname.trim();
+        final resolved = myFullName.isNotEmpty
+            ? myFullName
+            : (myNickname.isNotEmpty ? myNickname : '');
+        if (resolved.isNotEmpty) {
+          _displayNameCache[safeUserID] = resolved;
+          return resolved;
         }
       }
 
-      _displayNameCache[userID] = displayName;
+      if (_displayNameCache.containsKey(safeUserID)) {
+        return _displayNameCache[safeUserID]!;
+      }
+
+      String displayName = _unknownUser;
+      final summary = await _userSummaryResolver.resolve(
+        safeUserID,
+        preferCache: true,
+      );
+      if (summary != null) {
+        final resolved = summary.preferredName.trim();
+        if (resolved.isNotEmpty) {
+          displayName = resolved;
+        }
+      }
+
+      _displayNameCache[safeUserID] = displayName;
       _cleanupCacheIfNeeded();
       return displayName;
     } catch (e) {
-      print('ReshareHelper: getUserDisplayName error: $e');
-      return 'Bilinmeyen Kullanıcı';
+      debugPrint('ReshareHelper displayName lookup error: $e');
+      return _unknownUser;
     }
   }
 
@@ -121,14 +173,8 @@ class ReshareHelper {
     String? existingOriginalUserID,
     String? existingOriginalPostID,
   ) async {
-    print('ReshareHelper.getOriginalUserInfo called:');
-    print('  postUserID: $postUserID');
-    print('  existingOriginalUserID: $existingOriginalUserID');
-    print('  existingOriginalPostID: $existingOriginalPostID');
-
     // Eğer post zaten bir reshare ise, orijinal bilgileri koru
     if (existingOriginalUserID != null && existingOriginalUserID.isNotEmpty) {
-      print('  -> Returning existing original user info');
       return {
         'userID': existingOriginalUserID,
         'originalPostID': existingOriginalPostID ?? '',
@@ -136,7 +182,6 @@ class ReshareHelper {
     }
 
     // İlk kez reshare ediliyorsa, post sahibinin bilgilerini al
-    print('  -> First time reshare, setting original user and post info');
     return {
       'userID': postUserID,
       'originalPostID':
@@ -152,15 +197,8 @@ class ReshareHelper {
     String? existingOriginalUserID,
     String? existingOriginalPostID,
   ) async {
-    print('ReshareHelper.getDynamicOriginalInfo called:');
-    print('  currentPostID: $currentPostID');
-    print('  currentUserID: $currentUserID');
-    print('  existingOriginalUserID: $existingOriginalUserID');
-    print('  existingOriginalPostID: $existingOriginalPostID');
-
     // Eğer mevcut post zaten bir paylaşım ise (originalUserID dolu)
     if (existingOriginalUserID != null && existingOriginalUserID.isNotEmpty) {
-      print('  -> Post is already a reshare, keeping original chain');
       return {
         'userID': existingOriginalUserID,
         'originalPostID': existingOriginalPostID ?? '',
@@ -168,7 +206,6 @@ class ReshareHelper {
     }
 
     // Eğer ilk kez paylaşılıyorsa, mevcut post'un sahibi ve ID'si ana referans olur
-    print('  -> First time reshare, setting current post as original source');
     return {
       'userID': currentUserID,
       'originalPostID': currentPostID,

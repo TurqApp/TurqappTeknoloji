@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class TextEditorResult {
   final String text;
@@ -103,7 +104,7 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Metin',
+                  Text('story.text_title'.tr,
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -134,7 +135,7 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                         ),
                       );
                     },
-                    child: const Text('Bitti',
+                    child: Text('common.done'.tr,
                         style: TextStyle(color: Colors.white)),
                   )
                 ],
@@ -170,10 +171,10 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                           _weight == 'bold' ? FontWeight.bold : FontWeight.w500,
                       fontFamily: _fontFamilies[_fontIndex],
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: 'Metin yaz...',
-                      hintStyle: TextStyle(color: Colors.white54),
+                      hintText: 'story.write_text'.tr,
+                      hintStyle: const TextStyle(color: Colors.white54),
                     ),
                   ),
                 ),
@@ -213,8 +214,7 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                   const SizedBox(height: 4),
                   // Outline toggle
                   IconButton(
-                    onPressed: () =>
-                        setState(() => _hasOutline = !_hasOutline),
+                    onPressed: () => setState(() => _hasOutline = !_hasOutline),
                     icon: Icon(CupertinoIcons.textformat_abc,
                         color: _hasOutline ? Colors.greenAccent : Colors.white),
                   ),
@@ -295,25 +295,23 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                       ),
                       const SizedBox(height: 8),
                       // Color dots
-                      ..._colors
-                          .map((c) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 6, horizontal: 10),
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _textColor = c),
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: Color(c),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                          color: Colors.white, width: 1),
-                                    ),
-                                  ),
+                      ..._colors.map((c) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 10),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _textColor = c),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Color(c),
+                                  shape: BoxShape.circle,
+                                  border:
+                                      Border.all(color: Colors.white, width: 1),
                                 ),
-                              ))
-                          ,
+                              ),
+                            ),
+                          )),
                     ],
                   ),
                 ),

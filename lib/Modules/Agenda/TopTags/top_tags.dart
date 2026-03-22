@@ -5,9 +5,39 @@ import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'top_tags_contoller.dart';
 
-class TopTags extends StatelessWidget {
-  TopTags({super.key});
-  final TopTagsController controller = Get.put(TopTagsController());
+class TopTags extends StatefulWidget {
+  const TopTags({super.key});
+
+  @override
+  State<TopTags> createState() => _TopTagsState();
+}
+
+class _TopTagsState extends State<TopTags> {
+  late final TopTagsController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = TopTagsController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = TopTagsController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(TopTagsController.maybeFind(), controller)) {
+      Get.delete<TopTagsController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,9 +54,9 @@ class TopTags extends StatelessWidget {
                     icon: const Icon(CupertinoIcons.back,
                         size: 24, color: Colors.black),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      "Gündem",
+                      'explore.tab.trending'.tr,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 25,
@@ -44,9 +74,7 @@ class TopTags extends StatelessWidget {
                 backgroundColor: Colors.black,
                 color: Colors.white,
                 onRefresh: () async {
-                  controller.lastDoc = null;
-                  controller.hasMore = true;
-                  controller.agendaList.clear();
+                  controller.resetFeedState();
                   await controller.fetchAgendaBigData(initial: true);
                   await controller.getTags();
                 },
@@ -80,7 +108,8 @@ class TopTags extends StatelessWidget {
                         }
 
                         final model = controller.agendaList[actualIndex];
-                        final itemKey = controller.getAgendaKey(actualIndex);
+                        final itemKey =
+                            controller.getAgendaKey(docId: model.docID);
                         final isCentered =
                             controller.centeredIndex.value == actualIndex;
 
@@ -93,6 +122,8 @@ class TopTags extends StatelessWidget {
                                 key: itemKey,
                                 model: model,
                                 isPreview: false,
+                                instanceTag:
+                                    controller.agendaInstanceTag(model.docID),
                                 shouldPlay: isCentered,
                               ),
                               SizedBox(
@@ -130,7 +161,10 @@ class TopTags extends StatelessWidget {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      Get.to(() => TagPosts(tag: item.hashtag));
+                      controller.centeredIndex.value = -1;
+                      Get.to(() => TagPosts(tag: item.hashtag))?.then((_) {
+                        controller.resumeCenteredPost();
+                      });
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -145,7 +179,8 @@ class TopTags extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "${i + 1} - Türkiye tarihinde gündemde",
+                                    'explore.trending_rank'
+                                        .trParams({'index': '${i + 1}'}),
                                     style: const TextStyle(
                                       color: Colors.black54,
                                       fontSize: 14,

@@ -3,12 +3,40 @@ import 'package:get/get.dart';
 
 import 'hashtag_lister_controller.dart';
 
-class Hashtaglister extends StatelessWidget {
+class Hashtaglister extends StatefulWidget {
   final Function(String) onTapSelected;
 
-  Hashtaglister({super.key, required this.onTapSelected});
+  const Hashtaglister({super.key, required this.onTapSelected});
 
-  final controller = Get.put(HashtagListerController());
+  @override
+  State<Hashtaglister> createState() => _HashtaglisterState();
+}
+
+class _HashtaglisterState extends State<Hashtaglister> {
+  late final String _controllerTag;
+  late final HashtagListerController controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'hashtag_lister_${identityHashCode(this)}';
+    _ownsController =
+        HashtagListerController.maybeFind(tag: _controllerTag) == null;
+    controller = HashtagListerController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          HashtagListerController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<HashtagListerController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +49,9 @@ class Hashtaglister extends StatelessWidget {
           final model = controller.hashtags[index];
           return TextButton(
             onPressed: () {
-              controller.hashtags.removeAt(index); // Doğrudan RxList üzerinde işlem
-              onTapSelected(model.hashtag); // Seçim bilgisi gönder
+              controller.hashtags
+                  .removeAt(index); // Doğrudan RxList üzerinde işlem
+              widget.onTapSelected(model.hashtag); // Seçim bilgisi gönder
             },
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
@@ -31,7 +60,8 @@ class Hashtaglister extends StatelessWidget {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 15),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 7, horizontal: 15),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -48,7 +78,7 @@ class Hashtaglister extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        "${model.count} görüntüleme",
+                        "${model.count} ${'common.views'.tr}",
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,

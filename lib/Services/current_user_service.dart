@@ -8,12 +8,44 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Modules/SignIn/sign_in.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
+import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Utils/account_status_utils.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/account_session_vault.dart';
+import 'package:turqappv2/Services/device_session_service.dart';
 
 import '../Models/current_user_model.dart';
+
+part 'current_user_service_cache_part.dart';
+part 'current_user_service_account_part.dart';
+part 'current_user_service_auth_part.dart';
+part 'current_user_service_lifecycle_part.dart';
+part 'current_user_service_sync_part.dart';
+
+class _TimedValue<T> {
+  final T value;
+  final DateTime fetchedAt;
+
+  const _TimedValue({
+    required this.value,
+    required this.fetchedAt,
+  });
+}
 
 /// 🎯 Singleton service for managing current user data
 ///
@@ -33,7 +65,7 @@ import '../Models/current_user_model.dart';
 /// // Reactive GetX (if using Obx)
 /// Obx(() => Text(userService.currentUserRx.value?.nickname ?? 'Guest'))
 /// ```
-class CurrentUserService extends GetxController {
+class CurrentUserService extends GetxController with WidgetsBindingObserver {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🏗️ Singleton Pattern
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -44,7 +76,21 @@ class CurrentUserService extends GetxController {
     return _instance!;
   }
 
-  CurrentUserService._internal();
+  static CurrentUserService? maybeFind() {
+    final isRegistered = Get.isRegistered<CurrentUserService>();
+    if (!isRegistered) return null;
+    return Get.find<CurrentUserService>();
+  }
+
+  static CurrentUserService ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(instance, permanent: permanent);
+  }
+
+  CurrentUserService._internal() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 📦 State Management
@@ -63,6 +109,11 @@ class CurrentUserService extends GetxController {
   /// Stream of user updates
   Stream<CurrentUserModel?> get userStream => _userStreamController.stream;
 
+  void _emitUserEvent(CurrentUserModel? user) {
+    if (_userStreamController.isClosed) return;
+    _userStreamController.add(user);
+  }
+
   /// Current user (synchronous access)
   CurrentUserModel? get currentUser => _currentUser;
 
@@ -72,33 +123,159 @@ class CurrentUserService extends GetxController {
   /// Current user ID (shortcut)
   String get userId => _currentUser?.userID ?? '';
 
+  /// Auth fallback dahil efektif kullanıcı ID'si.
+  String get effectiveUserId => _performEffectiveUserId();
+
+  User? get currentAuthUser => _performCurrentAuthUser();
+
+  bool get hasAuthUser => _performHasAuthUser();
+
+  String get authUserId => _performAuthUserId();
+
+  String get authEmail => _performAuthEmail();
+
+  String get authDisplayName => _performAuthDisplayName();
+
+  String get effectiveEmail => _performEffectiveEmail();
+
+  String get effectivePhoneNumber => _performEffectivePhoneNumber();
+
+  String get effectiveDisplayName => _performEffectiveDisplayName();
+
+  Stream<User?> authStateChanges() => _performAuthStateChanges();
+
+  Future<User?> resolveAuthUser({
+    bool waitForAuthState = false,
+    Duration timeout = const Duration(seconds: 3),
+  }) =>
+      _performResolveAuthUser(
+        waitForAuthState: waitForAuthState,
+        timeout: timeout,
+      );
+
+  Future<User?> reloadCurrentAuthUser() => _performReloadCurrentAuthUser();
+
+  Future<String?> ensureAuthReady({
+    bool waitForAuthState = false,
+    bool forceTokenRefresh = false,
+    Duration timeout = const Duration(seconds: 3),
+  }) =>
+      _performEnsureAuthReady(
+        waitForAuthState: waitForAuthState,
+        forceTokenRefresh: forceTokenRefresh,
+        timeout: timeout,
+      );
+
+  Future<void> refreshAuthTokenIfNeeded({
+    bool waitForAuthState = true,
+  }) =>
+      _performRefreshAuthTokenIfNeeded(
+        waitForAuthState: waitForAuthState,
+      );
+
+  Future<void> signOutAuth() => _performSignOutAuth();
+
+  Future<void> deleteAuthUserIfPresent() => _performDeleteAuthUserIfPresent();
+
   /// Current user nickname (shortcut)
   String get nickname => _currentUser?.nickname ?? '';
 
+  String get firstName => _currentUser?.firstName ?? '';
+
+  String get lastName => _currentUser?.lastName ?? '';
+
+  String get rozet => _currentUser?.rozet ?? '';
+
+  String get email => _currentUser?.email ?? '';
+
+  String get phoneNumber => _currentUser?.phoneNumber ?? '';
+
+  String get bio => _currentUser?.bio ?? '';
+
+  String get meslekKategori => _currentUser?.meslekKategori ?? '';
+
+  String get adres => _currentUser?.adres ?? '';
+
+  String get preferredLocationCityOrEmpty {
+    final candidates = [
+      _currentUser?.locationSehir,
+      _currentUser?.city,
+      _currentUser?.ikametSehir,
+      _currentUser?.il,
+      _currentUser?.ulke,
+    ];
+    for (final raw in candidates) {
+      final value = (raw ?? '').trim();
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
+
+  String get preferredLocationCity {
+    final value = preferredLocationCityOrEmpty;
+    return value.isNotEmpty ? value : 'common.country_turkey'.tr;
+  }
+
+  int get counterOfPosts => _currentUser?.counterOfPosts ?? 0;
+
+  int get counterOfLikes => _currentUser?.counterOfLikes ?? 0;
+
   /// Current user profile image (shortcut)
-  String get pfImage => _currentUser?.pfImage ?? '';
+  String get avatarUrl {
+    final raw = (_currentUser?.avatarUrl ?? '').trim();
+    return isDefaultAvatarUrl(raw) ? '' : raw;
+  }
 
   /// Current user full name (shortcut)
   String get fullName => _currentUser?.fullName ?? '';
+
+  /// Feed view selection with local fallback.
+  /// 0: Classic, 1: Modern
+  int get effectiveViewSelection => viewSelectionRx.value;
+  final RxInt viewSelectionRx = 1.obs;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔧 Private Variables
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   SharedPreferences? _prefs;
-  StreamSubscription<DocumentSnapshot>? _firestoreSubscription;
+  StreamSubscription<Map<String, dynamic>?>? _firestoreSubscription;
+  Timer? _exclusiveSessionHeartbeat;
+  static const Duration _exclusiveSessionHeartbeatInterval =
+      Duration(seconds: 10);
 
-  static const String _cacheKey = 'cached_current_user';
-  static const String _cacheTimestampKey = 'cached_current_user_timestamp';
+  static const String _cacheKeyPrefix = 'cached_current_user';
+  static const String _cacheTimestampKeyPrefix =
+      'cached_current_user_timestamp';
+  static const String _activeCacheUidKey = 'cached_current_user_active_uid';
+  static const String _viewSelectionPrefKeyPrefix =
+      'preferred_feed_view_selection';
   static const String _emailPromptTimestampKeyPrefix =
       'email_verify_prompt_last_shown';
-  static const Duration _cacheExpiration = Duration(days: 7);
+  static Duration get _cacheExpiration =>
+      MetadataCachePolicy.ttlFor(MetadataCacheBucket.currentUserSummary);
 
   bool _isInitialized = false;
   bool _isSyncing = false;
+  int? _lastKnownViewSelection;
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  static const Duration _rootDocCacheTtl = Duration(minutes: 2);
+  static const Duration _subdocCacheTtl = Duration(minutes: 10);
+  static const Duration _listCacheTtl = Duration(minutes: 2);
+  final Map<String, _TimedValue<Map<String, dynamic>>> _rootDocCache = {};
+  final Map<String, _TimedValue<Map<String, dynamic>>> _subdocCache = {};
+  final Map<String, _TimedValue<Map<String, dynamic>>> _listCache = {};
+  final Map<String, DateTime> _silentLogAt = {};
 
   // ⚠️ OPTIMIZATION: Debounce cache writes to prevent duplicate saves
   Timer? _cacheSaveTimer;
-  String? _lastCachedNickname; // Track last saved user to prevent duplicates
+  String?
+      _lastCacheSignature; // Track last saved snapshot to prevent duplicates
+  String? _lastReactiveSignature;
+  String? _lastRootSyncSignature;
+  String? _lastWarmedAvatarUrl;
+  bool _handlingPermanentBan = false;
+  bool _handlingSessionDisplacement = false;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚀 Initialization
@@ -107,282 +284,42 @@ class CurrentUserService extends GetxController {
   /// Initialize service (can be called multiple times, e.g., after fresh login)
   ///
   /// Returns true if user loaded from cache/Firebase
-  Future<bool> initialize() async {
-    try {
-      _prefs ??= await SharedPreferences.getInstance();
-
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) {
-        _isInitialized = true;
-        emailVerifiedRx.value = true;
-        return false;
-      }
-      emailVerifiedRx.value = firebaseUser.emailVerified;
-
-      // If already initialized and user exists, just ensure sync is running
-      if (_isInitialized &&
-          _currentUser != null &&
-          _currentUser!.userID == firebaseUser.uid) {
-        // Same user, ensure Firebase sync is active
-        if (!_isSyncing) {
-          unawaited(_startFirebaseSync());
-        }
-        unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
-        // Auth tarafı gecikmeli/yanlış dönebileceği için Firestore alanı ile
-        // arka planda kesinleştir.
-        unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
-        unawaited(_loadEmailVerifyConfig());
-        return true;
-      }
-
-      // Different user or first init - reload everything
-      print('🔄 Initializing CurrentUserService for user: ${firebaseUser.uid}');
-
-      // 1️⃣ Try loading from cache first (FAST - ~10ms)
-      final cacheLoaded = await _loadFromCache();
-
-      // 2️⃣ Ağır ağ işlerini arka planda başlat; startup'ı bloklamasın.
-      unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
-      unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
-      unawaited(_loadEmailVerifyConfig());
-
-      // 3️⃣ Start Firebase sync in background (await etme — cache yeterli)
-      unawaited(_startFirebaseSync());
-
-      _isInitialized = true;
-      return cacheLoaded || isLoggedIn;
-    } catch (e) {
-      print('❌ CurrentUserService initialization error: $e');
-      _isInitialized = true;
-      return false;
-    }
-  }
-
-  Future<void> _restorePendingDeletionIfNeeded(String uid) async {
-    try {
-      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-      final userSnap = await userRef.get();
-      final data = userSnap.data();
-      if (data == null) return;
-
-      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      if (status != 'pending_deletion') return;
-
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      int? scheduledAtMs;
-      final dynamic scheduledRaw = data['deletionScheduledAt'];
-      if (scheduledRaw is Timestamp) {
-        scheduledAtMs = scheduledRaw.millisecondsSinceEpoch;
-      } else if (scheduledRaw is num) {
-        scheduledAtMs = scheduledRaw.toInt();
-      }
-      if (scheduledAtMs != null && scheduledAtMs <= nowMs) {
-        return;
-      }
-
-      await userRef.set({
-        'accountStatus': 'active',
-        'deletedAccount': false,
-        'gizliHesap': false,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      try {
-        final actionSnap = await userRef
-            .collection('account_actions')
-            .where('type', isEqualTo: 'deletion')
-            .where('status', isEqualTo: 'pending')
-            .limit(1)
-            .get();
-        if (actionSnap.docs.isNotEmpty) {
-          await actionSnap.docs.first.reference.set({
-            'status': 'cancelled',
-            'cancelledAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-        }
-      } catch (_) {}
-
-      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-          .collection('Posts')
-          .where('userID', isEqualTo: uid)
-          .where('deletedPost', isEqualTo: true)
-          .limit(400);
-
-      while (true) {
-        final snap = await query.get();
-        if (snap.docs.isEmpty) break;
-
-        final batch = FirebaseFirestore.instance.batch();
-        for (final doc in snap.docs) {
-          batch.update(doc.reference, {
-            'deletedPost': false,
-            'deletedPostTime': 0,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-        await batch.commit();
-
-        if (snap.docs.length < 400) break;
-        query = FirebaseFirestore.instance
-            .collection('Posts')
-            .where('userID', isEqualTo: uid)
-            .where('deletedPost', isEqualTo: true)
-            .startAfterDocument(snap.docs.last)
-            .limit(400);
-      }
-    } catch (e) {
-      print('⚠️ pending_deletion restore skipped: $e');
-    }
-  }
+  Future<bool> initialize() => _performInitialize();
 
   /// Force refresh from Firebase (bypasses cache)
-  Future<void> forceRefresh() async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null) return;
-
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .get();
-
-      if (doc.exists) {
-        await _updateUser(CurrentUserModel.fromFirestore(doc));
-      }
-      await refreshEmailVerificationStatus(reloadAuthUser: true);
-    } catch (e) {
-      print('❌ Force refresh error: $e');
-    }
-  }
+  Future<void> forceRefresh() => _performForceRefresh();
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 💾 Cache Management
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Load user from cache
-  Future<bool> _loadFromCache() async {
-    try {
-      final cachedJson = _prefs?.getString(_cacheKey);
-      final cachedTimestamp = _prefs?.getInt(_cacheTimestampKey);
-
-      if (cachedJson == null || cachedTimestamp == null) {
-        return false;
-      }
-
-      // Check cache expiration
-      final cacheAge = DateTime.now().millisecondsSinceEpoch - cachedTimestamp;
-      if (cacheAge > _cacheExpiration.inMilliseconds) {
-        print(
-            '⏰ Cache expired (${Duration(milliseconds: cacheAge).inDays} days old)');
-        return false;
-      }
-
-      final json = jsonDecode(cachedJson) as Map<String, dynamic>;
-      final user = CurrentUserModel.fromJson(json);
-
-      _currentUser = user;
-      currentUserRx.value = user;
-      _userStreamController.add(user);
-
-      print('✅ User loaded from cache: ${user.nickname}');
-      return true;
-    } catch (e) {
-      print('❌ Cache load error: $e');
-      return false;
-    }
-  }
-
-  /// Save user to cache (debounced to prevent duplicate saves)
-  Future<void> _saveToCache(CurrentUserModel user) async {
-    try {
-      // ⚠️ OPTIMIZATION: Skip if same user was just cached
-      if (_lastCachedNickname == user.nickname) {
-        return;
-      }
-
-      // Cancel pending cache write
-      _cacheSaveTimer?.cancel();
-
-      // Debounce: Wait 300ms before actually writing
-      _cacheSaveTimer = Timer(const Duration(milliseconds: 300), () async {
-        try {
-          final json = jsonEncode(user.toJson());
-          await _prefs?.setString(_cacheKey, json);
-          await _prefs?.setInt(
-              _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
-          _lastCachedNickname = user.nickname;
-          print('💾 User cached: ${user.nickname}');
-        } catch (e) {
-          print('❌ Cache save error: $e');
-        }
-      });
-    } catch (e) {
-      print('❌ Cache save error: $e');
-    }
-  }
-
-  /// Clear cache
-  Future<void> _clearCache() async {
-    try {
-      await _prefs?.remove(_cacheKey);
-      await _prefs?.remove(_cacheTimestampKey);
-      print('🗑️ Cache cleared');
-    } catch (e) {
-      print('❌ Cache clear error: $e');
-    }
-  }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔥 Firebase Sync
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   /// Start Firebase realtime sync
-  Future<void> _startFirebaseSync() async {
-    if (_isSyncing) return;
+  Future<void> _startFirebaseSync() => _performStartFirebaseSync();
 
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null) return;
+  Future<void> _adoptFreshSessionKeyIfNeeded() =>
+      _performAdoptFreshSessionKeyIfNeeded();
 
-    try {
-      _isSyncing = true;
+  void _startExclusiveSessionHeartbeat(String uid) =>
+      _performStartExclusiveSessionHeartbeat(uid);
 
-      // Cancel existing subscription
-      await _firestoreSubscription?.cancel();
+  Future<void> _validateExclusiveSessionFromServer(String uid) =>
+      _performValidateExclusiveSessionFromServer(uid);
 
-      // Listen to user document changes
-      _firestoreSubscription = FirebaseFirestore.instance
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .snapshots()
-          .listen(
-        (doc) async {
-          if (!doc.exists) {
-            print('❌ User document not found in Firestore');
-            return;
-          }
-
-          final user = CurrentUserModel.fromFirestore(doc);
-          await _updateUser(user);
-        },
-        onError: (error) {
-          print('❌ Firebase sync error: $error');
-        },
+  Future<Map<String, dynamic>> _buildMergedUserData({
+    required String uid,
+    required Map<String, dynamic> rootData,
+  }) =>
+      _performBuildMergedUserData(
+        uid: uid,
+        rootData: rootData,
       );
 
-      print('🔥 Firebase sync started');
-    } catch (e) {
-      print('❌ Firebase sync start error: $e');
-      _isSyncing = false;
-    }
-  }
-
   /// Stop Firebase sync
-  Future<void> _stopFirebaseSync() async {
-    await _firestoreSubscription?.cancel();
-    _firestoreSubscription = null;
-    _isSyncing = false;
-    print('🔥 Firebase sync stopped');
-  }
+  Future<void> _stopFirebaseSync() => _performStopFirebaseSync();
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔄 User Updates
@@ -390,10 +327,32 @@ class CurrentUserService extends GetxController {
 
   /// Update current user (internal)
   Future<void> _updateUser(CurrentUserModel user) async {
-    _currentUser = user;
-    currentUserRx.value = user;
-    _userStreamController.add(user);
-    await _saveToCache(user);
+    await _performUpdateUser(user);
+  }
+
+  Future<bool> _handlePermanentBanIfNeeded(CurrentUserModel user) async {
+    return _performHandlePermanentBanIfNeeded(user);
+  }
+
+  Future<bool> _handleExclusiveSessionIfNeeded(
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
+    return _performHandleExclusiveSessionIfNeeded(uid, data);
+  }
+
+  bool _publishResolvedUser(CurrentUserModel user) {
+    return _performPublishResolvedUser(user);
+  }
+
+  Future<void> _warmAvatar(CurrentUserModel? user) async {
+    await _performWarmAvatar(user);
+  }
+
+  Future<void> _signOutToSignIn({
+    String initialIdentifier = '',
+  }) async {
+    await _performSignOutToSignIn(initialIdentifier: initialIdentifier);
   }
 
   /// Update specific fields (optimistic update)
@@ -405,213 +364,24 @@ class CurrentUserService extends GetxController {
   ///   'bio': 'New bio text',
   /// });
   /// ```
-  Future<void> updateFields(Map<String, dynamic> fields) async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null) return;
-
-    try {
-      // Update Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .update(fields);
-
-      print('✅ Fields updated: ${fields.keys.join(', ')}');
-    } catch (e) {
-      print('❌ Update fields error: $e');
-      rethrow;
-    }
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🎯 Quick Access Methods
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Is user blocked?
   bool isUserBlocked(String userId) {
     return _currentUser?.blockedUsers.contains(userId) ?? false;
   }
 
-  /// Has user read story?
+  List<String> get blockedUserIds =>
+      List<String>.from(_currentUser?.blockedUsers ?? const <String>[]);
+
   bool hasReadStory(String storyId) {
     return _currentUser?.readStories.contains(storyId) ?? false;
   }
 
-  /// Get story read time
   int? getStoryReadTime(String userId) {
     return _currentUser?.readStoriesTimes[userId];
   }
 
-  /// Is verified account
   bool get isVerified => _currentUser?.isVerified ?? false;
 
-  /// Email verification state (Firebase Auth)
-  final RxBool emailVerifiedRx = true.obs;
-  DateTime? _lastEmailPromptAt;
-  Duration _emailPromptCooldown = const Duration(days: 7);
-
   bool get isEmailVerified => emailVerifiedRx.value;
-
-  String? _emailPromptTimestampKey() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return null;
-    return '$_emailPromptTimestampKeyPrefix:$uid';
-  }
-
-  Future<void> _loadLastEmailPromptAt() async {
-    _prefs ??= await SharedPreferences.getInstance();
-    final key = _emailPromptTimestampKey();
-    if (key == null) {
-      _lastEmailPromptAt = null;
-      return;
-    }
-    final raw = _prefs?.getInt(key);
-    _lastEmailPromptAt =
-        raw == null ? null : DateTime.fromMillisecondsSinceEpoch(raw);
-  }
-
-  Future<void> _saveLastEmailPromptAt(DateTime value) async {
-    _prefs ??= await SharedPreferences.getInstance();
-    final key = _emailPromptTimestampKey();
-    if (key == null) return;
-    await _prefs?.setInt(key, value.millisecondsSinceEpoch);
-    _lastEmailPromptAt = value;
-  }
-
-  Future<void> _loadEmailVerifyConfig() async {
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('adminConfig')
-          .doc('emailVerify')
-          .get();
-      final verifyDay = (snap.data() ?? const {})['verifyDay'];
-      final days = verifyDay is num ? verifyDay.toInt() : 7;
-      _emailPromptCooldown = Duration(days: days.clamp(1, 30));
-    } catch (_) {
-      _emailPromptCooldown = const Duration(days: 7);
-    }
-  }
-
-  Future<void> refreshEmailVerificationStatus(
-      {bool reloadAuthUser = true}) async {
-    try {
-      var user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        emailVerifiedRx.value = true;
-        return;
-      }
-      if (reloadAuthUser) {
-        await user.reload();
-        user = FirebaseAuth.instance.currentUser;
-      }
-      var isVerified = user?.emailVerified ?? false;
-      if (!isVerified) {
-        try {
-          final uid = user?.uid;
-          if (uid != null && uid.isNotEmpty) {
-            final snap = await FirebaseFirestore.instance
-                .collection('users')
-                .doc(uid)
-                .get();
-            isVerified = (snap.data() ?? const {})['emailVerified'] == true;
-          }
-        } catch (_) {}
-      }
-      emailVerifiedRx.value = isVerified;
-    } catch (_) {
-      final authVerified =
-          FirebaseAuth.instance.currentUser?.emailVerified ?? false;
-      if (authVerified) {
-        emailVerifiedRx.value = true;
-        return;
-      }
-      try {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid != null && uid.isNotEmpty) {
-          final snap = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .get();
-          emailVerifiedRx.value =
-              (snap.data() ?? const {})['emailVerified'] == true;
-          return;
-        }
-      } catch (_) {}
-      emailVerifiedRx.value = false;
-    }
-  }
-
-  Future<void> sendVerificationEmailIfNeeded({bool force = false}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    await refreshEmailVerificationStatus(reloadAuthUser: true);
-    if (!force && isEmailVerified) return;
-    if (isEmailVerified) return;
-    try {
-      await user.sendEmailVerification();
-      AppSnackbar(
-          "Doğrulama E-postası", "E-posta doğrulama bağlantısı gönderildi.");
-    } catch (_) {
-      AppSnackbar(
-          "Uyarı", "Doğrulama e-postası gönderilemedi. Lütfen tekrar deneyin.");
-    }
-  }
-
-  Future<bool> ensureEmailVerifiedForRestrictedAction({
-    required String actionName,
-    bool showPrompt = true,
-  }) async {
-    await refreshEmailVerificationStatus(reloadAuthUser: true);
-    if (isEmailVerified) return true;
-    AppSnackbar("E-posta Doğrulama Gerekli",
-        "$actionName için e-posta doğrulaması gerekli.");
-    if (showPrompt) {
-      await maybeShowEmailVerificationPrompt(actionName: actionName);
-    }
-    return false;
-  }
-
-  Future<void> maybeShowEmailVerificationPrompt({
-    String? actionName,
-    bool force = false,
-  }) async {
-    await refreshEmailVerificationStatus(reloadAuthUser: true);
-    if (isEmailVerified) return;
-    await _loadLastEmailPromptAt();
-    final now = DateTime.now();
-    if (!force &&
-        _lastEmailPromptAt != null &&
-        now.difference(_lastEmailPromptAt!) < _emailPromptCooldown) {
-      return;
-    }
-    if (Get.isDialogOpen == true) return;
-    await _saveLastEmailPromptAt(now);
-
-    await Get.dialog(
-      AlertDialog(
-        title: const Text("E-posta Doğrulaması"),
-        content: Text(
-          actionName == null
-              ? "Hesabını güvenli kullanmak için e-posta adresini doğrulamalısın."
-              : "$actionName için e-posta adresini doğrulamalısın.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text("Daha Sonra"),
-          ),
-          TextButton(
-            onPressed: () async {
-              Get.back();
-              await sendVerificationEmailIfNeeded(force: true);
-            },
-            child: const Text("Tekrar Gönder"),
-          ),
-        ],
-      ),
-      barrierDismissible: true,
-    );
-  }
 
   /// Is private account
   bool get isPrivate => _currentUser?.isPrivate ?? false;
@@ -619,35 +389,18 @@ class CurrentUserService extends GetxController {
   /// Is banned
   bool get isBanned => _currentUser?.isBanned ?? false;
 
+  // Email verification state (Firebase Auth)
+  final RxBool emailVerifiedRx = true.obs;
+  DateTime? _lastEmailPromptAt;
+  Duration _emailPromptCooldown = const Duration(days: 7);
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚪 Logout
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   /// Logout and clear all data
   Future<void> logout() async {
-    try {
-      await _stopFirebaseSync();
-      await _clearCache();
-
-      // Cancel pending cache writes
-      _cacheSaveTimer?.cancel();
-      _cacheSaveTimer = null;
-      _lastCachedNickname = null;
-
-      _currentUser = null;
-      currentUserRx.value = null;
-      _userStreamController.add(null);
-
-      // 🔥 CRITICAL: Reset initialization flag to allow re-initialization
-      _isInitialized = false;
-      _isSyncing = false;
-      emailVerifiedRx.value = true;
-      _lastEmailPromptAt = null;
-
-      print('👋 User logged out - State cleared');
-    } catch (e) {
-      print('❌ Logout error: $e');
-    }
+    await _performLogout();
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -656,9 +409,13 @@ class CurrentUserService extends GetxController {
 
   @override
   void onClose() {
-    _stopFirebaseSync();
-    _userStreamController.close();
+    _disposeLifecycleResources();
     super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _handleLifecycleStateChange(state);
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -673,17 +430,20 @@ class CurrentUserService extends GetxController {
       'isSyncing': _isSyncing,
       'userId': userId,
       'nickname': nickname,
-      'cacheExists': _prefs?.containsKey(_cacheKey) ?? false,
+      'cacheExists': userId.isNotEmpty
+          ? (_prefs?.containsKey(_cacheKey(userId)) ?? false)
+          : false,
     };
   }
 
   /// Print debug info
   void printDebugInfo() {
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('🔍 CurrentUserService Debug Info:');
+    if (!kDebugMode) return;
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('CurrentUserService Debug Info:');
     getDebugInfo().forEach((key, value) {
-      print('  $key: $value');
+      debugPrint('  $key: $value');
     });
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 }

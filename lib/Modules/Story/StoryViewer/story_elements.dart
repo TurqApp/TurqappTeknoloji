@@ -2,8 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../StoryMaker/story_maker_controller.dart';
@@ -23,6 +25,7 @@ class StoryImageWidget extends StatelessWidget {
       child: Transform.rotate(
         angle: element.rotation,
         child: CachedNetworkImage(
+          cacheManager: TurqImageCacheManager.instance,
           fadeInDuration: const Duration(milliseconds: 200),
           fadeOutDuration: const Duration(milliseconds: 100),
           imageUrl: element.content,
@@ -62,34 +65,38 @@ class StoryGifWidget extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: CachedNetworkImage(
-            fadeInDuration: const Duration(milliseconds: 300),
-            fadeOutDuration: const Duration(milliseconds: 100),
             imageUrl: element.content,
+            cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.contain, // Cover yerine contain - aspect ratio korunur
-            placeholder: (context, url) => Container(
-              color: Colors.grey.withValues(alpha: 0.3),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                    SizedBox(height: 8),
-                    Text("GIF",
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ],
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            placeholderFadeInDuration: Duration.zero,
+            placeholder: (context, _) {
+              return Container(
+                color: Colors.grey.withValues(alpha: 0.3),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                      SizedBox(height: 8),
+                      Text("chat.gif".tr,
+                          style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
             errorWidget: (context, url, error) => Container(
               color: Colors.grey.withValues(alpha: 0.3),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.error, color: Colors.white),
                     SizedBox(height: 4),
-                    Text("GIF yüklenemedi",
+                    Text("story.gif_load_failed".tr,
                         style: TextStyle(color: Colors.white, fontSize: 10)),
                   ],
                 ),
@@ -130,17 +137,14 @@ class StoryTextWidget extends StatelessWidget {
         style: baseStyle.copyWith(color: Colors.blue),
         recognizer: TapGestureRecognizer()
           ..onTap = () async {
-            // Find user by nickname and navigate to profile
-            try {
-              final snap = await FirebaseFirestore.instance
-                  .collection('users')
-                  .where('nickname', isEqualTo: username)
-                  .limit(1)
-                  .get();
-              if (snap.docs.isNotEmpty) {
-                Get.to(() => SocialProfile(userID: snap.docs.first.id));
-              }
-            } catch (_) {}
+            // Find user by canonical username/display mapping first, then fallback.
+            final targetUid =
+                await UsernameLookupRepository.ensure().findUidForHandle(
+              username,
+            );
+            if ((targetUid ?? '').isNotEmpty) {
+              Get.to(() => SocialProfile(userID: targetUid!));
+            }
           },
       ));
       lastEnd = match.end;
@@ -157,8 +161,9 @@ class StoryTextWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSourceBadge = element.stickerType == 'source_profile';
     final align = () {
-      switch (element.textAlign) {
+      switch (isSourceBadge ? 'left' : element.textAlign) {
         case 'left':
           return TextAlign.left;
         case 'right':
@@ -170,7 +175,8 @@ class StoryTextWidget extends StatelessWidget {
     }();
     final fw = element.fontWeight == 'bold' ? FontWeight.bold : FontWeight.w500;
     final fs = element.italic ? FontStyle.italic : FontStyle.normal;
-    final deco = element.underline ? TextDecoration.underline : TextDecoration.none;
+    final deco =
+        element.underline ? TextDecoration.underline : TextDecoration.none;
     return Positioned(
       left: element.position.dx,
       top: element.position.dy,
@@ -180,102 +186,108 @@ class StoryTextWidget extends StatelessWidget {
         angle: element.rotation,
         child: GestureDetector(
           onTap: () async {
-            if (element.stickerType == 'link' && element.stickerData.isNotEmpty) {
+            if (element.stickerType == 'link' &&
+                element.stickerData.isNotEmpty) {
               final uri = Uri.tryParse(element.stickerData.trim());
               if (uri != null) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                await confirmAndLaunchExternalUrl(
+                  uri,
+                  mode: LaunchMode.externalApplication,
+                );
               }
             }
           },
           child: Container(
-          width: element.width,
-          height: element.height,
-          alignment: Alignment.center,
-          decoration: element.hasTextBg
-              ? BoxDecoration(
-                  color: Color(element.textBgColor),
-                  borderRadius: BorderRadius.circular(10),
-                )
-              : null,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: element.hasOutline
-              ? Stack(
-                  children: [
-                    // Outline (stroke) layer
-                    Text(
-                      element.content,
-                      textAlign: align,
-                      style: TextStyle(
-                        fontSize: element.fontSize,
-                        fontWeight: fw,
-                        fontStyle: fs,
-                        decoration: deco,
-                        fontFamily: element.fontFamily,
-                        height: 1.2,
-                        foreground: Paint()
-                          ..style = PaintingStyle.stroke
-                          ..strokeWidth = 2.0
-                          ..color = Color(element.outlineColor),
+            width: element.width,
+            height: element.height,
+            alignment: isSourceBadge ? Alignment.centerLeft : Alignment.center,
+            decoration: (element.hasTextBg || isSourceBadge)
+                ? BoxDecoration(
+                    color: Color(element.textBgColor),
+                    borderRadius: BorderRadius.circular(isSourceBadge ? 10 : 10),
+                  )
+                : null,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: element.hasOutline
+                ? Stack(
+                    children: [
+                      // Outline (stroke) layer
+                      Text(
+                        element.content,
+                        textAlign: align,
+                        style: TextStyle(
+                          fontSize: element.fontSize,
+                          fontWeight: fw,
+                          fontStyle: fs,
+                          decoration: deco,
+                          fontFamily: element.fontFamily,
+                          height: 1.2,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 2.0
+                            ..color = Color(element.outlineColor),
+                        ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
                       ),
-                      maxLines: null,
-                      overflow: TextOverflow.visible,
-                    ),
-                    // Fill layer
-                    Text(
-                      element.content,
-                      textAlign: align,
-                      style: TextStyle(
-                        color: Color(element.textColor),
-                        fontSize: element.fontSize,
-                        fontWeight: fw,
-                        fontStyle: fs,
-                        decoration: deco,
-                        fontFamily: element.fontFamily,
-                        height: 1.2,
+                      // Fill layer
+                      Text(
+                        element.content,
+                        textAlign: align,
+                        style: TextStyle(
+                          color: Color(element.textColor),
+                          fontSize: element.fontSize,
+                          fontWeight: fw,
+                          fontStyle: fs,
+                          decoration: deco,
+                          fontFamily: element.fontFamily,
+                          height: 1.2,
+                        ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
                       ),
-                      maxLines: null,
-                      overflow: TextOverflow.visible,
-                    ),
-                  ],
-                )
-              : () {
-                  final baseStyle = TextStyle(
-                    color: Color(element.textColor),
-                    fontSize: element.fontSize,
-                    fontWeight: fw,
-                    fontStyle: fs,
-                    decoration: deco,
-                    fontFamily: element.fontFamily,
-                    height: 1.2,
-                    shadows: !element.hasTextBg
-                        ? [
-                            Shadow(
-                              blurRadius: element.shadowBlur,
-                              color: Colors.black
-                                  .withValues(alpha: element.shadowOpacity),
-                              offset: const Offset(1, 1),
-                            ),
-                          ]
-                        : null,
-                  );
-                  if (_hasMentions) {
-                    return RichText(
-                      textAlign: align,
-                      text: TextSpan(
-                        children: _buildMentionSpans(baseStyle),
-                      ),
-                      maxLines: null,
-                      overflow: TextOverflow.visible,
+                    ],
+                  )
+                : () {
+                    final baseStyle = TextStyle(
+                      color: Color(element.textColor),
+                      fontSize: element.fontSize,
+                      fontWeight: fw,
+                      fontStyle: fs,
+                      decoration: deco,
+                      fontFamily: element.fontFamily,
+                      height: 1.2,
+                      shadows: !element.hasTextBg
+                          ? [
+                              Shadow(
+                                blurRadius: element.shadowBlur,
+                                color: Colors.black
+                                    .withValues(alpha: element.shadowOpacity),
+                                offset: const Offset(1, 1),
+                              ),
+                            ]
+                          : null,
                     );
-                  }
-                  return Text(
-                    element.content,
-                    textAlign: align,
-                    style: baseStyle,
-                    maxLines: null,
-                    overflow: TextOverflow.visible,
-                  );
-                }(),
+                    if (_hasMentions) {
+                      return RichText(
+                        textAlign: align,
+                        text: TextSpan(
+                          children: _buildMentionSpans(baseStyle),
+                        ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
+                      );
+                    }
+                    return Text(
+                      element.content,
+                      textAlign: align,
+                      style: baseStyle,
+                      maxLines: isSourceBadge ? 1 : null,
+                      overflow: isSourceBadge
+                          ? TextOverflow.ellipsis
+                          : TextOverflow.visible,
+                    );
+                  }(),
           ),
         ),
       ),

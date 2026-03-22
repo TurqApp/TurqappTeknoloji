@@ -1,24 +1,61 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
-class TestsGrid extends StatelessWidget {
+class TestsGrid extends StatefulWidget {
   final TestsModel model;
   final Function? update;
 
   const TestsGrid({super.key, required this.model, this.update});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      TestsGridController(model, update),
-      tag: model.docID,
-    );
+  State<TestsGrid> createState() => _TestsGridState();
+}
 
+class _TestsGridState extends State<TestsGrid> {
+  late final TestsGridController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  TestsModel get model => widget.model;
+  Function? get update => widget.update;
+
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'tests_grid_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        TestsGridController.maybeFind(tag: _controllerTag) == null;
+    controller = TestsGridController.ensure(
+      widget.model,
+      onUpdate: widget.update,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController =
+          TestsGridController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<TestsGridController>(tag: _controllerTag);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -46,9 +83,9 @@ class TestsGrid extends StatelessWidget {
                               width: 23,
                               height: 23,
                               child: Obx(
-                                () => controller.pfImage.value.isNotEmpty
-                                    ? Image.network(
-                                        controller.pfImage.value,
+                                () => controller.avatarUrl.value.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: controller.avatarUrl.value,
                                         fit: BoxFit.cover,
                                       )
                                     : Center(
@@ -59,24 +96,31 @@ class TestsGrid extends StatelessWidget {
                           ),
                           SizedBox(width: 7),
                           Expanded(
-                            child: Obx(
-                              () => Text(
-                                controller.nickname.value,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                            ),
+                            child: Obx(() => Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        controller.nickname.value,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 12,
+                                          fontFamily: "MontserratBold",
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    RozetContent(
+                                        size: 12, userID: model.userID),
+                                  ],
+                                )),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  if (model.userID != FirebaseAuth.instance.currentUser!.uid)
+                  if (model.userID != _currentUserId)
                     GestureDetector(
                       onTap: () => controller.showReportModal(context),
                       child: Icon(
@@ -94,7 +138,10 @@ class TestsGrid extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 1,
               child: model.img.isNotEmpty
-                  ? Image.network(model.img, fit: BoxFit.cover)
+                  ? CachedNetworkImage(
+                      imageUrl: model.img,
+                      fit: BoxFit.cover,
+                    )
                   : Center(child: CupertinoActivityIndicator()),
             ),
           ),
@@ -111,7 +158,9 @@ class TestsGrid extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${model.testTuru} Testi",
+                        "tests.type_test".trParams({
+                          "type": model.testTuru,
+                        }),
                         maxLines: 1,
                         style: TextStyle(
                           color: Colors.black,
@@ -152,7 +201,7 @@ class TestsGrid extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Kolay",
+                          "tests.level_easy".tr,
                           style: TextStyle(
                             color: Colors.green,
                             fontSize: 14,
@@ -188,7 +237,7 @@ class TestsGrid extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (model.userID == FirebaseAuth.instance.currentUser!.uid)
+                  if (model.userID == _currentUserId)
                     Padding(
                       padding: EdgeInsets.only(top: 17),
                       child: Row(
@@ -222,7 +271,7 @@ class TestsGrid extends StatelessWidget {
             ),
           ),
           SizedBox(height: 7),
-          if (model.userID != FirebaseAuth.instance.currentUser!.uid)
+          if (model.userID != _currentUserId)
             GestureDetector(
               onTap: () => controller.navigateToTestSolve(context),
               child: Padding(
@@ -235,7 +284,7 @@ class TestsGrid extends StatelessWidget {
                     borderRadius: BorderRadius.all(Radius.circular(50)),
                   ),
                   child: Text(
-                    "Hemen Başla",
+                    "tests.start_now".tr,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,

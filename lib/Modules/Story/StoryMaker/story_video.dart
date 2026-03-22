@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:video_player/video_player.dart';
 
 class StoryVideo extends StatefulWidget {
@@ -19,14 +20,30 @@ class StoryVideo extends StatefulWidget {
 class _StoryVideoState extends State<StoryVideo> {
   late VideoPlayerController _vidCtrl;
 
+  bool get _isRemotePath {
+    final uri = Uri.tryParse(widget.path.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.hasAuthority;
+  }
+
   @override
   void initState() {
     super.initState();
-    _vidCtrl = VideoPlayerController.file(File(widget.path))
+    _vidCtrl = _isRemotePath
+        ? VideoPlayerController.networkUrl(Uri.parse(widget.path))
+        : VideoPlayerController.file(File(widget.path))
       ..initialize().then((_) {
+        AudioFocusCoordinator.instance.registerPreviewPlayer(_vidCtrl);
         _vidCtrl.setLooping(true);
         _vidCtrl.setVolume(widget.isMuted ? 0 : 1);
-        _vidCtrl.play();
+        if (widget.isMuted) {
+          _vidCtrl.play();
+        } else {
+          AudioFocusCoordinator.instance
+              .requestPreviewPlay(_vidCtrl)
+              .then((_) => _vidCtrl.play());
+        }
         setState(() {});
       });
   }
@@ -37,11 +54,15 @@ class _StoryVideoState extends State<StoryVideo> {
     // mute durumu değiştiyse volume’u güncelle
     if (old.isMuted != widget.isMuted) {
       _vidCtrl.setVolume(widget.isMuted ? 0 : 1);
+      if (!widget.isMuted && _vidCtrl.value.isInitialized) {
+        AudioFocusCoordinator.instance.requestPreviewPlay(_vidCtrl);
+      }
     }
   }
 
   @override
   void dispose() {
+    AudioFocusCoordinator.instance.unregisterPreviewPlayer(_vidCtrl);
     _vidCtrl.dispose();
     super.dispose();
   }

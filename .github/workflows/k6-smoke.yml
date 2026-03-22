@@ -1,0 +1,56 @@
+name: k6 Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: k6 load profile
+        required: false
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - feed_only
+          - full
+      mode:
+        description: k6 traffic mode
+        required: false
+        default: feed_only
+        type: choice
+        options:
+          - feed_only
+          - search_only
+          - mixed
+  schedule:
+    - cron: "0 4 * * 1"
+
+jobs:
+  k6-smoke:
+    name: k6 Smoke Load
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      SEARCH_CF_BASE_URL: ${{ secrets.SEARCH_CF_BASE_URL }}
+      INTERACTION_CF_BASE_URL: ${{ secrets.INTERACTION_CF_BASE_URL }}
+      ID_TOKEN: ${{ secrets.K6_ID_TOKEN }}
+      TOGGLE_LIKE_ENDPOINT: ${{ secrets.K6_TOGGLE_LIKE_ENDPOINT }}
+      RECORD_VIEW_ENDPOINT: ${{ secrets.K6_RECORD_VIEW_ENDPOINT }}
+      K6_PROFILE: ${{ github.event.inputs.profile || 'smoke' }}
+      K6_MODE: ${{ github.event.inputs.mode || 'feed_only' }}
+      K6_SUMMARY_FILE: artifacts/k6/workflow_summary.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 smoke
+        run: bash scripts/run_k6_smoke.sh
+
+      - name: Upload k6 summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary
+          path: artifacts/k6/workflow_summary.json

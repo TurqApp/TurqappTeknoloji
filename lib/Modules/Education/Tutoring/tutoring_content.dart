@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/tutoring_category.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
@@ -14,18 +15,18 @@ class TutoringContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TutoringController controller = Get.find<TutoringController>();
+    final TutoringController controller = TutoringController.ensure();
     final ViewModeController viewModeController =
-        Get.find<ViewModeController>();
+        ViewModeController.ensure(permanent: true);
+    final localizedCategoryName = tutoringBranchLabel(categoryName);
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: categoryName),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
+            BackButtons(text: localizedCategoryName),
+            Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
                   return Center(child: CupertinoActivityIndicator());
@@ -38,16 +39,28 @@ class TutoringContent extends StatelessWidget {
                 if (filteredTutoringList.isEmpty) {
                   return Center(
                     child: Infomessage(
-                      infoMessage: "$categoryName alanında ders bulunamadı.",
+                      infoMessage: 'tutoring.no_lessons_in_category'.trParams({
+                        'category': localizedCategoryName,
+                      }),
                     ),
                   );
                 }
 
-                return TutoringWidgetBuilder(
-                  tutoringList: filteredTutoringList,
-                  users: controller.users,
-                  isGridView: viewModeController.isGridView.value,
+                final content = SingleChildScrollView(
+                  child: TutoringWidgetBuilder(
+                    tutoringList: filteredTutoringList,
+                    isGridView: viewModeController.isGridView.value,
+                  ),
                 );
+
+                if (viewModeController.isGridView.value) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: content,
+                  );
+                }
+
+                return content;
               }),
             ),
           ],

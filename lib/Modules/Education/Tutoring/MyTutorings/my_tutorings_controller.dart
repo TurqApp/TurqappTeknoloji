@@ -1,11 +1,40 @@
-import 'dart:developer';
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/material.dart';
 
 class MyTutoringsController extends GetxController {
+  static MyTutoringsController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyTutoringsController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyTutoringsController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<MyTutoringsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyTutoringsController>(tag: tag);
+  }
+
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
   final RxMap<String, Map<String, dynamic>> users =
       <String, Map<String, dynamic>>{}.obs;
@@ -14,15 +43,58 @@ class MyTutoringsController extends GetxController {
   final RxList<TutoringModel> expiredTutorings = <TutoringModel>[].obs;
   final PageController pageController = PageController();
   final RxInt selection = 0.obs;
+  final RxBool isLoading = true.obs;
+
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+            item.ended,
+            item.endedAt,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+            item.ended,
+            item.endedAt,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
     super.onInit();
     final uid = getCurrentUserId();
     if (uid != null) {
-      fetchMyTutorings(uid);
+      unawaited(_bootstrapData(uid));
     } else {
-      errorMessage.value = "Kullanıcı kimliği bulunamadı.";
+      errorMessage.value = 'tutoring.user_id_missing'.tr;
+      isLoading.value = false;
     }
   }
 
@@ -32,27 +104,73 @@ class MyTutoringsController extends GetxController {
     super.onClose();
   }
 
-  Future<void> fetchMyTutorings(String currentUserId) async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .where('userID', isEqualTo: currentUserId)
-          .get();
+  Future<void> _bootstrapData(String currentUserId) async {
+    final cached = await _tutoringRepository.fetchByOwner(
+      currentUserId,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      if (!_sameTutoringEntries(myTutorings, cached)) {
+        myTutorings.assignAll(cached);
+      }
+      updateTutoringsStatus();
+      final userIds = cached.map((t) => t.userID).toSet();
+      if (userIds.isNotEmpty) {
+        await fetchUsers(userIds, cacheOnly: true);
+      }
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tutoring:owner:$currentUserId',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(fetchMyTutorings(
+          currentUserId,
+          silent: true,
+          forceRefresh: true,
+        ));
+      }
+      return;
+    }
+    await fetchMyTutorings(currentUserId);
+  }
 
-      final tutorings = snapshot.docs.map((doc) {
-        return TutoringModel.fromJson(doc.data(), doc.id);
-      }).toList();
-      myTutorings.assignAll(tutorings);
+  Future<void> fetchMyTutorings(
+    String currentUserId, {
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || myTutorings.isEmpty) {
+      isLoading.value = true;
+    }
+    try {
+      final tutorings = await _tutoringRepository.fetchByOwner(
+        currentUserId,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      await _archiveExpiredTutorings(tutorings);
+      final refreshed = await _tutoringRepository.fetchByOwner(
+        currentUserId,
+        preferCache: false,
+        forceRefresh: true,
+      );
+      if (!_sameTutoringEntries(myTutorings, refreshed)) {
+        myTutorings.assignAll(refreshed);
+      }
 
       updateTutoringsStatus();
 
-      final userIds = tutorings.map((t) => t.userID).toSet();
+      final userIds = refreshed.map((t) => t.userID).toSet();
       if (userIds.isNotEmpty) {
         await fetchUsers(userIds);
       }
+      SilentRefreshGate.markRefreshed('tutoring:owner:$currentUserId');
     } catch (e) {
-      errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
-      log("Error fetching my tutorings: $e");
+      errorMessage.value = 'tutoring.load_failed'.trParams({
+        'error': e.toString(),
+      });
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -72,30 +190,77 @@ class MyTutoringsController extends GetxController {
     }
   }
 
-  Future<void> fetchUsers(Set<String> userIds) async {
+  Future<void> _archiveExpiredTutorings(List<TutoringModel> tutorings) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    final batch = FirebaseFirestore.instance.batch();
+    var changed = false;
+
+    for (final tutoring in tutorings) {
+      if (tutoring.ended == true) continue;
+      if (tutoring.timeStamp < thirtyDaysAgo) {
+        batch.update(
+          FirebaseFirestore.instance
+              .collection('educators')
+              .doc(tutoring.docID),
+          {'ended': true, 'endedAt': now},
+        );
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await batch.commit();
+    }
+  }
+
+  Future<void> reactivateEndedTutoring(TutoringModel tutoring) async {
+    final uid = getCurrentUserId();
+    if (uid == null || tutoring.userID != uid || tutoring.ended != true) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await FirebaseFirestore.instance
+        .collection('educators')
+        .doc(tutoring.docID)
+        .update({
+      'ended': false,
+      'endedAt': 0,
+      'timeStamp': now,
+    });
+
+    await fetchMyTutorings(uid);
+    AppSnackbar(
+      'tutoring.reactivated_title'.tr,
+      'tutoring.reactivated_body'.tr,
+    );
+  }
+
+  Future<void> fetchUsers(
+    Set<String> userIds, {
+    bool cacheOnly = false,
+  }) async {
     final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
     if (toFetch.isEmpty) return;
 
     try {
-      for (var i = 0; i < toFetch.length; i += 30) {
-        final batch = toFetch.skip(i).take(30).toList();
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (var doc in snap.docs) {
-          users[doc.id] = doc.data();
-        }
+      final rawUsers = await _userSummaryResolver.resolveMany(
+        toFetch,
+        preferCache: true,
+        cacheOnly: cacheOnly,
+      );
+      for (final entry in rawUsers.entries) {
+        users[entry.key] = entry.value.toMap();
       }
     } catch (e) {
-      errorMessage.value = "Kullanıcı bilgileri yüklenirken hata oluştu: $e";
-      log("Error fetching users: $e");
+      errorMessage.value = 'tutoring.user_load_failed'.trParams({
+        'error': e.toString(),
+      });
     }
   }
 
   String? getCurrentUserId() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    return (uid != null && uid.isNotEmpty) ? uid : null;
+    final uid = CurrentUserService.instance.effectiveUserId;
+    return uid.isNotEmpty ? uid : null;
   }
 
   void goToPage(int index) {

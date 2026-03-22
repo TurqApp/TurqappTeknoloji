@@ -28,10 +28,10 @@ class StoryHighlightModel {
       title: (data['title'] ?? '').toString(),
       coverUrl: (data['coverUrl'] ?? '').toString(),
       storyIds: List<String>.from(data['storyIds'] ?? []),
-      createdAt: data['createdAt'] is Timestamp
-          ? (data['createdAt'] as Timestamp).toDate()
+      createdAt: data['createdDate'] is Timestamp
+          ? (data['createdDate'] as Timestamp).toDate()
           : DateTime.fromMillisecondsSinceEpoch(
-              (data['createdAt'] as num?)?.toInt() ??
+              (data['createdDate'] as num?)?.toInt() ??
                   DateTime.now().millisecondsSinceEpoch),
       order: (data['order'] as num?)?.toInt() ?? 0,
     );
@@ -42,7 +42,7 @@ class StoryHighlightModel {
         'title': title,
         'coverUrl': coverUrl,
         'storyIds': storyIds,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdDate': DateTime.now().millisecondsSinceEpoch,
         'order': order,
       };
 }

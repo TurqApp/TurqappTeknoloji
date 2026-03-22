@@ -39,24 +39,32 @@ class DownloadResult {
 class DownloadWorker {
   Isolate? _isolate;
   SendPort? _sendPort;
+  ReceivePort? _receivePort;
+  StreamSubscription<dynamic>? _receiveSub;
   final _resultController = StreamController<DownloadResult>.broadcast();
   final _readyCompleter = Completer<void>();
+  bool _isStopping = false;
 
   Stream<DownloadResult> get results => _resultController.stream;
 
   /// Isolate'i başlat.
   Future<void> start() async {
+    _isStopping = false;
     final receivePort = ReceivePort();
+    _receivePort = receivePort;
     _isolate = await Isolate.spawn(
       _isolateEntry,
       receivePort.sendPort,
     );
 
-    receivePort.listen((message) {
+    _receiveSub = receivePort.listen((message) {
       if (message is SendPort) {
         _sendPort = message;
-        _readyCompleter.complete();
+        if (!_readyCompleter.isCompleted) {
+          _readyCompleter.complete();
+        }
       } else if (message is Map<String, dynamic>) {
+        if (_isStopping || _resultController.isClosed) return;
         final result = DownloadResult(
           segmentKey: message['segmentKey'] as String,
           docID: message['docID'] as String,
@@ -81,15 +89,22 @@ class DownloadWorker {
 
   /// Isolate'i durdur — önce graceful shutdown sinyali gönder, sonra kill.
   void stop() {
+    _isStopping = true;
     // Graceful: isolate'e 'stop' mesajı gönder → client.close() çağırır
     _sendPort?.send('stop');
+    _receiveSub?.cancel();
+    _receiveSub = null;
+    _receivePort?.close();
+    _receivePort = null;
     // Kısa süre sonra zorla kapat (graceful tamamlanmazsa)
     Future.delayed(const Duration(milliseconds: 500), () {
       _isolate?.kill(priority: Isolate.immediate);
       _isolate = null;
     });
     _sendPort = null;
-    _resultController.close();
+    if (!_resultController.isClosed) {
+      _resultController.close();
+    }
   }
 
   /// Isolate entry point — CDN'den segment indirir.

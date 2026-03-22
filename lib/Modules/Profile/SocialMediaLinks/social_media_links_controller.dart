@@ -1,17 +1,34 @@
+import 'dart:async';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
+import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
+  static SocialMediaController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SocialMediaController());
+  }
+
+  static SocialMediaController? maybeFind() {
+    final isRegistered = Get.isRegistered<SocialMediaController>();
+    if (!isRegistered) return null;
+    return Get.find<SocialMediaController>();
+  }
+
+  final SocialMediaLinksRepository _linksRepository =
+      SocialMediaLinksRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<SocialMediaModel> list = <SocialMediaModel>[].obs;
 
   var selected = "".obs;
@@ -20,23 +37,17 @@ class SocialMediaController extends GetxController {
   var imageFile = Rxn<File>();
   var enableSave = false.obs;
   var isUploading = false.obs;
+  var isLoading = false.obs;
+  String get currentUid => CurrentUserService.instance.effectiveUserId;
 
-  List<String> sosyal = [
-    "TurqApp",
-    "instagram",
-    "facebook",
-    "whatsApp",
-    "x",
-    "youtube",
-    "linkedin",
-    "tiktok",
-    "pinterest",
-  ];
+  List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
+
+  bool isKnownEmbeddedKey(String key) => sosyal.contains(key);
 
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
     selected.listen((_) => updateEnableSave());
     textController.addListener(updateEnableSave);
     urlController.addListener(updateEnableSave);
@@ -53,24 +64,54 @@ class SocialMediaController extends GetxController {
         (selected.value.isNotEmpty || imageFile.value != null);
   }
 
-  Future<void> getData() async {
-    final snap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("SosyalMedyaLinkleri")
-        .get();
-    List<SocialMediaModel> temp = [];
-    for (var doc in snap.docs) {
-      temp.add(SocialMediaModel(
-        docID: doc.id,
-        title: doc.get("title"),
-        url: doc.get("url"),
-        sira: doc.get("sira"),
-        logo: doc.get("logo"),
-      ));
+  Future<void> _bootstrapData() async {
+    if (currentUid.isEmpty) {
+      isLoading.value = false;
+      list.clear();
+      return;
     }
+    final cached = await _linksRepository.getLinks(
+      currentUid,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.value = cached;
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'profile:social_media:$currentUid',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
 
-    list.value = temp;
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final uid = currentUid;
+    if (uid.isEmpty) {
+      list.clear();
+      isLoading.value = false;
+      return;
+    }
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      list.value = await _linksRepository.getLinks(
+        uid,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      SilentRefreshGate.markRefreshed('profile:social_media:$uid');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void resetFields() {
@@ -89,52 +130,24 @@ class SocialMediaController extends GetxController {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
     ).then((_) {
-      getData();
+      unawaited(getData(silent: true, forceRefresh: true));
     });
   }
 
   Future<void> updateAllSira() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final batch = FirebaseFirestore.instance.batch();
-
-    for (int i = 0; i < list.length; i++) {
-      final model = list[i];
-      final docRef = FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("SosyalMedyaLinkleri")
-          .doc(model.docID);
-
-      batch.update(docRef, {"sira": i});
-    }
-
-    await batch.commit();
+    await _linksRepository.reorderLinks(
+      currentUid,
+      List<SocialMediaModel>.from(list),
+    );
   }
 
   Future<void> updateItemOrder(int oldIndex, int newIndex) async {
     final item = list.removeAt(oldIndex);
     list.insert(newIndex, item);
 
-    // Firestore'da güncelle
-    for (int i = 0; i < list.length; i++) {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("SosyalMedyaLinkleri")
-          .doc(list[i].docID)
-          .update({"sira": i});
-    }
-  }
-
-  Future<String> uploadAssetImage(String assetPath, String docID) async {
-    isUploading.value = true;
-    final byteData = await rootBundle.load(assetPath);
-    final data = byteData.buffer.asUint8List();
-    return WebpUploadService.uploadBytesAsWebp(
-      storage: FirebaseStorage.instance,
-      bytes: data,
-      storagePathWithoutExt:
-          "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID",
+    await _linksRepository.reorderLinks(
+      currentUid,
+      List<SocialMediaModel>.from(list),
     );
   }
 
@@ -150,8 +163,15 @@ class SocialMediaController extends GetxController {
     return WebpUploadService.uploadFileAsWebp(
       storage: FirebaseStorage.instance,
       file: file,
-      storagePathWithoutExt:
-          "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID",
+      storagePathWithoutExt: "users/$currentUid/social_links/$docID",
     );
+  }
+
+  Future<void> deleteLink(String docId) async {
+    await _linksRepository.deleteLink(currentUid, docId);
+  }
+
+  Future<void> saveLink(SocialMediaModel model) async {
+    await _linksRepository.saveLink(currentUid, model: model);
   }
 }

@@ -1,0 +1,113 @@
+name: Process Death Restore
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * 2"
+
+jobs:
+  process-death-android:
+    name: Android Process Death Restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter deps
+        run: flutter pub get
+
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
+      - name: Run process death restore suite on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_7
+          script: |
+            export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
+            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
+            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
+            export INTEGRATION_AUTO_SEED=1
+            export INTEGRATION_REQUIRE_SEED=1
+            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
+            bash scripts/run_process_death_restore_suite.sh
+
+      - name: Upload Android process-death artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: process-death-android-artifacts
+          path: artifacts/integration_smoke
+
+  process-death-ios:
+    name: iOS Process Death Restore
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      IOS_SIMULATOR_NAME: iPhone 16
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter deps
+        run: flutter pub get
+
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
+      - name: Install CocoaPods deps
+        run: |
+          cd ios
+          pod install
+
+      - name: Boot iOS simulator
+        run: |
+          SIM_UDID="$(xcrun simctl list devices available | awk -v name="$IOS_SIMULATOR_NAME" -F '[()]' '$0 ~ name {print $2; exit}')"
+          if [[ -z "$SIM_UDID" ]]; then
+            echo "Simulator not found: $IOS_SIMULATOR_NAME"
+            exit 1
+          fi
+          xcrun simctl boot "$SIM_UDID" || true
+          open -a Simulator --args -CurrentDeviceUDID "$SIM_UDID"
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          echo "INTEGRATION_SMOKE_DEVICE_ID=$SIM_UDID" >> "$GITHUB_ENV"
+
+      - name: Run process death restore suite on iOS simulator
+        env:
+          INTEGRATION_TARGET_PLATFORM: ios
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: bash scripts/run_process_death_restore_suite.sh
+
+      - name: Upload iOS process-death artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: process-death-ios-artifacts
+          path: artifacts/integration_smoke

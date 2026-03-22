@@ -1,7 +1,7 @@
 "use strict";
 // 📸 Image Thumbnail Generator
 // Automatically generates thumbnails when images are uploaded to Firebase Storage
-// Generates 3 sizes: 150px (avatars), 300px (feed), 600px (detail)
+// Generates 1 size: 600px (general feed/detail)
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateThumbnails = void 0;
 const functions = require("firebase-functions");
@@ -12,9 +12,7 @@ const fs = require("fs");
 // Use dynamic import for sharp to avoid build issues
 const sharp = require("sharp");
 const THUMBNAIL_SIZES = [
-    { width: 150, suffix: "_thumb_150" }, // Avatar size
-    { width: 300, suffix: "_thumb_300" }, // Feed preview
-    { width: 600, suffix: "_thumb_600" }, // Story preview / detail
+    { width: 600, suffix: "_thumb_600" }, // General feed/detail preview
 ];
 const SUPPORTED_FORMATS = [".jpg", ".jpeg", ".png", ".webp"];
 /**
@@ -35,13 +33,18 @@ exports.generateThumbnails = functions
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Skip if already a thumbnail
     if (filePath.includes("_thumb_")) {
-        console.log("Already a thumbnail, skipping:", filePath);
+        console.log("Already a thumbnail, skipping");
+        return null;
+    }
+    // Skip profile avatar uploads: app now uploads finalized single avatar asset
+    if (filePath.startsWith("users/") && filePath.includes("_avatarUrl")) {
+        console.log("Profile avatar source file, skipping thumbnail generation");
         return null;
     }
     // Check file extension
     const ext = path.extname(filePath).toLowerCase();
     if (!SUPPORTED_FORMATS.includes(ext)) {
-        console.log("Not an image file, skipping:", filePath);
+        console.log("Not an image file, skipping");
         return null;
     }
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -54,11 +57,25 @@ exports.generateThumbnails = functions
     const tempFilePath = path.join(tempDir, fileName);
     try {
         await file.download({ destination: tempFilePath });
-        console.log("Downloaded to temp:", tempFilePath);
+        console.log("Downloaded to temp");
     }
     catch (error) {
         console.error("Download error:", error);
         return null;
+    }
+    try {
+        const meta = await sharp(tempFilePath).metadata();
+        const width = meta.width ?? 0;
+        const height = meta.height ?? 0;
+        const longestEdge = Math.max(width, height);
+        if (longestEdge > 0 && longestEdge <= 600) {
+            console.log("Image is already <= 600px, skipping thumbnail generation");
+            fs.unlinkSync(tempFilePath);
+            return null;
+        }
+    }
+    catch (error) {
+        console.error("Metadata read error:", error);
     }
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 🎨 GENERATE: Create thumbnails
@@ -81,7 +98,7 @@ exports.generateThumbnails = functions
                 effort: 4, // Balance between speed and compression
             })
                 .toFile(thumbPath);
-            console.log(`Generated ${width}px thumbnail:`, thumbPath);
+            console.log(`Generated ${width}px thumbnail`);
             // Upload to Storage
             await bucket.upload(thumbPath, {
                 destination: thumbStoragePath,
@@ -93,7 +110,7 @@ exports.generateThumbnails = functions
                     },
                 },
             });
-            console.log(`Uploaded thumbnail to:`, thumbStoragePath);
+            console.log("Uploaded thumbnail");
             // Clean up temp file
             fs.unlinkSync(thumbPath);
         }
@@ -107,12 +124,12 @@ exports.generateThumbnails = functions
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     try {
         fs.unlinkSync(tempFilePath);
-        console.log("Cleaned up temp file:", tempFilePath);
+        console.log("Cleaned up temp file");
     }
     catch (error) {
         console.error("Cleanup error:", error);
     }
-    console.log(`✅ Thumbnail generation complete for: ${filePath}`);
+    console.log("✅ Thumbnail generation complete");
     return null;
 });
 //# sourceMappingURL=thumbnails.js.map

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import '../../Services/firebase_my_store.dart';
+import '../../Services/current_user_service.dart';
 import 'Comments/post_comments.dart';
 
 class PostController extends GetxController {
@@ -37,6 +38,7 @@ class PostController extends GetxController {
   var ilkPaylasanPfImage = "".obs;
   var ilkPaylasanNickname = "".obs;
   var ilkPaylasanUserID = "".obs;
+  final PostRepository _postRepository = PostRepository.ensure();
 
   @override
   void onInit() {
@@ -54,14 +56,8 @@ class PostController extends GetxController {
   }
 
   Future<void> getYorumCount(String postID) async {
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(postID)
-        .collection("Yorumlar")
-        .get()
-        .then((snap) {
-      yorumCount.value = snap.docs.length.toInt();
-    });
+    final cached = await _postRepository.fetchPostById(postID);
+    yorumCount.value = cached?.stats.commentCount.toInt() ?? yorumCount.value;
   }
 
   Future<void> getIlkPaylasan() async {
@@ -73,145 +69,70 @@ class PostController extends GetxController {
     //       .then((DocumentSnapshot doc) {
     //     ilkPaylasanUserID.value = model.mainUserID;
     //     ilkPaylasanNickname.value = doc.get("nickname");
-    //     ilkPaylasanPfImage.value = doc.get("pfImage");
+    //     ilkPaylasanPfImage.value = doc.get("avatarUrl");
     //   });
     // }
   }
 
   Future<void> begen(String postID) async {
-    final user = Get.find<FirebaseMyStore>();
-    final userID = user.userID.value;
-
-    final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      final List<dynamic> currentLikes = data["begeniler"] ?? [];
-      final List<dynamic> currentDislikes = data["begenmeme"] ?? [];
-
-      // Eğer kullanıcı beğenmişse beğeniyi kaldır
-      if (currentLikes.contains(userID)) {
-        await docRef.update({
-          "begeniler": FieldValue.arrayRemove([userID])
-        });
-        begeniler.remove(userID);
-      } else {
-        // Daha önce beğenmeme yaptıysa onu kaldır
-        if (currentDislikes.contains(userID)) {
-          await docRef.update({
-            "begenmeme": FieldValue.arrayRemove([userID])
-          });
-          begenmeme.remove(userID);
-        }
-
-        // Beğeni ekle
-        await docRef.update({
-          "begeniler": FieldValue.arrayUnion([userID])
-        });
-        begeniler.add(userID);
-      }
+    final userID = CurrentUserService.instance.effectiveUserId;
+    if (userID.isEmpty) return;
+    final nextLiked = await _postRepository.toggleLike(model);
+    if (nextLiked) {
+      if (!begeniler.contains(userID)) begeniler.add(userID);
+    } else {
+      begeniler.remove(userID);
     }
   }
 
   Future<void> begenme(String postID) async {
-    final user = Get.find<FirebaseMyStore>();
-    final userID = user.userID.value;
+    final userID = CurrentUserService.instance.effectiveUserId;
+    if (userID.isEmpty) return;
 
+    final cached = await _postRepository.fetchPostRawById(postID);
+    if (cached == null) return;
     final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final docSnapshot = await docRef.get();
 
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      final List<dynamic> currentDislikes = data["begenmeme"] ?? [];
-      final List<dynamic> currentLikes = data["begeniler"] ?? [];
+    final currentDislikes =
+        List<String>.from((cached["begenmeme"] as List?) ?? const []);
+    final currentLikes =
+        List<String>.from((cached["begeniler"] as List?) ?? const []);
 
-      // Eğer daha önce beğenmişse beğeni kaldırılır
-      if (currentLikes.contains(userID)) {
-        await docRef.update({
-          "begeniler": FieldValue.arrayRemove([userID])
-        });
-        begeniler.remove(userID);
-      }
+    // Eğer daha önce beğenmişse beğeni kaldırılır
+    if (currentLikes.contains(userID)) {
+      await docRef.update({
+        "begeniler": FieldValue.arrayRemove([userID])
+      });
+      begeniler.remove(userID);
+    }
 
-      // Beğenmeme kontrolü
-      if (currentDislikes.contains(userID)) {
-        await docRef.update({
-          "begenmeme": FieldValue.arrayRemove([userID])
-        });
-        begenmeme.remove(userID);
-      } else {
-        await docRef.update({
-          "begenmeme": FieldValue.arrayUnion([userID])
-        });
-        begenmeme.add(userID);
-      }
+    // Beğenmeme kontrolü
+    if (currentDislikes.contains(userID)) {
+      await docRef.update({
+        "begenmeme": FieldValue.arrayRemove([userID])
+      });
+      begenmeme.remove(userID);
+    } else {
+      await docRef.update({
+        "begenmeme": FieldValue.arrayUnion([userID])
+      });
+      begenmeme.add(userID);
     }
   }
 
   Future<void> kayitEt(String postID) async {
-    final user = Get.find<FirebaseMyStore>();
-    final userID = user.userID.value;
-
-    final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      final List<dynamic> currentLikes = data["kayitEdenler"] ?? [];
-
-      // Eğer kullanıcı beğenmişse beğeniyi kaldır
-      if (currentLikes.contains(userID)) {
-        await docRef.update({
-          "kayitEdenler": FieldValue.arrayRemove([userID])
-        });
-        kaydedilenler.remove(userID);
-      } else {
-        await docRef.update({
-          "kayitEdenler": FieldValue.arrayUnion([userID])
-        });
-        kaydedilenler.add(userID);
-      }
+    final userID = CurrentUserService.instance.effectiveUserId;
+    if (userID.isEmpty) return;
+    final nextSaved = await _postRepository.toggleSave(model);
+    if (nextSaved) {
+      if (!kaydedilenler.contains(userID)) kaydedilenler.add(userID);
+    } else {
+      kaydedilenler.remove(userID);
     }
   }
 
   Future<void> yenidenPaylas() async {
     // final docID = const Uuid().v4();
-    // final times = DateTime.now().millisecondsSinceEpoch;
-    // FirebaseFirestore.instance.collection("Posts").doc(docID).set({
-    //   "arsiv": false,
-    //   "begeniler": [],
-    //   "hedefKitle": model.hedefKitle,
-    //   "img": model.img,
-    //   "kategori": [],
-    //   "kayitEdenler": [],
-    //   "muzik": model.muzik,
-    //   "tekrarPaylas": model.tekrarPaylas,
-    //   "timeStamp": times,
-    //   "userID": FirebaseAuth.instance.currentUser!.uid,
-    //   "konum": model.konum,
-    //   "metin": model.metin,
-    //   "video": model.video,
-    //   "yasKilidi": model.yasKilidi,
-    //   "yorumlar": model.yorumlar,
-    //   "yenidenPaylasilanPostlar": [],
-    //   "yenidenPaylasilanKullanicilar": [],
-    //   "anaPaylasimPostID": model.anaPaylasimPostID != "" ? model.anaPaylasimPostID : model.docID,
-    //   "begenmeme": [],
-    //   "goruntuleme": [],
-    //   "izBirakYayinTarihi": model.izBirakYayinTarihi,
-    //   "thumbnailOfVideo": model.thumbnailOfVideo,
-    //   "mainUserID": model.mainUserID
-    // });
-    //
-    // FirebaseFirestore.instance.collection("Posts").doc(model.docID).update({
-    //   "yenidenPaylasilanPostlar": FieldValue.arrayUnion([docID]),
-    //   "yenidenPaylasilanKullanicilar":
-    //   FieldValue.arrayUnion([FirebaseAuth.instance.currentUser!.uid])
-    // });
-    //
-    // yenidenPaylasilanKullanicilar
-    //     .add(FirebaseAuth.instance.currentUser!.uid);
   }
 
   Future<void> yorumYap(BuildContext context, {VoidCallback? onClosed}) async {
@@ -251,8 +172,8 @@ class PostController extends GetxController {
         );
         await ShareLinkService.shareUrl(
           url: shortUrl,
-          title: 'TurqApp Gönderisi',
-          subject: 'TurqApp Gönderisi',
+          title: 'post.share_title'.tr,
+          subject: 'post.share_title'.tr,
         );
       } catch (e) {
         print('Error downloading or sharing the image: $e');

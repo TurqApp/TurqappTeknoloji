@@ -1,22 +1,34 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/material.dart';
 
 class DeletedStoriesController extends GetxController {
+  static DeletedStoriesController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(DeletedStoriesController());
+  }
+
+  static DeletedStoriesController? maybeFind() {
+    final isRegistered = Get.isRegistered<DeletedStoriesController>();
+    if (!isRegistered) return null;
+    return Get.find<DeletedStoriesController>();
+  }
+
   RxList<StoryModel> list = <StoryModel>[].obs;
-  DocumentSnapshot? lastDoc;
-  RxBool hasMore = true.obs;
   RxBool isLoading = false.obs;
-  final int pageSize = 40;
   // Silinme zamanı bilgisi (ms) – UI'da göstermek için
   final RxMap<String, int> deletedAtById = <String, int>{}.obs;
   final RxMap<String, String> deleteReasonById = <String, String>{}.obs;
   // UI paging
   final PageController pageController = PageController();
+  final StoryRepository _storyRepository = StoryRepository.ensure();
+  final CurrentUserService _userService = CurrentUserService.instance;
+  String get _currentUid => _userService.effectiveUserId;
 
   @override
   void onInit() {
@@ -24,103 +36,124 @@ class DeletedStoriesController extends GetxController {
     fetch(initial: true);
   }
 
-  Future<void> fetch({bool initial = false}) async {
-    if (isLoading.value || (!initial && !hasMore.value)) return;
-    isLoading.value = true;
+  Future<bool> _restoreFromCache(String uid) async {
     try {
-      if (initial) {
-        list.clear();
-        lastDoc = null;
-        hasMore.value = true;
-        deletedAtById.clear();
-        deleteReasonById.clear();
-      }
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-
-      // Güvenli sorgu: userId'e göre sırala ve client-side deleted filtresi uygula
-      Query q = FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .limit(pageSize);
-      if (lastDoc != null) {
-        q = (q as Query<Map<String, dynamic>>).startAfterDocument(lastDoc!);
-      }
-      final snap = await q.get();
-      if (snap.docs.isEmpty) {
-        hasMore.value = false;
-        return;
-      }
-      lastDoc = snap.docs.last;
-
-      final items = <StoryModel>[];
-      for (final d in snap.docs) {
-        final data = d.data() as Map<String, dynamic>;
-        final isDeleted = (data['deleted'] ?? false) == true;
-        if (isDeleted) {
-          final m =
-              StoryModel.fromDoc(d as DocumentSnapshot<Map<String, dynamic>>);
-          items.add(m);
-          final delAt = (data['deletedAt'] ?? 0) as int;
-          deletedAtById[m.id] = delAt;
-          final reason = (data['deleteReason'] ?? '') as String;
-          if (reason.isNotEmpty) deleteReasonById[m.id] = reason;
-        }
-      }
-      list.addAll(items);
-      if (snap.docs.length < pageSize) hasMore.value = false;
+      final restored = await _storyRepository.restoreDeletedStoriesCache(uid);
+      if (restored == null || restored.stories.isEmpty) return false;
+      list.assignAll(restored.stories);
+      deletedAtById.assignAll(restored.deletedAtById);
+      deleteReasonById.assignAll(restored.deleteReasonById);
+      return true;
     } catch (e) {
-      // Index problemlerinde fallback: sadece userId filtresiyle çekip client-side filtrele
-      try {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid == null) return;
-        final q = await FirebaseFirestore.instance
-            .collection('stories')
-            .where('userId', isEqualTo: uid)
-            .orderBy('createdAt', descending: true)
-            .limit(pageSize)
-            .get();
-        final items2 = <StoryModel>[];
-        for (final d in q.docs) {
-          final data = d.data();
-          final isDeleted = (data['deleted'] ?? false) == true;
-          if (isDeleted) {
-            final m =
-                StoryModel.fromDoc(d as DocumentSnapshot<Map<String, dynamic>>);
-            items2.add(m);
-            final delAt = (data['deletedAt'] ?? 0) as int;
-            deletedAtById[m.id] = delAt;
-            final reason = (data['deleteReason'] ?? '') as String;
-            if (reason.isNotEmpty) deleteReasonById[m.id] = reason;
-          }
+      debugPrint('Deleted stories cache restore error: $e');
+      return false;
+    }
+  }
+
+  Future<void> _persistCache(String uid) async {
+    try {
+      await _storyRepository.persistDeletedStoriesCache(
+        uid: uid,
+        stories: list.toList(growable: false),
+        deletedAtById: deletedAtById,
+        deleteReasonById: deleteReasonById,
+      );
+    } catch (e) {
+      debugPrint('Deleted stories cache persist error: $e');
+    }
+  }
+
+  Future<void> fetch({bool initial = false, bool forceRemote = false}) async {
+    if (isLoading.value) return;
+    if (!forceRemote) {
+      isLoading.value = true;
+    }
+    try {
+      final uid = _currentUid;
+      if (uid.isEmpty) return;
+
+      if (initial) {
+        final restored = await _restoreFromCache(uid);
+        if (restored && !forceRemote) {
+          isLoading.value = false;
+          Future<void>.delayed(Duration.zero, () => fetch(forceRemote: true));
+          return;
         }
-        list.addAll(items2);
-        if (q.docs.length < pageSize) hasMore.value = false;
-      } catch (_) {}
+      }
+
+      final payload = await _storyRepository.fetchDeletedStories(uid);
+      debugPrint(
+        'DeletedStoriesController.fetch: items=${payload.stories.length} '
+        'reasons=${payload.deleteReasonById.length}',
+      );
+      list.assignAll(payload.stories);
+      deletedAtById.assignAll(payload.deletedAtById);
+      deleteReasonById.assignAll(payload.deleteReasonById);
+      await _persistCache(uid);
+    } catch (e) {
+      debugPrint('Deleted stories fetch error: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> restore(String storyId) async {
-    await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .update({'deleted': false, 'deletedAt': 0});
+    final data =
+        await _storyRepository.getStoryRaw(storyId, preferCache: true) ??
+            const <String, dynamic>{};
+    await _storyRepository.restoreDeletedStory(storyId);
+    final musicId = (data['musicId'] ?? '').toString().trim();
+    if (musicId.isNotEmpty) {
+      await StoryMusicLibraryService.instance.restoreStoryUsage(
+        musicId: musicId,
+        storyId: storyId,
+        userId: (data['userId'] ?? '').toString().trim(),
+        createdAt: (data['createdDate'] as num?)?.toInt() ??
+            DateTime.now().millisecondsSinceEpoch,
+        title: (data['musicTitle'] ?? '').toString().trim(),
+        artist: (data['musicArtist'] ?? '').toString().trim(),
+        audioUrl: (data['musicUrl'] ?? '').toString().trim(),
+        coverUrl: (data['musicCoverUrl'] ?? '').toString().trim(),
+      );
+    }
     list.removeWhere((e) => e.id == storyId);
     deletedAtById.remove(storyId);
+    deleteReasonById.remove(storyId);
+    final uid = _currentUid;
+    if (uid.isNotEmpty) {
+      await _persistCache(uid);
+    }
     // Dinamik: Hikaye satırını anlık tazele ve sahiplik bayrağını güncelle
     try {
       await StoryRowController.refreshStoriesGlobally();
-      final store = Get.find<FirebaseMyStore>();
-      await store.hasStoryOwner();
+    } catch (_) {}
+  }
+
+  Future<void> repost(StoryModel story) async {
+    final storyId = await _storyRepository.repostDeletedStory(story);
+    if (storyId.isEmpty) return;
+    try {
+      await StoryRowController.refreshStoriesGlobally();
+    } catch (_) {}
+  }
+
+  Future<void> deleteForever(StoryModel story) async {
+    await _storyRepository.permanentlyDeleteStory(story.id);
+    list.removeWhere((e) => e.id == story.id);
+    deletedAtById.remove(story.id);
+    deleteReasonById.remove(story.id);
+    final uid = _currentUid;
+    if (uid.isNotEmpty) {
+      await _persistCache(uid);
+    }
+    try {
+      await StoryRowController.refreshStoriesGlobally();
     } catch (_) {}
   }
 
   @override
   Future<void> refresh() async {
-    await fetch(initial: true);
+    await fetch(initial: false, forceRemote: true);
   }
 
   void goToPage(int index) {
@@ -129,5 +162,11 @@ class DeletedStoriesController extends GetxController {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+  }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
   }
 }

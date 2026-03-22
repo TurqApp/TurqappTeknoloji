@@ -4,9 +4,38 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number_controller.dart';
 
-class EditorPhoneNumber extends StatelessWidget {
-  EditorPhoneNumber({super.key});
-  final controller = Get.put(EditorPhoneNumberController());
+class EditorPhoneNumber extends StatefulWidget {
+  const EditorPhoneNumber({super.key});
+
+  @override
+  State<EditorPhoneNumber> createState() => _EditorPhoneNumberState();
+}
+
+class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
+  late final EditorPhoneNumberController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = EditorPhoneNumberController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = EditorPhoneNumberController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(EditorPhoneNumberController.maybeFind(), controller)) {
+      Get.delete<EditorPhoneNumberController>(force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +54,7 @@ class EditorPhoneNumber extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [BackButtons(text: "Telefon Numarası")]),
+                  Row(children: [BackButtons(text: 'editor_phone.title'.tr)]),
                   const SizedBox(height: 12),
                   Container(
                     height: 50,
@@ -49,10 +78,10 @@ class EditorPhoneNumber extends StatelessWidget {
                           child: TextField(
                             controller: controller.phoneController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              hintText: "Telefon Numarası",
+                            decoration: InputDecoration(
+                              hintText: 'editor_phone.phone_hint'.tr,
                               border: InputBorder.none,
-                              hintStyle: TextStyle(
+                              hintStyle: const TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",
                               ),
@@ -76,8 +105,9 @@ class EditorPhoneNumber extends StatelessWidget {
                     },
                     bgColor: canSend ? Colors.black : Colors.grey,
                     text: controller.countdown.value > 0
-                        ? "Yeniden gönderim için ${controller.countdown.value}s"
-                        : "Onay E-postası Gönder",
+                        ? 'editor_phone.resend_in'.trParams(
+                            {'seconds': '${controller.countdown.value}'})
+                        : 'editor_phone.send_approval'.tr,
                   ),
                   if (controller.isCodeSent.value) ...[
                     const SizedBox(height: 12),
@@ -92,11 +122,11 @@ class EditorPhoneNumber extends StatelessWidget {
                         controller: controller.codeController,
                         keyboardType: TextInputType.number,
                         maxLength: 6,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           counterText: "",
-                          hintText: "6 haneli onay kodu",
+                          hintText: 'editor_phone.code_hint'.tr,
                           border: InputBorder.none,
-                          hintStyle: TextStyle(
+                          hintStyle: const TextStyle(
                             color: Colors.grey,
                             fontFamily: "MontserratMedium",
                           ),
@@ -116,7 +146,7 @@ class EditorPhoneNumber extends StatelessWidget {
                         }
                       },
                       bgColor: canConfirm ? Colors.black : Colors.grey,
-                      text: "Kodu Doğrula ve Güncelle",
+                      text: 'editor_phone.verify_update'.tr,
                     ),
                   ],
                 ],

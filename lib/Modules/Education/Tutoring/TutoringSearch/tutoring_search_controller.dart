@@ -1,82 +1,171 @@
-import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringSearchController extends GetxController {
+  static TutoringSearchController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TutoringSearchController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TutoringSearchController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<TutoringSearchController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<TutoringSearchController>(tag: tag);
+  }
+
+  final TutoringSnapshotRepository _tutoringSnapshotRepository =
+      TutoringSnapshotRepository.ensure();
+  final TextEditingController searchController = TextEditingController();
   var isLoading = true.obs;
   var searchQuery = ''.obs;
   var searchResults = <TutoringModel>[].obs;
-  var users = <String, Map<String, dynamic>>{}.obs;
 
-  /// Full list cached for client-side filtering
-  List<TutoringModel> _allTutorings = [];
+  List<TutoringModel> _initialTutorings = [];
+
+  bool _sameTutoringEntries(
+    List<TutoringModel> current,
+    List<TutoringModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.brans,
+            item.sehir,
+            item.ilce,
+            item.fiyat,
+            item.timeStamp,
+            item.viewCount ?? 0,
+            item.applicationCount ?? 0,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
     super.onInit();
-    fetchInitialData();
+    unawaited(_bootstrapInitialData());
     debounce(searchQuery, (query) {
       if (query.isNotEmpty) {
         performSearch(query);
       } else {
-        searchResults.value = _allTutorings;
+        if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+          searchResults.value = _initialTutorings;
+        }
       }
     }, time: Duration(milliseconds: 500));
   }
 
-  Future<void> _batchFetchUsers(Set<String> userIds) async {
-    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
-    if (toFetch.isEmpty) return;
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
 
+  Future<void> _bootstrapInitialData() async {
     try {
-      for (var i = 0; i < toFetch.length; i += 30) {
-        final batch = toFetch.skip(i).take(30).toList();
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (var doc in snap.docs) {
-          users[doc.id] = doc.data();
+      final resource = await _tutoringSnapshotRepository.loadHome(
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 60,
+      );
+      final cachedItems = resource.data ?? const <TutoringModel>[];
+      if (cachedItems.isNotEmpty) {
+        _initialTutorings = cachedItems;
+        if (!_sameTutoringEntries(searchResults, cachedItems)) {
+          searchResults.value = cachedItems;
         }
+        isLoading.value = false;
+        await fetchInitialData(silent: true);
+        return;
       }
-    } catch (e) {
-      log("Error batch fetching users: $e");
-    }
+    } catch (_) {}
+
+    await fetchInitialData();
   }
 
-  Future<void> fetchInitialData() async {
-    isLoading.value = true;
+  Future<void> fetchInitialData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final shouldShowLoader = !silent && searchResults.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .orderBy('timeStamp', descending: true)
-          .limit(200)
-          .get();
-
-      _allTutorings = querySnapshot.docs
-          .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
-          .toList();
-
-      final userIds = _allTutorings.map((t) => t.userID).toSet();
-      await _batchFetchUsers(userIds);
-
-      searchResults.value = _allTutorings;
-    } catch (e) {
-      log("Error fetching initial data: $e");
+      final result = await _tutoringSnapshotRepository.loadHome(
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 60,
+        forceSync: forceRefresh,
+      );
+      _initialTutorings = result.data ?? const <TutoringModel>[];
+      if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+        searchResults.value = _initialTutorings;
+      }
+    } catch (_) {
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader || searchResults.isEmpty) {
+        isLoading.value = false;
+      }
     }
   }
 
-  void performSearch(String query) {
-    final q = query.toLowerCase();
-    searchResults.value = _allTutorings
-        .where((tutoring) =>
-            tutoring.aciklama.toLowerCase().contains(q) ||
-            tutoring.baslik.toLowerCase().contains(q) ||
-            tutoring.brans.toLowerCase().contains(q))
-        .toList();
+  Future<void> performSearch(String query) async {
+    final normalized = query.trim();
+    if (normalized.isEmpty) {
+      if (!_sameTutoringEntries(searchResults, _initialTutorings)) {
+        searchResults.value = _initialTutorings;
+      }
+      return;
+    }
+
+    try {
+      final result = await _tutoringSnapshotRepository.search(
+        query: normalized,
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 60,
+        forceSync: true,
+      );
+      final items = result.data ?? const <TutoringModel>[];
+      if (!_sameTutoringEntries(searchResults, items)) {
+        searchResults.value = items;
+      }
+    } catch (_) {
+      if (searchResults.isNotEmpty) {
+        searchResults.value = const <TutoringModel>[];
+      }
+    }
   }
 
   void updateSearchQuery(String query) {

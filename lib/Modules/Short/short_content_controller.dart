@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:async';
@@ -7,15 +6,39 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Profile/MyProfile/profile_controller.dart';
 import '../ShareGrid/share_grid.dart';
 import '../../Services/post_delete_service.dart';
 import 'short_controller.dart';
 import '../../Services/post_interaction_service.dart';
+import '../../Core/Repositories/post_repository.dart';
+import '../../Core/Repositories/follow_repository.dart';
+import '../../Core/Services/user_summary_resolver.dart';
+import '../../Services/current_user_service.dart';
 
 class ShortContentController extends GetxController {
+  static ShortContentController ensure({
+    required String postID,
+    required PostsModel model,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ShortContentController(postID: postID, model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ShortContentController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<ShortContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ShortContentController>(tag: tag);
+  }
+
   String postID;
   PostsModel model;
 
@@ -24,7 +47,7 @@ class ShortContentController extends GetxController {
     required this.model,
   });
 
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
   var fullName = "".obs;
   var token = "".obs;
@@ -34,6 +57,7 @@ class ShortContentController extends GetxController {
   var pageCounter = 0.obs;
   // Yeni interaction service
   late PostInteractionService _interactionService;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   // Stats observables - PostsModel.stats'tan alinacak
   RxInt likeCount = 0.obs;
@@ -56,41 +80,58 @@ class ShortContentController extends GetxController {
   var ilkPaylasanNickname = "".obs;
   var ilkPaylasanUserID = "".obs;
   var fullscreen = true.obs;
-  final user = Get.find<FirebaseMyStore>();
   // Kaldırılan deprecated değişkenler:
   // yenidenPaylasildiMi -> isReshared
   // countManager -> PostInteractionService
   // retryCount, statsCount -> lokal RxInt'ler
   StreamSubscription<DocumentSnapshot>? _postDocSub;
+  late final PostRepository _postRepository;
+  PostRepositoryState? _postState;
+  Worker? _interactionWorker;
+  Worker? _postDataWorker;
+  Timer? _deleteFadeTimer;
+  Timer? _deleteRemoveTimer;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {
     super.onInit();
 
     // Initialize interaction service
-    _interactionService = Get.put(PostInteractionService());
+    _interactionService = PostInteractionService.ensure();
+    _postRepository = PostRepository.ensure();
 
     // Initialize stats from model
     _initializeStats();
 
     // Initialize other data
     getGizleArsivSikayetEdildi();
+    avatarUrl.value = model.authorAvatarUrl.trim();
+    nickname.value = model.authorNickname.trim();
+    fullName.value = model.authorDisplayName.trim();
     fetchUserData(model.userID);
 
     // Record view and load user interaction status
     Future.microtask(() {
+      if (isClosed) return;
       _interactionService.recordView(model.docID);
       _loadUserInteractionStatus();
     });
 
     // Bind listeners
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
       _bindPostStatsListener();
     });
   }
 
   @override
   void onClose() {
+    _deleteFadeTimer?.cancel();
+    _deleteRemoveTimer?.cancel();
+    _interactionWorker?.dispose();
+    _postDataWorker?.dispose();
+    _postRepository.releasePost(model.docID);
     _postDocSub?.cancel();
     super.onClose();
   }
@@ -108,30 +149,19 @@ class ShortContentController extends GetxController {
   // Load user's interaction status for this post
   Future<void> _loadUserInteractionStatus() async {
     try {
-      final status =
-          await _interactionService.getUserInteractionStatus(model.docID);
-      isLiked.value = status['liked'] ?? false;
-      isSaved.value = status['saved'] ?? false;
-      isReshared.value = status['reshared'] ?? false;
-      isReported.value = status['reported'] ?? false;
-    } catch (e) {
-      print('Load user interaction status error: $e');
-    }
+      _postState ??= _postRepository.attachPost(model);
+      _syncSharedInteractionState();
+    } catch (_) {}
   }
 
   // Bind to real-time stats updates
   void _bindPostStatsListener() {
-    _postDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .snapshots()
-        .listen((doc) {
-      final data = doc.data();
-      if (data == null) return;
-
-      final stats = data['stats'] as Map<String, dynamic>? ?? {};
-
-      // Update observable values with max(0, value) to prevent negative display
+    _postState ??= _postRepository.attachPost(model);
+    _postDataWorker?.dispose();
+    _postDataWorker =
+        ever<Map<String, dynamic>?>(_postState!.latestPostData, (data) {
+      if (isClosed || data == null) return;
+      final stats = data['stats'] as Map<String, dynamic>? ?? const {};
       likeCount.value = ((stats['likeCount'] ?? 0) as num)
           .toInt()
           .clamp(0, double.infinity)
@@ -157,6 +187,23 @@ class ShortContentController extends GetxController {
           .clamp(0, double.infinity)
           .toInt();
     });
+    _interactionWorker?.dispose();
+    _interactionWorker = everAll([
+      _postState!.liked,
+      _postState!.saved,
+      _postState!.reshared,
+      _postState!.reported,
+    ], (_) {
+      _syncSharedInteractionState();
+    });
+  }
+
+  void _syncSharedInteractionState() {
+    if (isClosed || _postState == null) return;
+    isLiked.value = _postState!.liked.value;
+    isSaved.value = _postState!.saved.value;
+    isReshared.value = _postState!.reshared.value;
+    isReported.value = _postState!.reported.value;
   }
 
   // ========== POST INTERACTION METHODS ==========
@@ -164,10 +211,9 @@ class ShortContentController extends GetxController {
   /// Toggle like for the post
   Future<void> toggleLike() async {
     try {
-      final newLikeStatus = await _interactionService.toggleLike(model.docID);
-      isLiked.value = newLikeStatus;
+      await _postRepository.toggleLike(model);
     } catch (e) {
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.like_failed'.tr);
     }
   }
 
@@ -176,10 +222,9 @@ class ShortContentController extends GetxController {
   /// Toggle save for the post
   Future<void> toggleSave() async {
     try {
-      final newSaveStatus = await _interactionService.toggleSave(model.docID);
-      isSaved.value = newSaveStatus;
+      await _postRepository.toggleSave(model);
     } catch (e) {
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.save_failed'.tr);
     }
   }
 
@@ -188,20 +233,14 @@ class ShortContentController extends GetxController {
   /// Toggle reshare for the post
   Future<void> toggleReshare() async {
     try {
-      final newReshareStatus =
-          await _interactionService.toggleReshare(model.docID);
-      isReshared.value = newReshareStatus;
+      final newReshareStatus = await _postRepository.toggleReshare(model);
       if (newReshareStatus) {
-        try {
-          Get.find<ProfileController>().getResharesSingle();
-        } catch (_) {}
+        ProfileController.maybeFind()?.getResharesSingle();
       } else {
-        try {
-          Get.find<ProfileController>().removeReshare(model.docID);
-        } catch (_) {}
+        ProfileController.maybeFind()?.removeReshare(model.docID);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Yeniden paylaşma işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.reshare_failed'.tr);
     }
   }
 
@@ -214,12 +253,12 @@ class ShortContentController extends GetxController {
       if (success) {
         isReported.value = true;
         reportCount.value++;
-        AppSnackbar('Başarılı', 'Post şikayet edildi');
+        AppSnackbar('common.success'.tr, 'post.report_success'.tr);
       } else {
-        AppSnackbar('Bilgi', 'Bu post daha önce şikayet edilmiş');
+        AppSnackbar('common.info'.tr, 'post.already_reported'.tr);
       }
     } catch (e) {
-      AppSnackbar('Hata', 'Şikayet işlemi başarısız: $e');
+      AppSnackbar('common.error'.tr, 'post.report_failed'.tr);
     }
   }
 
@@ -230,186 +269,143 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> gizle() async {
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].gizlendi = true;
-    final explore = Get.find<ExploreController>();
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].gizlendi = true;
+    final explore = ExploreController.maybeFind();
 
-    final index3 = explore.explorePosts.indexOf(model);
-    if (index3 >= 0) explore.explorePosts[index3].gizlendi = true;
+    final index3 = explore?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) explore!.explorePosts[index3].gizlendi = true;
 
-    final index4 = explore.explorePhotos.indexOf(model);
-    if (index4 >= 0) explore.explorePhotos[index4].gizlendi = true;
+    final index4 = explore?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) explore!.explorePhotos[index4].gizlendi = true;
 
-    final index5 = explore.exploreVideos.indexOf(model);
-    if (index5 >= 0) explore.exploreVideos[index5].gizlendi = true;
+    final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) explore!.exploreVideos[index5].gizlendi = true;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].gizlendi = true;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].gizlendi = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].gizlendi = true;
+    final profile = ProfileController.maybeFind();
+    final index9 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index9 >= 0) profile!.allPosts[index9].gizlendi = true;
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].gizlendi = true;
+    final index10 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index10 >= 0) profile!.allPosts[index10].gizlendi = true;
 
     gizlendi.value = true;
   }
 
   Future<void> gizlemeyiGeriAl() async {
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].gizlendi = false;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].gizlendi = false;
 
-    final explore = Get.find<ExploreController>();
+    final explore = ExploreController.maybeFind();
 
-    final index3 = explore.explorePosts.indexOf(model);
-    if (index3 >= 0) explore.explorePosts[index3].gizlendi = false;
+    final index3 = explore?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) explore!.explorePosts[index3].gizlendi = false;
 
-    final index4 = explore.explorePhotos.indexOf(model);
-    if (index4 >= 0) explore.explorePhotos[index4].gizlendi = false;
+    final index4 = explore?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) explore!.explorePhotos[index4].gizlendi = false;
 
-    final index5 = explore.exploreVideos.indexOf(model);
-    if (index5 >= 0) explore.exploreVideos[index5].gizlendi = false;
+    final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) explore!.exploreVideos[index5].gizlendi = false;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].gizlendi = false;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].gizlendi = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].gizlendi = false;
+    final profile = ProfileController.maybeFind();
+    final index9 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index9 >= 0) profile!.allPosts[index9].gizlendi = false;
 
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].gizlendi = false;
+    final index10 = profile?.allPosts.indexOf(model) ?? -1;
+    if (index10 >= 0) profile!.allPosts[index10].gizlendi = false;
 
     gizlendi.value = false;
   }
 
   Future<void> arsivle() async {
-    // Firestore güncelle
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update({
-      "arsiv": true,
-    });
+    await _postRepository.setArchived(model, true);
 
     // Tüm ilgili store ve listeleri güncelle
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].arsiv = true;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].arsiv = true;
 
-    final explore = Get.find<ExploreController>();
+    final explore = ExploreController.maybeFind();
 
-    final index3 = explore.explorePosts.indexOf(model);
-    if (index3 >= 0) explore.explorePosts[index3].arsiv = true;
+    final index3 = explore?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) explore!.explorePosts[index3].arsiv = true;
 
-    final index4 = explore.explorePhotos.indexOf(model);
-    if (index4 >= 0) explore.explorePhotos[index4].arsiv = true;
+    final index4 = explore?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) explore!.explorePhotos[index4].arsiv = true;
 
-    final index5 = explore.exploreVideos.indexOf(model);
-    if (index5 >= 0) explore.exploreVideos[index5].arsiv = true;
+    final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) explore!.exploreVideos[index5].arsiv = true;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = true;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].arsiv = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final profile = ProfileController.maybeFind();
+    final profileIndex = profile?.allPosts.indexOf(model) ?? -1;
+    if (profileIndex >= 0) profile!.allPosts[profileIndex].arsiv = true;
 
     arsivlendi.value = true;
-
-    // Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts -=1
-    try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisible) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(-1)});
-      }
-    } catch (_) {}
   }
 
   Future<void> arsivdenCikart() async {
-    // Firestore güncelle
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update({
-      "arsiv": false,
-    });
+    await _postRepository.setArchived(model, false);
 
     // Tüm ilgili store ve listeleri güncelle
-    final shortController = Get.find<ShortController>();
-    final index = shortController.shorts.indexOf(model);
-    if (index >= 0) shortController.shorts[index].arsiv = false;
+    final shortController = ShortController.maybeFind();
+    final index = shortController?.shorts.indexOf(model) ?? -1;
+    if (index >= 0) shortController!.shorts[index].arsiv = false;
 
-    final explore = Get.find<ExploreController>();
+    final explore = ExploreController.maybeFind();
 
-    final index3 = explore.explorePosts.indexOf(model);
-    if (index3 >= 0) explore.explorePosts[index3].arsiv = false;
+    final index3 = explore?.explorePosts.indexOf(model) ?? -1;
+    if (index3 >= 0) explore!.explorePosts[index3].arsiv = false;
 
-    final index4 = explore.explorePhotos.indexOf(model);
-    if (index4 >= 0) explore.explorePhotos[index4].arsiv = false;
+    final index4 = explore?.explorePhotos.indexOf(model) ?? -1;
+    if (index4 >= 0) explore!.explorePhotos[index4].arsiv = false;
 
-    final index5 = explore.exploreVideos.indexOf(model);
-    if (index5 >= 0) explore.exploreVideos[index5].arsiv = false;
+    final index5 = explore?.exploreVideos.indexOf(model) ?? -1;
+    if (index5 >= 0) explore!.exploreVideos[index5].arsiv = false;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = false;
+    final store8 = AgendaController.maybeFind();
+    final index8 = store8?.agendaList.indexOf(model) ?? -1;
+    if (index8 >= 0) store8!.agendaList[index8].arsiv = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final profile = ProfileController.maybeFind();
+    final profileIndex = profile?.allPosts.indexOf(model) ?? -1;
+    if (profileIndex >= 0) profile!.allPosts[profileIndex].arsiv = false;
 
     arsivlendi.value = false;
-
-    // Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts +=1
-    try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisible) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(1)});
-      }
-    } catch (_) {}
   }
 
   Future<void> sil() async {
     await PostDeleteService.instance.softDelete(model);
+    if (isClosed) return;
     silindi.value = true; // UI overlay
 
     // Yumuşak fade-out
-    Future.delayed(const Duration(milliseconds: 2600), () {
+    _deleteFadeTimer?.cancel();
+    _deleteFadeTimer = Timer(const Duration(milliseconds: 2600), () {
+      if (isClosed) return;
       silindiOpacity.value = 0.0;
     });
 
     // 3 sn sonra overlay'i kaldır ve listeden çıkar
-    Future.delayed(const Duration(seconds: 3), () {
+    _deleteRemoveTimer?.cancel();
+    _deleteRemoveTimer = Timer(const Duration(seconds: 3), () {
+      if (isClosed) return;
       // Short listeden kaldır
-      if (Get.isRegistered<ShortController>()) {
-        final shortController = Get.find<ShortController>();
+      final shortController = ShortController.maybeFind();
+      if (shortController != null) {
         final idx =
             shortController.shorts.indexWhere((e) => e.docID == model.docID);
         if (idx != -1) {
@@ -421,79 +417,72 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> getYenidenPaylasBilgisi() async {
-    try {
-      final countSnap = await FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(model.docID)
-          .collection("reshares")
-          .count()
-          .get();
-
-      // retryCount değerini güncelle (merkezi yöneticide)
-      retryCount.value = countSnap.count ?? 0;
-    } catch (e) {
-      print('[ShortContent] ⚠️ Aggregate query failed for ${model.docID}: $e');
-      // Fallback: stats'tan al veya varsayılan değer kullan
-      retryCount.value = model.stats.retryCount.toInt();
-    }
-
-    // Kaldırıldı: yenidenPaylasildiMi -> isReshared değişkeni artık PostInteractionService'den geliyor
+    retryCount.value = _postState?.latestPostData.value == null
+        ? model.stats.retryCount.toInt()
+        : (((_postState!.latestPostData.value!['stats']
+                    as Map<String, dynamic>?)?['retryCount'] ??
+                model.stats.retryCount) as num)
+            .toInt();
   }
 
-  Future<void> getSeens() async {
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .collection("viewers")
-        .get()
-        .then((snap) {
-      // Her dokümanda userID bulunduğu için doküman sayısını al
-      // Kaldırıldı: goruntuleme -> viewCount artık real-time güncelleniyor
-    });
-  }
+  Future<void> getSeens() async {}
 
   Future<void> saveSeeing() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final viewersRef = FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(model.docID)
-          .collection("viewers");
-
-      // Önce bu kullanıcının daha önce görüntüleyip görüntülemediğini kontrol et
-      final existingQuery =
-          await viewersRef.where("userID", isEqualTo: uid).limit(1).get();
-
-      if (existingQuery.docs.isEmpty) {
-        // Auto-generated docID ile yeni görüntüleme kaydı oluştur
-        await viewersRef.doc().set({
-          "userID": uid,
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        });
-        // Kaldırıldı: countManager -> PostInteractionService.recordView() kullanılıyor
-      }
-      // Zaten görüntülemiş, tekrar kayıt yapmaya gerek yok
+      await _interactionService.recordView(model.docID);
     } catch (_) {}
   }
 
   Future<void> fetchUserData(String userID) async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get();
-    pfImage.value = doc.get("pfImage");
-    nickname.value = doc.get("nickname");
-    token.value = doc.get("token");
-    fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
+    final postLevelAvatar = model.authorAvatarUrl.trim();
+    final postLevelNickname = model.authorNickname.trim();
+    final postLevelDisplayName = model.authorDisplayName.trim();
+    final hasPostLevelIdentity = postLevelAvatar.isNotEmpty &&
+        postLevelNickname.isNotEmpty &&
+        postLevelDisplayName.isNotEmpty;
 
-    final takipDoc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
-        .doc(userID)
-        .get();
+    if (hasPostLevelIdentity) {
+      if (isClosed) return;
+      avatarUrl.value = postLevelAvatar;
+      nickname.value = postLevelNickname;
+      fullName.value = postLevelDisplayName;
+      token.value = '';
+      takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+        userID,
+        currentUid: _currentUserId,
+        preferCache: true,
+      );
+      return;
+    }
 
-    takipEdiyorum.value = takipDoc.exists;
+    final summary = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (isClosed) return;
+    final resolvedAvatar = summary?.avatarUrl.trim().isNotEmpty == true
+        ? summary!.avatarUrl.trim()
+        : '';
+    avatarUrl.value =
+        postLevelAvatar.isNotEmpty ? postLevelAvatar : resolvedAvatar;
+    nickname.value = postLevelNickname.isNotEmpty
+        ? postLevelNickname
+        : (summary?.nickname.trim().isNotEmpty == true
+            ? summary!.nickname.trim()
+            : '');
+    token.value = summary?.token ?? '';
+    fullName.value = postLevelDisplayName.isNotEmpty
+        ? postLevelDisplayName
+        : (summary?.displayName.trim().isNotEmpty == true
+            ? summary!.displayName.trim()
+            : nickname.value);
+
+    takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+      userID,
+      currentUid: _currentUserId,
+      preferCache: true,
+    );
   }
 
   Future<void> sendPost() async {
@@ -509,16 +498,17 @@ class ShortContentController extends GetxController {
 
   Future<void> onlyFollowUserOneTime() async {
     if (followLoading.value) return;
-    final myRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('TakipEdilenler')
-        .doc(model.userID);
 
     try {
-      final snap = await myRef.get();
-      if (snap.exists) {
+      final currentUid = _currentUserId;
+      final alreadyFollowing = await FollowRepository.ensure().isFollowing(
+        model.userID,
+        currentUid: currentUid,
+        preferCache: true,
+      );
+      if (alreadyFollowing) {
         // Zaten takip ediyor, işlem yok
+        takipEdiyorum.value = true;
         return;
       }
       followLoading.value = true;
@@ -528,10 +518,9 @@ class ShortContentController extends GetxController {
         takipEdiyorum.value = true;
       }
       if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+        AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
       }
-    } catch (e) {
-      print('Bir hata oluştu: $e');
+    } catch (_) {
     } finally {
       followLoading.value = false;
     }

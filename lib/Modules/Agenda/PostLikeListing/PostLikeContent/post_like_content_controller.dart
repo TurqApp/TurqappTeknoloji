@@ -1,18 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 
 class PostLikeContentController extends GetxController {
   var fullName = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
   Future<void> getUserData(String userID) async {
-    FirebaseFirestore.instance.collection("users").doc(userID)
-        .get()
-        .then((doc){
-       fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
-       pfImage.value = doc.get("pfImage");
-       nickname.value = doc.get("nickname");
-    });
+    final summary = await _userSummaryResolver.resolve(
+      userID,
+      preferCache: true,
+    );
+    if (summary == null) return;
+    fullName.value = summary.displayName;
+    avatarUrl.value = summary.avatarUrl;
+    nickname.value = summary.preferredName;
   }
 }

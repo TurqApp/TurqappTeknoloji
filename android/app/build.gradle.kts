@@ -28,16 +28,17 @@ val localProps = Properties()
 if (localPropsFile.exists()) {
     localPropsFile.inputStream().use { localProps.load(it) }
 }
+val bundledGoogleMapsApiKey = "AIzaSyCQ6gUYt8TUQ9U4uQo8ZKnTiSp1D3zMEWA"
 val googleMapsApiKey: String =
     (project.findProperty("GOOGLE_MAPS_API_KEY") as String?)
-        ?: localProps.getProperty("GOOGLE_MAPS_API_KEY", "")
+        ?: localProps.getProperty("GOOGLE_MAPS_API_KEY", bundledGoogleMapsApiKey)
 
 android {
     namespace = "com.turqapp.app"
 
     // Flutter plugin bunları yönetir
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -60,6 +61,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     /**
@@ -102,7 +104,9 @@ android {
             if (hasKeyProps) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                println("⚠️ Release build imzasız kalabilir (key.properties yok). Debug kullan.")
+                // Local release runs need a signed APK even without production keystore.
+                signingConfig = signingConfigs.getByName("debug")
+                println("⚠️ key.properties yok: release debug keystore ile imzalanıyor (sadece lokal test).")
             }
         }
 
@@ -115,11 +119,28 @@ android {
     }
 }
 
+configurations.all {
+    exclude(group = "com.google.android.play", module = "core-common")
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Required by Flutter deferred component manager references during R8 minify.
+    implementation("com.google.android.play:core:1.10.3")
+    implementation(project(":integration_test"))
+    implementation("androidx.concurrent:concurrent-futures:1.2.0")
 
     // ExoPlayer (Media3) - Native HLS video playback
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
+
+    androidTestImplementation("androidx.test.ext:junit:1.1.1")
+    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test:rules:1.2.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    androidTestImplementation("androidx.test.espresso:espresso-contrib:3.2.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation(platform("com.google.firebase:firebase-bom:34.9.0"))
+    androidTestImplementation("com.google.firebase:firebase-auth")
 }

@@ -7,29 +7,32 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 enum ErrorSeverity {
-  low('Düşük'),
-  medium('Orta'),
-  high('Yüksek'),
-  critical('Kritik');
+  low('error_handling.severity_low'),
+  medium('error_handling.severity_medium'),
+  high('error_handling.severity_high'),
+  critical('error_handling.severity_critical');
 
-  const ErrorSeverity(this.label);
-  final String label;
+  const ErrorSeverity(this._labelKey);
+  final String _labelKey;
+  String get label => _labelKey.tr;
 }
 
 enum ErrorCategory {
-  network('Ağ Hatası'),
-  upload('Yükleme Hatası'),
-  storage('Depolama Hatası'),
-  authentication('Kimlik Doğrulama'),
-  validation('Doğrulama Hatası'),
-  permission('İzin Hatası'),
-  system('Sistem Hatası'),
-  unknown('Bilinmeyen Hata');
+  network('error_handling.category_network'),
+  upload('error_handling.category_upload'),
+  storage('error_handling.category_storage'),
+  authentication('error_handling.category_authentication'),
+  validation('error_handling.category_validation'),
+  permission('error_handling.category_permission'),
+  system('error_handling.category_system'),
+  unknown('error_handling.category_unknown');
 
-  const ErrorCategory(this.label);
-  final String label;
+  const ErrorCategory(this._labelKey);
+  final String _labelKey;
+  String get label => _labelKey.tr;
 }
 
 class AppError {
@@ -110,6 +113,18 @@ class AppError {
 }
 
 class ErrorHandlingService extends GetxController {
+  static ErrorHandlingService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(ErrorHandlingService());
+  }
+
+  static ErrorHandlingService? maybeFind() {
+    final isRegistered = Get.isRegistered<ErrorHandlingService>();
+    if (!isRegistered) return null;
+    return Get.find<ErrorHandlingService>();
+  }
+
   final RxList<AppError> _errorHistory = <AppError>[].obs;
   final RxBool _isOnline = true.obs;
   final RxInt _totalErrors = 0.obs;
@@ -181,27 +196,35 @@ class ErrorHandlingService extends GetxController {
     String code = 'UNKNOWN_ERROR';
     String message = error.toString();
     String userFriendlyMessage = userMessage ?? 'Beklenmeyen bir hata oluştu';
+    final hasExplicitCategory = category != null;
     ErrorCategory errorCategory = category ?? ErrorCategory.unknown;
 
     // Analyze error type and categorize
-    if (error is SocketException || error is TimeoutException) {
-      errorCategory = ErrorCategory.network;
-      userFriendlyMessage =
-          userMessage ?? 'İnternet bağlantısı kontrol edilemiyor';
-      code = 'NETWORK_ERROR';
-      isRetryable = true;
-    } else if (error is FileSystemException) {
-      errorCategory = ErrorCategory.storage;
-      userFriendlyMessage = userMessage ?? 'Dosya işlemi başarısız oldu';
-      code = 'STORAGE_ERROR';
-    } else if (error.toString().contains('permission')) {
-      errorCategory = ErrorCategory.permission;
-      userFriendlyMessage = userMessage ?? 'Gerekli izinler verilmedi';
-      code = 'PERMISSION_ERROR';
-    } else if (error.toString().contains('auth')) {
-      errorCategory = ErrorCategory.authentication;
-      userFriendlyMessage = userMessage ?? 'Kimlik doğrulama hatası';
-      code = 'AUTH_ERROR';
+    if (!hasExplicitCategory) {
+      final lower = normalizeLowercase(error.toString());
+      if (error is SocketException || error is TimeoutException) {
+        errorCategory = ErrorCategory.network;
+        userFriendlyMessage =
+            userMessage ?? 'İnternet bağlantısı kontrol edilemiyor';
+        code = 'NETWORK_ERROR';
+        isRetryable = true;
+      } else if (error is FileSystemException) {
+        errorCategory = ErrorCategory.storage;
+        userFriendlyMessage = userMessage ?? 'Dosya işlemi başarısız oldu';
+        code = 'STORAGE_ERROR';
+      } else if (lower.contains('permission') ||
+          lower.contains('permission-denied') ||
+          lower.contains('unauthorized')) {
+        errorCategory = ErrorCategory.permission;
+        userFriendlyMessage = userMessage ?? 'Gerekli izinler verilmedi';
+        code = 'PERMISSION_ERROR';
+      } else if (lower.contains('unauthenticated') ||
+          lower.contains('auth/') ||
+          lower.contains('requires-recent-login')) {
+        errorCategory = ErrorCategory.authentication;
+        userFriendlyMessage = userMessage ?? 'Kimlik doğrulama hatası';
+        code = 'AUTH_ERROR';
+      }
     }
 
     return AppError(
@@ -290,11 +313,11 @@ Retry Count: ${appError.retryCount}
   /// Show retry option for retryable errors
   void _showRetryOption(AppError appError) {
     Get.defaultDialog(
-      title: 'Tekrar Dene',
-      middleText:
-          '${appError.userFriendlyMessage}\n\nTekrar denemek ister misiniz?',
-      textConfirm: 'Tekrar Dene',
-      textCancel: 'İptal',
+      title: 'common.retry'.tr,
+      middleText: 'error_handling.retry_prompt'
+          .trParams({'message': appError.userFriendlyMessage}),
+      textConfirm: 'common.retry'.tr,
+      textCancel: 'common.cancel'.tr,
       onConfirm: () {
         Get.back();
         _retryFailedOperation(appError);
@@ -319,8 +342,8 @@ Retry Count: ${appError.retryCount}
         break;
       default:
         AppSnackbar(
-          'Tekrar Deneme',
-          'Bu işlem için tekrar deneme desteklenmiyor',
+          'common.info'.tr,
+          'error_handling.retry_unsupported'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
@@ -332,8 +355,8 @@ Retry Count: ${appError.retryCount}
   Future<void> _retryNetworkOperation(AppError error) async {
     if (!_isOnline.value) {
       AppSnackbar(
-        'Bağlantı Hatası',
-        'İnternet bağlantısı bulunamadı',
+        'error_handling.network_title'.tr,
+        'error_handling.network_missing'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -343,8 +366,8 @@ Retry Count: ${appError.retryCount}
 
     // Implement specific network retry logic
     AppSnackbar(
-      'Tekrar Deneniyor',
-      'İşlem tekrar deneniyor...',
+      'error_handling.retrying_title'.tr,
+      'error_handling.retrying_body'.tr,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,
@@ -355,8 +378,8 @@ Retry Count: ${appError.retryCount}
   Future<void> _retryUploadOperation(AppError error) async {
     // This would integrate with UploadQueueService
     AppSnackbar(
-      'Yükleme Tekrarı',
-      'Yükleme işlemi tekrar başlatılıyor...',
+      'error_handling.upload_retry_title'.tr,
+      'error_handling.upload_retry_body'.tr,
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,

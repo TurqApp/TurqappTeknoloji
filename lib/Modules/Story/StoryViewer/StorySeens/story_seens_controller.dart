@@ -1,34 +1,40 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
 
 class StorySeensController extends GetxController {
+  static StorySeensController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      StorySeensController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static StorySeensController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<StorySeensController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<StorySeensController>(tag: tag);
+  }
+
   RxList<String> list = <String>[].obs;
   var totalSeen = 0.obs;
+  final StoryRepository _storyRepository = StoryRepository.ensure();
 
   Future<void> getData(String storyID) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("stories")
-          .doc(storyID)
-          .collection("Viewers")
-          .limit(50)
-          .get();
-      list.assignAll(snap.docs.map((val) => val.id).toList());
-    } catch (e) {
-      print("Görüntüleme listesi alınamadı: $e");
+      list.assignAll(await _storyRepository.fetchStoryViewerIds(storyID));
+    } catch (_) {
       list.clear();
     }
 
     try {
-      final counts = await FirebaseFirestore.instance
-          .collection("stories")
-          .doc(storyID)
-          .collection("Viewers")
-          .count()
-          .get();
-      totalSeen.value = counts.count ?? 0;
-    } catch (e) {
-      print("Toplam görülme alınamadı: $e");
+      totalSeen.value = await _storyRepository.fetchStoryViewerCount(storyID);
+    } catch (_) {
       totalSeen.value = 0;
     }
   }

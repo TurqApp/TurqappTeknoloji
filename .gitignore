@@ -40,3 +40,15 @@ assets/data/service_account.json
 # macOS metadata
 .DS_Store
 **/.DS_Store
+
+# Firebase emulator logs
+functions/*-debug.log
+functions/firestore-debug.log
+functions/storage-debug.log
+functions/ui-debug.log
+
+# Local load-test artefacts
+tests/load/k6_results.json
+tests/load/k6_results_latest.json
+tests/load/k6_summary*.json
+tests/load/k6_summary_*_latest.json

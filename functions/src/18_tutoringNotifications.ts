@@ -1,5 +1,10 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { addInboxItem } from "./notificationInbox";
+
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
 const db = admin.firestore();
 
@@ -23,26 +28,26 @@ export const onTutoringApplicationCreate = functions.firestore
 
       // Başvuranın adını bul
       const applicantDoc = await db.collection("users").doc(applicantId).get();
-      const applicantName = String(applicantDoc.data()?.nickname || "Bir kullanıcı");
+      const applicantData = applicantDoc.data() || {};
+      const applicantName = String(
+        applicantData.displayName ||
+          applicantData.username ||
+          applicantData.nickname ||
+          "Bir kullanıcı"
+      );
 
       // Öğretmene bildirim oluştur
-      await db
-        .collection("users")
-        .doc(tutorUID)
-        .collection("notifications")
-        .add({
-          type: "tutoring_application",
-          fromUserID: applicantId,
-          title: "Yeni Başvuru",
-          body: `${applicantName} "${tutoringTitle}" ilanınıza başvurdu.`,
-          postID: docId,
-          timeStamp: Date.now(),
-          read: false,
-        });
+      await addInboxItem(db, tutorUID, {
+        type: "tutoring_application",
+        fromUserID: applicantId,
+        title: "Yeni Başvuru",
+        body: `${applicantName} "${tutoringTitle}" ilanınıza başvurdu.`,
+        postID: docId,
+        timeStamp: Date.now(),
+        read: false,
+      });
 
-      console.log(
-        `[TutoringNotif] Application notification sent to ${tutorUID} for ${docId}`
-      );
+      console.log("[TutoringNotif] Application notification sent");
     } catch (e) {
       console.error("[TutoringNotif] onCreate error:", e);
     }
@@ -76,23 +81,17 @@ export const onTutoringApplicationUpdate = functions.firestore
       if (!statusText) return;
 
       // Başvurana bildirim oluştur
-      await db
-        .collection("users")
-        .doc(applicantId)
-        .collection("notifications")
-        .add({
-          type: "tutoring_status",
-          fromUserID: "",
-          title: "Başvuru Durumu Güncellendi",
-          body: `"${tutoringTitle}" başvurunuz: ${statusText}`,
-          postID: docId,
-          timeStamp: Date.now(),
-          read: false,
-        });
+      await addInboxItem(db, applicantId, {
+        type: "tutoring_status",
+        fromUserID: "",
+        title: "Başvuru Durumu Güncellendi",
+        body: `"${tutoringTitle}" başvurunuz: ${statusText}`,
+        postID: docId,
+        timeStamp: Date.now(),
+        read: false,
+      });
 
-      console.log(
-        `[TutoringNotif] Status update notification sent to ${applicantId}: ${newStatus}`
-      );
+      console.log("[TutoringNotif] Status update notification sent");
     } catch (e) {
       console.error("[TutoringNotif] onUpdate error:", e);
     }

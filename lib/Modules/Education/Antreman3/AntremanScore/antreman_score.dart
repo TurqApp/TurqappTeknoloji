@@ -1,20 +1,44 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
-class AntremanScore extends StatelessWidget {
-  AntremanScore({super.key});
+class AntremanScore extends StatefulWidget {
+  const AntremanScore({super.key});
 
-  final AntremanScoreController controller = Get.put(AntremanScoreController());
-  final String currentUserID = FirebaseAuth.instance.currentUser?.uid ?? '';
+  @override
+  State<AntremanScore> createState() => _AntremanScoreState();
+}
+
+class _AntremanScoreState extends State<AntremanScore> {
+  late final AntremanScoreController controller;
+  final String currentUserID = CurrentUserService.instance.effectiveUserId;
   final ScrollController _scrollController = ScrollController();
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'antreman_score_${identityHashCode(this)}';
+    controller = AntremanScoreController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    final existing = AntremanScoreController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
+      Get.delete<AntremanScoreController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +49,8 @@ class AntremanScore extends StatelessWidget {
           Column(
             children: [
               BackButtons(
-                text: "${controller.monthName} Ayı Puan Tablosu",
+                text: 'training.monthly_scoreboard'
+                    .trParams({'month': controller.monthName}),
               ),
               Expanded(
                 child: Obx(() {
@@ -40,15 +65,19 @@ class AntremanScore extends StatelessWidget {
                       child: ListView(
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          SizedBox(height: 180),
-                          Center(
-                            child: Text("Henüz puan tablosu oluşmadı."),
+                        children: [
+                          SizedBox(
+                            height: (MediaQuery.of(context).size.height * 0.22)
+                                .clamp(130.0, 180.0),
                           ),
-                          SizedBox(height: 8),
+                          Center(
+                            child: Text("training.leaderboard_empty".tr),
+                          ),
+                          const SizedBox(height: 8),
                           Center(
                             child: Text(
-                                "Listeye girmek için Çöz Geç'te soru çöz."),
+                              "training.leaderboard_empty_body".tr,
+                            ),
                           ),
                         ],
                       ),
@@ -189,7 +218,7 @@ class AntremanScore extends StatelessWidget {
               ),
               ClipOval(
                 child: CachedNetworkImage(
-                  imageUrl: user['pfImage'] ?? '',
+                  imageUrl: user['avatarUrl'] ?? '',
                   width: imageSize,
                   height: imageSize,
                   fit: BoxFit.cover,
@@ -226,7 +255,7 @@ class AntremanScore extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: frameWidth * 0.78),
                 child: Text(
-                  user['nickname'] ?? 'Bilinmiyor',
+                  user['nickname'] ?? 'common.unknown_user'.tr,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -305,7 +334,7 @@ class AntremanScore extends StatelessWidget {
                     children: [
                       ClipOval(
                         child: CachedNetworkImage(
-                          imageUrl: user['pfImage'] ?? '',
+                          imageUrl: user['avatarUrl'] ?? '',
                           width: 38,
                           height: 38,
                           fit: BoxFit.cover,
@@ -325,7 +354,8 @@ class AntremanScore extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    user['nickname'] ?? 'Bilinmiyor',
+                                    user['nickname'] ??
+                                        'common.unknown_user'.tr,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyles.textFieldTitle
@@ -398,29 +428,8 @@ class AntremanScore extends StatelessWidget {
   }
 
   Widget _buildRozetIcon(String rozet, double size) {
-    Color? color;
-    switch (rozet) {
-      case 'Kirmizi':
-        color = Colors.red;
-        break;
-      case 'Mavi':
-        color = Colors.blue;
-        break;
-      case 'Sari':
-        color = Colors.orange;
-        break;
-      case 'Siyah':
-        color = Colors.black;
-        break;
-      case 'Gri':
-        color = Colors.grey;
-        break;
-      case 'Turkuaz':
-        color = const Color(0xFF40E0D0);
-        break;
-    }
-
-    if (color == null) {
+    final color = mapRozetToColor(rozet);
+    if (color == Colors.transparent) {
       return const SizedBox.shrink();
     }
 

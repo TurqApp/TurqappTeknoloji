@@ -37,14 +37,14 @@ class ScrollTotopButton extends StatelessWidget {
 
           return Visibility(
             visible: isVisible,
-              child: GestureDetector(
-                onTap: () {
-                  scrollController.animateTo(
+            child: GestureDetector(
+              onTap: () {
+                scrollController.animateTo(
                   0,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOut,
                 );
-                },
+              },
               child: ClipOval(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),

@@ -7,7 +7,7 @@ Future<void> showActionSheet({
   required String title,
   required String message,
   required List<Map<String, dynamic>> actions,
-  String cancelText = "Vazgeç",
+  String cancelText = "",
   Color? titleColor,
   Color? messageColor,
   Color? cancelButtonColor,
@@ -50,7 +50,7 @@ Future<void> showActionSheet({
       cancelButton: CupertinoActionSheetAction(
         onPressed: () => Get.back(),
         child: Text(
-          cancelText,
+          cancelText.isEmpty ? 'common.cancel'.tr : cancelText,
           style: TextStyle(
             fontSize: 15,
             fontFamily: "MontserratMedium",

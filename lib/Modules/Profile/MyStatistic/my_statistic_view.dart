@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,15 +6,21 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/MyStatistic/my_statistic_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class MyStatisticView extends StatelessWidget {
-  MyStatisticView({super.key});
+class MyStatisticView extends StatefulWidget {
+  const MyStatisticView({super.key});
 
-  final MyStatisticController controller = Get.put(MyStatisticController());
-  final user = Get.find<FirebaseMyStore>();
+  @override
+  State<MyStatisticView> createState() => _MyStatisticViewState();
+}
+
+class _MyStatisticViewState extends State<MyStatisticView> {
+  late final MyStatisticController controller;
+  late final String _controllerTag;
+  final userService = CurrentUserService.instance;
   static const List<Color> _statColors = [
     Color(0xFF1E88E5),
     Color(0xFFF4511E),
@@ -37,12 +42,38 @@ class MyStatisticView extends StatelessWidget {
     Color(0xFF0097A7),
   ];
 
+  String get _currentUid => userService.effectiveUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'my_statistic_${identityHashCode(this)}';
+    controller = MyStatisticController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (MyStatisticController.maybeFind(tag: _controllerTag) != null &&
+        identical(
+          MyStatisticController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<MyStatisticController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Obx(() {
+          final currentUser = userService.currentUserRx.value;
+          final avatarUrl = currentUser?.avatarUrl ?? '';
+          final firstName = currentUser?.firstName ?? '';
+          final lastName = currentUser?.lastName ?? '';
+          final nickname = currentUser?.nickname ?? '';
           return RefreshIndicator(
               backgroundColor: Colors.black,
               color: Colors.white,
@@ -51,7 +82,7 @@ class MyStatisticView extends StatelessWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    BackButtons(text: "İstatistikler"),
+                    BackButtons(text: 'statistics.title'.tr),
                     if (controller.isLoading.value)
                       Padding(
                         padding: const EdgeInsets.all(15),
@@ -76,9 +107,9 @@ class MyStatisticView extends StatelessWidget {
                                     child: SizedBox(
                                       width: 50,
                                       height: 50,
-                                      child: user.pfImage.value != ""
+                                      child: avatarUrl.isNotEmpty
                                           ? CachedNetworkImage(
-                                              imageUrl: user.pfImage.value,
+                                              imageUrl: avatarUrl,
                                               fit: BoxFit.cover,
                                             )
                                           : const Center(
@@ -97,7 +128,7 @@ class MyStatisticView extends StatelessWidget {
                                         Row(
                                           children: [
                                             Text(
-                                              "${user.firstName.value} ${user.lastName.value}",
+                                              "$firstName $lastName",
                                               style: const TextStyle(
                                                 color: Colors.black,
                                                 fontSize: 15,
@@ -106,14 +137,13 @@ class MyStatisticView extends StatelessWidget {
                                             ),
                                             RozetContent(
                                               size: 15,
-                                              userID: FirebaseAuth
-                                                  .instance.currentUser!.uid,
+                                              userID: _currentUid,
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          user.nickname.value,
+                                          nickname,
                                           style: const TextStyle(
                                             color: Colors.black,
                                             fontSize: 13,
@@ -124,9 +154,9 @@ class MyStatisticView extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Text(
-                                    "Siz",
-                                    style: TextStyle(
+                                  Text(
+                                    'statistics.you'.tr,
+                                    style: const TextStyle(
                                       color: Colors.green,
                                       fontSize: 15,
                                       fontFamily: "MontserratMedium",
@@ -138,12 +168,12 @@ class MyStatisticView extends StatelessWidget {
                           ),
 
                           const SizedBox(height: 12),
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
-                              "İstatistiksel verileriniz, 30 günlük aktivitelerinize göre düzenli olarak güncellenmektedir.",
+                              'statistics.notice'.tr,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 15,
                                 fontFamily: "MontserratMedium",
@@ -155,7 +185,7 @@ class MyStatisticView extends StatelessWidget {
                           // Dinamik istatistikler
                           Obx(() => _statItem(
                                 controller.profileVisitsApprox.value,
-                                "Profil Ziyareti (30 Gün)",
+                                'statistics.profile_visits_30d'.tr,
                                 0,
                               )),
                           Row(
@@ -163,7 +193,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.postViews30d.value,
-                                      "Gönderi Görüntüleme",
+                                      'statistics.post_views'.tr,
                                       1,
                                     )),
                               ),
@@ -171,7 +201,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.posts30d.value,
-                                      "Gönderi Sayısı",
+                                      'statistics.post_count'.tr,
                                       2,
                                     )),
                               ),
@@ -182,7 +212,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.stories30d.value,
-                                      "Hikaye Sayısı",
+                                      'statistics.story_count'.tr,
                                       6,
                                     )),
                               ),
@@ -190,7 +220,7 @@ class MyStatisticView extends StatelessWidget {
                               Expanded(
                                 child: Obx(() => _statItem(
                                       controller.followerGrowth30d.value,
-                                      "Takipçi Artışı",
+                                      'statistics.follower_growth'.tr,
                                       8,
                                     )),
                               ),

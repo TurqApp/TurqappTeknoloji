@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// Bouncy tap wrapper used across agenda action buttons.
@@ -10,6 +11,7 @@ class AnimatedActionButton extends StatefulWidget {
   final String semanticsLabel;
   final EdgeInsetsGeometry padding;
   final bool showTapArea;
+  final Duration? longPressDuration;
 
   const AnimatedActionButton({
     super.key,
@@ -20,6 +22,7 @@ class AnimatedActionButton extends StatefulWidget {
     required this.semanticsLabel,
     this.padding = const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
     this.showTapArea = false,
+    this.longPressDuration,
   });
 
   @override
@@ -84,6 +87,17 @@ class _AnimatedActionButtonState extends State<AnimatedActionButton>
       label: widget.semanticsLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.deferToChild,
+        onLongPressDown: widget.enabled && widget.onLongPress != null
+            ? (_) {
+                final delay =
+                    widget.longPressDuration ?? kLongPressTimeout;
+                Future<void>.delayed(delay, () {
+                  if (!mounted || _holdScale != _pressScale) return;
+                  _setHoldScale(_releaseScale);
+                  widget.onLongPress?.call();
+                });
+              }
+            : null,
         onTapDown: widget.enabled ? (_) => _setHoldScale(_pressScale) : null,
         onTapCancel: widget.enabled ? () => _setHoldScale(_releaseScale) : null,
         onTapUp: widget.enabled ? (_) => _setHoldScale(_releaseScale) : null,
@@ -91,12 +105,6 @@ class _AnimatedActionButtonState extends State<AnimatedActionButton>
             ? () {
                 _runTapAnimation();
                 widget.onTap?.call();
-              }
-            : null,
-        onLongPress: widget.enabled
-            ? () {
-                _setHoldScale(_releaseScale);
-                widget.onLongPress?.call();
               }
             : null,
         child: AnimatedScale(

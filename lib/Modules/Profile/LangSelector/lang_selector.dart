@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 
 class LangSelector extends StatelessWidget {
@@ -14,7 +15,7 @@ class LangSelector extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 15, right: 15, top: 15),
               child: Row(
-                children: [BackButtons(text: "Uygulama Dili")],
+                children: [BackButtons(text: 'legacy_language.title'.tr)],
               ),
             ),
             Expanded(
@@ -23,12 +24,12 @@ class LangSelector extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    containerRow("Türkçe", true),
-                    containerRow("İngilizce", false),
-                    containerRow("Almanca", false),
-                    containerRow("Fransızca", false),
-                    containerRow("Rusça", false),
-                    containerRow("Arapça", false),
+                    containerRow('language.option.tr'.tr, true),
+                    containerRow('language.option.en'.tr, false),
+                    containerRow('language.option.de'.tr, false),
+                    containerRow('language.option.fr'.tr, false),
+                    containerRow('language.option.ru'.tr, false),
+                    containerRow('language.option.ar'.tr, false),
                   ],
                 ),
               ),

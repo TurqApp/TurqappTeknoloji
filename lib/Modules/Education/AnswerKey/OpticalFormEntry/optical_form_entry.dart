@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -5,19 +6,51 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'optical_form_entry_controller.dart';
 
-class OpticalFormEntry extends StatelessWidget {
+class OpticalFormEntry extends StatefulWidget {
   const OpticalFormEntry({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(OpticalFormEntryController());
+  State<OpticalFormEntry> createState() => _OpticalFormEntryState();
+}
 
+class _OpticalFormEntryState extends State<OpticalFormEntry> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final OpticalFormEntryController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'optical_form_entry_${identityHashCode(this)}';
+    _ownsController =
+        OpticalFormEntryController.maybeFind(tag: _controllerTag) == null;
+    controller = OpticalFormEntryController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = OpticalFormEntryController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<OpticalFormEntryController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sınava Katıl"),
+            BackButtons(text: 'answer_key.join_exam_title'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -28,8 +61,8 @@ class OpticalFormEntry extends StatelessWidget {
                       child: Column(
                         children: [
                           const SizedBox(height: 20),
-                          const Text(
-                            "Sınav Ara",
+                          Text(
+                            'tests.search_title'.tr,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -37,8 +70,8 @@ class OpticalFormEntry extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Öğretmeniniz tarafından size iletilen Test ID değerini buraya girerek teste başlayabilirsiniz.",
+                          Text(
+                            'tests.join_help'.tr,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.black,
@@ -67,8 +100,8 @@ class OpticalFormEntry extends StatelessWidget {
                                 inputFormatters: [
                                   LengthLimitingTextInputFormatter(50),
                                 ],
-                                decoration: const InputDecoration(
-                                  hintText: "Sınav ID",
+                                decoration: InputDecoration(
+                                  hintText: 'answer_key.exam_id_hint'.tr,
                                   hintStyle: TextStyle(
                                     color: Colors.grey,
                                     fontFamily: "MontserratMedium",
@@ -101,7 +134,7 @@ class OpticalFormEntry extends StatelessWidget {
                                           ),
                                         ),
                                         child: Text(
-                                          "Optik Form Ara",
+                                          "answer_key.search_optical_form".tr,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 15,
@@ -125,8 +158,8 @@ class OpticalFormEntry extends StatelessWidget {
                                         child: Container(
                                           alignment: Alignment.centerLeft,
                                           decoration: BoxDecoration(
-                                            color: Colors.grey.withValues(alpha: 
-                                              0.1,
+                                            color: Colors.grey.withValues(
+                                              alpha: 0.1,
                                             ),
                                             borderRadius:
                                                 const BorderRadius.all(
@@ -155,7 +188,15 @@ class OpticalFormEntry extends StatelessWidget {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Toplam ${controller.model.value!.cevaplar.length.toString()} Soru",
+                                                      "answer_key.total_questions"
+                                                          .trParams({
+                                                        "count": controller
+                                                            .model
+                                                            .value!
+                                                            .cevaplar
+                                                            .length
+                                                            .toString(),
+                                                      }),
                                                       style: const TextStyle(
                                                         color: Colors.indigo,
                                                         fontSize: 15,
@@ -216,8 +257,9 @@ class OpticalFormEntry extends StatelessWidget {
                                                             .toInt() <
                                                         DateTime.now()
                                                             .millisecondsSinceEpoch)
-                                                      const Text(
-                                                        "Hemen Başla!",
+                                                      Text(
+                                                        "answer_key.start_now"
+                                                            .tr,
                                                         style: TextStyle(
                                                           color: Colors.green,
                                                           fontSize: 15,
@@ -235,7 +277,8 @@ class OpticalFormEntry extends StatelessWidget {
                                       const SizedBox(height: 20),
                                       Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.withValues(alpha: 0.1),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.1),
                                           borderRadius: const BorderRadius.all(
                                             Radius.circular(12),
                                           ),
@@ -245,7 +288,7 @@ class OpticalFormEntry extends StatelessWidget {
                                           child: Row(
                                             children: [
                                               if (controller
-                                                  .pfImage.value.isNotEmpty)
+                                                  .avatarUrl.value.isNotEmpty)
                                                 ClipRRect(
                                                   borderRadius:
                                                       const BorderRadius.all(
@@ -254,9 +297,28 @@ class OpticalFormEntry extends StatelessWidget {
                                                   child: SizedBox(
                                                     width: 50,
                                                     height: 50,
-                                                    child: Image.network(
-                                                      controller.pfImage.value,
+                                                    child: CachedNetworkImage(
+                                                      imageUrl: controller
+                                                          .avatarUrl.value,
                                                       fit: BoxFit.cover,
+                                                      placeholder: (
+                                                        context,
+                                                        url,
+                                                      ) =>
+                                                          const Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      ),
+                                                      errorWidget: (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) =>
+                                                          const Icon(
+                                                        Icons.person,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -275,8 +337,9 @@ class OpticalFormEntry extends StatelessWidget {
                                                             "MontserratBold",
                                                       ),
                                                     ),
-                                                    const Text(
-                                                      "Öğretmeniniz tarafından oluşturulan optik formdur. ",
+                                                    Text(
+                                                      "answer_key.teacher_created_info"
+                                                          .tr,
                                                       style: TextStyle(
                                                         color: Colors.pink,
                                                         fontSize: 15,
@@ -293,11 +356,11 @@ class OpticalFormEntry extends StatelessWidget {
                                       ),
                                     ],
                                   )
-                                : const Padding(
+                                : Padding(
                                     padding: EdgeInsets.all(20),
                                     child: Text(
-                                      "Sonucunuz burada listelenecektir",
-                                      style: TextStyle(
+                                      "answer_key.result_placeholder".tr,
+                                      style: const TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
                                         fontFamily: "MontserratBold",

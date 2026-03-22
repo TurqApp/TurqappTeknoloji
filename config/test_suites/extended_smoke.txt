@@ -1,0 +1,11 @@
+integration_test/auth/login_flow_test.dart
+integration_test/chat/chat_listing_smoke_test.dart
+integration_test/feed/feed_first_video_autoplay_test.dart
+integration_test/feed/feed_first_video_playback_test.dart
+integration_test/feed/feed_five_post_scroll_and_return_test.dart
+integration_test/feed/feed_native_exoplayer_truth_smoke_test.dart
+integration_test/feed/feed_ten_video_smoke_test.dart
+integration_test/profile/profile_feed_video_smoke_test.dart
+integration_test/shorts/short_five_item_playback_stress_test.dart
+integration_test/shorts/short_landscape_filter_smoke_test.dart
+integration_test/shorts/short_ten_video_smoke_test.dart

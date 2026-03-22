@@ -3,6 +3,10 @@
 // 💾 Supports both Firebase sync and local cache serialization
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
+
+part 'current_user_model_utils_part.dart';
 
 class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -12,7 +16,7 @@ class CurrentUserModel {
   final String nickname;
   final String firstName;
   final String lastName;
-  final String pfImage;
+  final String avatarUrl;
   final String email;
   final String phoneNumber;
   final String tc;
@@ -135,6 +139,12 @@ class CurrentUserModel {
   // 🔐 Account & Security
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   final bool ban;
+  final int moderationStrikeCount;
+  final int moderationLevel;
+  final int moderationRestrictedUntil;
+  final bool moderationPermanentBan;
+  final String moderationBanReason;
+  final int moderationUpdatedAt;
   final bool deletedAccount;
   final bool bot;
   final String signInMethod; // Email, Phone, Google, etc.
@@ -171,6 +181,10 @@ class CurrentUserModel {
   final Map<String, int> readStoriesTimes;
   final String mail; // Secondary email?
 
+  String get fullName => '$firstName $lastName'.trim();
+  bool get isVerified => hesapOnayi;
+  bool get isPrivate => gizliHesap;
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🏗️ Constructor
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -179,7 +193,7 @@ class CurrentUserModel {
     required this.nickname,
     required this.firstName,
     required this.lastName,
-    required this.pfImage,
+    required this.avatarUrl,
     required this.email,
     required this.phoneNumber,
     required this.tc,
@@ -260,6 +274,12 @@ class CurrentUserModel {
     required this.bank,
     required this.iban,
     required this.ban,
+    required this.moderationStrikeCount,
+    required this.moderationLevel,
+    required this.moderationRestrictedUntil,
+    required this.moderationPermanentBan,
+    required this.moderationBanReason,
+    required this.moderationUpdatedAt,
     required this.deletedAccount,
     required this.bot,
     required this.signInMethod,
@@ -290,57 +310,88 @@ class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   factory CurrentUserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    final education = _asMap(data['education']);
+    final family = _asMap(data['family']);
+    final profile = _asMap(data['profile']);
 
     return CurrentUserModel(
       userID: doc.id,
-      nickname: data['nickname'] ?? '',
+      nickname: (data['nickname'] ??
+              data['nickName'] ??
+              data['username'] ??
+              data['userName'] ??
+              data['displayName'] ??
+              '')
+          .toString(),
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
-      pfImage: data['pfImage'] ?? '',
+      avatarUrl: resolveAvatarUrl(data, profile: profile),
       email: data['email'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
       tc: data['tc'] ?? '',
       dogumTarihi: data['dogumTarihi'] ?? '',
       cinsiyet: data['cinsiyet'] ?? '',
       bio: data['bio'] ?? '',
-      rozet: data['rozet'] ?? '',
-      hesapOnayi: data['hesapOnayi'] ?? false,
-      gizliHesap: data['gizliHesap'] ?? false,
+      rozet: (data['rozet'] ?? data['badge'] ?? '').toString(),
+      hesapOnayi: (data['isApproved'] ?? false) == true,
+      gizliHesap: (data['isPrivate'] ?? false) == true,
       viewSelection: data['viewSelection'] ?? 1,
       ilgialanlari: List<String>.from(data['ilgialanlari'] ?? []),
       favoriMuzikler: List<String>.from(data['favoriMuzikler'] ?? []),
       meslekKategori: data['meslekKategori'] ?? '',
       calismaDurumu: data['calismaDurumu'] ?? '',
       medeniHal: data['medeniHal'] ?? '',
-      counterOfFollowers: data['counterOfFollowers'] ?? 0,
-      counterOfFollowings: data['counterOfFollowings'] ?? 0,
-      counterOfPosts: data['counterOfPosts'] ?? 0,
+      counterOfFollowers: _parseToInt(
+        data['followerCount'] ??
+            data['counterOfFollowers'] ??
+            data['takipciSayisi'],
+      ),
+      counterOfFollowings: _parseToInt(
+        data['followingCount'] ??
+            data['counterOfFollowings'] ??
+            data['takipEdilenSayisi'],
+      ),
+      counterOfPosts: _parseToInt(
+        data['postCount'] ?? data['counterOfPosts'] ?? data['gonderSayisi'],
+      ),
       counterOfLikes: data['counterOfLikes'] ?? 0,
       antPoint: data['antPoint'] ?? 100,
       dailyDurations: data['dailyDurations'] ?? 1,
-      educationLevel: data['educationLevel'] ?? '',
-      universite: data['universite'] ?? '',
-      fakulte: data['fakulte'] ?? '',
-      bolum: data['bolum'] ?? '',
-      ogrenciNo: data['ogrenciNo'] ?? '',
-      ogretimTipi: data['ogretimTipi'] ?? '',
-      sinif: data['sinif'] ?? '',
-      lise: data['lise'] ?? '',
-      ortaOkul: data['ortaOkul'] ?? '',
-      okul: data['okul'] ?? '',
-      okulSehir: data['okulSehir'] ?? '',
-      okulIlce: data['okulIlce'] ?? '',
-      ortalamaPuan: data['ortalamaPuan'] ?? '',
-      ortalamaPuan1: data['ortalamaPuan1'] ?? '',
-      ortalamaPuan2: data['ortalamaPuan2'] ?? '',
-      defAnaBaslik: data['defAnaBaslik'] ?? '',
-      defDers: data['defDers'] ?? '',
-      defSinavTuru: data['defSinavTuru'] ?? '',
-      osymPuanTuru: data['osymPuanTuru'] ?? '',
-      osysPuan: data['osysPuan'] ?? '',
-      osysPuani1: data['osysPuani1'] ?? '',
-      osysPuani2: data['osysPuani2'] ?? '',
-      yuzlukSistem: data['yuzlukSistem'] ?? true,
+      educationLevel:
+          _pickScopedString(data, education, 'educationLevel', fallback: ''),
+      universite:
+          _pickScopedString(data, education, 'universite', fallback: ''),
+      fakulte: _pickScopedString(data, education, 'fakulte', fallback: ''),
+      bolum: _pickScopedString(data, education, 'bolum', fallback: ''),
+      ogrenciNo: _pickScopedString(data, education, 'ogrenciNo', fallback: ''),
+      ogretimTipi:
+          _pickScopedString(data, education, 'ogretimTipi', fallback: ''),
+      sinif: _pickScopedString(data, education, 'sinif', fallback: ''),
+      lise: _pickScopedString(data, education, 'lise', fallback: ''),
+      ortaOkul: _pickScopedString(data, education, 'ortaOkul', fallback: ''),
+      okul: _pickScopedString(data, education, 'okul', fallback: ''),
+      okulSehir: _pickScopedString(data, education, 'okulSehir', fallback: ''),
+      okulIlce: _pickScopedString(data, education, 'okulIlce', fallback: ''),
+      ortalamaPuan:
+          _pickScopedString(data, education, 'ortalamaPuan', fallback: ''),
+      ortalamaPuan1:
+          _pickScopedString(data, education, 'ortalamaPuan1', fallback: ''),
+      ortalamaPuan2:
+          _pickScopedString(data, education, 'ortalamaPuan2', fallback: ''),
+      defAnaBaslik:
+          _pickScopedString(data, education, 'defAnaBaslik', fallback: ''),
+      defDers: _pickScopedString(data, education, 'defDers', fallback: ''),
+      defSinavTuru:
+          _pickScopedString(data, education, 'defSinavTuru', fallback: ''),
+      osymPuanTuru:
+          _pickScopedString(data, education, 'osymPuanTuru', fallback: ''),
+      osysPuan: _pickScopedString(data, education, 'osysPuan', fallback: ''),
+      osysPuani1:
+          _pickScopedString(data, education, 'osysPuani1', fallback: ''),
+      osysPuani2:
+          _pickScopedString(data, education, 'osysPuani2', fallback: ''),
+      yuzlukSistem:
+          _pickScopedBool(data, education, 'yuzlukSistem', fallback: true),
       adres: data['adres'] ?? '',
       ulke: data['ulke'] ?? '',
       city: data['city'] ?? '',
@@ -354,40 +405,55 @@ class CurrentUserModel {
       nufusaKayitliOlduguYer: data['nufusaKayitliOlduguYer'] ?? '',
       locationSehir: data['locationSehir'] ?? '',
       kolayAdresSelection: data['kolayAdresSelection'] ?? '',
-      familyInfo: data['familyInfo'] ?? '',
-      totalLiving: _parseToInt(data['totalLiving']),
-      motherName: data['motherName'] ?? '',
-      motherSurname: data['motherSurname'] ?? '',
-      motherPhone: data['motherPhone'] ?? '',
-      motherJob: data['motherJob'] ?? '',
-      motherSalary: data['motherSalary'] ?? '',
-      motherLiving: data['motherLiving'] ?? '',
-      fatherName: data['fatherName'] ?? '',
-      fatherSurname: data['fatherSurname'] ?? '',
-      fatherPhone: data['fatherPhone'] ?? '',
-      fatherJob: data['fatherJob'] ?? '',
-      fatherSalary: data['fatherSalary'] ?? '',
-      fatherLiving: data['fatherLiving'] ?? '',
-      evMulkiyeti: data['evMulkiyeti'] ?? '',
-      mulkiyet: data['mulkiyet'] ?? '',
-      yurt: data['yurt'] ?? '',
-      bursVerebilir: data['bursVerebilir'] ?? false,
-      engelliRaporu: data['engelliRaporu'] ?? '',
-      isDisabled: data['isDisabled'] ?? false,
+      familyInfo: _pickScopedString(data, family, 'familyInfo', fallback: ''),
+      totalLiving: _pickScopedInt(data, family, 'totalLiving', fallback: 0),
+      motherName: _pickScopedString(data, family, 'motherName', fallback: ''),
+      motherSurname:
+          _pickScopedString(data, family, 'motherSurname', fallback: ''),
+      motherPhone: _pickScopedString(data, family, 'motherPhone', fallback: ''),
+      motherJob: _pickScopedString(data, family, 'motherJob', fallback: ''),
+      motherSalary:
+          _pickScopedString(data, family, 'motherSalary', fallback: ''),
+      motherLiving:
+          _pickScopedString(data, family, 'motherLiving', fallback: ''),
+      fatherName: _pickScopedString(data, family, 'fatherName', fallback: ''),
+      fatherSurname:
+          _pickScopedString(data, family, 'fatherSurname', fallback: ''),
+      fatherPhone: _pickScopedString(data, family, 'fatherPhone', fallback: ''),
+      fatherJob: _pickScopedString(data, family, 'fatherJob', fallback: ''),
+      fatherSalary:
+          _pickScopedString(data, family, 'fatherSalary', fallback: ''),
+      fatherLiving:
+          _pickScopedString(data, family, 'fatherLiving', fallback: ''),
+      evMulkiyeti: _pickScopedString(data, family, 'evMulkiyeti', fallback: ''),
+      mulkiyet: _pickScopedString(data, family, 'mulkiyet', fallback: ''),
+      yurt: _pickScopedString(data, family, 'yurt', fallback: ''),
+      bursVerebilir:
+          _pickScopedBool(data, family, 'bursVerebilir', fallback: false),
+      engelliRaporu:
+          _pickScopedString(data, family, 'engelliRaporu', fallback: ''),
+      isDisabled: _pickScopedBool(data, family, 'isDisabled', fallback: false),
       bank: data['bank'] ?? '',
       iban: data['iban'] ?? '',
-      ban: data['ban'] ?? false,
-      deletedAccount: data['deletedAccount'] ?? false,
-      bot: data['bot'] ?? false,
+      ban: (data['isBanned'] ?? false) == true,
+      moderationStrikeCount: _parseToInt(data['moderationStrikeCount']),
+      moderationLevel: _parseToInt(data['moderationLevel']),
+      moderationRestrictedUntil: _parseToInt(data['moderationRestrictedUntil']),
+      moderationPermanentBan: (data['moderationPermanentBan'] ?? false) == true,
+      moderationBanReason: (data['moderationBanReason'] ?? '').toString(),
+      moderationUpdatedAt: _parseToInt(data['moderationUpdatedAt']),
+      deletedAccount: (data['isDeleted'] ?? false) == true,
+      bot: (data['isBot'] ?? false) == true,
       signInMethod: data['signInMethod'] ?? '',
-      sifre: data['sifre'] ?? '',
+      sifre: '',
       refCode: data['refCode'] ?? '',
       blockedUsers: List<String>.from(data['blockedUsers'] ?? []),
       device: data['device'] ?? '',
       deviceID: data['deviceID'] ?? '',
       deviceVersion: data['deviceVersion'] ?? '',
       token: data['token'] ?? '',
-      createdDate: data['createdDate'] ?? '',
+      createdDate:
+          _createdDateFromAny(data['createdDate'] ?? data['createdDate']),
       bildirim: data['bildirim'] ?? false,
       aramaIzin: data['aramaIzin'] ?? false,
       mailIzin: data['mailIzin'] ?? false,
@@ -406,13 +472,15 @@ class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 💾 To JSON (for SharedPreferences cache)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   Map<String, dynamic> toJson() {
     return {
       'userID': userID,
       'nickname': nickname,
+      'displayName': nickname,
       'firstName': firstName,
       'lastName': lastName,
-      'pfImage': pfImage,
+      'avatarUrl': avatarUrl,
       'email': email,
       'phoneNumber': phoneNumber,
       'tc': tc,
@@ -420,8 +488,8 @@ class CurrentUserModel {
       'cinsiyet': cinsiyet,
       'bio': bio,
       'rozet': rozet,
-      'hesapOnayi': hesapOnayi,
-      'gizliHesap': gizliHesap,
+      'isApproved': hesapOnayi,
+      'isPrivate': gizliHesap,
       'viewSelection': viewSelection,
       'ilgialanlari': ilgialanlari,
       'favoriMuzikler': favoriMuzikler,
@@ -431,6 +499,9 @@ class CurrentUserModel {
       'counterOfFollowers': counterOfFollowers,
       'counterOfFollowings': counterOfFollowings,
       'counterOfPosts': counterOfPosts,
+      'followerCount': counterOfFollowers,
+      'followingCount': counterOfFollowings,
+      'postCount': counterOfPosts,
       'counterOfLikes': counterOfLikes,
       'antPoint': antPoint,
       'dailyDurations': dailyDurations,
@@ -492,11 +563,16 @@ class CurrentUserModel {
       'isDisabled': isDisabled,
       'bank': bank,
       'iban': iban,
-      'ban': ban,
-      'deletedAccount': deletedAccount,
-      'bot': bot,
+      'isBanned': ban,
+      'moderationStrikeCount': moderationStrikeCount,
+      'moderationLevel': moderationLevel,
+      'moderationRestrictedUntil': moderationRestrictedUntil,
+      'moderationPermanentBan': moderationPermanentBan,
+      'moderationBanReason': moderationBanReason,
+      'moderationUpdatedAt': moderationUpdatedAt,
+      'isDeleted': deletedAccount,
+      'isBot': bot,
       'signInMethod': signInMethod,
-      'sifre': sifre,
       'refCode': refCode,
       'blockedUsers': blockedUsers,
       'device': device,
@@ -519,60 +595,105 @@ class CurrentUserModel {
     };
   }
 
+  /// Redacted cache payload for local device storage.
+  ///
+  /// Keep UX-critical profile fields, but avoid persisting device and push
+  /// metadata that can be re-hydrated from Firebase/Auth on demand.
+  Map<String, dynamic> toCacheJson() {
+    final json = toJson();
+    json.remove('device');
+    json.remove('deviceID');
+    json.remove('deviceVersion');
+    json.remove('token');
+    return json;
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 📥 From JSON (for SharedPreferences cache)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   factory CurrentUserModel.fromJson(Map<String, dynamic> json) {
+    final education = _asMap(json['education']);
+    final family = _asMap(json['family']);
+    final profile = _asMap(json['profile']);
+
     return CurrentUserModel(
       userID: json['userID'] ?? '',
-      nickname: json['nickname'] ?? '',
+      nickname: (json['nickname'] ??
+              json['nickName'] ??
+              json['username'] ??
+              json['userName'] ??
+              json['displayName'] ??
+              '')
+          .toString(),
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
-      pfImage: json['pfImage'] ?? '',
+      avatarUrl: resolveAvatarUrl(json, profile: profile),
       email: json['email'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       tc: json['tc'] ?? '',
       dogumTarihi: json['dogumTarihi'] ?? '',
       cinsiyet: json['cinsiyet'] ?? '',
       bio: json['bio'] ?? '',
-      rozet: json['rozet'] ?? '',
-      hesapOnayi: json['hesapOnayi'] ?? false,
-      gizliHesap: json['gizliHesap'] ?? false,
+      rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
+      hesapOnayi: (json['isApproved'] ?? false) == true,
+      gizliHesap: (json['isPrivate'] ?? false) == true,
       viewSelection: json['viewSelection'] ?? 1,
       ilgialanlari: List<String>.from(json['ilgialanlari'] ?? []),
       favoriMuzikler: List<String>.from(json['favoriMuzikler'] ?? []),
       meslekKategori: json['meslekKategori'] ?? '',
       calismaDurumu: json['calismaDurumu'] ?? '',
       medeniHal: json['medeniHal'] ?? '',
-      counterOfFollowers: json['counterOfFollowers'] ?? 0,
-      counterOfFollowings: json['counterOfFollowings'] ?? 0,
-      counterOfPosts: json['counterOfPosts'] ?? 0,
+      counterOfFollowers: _parseToInt(
+        json['followerCount'] ??
+            json['counterOfFollowers'] ??
+            json['takipciSayisi'],
+      ),
+      counterOfFollowings: _parseToInt(
+        json['followingCount'] ??
+            json['counterOfFollowings'] ??
+            json['takipEdilenSayisi'],
+      ),
+      counterOfPosts: _parseToInt(
+        json['postCount'] ?? json['counterOfPosts'] ?? json['gonderSayisi'],
+      ),
       counterOfLikes: json['counterOfLikes'] ?? 0,
       antPoint: json['antPoint'] ?? 100,
       dailyDurations: json['dailyDurations'] ?? 1,
-      educationLevel: json['educationLevel'] ?? '',
-      universite: json['universite'] ?? '',
-      fakulte: json['fakulte'] ?? '',
-      bolum: json['bolum'] ?? '',
-      ogrenciNo: json['ogrenciNo'] ?? '',
-      ogretimTipi: json['ogretimTipi'] ?? '',
-      sinif: json['sinif'] ?? '',
-      lise: json['lise'] ?? '',
-      ortaOkul: json['ortaOkul'] ?? '',
-      okul: json['okul'] ?? '',
-      okulSehir: json['okulSehir'] ?? '',
-      okulIlce: json['okulIlce'] ?? '',
-      ortalamaPuan: json['ortalamaPuan'] ?? '',
-      ortalamaPuan1: json['ortalamaPuan1'] ?? '',
-      ortalamaPuan2: json['ortalamaPuan2'] ?? '',
-      defAnaBaslik: json['defAnaBaslik'] ?? '',
-      defDers: json['defDers'] ?? '',
-      defSinavTuru: json['defSinavTuru'] ?? '',
-      osymPuanTuru: json['osymPuanTuru'] ?? '',
-      osysPuan: json['osysPuan'] ?? '',
-      osysPuani1: json['osysPuani1'] ?? '',
-      osysPuani2: json['osysPuani2'] ?? '',
-      yuzlukSistem: json['yuzlukSistem'] ?? true,
+      educationLevel:
+          _pickScopedString(json, education, 'educationLevel', fallback: ''),
+      universite:
+          _pickScopedString(json, education, 'universite', fallback: ''),
+      fakulte: _pickScopedString(json, education, 'fakulte', fallback: ''),
+      bolum: _pickScopedString(json, education, 'bolum', fallback: ''),
+      ogrenciNo: _pickScopedString(json, education, 'ogrenciNo', fallback: ''),
+      ogretimTipi:
+          _pickScopedString(json, education, 'ogretimTipi', fallback: ''),
+      sinif: _pickScopedString(json, education, 'sinif', fallback: ''),
+      lise: _pickScopedString(json, education, 'lise', fallback: ''),
+      ortaOkul: _pickScopedString(json, education, 'ortaOkul', fallback: ''),
+      okul: _pickScopedString(json, education, 'okul', fallback: ''),
+      okulSehir: _pickScopedString(json, education, 'okulSehir', fallback: ''),
+      okulIlce: _pickScopedString(json, education, 'okulIlce', fallback: ''),
+      ortalamaPuan:
+          _pickScopedString(json, education, 'ortalamaPuan', fallback: ''),
+      ortalamaPuan1:
+          _pickScopedString(json, education, 'ortalamaPuan1', fallback: ''),
+      ortalamaPuan2:
+          _pickScopedString(json, education, 'ortalamaPuan2', fallback: ''),
+      defAnaBaslik:
+          _pickScopedString(json, education, 'defAnaBaslik', fallback: ''),
+      defDers: _pickScopedString(json, education, 'defDers', fallback: ''),
+      defSinavTuru:
+          _pickScopedString(json, education, 'defSinavTuru', fallback: ''),
+      osymPuanTuru:
+          _pickScopedString(json, education, 'osymPuanTuru', fallback: ''),
+      osysPuan: _pickScopedString(json, education, 'osysPuan', fallback: ''),
+      osysPuani1:
+          _pickScopedString(json, education, 'osysPuani1', fallback: ''),
+      osysPuani2:
+          _pickScopedString(json, education, 'osysPuani2', fallback: ''),
+      yuzlukSistem:
+          _pickScopedBool(json, education, 'yuzlukSistem', fallback: true),
       adres: json['adres'] ?? '',
       ulke: json['ulke'] ?? '',
       city: json['city'] ?? '',
@@ -586,40 +707,58 @@ class CurrentUserModel {
       nufusaKayitliOlduguYer: json['nufusaKayitliOlduguYer'] ?? '',
       locationSehir: json['locationSehir'] ?? '',
       kolayAdresSelection: json['kolayAdresSelection'] ?? '',
-      familyInfo: json['familyInfo'] ?? '',
-      totalLiving: json['totalLiving'] ?? 0,
-      motherName: json['motherName'] ?? '',
-      motherSurname: json['motherSurname'] ?? '',
-      motherPhone: json['motherPhone'] ?? '',
-      motherJob: json['motherJob'] ?? '',
-      motherSalary: json['motherSalary'] ?? '',
-      motherLiving: json['motherLiving'] ?? '',
-      fatherName: json['fatherName'] ?? '',
-      fatherSurname: json['fatherSurname'] ?? '',
-      fatherPhone: json['fatherPhone'] ?? '',
-      fatherJob: json['fatherJob'] ?? '',
-      fatherSalary: json['fatherSalary'] ?? '',
-      fatherLiving: json['fatherLiving'] ?? '',
-      evMulkiyeti: json['evMulkiyeti'] ?? '',
-      mulkiyet: json['mulkiyet'] ?? '',
-      yurt: json['yurt'] ?? '',
-      bursVerebilir: json['bursVerebilir'] ?? false,
-      engelliRaporu: json['engelliRaporu'] ?? '',
-      isDisabled: json['isDisabled'] ?? false,
+      familyInfo: _pickScopedString(json, family, 'familyInfo', fallback: ''),
+      totalLiving: _pickScopedInt(json, family, 'totalLiving', fallback: 0),
+      motherName: _pickScopedString(json, family, 'motherName', fallback: ''),
+      motherSurname:
+          _pickScopedString(json, family, 'motherSurname', fallback: ''),
+      motherPhone: _pickScopedString(json, family, 'motherPhone', fallback: ''),
+      motherJob: _pickScopedString(json, family, 'motherJob', fallback: ''),
+      motherSalary:
+          _pickScopedString(json, family, 'motherSalary', fallback: ''),
+      motherLiving:
+          _pickScopedString(json, family, 'motherLiving', fallback: ''),
+      fatherName: _pickScopedString(json, family, 'fatherName', fallback: ''),
+      fatherSurname:
+          _pickScopedString(json, family, 'fatherSurname', fallback: ''),
+      fatherPhone: _pickScopedString(json, family, 'fatherPhone', fallback: ''),
+      fatherJob: _pickScopedString(json, family, 'fatherJob', fallback: ''),
+      fatherSalary:
+          _pickScopedString(json, family, 'fatherSalary', fallback: ''),
+      fatherLiving:
+          _pickScopedString(json, family, 'fatherLiving', fallback: ''),
+      evMulkiyeti: _pickScopedString(json, family, 'evMulkiyeti', fallback: ''),
+      mulkiyet: _pickScopedString(json, family, 'mulkiyet', fallback: ''),
+      yurt: _pickScopedString(json, family, 'yurt', fallback: ''),
+      bursVerebilir:
+          _pickScopedBool(json, family, 'bursVerebilir', fallback: false),
+      engelliRaporu:
+          _pickScopedString(json, family, 'engelliRaporu', fallback: ''),
+      isDisabled: _pickScopedBool(json, family, 'isDisabled', fallback: false),
       bank: json['bank'] ?? '',
       iban: json['iban'] ?? '',
-      ban: json['ban'] ?? false,
-      deletedAccount: json['deletedAccount'] ?? false,
-      bot: json['bot'] ?? false,
+      ban: (json['isBanned'] ?? false) == true,
+      moderationStrikeCount: _parseToInt(json['moderationStrikeCount']),
+      moderationLevel: _parseToInt(json['moderationLevel']),
+      moderationRestrictedUntil:
+          _parseToInt(json['moderationRestrictedUntil']),
+      moderationPermanentBan:
+          (json['moderationPermanentBan'] ?? false) == true,
+      moderationBanReason: (json['moderationBanReason'] ?? '').toString(),
+      moderationUpdatedAt: _parseToInt(json['moderationUpdatedAt']),
+      deletedAccount: (json['isDeleted'] ?? false) == true,
+      bot: (json['isBot'] ?? false) == true,
       signInMethod: json['signInMethod'] ?? '',
-      sifre: json['sifre'] ?? '',
+      // Legacy caches may still contain this field; never rehydrate it.
+      sifre: '',
       refCode: json['refCode'] ?? '',
       blockedUsers: List<String>.from(json['blockedUsers'] ?? []),
       device: json['device'] ?? '',
       deviceID: json['deviceID'] ?? '',
       deviceVersion: json['deviceVersion'] ?? '',
       token: json['token'] ?? '',
-      createdDate: json['createdDate'] ?? '',
+      createdDate:
+          _createdDateFromAny(json['createdDate'] ?? json['createdDate']),
       bildirim: json['bildirim'] ?? false,
       aramaIzin: json['aramaIzin'] ?? false,
       mailIzin: json['mailIzin'] ?? false,
@@ -643,170 +782,60 @@ class CurrentUserModel {
     if (data is Map<String, int>) return data;
     if (data is Map) {
       return data.map((key, value) => MapEntry(
-        key.toString(),
-        (value is int) ? value : int.tryParse(value.toString()) ?? 0,
-      ));
+            key.toString(),
+            (value is int) ? value : int.tryParse(value.toString()) ?? 0,
+          ));
     }
     return {};
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🔄 CopyWith (for immutable updates)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  CurrentUserModel copyWith({
-    String? userID,
-    String? nickname,
-    String? firstName,
-    String? lastName,
-    String? pfImage,
-    String? email,
-    String? phoneNumber,
-    String? bio,
-    String? rozet,
-    bool? hesapOnayi,
-    bool? gizliHesap,
-    int? viewSelection,
-    int? counterOfFollowers,
-    int? counterOfFollowings,
-    int? counterOfPosts,
-    int? counterOfLikes,
-    List<String>? blockedUsers,
-    List<String>? readStories,
-    Map<String, int>? readStoriesTimes,
-  }) {
-    return CurrentUserModel(
-      userID: userID ?? this.userID,
-      nickname: nickname ?? this.nickname,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      pfImage: pfImage ?? this.pfImage,
-      email: email ?? this.email,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      tc: tc,
-      dogumTarihi: dogumTarihi,
-      cinsiyet: cinsiyet,
-      bio: bio ?? this.bio,
-      rozet: rozet ?? this.rozet,
-      hesapOnayi: hesapOnayi ?? this.hesapOnayi,
-      gizliHesap: gizliHesap ?? this.gizliHesap,
-      viewSelection: viewSelection ?? this.viewSelection,
-      ilgialanlari: ilgialanlari,
-      favoriMuzikler: favoriMuzikler,
-      meslekKategori: meslekKategori,
-      calismaDurumu: calismaDurumu,
-      medeniHal: medeniHal,
-      counterOfFollowers: counterOfFollowers ?? this.counterOfFollowers,
-      counterOfFollowings: counterOfFollowings ?? this.counterOfFollowings,
-      counterOfPosts: counterOfPosts ?? this.counterOfPosts,
-      counterOfLikes: counterOfLikes ?? this.counterOfLikes,
-      antPoint: antPoint,
-      dailyDurations: dailyDurations,
-      educationLevel: educationLevel,
-      universite: universite,
-      fakulte: fakulte,
-      bolum: bolum,
-      ogrenciNo: ogrenciNo,
-      ogretimTipi: ogretimTipi,
-      sinif: sinif,
-      lise: lise,
-      ortaOkul: ortaOkul,
-      okul: okul,
-      okulSehir: okulSehir,
-      okulIlce: okulIlce,
-      ortalamaPuan: ortalamaPuan,
-      ortalamaPuan1: ortalamaPuan1,
-      ortalamaPuan2: ortalamaPuan2,
-      defAnaBaslik: defAnaBaslik,
-      defDers: defDers,
-      defSinavTuru: defSinavTuru,
-      osymPuanTuru: osymPuanTuru,
-      osysPuan: osysPuan,
-      osysPuani1: osysPuani1,
-      osysPuani2: osysPuani2,
-      yuzlukSistem: yuzlukSistem,
-      adres: adres,
-      ulke: ulke,
-      city: city,
-      town: town,
-      il: il,
-      ilce: ilce,
-      ikametSehir: ikametSehir,
-      ikametIlce: ikametIlce,
-      nufusSehir: nufusSehir,
-      nufusIlce: nufusIlce,
-      nufusaKayitliOlduguYer: nufusaKayitliOlduguYer,
-      locationSehir: locationSehir,
-      kolayAdresSelection: kolayAdresSelection,
-      familyInfo: familyInfo,
-      totalLiving: totalLiving,
-      motherName: motherName,
-      motherSurname: motherSurname,
-      motherPhone: motherPhone,
-      motherJob: motherJob,
-      motherSalary: motherSalary,
-      motherLiving: motherLiving,
-      fatherName: fatherName,
-      fatherSurname: fatherSurname,
-      fatherPhone: fatherPhone,
-      fatherJob: fatherJob,
-      fatherSalary: fatherSalary,
-      fatherLiving: fatherLiving,
-      evMulkiyeti: evMulkiyeti,
-      mulkiyet: mulkiyet,
-      yurt: yurt,
-      bursVerebilir: bursVerebilir,
-      engelliRaporu: engelliRaporu,
-      isDisabled: isDisabled,
-      bank: bank,
-      iban: iban,
-      ban: ban,
-      deletedAccount: deletedAccount,
-      bot: bot,
-      signInMethod: signInMethod,
-      sifre: sifre,
-      refCode: refCode,
-      blockedUsers: blockedUsers ?? this.blockedUsers,
-      device: device,
-      deviceID: deviceID,
-      deviceVersion: deviceVersion,
-      token: token,
-      createdDate: createdDate,
-      bildirim: bildirim,
-      aramaIzin: aramaIzin,
-      mailIzin: mailIzin,
-      whatsappIzin: whatsappIzin,
-      rehber: rehber,
-      settings: settings,
-      themeSettings: themeSettings,
-      canliYayin: canliYayin,
-      lastSearchList: lastSearchList,
-      readStories: readStories ?? this.readStories,
-      readStoriesTimes: readStoriesTimes ?? this.readStoriesTimes,
-      mail: mail,
-    );
+  static Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(key.toString(), val));
+    }
+    return const <String, dynamic>{};
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🎯 Utility Getters
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  static dynamic _pickScoped(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key,
+  ) {
+    if (scoped.containsKey(key)) return scoped[key];
+    return root[key];
+  }
 
-  /// Full name
-  String get fullName => '$firstName $lastName'.trim();
+  static String _pickScopedString(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key, {
+    String fallback = '',
+  }) {
+    final value = _pickScoped(root, scoped, key);
+    return value?.toString() ?? fallback;
+  }
 
-  /// Has profile image
-  bool get hasProfileImage => pfImage.isNotEmpty;
+  static int _pickScopedInt(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key, {
+    int fallback = 0,
+  }) {
+    final value = _pickScoped(root, scoped, key);
+    if (value == null) return fallback;
+    return _parseToInt(value);
+  }
 
-  /// Is verified account
-  bool get isVerified => hesapOnayi;
-
-  /// Is private account
-  bool get isPrivate => gizliHesap;
-
-  /// Is banned
-  bool get isBanned => ban;
-
-  /// Has bio
-  bool get hasBio => bio.isNotEmpty;
+  static bool _pickScopedBool(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key, {
+    bool fallback = false,
+  }) {
+    final value = _pickScoped(root, scoped, key);
+    return parseFlexibleBool(value, fallback: fallback);
+  }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🛠️ Helper Methods for Type-Safe Parsing
@@ -822,5 +851,22 @@ class CurrentUserModel {
       return int.tryParse(value) ?? 0;
     }
     return 0;
+  }
+
+  static String _createdDateFromAny(dynamic value) {
+    if (value == null) return '';
+    if (value is Timestamp) {
+      return value.millisecondsSinceEpoch.toString();
+    }
+    if (value is DateTime) {
+      return value.millisecondsSinceEpoch.toString();
+    }
+    if (value is int) {
+      return value.toString();
+    }
+    if (value is num) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 }

@@ -2,6 +2,13 @@ import 'package:firebase_performance/firebase_performance.dart';
 import 'package:flutter/foundation.dart';
 
 class PerformanceService {
+  PerformanceService._();
+  static PerformanceService? _instance;
+  static PerformanceService? maybeFind() => _instance;
+
+  static PerformanceService ensure() =>
+      maybeFind() ?? (_instance = PerformanceService._());
+
   static final _performance = FirebasePerformance.instance;
 
   /// Bir işlemi trace ile izle

@@ -7,6 +7,7 @@ class ShortLinkService {
   static final Map<String, String> _storyUrlCache = <String, String>{};
   static final Map<String, String> _eduUrlCache = <String, String>{};
   static final Map<String, String> _jobUrlCache = <String, String>{};
+  static final Map<String, String> _marketUrlCache = <String, String>{};
   static final Map<String, String> _internalEduUrlCache = <String, String>{};
 
   Future<Map<String, dynamic>> upsertPost({
@@ -89,6 +90,23 @@ class ShortLinkService {
     return _upsert(
       type: 'job',
       entityId: 'job:$jobId',
+      title: title,
+      desc: desc,
+      imageUrl: imageUrl,
+      shortId: shortId,
+    );
+  }
+
+  Future<Map<String, dynamic>> upsertMarket({
+    required String itemId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    String? shortId,
+  }) async {
+    return _upsert(
+      type: 'market',
+      entityId: itemId,
       title: title,
       desc: desc,
       imageUrl: imageUrl,
@@ -207,6 +225,32 @@ class ShortLinkService {
       ),
     );
     if (url.isNotEmpty) _jobUrlCache[jobId] = url;
+    return url;
+  }
+
+  Future<String> getMarketPublicUrl({
+    required String itemId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    bool forceRefresh = false,
+    String? shortId,
+  }) async {
+    final cached = _marketUrlCache[itemId];
+    if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
+
+    final url = await _safeUpsertUrl(
+      fallbackPath: '/m/',
+      fallbackId: itemId,
+      request: () => upsertMarket(
+        itemId: itemId,
+        title: title,
+        desc: desc,
+        imageUrl: imageUrl,
+        shortId: shortId,
+      ),
+    );
+    if (url.isNotEmpty) _marketUrlCache[itemId] = url;
     return url;
   }
 

@@ -61,8 +61,9 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     if (_notifiedStarted) return;
     _notifiedStarted = true;
 
-    final effectiveDuration =
-        actualDuration > widget.maxDuration ? widget.maxDuration : actualDuration;
+    final effectiveDuration = actualDuration > widget.maxDuration
+        ? widget.maxDuration
+        : actualDuration;
     widget.onStarted(effectiveDuration);
 
     if (actualDuration > widget.maxDuration) {

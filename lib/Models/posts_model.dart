@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/url_utils.dart';
+
+const bool _suppressPostsModelSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
 
 // Alt koleksiyonlar için model sınıfları
 class PostStats {
@@ -74,12 +78,20 @@ class PostsModel {
   bool gizlendi;
   List<String> img;
   bool isAd;
+  bool isUploading;
   num izBirakYayinTarihi;
   String konum;
+  String locationCity;
   String mainFlood;
   String metin;
   String originalPostID;
   String originalUserID;
+  bool quotedPost;
+  String quotedOriginalText;
+  String quotedSourceUserID;
+  String quotedSourceDisplayName;
+  String quotedSourceUsername;
+  String quotedSourceAvatarUrl;
   num paylasGizliligi;
   num scheduledAt;
   bool sikayetEdildi;
@@ -92,8 +104,11 @@ class PostsModel {
   // B10: Denormalize author alanları — her post için ayrı users/{uid} okuması önlenir.
   // Cloud Function (hybridFeed.ts / user profile update trigger) bu alanları senkronize tutar.
   String authorNickname;
+  String authorDisplayName;
   String authorAvatarUrl;
+  String rozet;
   String video;
+  Map<String, dynamic> videoLook;
   String hlsMasterUrl;
   String hlsStatus;
   num hlsUpdatedAt;
@@ -116,12 +131,20 @@ class PostsModel {
     required this.gizlendi,
     required this.img,
     required this.isAd,
+    this.isUploading = false,
     required this.izBirakYayinTarihi,
     required this.konum,
+    this.locationCity = '',
     required this.mainFlood,
     required this.metin,
     required this.originalPostID,
     required this.originalUserID,
+    this.quotedPost = false,
+    this.quotedOriginalText = '',
+    this.quotedSourceUserID = '',
+    this.quotedSourceDisplayName = '',
+    this.quotedSourceUsername = '',
+    this.quotedSourceAvatarUrl = '',
     required this.paylasGizliligi,
     required this.scheduledAt,
     required this.sikayetEdildi,
@@ -132,8 +155,15 @@ class PostsModel {
     required this.timeStamp,
     required this.userID,
     this.authorNickname = '',
+    this.authorDisplayName = '',
     this.authorAvatarUrl = '',
+    this.rozet = '',
     required this.video,
+    this.videoLook = const {
+      'preset': 'original',
+      'version': 1,
+      'intensity': 1.0,
+    },
     this.hlsMasterUrl = '',
     this.hlsStatus = 'none',
     this.hlsUpdatedAt = 0,
@@ -148,6 +178,14 @@ class PostsModel {
   bool get isHlsReady => hlsStatus == 'ready' && hasHls;
 
   bool get hasPlayableVideo => playbackUrl.trim().isNotEmpty;
+
+  bool get hasVideoSignal =>
+      video.trim().isNotEmpty || hlsMasterUrl.trim().isNotEmpty;
+
+  bool get hasRenderableVideoCard =>
+      hasPlayableVideo || (thumbnail.trim().isNotEmpty && hasVideoSignal);
+
+  bool get shouldHideWhileUploading => isUploading;
 
   int get yorumVisibility {
     final v = yorumMap['visibility'];
@@ -170,10 +208,29 @@ class PostsModel {
   }
 
   String get playbackUrl {
-    if (isHlsReady) return CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
+    if (isHlsReady) {
+      final resolved = CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
+      if (kDebugMode && !_suppressPostsModelSmokeLogs) {
+        debugPrint(
+          '[PostsModel][$docID] playbackUrl=HLS ready status=$hlsStatus hlsMasterUrl=$hlsMasterUrl resolved=$resolved',
+        );
+      }
+      return resolved;
+    }
     final v = video.trim();
-    if (hlsStatus == 'ready' && v.toLowerCase().contains('.m3u8')) {
-      return CdnUrlBuilder.toCdnUrl(v);
+    if (hlsStatus == 'ready' && isHlsPlaylistUrl(v)) {
+      final resolved = CdnUrlBuilder.toCdnUrl(v);
+      if (kDebugMode && !_suppressPostsModelSmokeLogs) {
+        debugPrint(
+          '[PostsModel][$docID] playbackUrl=legacy HLS status=$hlsStatus video=$v resolved=$resolved',
+        );
+      }
+      return resolved;
+    }
+    if (kDebugMode && !_suppressPostsModelSmokeLogs && v.isNotEmpty) {
+      debugPrint(
+        '[PostsModel][$docID] playbackUrl EMPTY status=$hlsStatus hlsMasterUrl=${hlsMasterUrl.trim()} video=$v thumbnail=${thumbnail.trim()}',
+      );
     }
     return '';
   }
@@ -226,8 +283,34 @@ class PostsModel {
     }
 
     final parsedImgUrls = parseImageUrls(data['img']);
-    final firstImgAspect =
-        parseFirstImageAspect(data['imgMap']) ?? parseFirstImageAspect(data['img']);
+    final firstImgAspect = parseFirstImageAspect(data['imgMap']) ??
+        parseFirstImageAspect(data['img']);
+    final authorMap = data['author'] is Map<String, dynamic>
+        ? data['author'] as Map<String, dynamic>
+        : (data['author'] is Map
+            ? Map<String, dynamic>.from(data['author'] as Map)
+            : const <String, dynamic>{});
+    final resolvedAuthorNickname = (data['authorNickname'] ??
+            authorMap['nickname'] ??
+            authorMap['username'] ??
+            '')
+        .toString();
+    final resolvedAuthorDisplayName = (data['authorDisplayName'] ??
+            authorMap['displayName'] ??
+            authorMap['fullName'] ??
+            resolvedAuthorNickname)
+        .toString();
+    final resolvedAuthorAvatarUrl =
+        (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '').toString();
+    final resolvedRozet =
+        (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
+    final resolvedUserId = (data['userID'] ??
+            data['userId'] ??
+            authorMap['userID'] ??
+            authorMap['userId'] ??
+            '')
+        .toString()
+        .trim();
 
     return PostsModel(
       ad: data['ad'] ?? false,
@@ -243,12 +326,21 @@ class PostsModel {
       gizlendi: data['gizlendi'] ?? false,
       img: parsedImgUrls,
       isAd: data['isAd'] ?? false,
+      isUploading: data['isUploading'] == true,
       izBirakYayinTarihi: parseNum(data['izBirakYayinTarihi']),
       konum: data['konum'] ?? '',
+      locationCity: (data['locationCity'] ?? '').toString(),
       mainFlood: data['mainFlood'] ?? '',
       metin: data['metin'] ?? '',
       originalPostID: data['originalPostID'] ?? '',
       originalUserID: data['originalUserID'] ?? '',
+      quotedPost: data['quotedPost'] ?? false,
+      quotedOriginalText: (data['quotedOriginalText'] ?? '').toString(),
+      quotedSourceUserID: (data['quotedSourceUserID'] ?? '').toString(),
+      quotedSourceDisplayName:
+          (data['quotedSourceDisplayName'] ?? '').toString(),
+      quotedSourceUsername: (data['quotedSourceUsername'] ?? '').toString(),
+      quotedSourceAvatarUrl: (data['quotedSourceAvatarUrl'] ?? '').toString(),
       paylasGizliligi: parseNum(data['paylasGizliligi'], 1),
       scheduledAt: parseNum(data['scheduledAt']),
       sikayetEdildi: data['sikayetEdildi'] ?? false,
@@ -257,10 +349,21 @@ class PostsModel {
       tags: parseList(data['tags']),
       thumbnail: data['thumbnail'] ?? '',
       timeStamp: parseNum(data['timeStamp']),
-      userID: data['userID'] ?? '',
-      authorNickname: data['authorNickname'] ?? '',
-      authorAvatarUrl: data['authorAvatarUrl'] ?? '',
+      userID: resolvedUserId,
+      authorNickname: resolvedAuthorNickname,
+      authorDisplayName: resolvedAuthorDisplayName,
+      authorAvatarUrl: resolvedAuthorAvatarUrl,
+      rozet: resolvedRozet,
       video: data['video'] ?? '',
+      videoLook: data['videoLook'] is Map<String, dynamic>
+          ? Map<String, dynamic>.from(data['videoLook'] as Map<String, dynamic>)
+          : (data['videoLook'] is Map
+              ? Map<String, dynamic>.from(data['videoLook'] as Map)
+              : const {
+                  'preset': 'original',
+                  'version': 1,
+                  'intensity': 1.0,
+                }),
       hlsMasterUrl: data['hlsMasterUrl'] ?? '',
       hlsStatus: data['hlsStatus'] ?? 'none',
       hlsUpdatedAt: parseNum(data['hlsUpdatedAt']),
@@ -285,12 +388,20 @@ class PostsModel {
       'gizlendi': gizlendi,
       'img': img,
       'isAd': isAd,
+      'isUploading': isUploading,
       'izBirakYayinTarihi': izBirakYayinTarihi,
       'konum': konum,
+      'locationCity': locationCity,
       'mainFlood': mainFlood,
       'metin': metin,
       'originalPostID': originalPostID,
       'originalUserID': originalUserID,
+      'quotedPost': quotedPost,
+      'quotedOriginalText': quotedOriginalText,
+      'quotedSourceUserID': quotedSourceUserID,
+      'quotedSourceDisplayName': quotedSourceDisplayName,
+      'quotedSourceUsername': quotedSourceUsername,
+      'quotedSourceAvatarUrl': quotedSourceAvatarUrl,
       'paylasGizliligi': paylasGizliligi,
       'scheduledAt': scheduledAt,
       'sikayetEdildi': sikayetEdildi,
@@ -301,8 +412,11 @@ class PostsModel {
       'timeStamp': timeStamp,
       'userID': userID,
       if (authorNickname.isNotEmpty) 'authorNickname': authorNickname,
+      if (authorDisplayName.isNotEmpty) 'authorDisplayName': authorDisplayName,
       if (authorAvatarUrl.isNotEmpty) 'authorAvatarUrl': authorAvatarUrl,
+      if (rozet.isNotEmpty) 'rozet': rozet,
       'video': video,
+      'videoLook': videoLook,
       'hlsMasterUrl': hlsMasterUrl,
       'hlsStatus': hlsStatus,
       'hlsUpdatedAt': hlsUpdatedAt,
@@ -328,12 +442,17 @@ class PostsModel {
       gizlendi: false,
       img: const [],
       isAd: false,
+      isUploading: false,
       izBirakYayinTarihi: 0,
       konum: '',
+      locationCity: '',
       mainFlood: '',
       metin: '',
       originalPostID: '',
       originalUserID: '',
+      quotedPost: false,
+      quotedOriginalText: '',
+      quotedSourceUserID: '',
       paylasGizliligi: 1,
       scheduledAt: 0,
       sikayetEdildi: false,
@@ -343,7 +462,16 @@ class PostsModel {
       thumbnail: '',
       timeStamp: 0,
       userID: '',
+      authorNickname: '',
+      authorDisplayName: '',
+      authorAvatarUrl: '',
+      rozet: '',
       video: '',
+      videoLook: const {
+        'preset': 'original',
+        'version': 1,
+        'intensity': 1.0,
+      },
       hlsMasterUrl: '',
       hlsStatus: 'none',
       hlsUpdatedAt: 0,
@@ -368,12 +496,20 @@ class PostsModel {
     bool? gizlendi,
     List<String>? img,
     bool? isAd,
+    bool? isUploading,
     num? izBirakYayinTarihi,
     String? konum,
+    String? locationCity,
     String? mainFlood,
     String? metin,
     String? originalPostID,
     String? originalUserID,
+    bool? quotedPost,
+    String? quotedOriginalText,
+    String? quotedSourceUserID,
+    String? quotedSourceDisplayName,
+    String? quotedSourceUsername,
+    String? quotedSourceAvatarUrl,
     num? paylasGizliligi,
     num? scheduledAt,
     bool? sikayetEdildi,
@@ -383,7 +519,12 @@ class PostsModel {
     String? thumbnail,
     num? timeStamp,
     String? userID,
+    String? authorNickname,
+    String? authorDisplayName,
+    String? authorAvatarUrl,
+    String? rozet,
     String? video,
+    Map<String, dynamic>? videoLook,
     String? hlsMasterUrl,
     String? hlsStatus,
     num? hlsUpdatedAt,
@@ -406,12 +547,22 @@ class PostsModel {
       gizlendi: gizlendi ?? this.gizlendi,
       img: img ?? this.img,
       isAd: isAd ?? this.isAd,
+      isUploading: isUploading ?? this.isUploading,
       izBirakYayinTarihi: izBirakYayinTarihi ?? this.izBirakYayinTarihi,
       konum: konum ?? this.konum,
+      locationCity: locationCity ?? this.locationCity,
       mainFlood: mainFlood ?? this.mainFlood,
       metin: metin ?? this.metin,
       originalPostID: originalPostID ?? this.originalPostID,
       originalUserID: originalUserID ?? this.originalUserID,
+      quotedPost: quotedPost ?? this.quotedPost,
+      quotedOriginalText: quotedOriginalText ?? this.quotedOriginalText,
+      quotedSourceUserID: quotedSourceUserID ?? this.quotedSourceUserID,
+      quotedSourceDisplayName:
+          quotedSourceDisplayName ?? this.quotedSourceDisplayName,
+      quotedSourceUsername: quotedSourceUsername ?? this.quotedSourceUsername,
+      quotedSourceAvatarUrl:
+          quotedSourceAvatarUrl ?? this.quotedSourceAvatarUrl,
       paylasGizliligi: paylasGizliligi ?? this.paylasGizliligi,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       sikayetEdildi: sikayetEdildi ?? this.sikayetEdildi,
@@ -421,7 +572,12 @@ class PostsModel {
       thumbnail: thumbnail ?? this.thumbnail,
       timeStamp: timeStamp ?? this.timeStamp,
       userID: userID ?? this.userID,
+      authorNickname: authorNickname ?? this.authorNickname,
+      authorDisplayName: authorDisplayName ?? this.authorDisplayName,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      rozet: rozet ?? this.rozet,
       video: video ?? this.video,
+      videoLook: videoLook ?? this.videoLook,
       hlsMasterUrl: hlsMasterUrl ?? this.hlsMasterUrl,
       hlsStatus: hlsStatus ?? this.hlsStatus,
       hlsUpdatedAt: hlsUpdatedAt ?? this.hlsUpdatedAt,

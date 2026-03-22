@@ -1,6 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_yil_sectirme.dart';
 import 'cikmis_sorular_brans_sectirme.dart';
 
@@ -20,33 +21,48 @@ class CikmisSorularAltDalSectirme extends StatefulWidget {
 
 class _CikmisSorularAltDalSectirmeState
     extends State<CikmisSorularAltDalSectirme> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> dallar = [];
+  static const _fieldKnowledge = 'Alan Bilgisi';
+  static const _educationSciences = 'Eğitim Bilimleri';
+  static const _aGroup = 'A Grubu';
+  static const _generalAbilityCulture = 'GK - GY';
+  static const _undergraduate = 'Lisans';
+  static const _associate = 'Ön Lisans';
+
+  String _localizedBranch(String raw) {
+    switch (raw) {
+      case _fieldKnowledge:
+        return 'past_questions.branch.field_knowledge'.tr;
+      case _educationSciences:
+        return 'past_questions.branch.education_sciences'.tr;
+      case _aGroup:
+        return 'past_questions.branch.group_a'.tr;
+      case _generalAbilityCulture:
+        return 'past_questions.branch.general_ability_culture'.tr;
+      default:
+        return raw;
+    }
+  }
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .where("sinavTuru", isEqualTo: widget.sinavTuru)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      List<String> dallarList = [];
-
-      for (var doc in snapshot.docs) {
-        String baslik2 = doc.get("baslik2");
-
-        if (!dallarList.contains(baslik2)) {
-          dallarList.add(baslik2);
-        }
-      }
+    _repository
+        .distinctValues(
+          where: (doc) =>
+              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru,
+          field: 'baslik2',
+        )
+        .then((dallarList) {
 
       // Özel sıralama: GK - GY, A Grubu, Eğitim Bilimleri, Alan Bilgisi
-      List<String> baslik2Order = [
-        "GK - GY",
-        "A Grubu",
-        "Eğitim Bilimleri",
-        "Alan Bilgisi",
+      const baslik2Order = [
+        _generalAbilityCulture,
+        _aGroup,
+        _educationSciences,
+        _fieldKnowledge,
       ];
 
       // Sıralama işlemi
@@ -77,7 +93,7 @@ class _CikmisSorularAltDalSectirmeState
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Sınav Seç"),
+            BackButtons(text: 'past_questions.select_exam'.tr),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -98,7 +114,7 @@ class _CikmisSorularAltDalSectirmeState
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (dallar[index] == "Alan Bilgisi") {
+                              if (dallar[index] == _fieldKnowledge) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -111,7 +127,7 @@ class _CikmisSorularAltDalSectirmeState
                                     ),
                                   ),
                                 );
-                              } else if (dallar[index] == "Eğitim Bilimleri") {
+                              } else if (dallar[index] == _educationSciences) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -156,8 +172,8 @@ class _CikmisSorularAltDalSectirmeState
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.deepOrange,
-                                        Colors.black.withValues(alpha: 
-                                          0.9,
+                                        Colors.black.withValues(
+                                          alpha: 0.9,
                                         ), // Alt renk
                                       ],
                                       begin: Alignment
@@ -170,8 +186,8 @@ class _CikmisSorularAltDalSectirmeState
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 
-                                          0.3,
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.3,
                                         ), // Gölge rengi ve opaklık
                                         blurRadius: 6, // Gölge bulanıklık
                                         offset: Offset(
@@ -193,9 +209,12 @@ class _CikmisSorularAltDalSectirmeState
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                dallar[index] == "Alan Bilgisi"
-                                                    ? "ÖABT"
-                                                    : dallar[index],
+                                                dallar[index] == _fieldKnowledge
+                                                    ? 'past_questions.oabt_short'
+                                                        .tr
+                                                    : _localizedBranch(
+                                                        dallar[index],
+                                                      ),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color: Colors.white,
@@ -209,7 +228,13 @@ class _CikmisSorularAltDalSectirmeState
                                         Spacer(),
                                         SizedBox(height: 4),
                                         Text(
-                                          widget.sinavTuru,
+                                          widget.sinavTuru == _undergraduate
+                                              ? 'past_questions.exam_type.undergraduate'
+                                                  .tr
+                                              : widget.sinavTuru == _associate
+                                                  ? 'past_questions.exam_type.associate'
+                                                      .tr
+                                                  : widget.sinavTuru,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.grey,

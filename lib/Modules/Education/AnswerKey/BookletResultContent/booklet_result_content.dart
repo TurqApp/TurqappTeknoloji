@@ -6,18 +6,48 @@ import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultPreview/booklet_result_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultContent/booklet_result_content_controller.dart';
 
-class BookletResultContent extends StatelessWidget {
+class BookletResultContent extends StatefulWidget {
   final BookletResultModel model;
 
   const BookletResultContent({super.key, required this.model});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      BookletResultContentController(model),
-      tag: model.kitapcikID,
-    );
+  State<BookletResultContent> createState() => _BookletResultContentState();
+}
 
+class _BookletResultContentState extends State<BookletResultContent> {
+  late final BookletResultContentController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  BookletResultModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'booklet_result_content_${widget.model.kitapcikID}_${identityHashCode(this)}';
+    _ownsController =
+        BookletResultContentController.maybeFind(tag: _controllerTag) == null;
+    controller = BookletResultContentController.ensure(
+      widget.model,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    final registeredController = BookletResultContentController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
+      Get.delete<BookletResultContentController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15),
       child: GestureDetector(
@@ -35,17 +65,16 @@ class BookletResultContent extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Obx(
-                          () =>
-                              controller.anaModel.value == null
-                                  ? CupertinoActivityIndicator()
-                                  : Text(
-                                    controller.anaModel.value!.yayinEvi,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 18,
-                                      fontFamily: "MontserratBold",
-                                    ),
+                          () => controller.anaModel.value == null
+                              ? CupertinoActivityIndicator()
+                              : Text(
+                                  controller.anaModel.value!.yayinEvi,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontFamily: "MontserratBold",
                                   ),
+                                ),
                         ),
                       ),
                       const Icon(
@@ -69,7 +98,9 @@ class BookletResultContent extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          "${timeAgo(model.timeStamp)} cevaplandı",
+                          "answer_key.answered_suffix".trParams({
+                            "time": timeAgo(model.timeStamp),
+                          }),
                           style: const TextStyle(
                             color: Colors.indigo,
                             fontSize: 15,
@@ -78,7 +109,7 @@ class BookletResultContent extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        "${model.dogru.toString()} D",
+                        "${model.dogru} ${'tests.correct'.tr}",
                         style: const TextStyle(
                           color: Colors.green,
                           fontSize: 15,
@@ -87,7 +118,7 @@ class BookletResultContent extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "${model.yanlis.toString()} Y",
+                        "${model.yanlis} ${'tests.wrong'.tr}",
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 15,
@@ -96,7 +127,7 @@ class BookletResultContent extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        "${model.bos.toString()} B",
+                        "${model.bos} ${'tests.blank'.tr}",
                         style: const TextStyle(
                           color: Colors.orange,
                           fontSize: 15,

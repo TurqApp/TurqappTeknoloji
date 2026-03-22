@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -31,16 +32,7 @@ class FutureTimePickerBottomSheet extends StatelessWidget {
         color: Colors.white,
         child: Column(
           children: [
-            Container(
-              width: 50,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.all(Radius.circular(50)),
-              ),
-            ),
-            8.ph,
-            Text(title, style: TextStyles.bold20Black),
+            AppSheetHeader(title: title),
             Expanded(
               child: Align(
                 alignment: Alignment.center,
@@ -79,7 +71,7 @@ class FutureTimePickerBottomSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "İptal",
+                        'common.cancel'.tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -103,7 +95,7 @@ class FutureTimePickerBottomSheet extends StatelessWidget {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text("Tamam", style: TextStyles.medium15white),
+                      child: Text('common.ok'.tr, style: TextStyles.medium15white),
                     ),
                   ),
                 ),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,21 +8,52 @@ import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_pre
 import 'package:turqappv2/Modules/Education/AnswerKey/CategoryBasedAnswerKey/category_based_answer_key_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
-class CategoryBasedAnswerKey extends StatelessWidget {
+class CategoryBasedAnswerKey extends StatefulWidget {
   final String sinavTuru;
 
   const CategoryBasedAnswerKey({super.key, required this.sinavTuru});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(CategoryBasedAnswerKeyController(sinavTuru));
+  State<CategoryBasedAnswerKey> createState() => _CategoryBasedAnswerKeyState();
+}
 
+class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
+  late final CategoryBasedAnswerKeyController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'category_answer_key_${widget.sinavTuru.hashCode}_${identityHashCode(this)}';
+    _ownsController =
+        CategoryBasedAnswerKeyController.maybeFind(tag: _controllerTag) == null;
+    controller = CategoryBasedAnswerKeyController.ensure(
+      widget.sinavTuru,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    final registeredController = CategoryBasedAnswerKeyController.maybeFind(
+      tag: _controllerTag,
+    );
+    if (_ownsController && identical(registeredController, controller)) {
+      Get.delete<CategoryBasedAnswerKeyController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: sinavTuru),
+            BackButtons(text: widget.sinavTuru),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -50,7 +82,7 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                       LengthLimitingTextInputFormatter(100),
                                     ],
                                     decoration: InputDecoration(
-                                      hintText: "Ara",
+                                      hintText: 'common.search'.tr,
                                       hintStyle: TextStyle(
                                         color: Colors.grey,
                                         fontFamily: "Montserrat",
@@ -83,7 +115,7 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                 ? Padding(
                                     padding: EdgeInsets.all(15),
                                     child: Text(
-                                      "Sonuç bulunamadı.",
+                                      'common.no_results'.tr,
                                       style: TextStyle(
                                         fontFamily: "Montserrat",
                                         fontSize: 15,
@@ -114,8 +146,8 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                                 Radius.circular(12),
                                               ),
                                               border: Border.all(
-                                                color: Colors.grey.withValues(alpha: 
-                                                  0.2,
+                                                color: Colors.grey.withValues(
+                                                  alpha: 0.2,
                                                 ),
                                               ),
                                             ),
@@ -123,12 +155,29 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                               padding: EdgeInsets.all(12),
                                               child: Row(
                                                 children: [
-                                                  Image.network(
-                                                    controller
+                                                  CachedNetworkImage(
+                                                    imageUrl: controller
                                                         .filteredList[index]
                                                         .cover,
                                                     fit: BoxFit.contain,
                                                     height: 80,
+                                                    placeholder:
+                                                        (context, url) =>
+                                                            const SizedBox(
+                                                      height: 80,
+                                                      child: Center(
+                                                        child:
+                                                            CupertinoActivityIndicator(),
+                                                      ),
+                                                    ),
+                                                    errorWidget: (
+                                                      context,
+                                                      url,
+                                                      error,
+                                                    ) =>
+                                                        const Icon(
+                                                      Icons.broken_image,
+                                                    ),
                                                   ),
                                                   SizedBox(width: 12),
                                                   Expanded(

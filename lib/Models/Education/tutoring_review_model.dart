@@ -15,8 +15,7 @@ class TutoringReviewModel {
     required this.timeStamp,
   });
 
-  factory TutoringReviewModel.fromMap(
-      Map<String, dynamic> map, String docID) {
+  factory TutoringReviewModel.fromMap(Map<String, dynamic> map, String docID) {
     return TutoringReviewModel(
       reviewID: docID,
       userID: map['userID'] ?? '',

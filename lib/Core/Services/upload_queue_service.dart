@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
-import 'package:path/path.dart' as p;
 import 'package:image/image.dart' as img;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
@@ -13,19 +13,31 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
+import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+part 'upload_queue_service_persistence_part.dart';
+part 'upload_queue_service_processing_part.dart';
 
 enum UploadStatus {
-  pending('Bekliyor'),
-  uploading('Yükleniyor'),
-  completed('Tamamlandı'),
-  failed('Başarısız'),
-  paused('Duraklatıldı');
+  pending('upload_queue.status_pending'),
+  uploading('upload_queue.status_uploading'),
+  completed('upload_queue.status_completed'),
+  failed('upload_queue.status_failed'),
+  paused('upload_queue.status_paused');
 
-  const UploadStatus(this.label);
-  final String label;
+  const UploadStatus(this.labelKey);
+  final String labelKey;
+
+  String get label => labelKey.tr;
 }
 
 class QueuedUpload {
@@ -56,7 +68,7 @@ class QueuedUpload {
         'postData': postData,
         'imagePaths': imagePaths,
         'videoPath': videoPath,
-        'createdAt': createdAt.millisecondsSinceEpoch,
+        'createdDate': createdAt.millisecondsSinceEpoch,
         'status': status.name,
         'retryCount': retryCount,
         'errorMessage': errorMessage,
@@ -68,7 +80,7 @@ class QueuedUpload {
         postData: json['postData'],
         imagePaths: List<String>.from(json['imagePaths']),
         videoPath: json['videoPath'],
-        createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdDate']),
         status: UploadStatus.values.firstWhere((e) => e.name == json['status']),
         retryCount: json['retryCount'] ?? 0,
         errorMessage: json['errorMessage'],
@@ -77,11 +89,26 @@ class QueuedUpload {
 }
 
 class UploadQueueService extends GetxController {
+  static UploadQueueService? maybeFind() {
+    final isRegistered = Get.isRegistered<UploadQueueService>();
+    if (!isRegistered) return null;
+    return Get.find<UploadQueueService>();
+  }
+
+  static UploadQueueService ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(UploadQueueService(), permanent: permanent);
+  }
+
+  static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
+  static const Duration _recentDuplicateWindow = Duration(minutes: 15);
   final RxList<QueuedUpload> _queue = <QueuedUpload>[].obs;
   final RxBool _isProcessing = false.obs;
   final RxBool _isPaused = false.obs;
   final RxInt _failedCount = 0.obs;
   final RxInt _completedCount = 0.obs;
+  StreamSubscription<User?>? _authSub;
 
   List<QueuedUpload> get queue => _queue;
   bool get isProcessing => _isProcessing.value;
@@ -91,8 +118,42 @@ class UploadQueueService extends GetxController {
   int get pendingCount =>
       _queue.where((item) => item.status == UploadStatus.pending).length;
 
-  static const String _queueKey = 'upload_queue';
+  static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
+
+  String _firstNonEmptyValue(Iterable<dynamic> candidates) {
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
+
+  String _resolveActiveUserId([Map<String, dynamic>? postDataMap]) {
+    return _firstNonEmptyValue([
+      CurrentUserService.instance.effectiveUserId,
+      postDataMap?['userID'],
+    ]);
+  }
+
+  bool _isAuthRetryableStorageError(FirebaseException e) {
+    final code = normalizeLowercase(e.code);
+    return code == 'unauthenticated' || code == 'unauthorized';
+  }
+
+  Future<void> _refreshAuthTokenIfNeeded() =>
+      _performRefreshAuthTokenIfNeeded();
+
+  Future<TaskSnapshot> _putFileWithAuthRetry({
+    required Reference ref,
+    required File file,
+    required SettableMetadata metadata,
+  }) =>
+      _performPutFileWithAuthRetry(
+        ref: ref,
+        file: file,
+        metadata: metadata,
+      );
 
   void _notifyQueueUpdated() {
     _queue.refresh();
@@ -101,521 +162,168 @@ class UploadQueueService extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadQueueFromStorage();
-    _listenToConnectivity();
+    _initializeQueuePersistence();
   }
 
-  /// Add upload to queue
-  Future<void> addToQueue(QueuedUpload upload) async {
-    _queue.add(upload);
-    _notifyQueueUpdated();
-    await _saveQueueToStorage();
-    _processQueue();
+  String get _queueKey {
+    return userScopedKey(_queueKeyPrefix);
   }
 
-  /// Start processing queue
-  void _processQueue() async {
-    if (_isProcessing.value || _isPaused.value) return;
-
-    _isProcessing.value = true;
-
-    while (_queue.any((item) => item.status == UploadStatus.pending) &&
-        !_isPaused.value) {
-      final nextUpload = _queue.firstWhere(
-        (item) => item.status == UploadStatus.pending,
-        orElse: () => _queue.first,
-      );
-
-      if (nextUpload.status == UploadStatus.pending) {
-        await _processUpload(nextUpload);
-      }
-    }
-
-    _isProcessing.value = false;
-  }
-
-  /// Process individual upload
-  Future<void> _processUpload(QueuedUpload upload) async {
-    try {
-      // Check network connectivity
-      final connectivity = await Connectivity().checkConnectivity();
-      final hasNetwork =
-          connectivity.any((result) => result != ConnectivityResult.none);
-      if (!hasNetwork) {
-        upload.status = UploadStatus.failed;
-        upload.errorMessage = 'İnternet bağlantısı yok';
-        await _saveQueueToStorage();
-        return;
-      }
-
-      upload.status = UploadStatus.uploading;
-      upload.progress = 0.0;
-      _notifyQueueUpdated();
-      await _saveQueueToStorage();
-
-      final postDataMap = jsonDecode(upload.postData);
-      final String text = (postDataMap['text'] ?? '')
-          .toString()
-          .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
-          .trim();
-      final String location = (postDataMap['location'] ?? '').toString();
-      final String gif = (postDataMap['gif'] ?? '').toString();
-      String userID = (postDataMap['userID'] ?? '').toString();
-      if (userID.trim().isEmpty) {
-        userID = FirebaseAuth.instance.currentUser?.uid ?? '';
-      }
-      if (userID.trim().isEmpty) {
-        throw Exception('userID boş: upload sırasında oturum bulunamadı');
-      }
-      final Map<String, dynamic> yorumMap =
-          Map<String, dynamic>.from(postDataMap['yorumMap'] ?? {});
-      final Map<String, dynamic> reshareMap =
-          Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
-      final Map<String, dynamic> poll =
-          Map<String, dynamic>.from(postDataMap['poll'] ?? {});
-      if (yorumMap.isEmpty) {
-        final bool comment = (postDataMap['comment'] ?? true) == true;
-        yorumMap['visibility'] = comment ? 0 : 3;
-      }
-      if (reshareMap.isEmpty) {
-        final int paylasGizliligi =
-            int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
-        reshareMap['visibility'] = paylasGizliligi;
-      }
-      final int scheduledAt =
-          int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
-
-      bool flood = false;
-      String mainFlood = '';
-      try {
-        final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
-        final idx = int.tryParse(idxStr) ?? 0;
-        flood = idx != 0;
-        if (flood) {
-          final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-          mainFlood = '${base}_0';
-        }
-      } catch (_) {}
-
-      int floodCount = 1;
-      try {
-        final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-        floodCount = _queue.where((q) => q.id.startsWith('${base}_')).length;
-        if (floodCount <= 0) floodCount = 1;
-      } catch (_) {}
-
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final baseTime = scheduledAt != 0 ? scheduledAt : nowMs;
-
-      // Video/HLS pipeline starts from Storage; create the Firestore shell first
-      // so feed-critical fields exist even if HLS updates arrive earlier.
-      // Keep the shell out of feed queries until the final write completes.
-      await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
-        "arsiv": true,
-        "debugMode": false,
-        "deletedPost": false,
-        "deletedPostTime": 0,
-        "flood": flood,
-        "floodCount": floodCount,
-        "gizlendi": false,
-        "img": const <String>[],
-        "imgMap": const <Map<String, dynamic>>[],
-        "isAd": false,
-        "ad": false,
-        "izBirakYayinTarihi": baseTime,
-        "konum": location,
-        "mainFlood": mainFlood,
-        "metin": text,
-        "scheduledAt": scheduledAt,
-        "sikayetEdildi": false,
-        "stabilized": false,
-        "stats": {
-          "commentCount": 0,
-          "likeCount": 0,
-          "reportedCount": 0,
-          "retryCount": 0,
-          "savedCount": 0,
-          "statsCount": 0
-        },
-        "tags": const <String>[],
-        "thumbnail": "",
-        "timeStamp": baseTime,
-        "userID": userID,
-        "video": "",
-        "isUploading": true,
-        "yorumMap": yorumMap,
-        "reshareMap": reshareMap,
-        if (poll.isNotEmpty) "poll": poll,
-        "originalUserID": "",
-        "originalPostID": "",
-      }, SetOptions(merge: true));
-
-      // Upload images first (preserve extension; prefer .webp)
-      final imageUrls = <String>[];
-      for (int i = 0; i < upload.imagePaths.length; i++) {
-        final imagePath = upload.imagePaths[i];
-        final file = File(imagePath);
-
-        if (await file.exists()) {
-          final nsfwImage = await OptimizedNSFWService.checkImage(file);
-          if (nsfwImage.errorMessage != null) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'NSFW görsel kontrolü başarısız';
-            await _saveQueueToStorage();
-            return;
-          }
-          if (nsfwImage.isNSFW) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Uygunsuz görsel tespit edildi';
-            await _saveQueueToStorage();
-            return;
-          }
-          final localBytes = await file.readAsBytes();
-          final url = await WebpUploadService.uploadBytesAsWebp(
-            storage: FirebaseStorage.instance,
-            bytes: localBytes,
-            storagePathWithoutExt: 'Posts/${upload.id}/image_$i',
-          );
-          upload.progress = ((i + 1) / upload.imagePaths.length) * 0.8;
-          _notifyQueueUpdated();
-          if (kDebugMode) {
-            final len = await file.length();
-            debugPrint('[Queue] Image uploaded: ${p.basename(imagePath)} '
-                'localSize=${(len / 1e6).toStringAsFixed(2)} MB url=$url');
-          }
-          imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
-        }
-      }
-
-      // Upload video if exists
-      String videoUrl = '';
-      String thumbnailUrl = '';
-      int thumbWidth = 0;
-      int thumbHeight = 0;
-      if (upload.videoPath != null) {
-        File videoFile = File(upload.videoPath!);
-        if (await videoFile.exists()) {
-          // Compress in background before upload
-          try {
-            videoFile = await VideoCompressionService.compressForNetwork(
-              videoFile,
-              targetMbps: 5.0,
-            );
-          } catch (_) {}
-
-          final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
-          if (nsfwVideo.errorMessage != null) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'NSFW video kontrolü başarısız';
-            await _saveQueueToStorage();
-            return;
-          }
-          if (nsfwVideo.isNSFW) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Uygunsuz video tespit edildi';
-            await _saveQueueToStorage();
-            return;
-          }
-          final ref = FirebaseStorage.instance.ref().child(
-                'Posts/${upload.id}/video.mp4',
-              );
-
-          final uploadTask = ref.putFile(
-            videoFile,
-            SettableMetadata(
-              contentType: 'video/mp4',
-              cacheControl: 'public, max-age=31536000, immutable',
-            ),
-          );
-          uploadTask.snapshotEvents.listen((snapshot) {
-            final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-            upload.progress = 0.8 + (progress * 0.15); // 15% for video
-            _notifyQueueUpdated();
-          });
-
-          final taskSnapshot = await uploadTask;
-          videoUrl = CdnUrlBuilder.toCdnUrl(
-            await taskSnapshot.ref.getDownloadURL(),
-          );
-          if (kDebugMode) {
-            final len = await videoFile.length();
-            debugPrint(
-                '[Queue] Video uploaded: size=${(len / 1e6).toStringAsFixed(2)} MB url=$videoUrl');
-          }
-
-          // Generate and upload thumbnail
-          final tData = await VideoThumbnail.thumbnailData(
-            video: videoFile.path,
-            imageFormat: ImageFormat.JPEG,
-            quality: 75,
-          );
-          if (tData != null) {
-            // Convert to WebP
-            Uint8List thumbData;
-            try {
-              thumbData = await FlutterImageCompress.compressWithList(
-                tData,
-                quality: 80,
-                format: CompressFormat.webp,
-                minWidth: UploadConstants.thumbnailMaxWidth,
-              );
-            } catch (_) {
-              thumbData = tData;
-            }
-            final tUrl = await WebpUploadService.uploadBytesAsWebp(
-              storage: FirebaseStorage.instance,
-              bytes: thumbData,
-              storagePathWithoutExt: 'Posts/${upload.id}/thumbnail',
-            );
-            thumbnailUrl = CdnUrlBuilder.toCdnUrl(tUrl);
-            if (kDebugMode) {
-              debugPrint('[Queue] Thumbnail uploaded: '
-                  'orig=${(tData.length / 1e6).toStringAsFixed(2)} MB '
-                  'webp=${(thumbData.length / 1e6).toStringAsFixed(2)} MB '
-                  'minWidth=${UploadConstants.thumbnailMaxWidth} url=$thumbnailUrl');
-            }
-
-            // Compute dimensions from JPEG bytes
-            final im = img.decodeImage(tData);
-            if (im != null) {
-              thumbWidth = im.width;
-              thumbHeight = im.height;
-            }
-          }
-        }
-      }
-
-      // Save to Firestore (full document structure)
-      upload.progress = 0.95;
-      _notifyQueueUpdated();
-
-      if (gif.isNotEmpty) {
-        imageUrls.add(gif);
-      }
-
-      // Aspect ratio
-      double aspectRatio = 1.0;
-      if (videoUrl.isNotEmpty && thumbWidth > 0 && thumbHeight > 0) {
-        aspectRatio = thumbWidth / thumbHeight;
-      } else if (imageUrls.length == 1 && upload.imagePaths.isNotEmpty) {
-        try {
-          final firstLocal = File(upload.imagePaths.first);
-          if (await firstLocal.exists()) {
-            final bytes = await firstLocal.readAsBytes();
-            final im = img.decodeImage(bytes);
-            if (im != null) {
-              aspectRatio = im.width / im.height;
-            }
-          }
-        } catch (_) {}
-      } else {
-        aspectRatio = imageUrls.length <= 1 ? 4.0 / 5.0 : 1.0;
-      }
-      aspectRatio = double.parse(aspectRatio.toStringAsFixed(4));
-      final isImagePost = imageUrls.isNotEmpty && videoUrl.isEmpty;
-      final List<Map<String, dynamic>> imgMap = [];
-      for (int i = 0; i < imageUrls.length; i++) {
-        double itemAspect = 1.0;
-        try {
-          if (i < upload.imagePaths.length) {
-            final local = File(upload.imagePaths[i]);
-            if (await local.exists()) {
-              final bytes = await local.readAsBytes();
-              final im = img.decodeImage(bytes);
-              if (im != null && im.height > 0) {
-                itemAspect = im.width / im.height;
-              }
-            }
-          }
-        } catch (_) {}
-        imgMap.add({
-          "url": imageUrls[i],
-          "aspectRatio": double.parse(itemAspect.toStringAsFixed(4)),
-        });
-      }
-
-      // Tags from text (for root post)
-      final tagExp = RegExp(r"#([\p{L}\p{N}_]+)", unicode: true);
-      final allTags = tagExp
-          .allMatches(text)
-          .map((e) => e.group(1)!.trim())
-          .where((e) => e.isNotEmpty)
-          .toSet()
-          .toList();
-
-      final data = {
-        "arsiv": false,
-        if (!isImagePost) "aspectRatio": aspectRatio,
-        "debugMode": false,
-        "deletedPost": false,
-        "deletedPostTime": 0,
-        "flood": flood,
-        "floodCount": floodCount,
-        "gizlendi": false,
-        "img": imageUrls,
-        "imgMap": imgMap,
-        "isAd": false,
-        "ad": false,
-        "izBirakYayinTarihi": baseTime,
-        "konum": location,
-        "mainFlood": mainFlood,
-        "metin": text,
-        "scheduledAt": scheduledAt,
-        "sikayetEdildi": false,
-        "stabilized": false,
-        "stats": {
-          "commentCount": 0,
-          "likeCount": 0,
-          "reportedCount": 0,
-          "retryCount": 0,
-          "savedCount": 0,
-          "statsCount": 0
-        },
-        "tags": flood ? [] : allTags,
-        "thumbnail": thumbnailUrl,
-        "timeStamp": baseTime,
-        "userID": userID,
-        "video": videoUrl,
-        "isUploading": false,
-        "yorumMap": yorumMap,
-        "reshareMap": reshareMap,
-        if (poll.isNotEmpty) "poll": poll,
-        // Schema: always include original attribution fields
-        "originalUserID": "",
-        "originalPostID": "",
-      };
-
-      await FirebaseFirestore.instance
-          .collection('Posts')
-          .doc(upload.id)
-          .set(data, SetOptions(merge: true));
-
-      // Mark as completed
-      upload.status = UploadStatus.completed;
-      upload.progress = 1.0;
-      _completedCount.value++;
-      _notifyQueueUpdated();
-
-      await _saveQueueToStorage();
-    } catch (e) {
-      upload.retryCount++;
-
-      if (upload.retryCount >= _maxRetries) {
-        upload.status = UploadStatus.failed;
-        upload.errorMessage = e.toString();
-        _failedCount.value++;
-      } else {
-        upload.status = UploadStatus.pending;
-        upload.errorMessage =
-            'Retry ${upload.retryCount}/$_maxRetries: ${e.toString()}';
-
-        // Wait before retry (exponential backoff)
-        await Future.delayed(Duration(seconds: upload.retryCount * 2));
-      }
-
-      await _saveQueueToStorage();
-      _notifyQueueUpdated();
-    }
-  }
-
-  /// Pause queue processing
-  void pauseQueue() {
-    _isPaused.value = true;
-    _notifyQueueUpdated();
-  }
-
-  /// Resume queue processing
-  void resumeQueue() {
-    _isPaused.value = false;
-    _processQueue();
-    _notifyQueueUpdated();
-  }
-
-  /// Clear completed uploads
-  void clearCompleted() async {
-    _queue.removeWhere((item) => item.status == UploadStatus.completed);
-    _notifyQueueUpdated();
-    await _saveQueueToStorage();
-  }
-
-  /// Retry failed uploads
-  void retryFailed() async {
-    for (final upload
-        in _queue.where((item) => item.status == UploadStatus.failed)) {
-      upload.status = UploadStatus.pending;
-      upload.retryCount = 0;
-      upload.errorMessage = null;
-      upload.progress = 0.0;
-    }
-    _failedCount.value = 0;
-    _notifyQueueUpdated();
-    await _saveQueueToStorage();
-    _processQueue();
-  }
-
-  /// Remove upload from queue
-  void removeUpload(String uploadId) async {
-    _queue.removeWhere((item) => item.id == uploadId);
-    _notifyQueueUpdated();
-    await _saveQueueToStorage();
-  }
-
-  /// Save queue to local storage
-  Future<void> _saveQueueToStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final queueJson = _queue.map((item) => item.toJson()).toList();
-    await prefs.setString(_queueKey, jsonEncode(queueJson));
-  }
-
-  /// Load queue from local storage
-  Future<void> _loadQueueFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final queueString = prefs.getString(_queueKey);
-
-    if (queueString != null) {
-      final queueJson = jsonDecode(queueString) as List;
-      _queue.assignAll(
-        queueJson.map((item) => QueuedUpload.fromJson(item)).toList(),
-      );
-
-      // Reset uploading status to pending on app restart
-      for (final upload
-          in _queue.where((item) => item.status == UploadStatus.uploading)) {
-        upload.status = UploadStatus.pending;
-        upload.progress = 0.0;
-      }
-
-      // Update counters
-      _completedCount.value =
-          _queue.where((item) => item.status == UploadStatus.completed).length;
-      _failedCount.value =
-          _queue.where((item) => item.status == UploadStatus.failed).length;
-
-      await _saveQueueToStorage();
-      _notifyQueueUpdated();
-    }
-  }
-
-  /// Listen to connectivity changes
-  void _listenToConnectivity() {
-    Connectivity().onConnectivityChanged.listen((results) {
-      final hasNetwork =
-          results.any((result) => result != ConnectivityResult.none);
-      if (hasNetwork && !_isProcessing.value && !_isPaused.value) {
-        _processQueue();
-      }
+  String _queueFingerprintForMap(Map<String, dynamic> data) {
+    final sourceImages = (data['sourceImagePaths'] is List)
+        ? List<String>.from(data['sourceImagePaths'] as List)
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : <String>[];
+    sourceImages.sort();
+    final sourceVideo = (data['sourceVideoPath'] ?? '').toString().trim();
+    final text = (data['text'] ?? '').toString().trim();
+    final location = (data['location'] ?? '').toString().trim();
+    final gif = (data['gif'] ?? '').toString().trim();
+    final userID = (data['userID'] ?? '').toString().trim();
+    final scheduledAt = (data['scheduledAt'] ?? 0).toString();
+    return jsonEncode({
+      'userID': userID,
+      'text': text,
+      'location': location,
+      'gif': gif,
+      'scheduledAt': scheduledAt,
+      'sourceImagePaths': sourceImages,
+      'sourceVideoPath': sourceVideo,
     });
   }
 
+  String _queueFingerprint(QueuedUpload upload) {
+    try {
+      final map = jsonDecode(upload.postData) as Map<String, dynamic>;
+      return _queueFingerprintForMap(map);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _seriesBaseId(String id) {
+    final splitAt = id.lastIndexOf('_');
+    if (splitAt <= 0) return id;
+    return id.substring(0, splitAt);
+  }
+
+  int _parseIntValue(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.toInt();
+    return int.tryParse('${value ?? ''}') ?? fallback;
+  }
+
+  Future<String> _resolveQuoteCounterTargetPostId({
+    required String sourcePostId,
+    required String originalPostId,
+  }) async {
+    final candidate = sourcePostId.trim().isNotEmpty
+        ? sourcePostId.trim()
+        : originalPostId.trim();
+    if (candidate.isEmpty) return '';
+
+    final raw = await PostRepository.ensure().fetchPostRawById(
+          candidate,
+          preferCache: true,
+        ) ??
+        const <String, dynamic>{};
+    if (raw.isEmpty) return candidate;
+
+    final floodCount = _parseIntValue(raw['floodCount']);
+    if (floodCount <= 1) return candidate;
+
+    final mainFlood = (raw['mainFlood'] ?? '').toString().trim();
+    final isFlood = raw['flood'] == true;
+    if (isFlood && mainFlood.isNotEmpty) {
+      return mainFlood;
+    }
+    return candidate;
+  }
+
+  /// Add upload to queue
+  Future<bool> addToQueue(
+    QueuedUpload upload, {
+    bool startProcessing = true,
+  }) async {
+    final fingerprint = _queueFingerprint(upload);
+    final baseId = _seriesBaseId(upload.id);
+    final duplicateActive = fingerprint.isNotEmpty &&
+        _queue.any((item) =>
+            _seriesBaseId(item.id) != baseId &&
+            item.status != UploadStatus.completed &&
+            item.status != UploadStatus.failed &&
+            _queueFingerprint(item) == fingerprint);
+    if (duplicateActive) {
+      AppSnackbar('common.info'.tr, 'upload_queue.already_uploading'.tr);
+      return false;
+    }
+    final recentDuplicate = fingerprint.isNotEmpty &&
+        _queue.any((item) =>
+            _seriesBaseId(item.id) != baseId &&
+            item.status == UploadStatus.completed &&
+            DateTime.now().difference(item.createdAt) <=
+                _recentDuplicateWindow &&
+            _queueFingerprint(item) == fingerprint);
+    if (recentDuplicate) {
+      AppSnackbar(
+          'common.info'.tr, 'upload_queue.already_uploaded_recently'.tr);
+      return false;
+    }
+    _queue.add(upload);
+    _notifyQueueUpdated();
+    await _saveQueueToStorage();
+    await _createPendingPostShell(upload);
+    if (startProcessing) {
+      _processQueue();
+    }
+    return true;
+  }
+
+  void processPendingQueue() {
+    _processQueue();
+  }
+
+  Future<void> _createPendingPostShell(QueuedUpload upload) =>
+      _performCreatePendingPostShell(upload);
+
+  /// Start processing queue
+  void _processQueue() => _performProcessQueue();
+
+  /// Process individual upload
+  Future<void> _processUpload(QueuedUpload upload) =>
+      _performProcessUpload(upload);
+
+  /// Pause queue processing
+  void pauseQueue() => _performPauseQueue();
+
+  /// Resume queue processing
+  void resumeQueue() => _performResumeQueue();
+
+  /// Clear completed uploads
+  void clearCompleted() => _performClearCompleted();
+
+  /// Retry failed uploads
+  void retryFailed() => _performRetryFailed();
+
+  /// Remove upload from queue
+  void removeUpload(String uploadId) => _performRemoveUpload(uploadId);
+
+  /// Save queue to local storage
+  Future<void> _saveQueueToStorage() => _performSaveQueueToStorage();
+
+  /// Load queue from local storage
+  Future<void> _loadQueueFromStorage() => _performLoadQueueFromStorage();
+
+  /// Listen to connectivity changes
+  void _listenToConnectivity() => _performListenToConnectivity();
+
   /// Get queue statistics
-  Map<String, dynamic> getQueueStats() {
-    return {
-      'total': _queue.length,
-      'pending': pendingCount,
-      'completed': _completedCount.value,
-      'failed': _failedCount.value,
-      'processing': _isProcessing.value,
-      'paused': _isPaused.value,
-    };
+  Map<String, dynamic> getQueueStats() => _performGetQueueStats();
+
+  @override
+  void onClose() {
+    _disposeQueuePersistence();
+    super.onClose();
   }
 }

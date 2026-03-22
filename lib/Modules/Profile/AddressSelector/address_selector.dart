@@ -4,9 +4,39 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import '../../../Core/Buttons/turq_app_button.dart';
 import 'address_selector_controller.dart';
 
-class AddressSelector extends StatelessWidget {
-  AddressSelector({super.key});
-  final controller = Get.put(AddressSelectorController());
+class AddressSelector extends StatefulWidget {
+  const AddressSelector({super.key});
+
+  @override
+  State<AddressSelector> createState() => _AddressSelectorState();
+}
+
+class _AddressSelectorState extends State<AddressSelector> {
+  late final AddressSelectorController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = AddressSelectorController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = AddressSelectorController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(AddressSelectorController.maybeFind(), controller)) {
+      Get.delete<AddressSelectorController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,7 +48,7 @@ class AddressSelector extends StatelessWidget {
             child: Column(
               children: [
                 Row(
-                  children: [BackButtons(text: "Adres")],
+                  children: [BackButtons(text: 'address.title'.tr)],
                 ),
                 SizedBox(
                   height: 12,
@@ -38,10 +68,10 @@ class AddressSelector extends StatelessWidget {
                     maxLength: 100,
                     maxLines: null,
                     keyboardType: TextInputType.multiline,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: "İşletme & Ofis Adresi",
-                      hintStyle: TextStyle(
+                      hintText: 'address.hint'.tr,
+                      hintStyle: const TextStyle(
                           color: Colors.grey,
                           fontFamily: "MontserratMedium",
                           fontSize: 15),

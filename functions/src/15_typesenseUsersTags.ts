@@ -4,6 +4,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
+import { enforceRateLimitForKey, RateLimits } from "./rateLimiter";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
@@ -13,6 +14,24 @@ const MAX_LIMIT = 50;
 
 function ensureAdmin() {
   if (getApps().length === 0) initializeApp();
+}
+
+function requireAuth(request: CallableRequest<unknown>): string {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "auth_required");
+  }
+  return uid;
+}
+
+function requireAdminAuth(request: CallableRequest<unknown>): string {
+  const uid = requireAuth(request);
+  const token = request.auth?.token as { admin?: unknown } | undefined;
+  if (token?.admin !== true) {
+    throw new HttpsError("permission-denied", "admin_required");
+  }
+  RateLimits.admin(uid);
+  return uid;
 }
 
 function getEnv(name: string): string {
@@ -52,6 +71,10 @@ function asBool(x: unknown): boolean {
 function asStringArray(x: unknown): string[] {
   if (!Array.isArray(x)) return [];
   return x.map((v) => String(v || "").trim()).filter(Boolean);
+}
+
+function typesenseStringLiteral(value: string): string {
+  return `\`${String(value || "").replace(/`/g, "\\`")}\``;
 }
 
 function asEpochSeconds(x: unknown): number {
@@ -178,11 +201,15 @@ async function ensureUsersCollection() {
         { name: "nickname", type: "string", optional: true },
         { name: "firstName", type: "string", optional: true },
         { name: "lastName", type: "string", optional: true },
-        { name: "pfImage", type: "string", optional: true },
+        { name: "displayName", type: "string", optional: true },
+        { name: "avatarUrl", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
-        { name: "gizliHesap", type: "bool", optional: true },
-        { name: "deletedAccount", type: "bool", optional: true },
-        { name: "hesapOnayi", type: "bool", optional: true },
+        { name: "bio", type: "string", optional: true },
+        { name: "adres", type: "string", optional: true },
+        { name: "meslekKategori", type: "string", optional: true },
+        { name: "isPrivate", type: "bool", optional: true },
+        { name: "isDeleted", type: "bool", optional: true },
+        { name: "isApproved", type: "bool", optional: true },
       ];
       const missing = required.filter((rf) => !fields.some((f) => f?.name === rf.name));
       if (missing.length) {
@@ -207,11 +234,15 @@ async function ensureUsersCollection() {
           { name: "nickname", type: "string", optional: true },
           { name: "firstName", type: "string", optional: true },
           { name: "lastName", type: "string", optional: true },
-          { name: "pfImage", type: "string", optional: true },
+          { name: "displayName", type: "string", optional: true },
+          { name: "avatarUrl", type: "string", optional: true },
           { name: "rozet", type: "string", optional: true },
-          { name: "gizliHesap", type: "bool", optional: true },
-          { name: "deletedAccount", type: "bool", optional: true },
-          { name: "hesapOnayi", type: "bool", optional: true },
+          { name: "bio", type: "string", optional: true },
+          { name: "adres", type: "string", optional: true },
+          { name: "meslekKategori", type: "string", optional: true },
+          { name: "isPrivate", type: "bool", optional: true },
+          { name: "isDeleted", type: "bool", optional: true },
+          { name: "isApproved", type: "bool", optional: true },
           { name: "updatedAtTs", type: "int32" },
         ],
         default_sorting_field: "updatedAtTs",
@@ -404,15 +435,20 @@ type UserSearchDoc = {
   nickname: string;
   firstName: string;
   lastName: string;
-  pfImage: string;
+  displayName: string;
+  avatarUrl: string;
   rozet: string;
-  gizliHesap: boolean;
-  deletedAccount: boolean;
-  hesapOnayi: boolean;
+  bio: string;
+  adres: string;
+  meslekKategori: string;
+  isPrivate: boolean;
+  isDeleted: boolean;
+  isApproved: boolean;
   updatedAtTs: number;
 };
 
 function buildUserSearchDoc(userId: string, data: Record<string, unknown>): UserSearchDoc {
+  const profile = ((data as any).profile as Record<string, unknown> | undefined) || {};
   const createdDateRaw = Number((data as any).createdDate || 0);
   const createdDateTs = Number.isFinite(createdDateRaw) && createdDateRaw > 0
     ? Math.floor(createdDateRaw / 1000)
@@ -421,14 +457,24 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
   const isPendingOrDeleted = accountStatus === "pending_deletion" || accountStatus === "deleted";
   return {
     id: userId,
-    nickname: asString(data.nickname) || asString((data as any).username),
-    firstName: asString(data.firstName),
-    lastName: asString(data.lastName),
-    pfImage: asString(data.pfImage) || asString((data as any).avatarUrl) || asString((data as any).profileImageUrl),
-    rozet: asString((data as any).rozet),
-    gizliHesap: asBool((data as any).gizliHesap),
-    deletedAccount: asBool((data as any).deletedAccount) || asBool((data as any).isDeleted) || isPendingOrDeleted,
-    hesapOnayi: asBool((data as any).hesapOnayi) || asBool((data as any).isVerified),
+    nickname: asString(data.nickname),
+    firstName: asString((data as any).firstName) || asString(profile.firstName),
+    lastName: asString((data as any).lastName) || asString(profile.lastName),
+    displayName:
+      asString((data as any).displayName) ||
+      asString(profile.displayName) ||
+      asString((data as any).fullName),
+    avatarUrl: asString((data as any).avatarUrl) || asString(profile.avatarUrl),
+    rozet: asString((data as any).rozet) || asString(profile.rozet),
+    bio: asString((data as any).bio) || asString(profile.bio),
+    adres: asString((data as any).adres) || asString(profile.adres),
+    meslekKategori:
+      asString((data as any).meslekKategori) || asString(profile.meslekKategori),
+    isPrivate: asBool((data as any).isPrivate),
+    isDeleted:
+      asBool((data as any).isDeleted) ||
+      isPendingOrDeleted,
+    isApproved: asBool((data as any).isApproved) || asBool((data as any).isVerified),
     updatedAtTs:
       asEpochSeconds(data.updatedAt) ||
       asEpochSeconds(data.createdAt) ||
@@ -593,12 +639,12 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
     timeout: 10000,
     params: {
       q,
-      query_by: "nickname,firstName,lastName",
+      query_by: "nickname,displayName,firstName,lastName,meslekKategori",
       per_page: limit,
       page,
       sort_by: "updatedAtTs:desc",
-      filter_by: "deletedAccount:=false && gizliHesap:=false",
-      prefix: "true,true,true",
+      filter_by: "isDeleted:=false && isPrivate:=false",
+      prefix: "true,true,true,true,true",
       typo_tokens_threshold: 1,
     },
   });
@@ -614,19 +660,65 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
     out_of: Number(body.out_of || 0),
     search_time_ms: Number(body.search_time_ms || 0),
     hits: hits
-      .filter((h: any) => h?.document?.deletedAccount !== true && h?.document?.gizliHesap !== true)
+      .filter((h: any) => h?.document?.isDeleted !== true && h?.document?.isPrivate !== true)
       .map((h: any) => ({
         id: h?.document?.id,
         nickname: h?.document?.nickname || "",
         firstName: h?.document?.firstName || "",
         lastName: h?.document?.lastName || "",
-        pfImage: h?.document?.pfImage || "",
+        displayName: h?.document?.displayName || "",
+        avatarUrl: h?.document?.avatarUrl || "",
         rozet: h?.document?.rozet || "",
-        gizliHesap: h?.document?.gizliHesap === true,
-        deletedAccount: h?.document?.deletedAccount === true,
-        hesapOnayi: h?.document?.hesapOnayi === true,
+        bio: h?.document?.bio || "",
+        adres: h?.document?.adres || "",
+        meslekKategori: h?.document?.meslekKategori || "",
+        isPrivate: h?.document?.isPrivate === true,
+        isDeleted: h?.document?.isDeleted === true,
+        isApproved: h?.document?.isApproved === true,
         text_match: h?.text_match || 0,
       })),
+  };
+}
+
+async function getUserCardsByIdsFromTypesense(ids: string[]) {
+  await ensureUsersCollection();
+
+  const uniqueIds = Array.from(new Set(ids.map((x) => String(x || "").trim()).filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return {
+      requested: 0,
+      found: 0,
+      search_time_ms: 0,
+      missingIds: [],
+      hits: [],
+    };
+  }
+
+  const baseUrl = getTypesenseBaseUrl();
+  const resp = await axios.get(`${baseUrl}/collections/${USERS_COLLECTION}/documents/search`, {
+    headers: headers(),
+    timeout: 10000,
+    params: {
+      q: "*",
+      query_by: "nickname",
+      per_page: uniqueIds.length,
+      page: 1,
+      filter_by: `id:=[${uniqueIds.map(typesenseStringLiteral).join(",")}]`,
+      sort_by: "updatedAtTs:desc",
+    },
+  });
+
+  const body = resp.data || {};
+  const hits = Array.isArray(body.hits) ? body.hits : [];
+  const docs = hits.map((h: any) => h?.document || {}).filter((doc: any) => !!doc?.id);
+  const foundIds = new Set(docs.map((doc: any) => String(doc.id)));
+
+  return {
+    requested: uniqueIds.length,
+    found: docs.length,
+    search_time_ms: Number(body.search_time_ms || 0),
+    missingIds: uniqueIds.filter((id) => !foundIds.has(id)),
+    hits: docs,
   };
 }
 
@@ -882,6 +974,9 @@ const f14_searchPosts = onRequest(
       return;
     }
 
+    const rateKey = String(req.headers["cf-connecting-ip"] || req.ip || "unknown");
+    enforceRateLimitForKey(rateKey, "typesense_http_search", 240, 60);
+
     if (!typesenseReady()) {
       res.status(503).json({ error: "typesense_not_configured" });
       return;
@@ -914,6 +1009,9 @@ const f14_searchPostsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -943,6 +1041,9 @@ export const f15_searchUsersCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -964,6 +1065,39 @@ export const f15_searchUsersCallable = onCall(
   }
 );
 
+export const f15_getUserCardsByIdsCallable = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+  },
+  async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
+    if (!typesenseReady()) {
+      throw new HttpsError("failed-precondition", "typesense_not_configured");
+    }
+
+    const idsRaw = Array.isArray(request.data?.ids) ? request.data?.ids : [];
+    const ids = idsRaw.map((x: unknown) => String(x || "").trim()).filter(Boolean);
+    if (ids.length === 0) {
+      throw new HttpsError("invalid-argument", "ids_required");
+    }
+    if (ids.length > MAX_LIMIT) {
+      throw new HttpsError("invalid-argument", "too_many_ids");
+    }
+
+    try {
+      return await getUserCardsByIdsFromTypesense(ids);
+    } catch (err: any) {
+      const detail = err?.response?.data || err?.message || "unknown_error";
+      throw new HttpsError("internal", "typesense_search_failed", detail);
+    }
+  }
+);
+
 export const f15_searchTagsCallable = onCall(
   {
     region: REGION,
@@ -972,6 +1106,9 @@ export const f15_searchTagsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -1001,6 +1138,9 @@ export const f15_getPostIdsByTagCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -1098,6 +1238,9 @@ export const f15_getTrendingTagsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -1152,6 +1295,7 @@ export const f15_reindexUsersToTypesenseCallable = onCall(
   },
   async (request: CallableRequest<ReindexUsersInput>): Promise<ReindexUsersOutput> => {
     ensureAdmin();
+    requireAdminAuth(request);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");

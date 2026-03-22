@@ -40,15 +40,13 @@ class DenemeGecmisSonucContent extends StatelessWidget {
                       child: CachedNetworkImage(
                         imageUrl: model.cover,
                         fit: BoxFit.cover,
-                        placeholder:
-                            (context, url) =>
-                                Center(child: CupertinoActivityIndicator()),
-                        errorWidget:
-                            (context, url, error) => Icon(
-                              Icons.image_not_supported,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
+                        placeholder: (context, url) =>
+                            Center(child: CupertinoActivityIndicator()),
+                        errorWidget: (context, url, error) => Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ),
@@ -78,7 +76,8 @@ class DenemeGecmisSonucContent extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          "${model.sinavAciklama} Testi",
+                          'tests.description_test'
+                              .trParams({'description': model.sinavAciklama}),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 2,
                           style: TextStyle(

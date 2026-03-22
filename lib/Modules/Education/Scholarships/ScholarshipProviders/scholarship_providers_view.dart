@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,14 +6,50 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class ScholarshipProvidersView extends StatelessWidget {
+class ScholarshipProvidersView extends StatefulWidget {
   ScholarshipProvidersView({super.key});
 
-  final ScholarshipProvidersController controller = Get.put(
-    ScholarshipProvidersController(),
-  );
+  @override
+  State<ScholarshipProvidersView> createState() =>
+      _ScholarshipProvidersViewState();
+}
+
+class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final ScholarshipProvidersController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'scholarship_providers_${identityHashCode(this)}';
+    final existing = ScholarshipProvidersController.maybeFind(
+      tag: _controllerTag,
+    );
+    _ownsController = existing == null;
+    controller =
+        existing ?? ScholarshipProvidersController.ensure(tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          ScholarshipProvidersController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<ScholarshipProvidersController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +58,7 @@ class ScholarshipProvidersView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Burs Verenler"),
+            BackButtons(text: "scholarship.providers_title".tr),
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
@@ -38,7 +74,7 @@ class ScholarshipProvidersView extends StatelessWidget {
                                 () => controller.providers.isEmpty
                                     ? Center(
                                         child: Text(
-                                          'Burs veren bulunamadı.',
+                                          'scholarship.providers_empty'.tr,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 16,
@@ -55,10 +91,8 @@ class ScholarshipProvidersView extends StatelessWidget {
                                               controller.providers[index];
                                           return GestureDetector(
                                             onTap: () {
-                                              final currentUserId = FirebaseAuth
-                                                  .instance.currentUser?.uid;
                                               if (provider['userID'] ==
-                                                  currentUserId) {
+                                                  _currentUid) {
                                                 null;
                                               } else {
                                                 Get.to(
@@ -95,36 +129,28 @@ class ScholarshipProvidersView extends StatelessWidget {
                                                         alignment:
                                                             Alignment.center,
                                                         children: [
-                                                          provider['pfImage']
+                                                          provider['avatarUrl']
                                                                   .isNotEmpty
-                                                              ? Image.network(
-                                                                  provider[
-                                                                      'pfImage'],
+                                                              ? CachedNetworkImage(
+                                                                  imageUrl:
+                                                                      provider[
+                                                                          'avatarUrl'],
                                                                   width: 50,
                                                                   height: 50,
                                                                   fit: BoxFit
                                                                       .cover,
-                                                                  loadingBuilder:
-                                                                      (
+                                                                  placeholder: (
                                                                     context,
-                                                                    child,
-                                                                    loadingProgress,
-                                                                  ) {
-                                                                    if (loadingProgress ==
-                                                                        null) {
-                                                                      return child;
-                                                                    }
-                                                                    return CupertinoActivityIndicator();
-                                                                  },
-                                                                  errorBuilder:
-                                                                      (
+                                                                    url,
+                                                                  ) =>
+                                                                      CupertinoActivityIndicator(),
+                                                                  errorWidget: (
                                                                     context,
+                                                                    url,
                                                                     error,
-                                                                    stackTrace,
-                                                                  ) {
-                                                                    return SizedBox
-                                                                        .shrink();
-                                                                  },
+                                                                  ) =>
+                                                                      SizedBox
+                                                                          .shrink(),
                                                                 )
                                                               : SizedBox
                                                                   .shrink(),

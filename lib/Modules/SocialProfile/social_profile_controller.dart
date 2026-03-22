@@ -1,14 +1,24 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
+import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Repositories/profile_repository.dart';
+import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Models/posts_model.dart';
 import '../../Models/user_post_reference.dart';
 import '../../Services/user_post_link_service.dart';
@@ -16,10 +26,32 @@ import '../../Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import '../Agenda/AgendaContent/agenda_content_controller.dart';
 import '../Profile/SocialMediaLinks/social_media_links_controller.dart';
-import '../Story/StoryMaker/story_model.dart';
 import '../Story/StoryRow/story_user_model.dart';
 
+part 'social_profile_controller_profile_part.dart';
+part 'social_profile_controller_feed_part.dart';
+
 class SocialProfileController extends GetxController {
+  static SocialProfileController ensure({
+    required String userID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SocialProfileController(userID: userID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SocialProfileController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<SocialProfileController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SocialProfileController>(tag: tag);
+  }
+
   var totalMarket = 0.obs;
   var totalPosts = 0.obs;
   var totalLikes = 0.obs;
@@ -30,20 +62,29 @@ class SocialProfileController extends GetxController {
   final currentVisibleIndex = RxInt(-1);
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  String? _pendingCenteredIdentity;
 
   final ScrollController scrollController = ScrollController();
   final RxList<SocialMediaModel> socialMediaList = <SocialMediaModel>[].obs;
   final RxList<PostsModel> reshares = <PostsModel>[].obs;
   StreamSubscription<List<UserPostReference>>? _resharesSub;
-  final UserPostLinkService _linkService = Get.put(UserPostLinkService());
-  final Map<int, GlobalKey> _postKeys = {};
-  final user = Get.find<FirebaseMyStore>();
+  final UserRepository _userRepository = UserRepository.ensure();
+  final RuntimeInvariantGuard _invariantGuard = RuntimeInvariantGuard.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
+  final SocialMediaLinksRepository _socialLinksRepository =
+      SocialMediaLinksRepository.ensure();
+  final StoryRepository _storyRepository = StoryRepository.ensure();
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  final UserPostLinkService _linkService = UserPostLinkService.ensure();
+  final Map<String, GlobalKey> _postKeys = {};
   var showPfImage = false.obs;
 
   String userID;
   SocialProfileController({required this.userID});
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var displayName = "".obs;
+  var avatarUrl = "".obs;
   var firstName = "".obs;
   var lastName = "".obs;
   var token = "".obs;
@@ -63,16 +104,52 @@ class SocialProfileController extends GetxController {
   var complatedCheck = false.obs;
   var takipEdiyorum = false.obs;
   var followLoading = false.obs;
+  static const Duration _followCheckCacheTtl = Duration(seconds: 20);
+  static const Duration _counterCacheTtl = Duration(seconds: 30);
+  static const Duration _cacheStaleRetention = Duration(minutes: 3);
+  static const int _maxCacheEntries = 500;
+  static final Map<String, _SocialFollowCheckCacheEntry> _followCheckCache =
+      <String, _SocialFollowCheckCacheEntry>{};
+  static final Map<String, _SocialCounterCacheEntry> _counterCache =
+      <String, _SocialCounterCacheEntry>{};
 
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
 
   final RxList<PostsModel> photos = <PostsModel>[].obs;
   final RxList<PostsModel> scheduledPosts = <PostsModel>[].obs;
 
+  bool isPrivateContentBlockedFor(String? viewerUserId) {
+    return gizliHesap.value &&
+        takipEdiyorum.value == false &&
+        viewerUserId != userID;
+  }
+
+  bool isBlockedByCurrentViewer(String? otherUserId) {
+    final other = (otherUserId ?? '').trim();
+    if (other.isEmpty) return false;
+    final currentBlocked = CurrentUserService.instance.blockedUserIds;
+    return currentBlocked.contains(other);
+  }
+
+  String displayCounterValue({
+    required String? viewerUserId,
+    required num value,
+  }) {
+    if (isBlockedByCurrentViewer(viewerUserId)) {
+      return "0";
+    }
+    return NumberFormatter.format(value.toInt());
+  }
+
   final RxBool isLoadingPosts = false.obs;
   final RxBool hasMorePosts = true.obs;
   DocumentSnapshot? lastPostDoc;
   final int pageSize = 12;
+  final ProfileRepository _profileRepository = ProfileRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
+  bool _hasMorePrimary = true;
+  bool _isLoadingPrimary = false;
 
   final RxBool isLoadingPhoto = false.obs;
   final RxBool hasMorePhoto = true.obs;
@@ -87,7 +164,28 @@ class SocialProfileController extends GetxController {
   StoryUserModel? storyUserModel;
   // Yukarı butonu
   final RxBool showScrollToTop = false.obs;
-  StreamSubscription<DocumentSnapshot>? _userDocSub;
+  StreamSubscription<Map<String, dynamic>?>? _userDocSub;
+
+  String _resolveNickname(
+    Map<String, dynamic> raw,
+    Map<String, dynamic> profile,
+  ) =>
+      _performResolveNickname(raw, profile);
+
+  int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();
+
+  void resumeCenteredPost() => _performResumeCenteredPost();
+
+  void capturePendingCenteredEntry({
+    int? preferredIndex,
+    PostsModel? model,
+    bool isReshare = false,
+  }) =>
+      _performCapturePendingCenteredEntry(
+        preferredIndex: preferredIndex,
+        model: model,
+        isReshare: isReshare,
+      );
 
   @override
   void onInit() {
@@ -99,29 +197,12 @@ class SocialProfileController extends GetxController {
     isFollowingCheck();
     _logProfileVisitIfNeeded();
     super.onInit();
-    getPosts(initial: true);
-    getPhotos(initial: true);
+    unawaited(_restoreCachedBuckets());
+    _fetchPrimaryBuckets(initial: true);
     getReshares();
-    fetchScheduledPosts(initial: true);
   }
 
-  Future<void> _logProfileVisitIfNeeded() async {
-    try {
-      final current = FirebaseAuth.instance.currentUser?.uid;
-      if (current == null) return;
-      if (current == userID) return; // kendi profili
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .collection('ProfileVisits')
-          .add({
-        'visitorId': current,
-        'timeStamp': DateTime.now().millisecondsSinceEpoch,
-      });
-    } catch (e) {
-      print('Profile visit log error: $e');
-    }
-  }
+  Future<void> _logProfileVisitIfNeeded() => _performLogProfileVisitIfNeeded();
 
   @override
   void onClose() {
@@ -131,571 +212,143 @@ class SocialProfileController extends GetxController {
     super.onClose();
   }
 
-  Future<void> getCounters() async {
-    try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
+  Future<void> getCounters() => _performGetCounters();
 
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        final followerCounter =
-            (data?['counterOfFollowers'] as num?)?.toInt() ??
-                (data?['followersCount'] as num?)?.toInt() ??
-                (data?['takipci'] as num?)?.toInt() ??
-                (data?['followerCount'] as num?)?.toInt() ??
-                0;
-        final followingCounter =
-            (data?['counterOfFollowings'] as num?)?.toInt() ??
-                (data?['followingCount'] as num?)?.toInt() ??
-                (data?['takip'] as num?)?.toInt() ??
-                (data?['followCount'] as num?)?.toInt() ??
-                0;
+  Future<void> getReshares() => _performGetReshares();
 
-        totalFollower.value = followerCounter;
-        totalFollowing.value = followingCounter;
-      }
+  Future<void> _hydrateReshares(List<UserPostReference> refs) =>
+      _performHydrateReshares(refs);
 
-      // Counter alanı sıfırlanmış/bozuksa, gerçek ilişki koleksiyonlarından yeniden say.
-      if (totalFollower.value == 0 || totalFollowing.value == 0) {
-        final followersAgg = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(userID)
-            .collection("Takipciler")
-            .count()
-            .get();
-        final followingAgg = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(userID)
-            .collection("TakipEdilenler")
-            .count()
-            .get();
+  Future<void> getPosts({bool initial = false}) =>
+      _performGetPosts(initial: initial);
 
-        final followers = followersAgg.count ?? 0;
-        final followings = followingAgg.count ?? 0;
-        totalFollower.value = followers;
-        totalFollowing.value = followings;
-      }
-    } catch (e) {
-      print("⚠️ SocialProfile getCounters error: $e");
-    }
-  }
+  Future<void> getPhotos({bool initial = false}) =>
+      _performGetPhotos(initial: initial);
 
-  Future<void> getReshares() async {
-    _resharesSub?.cancel();
-    _resharesSub = _linkService.listenResharedPosts(userID).listen((refs) {
-      _hydrateReshares(refs);
-    });
-  }
+  Future<void> isFollowingCheck() => _performIsFollowingCheck();
 
-  Future<void> _hydrateReshares(List<UserPostReference> refs) async {
-    try {
-      final posts = await _linkService.fetchResharedPosts(userID, refs);
-      reshares.value = posts;
-    } catch (e) {
-      print('SocialProfileController hydrate reshares error: $e');
-    }
-  }
+  Future<void> setPostSelection(int index) => _performSetPostSelection(index);
 
-  Future<void> getPosts({bool initial = false}) async {
-    if (isLoadingPosts.value || !hasMorePosts.value) return;
-    isLoadingPosts.value = true;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    Query query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("flood", isEqualTo: false)
-        .where("userID", isEqualTo: userID)
-        .where("arsiv", isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs)
-        .orderBy("timeStamp", descending: true)
-        .limit(pageSize);
-
-    if (!initial && lastPostDoc != null) {
-      query = query.startAfterDocument(lastPostDoc!);
-    }
-
-    final snap = await PerformanceService.traceFeedLoad(
-      () => query.get(),
-      postCount: allPosts.length,
-      feedMode: 'profile_posts',
+  GlobalKey getPostKey({
+    required String docId,
+    required bool isReshare,
+  }) {
+    final identity = combinedEntryIdentity(
+      docId: docId,
+      isReshare: isReshare,
     );
-    final posts = snap.docs
-        .map((doc) =>
-            PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .where((p) => (p.timeStamp) <= nowMs)
-        .where((p) => p.deletedPost != true)
-        .toList();
-
-    if (initial) {
-      allPosts.value = posts;
-    } else {
-      allPosts.addAll(posts);
-    }
-
-    if (snap.docs.isNotEmpty) lastPostDoc = snap.docs.last;
-    if (posts.length < pageSize) hasMorePosts.value = false;
-
-    isLoadingPosts.value = false;
-  }
-
-  Future<void> getPhotos({bool initial = false}) async {
-    if (isLoadingPhoto.value || !hasMorePhoto.value) return;
-    isLoadingPhoto.value = true;
-
-    final nowMs2 = DateTime.now().millisecondsSinceEpoch;
-    Query query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("flood", isEqualTo: false)
-        .where("video", isEqualTo: "")
-        .where("userID", isEqualTo: userID)
-        .where("arsiv", isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs2)
-        .orderBy("timeStamp", descending: true)
-        .limit(pageSizePhoto);
-
-    if (!initial && lastPostDocPhoto != null) {
-      query = query.startAfterDocument(lastPostDocPhoto!);
-    }
-
-    final snap = await PerformanceService.traceFeedLoad(
-      () => query.get(),
-      postCount: photos.length,
-      feedMode: 'profile_photos',
+    return _postKeys.putIfAbsent(
+      identity,
+      () => GlobalObjectKey('social_$identity'),
     );
-    final posts = snap.docs
-        .map((doc) =>
-            PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .where((p) => (p.timeStamp) <= nowMs2)
-        .where((p) => p.deletedPost != true)
-        .toList();
-
-    if (initial) {
-      photos.value = posts;
-    } else {
-      photos.addAll(posts);
-    }
-
-    if (snap.docs.isNotEmpty) lastPostDocPhoto = snap.docs.last;
-    if (posts.length < pageSizePhoto) hasMorePhoto.value = false;
-
-    isLoadingPhoto.value = false;
   }
 
-  Future<void> isFollowingCheck() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      takipEdiyorum.value = doc.exists;
-      complatedCheck.value = true;
-    });
-  }
-
-  Future<void> setPostSelection(int index) async {
-    postSelection.value = index;
-    UserAnalyticsService.instance
-        .trackFeatureUsage('social_profile_tab_$index');
-    if (index == 5) {
-      if (scheduledPosts.isEmpty || lastScheduledDoc == null) {
-        await fetchScheduledPosts(initial: true);
-      }
-    }
-  }
-
-  GlobalKey getPostKey(int index) {
-    return _postKeys.putIfAbsent(index, () => GlobalObjectKey('post_$index'));
-  }
-
-  Future<void> fetchScheduledPosts({bool initial = false}) async {
-    if (isLoadingScheduled.value || !hasMoreScheduled.value) return;
-    isLoadingScheduled.value = true;
-    try {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      Query query = FirebaseFirestore.instance
-          .collection('Posts')
-          .where('timeStamp', isGreaterThan: nowMs)
-          .orderBy('timeStamp')
-          .limit(pageSizeScheduled);
-
-      if (!initial && lastScheduledDoc != null) {
-        query = query.startAfterDocument(lastScheduledDoc!);
-      }
-
-      final snap = await PerformanceService.traceFeedLoad(
-        () => query.get(),
-        postCount: scheduledPosts.length,
-        feedMode: 'profile_scheduled',
+  String combinedEntryIdentity({
+    required String docId,
+    required bool isReshare,
+  }) =>
+      _performCombinedEntryIdentity(
+        docId: docId,
+        isReshare: isReshare,
       );
-      final posts = snap.docs
-          .map(
-              (d) => PostsModel.fromMap(d.data() as Map<String, dynamic>, d.id))
-          .where((p) => p.userID == userID && !p.arsiv && !p.flood)
-          .toList();
 
-      if (initial) {
-        scheduledPosts.value = posts;
-      } else {
-        scheduledPosts.addAll(posts);
-      }
+  List<Map<String, dynamic>> get combinedFeedEntries =>
+      _performCombinedFeedEntries();
 
-      if (snap.docs.isNotEmpty) lastScheduledDoc = snap.docs.last;
-      if (posts.length < pageSizeScheduled) hasMoreScheduled.value = false;
-    } catch (e) {
-      print('fetchScheduledPosts(SocialProfile) error: $e');
-    }
-    isLoadingScheduled.value = false;
-  }
+  int indexOfCombinedEntry({
+    required String docId,
+    required bool isReshare,
+  }) =>
+      _performIndexOfCombinedEntry(
+        docId: docId,
+        isReshare: isReshare,
+      );
 
-  Future<void> refreshAll() async {
-    try {
-      // Temel kullanıcı verileri ve sayfalar
-      await getCounters();
-      await getUserData();
-      await getSocialMediaLinks();
+  String agendaInstanceTag({
+    required String docId,
+    required bool isReshare,
+  }) =>
+      _performAgendaInstanceTag(
+        docId: docId,
+        isReshare: isReshare,
+      );
 
-      // Postlar
-      lastPostDoc = null;
-      hasMorePosts.value = true;
-      allPosts.clear();
+  Future<void> fetchScheduledPosts({bool initial = false}) =>
+      _performFetchScheduledPosts(initial: initial);
 
-      // Fotoğraflar
-      lastPostDocPhoto = null;
-      hasMorePhoto.value = true;
-      photos.clear();
+  Future<void> refreshAll() => _performRefreshAll();
 
-      // Reshare
-      reshares.clear();
+  Future<void> disposeAgendaContentController(String docID) =>
+      _performDisposeAgendaContentController(docID);
 
-      // Scheduled
-      lastScheduledDoc = null;
-      hasMoreScheduled.value = true;
-      scheduledPosts.clear();
+  Future<void> getSocialMediaLinks() => _performGetSocialMediaLinks();
 
-      await Future.wait([
-        getPosts(initial: true),
-        getPhotos(initial: true),
-        getReshares(),
-        fetchScheduledPosts(initial: true),
-      ]);
-    } catch (e) {
-      print('SocialProfile.refreshAll error: $e');
-    }
-  }
+  Future<void> showSocialMediaLinkDelete(String docID) =>
+      _performShowSocialMediaLinkDelete(docID);
 
-  Future<void> disposeAgendaContentController(String docID) async {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
-      Get.delete<AgendaContentController>(tag: docID, force: true);
-      print("Disposed AgendaContentController for $docID");
-    }
-  }
+  Future<void> getUserData() => _performGetUserData();
 
-  Future<void> getSocialMediaLinks() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .collection("SosyalMedyaLinkleri")
-        .orderBy("sira")
-        .get();
+  bool _needsHeaderSupplementalData(Map<String, dynamic> raw) =>
+      _performNeedsHeaderSupplementalData(raw);
 
-    final list = snapshot.docs
-        .map((doc) => SocialMediaModel.fromFirestore(doc))
-        .toList();
+  void _applyUserData(Map<String, dynamic> raw) => _performApplyUserData(raw);
 
-    list.sort((a, b) =>
-        a.sira.compareTo(b.sira)); // opsiyonel, sıralama zaten varsa gerek yok
+  void _applySupplementalUserData(Map<String, dynamic> raw) =>
+      _performApplySupplementalUserData(raw);
 
-    socialMediaList.value = list; // observable list ise
-  }
+  Future<void> toggleFollowStatus() => _performToggleFollowStatus();
 
-  Future<void> showSocialMediaLinkDelete(String docID) async {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              "Bağlantıyı Kaldır ?",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontFamily: "MontserratBold",
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Bu bağlantıyı kaldırmak istediğinizden emin misiniz",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: "MontserratMedium",
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Get.back();
-                    },
-                    child: Container(
-                      height: 50,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        "Vazgeç",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      Get.back();
-                      await FirebaseFirestore.instance
-                          .collection("users")
-                          .doc(userID)
-                          .collection("SosyalMedyaLinkleri")
-                          .doc(docID)
-                          .delete();
+  Future<void> block() => _performBlock();
 
-                      final links = Get.find<SocialMediaController>();
-                      links.getData();
-                    },
-                    child: Container(
-                      height: 50,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      child: const Text(
-                        "Kaldır",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
+  Future<void> unblock() => _performUnblock();
 
-  Future<void> getUserData() async {
-    _userDocSub?.cancel();
-    _userDocSub = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .snapshots()
-        .listen((doc) {
-      nickname.value = doc.get("nickname") ?? "";
-      pfImage.value = doc.get("pfImage");
-      firstName.value = doc.get("firstName");
-      lastName.value = doc.get("lastName");
-      email.value = doc.get("email");
-      rozet.value = doc.get("rozet");
-      bio.value = doc.get("bio");
-      adres.value = doc.get("adres");
-      token.value = doc.get("token");
-      phoneNumber.value = doc.get("phoneNumber");
-      // İletişim izinleri
-      try {
-        mailIzin.value = (doc.data().toString().contains('mailIzin'))
-            ? (doc.get("mailIzin") ?? false)
-            : false;
-      } catch (_) {
-        mailIzin.value = false;
-      }
-      try {
-        aramaIzin.value = (doc.data().toString().contains('aramaIzin'))
-            ? (doc.get("aramaIzin") ?? false)
-            : false;
-      } catch (_) {
-        aramaIzin.value = false;
-      }
-      ban.value = doc.get("ban");
-      gizliHesap.value = doc.get("gizliHesap");
-      hesapOnayi.value = doc.get("hesapOnayi");
-      meslek.value = doc.get("meslekKategori");
-      blockedUsers.value = List.from(doc.get("blockedUsers"));
-      totalMarket.value = 0; // when end of the market coding
-      // Gönderi ve beğeni sayısı kullanıcı doc'undan dinamik
-      totalPosts.value = doc.get("counterOfPosts") ?? 0;
-      totalLikes.value = doc.get("counterOfLikes") ?? 0;
-    });
-  }
+  Future<void> getUserStoryUserModelAndPrint(String userId) =>
+      _performGetUserStoryUserModelAndPrint(userId);
 
-  Future<void> toggleFollowStatus() async {
-    if (followLoading.value) return;
-    final bool wasFollowing = takipEdiyorum.value;
-    // Optimistic UI update
-    takipEdiyorum.value = !wasFollowing;
-    followLoading.value = true;
-    try {
-      final outcome = await FollowService.toggleFollow(userID);
-      // Reconcile with server outcome
-      takipEdiyorum.value = outcome.nowFollowing;
+  void _pruneCaches() => _performPruneCaches();
 
-      // ⚠️ CRITICAL FIX: Update follower count after follow/unfollow
-      if (outcome.nowFollowing && !wasFollowing) {
-        // Followed - increase follower count
-        totalFollower.value++;
-        NotificationService.instance.sendNotification(
-          token: token.value,
-          title: user.nickname.value,
-          body: "seni takip etmeye başladı",
-          docID: userID,
-          type: "User",
-        );
-      } else if (!outcome.nowFollowing && wasFollowing) {
-        // Unfollowed - decrease follower count
-        totalFollower.value--;
-      }
+  void _trimMap<T>(Map<String, T> map, DateTime Function(T value) cachedAt) =>
+      _performTrimMap(map, cachedAt);
 
-      if (outcome.limitReached) {
-        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
-      }
-    } catch (e) {
-      // Revert on error
-      takipEdiyorum.value = wasFollowing;
-      print("Bir hata oluştu: $e");
-    } finally {
-      followLoading.value = false;
-    }
-  }
+  Future<void> _restoreCachedBuckets() => _performRestoreCachedBuckets();
 
-  Future<void> block() async {
-    await noYesAlert(
-      title: "Engelle",
-      message: "Bu kullanıcıyı engellemek istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Engelle",
-      onYesPressed: () async {
-        final currentUid = FirebaseAuth.instance.currentUser!.uid;
+  Future<void> _fetchPrimaryBuckets({
+    required bool initial,
+    bool force = false,
+  }) =>
+      _performFetchPrimaryBuckets(
+        initial: initial,
+        force: force,
+      );
 
-        // 1) Engellenenler listesine ekle
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(currentUid)
-            .update({
-          "blockedUsers": FieldValue.arrayUnion([userID])
-        });
-
-        // 2) Takip ilişkilerini temizle (batch ile topluca)
-        final batch = FirebaseFirestore.instance.batch();
-        final meDoc =
-            FirebaseFirestore.instance.collection("users").doc(currentUid);
-        final otherDoc =
-            FirebaseFirestore.instance.collection("users").doc(userID);
-
-        batch.delete(meDoc.collection("TakipEdilenler").doc(userID));
-        batch.delete(meDoc.collection("Takipciler").doc(userID));
-        batch.delete(otherDoc.collection("TakipEdilenler").doc(currentUid));
-        batch.delete(otherDoc.collection("Takipciler").doc(currentUid));
-
-        await batch.commit();
-
-        // 3) Veri yenileme
-        user.getUserData();
-        getUserData();
-        isFollowingCheck();
-      },
-    );
-  }
-
-  Future<void> unblock() async {
-    await noYesAlert(
-      title: "Engeli Kaldır",
-      message: "Engeli kaldırmak istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Engeli Kaldır",
-      onYesPressed: () async {
-        // 1) Engellenenler listesinden kaldır
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update({
-          "blockedUsers": FieldValue.arrayRemove([userID])
-        });
-        // 2) Verileri yenile
-        user.getUserData();
-        getUserData();
-        isFollowingCheck();
-      },
-    );
-  }
-
-  Future<void> getUserStoryUserModelAndPrint(String userId) async {
-    // Stories koleksiyonunda ilgili userId'ye ait tüm story'leri topla
-    final snap = await FirebaseFirestore.instance
-        .collection("stories")
-        .where("userId", isEqualTo: userId)
-        .orderBy("createdAt", descending: true)
-        .get();
-
-    if (snap.docs.isEmpty) {
-      print("Kullanıcıya ait hiç hikaye yok.");
-      return;
-    }
-
-    List<StoryModel> stories = snap.docs
-        .where((doc) {
-          final data = doc.data();
-          return (data['deleted'] ?? false) != true;
-        })
-        .map((doc) => StoryModel.fromDoc(doc))
-        .toList();
-
-    // Kullanıcı bilgisini çek
-    final userSnap =
-        await FirebaseFirestore.instance.collection("users").doc(userId).get();
-    if (!userSnap.exists) {
-      print("Kullanıcı bulunamadı.");
-      return;
-    }
-
-    final data = userSnap.data()!;
-    final userModel = StoryUserModel(
-      nickname: data['nickname'] ?? "",
-      pfImage: data['pfImage'] ?? "",
-      fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
-      userID: userId,
-      stories: stories,
-    );
-
-    print("Kullanıcı StoryUserModel: $userModel");
-    storyUserModel = userModel;
-    print(
-        "Nickname: ${userModel.nickname}, Story Sayısı: ${userModel.stories.length}");
-  }
+  List<PostsModel> _dedupePosts(
+    List<PostsModel> existing,
+    List<PostsModel> incoming,
+  ) =>
+      _performDedupePosts(existing, incoming);
 }
+
+class _SocialFollowCheckCacheEntry {
+  final bool isFollowing;
+  final DateTime cachedAt;
+
+  const _SocialFollowCheckCacheEntry({
+    required this.isFollowing,
+    required this.cachedAt,
+  });
+}
+
+class _SocialCounterCacheEntry {
+  final int followers;
+  final int followings;
+  final DateTime cachedAt;
+
+  const _SocialCounterCacheEntry({
+    required this.followers,
+    required this.followings,
+    required this.cachedAt,
+  });
+}
+
+final VisibilityPolicyService _visibilityPolicy =
+    VisibilityPolicyService.ensure();

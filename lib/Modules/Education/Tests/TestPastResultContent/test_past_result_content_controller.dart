@@ -1,51 +1,105 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TestPastResultContentController extends GetxController {
+  static TestPastResultContentController ensure(
+    TestsModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      TestPastResultContentController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static TestPastResultContentController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<TestPastResultContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<TestPastResultContentController>(tag: tag);
+  }
+
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final count = 0.obs;
   final isLoading = true.obs;
   final timeStamp = 0.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   TestPastResultContentController(this.model);
 
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
-    count.value = 0;
-    timeStamp.value = 0;
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(model.docID)
-          .collection("Yanitlar")
-          .where(
-            "userID",
-            isEqualTo: FirebaseAuth.instance.currentUser!.uid,
-          )
-          .orderBy("timeStamp", descending: true)
-          .limit(1)
-          .get();
-
-      print("Snapshot docs: ${snapshot.docs.length}");
-      if (snapshot.docs.isNotEmpty) {
-        count.value = snapshot.docs.length;
-        timeStamp.value = snapshot.docs.first.get("timeStamp") as int;
-        print("Fetched timeStamp: ${timeStamp.value}");
-      } else {
-        print("Hiç veri bulunamadı: ${model.docID}");
+  Future<void> _bootstrapData() async {
+    final cached = await _testRepository.fetchAnswers(
+      model.docID,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      _applySnapshot(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:past_result:${model.docID}',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
       }
-    } catch (e) {
-      print("Error fetching answer count: $e");
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      final snapshot = await _testRepository.fetchAnswers(
+        model.docID,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      _applySnapshot(snapshot);
+      SilentRefreshGate.markRefreshed('tests:past_result:${model.docID}');
+    } catch (_) {
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void _applySnapshot(List<Map<String, dynamic>> snapshot) {
+    count.value = 0;
+    timeStamp.value = 0;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
+    final filtered = snapshot
+        .where(
+          (doc) => (doc["userID"] ?? "").toString() == currentUserId,
+        )
+        .toList(growable: false)
+      ..sort(
+        (a, b) => ((b["timeStamp"] ?? 0) as num)
+            .compareTo((a["timeStamp"] ?? 0) as num),
+      );
+
+    if (filtered.isNotEmpty) {
+      count.value = filtered.length;
+      timeStamp.value = ((filtered.first["timeStamp"] ?? 0) as num).toInt();
     }
   }
 }

@@ -9,6 +9,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { generateTagDetails, getTagSettings, writeTagIndex } from "./04_tagSettings";
+import { RateLimits } from "./rateLimiter";
 
 function getEnv(name: string): string {
   return String(process.env[name] || "").trim();
@@ -195,7 +196,7 @@ function buildMeta(data: Record<string, any>) {
     isHidden: data.isHidden === true || data.gizlendi === true,
     isUploading: data.isUploading === true,
     hlsReady,
-    createdAt: data.createdAt || data.timeStamp || FieldValue.serverTimestamp(),
+    createdAt: data.createdAt || data.timeStamp || Date.now(),
   };
 }
 
@@ -287,6 +288,7 @@ function validateAuth(request: CallableRequest) {
   if (request.auth?.token?.admin !== true) {
     throw new HttpsError("permission-denied", "admin_required");
   }
+  RateLimits.admin(uid);
 }
 
 async function fetchPosts(limit: number, cursor?: string) {
@@ -304,7 +306,7 @@ export const f15_reconcilePostTags = onCall(
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request: CallableRequest<ReconcileInput>): Promise<ReconcileOutput> => {
     ensureAdmin();
@@ -379,7 +381,7 @@ export const f15_pruneTagsCollection = onCall(
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request: CallableRequest<PruneInput>): Promise<PruneOutput> => {
     ensureAdmin();

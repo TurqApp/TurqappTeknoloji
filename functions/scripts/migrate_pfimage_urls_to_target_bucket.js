@@ -60,7 +60,7 @@ async function run() {
 
   if (!targetKey) {
     throw new Error(
-      'Kullanim: node migrate_pfimage_urls_to_target_bucket.js --target-key /path/target.json [--source-bucket-hint burs-city.appspot.com] [--apply]'
+      'Kullanim: node migrate_avatarurl_urls_to_target_bucket.js --target-key /path/target.json [--source-bucket-hint burs-city.appspot.com] [--apply]'
     );
   }
 
@@ -87,14 +87,14 @@ async function run() {
 
   for (const doc of docs) {
     const data = doc.data() || {};
-    const pfImage = (data.pfImage || '').toString().trim();
-    if (!pfImage) continue;
+    const avatarUrl = (data.avatarUrl || '').toString().trim();
+    if (!avatarUrl) continue;
 
-    if (sourceBucketHint && !pfImage.includes(sourceBucketHint)) continue;
+    if (sourceBucketHint && !avatarUrl.includes(sourceBucketHint)) continue;
 
     candidates += 1;
-    const ext = pickExt(pfImage);
-    const objectPath = `users/${doc.id}/pfImage${ext}`;
+    const ext = pickExt(avatarUrl);
+    const objectPath = `users/${doc.id}/avatarUrl${ext}`;
     const tmpPath = path.join(os.tmpdir(), `pf_${doc.id}_${Date.now()}${ext}`);
 
     try {
@@ -103,7 +103,7 @@ async function run() {
         continue;
       }
 
-      await downloadToFile(pfImage, tmpPath);
+      await downloadToFile(avatarUrl, tmpPath);
       await bucket.upload(tmpPath, {
         destination: objectPath,
         metadata: { cacheControl: 'public, max-age=3600' },
@@ -113,7 +113,7 @@ async function run() {
         .file(objectPath)
         .getSignedUrl({ action: 'read', expires: '2500-01-01' });
 
-      await doc.ref.set({ pfImage: newUrl }, { merge: true });
+      await doc.ref.set({ avatarUrl: newUrl }, { merge: true });
 
       try {
         fs.unlinkSync(tmpPath);

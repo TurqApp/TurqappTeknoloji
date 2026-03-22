@@ -22,7 +22,8 @@ class RingUploadProgressIndicator extends StatefulWidget {
       _RingUploadProgressIndicatorState();
 }
 
-class _RingUploadProgressIndicatorState extends State<RingUploadProgressIndicator>
+class _RingUploadProgressIndicatorState
+    extends State<RingUploadProgressIndicator>
     with SingleTickerProviderStateMixin {
   late AnimationController _rotationController;
 

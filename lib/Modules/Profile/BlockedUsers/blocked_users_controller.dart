@@ -1,45 +1,175 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/ogrenci_model.dart';
 
 class BlockedUsersController extends GetxController {
+  static BlockedUsersController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BlockedUsersController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BlockedUsersController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<BlockedUsersController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<BlockedUsersController>(tag: tag);
+  }
+
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   RxList<String> blockedUsers = <String>[].obs;
   RxList<OgrenciModel> blockedUserDetails = <OgrenciModel>[].obs;
+  RxBool isLoading = true.obs;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
+
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {
     super.onInit();
-    fetchBlockedUserIDsAndDetails();
+    unawaited(_bootstrapBlockedUsers());
   }
 
-  Future<void> fetchBlockedUserIDsAndDetails() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get();
+  Future<void> _bootstrapBlockedUsers() async {
+    final hasLocal = await _hydrateBlockedUsersFromCache();
+    if (hasLocal) {
+      isLoading.value = false;
+      final uid = _currentUid;
+      if (uid.isNotEmpty &&
+          SilentRefreshGate.shouldRefresh(
+            'blocked_users:$uid',
+            minInterval: _silentRefreshInterval,
+          )) {
+        unawaited(fetchBlockedUserIDsAndDetails(
+          silent: true,
+          forceRefresh: true,
+        ));
+      }
+      return;
+    }
+    await fetchBlockedUserIDsAndDetails();
+  }
 
-    if (doc.exists && doc.data()!.containsKey("blockedUsers")) {
-      blockedUsers.value = List<String>.from(doc.get("blockedUsers"));
-      await fetchBlockedUserDetails();
+  Future<bool> _hydrateBlockedUsersFromCache() async {
+    final uid = _currentUid;
+    final entries = await _subcollectionRepository.getEntries(
+      uid,
+      subcollection: 'blockedUsers',
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (entries.isNotEmpty) {
+      blockedUsers.value = entries.map((d) => d.id).toList();
+      await fetchBlockedUserDetails(cacheOnly: true);
+      return blockedUserDetails.isNotEmpty;
+    }
+
+    final data = await _userRepository.getUserRaw(uid, cacheOnly: true);
+    if (data != null && data.containsKey("blockedUsers")) {
+      blockedUsers.value = List<String>.from(data["blockedUsers"] ?? const []);
+      await fetchBlockedUserDetails(cacheOnly: true);
+      return blockedUsers.isNotEmpty;
+    }
+    return false;
+  }
+
+  Future<void> fetchBlockedUserIDsAndDetails({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      final uid = _currentUid;
+      final entries = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'blockedUsers',
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      if (entries.isNotEmpty) {
+        blockedUsers.value = entries.map((d) => d.id).toList();
+        await fetchBlockedUserDetails(
+          cacheOnly: false,
+          preferCache: !forceRefresh,
+        );
+        SilentRefreshGate.markRefreshed('blocked_users:$uid');
+        return;
+      }
+
+      // Legacy fallback
+      final data = await _userRepository.getUserRaw(
+        uid,
+        preferCache: !forceRefresh,
+        forceServer: forceRefresh,
+      );
+      if (data != null && data.containsKey("blockedUsers")) {
+        blockedUsers.value =
+            List<String>.from(data["blockedUsers"] ?? const <String>[]);
+        await fetchBlockedUserDetails(
+          cacheOnly: false,
+          preferCache: !forceRefresh,
+        );
+        SilentRefreshGate.markRefreshed('blocked_users:$uid');
+        return;
+      }
+      blockedUsers.clear();
+      blockedUserDetails.clear();
+      SilentRefreshGate.markRefreshed('blocked_users:$uid');
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  Future<void> fetchBlockedUserDetails() async {
-    blockedUserDetails.clear();
+  Future<void> fetchBlockedUserDetails({
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    if (blockedUsers.isEmpty) {
+      blockedUserDetails.clear();
+      return;
+    }
 
-    for (var userID in blockedUsers) {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        blockedUserDetails.add(OgrenciModel.fromMap(userID, data));
+    final profiles = await _userSummaryResolver.resolveMany(
+      blockedUsers.toList(),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    final nextDetails = <OgrenciModel>[];
+    for (final userID in blockedUsers) {
+      final data = profiles[userID];
+      if (data != null) {
+        nextDetails.add(
+          OgrenciModel(
+            userID: userID,
+            firstName: data.displayName,
+            lastName: '',
+            avatarUrl: data.avatarUrl,
+            nickname: data.preferredName,
+          ),
+        );
       }
     }
+    blockedUserDetails.assignAll(nextDetails);
   }
 
   Future<void> askToUserAndRemoveBlock(String userID, String nickname) async {
@@ -53,8 +183,8 @@ class BlockedUsersController extends GetxController {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "Engeli Kaldır",
+            Text(
+              "blocked_users.unblock_confirm_title".tr,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -63,7 +193,9 @@ class BlockedUsersController extends GetxController {
             ),
             const SizedBox(height: 10),
             Text(
-              "$nickname kullanıcısının engelini kaldırmak istediğinizden emin misin?",
+              "blocked_users.unblock_confirm_body".trParams({
+                'nickname': nickname,
+              }),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.black,
@@ -86,8 +218,8 @@ class BlockedUsersController extends GetxController {
                         color: Colors.grey.withAlpha(50),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        "Vazgeç",
+                      child: Text(
+                        "common.cancel".tr,
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -102,12 +234,12 @@ class BlockedUsersController extends GetxController {
                   child: GestureDetector(
                     onTap: () async {
                       try {
-                        await FirebaseFirestore.instance
-                            .collection("users")
-                            .doc(FirebaseAuth.instance.currentUser!.uid)
-                            .update({
-                          "blockedUsers": FieldValue.arrayRemove([userID])
-                        });
+                        final uid = _currentUid;
+                        await _subcollectionRepository.deleteEntry(
+                          uid,
+                          subcollection: 'blockedUsers',
+                          docId: userID,
+                        );
 
                         blockedUsers.remove(userID);
                         blockedUserDetails
@@ -115,9 +247,15 @@ class BlockedUsersController extends GetxController {
 
                         Get.back(); // Sheet’i kapat
                         AppSnackbar(
-                            "Başarılı", "$nickname engelden çıkarıldı.");
+                          "common.success".tr,
+                          "blocked_users.unblock_success"
+                              .trParams({'nickname': nickname}),
+                        );
                       } catch (e) {
-                        AppSnackbar("Hata", "Engel kaldırılamadı.");
+                        AppSnackbar(
+                          "common.error".tr,
+                          "blocked_users.unblock_failed".tr,
+                        );
                       }
                     },
                     child: Container(
@@ -127,8 +265,8 @@ class BlockedUsersController extends GetxController {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        "Engeli Kaldır",
+                      child: Text(
+                        "blocked_users.unblock".tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,

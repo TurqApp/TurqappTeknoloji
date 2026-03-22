@@ -1,92 +1,103 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchDenemeController extends GetxController {
-  var list = <SinavModel>[].obs;
-  var filteredList = <SinavModel>[].obs;
-  var isLoading = true.obs;
+  static SearchDenemeController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SearchDenemeController(), permanent: permanent);
+  }
+
+  static SearchDenemeController? maybeFind() {
+    final isRegistered = Get.isRegistered<SearchDenemeController>();
+    if (!isRegistered) return null;
+    return Get.find<SearchDenemeController>();
+  }
+
+  final PracticeExamSnapshotRepository _practiceExamSnapshotRepository =
+      PracticeExamSnapshotRepository.ensure();
+  final filteredList = <SinavModel>[].obs;
+  final isLoading = false.obs;
   final TextEditingController searchController = TextEditingController();
   final FocusNode focusNode = FocusNode();
+  int _searchToken = 0;
+
+  bool _sameExamEntries(
+    List<SinavModel> current,
+    List<SinavModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
     super.onInit();
-    getData();
     Future.delayed(const Duration(milliseconds: 100), () {
       focusNode.requestFocus();
     });
   }
 
   Future<void> getData() async {
-    isLoading.value = true;
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .orderBy("timeStamp", descending: true)
-          .get();
-      list.clear();
-      for (var doc in snapshot.docs) {
-        String cover = doc.get("cover");
-        String sinavAciklama = doc.get("sinavAciklama");
-        String sinavAdi = doc.get("sinavAdi");
-        String sinavTuru = doc.get("sinavTuru");
-        num timeStamp = doc.get("timeStamp");
-        String kpssSecilenLisans = doc.get("kpssSecilenLisans");
-        List<String> dersler = List<String>.from(doc['dersler']);
-        List<String> soruSayisi = List<String>.from(doc['soruSayilari']);
-        String userID = doc.get("userID");
-        bool taslak = doc.get("taslak");
-        bool public = doc.get("public");
-        num bitisDk = doc.get("bitisDk");
-        num bitis = doc.get("bitis");
-
-        list.add(
-          SinavModel(
-            docID: doc.id,
-            cover: cover,
-            sinavTuru: sinavTuru,
-            timeStamp: timeStamp,
-            sinavAciklama: sinavAciklama,
-            sinavAdi: sinavAdi,
-            kpssSecilenLisans: kpssSecilenLisans,
-            dersler: dersler,
-            userID: userID,
-            public: public,
-            taslak: taslak,
-            soruSayilari: soruSayisi,
-            bitis: bitis,
-            bitisDk: bitisDk,
-          ),
-        );
-      }
-      filteredList.assignAll(list);
-    } catch (e) {
-      AppSnackbar("Hata", "Veriler yüklenemedi.");
-    } finally {
-      isLoading.value = false;
-    }
+    await filterSearchResults(searchController.text);
   }
 
-  void filterSearchResults(String query) {
-    if (query.isEmpty) {
-      filteredList.assignAll(list);
-    } else {
-      filteredList.assignAll(
-        list.where((test) {
-          return test.sinavAciklama.toLowerCase().contains(
-                    query.toLowerCase(),
-                  ) ||
-              test.sinavTuru.toLowerCase().contains(query.toLowerCase()) ||
-              test.sinavAdi.toLowerCase().contains(query.toLowerCase()) ||
-              test.dersler.any(
-                (ders) => ders.toLowerCase().contains(query.toLowerCase()),
-              );
-        }).toList(),
+  Future<void> filterSearchResults(String query) async {
+    final normalized = query.trim();
+    final token = ++_searchToken;
+    if (normalized.length < 2) {
+      if (filteredList.isNotEmpty) {
+        filteredList.clear();
+      }
+      isLoading.value = false;
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final resource = await _practiceExamSnapshotRepository.search(
+        query: normalized,
+        userId: CurrentUserService.instance.effectiveUserId,
+        limit: 40,
+        forceSync: true,
       );
+      if (token != _searchToken) return;
+      final results = resource.data ?? const <SinavModel>[];
+      if (!_sameExamEntries(filteredList, results)) {
+        filteredList.assignAll(results);
+      }
+    } finally {
+      if (token == _searchToken) {
+        isLoading.value = false;
+      }
     }
   }
 

@@ -1,9 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
 class SinavSorusuHazirlaController extends GetxController {
+  static SinavSorusuHazirlaController ensure({
+    required String tag,
+    required String docID,
+    required String sinavTuru,
+    required List<String> tumDersler,
+    required List<String> derslerinSoruSayilari,
+    required Function() complated,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SinavSorusuHazirlaController(
+        docID: docID,
+        sinavTuru: sinavTuru,
+        tumDersler: tumDersler,
+        derslerinSoruSayilari: derslerinSoruSayilari,
+        complated: complated,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SinavSorusuHazirlaController? maybeFind({required String tag}) {
+    final isRegistered =
+        Get.isRegistered<SinavSorusuHazirlaController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SinavSorusuHazirlaController>(tag: tag);
+  }
+
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
   var list = <SoruModel>[].obs;
   var isLoading = false.obs;
   var isInitialized = false.obs;
@@ -31,37 +65,17 @@ class SinavSorusuHazirlaController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(docID)
-          .collection("Sorular")
-          .get();
-
-      if (snap.docs.isNotEmpty) {
-        list.clear();
-        for (var doc in snap.docs) {
-          String ders = doc.get("ders");
-          String dogruCevap = doc.get("dogruCevap");
-          num id = doc.get("id");
-          String konu = doc.get("konu");
-          String soru = doc.get("soru");
-
-          list.add(
-            SoruModel(
-              id: id.toInt(),
-              soru: soru,
-              ders: ders,
-              konu: konu,
-              dogruCevap: dogruCevap,
-              docID: doc.id,
-            ),
-          );
-        }
+      final questions = await _practiceExamRepository.fetchQuestions(
+        docID,
+        preferCache: true,
+      );
+      if (questions.isNotEmpty) {
+        list.assignAll(questions);
       } else {
         await setList();
       }
     } catch (error) {
-      AppSnackbar("Hata", "Sorular yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -91,19 +105,22 @@ class SinavSorusuHazirlaController extends GetxController {
       }
       await getSorular();
     } catch (error) {
-      AppSnackbar("Hata", "Sorular oluşturulamadı.");
+      AppSnackbar('common.error'.tr, 'tests.questions_create_failed'.tr);
     }
   }
 
   void completeExam() async {
     try {
-      await FirebaseFirestore.instance.collection("practiceExams").doc(docID).set({
+      await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .doc(docID)
+          .set({
         "taslak": false,
       }, SetOptions(merge: true));
       complated();
       Get.back();
     } catch (error) {
-      AppSnackbar("Hata", "Sınav tamamlanamadı.");
+      AppSnackbar('common.error'.tr, 'tests.complete_failed'.tr);
     }
   }
 }

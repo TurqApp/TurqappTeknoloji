@@ -1,68 +1,123 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeTurleriListesiController extends GetxController {
+  static DenemeTurleriListesiController ensure({
+    required String tag,
+    required String sinavTuru,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      DenemeTurleriListesiController(sinavTuru: sinavTuru),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static DenemeTurleriListesiController? maybeFind({required String tag}) {
+    final isRegistered =
+        Get.isRegistered<DenemeTurleriListesiController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DenemeTurleriListesiController>(tag: tag);
+  }
+
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   var list = <SinavModel>[].obs;
   var isLoading = false.obs;
   var isInitialized = false.obs;
 
   final String sinavTuru;
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
 
   DenemeTurleriListesiController({required this.sinavTuru});
+
+  bool _sameExamEntries(
+    List<SinavModel> current,
+    List<SinavModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.sinavAdi,
+            item.sinavTuru,
+            item.timeStamp,
+            item.participantCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
 
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
-    try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .where("sinavTuru", isEqualTo: sinavTuru)
-          .get();
-
-      list.clear();
-      for (var doc in snapshot.docs) {
-        String cover = doc.get("cover");
-        String sinavAciklama = doc.get("sinavAciklama");
-        String sinavAdi = doc.get("sinavAdi");
-        String sinavTuru = doc.get("sinavTuru");
-        num timeStamp = doc.get("timeStamp");
-        String kpssSecilenLisans = doc.get("kpssSecilenLisans");
-        List<String> dersler = List<String>.from(doc['dersler']);
-        List<String> soruSayisi = List<String>.from(doc['soruSayilari']);
-        String userID = doc.get("userID");
-        bool taslak = doc.get("taslak");
-        bool public = doc.get("public");
-        num bitisDk = doc.get("bitisDk");
-        num bitis = doc.get("bitis");
-
-        list.add(
-          SinavModel(
-            docID: doc.id,
-            cover: cover,
-            sinavTuru: sinavTuru,
-            timeStamp: timeStamp,
-            sinavAciklama: sinavAciklama,
-            sinavAdi: sinavAdi,
-            kpssSecilenLisans: kpssSecilenLisans,
-            dersler: dersler,
-            userID: userID,
-            public: public,
-            taslak: taslak,
-            soruSayilari: soruSayisi,
-            bitis: bitis,
-            bitisDk: bitisDk,
-          ),
-        );
+  Future<void> _bootstrapData() async {
+    final cached = await _practiceExamRepository.fetchByExamType(
+      sinavTuru,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      if (!_sameExamEntries(list, cached)) {
+        list.assignAll(cached);
       }
+      isLoading.value = false;
+      isInitialized.value = true;
+      if (SilentRefreshGate.shouldRefresh(
+        'practice_exams:type:$sinavTuru',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
+    try {
+      final items = await _practiceExamRepository.fetchByExamType(
+        sinavTuru,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      if (!_sameExamEntries(list, items)) {
+        list.assignAll(items);
+      }
+      SilentRefreshGate.markRefreshed('practice_exams:type:$sinavTuru');
     } catch (error) {
-      AppSnackbar("Hata", "Sınavlar yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'tests.exams_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;

@@ -1,22 +1,54 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test_controller.dart';
 
-class SolveTest extends StatelessWidget {
+class SolveTest extends StatefulWidget {
   final String testID;
   final Function showSucces;
 
   const SolveTest({super.key, required this.testID, required this.showSucces});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      SolveTestController(testID: testID, showSucces: showSucces),
-    );
+  State<SolveTest> createState() => _SolveTestState();
+}
 
+class _SolveTestState extends State<SolveTest> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SolveTestController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'solve_test_${widget.testID}_${identityHashCode(this)}';
+    _ownsController =
+        SolveTestController.maybeFind(tag: _controllerTag) == null;
+    controller = SolveTestController.ensure(
+      testID: widget.testID,
+      showSucces: widget.showSucces,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController =
+          SolveTestController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<SolveTestController>(tag: _controllerTag, force: true);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -28,9 +60,7 @@ class SolveTest extends StatelessWidget {
               : controller.soruList.isEmpty
                   ? Padding(
                       padding: EdgeInsets.all(15),
-                      child: EmptyRow(
-                          text:
-                              "Soru bulunamadı.\nBu test için soru yüklenemedi."))
+                      child: EmptyRow(text: "tests.solve_no_questions".tr))
                   : Column(
                       children: [
                         Expanded(
@@ -51,18 +81,8 @@ class SolveTest extends StatelessWidget {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
                                             children: [
-                                              GestureDetector(
-                                                onTap: Get.back,
-                                                child: SizedBox(
-                                                  width: 30,
-                                                  height: 30,
-                                                  child: Center(
-                                                    child: Icon(
-                                                      Icons.arrow_back,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ),
+                                              const AppBackButton(
+                                                icon: Icons.arrow_back,
                                               ),
                                               Obx(
                                                 () => Text(
@@ -110,7 +130,7 @@ class SolveTest extends StatelessWidget {
                                       height: 50,
                                       color: Colors.green,
                                       alignment: Alignment.center,
-                                      child: Text("Testi Bitir",
+                                      child: Text("tests.finish_test".tr,
                                           style: TextStyles.medium15white),
                                     ),
                                   );
@@ -120,7 +140,8 @@ class SolveTest extends StatelessWidget {
                                       color: Colors.white,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.grey.withValues(alpha: 0.3),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.3),
                                           blurRadius: 10,
                                           spreadRadius: 2,
                                           offset: Offset(4, 4),
@@ -137,10 +158,20 @@ class SolveTest extends StatelessWidget {
                                                 vertical: 40,
                                                 horizontal: 20,
                                               ),
-                                              child: Image.network(
-                                                controller
+                                              child: CachedNetworkImage(
+                                                imageUrl: controller
                                                     .soruList[index - 1].img,
                                                 fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    const Center(
+                                                  child:
+                                                      CupertinoActivityIndicator(),
+                                                ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        const Icon(
+                                                  Icons.broken_image,
+                                                ),
                                               ),
                                             ),
                                             Padding(
@@ -151,7 +182,10 @@ class SolveTest extends StatelessWidget {
                                                 height: 40,
                                                 alignment: Alignment.centerLeft,
                                                 child: Text(
-                                                  "${index.toString()}. Soru",
+                                                  "tests.question_number"
+                                                      .trParams({
+                                                    'index': index.toString(),
+                                                  }),
                                                   style: TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 20,
@@ -165,7 +199,8 @@ class SolveTest extends StatelessWidget {
                                         ),
                                         Container(
                                           height: 50,
-                                          color: Colors.pink.withValues(alpha: 0.2),
+                                          color: Colors.pink
+                                              .withValues(alpha: 0.2),
                                           alignment: Alignment.center,
                                           child: Padding(
                                             padding: EdgeInsets.symmetric(

@@ -1,12 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TagPostsRepository {
   final FirebaseFirestore _db;
+  final VisibilityPolicyService _visibilityPolicy;
+  final UserRepository _userRepository;
 
   TagPostsRepository({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+      : _db = firestore ?? FirebaseFirestore.instance,
+        _visibilityPolicy = VisibilityPolicyService.ensure(),
+        _userRepository = UserRepository.ensure();
+
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<List<PostsModel>> fetchByTag(String tag) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -41,7 +49,8 @@ class TagPostsRepository {
     return set.toList();
   }
 
-  Future<List<PostsModel>> _queryPostsByTag(List<String> queries, int nowMs) async {
+  Future<List<PostsModel>> _queryPostsByTag(
+      List<String> queries, int nowMs) async {
     if (queries.isEmpty) return const [];
     final snap = await _db
         .collection("Posts")
@@ -111,37 +120,29 @@ class TagPostsRepository {
 
   Future<List<PostsModel>> _filterByPrivacy(List<PostsModel> items) async {
     if (items.isEmpty) return items;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return items;
+    final uid = _currentUid;
+    if (uid.isEmpty) return items;
 
-    final followingSnap =
-        await _db.collection('users').doc(uid).collection('TakipEdilenler').get();
-    final followingIDs = followingSnap.docs.map((d) => d.id).toSet();
+    final followingIDs = (await _visibilityPolicy.loadViewerFollowingIds(
+      viewerUserId: uid,
+    ))
+        .toSet();
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
 
     final Map<String, bool> userPrivacy = {};
-    for (var i = 0; i < uniqueUserIDs.length; i += 10) {
-      final chunk = uniqueUserIDs.sublist(
-        i,
-        i + 10 > uniqueUserIDs.length ? uniqueUserIDs.length : i + 10,
-      );
-      try {
-        final usersSnap = await _db
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final d in usersSnap.docs) {
-          userPrivacy[d.id] = (d.data()['gizliHesap'] ?? false) == true;
-        }
-      } catch (_) {}
+    final users = await _userRepository.getUsers(uniqueUserIDs);
+    for (final entry in users.entries) {
+      userPrivacy[entry.key] = entry.value.isPrivate;
     }
 
     return items.where((post) {
       final isPrivate = userPrivacy[post.userID] ?? false;
-      if (!isPrivate) return true;
-      final isMine = post.userID == uid;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
+      return _visibilityPolicy.canViewerSeeAuthorFromSummary(
+        authorUserId: post.userID,
+        followingIds: followingIDs,
+        isPrivate: isPrivate,
+        isDeleted: false,
+      );
     }).toList();
   }
 }

@@ -5,11 +5,12 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 
-import '../../Agenda/AgendaContent/agenda_content.dart';
+import '../../Agenda/FloodListing/flood_listing.dart';
 
 class SavedPosts extends StatefulWidget {
   const SavedPosts({super.key});
@@ -20,57 +21,29 @@ class SavedPosts extends StatefulWidget {
 
 class _SavedPostsState extends State<SavedPosts> {
   late SavedPostsController controller;
-  late PageLineBarController pageLineBarController;
-  final scrollController = ScrollController();
+  bool _ownsController = false;
+  late final String _pageLineBarTag =
+      '${kSavedPostsPageLineBarTag}_${identityHashCode(this)}';
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(SavedPostsController());
-    pageLineBarController = Get.put(
-        PageLineBarController(pageName: "SavedPosts"),
-        tag: "SavedPosts");
-    scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+    final existingController = SavedPostsController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = SavedPostsController.ensure();
+      _ownsController = true;
+    }
   }
 
   @override
   void dispose() {
-    if (Get.isRegistered<SavedPostsController>()) {
+    if (_ownsController &&
+        identical(SavedPostsController.maybeFind(), controller)) {
       Get.delete<SavedPostsController>(force: true);
     }
     super.dispose();
-  }
-
-  void _onScroll() {
-    // ScrollController bağlı değilse çık
-    if (!scrollController.hasClients) return;
-
-    // Ortadaki widget’ı tespit etmek için
-    final screenHeight = MediaQuery.of(context).size.height;
-    final centerY = screenHeight / 2;
-
-    for (int i = 0; i < controller.savedAgendas.length; i++) {
-      final key = controller.getPostKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-
-      final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null || !box.attached) continue;
-
-      final pos = box.localToGlobal(Offset.zero);
-      final top = pos.dy;
-      final bottom = pos.dy + box.size.height;
-
-      if (top <= centerY && bottom >= centerY) {
-        if (controller.centeredIndex.value != i) {
-          setState(() {
-            controller.centeredIndex.value = i;
-          });
-        }
-        break;
-      }
-    }
   }
 
   @override
@@ -80,202 +53,35 @@ class _SavedPostsState extends State<SavedPosts> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kaydedilenler"),
+            BackButtons(text: "settings.saved_posts".tr),
             PageLineBar(
-                barList: ["Tümü", "Video", "Fotoğraf"],
-                pageName: 'SavedPosts',
+                barList: [
+                  "common.all".tr,
+                  "saved_posts.posts_tab".tr,
+                  "saved_posts.series_tab".tr,
+                ],
+                pageName: _pageLineBarTag,
                 pageController: controller.pageController),
             Expanded(
               child: Obx(() {
                 return PageView(
                   controller: controller.pageController,
                   onPageChanged: (v) {
-                    Get.find<PageLineBarController>(tag: 'SavedPosts')
-                        .selection
-                        .value = v;
+                    syncPageLineBarSelection(_pageLineBarTag, v);
                   },
                   children: [
-                    // Tümü
-                    SizedBox.expand(
-                      child: Container(
-                          color: Colors.white,
-                          child: controller.isLoading.value
-                              ? const CupertinoActivityIndicator(
-                                  color: Colors.grey,
-                                )
-                              : controller.savedAgendas.isNotEmpty
-                                  ? RefreshIndicator(
-                                      backgroundColor: Colors.black,
-                                      color: Colors.white,
-                                      onRefresh: controller.refresh,
-                                      child: NotificationListener<
-                                              ScrollNotification>(
-                                          onNotification: (notification) {
-                                            WidgetsBinding.instance
-                                                .addPostFrameCallback(
-                                              (_) => _onScroll(),
-                                            );
-                                            return false;
-                                          },
-                                          child: ListView.builder(
-                                            controller: scrollController,
-                                            itemCount: controller
-                                                    .savedAgendas.length +
-                                                2, // +2 çünkü hem header hem bottom space
-                                            itemBuilder: (context, index) {
-                                              if (index == 0) {
-                                                return SizedBox();
-                                              }
-
-                                              // EN ALTA GELİNCE 50PX LİK BOŞLUK EKLE
-                                              if (index ==
-                                                  controller
-                                                          .savedAgendas.length +
-                                                      1) {
-                                                return const SizedBox(
-                                                    height: 50);
-                                              }
-
-                                              final actualIndex = index - 1;
-                                              final model = controller
-                                                  .savedAgendas[actualIndex];
-                                              final itemKey = controller
-                                                  .getPostKey(actualIndex);
-                                              final isCentered = controller
-                                                      .centeredIndex.value ==
-                                                  actualIndex;
-
-                                              return Padding(
-                                                padding: const EdgeInsets.only(
-                                                    bottom: 5),
-                                                child: Column(
-                                                  children: [
-                                                    Padding(
-                                                      padding: EdgeInsets.only(
-                                                          top: actualIndex == 0
-                                                              ? 12
-                                                              : 0),
-                                                      child: AgendaContent(
-                                                        key: itemKey,
-                                                        model: model,
-                                                        isPreview: false,
-                                                        shouldPlay: isCentered,
-                                                      ),
-                                                    ),
-                                                    SizedBox(
-                                                      height: 2,
-                                                      child: Divider(
-                                                        color: Colors.grey
-                                                            .withAlpha(50),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            },
-                                          )),
-                                    )
-                                  : Center(
-                                      child: EmptyRow(text: "Gönderi yok"),
-                                    )),
+                    _buildAgendaTab(
+                      posts: controller.savedAgendas,
+                      emptyText: "saved_posts.no_saved_posts".tr,
                     ),
-                    // Video
-                    if (controller.isLoading.value &&
-                        controller.savedVideos.isEmpty)
-                      const CupertinoActivityIndicator(color: Colors.grey)
-                    else if (controller.savedVideos.isEmpty)
-                      Center(child: EmptyRow(text: "Video Bulunamadı"))
-                    else
-                      GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 1,
-                          crossAxisSpacing: 1,
-                          childAspectRatio: 1 / 1.9,
-                        ),
-                        itemCount: controller.savedVideos.length,
-                        itemBuilder: (context, index) {
-                          return Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  Get.to(
-                                    () => SingleShortView(
-                                      startList: controller.savedVideos,
-                                      startModel: controller.savedVideos[index],
-                                    ),
-                                  )?.then((_) => controller.refresh());
-                                },
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  child: CachedNetworkImage(
-                                    imageUrl:
-                                        controller.savedVideos[index].thumbnail,
-                                    fit: BoxFit.cover,
-                                    fadeOutDuration: Duration.zero,
-                                    memCacheWidth: 200,
-                                    memCacheHeight: 400,
-                                    placeholder: (context, url) =>
-                                        Container(color: Colors.grey[300]),
-                                    errorWidget: (context, url, error) =>
-                                        const Icon(Icons.error),
-                                  ),
-                                ),
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Icon(
-                                  CupertinoIcons.play_circle,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    // Fotoğraf
-                    if (controller.isLoading.value &&
-                        controller.savedPhotos.isEmpty)
-                      const CupertinoActivityIndicator(color: Colors.grey)
-                    else if (controller.savedPhotos.isEmpty)
-                      Center(child: EmptyRow(text: "Fotoğraf Bulunamadı"))
-                    else
-                      GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 1,
-                          crossAxisSpacing: 1,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: controller.savedPhotos.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              Get.to(
-                                () => PhotoShorts(
-                                  fetchedList: controller.savedPhotos,
-                                  startModel: controller.savedPhotos[index],
-                                ),
-                              )?.then((_) => controller.refresh());
-                            },
-                            child: CachedNetworkImage(
-                              imageUrl: controller.savedPhotos[index].img.first,
-                              fit: BoxFit.cover,
-                              fadeOutDuration: Duration.zero,
-                              memCacheWidth: 200,
-                              memCacheHeight: 400,
-                              placeholder: (context, url) =>
-                                  Container(color: Colors.grey[300]),
-                              errorWidget: (context, url, error) =>
-                                  const Icon(Icons.error),
-                            ),
-                          );
-                        },
-                      ),
+                    _buildAgendaTab(
+                      posts: controller.savedPostsOnly,
+                      emptyText: "saved_posts.no_saved_posts".tr,
+                    ),
+                    _buildAgendaTab(
+                      posts: controller.savedSeries,
+                      emptyText: "saved_posts.no_saved_series".tr,
+                    ),
                   ],
                 );
               }),
@@ -284,5 +90,114 @@ class _SavedPostsState extends State<SavedPosts> {
         ),
       ),
     );
+  }
+
+  Widget _buildAgendaTab({
+    required List<PostsModel> posts,
+    required String emptyText,
+  }) {
+    if (controller.isLoading.value && posts.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
+    if (posts.isEmpty) {
+      return Center(child: EmptyRow(text: emptyText));
+    }
+
+    return SizedBox.expand(
+      child: Container(
+        color: Colors.white,
+        child: RefreshIndicator(
+          backgroundColor: Colors.black,
+          color: Colors.white,
+          onRefresh: controller.refresh,
+          child: GridView.builder(
+            padding: const EdgeInsets.only(top: 8, bottom: 50),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 1,
+              crossAxisSpacing: 1,
+              childAspectRatio: 0.9,
+            ),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final model = posts[index];
+              final previewUrl = model.hasPlayableVideo
+                  ? model.thumbnail
+                  : (model.img.isNotEmpty ? model.img.first : '');
+              return GestureDetector(
+                onTap: () => _openSavedPost(posts, model),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (previewUrl.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: previewUrl,
+                        fit: BoxFit.cover,
+                        fadeOutDuration: Duration.zero,
+                        memCacheWidth: 300,
+                        memCacheHeight: 500,
+                        placeholder: (context, url) =>
+                            Container(color: Colors.grey[300]),
+                        errorWidget: (context, url, error) =>
+                            Container(color: Colors.grey[300]),
+                      )
+                    else
+                      Container(color: Colors.grey[300]),
+                    if (model.hasPlayableVideo)
+                      const Positioned(
+                        right: 6,
+                        bottom: 6,
+                        child: Icon(
+                          CupertinoIcons.play_circle_fill,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    if (model.floodCount > 1)
+                      Positioned(
+                        left: 6,
+                        bottom: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(170),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'saved_posts.series_badge'.tr,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontFamily: 'MontserratBold',
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSavedPost(List<PostsModel> posts, PostsModel model) {
+    if (model.floodCount > 1) {
+      Get.to(() => FloodListing(mainModel: model));
+      return;
+    }
+    if (model.hasPlayableVideo) {
+      Get.to(() => SingleShortView(startList: posts, startModel: model));
+      return;
+    }
+    Get.to(() => PhotoShorts(fetchedList: posts, startModel: model));
   }
 }

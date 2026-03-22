@@ -1,17 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Models/social_media_model.dart';
+import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_branding.dart';
 
 import 'social_media_links_controller.dart';
 
 class AddSocialMediaBottomSheet extends StatelessWidget {
-  final controller = Get.put(SocialMediaController());
-
-  AddSocialMediaBottomSheet({super.key});
+  AddSocialMediaBottomSheet({super.key})
+      : controller = SocialMediaController.ensure();
+  final SocialMediaController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +22,7 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "Bağlantı Ekle",
+            'social_links.add_title'.tr,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 15),
@@ -38,12 +39,14 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                   () => GestureDetector(
                     onTap: () {
                       controller.selected.value = item;
-                      controller.textController.text = item.capitalize!;
-                      controller.urlController.text = item == "whatsApp"
-                          ? "https://wa.me/+90"
-                          : item != "TurqApp"
-                              ? "https://${item.toLowerCase()}.com/"
-                              : "";
+                      controller.textController.text =
+                          socialMediaDisplayTitleForKey(item);
+                      controller.urlController.text =
+                          item == kSocialMediaWhatsApp
+                              ? "https://wa.me/+90"
+                              : item != kSocialMediaTurqApp
+                                  ? "https://${normalizeLowercase(item)}.com/"
+                                  : "";
                     },
                     child: Container(
                       margin:
@@ -94,7 +97,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       border: Border.all(
-                                        color: Colors.grey.withValues(alpha: 0.4),
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.4),
                                         width: 2,
                                       ),
                                       borderRadius: BorderRadius.all(
@@ -140,8 +144,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                           child: Container(
                                             alignment: Alignment.center,
                                             decoration: BoxDecoration(
-                                              color: Colors.grey.withValues(alpha: 
-                                                0.1,
+                                              color: Colors.grey.withValues(
+                                                alpha: 0.1,
                                               ),
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(50),
@@ -176,7 +180,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                       }),
                       SizedBox(height: 4),
                       Text(
-                        controller.selected.value,
+                        socialMediaDisplayTitleForKey(
+                            controller.selected.value),
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 12,
@@ -200,7 +205,7 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               LengthLimitingTextInputFormatter(20),
                             ],
                             decoration: InputDecoration(
-                              hintText: "Başlık",
+                              hintText: 'social_links.label_title'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratBold",
@@ -218,7 +223,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                         // inside your Column where the URL TextField lives:
 
                         Obx(() {
-                          final isTurq = controller.selected.value == "TurqApp";
+                          final isTurq =
+                              controller.selected.value == kSocialMediaTurqApp;
                           return SizedBox(
                             height: 40,
                             child: TextField(
@@ -227,7 +233,9 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                   ? TextInputType.text
                                   : TextInputType.url,
                               decoration: InputDecoration(
-                                hintText: isTurq ? "Kullanıcı adı" : "https://",
+                                hintText: isTurq
+                                    ? 'social_links.username_hint'.tr
+                                    : "https://",
                                 hintStyle: TextStyle(
                                   color: Colors.grey,
                                   fontFamily: "MontserratMedium",
@@ -267,38 +275,38 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               final docID = DateTime.now()
                                   .millisecondsSinceEpoch
                                   .toString();
-                              final ref = FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(FirebaseAuth.instance.currentUser!.uid)
-                                  .collection("SosyalMedyaLinkleri")
-                                  .doc(docID);
-
-                              await ref.set({
-                                "title": controller.textController.text.trim(),
-                                "url": controller.urlController.text.trim(),
-                                "sira": controller.list.length + 1,
-                                "logo": "",
-                              });
-
-                              String logoURL = "";
+                              String logoValue = "";
                               if (controller.selected.value.isNotEmpty) {
-                                logoURL = await controller.uploadAssetImage(
-                                    "assets/icons/${controller.selected.value}_s.webp",
-                                    docID);
+                                logoValue = socialMediaEmbeddedLogoAsset(
+                                  controller.selected.value,
+                                );
                               } else if (controller.imageFile.value != null) {
-                                logoURL = await controller.uploadFileImage(
-                                    controller.imageFile.value!, docID);
+                                logoValue = await controller.uploadFileImage(
+                                  controller.imageFile.value!,
+                                  docID,
+                                );
                               }
 
-                              if (logoURL.isNotEmpty) {
-                                await ref.update({"logo": logoURL});
-                              }
+                              await controller.saveLink(
+                                SocialMediaModel(
+                                  docID: docID,
+                                  title: controller.textController.text.trim(),
+                                  url: controller.urlController.text.trim(),
+                                  sira: controller.list.length + 1,
+                                  logo: logoValue,
+                                ),
+                              );
 
                               await controller.getData();
                               controller.resetFields();
                               Get.back();
                             } catch (e) {
-                              AppSnackbar("Hata", "Bir sorun oluştu.");
+                              final msg = normalizeLowercase(
+                                e.toString(),
+                              ).contains('permission-denied')
+                                  ? 'social_links.save_permission_error'.tr
+                                  : 'social_links.save_failed'.tr;
+                              AppSnackbar('common.error'.tr, msg);
                             } finally {
                               controller.isUploading.value = false;
                             }

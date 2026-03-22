@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 enum FilterType {
   none('Original'),
@@ -142,6 +143,18 @@ class MediaEdit {
 }
 
 class MediaEnhancementService extends GetxController {
+  static MediaEnhancementService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(MediaEnhancementService());
+  }
+
+  static MediaEnhancementService? maybeFind() {
+    final isRegistered = Get.isRegistered<MediaEnhancementService>();
+    if (!isRegistered) return null;
+    return Get.find<MediaEnhancementService>();
+  }
+
   final RxList<MediaEdit> _currentEdits = <MediaEdit>[].obs;
   final Rx<FilterType> _selectedFilter = FilterType.none.obs;
   final Rx<MediaAdjustments> _currentAdjustments = MediaAdjustments().obs;
@@ -226,8 +239,7 @@ class MediaEnhancementService extends GetxController {
 
       _processingProgress.value = 1.0;
       return processedBytes;
-    } catch (e) {
-      print('Error applying filter: $e');
+    } catch (_) {
       return null;
     } finally {
       _isProcessing.value = false;
@@ -296,8 +308,7 @@ class MediaEnhancementService extends GetxController {
 
       _processingProgress.value = 1.0;
       return processedBytes;
-    } catch (e) {
-      print('Error applying adjustments: $e');
+    } catch (_) {
       return null;
     } finally {
       _isProcessing.value = false;
@@ -378,8 +389,7 @@ class MediaEnhancementService extends GetxController {
 
       _processingProgress.value = 1.0;
       return processedBytes;
-    } catch (e) {
-      print('Error in full processing: $e');
+    } catch (_) {
       return null;
     } finally {
       _isProcessing.value = false;
@@ -530,7 +540,7 @@ class MediaEnhancementService extends GetxController {
 
   /// Check if file is an image
   bool _isImageFile(File file) {
-    final extension = file.path.toLowerCase().split('.').last;
+    final extension = normalizeLowercase(file.path.split('.').last);
     return ['jpg', 'jpeg', 'png', 'bmp', 'webp'].contains(extension);
   }
 

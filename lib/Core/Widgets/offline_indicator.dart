@@ -7,11 +7,10 @@ class OfflineIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<OfflineModeService>()) {
+    final offlineService = OfflineModeService.maybeFind();
+    if (offlineService == null) {
       return const SizedBox.shrink();
     }
-
-    final offlineService = Get.find<OfflineModeService>();
 
     return Obx(() {
       if (offlineService.isOnline.value) {
@@ -29,8 +28,8 @@ class OfflineIndicator extends StatelessWidget {
             children: [
               const Icon(Icons.wifi_off, color: Colors.white, size: 16),
               const SizedBox(width: 8),
-              const Text(
-                'Çevrimdışı - Önbellekten gösteriliyor',
+              Text(
+                'offline_indicator.offline_cached'.tr,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -40,13 +39,15 @@ class OfflineIndicator extends StatelessWidget {
               if (offlineService.pendingActions.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${offlineService.pendingActions.length} bekliyor',
+                    'offline_indicator.pending_count'.trParams(
+                        {'count': '${offlineService.pendingActions.length}'}),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,

@@ -5,11 +5,21 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdmobKare extends StatefulWidget {
-  const AdmobKare({super.key});
+  const AdmobKare({
+    super.key,
+    this.showChrome = true,
+    this.onImpression,
+  });
+
+  final bool showChrome;
+  final VoidCallback? onImpression;
 
   static Future<void> warmupPool({int targetCount = 3}) {
     return _AdmobKareState.warmupPool(targetCount: targetCount);
   }
+
+  static bool get hasReadyBanner => _AdmobKareState.hasReadyBanner;
+  static bool get hasRenderableBanner => _AdmobKareState.hasRenderableBanner;
 
   @override
   State<AdmobKare> createState() => _AdmobKareState();
@@ -19,12 +29,32 @@ class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
   static int _loadingCount = 0;
   static const int _defaultWarmupCount = 3;
+  static const int _maxPoolSize = 8;
+  static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
+    'DEBUG_RENDER_ADMOB',
+    defaultValue: false,
+  );
 
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
   bool _isDisposed = false;
   bool _loadFailed = false;
+  bool _impressionReported = false;
+  int _retryCount = 0;
+  Timer? _retryTimer;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
+  static const int _maxRetryCount = 4;
+  static const Duration _cooldownRetryDelay = Duration(seconds: 30);
+
+  static void _log(String message) {
+    debugPrint('[AdmobKare] $message');
+  }
+
+  static bool get _supportsSharedPool => true;
+  static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
+  static bool get hasReadyBanner => _readyPool.isNotEmpty;
+  static bool get hasRenderableBanner =>
+      _readyPool.any((ad) => ad.responseInfo != null);
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
@@ -38,7 +68,10 @@ class _AdmobKareState extends State<AdmobKare> {
         : (Platform.isAndroid ? androidLiveAdUnit : iosLiveAdUnit);
   }
 
-  static Future<void> warmupPool({int targetCount = _defaultWarmupCount}) async {
+  static Future<void> warmupPool(
+      {int targetCount = _defaultWarmupCount}) async {
+    if (_usePlaceholderOnly) return;
+    if (!_supportsSharedPool) return;
     if (targetCount <= 0) return;
 
     final missing = targetCount - (_readyPool.length + _loadingCount);
@@ -59,7 +92,9 @@ class _AdmobKareState extends State<AdmobKare> {
       listener: BannerAdListener(
         onAdLoaded: (Ad loadedAd) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
-          if (_readyPool.length < 8) {
+          _log(
+              'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
+          if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
           } else {
             loadedAd.dispose();
@@ -67,6 +102,8 @@ class _AdmobKareState extends State<AdmobKare> {
         },
         onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
+          _log(
+              'warmup failed: code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
           failedAd.dispose();
         },
       ),
@@ -76,23 +113,45 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   BannerAd? _takePreloadedBanner() {
+    if (!_supportsSharedPool) return null;
     if (_readyPool.isEmpty) return null;
+    final renderableIndex =
+        _readyPool.indexWhere((ad) => ad.responseInfo != null);
+    if (renderableIndex >= 0) {
+      return _readyPool.removeAt(renderableIndex);
+    }
     return _readyPool.removeAt(0);
+  }
+
+  bool _canRenderAd(BannerAd? ad) {
+    if (!_isAdLoaded || ad == null) return false;
+    return ad.responseInfo != null;
   }
 
   @override
   void initState() {
     super.initState();
+    if (_usePlaceholderOnly) return;
     _attachBannerOrLoad();
   }
 
   void _attachBannerOrLoad() {
     final pooled = _takePreloadedBanner();
     if (pooled != null) {
+      if (pooled.responseInfo == null) {
+        try {
+          pooled.dispose();
+        } catch (_) {}
+        _loadBanner();
+        return;
+      }
       _bannerAd = pooled;
       _isAdLoaded = true;
       _loadFailed = false;
-      unawaited(warmupPool());
+      _impressionReported = false;
+      if (_supportsSharedPool) {
+        unawaited(warmupPool());
+      }
       if (mounted && !_isDisposed) {
         setState(() {});
       }
@@ -102,33 +161,69 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _loadBanner() {
-    // 🎯 Otomatik mod seçimi: Debug modda test reklamları, production'da gerçek reklamlar
     final String adUnitId = _resolveAdUnitId();
+    _log(
+        'requesting banner unit=$adUnitId platform=${Platform.operatingSystem} debug=$kDebugMode');
 
-    if (kDebugMode) {
-      print("🧪 AdmobKare: Test mode - Loading test ad: $adUnitId");
+    _retryTimer?.cancel();
+    final previousAd = _bannerAd;
+    _bannerAd = null;
+    if (previousAd != null) {
+      unawaited(Future<void>.delayed(_disposeDelay, () {
+        try {
+          previousAd.dispose();
+        } catch (_) {}
+      }));
     }
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _isAdLoaded = false;
+        _loadFailed = false;
+      });
+    }
+    _impressionReported = false;
 
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
-      size: AdSize.mediumRectangle, // 300x250
+      size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (Ad ad) {
-          if (kDebugMode) {
-            print('✅ AdmobKare: Ad loaded successfully');
-          }
+          _retryCount = 0;
+          _log(
+              'loaded banner source=${ad.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
               _loadFailed = false;
             });
           }
-          unawaited(warmupPool());
+          if (_supportsSharedPool) {
+            unawaited(warmupPool());
+          }
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
-          if (kDebugMode) {
-            print('❌ AdmobKare: Ad failed to load - ${error.message}');
+          _log(
+              'failed banner code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
+          ad.dispose();
+          _bannerAd = null;
+          if (_isDisposed) return;
+          if (_retryCount < _maxRetryCount) {
+            _retryCount += 1;
+            final retryDelay = Duration(milliseconds: 800 * _retryCount);
+            _log(
+                'retrying banner in ${retryDelay.inMilliseconds}ms attempt=$_retryCount unit=$adUnitId platform=${Platform.operatingSystem}');
+            if (mounted) {
+              setState(() {
+                _loadFailed = false;
+                _isAdLoaded = false;
+              });
+            }
+            _retryTimer = Timer(retryDelay, () {
+              if (_isDisposed) return;
+              _loadBanner();
+            });
+            return;
           }
           if (mounted && !_isDisposed) {
             setState(() {
@@ -136,22 +231,27 @@ class _AdmobKareState extends State<AdmobKare> {
               _isAdLoaded = false;
             });
           }
-          ad.dispose();
-          _bannerAd = null;
+          _retryTimer?.cancel();
+          _retryTimer = Timer(_cooldownRetryDelay, () {
+            if (_isDisposed) return;
+            _retryCount = 0;
+            _loadBanner();
+          });
         },
         onAdOpened: (Ad ad) {
-          if (kDebugMode) {
-            print('🔓 AdmobKare: Ad opened (user clicked)');
-          }
+          _log(
+              'opened banner unit=$adUnitId platform=${Platform.operatingSystem}');
         },
         onAdClosed: (Ad ad) {
-          if (kDebugMode) {
-            print('🔒 AdmobKare: Ad closed');
-          }
+          _log(
+              'closed banner unit=$adUnitId platform=${Platform.operatingSystem}');
         },
         onAdImpression: (Ad ad) {
-          if (kDebugMode) {
-            print('👁️ AdmobKare: Ad impression recorded');
+          _log(
+              'impression banner unit=$adUnitId platform=${Platform.operatingSystem}');
+          if (!_impressionReported) {
+            _impressionReported = true;
+            widget.onImpression?.call();
           }
         },
       ),
@@ -161,6 +261,7 @@ class _AdmobKareState extends State<AdmobKare> {
   @override
   void dispose() {
     _isDisposed = true;
+    _retryTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;
@@ -176,63 +277,113 @@ class _AdmobKareState extends State<AdmobKare> {
 
   @override
   Widget build(BuildContext context) {
-    // Reklam yüklenemedi veya dispose edildi
-    if (_isDisposed || _loadFailed) {
+    if (_isDisposed) {
       return const SizedBox.shrink();
     }
 
-    // Reklam yüklenirken loading göster
+    if (_usePlaceholderOnly) {
+      return const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: SizedBox(
+          height: 250,
+          child: Center(
+            child: Text(
+              'Debug reklam gizlendi',
+              style: TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final ad = _bannerAd;
-    if (!_isAdLoaded || ad == null) {
+    if (_loadFailed || !_canRenderAd(ad)) {
+      if (!widget.showChrome) {
+        return const SizedBox.shrink();
+      }
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Container(
           height: 250,
           alignment: Alignment.center,
-          child: const CupertinoActivityIndicator(),
+          child: _loadFailed
+              ? const Text(
+                  'Reklam yukleniyor',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                )
+              : const CupertinoActivityIndicator(),
         ),
       );
     }
+    final bannerAd = ad!;
 
-    // 🎯 Reklam yüklendi - Tıklanabilir alan koruması ile göster
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-        child: Container(
-          // 🛡️ Minimum boşluk - Yanlışlıkla tıklamayı azaltır
-          decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey6,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // "Reklam" etiketi (Google AdMob politikası gereği)
-              const Padding(
-                padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
-                child: Text(
-                  'Reklam',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: CupertinoColors.systemGrey,
-                    fontWeight: FontWeight.w500,
+    try {
+      final adBody = SizedBox(
+        width: bannerAd.size.width.toDouble(),
+        height: bannerAd.size.height.toDouble(),
+        child: AdWidget(
+          ad: bannerAd,
+          key: ValueKey('admob_${bannerAd.hashCode}'),
+        ),
+      );
+      if (!widget.showChrome) {
+        return Center(child: adBody);
+      }
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey6,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
+                  child: Text(
+                    'Reklam',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: CupertinoColors.systemGrey,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              // Reklam widget'ı
-              SizedBox(
-                width: ad.size.width.toDouble(),
-                height: ad.size.height.toDouble(),
-                child: AdWidget(
-                  ad: ad,
-                  key: ValueKey('admob_${ad.hashCode}'),
-                ),
-              ),
-              const SizedBox(height: 4),
-            ],
+                adBody,
+                const SizedBox(height: 4),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (error, stackTrace) {
+      _log('build failed: $error platform=${Platform.operatingSystem}');
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'AdmobKare',
+          context: ErrorDescription('while building AdmobKare'),
+        ),
+      );
+      if (mounted && !_isDisposed) {
+        scheduleMicrotask(() {
+          if (!mounted || _isDisposed) return;
+          setState(() {
+            _loadFailed = true;
+            _isAdLoaded = false;
+          });
+        });
+      }
+      return const SizedBox.shrink();
+    }
   }
 }

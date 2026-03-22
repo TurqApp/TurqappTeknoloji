@@ -1,15 +1,38 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../Chat/ChatListing/chat_listing_controller.dart';
 
 class ShareGridController extends GetxController {
+  static ShareGridController ensure({
+    required String postType,
+    required String postID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ShareGridController(postType: postType, postID: postID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ShareGridController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<ShareGridController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ShareGridController>(tag: tag);
+  }
+
   String postID;
   String postType;
   ShareGridController({required this.postType, required this.postID});
@@ -17,7 +40,15 @@ class ShareGridController extends GetxController {
   RxList<OgrenciModel> followings = <OgrenciModel>[].obs;
   var selectedUser = Rx<OgrenciModel?>(null);
   Rx<FocusNode> searchFocus = FocusNode().obs;
-  final chatListingController = Get.put(ChatListingController());
+  late final ChatListingController chatListingController =
+      ChatListingController.maybeFind() ?? ChatListingController.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
+  final VisibilityPolicyService _visibilityPolicy =
+      VisibilityPolicyService.ensure();
+
   @override
   void onInit() {
     super.onInit();
@@ -25,158 +56,75 @@ class ShareGridController extends GetxController {
     getFolowers();
   }
 
-  Future<void> getFolowers() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
-        .orderBy("timeStamp")
-        .limit(20)
-        .get()
-        .then((snap) {
-      for (var item in snap.docs) {
-        FirebaseFirestore.instance
-            .collection("users")
-            .doc(item.id)
-            .get()
-            .then((doc) {
-          final data = doc.data() ?? <String, dynamic>{};
-          final nickname = (data["nickname"] ?? "").toString();
-          final pfImage = (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
-          final firstName = (data["firstName"] ?? "").toString();
-          final lastName = (data["lastName"] ?? "").toString();
+  @override
+  void onClose() {
+    search.dispose();
+    searchFocus.value.dispose();
+    super.onClose();
+  }
 
-          followings.add(OgrenciModel(
-              userID: item.id,
-              firstName: firstName,
-              pfImage: pfImage,
-              lastName: lastName,
-              nickname: nickname));
-        });
-      }
-    });
+  Future<void> getFolowers() async {
+    final currentUid = CurrentUserService.instance.effectiveUserId;
+    final ids = await _visibilityPolicy.loadViewerFollowingIds(
+      viewerUserId: currentUid,
+    );
+    final limitedIds = ids.take(20).toList();
+    final profiles = await _userSummaryResolver.resolveMany(limitedIds);
+    final items = <OgrenciModel>[];
+    for (final userId in limitedIds) {
+      final data = profiles[userId];
+      if (data == null) continue;
+      items.add(OgrenciModel(
+        userID: userId,
+        firstName: data.displayName,
+        avatarUrl: data.avatarUrl,
+        lastName: '',
+        nickname: data.nickname,
+      ));
+    }
+    followings.assignAll(items);
   }
 
   Future<void> sendIt() async {
     final selected = selectedUser.value;
     if (selected == null) {
-      AppSnackbar("Uyarı", "Önce bir kullanıcı seç");
+      AppSnackbar('common.warning'.tr, 'share_grid.select_user_first'.tr);
       return;
     }
     final userID = selected.userID;
     final sohbet = chatListingController.list.firstWhereOrNull(
       (val) => val.userID == userID,
     );
-    final currentUID = FirebaseAuth.instance.currentUser!.uid;
+    final currentUID = CurrentUserService.instance.effectiveUserId;
     final chatId = sohbet?.chatID ?? buildConversationId(currentUID, userID);
 
     try {
-      await FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatId)
-          .set({
-        "participants": [currentUID, userID],
-        "lastMessage": "Gönderi",
-        "lastMessageAt": FieldValue.serverTimestamp(),
-        "lastSenderId": currentUID,
-        "unread.$currentUID": 0,
-        "unread.$userID": FieldValue.increment(1),
-      }, SetOptions(merge: true));
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      await _conversationRepository.ensureConversationForPostShare(
+        chatId: chatId,
+        currentUid: currentUID,
+        otherUid: userID,
+        nowMs: nowMs,
+      );
 
-      await FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatId)
-          .collection("messages")
-          .add({
-        "senderId": currentUID,
-        "text": "",
-        "createdAt": FieldValue.serverTimestamp(),
-        "seenBy": [currentUID],
-        "type": "post",
-        "mediaUrls": [],
-        "likes": <String>[],
-        "isDeleted": false,
-        "isEdited": false,
-        "audioUrl": "",
-        "postRef": {
-          "postId": postID,
-          "postType": postType,
-          "previewText": "",
-          "previewImageUrl": "",
-        }
-      });
-
-      if (sohbet != null) {
-        sendMessageForStoryNotUse(
-            sohbetID: sohbet.chatID, postID: postID, postType: postType);
-      } else {
-        await FirebaseFirestore.instance.collection("message").doc(chatId).set({
-          "deleted": [],
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-          "userID1": FirebaseAuth.instance.currentUser!.uid,
-          "userID2": userID
-        }, SetOptions(merge: true));
-        sendMessageForStoryNotUse(
-            sohbetID: chatId, postID: postID, postType: postType);
-      }
-      chatListingController.getList();
-    } catch (e) {
-      AppSnackbar("Hata", "Gönderilemedi: $e");
-    }
-  }
-
-  void sendMessageForStoryNotUse({
-    List<String>? imageUrls,
-    LatLng? latLng,
-    String? kisiAdSoyad,
-    String? kisiTelefon,
-    String? gif,
-    String? postID,
-    String? postType,
-    required String sohbetID,
-  }) {
-    if (imageUrls != [] ||
-        latLng != null ||
-        kisiAdSoyad != "" ||
-        postID != "") {
-      Map<String, dynamic> mesajData = {
-        "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
-        "lat": latLng != null ? latLng.latitude.toDouble() : 0.0,
-        "long": latLng != null ? latLng.longitude.toDouble() : 0.0,
-        "postType": (postType != "" && postType != null) ? postType : "",
-        "postID": (postID != "" && postID != null) ? postID : "",
-        "imgs": gif != null ? [gif] : imageUrls ?? [],
-        "video": "",
-        "isRead": false,
-        "kullanicilar": [
-          selectedUser.value!.userID,
-          FirebaseAuth.instance.currentUser!.uid
-        ],
-        "metin": "",
-        "sesliMesaj": "",
-        "kisiAdSoyad": kisiAdSoyad ?? "",
-        "kisiTelefon": kisiTelefon ?? "",
-        "begeniler": []
-      };
-
-      FirebaseFirestore.instance
-          .collection("message")
-          .doc(sohbetID)
-          .collection("Chat")
-          .add(mesajData)
-          .then((_) {
-        FirebaseFirestore.instance
-            .collection("message")
-            .doc(sohbetID)
-            .update({"timeStamp": DateTime.now().millisecondsSinceEpoch});
-      });
+      await _conversationRepository.addPostShareMessage(
+        chatId: chatId,
+        currentUid: currentUID,
+        postId: postID,
+        postType: postType,
+      );
 
       search.text = "";
       searchFocus.value.unfocus();
       selectedUser.value = null;
       Get.back();
-      AppSnackbar("Gönderildi", "Gönderi iletildi");
+      AppSnackbar('common.success'.tr, 'share_grid.post_forwarded'.tr);
+      chatListingController.getList();
+    } catch (e) {
+      AppSnackbar(
+        'common.error'.tr,
+        'share_grid.forward_failed'.trParams({'error': '$e'}),
+      );
     }
   }
 
@@ -187,16 +135,19 @@ class ShareGridController extends GetxController {
       return;
     }
 
-    final query = await FirebaseFirestore.instance
-        .collection("users")
-        .where("nickname", isGreaterThanOrEqualTo: keyword)
-        .where("nickname", isLessThan: '${keyword}z')
-        .limit(20)
-        .get();
+    final results = await _userRepository.searchUsersByNicknamePrefix(
+      keyword,
+      limit: 20,
+    );
 
-    followings.clear();
-    for (var doc in query.docs) {
-      followings.add(OgrenciModel.fromMap(doc.id, doc.data()));
-    }
+    followings.assignAll(
+      results
+          .map((raw) => OgrenciModel.fromMap(
+                (raw['id'] ?? '').toString(),
+                raw,
+              ))
+          .where((user) => user.userID.isNotEmpty)
+          .toList(growable: false),
+    );
   }
 }

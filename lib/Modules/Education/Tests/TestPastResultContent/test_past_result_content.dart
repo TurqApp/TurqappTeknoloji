@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,7 +7,7 @@ import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyPastTestResultsPreview.dart/my_past_test_results_preview.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestPastResultContent/test_past_result_content_controller.dart';
 
-class TestPastResultContent extends StatelessWidget {
+class TestPastResultContent extends StatefulWidget {
   final TestsModel model;
   final int index;
 
@@ -17,12 +18,43 @@ class TestPastResultContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      TestPastResultContentController(model),
-      tag: 'controller_${model.docID}_$index',
-    );
+  State<TestPastResultContent> createState() => _TestPastResultContentState();
+}
 
+class _TestPastResultContentState extends State<TestPastResultContent> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final TestPastResultContentController controller;
+
+  TestsModel get model => widget.model;
+  int get index => widget.index;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'controller_${widget.model.docID}_${widget.index}';
+    _ownsController =
+        TestPastResultContentController.maybeFind(tag: _controllerTag) == null;
+    controller = TestPastResultContentController.ensure(
+      widget.model,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController =
+          TestPastResultContentController.maybeFind(tag: _controllerTag);
+      if (identical(registeredController, controller)) {
+        Get.delete<TestPastResultContentController>(tag: _controllerTag);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(
       () => controller.isLoading.value
           ? Padding(
@@ -38,7 +70,7 @@ class TestPastResultContent extends StatelessWidget {
                       Icon(Icons.info_outline, color: Colors.black, size: 40),
                       SizedBox(height: 10),
                       Text(
-                        "Sonuç bulunamadı.\nBu test için yanıt verisi mevcut değil.",
+                        "tests.result_answer_missing".tr,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
@@ -82,9 +114,14 @@ class TestPastResultContent extends StatelessWidget {
                                 child: SizedBox(
                                   width: 75,
                                   height: 75,
-                                  child: Image.network(
-                                    model.img,
+                                  child: CachedNetworkImage(
+                                    imageUrl: model.img,
                                     fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(
+                                      child: CupertinoActivityIndicator(),
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(Icons.broken_image),
                                   ),
                                 ),
                               ),
@@ -96,7 +133,9 @@ class TestPastResultContent extends StatelessWidget {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      "${model.testTuru} Testi",
+                                      "tests.type_test".trParams({
+                                        'type': model.testTuru,
+                                      }),
                                       maxLines: 1,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -105,7 +144,9 @@ class TestPastResultContent extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      "${model.aciklama} Testi",
+                                      "tests.description_test".trParams({
+                                        'description': model.aciklama,
+                                      }),
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
@@ -122,7 +163,10 @@ class TestPastResultContent extends StatelessWidget {
                                     ),
                                     if (controller.count.value != 0)
                                       Text(
-                                        "${controller.count.value}. kez çözdün",
+                                        "tests.solve_count".trParams({
+                                          'count':
+                                              controller.count.value.toString(),
+                                        }),
                                         style: TextStyle(
                                           color: Colors.indigo,
                                           fontSize: 12,

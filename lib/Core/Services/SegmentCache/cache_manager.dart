@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/eviction_scoring_engine.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
 import 'cache_metrics.dart';
@@ -23,6 +25,18 @@ import 'models.dart';
 ///   Posts/{docID}/hls/720p/segment_0.ts
 /// ```
 class SegmentCacheManager extends GetxController {
+  static SegmentCacheManager? maybeFind() {
+    final isRegistered = Get.isRegistered<SegmentCacheManager>();
+    if (!isRegistered) return null;
+    return Get.find<SegmentCacheManager>();
+  }
+
+  static SegmentCacheManager ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(SegmentCacheManager(), permanent: true);
+  }
+
   late String _cacheDir;
   CacheIndex _index = CacheIndex();
   final CacheMetrics metrics = CacheMetrics();
@@ -67,6 +81,8 @@ class SegmentCacheManager extends GetxController {
   int get totalSegmentCount =>
       _index.entries.values.fold(0, (sum, e) => sum + e.cachedSegmentCount);
   List<String> get recentlyPlayed => List.unmodifiable(_recentlyPlayed);
+  int get softLimitBytes => _softLimitBytes;
+  int get hardLimitBytes => _hardLimitBytes;
   int get _softLimitBytes =>
       _userSoftLimitBytes ??
       _remote?.cacheSoftLimitBytes ??
@@ -75,14 +91,17 @@ class SegmentCacheManager extends GetxController {
       _userHardLimitBytes ??
       _remote?.cacheHardLimitBytes ??
       CacheIndex.maxSizeBytes;
-  int get _recentPlayCount => _remote?.cacheRecentProtectCount ?? 5;
-
-  VideoRemoteConfigService? get _remote {
-    if (Get.isRegistered<VideoRemoteConfigService>()) {
-      return Get.find<VideoRemoteConfigService>();
-    }
-    return null;
+  int get _recentPlayCount {
+    final remoteFloor = _remote?.cacheRecentProtectCount ?? 3;
+    final budgetManager = StorageBudgetManager.maybeFind();
+    if (budgetManager == null) return remoteFloor;
+    return budgetManager.recentProtectionWindow(
+      streamUsageBytes: _index.totalSizeBytes,
+      remoteFloor: remoteFloor,
+    );
   }
+
+  VideoRemoteConfigService? get _remote => VideoRemoteConfigService.maybeFind();
 
   // ──────────────────────────── Cache Okuma ────────────────────────────
 
@@ -149,7 +168,16 @@ class SegmentCacheManager extends GetxController {
     // OS kendi buffer'ından yazacak; crash durumunda recovery zaten var.
     final tmpFile = File('${file.path}.tmp');
     await tmpFile.writeAsBytes(bytes, flush: false);
-    await tmpFile.rename(file.path);
+    try {
+      await tmpFile.rename(file.path);
+    } on FileSystemException {
+      // Bazı Android cihazlarda rename sırasında parent path anlık kaybolabiliyor.
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: false);
+      if (await tmpFile.exists()) {
+        await tmpFile.delete();
+      }
+    }
 
     // Eski segment varsa boyutunu düş
     final oldSeg = entry.segments[segmentKey];
@@ -191,7 +219,15 @@ class SegmentCacheManager extends GetxController {
     await file.parent.create(recursive: true);
     final tmpFile = File('${file.path}.tmp');
     await tmpFile.writeAsString(content, flush: false);
-    await tmpFile.rename(file.path);
+    try {
+      await tmpFile.rename(file.path);
+    } on FileSystemException {
+      await file.parent.create(recursive: true);
+      await file.writeAsString(content, flush: false);
+      if (await tmpFile.exists()) {
+        await tmpFile.delete();
+      }
+    }
     return file;
   }
 
@@ -325,50 +361,22 @@ class SegmentCacheManager extends GetxController {
   }
 
   double _evictionScore(VideoCacheEntry entry) {
-    // playing durumundaki videoyu asla silme
-    if (entry.state == VideoCacheState.playing) return 1000.0;
-
-    double score = 0;
-    switch (entry.state) {
-      case VideoCacheState.evictable:
-        score = 0;
-        break;
-      case VideoCacheState.watched:
-        score = 10;
-        break;
-      case VideoCacheState.partial:
-        score = 20;
-        break;
-      case VideoCacheState.ready:
-        score = 30;
-        break;
-      case VideoCacheState.fetching:
-        score = 25;
-        break;
-      default:
-        score = 5;
-    }
-
-    // Zamana dayalı bonus
-    final ageMs =
-        DateTime.now().difference(entry.lastAccessedAt).inMilliseconds;
-    if (ageMs < 60000) {
-      score += 50; // son 1 dk
-    } else if (ageMs < 300000) {
-      score += 30; // son 5 dk
-    }
-
-    // Son N video koruma bonusu (-5 kuralı: izlenen son 5 video korunsun)
-    if (_recentlyPlayed.contains(entry.docID)) {
-      score += 200;
-    }
-
-    return score;
+    return EvictionScoringEngine.score(
+      EvictionScoreContext(
+        state: entry.state,
+        lastAccessedAt: entry.lastAccessedAt,
+        isRecentlyPlayed: _recentlyPlayed.contains(entry.docID),
+        watchProgress: entry.watchProgress,
+        cachedSegmentCount: entry.cachedSegmentCount,
+        totalSegmentCount: entry.totalSegmentCount,
+        totalSizeBytes: entry.totalSizeBytes,
+      ),
+    );
   }
 
   bool _isLowQualityEntry(VideoCacheEntry entry) {
     if (entry.state == VideoCacheState.playing) return false;
-    // -5 kuralı: son N oynatılan video low-quality havuzuna düşmesin
+    // Son koruma penceresindeki videolar low-quality havuzuna düşmesin.
     if (_recentlyPlayed.contains(entry.docID)) return false;
     if (entry.cachedSegmentCount <= 2) return true;
     if (entry.totalSegmentCount <= 0) return entry.cachedSegmentCount <= 3;
@@ -419,7 +427,15 @@ class SegmentCacheManager extends GetxController {
       final json = jsonEncode(_index.toJson());
       final tmpFile = File('${file.path}.tmp');
       await tmpFile.writeAsString(json, flush: true);
-      await tmpFile.rename(file.path);
+      try {
+        await tmpFile.rename(file.path);
+      } on FileSystemException {
+        await file.parent.create(recursive: true);
+        await file.writeAsString(json, flush: true);
+        if (await tmpFile.exists()) {
+          await tmpFile.delete();
+        }
+      }
     } catch (e) {
       debugPrint('[CacheManager] Index persist error: $e');
     }
@@ -587,20 +603,22 @@ class SegmentCacheManager extends GetxController {
   }
 
   /// Kullanıcı cache kotasını (GB) runtime'da uygular.
-  /// 2-5 GB aralığına clamp edilir, soft limit hard limit'in %85'i olur.
+  /// Phase 1 budget manager ile stream cache için yapılandırılmış soft/hard stop üretir.
   Future<void> setUserLimitGB(int gb) async {
-    final normalized = gb.clamp(2, 5);
-    final hard = normalized * 1024 * 1024 * 1024;
-    final soft = (hard * 0.85).round();
+    final profile = StorageBudgetManager.profileForPlanGb(gb);
 
-    _userHardLimitBytes = hard;
-    _userSoftLimitBytes = soft;
+    _userHardLimitBytes = profile.streamCacheHardStopBytes;
+    _userSoftLimitBytes = profile.streamCacheSoftStopBytes;
 
-    if (_index.totalSizeBytes > soft) {
-      await evictIfNeeded(targetBytes: soft);
+    if (_index.totalSizeBytes > profile.streamCacheSoftStopBytes) {
+      await evictIfNeeded(targetBytes: profile.streamCacheSoftStopBytes);
     }
 
-    debugPrint('[CacheManager] User cache quota applied: ${normalized}GB');
+    debugPrint(
+      '[CacheManager] User cache quota applied: ${profile.planGb}GB '
+      '(soft=${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)}, '
+      'hard=${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)})',
+    );
   }
 
   // ──────────────────────────── Cleanup ────────────────────────────

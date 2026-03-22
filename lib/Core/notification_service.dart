@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -9,8 +9,13 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../main.dart'; // navigatorKey için
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'NotifyReader/notify_reader_controller.dart';
 
 @pragma('vm:entry-point')
@@ -27,7 +32,13 @@ bool _shouldUseLocalNotifications() {
 
 class NotificationService {
   NotificationService._();
-  static final NotificationService instance = NotificationService._();
+  static NotificationService? _instance;
+  static NotificationService? maybeFind() => _instance;
+
+  static NotificationService ensure() =>
+      maybeFind() ?? (_instance = NotificationService._());
+
+  static NotificationService get instance => ensure();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
@@ -38,6 +49,20 @@ class NotificationService {
   StreamSubscription<User?>? _authStateSub;
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   bool _isHandlingTap = false;
+
+  static const _profileTypes = {'user', 'follow'};
+  static const _postTypes = {
+    'posts',
+    'like',
+    'reshared_posts',
+    'shared_as_posts',
+  };
+  static const _tutoringTypes = {'tutoring_application', 'tutoring_status'};
+  static const _marketTypes = {'market_offer', 'market_offer_status'};
+  static const _chatTypes = {'chat', 'message'};
+  static const String _fcmTokenKeyPrefix = 'fcm_token';
+
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<void> initialize() async {
     if (!_bgRegistered) {
@@ -67,26 +92,37 @@ class NotificationService {
   }
 
   Future<void> _syncCurrentToken() async {
+    await _ensureApplePushBridgeReady();
     final token = await _messaging.getToken();
     if (token == null || token.isEmpty) return;
     await _persistToken(token);
   }
 
+  Future<void> _ensureApplePushBridgeReady() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    for (var i = 0; i < 12; i++) {
+      final apnsToken = await _messaging.getAPNSToken();
+      if (apnsToken != null && apnsToken.isNotEmpty) return;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
   Future<void> _persistToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('fcm_token');
     if (token.isEmpty) return;
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance.collection("users").doc(user.uid).set(
+    final currentUid = _currentUid;
+    final tokenKey = _tokenPrefsKey(currentUid);
+    final saved = prefs.getString(tokenKey);
+    if (currentUid.isNotEmpty) {
+      await UserRepository.ensure().updateUserFields(
+        currentUid,
         {"fcmToken": token},
-        SetOptions(merge: true),
       );
     }
 
     if (token != saved) {
-      await prefs.setString('fcm_token', token);
+      await prefs.setString(tokenKey, token);
     }
   }
 
@@ -133,9 +169,18 @@ class NotificationService {
 
   Future<void> showNotification(RemoteMessage msg) async {
     if (!_shouldUseLocalNotifications()) return;
+    final currentUid = _currentUid;
+    final fromUserID = (msg.data['fromUserID'] ?? '').toString().trim();
+    if (currentUid.isNotEmpty &&
+        fromUserID.isNotEmpty &&
+        fromUserID == currentUid) {
+      return;
+    }
+
     final notif = msg.notification;
     final type = (msg.data['type'] ?? '').toString();
-    final title = (notif?.title ?? msg.data['title'] ?? 'TurqApp').toString();
+    final title =
+        (notif?.title ?? msg.data['title'] ?? 'app.name'.tr).toString();
     final body = (notif?.body ?? msg.data['body'] ?? '').toString();
     if (!NotificationPreferencesService.isTypeEnabled(type,
         await NotificationPreferencesService.getCurrentUserPreferences())) {
@@ -176,7 +221,8 @@ class NotificationService {
 
   Future<ByteArrayAndroidBitmap?> _fetchImageBitmap(String url) async {
     try {
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         return ByteArrayAndroidBitmap(response.bodyBytes);
       }
@@ -225,20 +271,15 @@ class NotificationService {
         ),
       );
 
-      final controller = Get.isRegistered<NotifyReaderController>()
-          ? Get.find<NotifyReaderController>()
-          : Get.put(NotifyReaderController());
+      final controller = NotifyReaderController.ensure();
 
-      final normalized = type.toString().trim().toLowerCase();
+      final normalized = normalizeSearchText(type.toString());
       try {
-        if (normalized == "user" || normalized == "follow") {
+        if (_profileTypes.contains(normalized)) {
           await controller.goToProfile(docID.toString());
           return;
         }
-        if (normalized == "posts" ||
-            normalized == "like" ||
-            normalized == "reshared_posts" ||
-            normalized == "shared_as_posts") {
+        if (_postTypes.contains(normalized)) {
           await controller.goToPost(docID.toString());
           return;
         }
@@ -250,12 +291,15 @@ class NotificationService {
           await controller.goToJob(docID.toString());
           return;
         }
-        if (normalized == "tutoring_application" ||
-            normalized == "tutoring_status") {
+        if (_tutoringTypes.contains(normalized)) {
           await controller.goToTutoring(docID.toString());
           return;
         }
-        if (normalized == "chat" || normalized == "message") {
+        if (_marketTypes.contains(normalized)) {
+          await controller.goToMarket(docID.toString());
+          return;
+        }
+        if (_chatTypes.contains(normalized)) {
           await controller.goToChat(docID.toString());
         }
       } finally {
@@ -270,21 +314,26 @@ class NotificationService {
     required String body,
     required String docID,
     required String type,
+    String? targetUserID,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final myToken = prefs.getString('fcm_token');
-      if (token.isEmpty || token == myToken || myToken == null) return;
+      final fromUid = _currentUid;
+      if (fromUid.isEmpty) return;
+      final myToken = prefs.getString(_tokenPrefsKey(fromUid));
 
-      final targetUid = await _resolveUserIdByToken(token);
+      final targetUid = (targetUserID != null && targetUserID.trim().isNotEmpty)
+          ? targetUserID.trim()
+          : (token.trim().isEmpty ? null : await _resolveUserIdByToken(token));
       if (targetUid == null || targetUid.isEmpty) return;
+      if (targetUid == fromUid) return;
+      if (token.trim().isNotEmpty &&
+          myToken != null &&
+          token.trim() == myToken) {
+        return;
+      }
 
-      final fromUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(targetUid)
-          .collection("notifications")
-          .add({
+      await NotificationsRepository.ensure().createInboxItem(targetUid, {
         "type": type,
         "fromUserID": fromUid,
         "postID": docID,
@@ -300,12 +349,7 @@ class NotificationService {
 
   Future<String?> _resolveUserIdByToken(String token) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("fcmToken", isEqualTo: token)
-          .limit(1)
-          .get();
-      return snap.docs.isNotEmpty ? snap.docs.first.id : null;
+      return await UserRepository.ensure().findUserIdByFcmToken(token);
     } catch (_) {
       return null;
     }
@@ -318,6 +362,10 @@ class NotificationService {
     _tokenRefreshSub = null;
     _authStateSub = null;
     _foregroundMessageSub = null;
+  }
+
+  String _tokenPrefsKey(String? uid) {
+    return userScopedKey(_fcmTokenKeyPrefix, uid: uid, guestFallback: '');
   }
 }
 

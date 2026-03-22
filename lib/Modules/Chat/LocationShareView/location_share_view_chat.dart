@@ -3,16 +3,43 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'location_share_controller.dart';
 
-class LocationShareViewChat extends StatelessWidget {
+class LocationShareViewChat extends StatefulWidget {
   final String chatID;
-  LocationShareViewChat({super.key, required this.chatID});
+  const LocationShareViewChat({super.key, required this.chatID});
+
+  @override
+  State<LocationShareViewChat> createState() => _LocationShareViewChatState();
+}
+
+class _LocationShareViewChatState extends State<LocationShareViewChat> {
   late final LocationShareController controller;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'location_share_${widget.chatID}_${identityHashCode(this)}';
+    controller = LocationShareController.ensure(
+      chatID: widget.chatID,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    final existing = LocationShareController.maybeFind(tag: _controllerTag);
+    if (identical(existing, controller)) {
+      Get.delete<LocationShareController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(LocationShareController(chatID: chatID));
     return Scaffold(
       body: Obx(() {
         final pos = controller.currentPosition.value;
@@ -68,69 +95,49 @@ class LocationShareViewChat extends StatelessWidget {
                   ],
                 ),
                 child: Obx(() => Text(
-                  controller.currentAddress.value.isEmpty
-                      ? "Adres alınıyor..."
-                      : controller.currentAddress.value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Colors.black, fontFamily: "MontserratMedium"),
-                )),
+                      controller.currentAddress.value.isEmpty
+                          ? 'chat.fetching_address'.tr
+                          : controller.currentAddress.value,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.black,
+                          fontFamily: "MontserratMedium"),
+                    )),
               ),
             ),
 
             // Konuma git butonu
             Positioned(
-              bottom: 100,
-              right: 20,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero
-                ),
-                onPressed: (){
-                  controller.moveToCurrentLocation();
-                },
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    shape: BoxShape.circle
-                  ),
-                  child: Icon(
-                    CupertinoIcons.location_fill,
-                    color: Colors.white,
-                  ),
-                ),
-              )
-            ),
-
-            Positioned(
                 bottom: 100,
-                left: 20,
+                right: 20,
                 child: TextButton(
-                  style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero
-                  ),
-                  onPressed: (){
-                    Get.back();
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  onPressed: () {
+                    controller.moveToCurrentLocation();
                   },
                   child: Container(
                     width: 60,
                     height: 60,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey)
-                    ),
+                        color: Colors.blueAccent, shape: BoxShape.circle),
                     child: Icon(
-                      CupertinoIcons.arrow_left,
-                      color: Colors.black,
-                      size: 25,
+                      CupertinoIcons.location_fill,
+                      color: Colors.white,
                     ),
                   ),
-                )
-            ),
+                )),
+
+            Positioned(
+                bottom: 100,
+                left: 20,
+                child: AppBackButton(
+                  onTap: () {
+                    Get.back();
+                  },
+                  icon: CupertinoIcons.arrow_left,
+                )),
 
             // Paylaş butonu
             Positioned(
@@ -139,7 +146,7 @@ class LocationShareViewChat extends StatelessWidget {
               right: 20,
               child: TurqAppButton(
                 onTap: controller.shareLocation,
-                text: "Paylaş",
+                text: 'common.share'.tr,
               ),
             )
           ],

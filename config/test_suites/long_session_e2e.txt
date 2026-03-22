@@ -1,0 +1,3 @@
+integration_test/feed/feed_long_session_15m_stress_test.dart
+integration_test/feed/feed_production_smoke_suite_test.dart
+integration_test/shorts/short_five_item_playback_stress_test.dart

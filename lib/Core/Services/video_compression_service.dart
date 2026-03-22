@@ -8,14 +8,22 @@ import '../upload_constants.dart';
 class VideoCompressionService extends GetxController {
   /// Compresses the given [videoFile] based on network conditions and size limits.
   /// Returns the compressed file if successful; otherwise returns the original file.
-  static Future<File> compressForNetwork(File videoFile, {double targetMbps = 5.0}) async {
+  static Future<File> compressForNetwork(File videoFile,
+      {double targetMbps = 5.0}) async {
     try {
       // Guard legacy low values persisted in old settings.
       if (targetMbps < 4.0) targetMbps = 5.0;
 
-      final network = Get.isRegistered<NetworkAwarenessService>()
-          ? Get.find<NetworkAwarenessService>()
-          : null;
+      final originalBytes = await videoFile.length();
+      if (originalBytes <= UploadConstants.maxPassthroughVideoBytes) {
+        if (kDebugMode) {
+          debugPrint('[VideoCompression] Passthrough: '
+              'size=${(originalBytes / (1024 * 1024)).toStringAsFixed(2)} MB');
+        }
+        return videoFile;
+      }
+
+      final network = NetworkAwarenessService.maybeFind();
 
       // Choose initial quality based on network
       var quality = VideoQuality.DefaultQuality;
@@ -26,13 +34,14 @@ class VideoCompressionService extends GetxController {
       }
 
       // Effective ceiling should match post-size policy, not the broad raw video cap.
-      final maxBytes = UploadConstants.maxTotalPostSizeBytes;
+      final maxBytes = UploadConstants.maxPassthroughVideoBytes;
 
       // First try with chosen quality
       if (kDebugMode) {
         final size = await videoFile.length();
-        debugPrint('[VideoCompression] Start: file=${videoFile.path.split('/').last} '
-            'size=${(size / (1024*1024)).toStringAsFixed(2)} MB '
+        debugPrint(
+            '[VideoCompression] Start: file=${videoFile.path.split('/').last} '
+            'size=${(size / (1024 * 1024)).toStringAsFixed(2)} MB '
             'targetMbps=$targetMbps');
       }
 
@@ -54,8 +63,8 @@ class VideoCompressionService extends GetxController {
       }
       if (kDebugMode) {
         debugPrint('[VideoCompression] First pass: quality=$quality '
-            'size=${(fileBytes/1e6).toStringAsFixed(2)} MB '
-            'duration=${(durationMs/1000).toStringAsFixed(2)} s '
+            'size=${(fileBytes / 1e6).toStringAsFixed(2)} MB '
+            'duration=${(durationMs / 1000).toStringAsFixed(2)} s '
             'bitrate=${mbps.toStringAsFixed(2)} Mbps');
       }
 
@@ -84,7 +93,7 @@ class VideoCompressionService extends GetxController {
           }
           if (kDebugMode) {
             debugPrint('[VideoCompression] Step (cellular): quality=$q '
-                'size=${(fileBytes/1e6).toStringAsFixed(2)} MB '
+                'size=${(fileBytes / 1e6).toStringAsFixed(2)} MB '
                 'bitrate=${mbps.toStringAsFixed(2)} Mbps');
           }
         }
@@ -111,7 +120,7 @@ class VideoCompressionService extends GetxController {
                 mbpsWifi = (fileBytes * 8) / (durationMs / 1000) / 1e6;
               }
               debugPrint('[VideoCompression] Step (wifi): quality=$q '
-                  'size=${(fileBytes/1e6).toStringAsFixed(2)} MB '
+                  'size=${(fileBytes / 1e6).toStringAsFixed(2)} MB '
                   'bitrate=${mbpsWifi.toStringAsFixed(2)} Mbps');
             }
           }
@@ -125,14 +134,22 @@ class VideoCompressionService extends GetxController {
           finalMbps = (finalBytes * 8) / (durationMs / 1000) / 1e6;
         }
         debugPrint('[VideoCompression] Final: '
-            'size=${(finalBytes/1e6).toStringAsFixed(2)} MB '
+            'size=${(finalBytes / 1e6).toStringAsFixed(2)} MB '
             'bitrate=${finalMbps.toStringAsFixed(2)} Mbps '
             'targetRange=${lowerBound.toStringAsFixed(2)}-${upperBound.toStringAsFixed(2)} '
             'path=${output.path.split('/').last}');
       }
 
-      return output;
+      final finalBytes = await output.length();
+      if (finalBytes >= originalBytes) {
+        if (kDebugMode) {
+          debugPrint('[VideoCompression] Reverted to original: '
+              'compressed did not reduce size');
+        }
+        return videoFile;
+      }
 
+      return output;
     } catch (_) {
       return videoFile;
     }

@@ -1,46 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:math' as math;
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/ResultsAndAnswers/results_and_answers_controller.dart';
 
-class ResultsAndAnswers extends StatelessWidget {
+class ResultsAndAnswers extends StatefulWidget {
   final OpticalFormModel model;
 
   const ResultsAndAnswers({super.key, required this.model});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(ResultsAndAnswersController(model));
+  State<ResultsAndAnswers> createState() => _ResultsAndAnswersState();
+}
 
+class _ResultsAndAnswersState extends State<ResultsAndAnswers> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final ResultsAndAnswersController controller;
+
+  OpticalFormModel get model => widget.model;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'results_and_answers_${widget.model.docID}_${identityHashCode(this)}';
+    _ownsController =
+        ResultsAndAnswersController.maybeFind(tag: _controllerTag) == null;
+    controller = ResultsAndAnswersController.ensure(
+      model,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = ResultsAndAnswersController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<ResultsAndAnswersController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            GestureDetector(
-              onTap: () => Get.back(),
-              child: Container(
-                height: 70,
-                alignment: Alignment.centerLeft,
-                decoration: const BoxDecoration(color: Colors.white),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_back, color: Colors.black),
-                      const SizedBox(width: 12),
-                      Text(
-                        model.name,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontFamily: "MontserratBold",
-                          fontSize: 25,
-                        ),
-                      ),
-                    ],
+            Container(
+              height: 70,
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(color: Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                children: [
+                  const AppBackButton(icon: Icons.arrow_back),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppPageTitle(
+                      model.name,
+                      fontSize: 25,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             Expanded(
@@ -104,8 +136,8 @@ class ResultsAndAnswers extends StatelessWidget {
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const Text(
-                                    "Doğru",
+                                  Text(
+                                    "tests.correct".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -134,8 +166,8 @@ class ResultsAndAnswers extends StatelessWidget {
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const Text(
-                                    "Yanlış",
+                                  Text(
+                                    "tests.wrong".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -164,8 +196,8 @@ class ResultsAndAnswers extends StatelessWidget {
                                       fontFamily: "MontserratBold",
                                     ),
                                   ),
-                                  const Text(
-                                    "Boş",
+                                  Text(
+                                    "tests.blank".tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -181,11 +213,9 @@ class ResultsAndAnswers extends StatelessWidget {
                       if (controller.cevaplar.isNotEmpty)
                         Column(
                           children: [
-                            for (
-                              int index = 0;
-                              index < model.cevaplar.length;
-                              index++
-                            )
+                            for (int index = 0;
+                                index < model.cevaplar.length;
+                                index++)
                               Container(
                                 height: 50,
                                 decoration: BoxDecoration(
@@ -209,10 +239,9 @@ class ResultsAndAnswers extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    for (var item
-                                        in model.max == 5
-                                            ? ["A", "B", "C", "D", "E"]
-                                            : ["A", "B", "C", "D"])
+                                    for (var item in model.max == 5
+                                        ? ["A", "B", "C", "D", "E"]
+                                        : ["A", "B", "C", "D"])
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 4.0,
@@ -222,37 +251,32 @@ class ResultsAndAnswers extends StatelessWidget {
                                           height: 40,
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
-                                            color:
-                                                controller.cevaplar[index] ==
-                                                        item
-                                                    ? (controller
-                                                                .cevaplar[index] ==
-                                                            model
-                                                                .cevaplar[index]
-                                                        ? Colors.green
-                                                        : Colors.red)
-                                                    : (model.cevaplar[index] ==
-                                                            item
-                                                        ? Colors.white
-                                                            .withValues(alpha: 0.5)
-                                                        : Colors.white),
+                                            color: controller.cevaplar[index] ==
+                                                    item
+                                                ? (controller.cevaplar[index] ==
+                                                        model.cevaplar[index]
+                                                    ? Colors.green
+                                                    : Colors.red)
+                                                : (model.cevaplar[index] == item
+                                                    ? Colors.white
+                                                        .withValues(alpha: 0.5)
+                                                    : Colors.white),
                                             borderRadius: BorderRadius.circular(
                                               50,
                                             ),
                                             border: Border.all(
-                                              color:
-                                                  controller.cevaplar[index] ==
+                                              color: controller
+                                                          .cevaplar[index] ==
+                                                      item
+                                                  ? (controller.cevaplar[
+                                                              index] ==
+                                                          model.cevaplar[index]
+                                                      ? Colors.green
+                                                      : Colors.red)
+                                                  : (model.cevaplar[index] ==
                                                           item
-                                                      ? (controller
-                                                                  .cevaplar[index] ==
-                                                              model
-                                                                  .cevaplar[index]
-                                                          ? Colors.green
-                                                          : Colors.red)
-                                                      : (model.cevaplar[index] ==
-                                                              item
-                                                          ? Colors.green
-                                                          : Colors.black),
+                                                      ? Colors.green
+                                                      : Colors.black),
                                               width: 1.5,
                                             ),
                                           ),
@@ -287,15 +311,48 @@ class ResultsAndAnswers extends StatelessWidget {
   }
 }
 
-class Speedometer extends StatelessWidget {
+class Speedometer extends StatefulWidget {
   final double targetValue;
 
   const Speedometer({super.key, required this.targetValue});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(SpeedometerController(targetValue));
+  State<Speedometer> createState() => _SpeedometerState();
+}
 
+class _SpeedometerState extends State<Speedometer> {
+  late final String _controllerTag;
+  late final bool _ownsController;
+  late final SpeedometerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'speedometer_${widget.targetValue}_${identityHashCode(this)}';
+    _ownsController =
+        SpeedometerController.maybeFind(tag: _controllerTag) == null;
+    controller = SpeedometerController.ensure(
+      widget.targetValue,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      final registeredController = SpeedometerController.maybeFind(
+        tag: _controllerTag,
+      );
+      if (identical(registeredController, controller)) {
+        Get.delete<SpeedometerController>(tag: _controllerTag);
+      }
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(
       () => CustomPaint(
         size: Size(MediaQuery.of(context).size.width, 200),
@@ -307,6 +364,26 @@ class Speedometer extends StatelessWidget {
 
 class SpeedometerController extends GetxController
     with GetSingleTickerProviderStateMixin {
+  static SpeedometerController ensure(
+    double targetValue, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      SpeedometerController(targetValue),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static SpeedometerController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<SpeedometerController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SpeedometerController>(tag: tag);
+  }
+
   final double targetValue;
   final currentValue = 0.0.obs;
   late AnimationController _controller;
@@ -347,20 +424,18 @@ class SpeedometerPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 3;
 
-    final paintArc =
-        Paint()
-          ..color = Colors.grey.withValues(alpha: 0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 6;
+    final paintArc = Paint()
+      ..color = Colors.grey.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
 
     final rect = Rect.fromCircle(center: center, radius: radius);
     canvas.drawArc(rect, math.pi, math.pi, false, paintArc);
 
-    final paintNeedle =
-        Paint()
-          ..color = Colors.red
-          ..strokeWidth = 4
-          ..strokeCap = StrokeCap.round;
+    final paintNeedle = Paint()
+      ..color = Colors.red
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
 
     double angle = (value - 0) / 100 * 180;
     double radian = (angle + 180) * (math.pi / 180);

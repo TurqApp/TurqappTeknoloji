@@ -24,11 +24,24 @@ class SocialMediaContent extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(4),
             child: ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: model.logo,
-                fit: BoxFit.cover,
-                memCacheHeight: 300,
-              ),
+              child: model.logo.startsWith('assets/')
+                  ? Image.asset(
+                      model.logo,
+                      fit: BoxFit.cover,
+                    )
+                  : model.logo.trim().isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: model.logo,
+                          fit: BoxFit.cover,
+                          memCacheHeight: 300,
+                        )
+                      : Container(
+                          color: Colors.grey.withAlpha(30),
+                          child: const Icon(
+                            Icons.link,
+                            color: Colors.black54,
+                          ),
+                        ),
             ),
           ),
 

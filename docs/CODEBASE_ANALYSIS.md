@@ -282,7 +282,7 @@ lib/
 6. **Public Shortcuts**
    - `userId`: Current user ID
    - `nickname`: User's nickname
-   - `pfImage`: Profile picture URL
+   - `avatarUrl`: Profile picture URL
    - `fullName`: Computed full name
    - `isLoggedIn`: Boolean check
 

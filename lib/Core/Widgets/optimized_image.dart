@@ -33,12 +33,13 @@ class OptimizedImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Get optimized URL (thumbnail if available)
-    final String optimizedUrl = useThumbnail && ImageHelper.isFirebaseStorageUrl(imageUrl)
-        ? ImageHelper.getThumbnailUrl(
-            imageUrl,
-            width: width?.toInt() ?? 300,
-          )
-        : imageUrl;
+    final String optimizedUrl =
+        useThumbnail && ImageHelper.isFirebaseStorageUrl(imageUrl)
+            ? ImageHelper.getThumbnailUrl(
+                imageUrl,
+                width: width?.toInt() ?? 300,
+              )
+            : imageUrl;
 
     // Calculate memory cache dimensions
     final int? effectiveMemCacheWidth = memCacheWidth ?? width?.toInt();

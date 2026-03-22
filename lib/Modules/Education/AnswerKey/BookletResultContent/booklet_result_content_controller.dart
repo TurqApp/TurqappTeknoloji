@@ -1,35 +1,39 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 
 class BookletResultContentController extends GetxController {
+  static BookletResultContentController ensure(
+    BookletResultModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      BookletResultContentController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static BookletResultContentController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<BookletResultContentController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<BookletResultContentController>(tag: tag);
+  }
+
   final BookletResultModel model;
   final anaModel = Rx<BookletModel?>(null);
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
 
   BookletResultContentController(this.model) {
     getData();
   }
 
   Future<void> getData() async {
-    final doc =
-        await FirebaseFirestore.instance
-            .collection("books")
-            .doc(model.kitapcikID)
-            .get();
-
-    anaModel.value = BookletModel(
-      dil: doc.get("dil"),
-      sinavTuru: doc.get("sinavTuru"),
-      cover: doc.get("cover"),
-      baslik: doc.get("baslik"),
-      timeStamp: doc.get("timeStamp"),
-      docID: doc.id,
-      kaydet: List.from(doc.get("kaydet")),
-      basimTarihi: doc.get("basimTarihi"),
-      yayinEvi: doc.get("yayinEvi"),
-      userID: doc.get("userID"),
-      goruntuleme: List.from(doc.get("goruntuleme")),
-    );
+    anaModel.value = await _bookletRepository.fetchById(model.kitapcikID);
   }
 }

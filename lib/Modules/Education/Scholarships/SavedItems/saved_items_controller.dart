@@ -1,177 +1,239 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SavedItemsController extends GetxController {
+  static SavedItemsController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(SavedItemsController(), tag: tag, permanent: permanent);
+  }
+
+  static SavedItemsController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<SavedItemsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<SavedItemsController>(tag: tag);
+  }
+
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final isLoading = false.obs;
   final likedScholarships = <Map<String, dynamic>>[].obs;
   final bookmarkedScholarships = <Map<String, dynamic>>[].obs;
   final selectedTabIndex = 0.obs;
   final pageController = PageController();
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
 
   @override
   void onInit() {
     super.onInit();
-    fetchSavedItems();
+    unawaited(_bootstrapSavedItems());
   }
 
-  Future<void> fetchSavedItems() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+  Future<void> _bootstrapSavedItems() async {
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
-    isLoading.value = true;
+
+    try {
+      final results = await Future.wait<List<Map<String, dynamic>>>([
+        _fetchScholarships(
+          userId,
+          isLiked: true,
+          cacheOnly: true,
+          assignResult: false,
+        ),
+        _fetchScholarships(
+          userId,
+          isBookmarked: true,
+          cacheOnly: true,
+          assignResult: false,
+        ),
+      ]);
+      final liked = results[0];
+      final bookmarked = results[1];
+      if (liked.isNotEmpty || bookmarked.isNotEmpty) {
+        likedScholarships.assignAll(liked);
+        bookmarkedScholarships.assignAll(bookmarked);
+        isLoading.value = false;
+        if (SilentRefreshGate.shouldRefresh(
+          'scholarships:saved:$userId',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(fetchSavedItems(silent: true, forceRefresh: true));
+        }
+        return;
+      }
+    } catch (_) {}
+
+    await fetchSavedItems();
+  }
+
+  Future<void> fetchSavedItems({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
+      return;
+    }
+    final shouldShowLoader =
+        !silent && likedScholarships.isEmpty && bookmarkedScholarships.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       await Future.wait([
-        _fetchScholarships(user.uid, isLiked: true),
-        _fetchScholarships(user.uid, isBookmarked: true),
+        _fetchScholarships(
+          userId,
+          isLiked: true,
+          forceRefresh: forceRefresh,
+        ),
+        _fetchScholarships(
+          userId,
+          isBookmarked: true,
+          forceRefresh: forceRefresh,
+        ),
       ]);
+      SilentRefreshGate.markRefreshed('scholarships:saved:$userId');
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader ||
+          (likedScholarships.isEmpty && bookmarkedScholarships.isEmpty)) {
+        isLoading.value = false;
+      }
     }
   }
 
-  Future<void> _fetchScholarships(
+  Future<List<Map<String, dynamic>>> _fetchScholarships(
     String userId, {
     bool isLiked = false,
     bool isBookmarked = false,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
+    bool assignResult = true,
   }) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('scholarships')
-          .where(
-            isLiked ? 'begeniler' : 'kaydedenler',
-            arrayContains: userId,
-          )
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
+      final docs = await _scholarshipRepository.fetchByArrayMembershipRaw(
+        isLiked ? 'begeniler' : 'kaydedenler',
+        userId,
+        limit: 50,
+        forceRefresh: forceRefresh,
+        cacheOnly: cacheOnly,
+      );
 
       final scholarships = <Map<String, dynamic>>[];
 
       // Batch fetch users
       final userIds = <String>{};
-      for (var doc in snapshot.docs) {
-        final userID = doc.data()['userID'] as String? ?? '';
+      for (final data in docs) {
+        final userID = data['userID'] as String? ?? '';
         if (userID.isNotEmpty) userIds.add(userID);
       }
 
       final userDataMap = <String, Map<String, dynamic>>{};
-      for (var i = 0; i < userIds.length; i += 10) {
-        final batch = userIds.skip(i).take(10).toList();
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (final d in usersSnap.docs) {
-          userDataMap[d.id] = {
-            'pfImage': d.data()['pfImage'] as String? ?? '',
-            'nickname': d.data()['nickname'] as String? ?? '',
-            'userID': d.id,
-          };
-        }
+      final users = await _userSummaryResolver.resolveMany(
+        userIds.toList(growable: false),
+        preferCache: true,
+        cacheOnly: cacheOnly,
+      );
+      for (final entry in users.entries) {
+        final user = entry.value;
+        userDataMap[entry.key] = {
+          'avatarUrl': user.avatarUrl,
+          'nickname': user.nickname,
+          'displayName': user.preferredName,
+          'userID': entry.key,
+        };
       }
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
+      for (final data in docs) {
         final begeniler = data['begeniler'] as List<dynamic>? ?? [];
         final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
 
         try {
           final userID = data['userID'] as String? ?? '';
           final userData = userDataMap[userID] ??
-              {'pfImage': '', 'nickname': '', 'userID': userID};
+              {'avatarUrl': '', 'nickname': '', 'userID': userID};
 
           scholarships.add({
             'model': IndividualScholarshipsModel.fromJson(data),
-            'type': 'bireysel',
+            'type': kIndividualScholarshipType,
             'userData': userData,
-            'docId': doc.id,
+            'docId': (data['docId'] ?? '').toString(),
             'likesCount': begeniler.length,
             'bookmarksCount': kaydedenler.length,
           });
         } catch (e) {
-          AppSnackbar('Hata', 'Burs verisi işlenemedi.');
+          AppSnackbar('common.error'.tr, 'common.item_process_failed'.tr);
         }
       }
 
-      if (isLiked) {
-        likedScholarships.value = scholarships;
-      } else {
-        bookmarkedScholarships.value = scholarships;
+      if (assignResult) {
+        if (isLiked) {
+          likedScholarships.value = scholarships;
+        } else {
+          bookmarkedScholarships.value = scholarships;
+        }
       }
+      return scholarships;
     } catch (e) {
-      AppSnackbar('Hata', 'Veriler yüklenemedi.');
+      AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
+      return const <Map<String, dynamic>>[];
     }
   }
 
   Future<void> toggleLike(String docId, String type) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
-    final userId = user.uid;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(docId);
-
-      final doc = await docRef.get();
-      if (!doc.exists) {
-        AppSnackbar('Hata', 'Burs bulunamadı.');
-        return;
-      }
-
-      final begeniler = List<String>.from(doc.data()?['begeniler'] ?? []);
-      if (begeniler.contains(userId)) {
-        begeniler.remove(userId);
-      } else {
-        begeniler.add(userId);
-      }
-
-      await docRef.update({'begeniler': begeniler});
-      // Pull-based: listeyi yeniden çek
-      await _fetchScholarships(userId, isLiked: true);
+      await _scholarshipRepository.toggleLike(
+        docId,
+        userId: userId,
+      );
+      await _fetchScholarships(userId, isLiked: true, forceRefresh: true);
     } catch (e) {
-      AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.like_failed'.tr);
     }
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      AppSnackbar('Hata', 'Lütfen oturum açın.');
+    final userId = CurrentUserService.instance.effectiveUserId;
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
     }
-    final userId = user.uid;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(docId);
-
-      final doc = await docRef.get();
-      if (!doc.exists) {
-        AppSnackbar('Hata', 'Burs bulunamadı.');
-        return;
-      }
-
-      final kaydedenler = List<String>.from(doc.data()?['kaydedenler'] ?? []);
-      if (kaydedenler.contains(userId)) {
-        kaydedenler.remove(userId);
-      } else {
-        kaydedenler.add(userId);
-      }
-
-      await docRef.update({'kaydedenler': kaydedenler});
-      // Pull-based: listeyi yeniden çek
-      await _fetchScholarships(userId, isBookmarked: true);
+      await _scholarshipRepository.toggleBookmark(
+        docId,
+        userId: userId,
+      );
+      await _fetchScholarships(
+        userId,
+        isBookmarked: true,
+        forceRefresh: true,
+      );
     } catch (e) {
-      AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
+      AppSnackbar('common.error'.tr, 'scholarship.bookmark_failed'.tr);
     }
   }
 

@@ -1,19 +1,46 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticalPreviewController extends GetxController {
+  static OpticalPreviewController ensure(
+    OpticalFormModel model,
+    Function? onUpdate, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      OpticalPreviewController(model, onUpdate),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static OpticalPreviewController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<OpticalPreviewController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<OpticalPreviewController>(tag: tag);
+  }
+
   final OpticalFormModel model;
   final Function? onUpdate;
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
 
   final cevaplar = <String>[].obs;
   final isConnected = true.obs;
   final selection = 0.obs;
   final fullName = TextEditingController();
   final ogrenciNo = TextEditingController();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   OpticalPreviewController(this.model, this.onUpdate) {
     _initialize();
@@ -27,48 +54,38 @@ class OpticalPreviewController extends GetxController {
 
   @override
   void onClose() {
+    _connectivitySubscription?.cancel();
     fullName.dispose();
     ogrenciNo.dispose();
     super.onClose();
   }
 
   void checkInternetConnection() {
-    Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
       isConnected.value = results.any((r) => r != ConnectivityResult.none);
-      print(
-        isConnected.value
-            ? "İnternet bağlantısı var."
-            : "İnternet bağlantısı yok.",
-      );
     });
   }
 
   void setData() {
-    FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "cevaplar": cevaplar,
-      "ogrenciNo": ogrenciNo.text,
-      "fullName": fullName.text,
-    });
-    Get.back();
+    _opticalFormRepository
+        .saveUserAnswers(
+          model.docID,
+          CurrentUserService.instance.effectiveUserId,
+          answers: cevaplar.toList(growable: false),
+          ogrenciNo: ogrenciNo.text,
+          fullName: fullName.text,
+        )
+        .then((_) => Get.back());
   }
 
   void kullaniciyiSinavGirdiKaydet() {
-    FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .set({
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "cevaplar": List.filled(model.cevaplar.length, ""),
-    });
-    SetOptions(merge: true);
+    _opticalFormRepository.initializeUserAnswers(
+      model.docID,
+      CurrentUserService.instance.effectiveUserId,
+      model.cevaplar.length,
+    );
   }
 
   void toggleAnswer(int index, String item) {
@@ -84,8 +101,8 @@ class OpticalPreviewController extends GetxController {
       setData();
     } else {
       showAlertDialog(
-        "İnternet bağlantınızı açın!",
-        "Sınavı bitirmek istiyor iseniz internet bağlantınızı açınız",
+        "answer_key.turn_on_internet_title".tr,
+        "answer_key.turn_on_internet_body".tr,
       );
     }
   }
@@ -99,61 +116,9 @@ class OpticalPreviewController extends GetxController {
   }
 
   void showAlertDialog(String title, String desc) {
-    Get.bottomSheet(
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                desc,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-              SizedBox(height: 20),
-              GestureDetector(
-                onTap: () => Get.back(),
-                child: Container(
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Text(
-                    "Tamam",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    infoAlert(
+      title: title,
+      message: desc,
     );
   }
 }

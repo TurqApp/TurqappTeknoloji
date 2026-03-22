@@ -2,26 +2,29 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/bool_utils.dart';
 import 'media_compression_service.dart';
 import 'SegmentCache/prefetch_scheduler.dart';
 
 enum NetworkType {
-  wifi('Wi-Fi'),
-  cellular('Mobil Veri'),
-  none('Bağlantı Yok');
+  wifi('network_awareness.type_wifi'),
+  cellular('network_awareness.type_cellular'),
+  none('network_awareness.type_none');
 
-  const NetworkType(this.label);
-  final String label;
+  const NetworkType(this.labelKey);
+  final String labelKey;
+  String get label => labelKey.tr;
 }
 
 enum DataUsageMode {
-  low('Düşük Kalite', 50),
-  normal('Normal Kalite', 75),
-  high('Yüksek Kalite', 90);
+  low('network_awareness.mode_low', 50),
+  normal('network_awareness.mode_normal', 75),
+  high('network_awareness.mode_high', 90);
 
-  const DataUsageMode(this.label, this.quality);
-  final String label;
+  const DataUsageMode(this.labelKey, this.quality);
+  final String labelKey;
   final int quality;
+  String get label => labelKey.tr;
 }
 
 class NetworkSettings {
@@ -55,22 +58,38 @@ class NetworkSettings {
 
   factory NetworkSettings.fromJson(Map<String, dynamic> json) =>
       NetworkSettings(
-        autoUploadOnWiFi: json['autoUploadOnWiFi'] ?? true,
-        pauseOnCellular: json['pauseOnCellular'] ?? false,
+        autoUploadOnWiFi: _asBool(json['autoUploadOnWiFi'], fallback: true),
+        pauseOnCellular: _asBool(json['pauseOnCellular']),
         cellularDataMode: DataUsageMode.values.firstWhere(
-          (mode) => mode.name == json['cellularDataMode'],
+          (mode) => mode.name == json['cellularDataMode']?.toString(),
           orElse: () => DataUsageMode.low,
         ),
         wifiDataMode: DataUsageMode.values.firstWhere(
-          (mode) => mode.name == json['wifiDataMode'],
+          (mode) => mode.name == json['wifiDataMode']?.toString(),
           orElse: () => DataUsageMode.high,
         ),
-        showDataWarnings: json['showDataWarnings'] ?? true,
-        monthlyDataLimitMB: json['monthlyDataLimitMB'] ?? 1024,
-        mobileTargetMbps: (json['mobileTargetMbps'] != null)
-            ? double.tryParse(json['mobileTargetMbps'].toString()) ?? 5.0
-            : 5.0,
+        showDataWarnings: _asBool(json['showDataWarnings'], fallback: true),
+        monthlyDataLimitMB: _asInt(json['monthlyDataLimitMB'], fallback: 1024),
+        mobileTargetMbps: _asDouble(json['mobileTargetMbps'], fallback: 5.0),
       );
+
+  static bool _asBool(dynamic value, {bool fallback = false}) {
+    return parseFlexibleBool(value, fallback: fallback);
+  }
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  static double _asDouble(dynamic value, {double fallback = 0}) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
+  }
 }
 
 class DataUsageStats {
@@ -127,6 +146,18 @@ class DataUsageStats {
 }
 
 class NetworkAwarenessService extends GetxController {
+  static NetworkAwarenessService? maybeFind() {
+    final isRegistered = Get.isRegistered<NetworkAwarenessService>();
+    if (!isRegistered) return null;
+    return Get.find<NetworkAwarenessService>();
+  }
+
+  static NetworkAwarenessService ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(NetworkAwarenessService(), permanent: true);
+  }
+
   final Rx<NetworkType> _currentNetwork = NetworkType.none.obs;
   final Rx<NetworkSettings> _settings = NetworkSettings().obs;
   final Rx<DataUsageStats> _dataUsage = DataUsageStats(
@@ -136,14 +167,15 @@ class NetworkAwarenessService extends GetxController {
   ).obs;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  NetworkType? _debugOverrideNetwork;
 
-  NetworkType get currentNetwork => _currentNetwork.value;
+  NetworkType get currentNetwork => _debugOverrideNetwork ?? _currentNetwork.value;
   NetworkSettings get settings => _settings.value;
   DataUsageStats get dataUsage => _dataUsage.value;
 
-  bool get isConnected => _currentNetwork.value != NetworkType.none;
-  bool get isOnWiFi => _currentNetwork.value == NetworkType.wifi;
-  bool get isOnCellular => _currentNetwork.value == NetworkType.cellular;
+  bool get isConnected => currentNetwork != NetworkType.none;
+  bool get isOnWiFi => currentNetwork == NetworkType.wifi;
+  bool get isOnCellular => currentNetwork == NetworkType.cellular;
 
   static const String _settingsKey = 'network_settings';
   static const String _dataUsageKey = 'data_usage_stats';
@@ -176,6 +208,9 @@ class NetworkAwarenessService extends GetxController {
 
   /// Update network type
   void _updateNetworkType(List<ConnectivityResult> results) {
+    if (_debugOverrideNetwork != null) {
+      return;
+    }
     // iOS'ta sonuç listesi [vpn, wifi] gibi gelebiliyor.
     // first'e bakmak yanlış şekilde offline kararına yol açıyordu.
     if (results.contains(ConnectivityResult.wifi) ||
@@ -191,14 +226,24 @@ class NetworkAwarenessService extends GetxController {
     }
 
     // Prefetch scheduler'ı bilgilendir
-    try {
-      final scheduler = Get.find<PrefetchScheduler>();
-      if (_currentNetwork.value == NetworkType.wifi) {
-        scheduler.resume();
-      } else {
-        scheduler.pause();
-      }
-    } catch (_) {}
+    final scheduler = PrefetchScheduler.maybeFind();
+    if (scheduler == null) return;
+    if (_currentNetwork.value == NetworkType.wifi) {
+      scheduler.resume();
+    } else {
+      scheduler.pause();
+    }
+  }
+
+  void debugSetNetworkOverride(NetworkType? type) {
+    _debugOverrideNetwork = type;
+    final scheduler = PrefetchScheduler.maybeFind();
+    if (scheduler == null) return;
+    if (isOnWiFi) {
+      scheduler.resume();
+    } else {
+      scheduler.pause();
+    }
   }
 
   /// Get optimal compression quality based on network
@@ -244,16 +289,16 @@ class NetworkAwarenessService extends GetxController {
     if (!isConnected) {
       return {
         'allowed': false,
-        'reason': 'İnternet bağlantısı yok',
-        'suggestion': 'Bağlantı kurulduktan sonra tekrar deneyin',
+        'reason': 'network_awareness.no_internet_reason'.tr,
+        'suggestion': 'network_awareness.no_internet_suggestion'.tr,
       };
     }
 
     if (isOnCellular && settings.pauseOnCellular) {
       return {
         'allowed': false,
-        'reason': 'Mobil veri üzerinden yükleme kapalı',
-        'suggestion': 'Wi-Fi bağlantısı kurun veya ayarları değiştirin',
+        'reason': 'network_awareness.cellular_paused_reason'.tr,
+        'suggestion': 'network_awareness.cellular_paused_suggestion'.tr,
       };
     }
 
@@ -264,8 +309,8 @@ class NetworkAwarenessService extends GetxController {
     if (isOnCellular && fileSizeMB > remaining) {
       return {
         'allowed': false,
-        'reason': 'Aylık veri limitini aşacak',
-        'suggestion': 'Wi-Fi bekleyin veya dosya boyutunu küçültün',
+        'reason': 'network_awareness.limit_exceeded_reason'.tr,
+        'suggestion': 'network_awareness.limit_exceeded_suggestion'.tr,
         'dataInfo': {
           'current': currentUsage,
           'limit': limit,
@@ -281,9 +326,10 @@ class NetworkAwarenessService extends GetxController {
 
     return {
       'allowed': true,
-      'reason': 'Yükleme önerilir',
-      'suggestion':
-          isOnWiFi ? 'Wi-Fi bağlantısı optimal' : 'Mobil veri kullanılacak',
+      'reason': 'network_awareness.upload_recommended'.tr,
+      'suggestion': isOnWiFi
+          ? 'network_awareness.wifi_optimal'.tr
+          : 'network_awareness.cellular_in_use'.tr,
       'optimization': {
         'originalSize': fileSizeMB,
         'optimizedSize': estimatedSizeMB,

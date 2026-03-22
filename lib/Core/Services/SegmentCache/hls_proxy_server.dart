@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../network_awareness_service.dart';
 import 'cache_manager.dart';
+import 'hls_data_usage_probe.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
 
@@ -16,6 +17,18 @@ import 'network_policy.dart';
 /// Proxy cache'te varsa disk'ten serv eder, yoksa CDN'den çeker + cache'ler + serv eder.
 /// M3U8 playlist'lerde relative path kullanıldığı için rewriting gerekmez.
 class HLSProxyServer extends GetxController {
+  static HLSProxyServer? maybeFind() {
+    final isRegistered = Get.isRegistered<HLSProxyServer>();
+    if (!isRegistered) return null;
+    return Get.find<HLSProxyServer>();
+  }
+
+  static HLSProxyServer ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(HLSProxyServer(), permanent: permanent);
+  }
+
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
   static const String _appIdentifier = 'turqapp-mobile';
 
@@ -99,6 +112,7 @@ class HLSProxyServer extends GetxController {
   Future<void> _handlePlaylist(
       HttpRequest request, String path, String? docID) async {
     final cacheManager = _getCacheManager();
+    final probe = HlsDataUsageProbe.ensure();
     final relativePath = path.startsWith('/') ? path.substring(1) : path;
 
     // Disk cache kontrol
@@ -106,9 +120,29 @@ class HLSProxyServer extends GetxController {
     if (cached != null) {
       try {
         final content = await cached.readAsString();
+        if (docID != null) {
+          if (M3U8Parser.isMasterPlaylist(content)) {
+            probe.recordMasterPlaylist(
+              docId: docID,
+              path: path,
+              content: content,
+              source: HlsTrafficSource.playback,
+              cacheHit: true,
+            );
+          } else {
+            probe.recordVariantPlaylist(
+              docId: docID,
+              path: path,
+              content: content,
+              source: HlsTrafficSource.playback,
+              cacheHit: true,
+            );
+          }
+        }
         request.response
           ..statusCode = HttpStatus.ok
-          ..headers.contentType = ContentType('application', 'vnd.apple.mpegurl')
+          ..headers.contentType =
+              ContentType('application', 'vnd.apple.mpegurl')
           ..headers.set('Access-Control-Allow-Origin', '*')
           ..headers.set('Connection', 'keep-alive')
           ..write(content)
@@ -119,11 +153,11 @@ class HLSProxyServer extends GetxController {
       }
     }
 
-    // CDN'den çek — playlist küçük, cellular'da da izin ver
+    // CDN'den cek — playlist'ler policy izin veriyorsa cellular'da da alinabilir.
     if (!CacheNetworkPolicy.canFetchPlaylist) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
-        ..write('Offline — playlist not cached')
+        ..write(CacheNetworkPolicy.playlistFetchBlockedReason)
         ..close();
       return;
     }
@@ -143,6 +177,29 @@ class HLSProxyServer extends GetxController {
       }
 
       final content = response.body;
+      await probe.maybeApplyDebugDelay(
+        isPlaylist: true,
+        source: HlsTrafficSource.playback,
+      );
+      if (docID != null) {
+        if (M3U8Parser.isMasterPlaylist(content)) {
+          probe.recordMasterPlaylist(
+            docId: docID,
+            path: path,
+            content: content,
+            source: HlsTrafficSource.playback,
+            cacheHit: false,
+          );
+        } else {
+          probe.recordVariantPlaylist(
+            docId: docID,
+            path: path,
+            content: content,
+            source: HlsTrafficSource.playback,
+            cacheHit: false,
+          );
+        }
+      }
 
       // Disk'e cache'le
       if (cacheManager != null) {
@@ -174,6 +231,7 @@ class HLSProxyServer extends GetxController {
       HttpRequest request, String path, String? docID) async {
     final cacheManager = _getCacheManager();
     final metrics = cacheManager?.metrics;
+    final probe = HlsDataUsageProbe.ensure();
 
     if (docID != null && cacheManager != null) {
       // Segment key: docID'den sonraki kısım, örn. "720p/segment_0.ts"
@@ -187,12 +245,20 @@ class HLSProxyServer extends GetxController {
             final bytes = await cached.readAsBytes();
             metrics?.recordHit(bytes.length);
             cacheManager.touchEntry(docID);
+            probe.recordSegmentTransfer(
+              docId: docID,
+              segmentKey: segmentKey,
+              bytes: bytes.length,
+              source: HlsTrafficSource.playback,
+              cacheHit: true,
+            );
 
             request.response
               ..statusCode = HttpStatus.ok
               ..headers.contentType = ContentType('video', 'mp2t')
               ..headers.set('Access-Control-Allow-Origin', '*')
-              ..headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+              ..headers
+                  .set('Cache-Control', 'public, max-age=31536000, immutable')
               ..headers.set('Connection', 'keep-alive')
               ..headers.contentLength = bytes.length
               ..add(bytes)
@@ -205,11 +271,11 @@ class HLSProxyServer extends GetxController {
       }
     }
 
-    // Cache miss — Sadece Wi-Fi'de CDN'den çek, cellular/offline'da çekme
+    // Cache miss — aktif playback policy izin veriyorsa CDN'den cek.
     if (!CacheNetworkPolicy.canFetchOnDemand) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
-        ..write('Not on Wi-Fi — segment not cached')
+        ..write(CacheNetworkPolicy.segmentFetchBlockedReason)
         ..close();
       return;
     }
@@ -222,6 +288,16 @@ class HLSProxyServer extends GetxController {
       if (existing != null) {
         bytes = await existing;
       } else {
+        if (docID != null) {
+          final segmentKey = _extractSegmentKey(path, docID);
+          if (segmentKey != null) {
+            probe.recordSegmentStart(
+              docId: docID,
+              segmentKey: segmentKey,
+              source: HlsTrafficSource.playback,
+            );
+          }
+        }
         final future = _fetchSegmentFromCDN(cdnUrl);
         _segmentFetchInFlight[path] = future;
         try {
@@ -231,6 +307,10 @@ class HLSProxyServer extends GetxController {
         }
       }
 
+      await probe.maybeApplyDebugDelay(
+        isPlaylist: false,
+        source: HlsTrafficSource.playback,
+      );
       metrics?.recordMiss(bytes.length);
       _trackDownloadBytes(bytes.length);
 
@@ -238,6 +318,13 @@ class HLSProxyServer extends GetxController {
       if (docID != null && cacheManager != null) {
         final segmentKey = _extractSegmentKey(path, docID);
         if (segmentKey != null) {
+          probe.recordSegmentTransfer(
+            docId: docID,
+            segmentKey: segmentKey,
+            bytes: bytes.length,
+            source: HlsTrafficSource.playback,
+            cacheHit: false,
+          );
           unawaited(cacheManager.writeSegment(docID, segmentKey, bytes));
         }
       }
@@ -302,9 +389,20 @@ class HLSProxyServer extends GetxController {
   }
 
   SegmentCacheManager? _getCacheManager() {
+    return SegmentCacheManager.maybeFind();
+  }
+
+  NetworkAwarenessService? _getNetworkService() {
     try {
-      return Get.find<SegmentCacheManager>();
-    } catch (_) {
+      final existing = NetworkAwarenessService.maybeFind();
+      if (existing != null) {
+        return existing;
+      }
+      final service = NetworkAwarenessService.ensure();
+      debugPrint('[HLSProxy] NetworkAwarenessService auto-registered');
+      return service;
+    } catch (e) {
+      debugPrint('[HLSProxy] Failed to auto-register network service: $e');
       return null;
     }
   }
@@ -320,10 +418,10 @@ class HLSProxyServer extends GetxController {
 
     _pendingDownloadBytes -= downloadMb * oneMb;
 
-    try {
-      final network = Get.find<NetworkAwarenessService>();
+    final network = _getNetworkService();
+    if (network != null) {
       unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-    } catch (_) {}
+    }
   }
 
   /// Master playlist parse edip entry meta bilgisini güncelle.
@@ -374,10 +472,10 @@ class HLSProxyServer extends GetxController {
     // Kapanışta kalan byte'ları 1 MB'a yuvarlayıp kaydet.
     if (_pendingDownloadBytes > 0) {
       final int downloadMb = (_pendingDownloadBytes / (1024 * 1024)).ceil();
-      try {
-        final network = Get.find<NetworkAwarenessService>();
+      final network = _getNetworkService();
+      if (network != null) {
         unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-      } catch (_) {}
+      }
       _pendingDownloadBytes = 0;
     }
     stop();

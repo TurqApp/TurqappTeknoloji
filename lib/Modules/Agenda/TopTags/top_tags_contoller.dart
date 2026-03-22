@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
@@ -8,13 +7,23 @@ import '../AgendaContent/agenda_content_controller.dart';
 import 'top_tags_repository.dart';
 
 class TopTagsController extends GetxController {
+  static TopTagsController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(TopTagsController());
+  }
+
+  static TopTagsController? maybeFind() {
+    final isRegistered = Get.isRegistered<TopTagsController>();
+    if (!isRegistered) return null;
+    return Get.find<TopTagsController>();
+  }
+
   final TopTagsRepository _repo;
   TopTagsController({TopTagsRepository? repository})
-      : _repo = repository ?? TopTagsRepository();
+      : _repo = repository ?? TopTagsRepository.ensure();
 
-  final navbar = Get.isRegistered<NavBarController>()
-      ? Get.find<NavBarController>()
-      : Get.put(NavBarController());
+  final navbar = NavBarController.ensure();
   ScrollController scrollController = ScrollController();
   double _lastOffset = 0;
   RxList<HashtagModel> tags = <HashtagModel>[].obs;
@@ -23,13 +32,13 @@ class TopTagsController extends GetxController {
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
   final RxInt visibleIndex = (-1).obs;
+  String? _pendingCenteredDocId;
 
-  final Map<int, GlobalKey> _agendaKeys = {};
+  final Map<String, GlobalKey> _agendaKeys = {};
   RxList<PostsModel> agendaList = <PostsModel>[].obs;
 
   bool isLoadingMore = false;
   bool hasMore = true;
-  DocumentSnapshot? lastDoc;
 
   @override
   void onInit() {
@@ -46,34 +55,37 @@ class TopTagsController extends GetxController {
     super.onClose();
   }
 
+  void resetFeedState() {
+    hasMore = true;
+    agendaList.clear();
+    centeredIndex.value = -1;
+    currentVisibleIndex.value = -1;
+  }
+
   Future<void> fetchAgendaBigData({bool initial = false}) async {
     if (isLoadingMore || (!initial && !hasMore)) return;
 
     isLoadingMore = true;
-    final query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("arsiv", isEqualTo: false)
-        .where("img", isNotEqualTo: [])
-        .where("flood", isEqualTo: false)
-        .orderBy("timeStamp", descending: true)
-        .limit(15);
-
-    final pagedQuery =
-        lastDoc != null ? query.startAfterDocument(lastDoc!) : query;
+    if (initial) {
+      final currentCentered = centeredIndex.value;
+      if (currentCentered >= 0 && currentCentered < agendaList.length) {
+        _pendingCenteredDocId = agendaList[currentCentered].docID;
+      } else if (lastCenteredIndex != null &&
+          lastCenteredIndex! >= 0 &&
+          lastCenteredIndex! < agendaList.length) {
+        _pendingCenteredDocId = agendaList[lastCenteredIndex!].docID;
+      }
+    }
 
     try {
-      final snap = await pagedQuery.get();
-      if (initial) agendaList.clear();
-
-      if (snap.docs.isNotEmpty) {
-        lastDoc = snap.docs.last;
-        for (var doc in snap.docs) {
-          final model = PostsModel.fromFirestore(doc);
-          if (model.deletedPost != true) {
-            agendaList.add(model);
-          }
-        }
-      } else {
+      final before = agendaList.length;
+      final items = await _repo.fetchImagePostsPage(
+        limit: 15,
+        reset: initial,
+      );
+      agendaList.assignAll(items);
+      _restoreCenteredPost();
+      if (items.length == before) {
         hasMore = false;
       }
     } catch (e) {
@@ -84,16 +96,71 @@ class TopTagsController extends GetxController {
   }
 
   Future<void> getTags() async {
-    tags.clear();
     try {
       final list = await _repo.fetchTrendingTags(resultLimit: 15);
       tags.assignAll(list);
     } catch (_) {}
   }
 
-  GlobalKey getAgendaKey(int index) {
+  String agendaInstanceTag(String docId) => 'top_tag_$docId';
+
+  GlobalKey getAgendaKey({required String docId}) {
     return _agendaKeys.putIfAbsent(
-        index, () => GlobalObjectKey('agenda_$index'));
+      docId,
+      () => GlobalObjectKey(agendaInstanceTag(docId)),
+    );
+  }
+
+  int _resolveRestoreIndex() {
+    if (agendaList.isEmpty) return -1;
+    final pendingDocId = _pendingCenteredDocId;
+    if (pendingDocId != null && pendingDocId.isNotEmpty) {
+      final mapped =
+          agendaList.indexWhere((post) => post.docID == pendingDocId);
+      if (mapped >= 0) return mapped;
+    }
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < agendaList.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < agendaList.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void _restoreCenteredPost() {
+    final target = _resolveRestoreIndex();
+    if (target < 0 || target >= agendaList.length) return;
+    centeredIndex.value = target;
+    currentVisibleIndex.value = target;
+    lastCenteredIndex = target;
+    _pendingCenteredDocId = null;
+  }
+
+  void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
+    if (model != null) {
+      final docId = model.docID.trim();
+      _pendingCenteredDocId = docId.isEmpty ? null : docId;
+      return;
+    }
+    final candidateIndex = preferredIndex ??
+        (currentVisibleIndex.value >= 0
+            ? currentVisibleIndex.value
+            : lastCenteredIndex);
+    if (candidateIndex == null ||
+        candidateIndex < 0 ||
+        candidateIndex >= agendaList.length) {
+      _pendingCenteredDocId = null;
+      return;
+    }
+    final docId = agendaList[candidateIndex].docID.trim();
+    _pendingCenteredDocId = docId.isEmpty ? null : docId;
+  }
+
+  void resumeCenteredPost() {
+    _restoreCenteredPost();
   }
 
   void _onScroll() {
@@ -124,39 +191,41 @@ class TopTagsController extends GetxController {
         disposeAgendaContentController(prevModel.docID);
       }
       currentVisibleIndex.value = newIndex;
+      centeredIndex.value = newIndex;
       lastCenteredIndex = newIndex;
+      capturePendingCenteredEntry(preferredIndex: newIndex);
     }
   }
 
   void updateVisibleIndexByPosition(
       ScrollMetrics metrics, BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final topThreshold = screenHeight * 0.33;
-    final bottomThreshold = screenHeight * 0.66;
-
-    for (int i = 0; i < agendaList.length; i++) {
-      final key = getAgendaKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-
-      final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null || !box.hasSize) continue;
-
-      final position = box.localToGlobal(Offset.zero).dy;
-      final height = box.size.height;
-      final center = position + height / 2;
-
-      if (center > topThreshold && center < bottomThreshold) {
-        centeredIndex.value = i;
-        break;
-      }
+    if (agendaList.isEmpty) return;
+    if (metrics.pixels <= 0) {
+      centeredIndex.value = 0;
+      currentVisibleIndex.value = 0;
+      lastCenteredIndex = 0;
+      capturePendingCenteredEntry(preferredIndex: 0);
+      return;
     }
+    final estimatedItemExtent = (metrics.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final nextIndex = (((metrics.pixels + metrics.viewportDimension * 0.25) /
+                estimatedItemExtent)
+            .floor())
+        .clamp(0, agendaList.length - 1);
+    centeredIndex.value = nextIndex;
+    currentVisibleIndex.value = nextIndex;
+    lastCenteredIndex = nextIndex;
+    capturePendingCenteredEntry(preferredIndex: nextIndex);
   }
 
   void disposeAgendaContentController(String docID) {
-    if (Get.isRegistered<AgendaContentController>(tag: docID)) {
-      Get.delete<AgendaContentController>(tag: docID, force: true);
-      print("Disposed AgendaContentController for $docID");
+    final tag = agendaInstanceTag(docID);
+    if (AgendaContentController.maybeFind(tag: tag) != null) {
+      Get.delete<AgendaContentController>(tag: tag, force: true);
+      print("Disposed AgendaContentController");
     }
   }
 }

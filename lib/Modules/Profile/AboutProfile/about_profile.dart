@@ -7,21 +7,63 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile_controller.dart';
 
-class AboutProfile extends StatelessWidget {
+class AboutProfile extends StatefulWidget {
   final String userID;
-  AboutProfile({super.key, required this.userID});
-  final controller = Get.put(AboutProfileController());
+  const AboutProfile({super.key, required this.userID});
+
+  @override
+  State<AboutProfile> createState() => _AboutProfileState();
+}
+
+class _AboutProfileState extends State<AboutProfile> {
+  late final AboutProfileController controller;
+  late final String _controllerTag;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'about_profile_${widget.userID}_${identityHashCode(this)}';
+    final existingController =
+        AboutProfileController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = AboutProfileController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
+    controller.getUserData(widget.userID);
+  }
+
+  @override
+  void didUpdateWidget(covariant AboutProfile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userID != widget.userID) {
+      controller.getUserData(widget.userID);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          AboutProfileController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<AboutProfileController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller.getUserData(userID);
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Obx(() {
           return Column(
             children: [
-              BackButtons(text: "Bu Hesap Hakkında"),
+              BackButtons(text: "about_profile.title".tr),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -32,9 +74,9 @@ class AboutProfile extends StatelessWidget {
                         child: SizedBox(
                             width: 70,
                             height: 70,
-                            child: controller.pfImage.value != ""
+                            child: controller.avatarUrl.value != ""
                                 ? CachedNetworkImage(
-                                    imageUrl: controller.pfImage.value,
+                                    imageUrl: controller.avatarUrl.value,
                                     fit: BoxFit.cover,
                                   )
                                 : Center(
@@ -43,7 +85,7 @@ class AboutProfile extends StatelessWidget {
                                     ),
                                   )),
                       ),
-                      RozetContent(size: 20, userID: userID)
+                      RozetContent(size: 20, userID: widget.userID)
                     ],
                   )
                 ],
@@ -69,7 +111,7 @@ class AboutProfile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Text(
-                  "Topluluğumuzun güvenilirliğini artırmak için TurqApp'taki hesaplarla ilgili bilgileri şeffaf bir şekilde paylaşıyoruz.",
+                  "about_profile.description".tr,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.black,
@@ -98,7 +140,13 @@ class AboutProfile extends StatelessWidget {
                         children: [
                           if (controller.createdDate.value != "")
                             Text(
-                              "${formatTimeStampAyYil(controller.createdDate.value)} tarihinde katıldı",
+                              "about_profile.joined_on".trParams(
+                                <String, String>{
+                                  'date': formatTimeStampAyYil(
+                                    controller.createdDate.value,
+                                  ),
+                                },
+                              ),
                               style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,

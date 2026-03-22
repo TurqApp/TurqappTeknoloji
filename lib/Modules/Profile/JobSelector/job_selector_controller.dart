@@ -1,16 +1,34 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/jobs.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class JobSelectorController extends GetxController {
+  static JobSelectorController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(
+      JobSelectorController(),
+      permanent: permanent,
+    );
+  }
+
+  static JobSelectorController? maybeFind() {
+    final isRegistered = Get.isRegistered<JobSelectorController>();
+    if (!isRegistered) return null;
+    return Get.find<JobSelectorController>();
+  }
+
+  static const _studentJob = 'öğrenci';
   var job = "".obs;
   var filteredJobs = <String>[].obs;
+  final CurrentUserService _userService = CurrentUserService.instance;
   late final List<String> _initialJobs;
-  bool _userInteracted = false;
 
   List<String> _buildInitialJobs() {
-    final idx = jobs.indexWhere((e) => e.trim().toLowerCase() == "öğrenci");
+    final idx = jobs.indexWhere(
+      (e) => normalizeSearchText(e) == normalizeSearchText(_studentJob),
+    );
     if (idx < 0) {
       return List<String>.from(jobs.take(30));
     }
@@ -33,31 +51,22 @@ class JobSelectorController extends GetxController {
     super.onInit();
     _initialJobs = _buildInitialJobs();
     filteredJobs.assignAll(_initialJobs);
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
-      if (!_userInteracted) {
-        job.value = (doc.data()?["meslekKategori"] ?? "").toString();
-      }
-      filteredJobs.assignAll(_initialWithSelected());
-    });
+    job.value = _userService.meslekKategori.trim();
+    filteredJobs.assignAll(_initialWithSelected());
   }
 
   void selectJob(String value) {
-    _userInteracted = true;
     job.value = value;
     filteredJobs.refresh();
   }
 
   void filterJobs(String query) {
-    final q = query.trim().toLowerCase();
+    final q = normalizeSearchText(query);
     if (q.isEmpty) {
       filteredJobs.assignAll(_initialWithSelected());
     } else {
       filteredJobs.assignAll(
-        jobs.where((job) => job.toLowerCase().contains(q)),
+        jobs.where((job) => normalizeSearchText(job).contains(q)),
       );
     }
   }
@@ -67,10 +76,7 @@ class JobSelectorController extends GetxController {
     if (selected.isEmpty) {
       return;
     }
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({"meslekKategori": selected});
+    await _userService.updateFields({"meslekKategori": selected});
 
     Get.back();
   }

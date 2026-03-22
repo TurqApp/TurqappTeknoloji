@@ -31,8 +31,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
   void initState() {
     super.initState();
     // Tüm controller ve isInitialized dizilerini hazırla
-    controllers =
-        List<HLSVideoAdapter?>.filled(widget.startList.length, null);
+    controllers = List<HLSVideoAdapter?>.filled(widget.startList.length, null);
     isInitialized = List<bool>.filled(widget.startList.length, false);
 
     // İlk video dışarıdan hazır, ata
@@ -62,7 +61,8 @@ class DynamicShortViewState extends State<DynamicShortView> {
       if (controllers[i] != null) continue;
       if (i == 0) continue; // 1. video zaten hazır
       final post = widget.startList[i];
-      final ctrl = HLSVideoAdapter(url: post.playbackUrl, autoPlay: false, loop: true);
+      final ctrl =
+          HLSVideoAdapter(url: post.playbackUrl, autoPlay: false, loop: true);
       controllers[i] = ctrl;
       _setupController(i);
     }

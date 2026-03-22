@@ -1,9 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class CreateAnswerKeyController extends GetxController {
+  static CreateAnswerKeyController ensure(
+    Function onBack, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      CreateAnswerKeyController(onBack),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static CreateAnswerKeyController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<CreateAnswerKeyController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<CreateAnswerKeyController>(tag: tag);
+  }
+
   final Function onBack;
   final nameController = TextEditingController();
   final selections = <String>["A"].obs;
@@ -83,8 +103,8 @@ class CreateAnswerKeyController extends GetxController {
       "cevaplar": selections.toList(),
       "name": nameController.text.isNotEmpty
           ? nameController.text
-          : "İsimsiz Optik Form",
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+          : "answer_key.untitled_optical_form".tr,
+      "userID": CurrentUserService.instance.effectiveUserId,
       "baslangic": selectedDateTime.value.millisecondsSinceEpoch,
       "bitis": selectedDateTime.value.millisecondsSinceEpoch +
           (60000 * sinavSuresiCount.value),

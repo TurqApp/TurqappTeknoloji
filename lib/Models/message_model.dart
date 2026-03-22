@@ -107,7 +107,14 @@ class MessageModel {
 
   factory MessageModel.fromConversationSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-    final createdAt = data['createdAt'];
+    return MessageModel.fromConversationData(data, doc.id);
+  }
+
+  factory MessageModel.fromConversationData(
+    Map<String, dynamic> data,
+    String docId,
+  ) {
+    final createdAt = data['createdDate'];
     num ts = 0;
     if (createdAt is Timestamp) {
       ts = createdAt.millisecondsSinceEpoch;
@@ -124,8 +131,8 @@ class MessageModel {
     final replyTo = data['replyTo'] as Map<String, dynamic>?;
 
     return MessageModel(
-      docID: 'conv_${doc.id}',
-      rawDocID: doc.id,
+      docID: 'conv_$docId',
+      rawDocID: docId,
       source: 'conversation',
       timeStamp: ts,
       userID: data['senderId'] ?? '',

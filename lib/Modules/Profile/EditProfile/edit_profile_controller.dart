@@ -1,8 +1,7 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crop_your_image/crop_your_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -10,15 +9,39 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 
 import '../../../Core/Services/optimized_nsfw_service.dart';
 
 class EditProfileController extends GetxController {
+  static EditProfileController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      EditProfileController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static EditProfileController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<EditProfileController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<EditProfileController>(tag: tag);
+  }
+
   final CropController cropController = CropController();
   final ImagePicker picker = ImagePicker();
 
@@ -29,39 +52,66 @@ class EditProfileController extends GetxController {
 
   // 🎯 Using CurrentUserService for optimized user data access
   final userService = CurrentUserService.instance;
-  @Deprecated('Use userService instead')
-  final user = Get.find<FirebaseMyStore>(); // Backward compatibility
+  final UserRepository _userRepository = UserRepository.ensure();
 
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
+  final RxString email = ''.obs;
+  final RxString phoneNumber = ''.obs;
+  StreamSubscription<Map<String, dynamic>?>? _userSub;
 
-  final uid = FirebaseAuth.instance.currentUser!.uid;
-
+  String get _currentUid => userService.effectiveUserId;
 
   // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
-  String get defaultAvatarUrl =>
-      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
+  String get defaultAvatarUrl => kDefaultAvatarUrl;
 
   bool get hasCustomProfilePhoto {
-    final pfImage = userService.currentUser?.pfImage ?? '';
-    return pfImage.isNotEmpty && pfImage != defaultAvatarUrl;
+    final avatarUrl = userService.currentUser?.avatarUrl ?? '';
+    return !isDefaultAvatarUrl(avatarUrl);
   }
 
   @override
   void onInit() {
     super.onInit();
     fetchAndSetUserData();
+    _bindUserContactData();
     // NSFW detector OptimizedNSFWService ile lazy initialize edilir
   }
 
   @override
   void onClose() {
+    _userSub?.cancel();
     firstNameController.dispose();
     lastNameController.dispose();
     super.onClose();
   }
 
+  void _bindUserContactData() {
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
+    _userSub?.cancel();
+    _userSub = _userRepository.watchUserRaw(uid).listen((data) {
+      if (data == null) return;
+      final profile = (data["profile"] is Map)
+          ? Map<String, dynamic>.from(data["profile"] as Map)
+          : const <String, dynamic>{};
+      final rawEmail = (data["email"] ??
+              profile["email"] ??
+              CurrentUserService.instance.email ??
+              "")
+          .toString()
+          .trim();
+      final rawPhone = (data["phoneNumber"] ?? profile["phoneNumber"] ?? "")
+          .toString()
+          .trim();
+      email.value = rawEmail;
+      phoneNumber.value = rawPhone;
+    });
+  }
+
   Future<void> fetchAndSetUserData() async {
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
     // 🎯 Using CurrentUserService - instant from cache!
     final currentUser = userService.currentUser;
 
@@ -70,17 +120,10 @@ class EditProfileController extends GetxController {
       lastNameController.text = currentUser.lastName;
     } else {
       // Fallback: Firebase'den çek (ilk açılış)
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null) {
-          firstNameController.text = data["firstName"] ?? "";
-          lastNameController.text = data["lastName"] ?? "";
-        }
+      final data = await _userRepository.getUserRaw(uid);
+      if (data != null) {
+        firstNameController.text = data["firstName"] ?? "";
+        lastNameController.text = data["lastName"] ?? "";
       }
     }
   }
@@ -102,8 +145,8 @@ class EditProfileController extends GetxController {
     if (r.isNSFW) {
       selectedImage.value = null;
       AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+        'edit_profile.upload_failed_title'.tr,
+        'edit_profile.upload_failed_body'.tr,
         backgroundColor: Colors.red.withValues(alpha: 0.7),
       );
     } else {
@@ -166,7 +209,7 @@ class EditProfileController extends GetxController {
                             : TurqAppButton(
                                 bgColor: Colors.black,
                                 textColor: Colors.white,
-                                text: "Kırp ve Kullan",
+                                text: 'edit_profile.crop_use'.tr,
                                 onTap: () {
                                   if (cropping) return;
                                   setState(() => cropping = true);
@@ -186,7 +229,8 @@ class EditProfileController extends GetxController {
   }
 
   Future<void> updateProfileInfo() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
 
     String? newImageUrl;
 
@@ -194,27 +238,40 @@ class EditProfileController extends GetxController {
       // Eğer yeni bir kırpılmış resim varsa, önce storage'a yükle
       if (croppedImage.value != null) {
         final ts = DateTime.now().millisecondsSinceEpoch;
+        final fileBase = '${uid}_${ts}_avatarUrl_thumb_150';
         newImageUrl = await WebpUploadService.uploadBytesAsWebp(
           storage: FirebaseStorage.instance,
           bytes: croppedImage.value!,
-          storagePathWithoutExt: 'users/$uid/${uid}_${ts}_pfImage',
+          storagePathWithoutExt: 'users/$uid/$fileBase',
         );
+        // Hard guarantee: persist avatar URL directly to users root doc.
+        await _userRepository.updateUserFields(
+          uid,
+          {
+            'avatarUrl': newImageUrl,
+            'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          },
+          mergeIntoCache: true,
+        );
+        await _cleanupOldAvatarFiles(uid, keepFileName: '$fileBase.webp');
       }
 
       // 🎯 Using CurrentUserService.updateFields (cache + Firebase sync)
       await userService.updateFields({
         "firstName": firstNameController.text,
         "lastName": lastNameController.text,
-        if (newImageUrl != null) "pfImage": newImageUrl,
+        if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
-
-      // Backward compatibility: FirebaseMyStore otomatik güncellenir (wrapper)
-      // user değişkeni artık gerekmiyor, CurrentUserService hallediyor!
+      await _refreshAvatarNicknameSurfaces(uid);
+      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
 
       Get.back();
-      AppSnackbar('Başarılı', 'Profil bilgilerin güncellendi!');
+      AppSnackbar('common.success'.tr, 'edit_profile.update_success'.tr);
     } catch (e) {
-      AppSnackbar('Hata', 'Güncelleme sırasında bir hata oluştu.');
+      AppSnackbar(
+        'common.error'.tr,
+        'edit_profile.update_failed'.trParams({'error': '$e'}),
+      );
     } finally {
       isCropping.value = false; // olası açık state'leri toparla
     }
@@ -222,27 +279,57 @@ class EditProfileController extends GetxController {
 
   Future<void> removeProfilePhoto() async {
     await noYesAlert(
-      title: 'Profil Fotoğrafını Kaldır',
-      message:
-          'Profil fotoğrafın kaldırılacak ve varsayılan avatar kullanılacak. Emin misin?',
-      yesText: 'Kaldır',
-      cancelText: 'İptal',
+      title: 'edit_profile.remove_photo_title'.tr,
+      message: 'edit_profile.remove_photo_message'.tr,
+      yesText: 'common.remove'.tr,
+      cancelText: 'common.cancel'.tr,
       onYesPressed: () async {
         try {
+          final uid = _currentUid;
+          if (uid.isEmpty) return;
           // 🎯 Using CurrentUserService.updateFields
-          await userService.updateFields({'pfImage': defaultAvatarUrl});
+          await userService.updateFields({'avatarUrl': defaultAvatarUrl});
+          await _refreshAvatarNicknameSurfaces(uid);
+          await AccountCenterService.ensure().refreshCurrentAccountMetadata();
 
           // Yerel önizlemeleri temizle
           croppedImage.value = null;
           selectedImage.value = null;
 
-          // FirebaseMyStore otomatik güncellenir (wrapper)
-          AppSnackbar('Güncellendi', 'Profil fotoğrafın kaldırıldı.');
+          AppSnackbar('common.update'.tr, 'edit_profile.photo_removed'.tr);
         } catch (e) {
           AppSnackbar(
-              'Hata', 'Profil fotoğrafı kaldırılırken bir hata oluştu.');
+            'common.error'.tr,
+            'edit_profile.photo_remove_failed'.tr,
+          );
         }
       },
     );
+  }
+
+  Future<void> _refreshAvatarNicknameSurfaces(String uid) async {
+    await UserProfileCacheService.invalidateIfRegistered(uid);
+    PostContentController.invalidateUserProfileCache(uid);
+    await userService.forceRefresh();
+    await StoryRowController.refreshStoriesGlobally();
+  }
+
+  Future<void> _cleanupOldAvatarFiles(
+    String uid, {
+    String? keepFileName,
+  }) async {
+    try {
+      final folderRef = FirebaseStorage.instance.ref().child('users/$uid');
+      final list = await folderRef.listAll();
+      for (final item in list.items) {
+        final name = item.name;
+        if (keepFileName != null && name == keepFileName) continue;
+        if (name.contains('_avatarUrl') && name.endsWith('.webp')) {
+          await item.delete();
+        }
+      }
+    } catch (_) {
+      // Best-effort cleanup; upload should continue even if deletion fails.
+    }
   }
 }

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,18 +9,21 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/full_screen_image_viewer.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
+const _thenSolveLgsType = 'LGS';
+
 class ThenSolve extends StatelessWidget {
   ThenSolve({super.key});
 
-  final AntremanController controller = Get.find<AntremanController>();
+  final AntremanController controller = AntremanController.ensure();
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -48,63 +50,12 @@ class ThenSolve extends StatelessWidget {
                           controller.onScreenReEnter();
                           Get.back();
                         },
-                        child: BackButtons(text: "Sonra Çöz"),
+                        child: BackButtons(
+                          text: 'pasaj.question_bank.solve_later'.tr,
+                        ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Get.to(AntremanScore()),
-                      child: Row(
-                        children: [
-                          StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('questionBankSkor')
-                                .doc(
-                                  '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-                                )
-                                .collection('items')
-                                .doc(controller.userID)
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                      ConnectionState.waiting ||
-                                  snapshot.hasError ||
-                                  !snapshot.hasData ||
-                                  !snapshot.data!.exists) {
-                                return StreamBuilder<DocumentSnapshot>(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(controller.userID)
-                                      .snapshots(),
-                                  builder: (context, userSnapshot) {
-                                    if (!userSnapshot.hasData ||
-                                        !userSnapshot.data!.exists) {
-                                      return const Text("0");
-                                    }
-                                    final antPoint =
-                                        userSnapshot.data!['antPoint'] ?? 100;
-                                    return Text(
-                                      antPoint.toString(),
-                                      style: TextStyles.textFieldTitle,
-                                    );
-                                  },
-                                );
-                              }
-                              int antPoint = snapshot.data!['antPoint'] ?? 0;
-                              return Text(
-                                antPoint.toString(),
-                                style: TextStyles.textFieldTitle,
-                              );
-                            },
-                          ),
-                          Image.asset(
-                            "assets/icons/trophy.webp",
-                            height: 25,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                    ),
-                    15.pw
+                    15.pw,
                   ],
                 ),
                 Expanded(
@@ -117,7 +68,7 @@ class ThenSolve extends StatelessWidget {
                             CupertinoActivityIndicator(),
                             10.ph,
                             Text(
-                              "Sorular Yükleniyor...",
+                              'training.questions_loading'.tr,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black,
@@ -132,9 +83,7 @@ class ThenSolve extends StatelessWidget {
                     final savedQuestions = controller.savedQuestionsList;
 
                     if (savedQuestions.isEmpty) {
-                      return EmptyRow(
-                        text: 'Sonra Çözülecek soru bulunamadı!',
-                      );
+                      return EmptyRow(text: 'training.solve_later_empty'.tr);
                     }
 
                     return ListView.builder(
@@ -174,7 +123,9 @@ class ThenSolve extends StatelessWidget {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "${index + 1}. Soru ${question.sinavTuru} - ${question.ders}",
+                                    '${'tests.question_number'.trParams({
+                                          'index': '${index + 1}'
+                                        })} ${question.sinavTuru} - ${question.ders}',
                                     style: TextStyle(
                                       fontSize: 20,
                                       color: Colors.black,
@@ -184,7 +135,7 @@ class ThenSolve extends StatelessWidget {
                                   PullDownButton(
                                     itemBuilder: (context) => [
                                       PullDownMenuItem(
-                                        title: 'Bildir',
+                                        title: 'training.report'.tr,
                                         icon: AppIcons.info,
                                         onTap: () {
                                           Get.bottomSheet(
@@ -195,7 +146,7 @@ class ThenSolve extends StatelessWidget {
                                         },
                                       ),
                                       PullDownMenuItem(
-                                        title: 'Sonra Çözden Kaldır',
+                                        title: 'training.remove_solve_later'.tr,
                                         icon: AppIcons.delete,
                                         onTap: () async {
                                           await controller
@@ -274,7 +225,7 @@ class ThenSolve extends StatelessWidget {
                                   initialAnswer.isNotEmpty &&
                                       initialAnswer == question.dogruCevap;
                               final int optionCount =
-                                  question.sinavTuru == "LGS"
+                                  question.sinavTuru == _thenSolveLgsType
                                       ? 4
                                       : question.kacCevap.toInt();
 
@@ -391,29 +342,21 @@ class ThenSolve extends StatelessWidget {
                                           );
                                         } else {
                                           AppSnackbar(
-                                            "Bilgi",
-                                            "Önce soruyu cevaplayın!",
+                                            "common.info".tr,
+                                            "training.answer_first".tr,
                                           );
                                         }
                                       },
                                     ),
-                                    StreamBuilder<QuerySnapshot>(
-                                      stream: FirebaseFirestore.instance
-                                          .collection('questionBank')
-                                          .doc(question.docID)
-                                          .collection('Yorumlar')
-                                          .snapshots(),
+                                    StreamBuilder<int>(
+                                      stream: _antremanRepository
+                                          .commentCountStream(
+                                        question.docID,
+                                      ),
                                       builder: (context, snapshot) {
-                                        if (snapshot.hasData) {
-                                          int commentCount =
-                                              snapshot.data!.docs.length;
-                                          return Text(
-                                            "$commentCount",
-                                            style: TextStyle(fontSize: 14),
-                                          );
-                                        }
+                                        final commentCount = snapshot.data ?? 0;
                                         return Text(
-                                          "0",
+                                          "$commentCount",
                                           style: TextStyle(fontSize: 14),
                                         );
                                       },
@@ -455,7 +398,8 @@ class ThenSolve extends StatelessWidget {
                                                 }
                                               },
                                       ),
-                                      Text("Sonra Çöz"),
+                                      Text(
+                                          "pasaj.question_bank.solve_later".tr),
                                     ],
                                   ),
                                 ),
@@ -472,7 +416,7 @@ class ThenSolve extends StatelessWidget {
                                         question,
                                       ),
                                     ),
-                                    Text("Paylaş"),
+                                    Text("training.share".tr),
                                   ],
                                 ),
                               ],

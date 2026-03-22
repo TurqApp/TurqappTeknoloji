@@ -6,6 +6,26 @@ import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:latlong2/latlong.dart' as latlong2;
 
 class LocationShareController extends GetxController {
+  static LocationShareController ensure({
+    required String chatID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      LocationShareController(chatID: chatID),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static LocationShareController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<LocationShareController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<LocationShareController>(tag: tag);
+  }
+
   Rx<GoogleMapController?> mapController = Rx<GoogleMapController?>(null);
   Rx<LatLng?> currentPosition = Rx<LatLng?>(null);
   RxBool isDragging = false.obs;
@@ -78,7 +98,8 @@ class LocationShareController extends GetxController {
       print("Konum paylaşıldı: ${pos.latitude}, ${pos.longitude}");
       print("Adres: ${currentAddress.value}");
 
-      final controller = Get.find<ChatController>(tag: chatID);
+      final controller = ChatController.maybeFind(tag: chatID);
+      if (controller == null) return;
       controller.textEditingController.text = currentAddress.value;
 
       controller.sendMessage(

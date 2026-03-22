@@ -191,7 +191,8 @@ class ShortVideoSkeleton extends StatelessWidget {
                 4,
                 (_) => const Padding(
                   padding: EdgeInsets.only(bottom: 20),
-                  child: SkeletonLoader(width: 32, height: 32, borderRadius: 16),
+                  child:
+                      SkeletonLoader(width: 32, height: 32, borderRadius: 16),
                 ),
               ),
             ),

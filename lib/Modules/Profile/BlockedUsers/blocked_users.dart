@@ -7,9 +7,45 @@ import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Profile/BlockedUsers/blocked_users_controller.dart';
 
-class BlockedUsers extends StatelessWidget {
-  BlockedUsers({super.key});
-  final controller = Get.put(BlockedUsersController());
+class BlockedUsers extends StatefulWidget {
+  const BlockedUsers({super.key});
+
+  @override
+  State<BlockedUsers> createState() => _BlockedUsersState();
+}
+
+class _BlockedUsersState extends State<BlockedUsers> {
+  late final String _controllerTag;
+  late final BlockedUsersController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'profile_blocked_users_${identityHashCode(this)}';
+    final existingController =
+        BlockedUsersController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = BlockedUsersController.ensure(tag: _controllerTag);
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          BlockedUsersController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<BlockedUsersController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,7 +53,7 @@ class BlockedUsers extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Engellenenler"),
+            BackButtons(text: "settings.blocked_users".tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -25,8 +61,20 @@ class BlockedUsers extends StatelessWidget {
                   child: Column(
                     children: [
                       Obx(() {
+                        if (controller.isLoading.value &&
+                            controller.blockedUserDetails.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                              ),
+                            ),
+                          );
+                        }
+
                         if (controller.blockedUserDetails.isEmpty) {
-                          return EmptyRow(text: "Hiç kimseyi engellemedin");
+                          return EmptyRow(text: "blocked_users.empty".tr);
                         }
 
                         return ListView.builder(
@@ -39,13 +87,13 @@ class BlockedUsers extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: Row(
                                 children: [
-                                  user.pfImage.isNotEmpty
+                                  user.avatarUrl.isNotEmpty
                                       ? ClipOval(
                                           child: SizedBox(
                                             width: 40,
                                             height: 40,
                                             child: CachedNetworkImage(
-                                              imageUrl: user.pfImage,
+                                              imageUrl: user.avatarUrl,
                                               fit: BoxFit.cover,
                                             ),
                                           ),
@@ -121,8 +169,8 @@ class BlockedUsers extends StatelessWidget {
                                       ),
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 4),
-                                      child: const Text(
-                                        "Engeli Kaldır",
+                                      child: Text(
+                                        "blocked_users.unblock".tr,
                                         style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,

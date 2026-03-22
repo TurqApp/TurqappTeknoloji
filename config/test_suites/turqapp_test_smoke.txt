@@ -1,0 +1,5 @@
+integration_test/feed/feed_production_smoke_suite_test.dart
+integration_test/feed/hls_data_usage_suite_test.dart
+integration_test/feed/feed_black_flash_smoke_test.dart
+integration_test/feed/feed_network_resilience_smoke_test.dart
+integration_test/feed/feed_resume_test.dart

@@ -1,10 +1,31 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class OpticsAndBooksPublishedController extends GetxController {
+  static OpticsAndBooksPublishedController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(OpticsAndBooksPublishedController(), permanent: permanent);
+  }
+
+  static OpticsAndBooksPublishedController? maybeFind() {
+    final isRegistered = Get.isRegistered<OpticsAndBooksPublishedController>();
+    if (!isRegistered) return null;
+    return Get.find<OpticsAndBooksPublishedController>();
+  }
+
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletModel>[].obs;
   final optikler = <OpticalFormModel>[].obs;
   final selection = 0.obs;
@@ -12,10 +33,82 @@ class OpticsAndBooksPublishedController extends GetxController {
   final RxDouble scrollOffset = 0.0.obs;
   int _lastOpenRefreshAt = 0;
 
+  bool _sameBookletEntries(
+    List<BookletModel> current,
+    List<BookletModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.baslik,
+            item.sinavTuru,
+            item.yayinEvi,
+            item.basimTarihi,
+            item.dil,
+            item.timeStamp,
+            item.viewCount,
+            item.cover,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
+  bool _sameOpticalEntries(
+    List<OpticalFormModel> current,
+    List<OpticalFormModel> next,
+  ) {
+    final currentKeys = current
+        .map(
+          (item) => [
+            item.docID,
+            item.name,
+            item.userID,
+            item.cevaplar.length,
+            item.max,
+            item.baslangic,
+            item.bitis,
+            item.kisitlama,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (item) => [
+            item.docID,
+            item.name,
+            item.userID,
+            item.cevaplar.length,
+            item.max,
+            item.baslangic,
+            item.bitis,
+            item.kisitlama,
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
   @override
   void onInit() {
     super.onInit();
-    loadData();
+    unawaited(_bootstrapData());
   }
 
   void setSelection(int value) {
@@ -27,65 +120,90 @@ class OpticsAndBooksPublishedController extends GetxController {
     if (isLoading.value) return;
     if (now - _lastOpenRefreshAt < 800) return;
     _lastOpenRefreshAt = now;
-    loadData();
+    loadData(forceRefresh: true);
   }
 
-  Future<void> loadData() async {
-    isLoading.value = true;
-    await Future.wait([getData(), getOptikler()]);
-    isLoading.value = false;
-  }
-
-  Future<void> getData() async {
-    final snapshots = await FirebaseFirestore.instance
-        .collection("books")
-        .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-        .get();
-
-    final tempList = <BookletModel>[];
-    for (var doc in snapshots.docs) {
-      tempList.add(
-        BookletModel(
-          dil: doc.get("dil"),
-          sinavTuru: doc.get("sinavTuru"),
-          cover: doc.get("cover"),
-          baslik: doc.get("baslik"),
-          timeStamp: doc.get("timeStamp"),
-          kaydet: List.from(doc.get("kaydet")),
-          basimTarihi: doc.get("basimTarihi"),
-          yayinEvi: doc.get("yayinEvi"),
-          docID: doc.id,
-          userID: doc.get("userID"),
-          goruntuleme: List.from(doc.get("goruntuleme")),
-        ),
-      );
+  Future<void> _bootstrapData() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      isLoading.value = false;
+      return;
     }
+    try {
+      final cachedBooks = await _bookletRepository.fetchByOwner(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      final cachedOptikler = await _opticalFormRepository.fetchByOwner(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (cachedBooks.isNotEmpty || cachedOptikler.isNotEmpty) {
+        cachedBooks.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+        cachedOptikler.sort((a, b) => b.docID.compareTo(a.docID));
+        if (!_sameBookletEntries(list, cachedBooks)) {
+          list.assignAll(cachedBooks);
+        }
+        if (!_sameOpticalEntries(optikler, cachedOptikler)) {
+          optikler.assignAll(cachedOptikler);
+        }
+        isLoading.value = false;
+        if (SilentRefreshGate.shouldRefresh(
+          'answer_key:published:$uid',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(loadData(silent: true, forceRefresh: true));
+        }
+        return;
+      }
+    } catch (_) {}
+    await loadData();
+  }
+
+  Future<void> loadData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    final shouldShowLoader = !silent && list.isEmpty && optikler.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
+    await Future.wait([
+      getData(forceRefresh: forceRefresh),
+      getOptikler(forceRefresh: forceRefresh),
+    ]);
+    if (uid.isNotEmpty) {
+      SilentRefreshGate.markRefreshed('answer_key:published:$uid');
+    }
+    if (shouldShowLoader || (list.isEmpty && optikler.isEmpty)) {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> getData({bool forceRefresh = false}) async {
+    final tempList = await _bookletRepository.fetchByOwner(
+      CurrentUserService.instance.effectiveUserId,
+      preferCache: true,
+      forceRefresh: forceRefresh,
+    );
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    list.assignAll(tempList);
+    if (!_sameBookletEntries(list, tempList)) {
+      list.assignAll(tempList);
+    }
   }
 
-  Future<void> getOptikler() async {
-    final snap = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-        .get();
-
-    final tempList = <OpticalFormModel>[];
-    for (var doc in snap.docs) {
-      tempList.add(
-        OpticalFormModel(
-          docID: doc.id,
-          name: doc.get("name"),
-          cevaplar: List.from(doc.get("cevaplar")),
-          max: doc.get("max"),
-          userID: doc.get("userID"),
-          baslangic: doc.get("baslangic"),
-          bitis: doc.get("bitis"),
-          kisitlama: doc.get("kisitlama"),
-        ),
-      );
-    }
+  Future<void> getOptikler({bool forceRefresh = false}) async {
+    final tempList = await _opticalFormRepository.fetchByOwner(
+      CurrentUserService.instance.effectiveUserId,
+      preferCache: true,
+      forceRefresh: forceRefresh,
+    );
     tempList.sort((a, b) => b.docID.compareTo(a.docID));
-    optikler.assignAll(tempList);
+    if (!_sameOpticalEntries(optikler, tempList)) {
+      optikler.assignAll(tempList);
+    }
   }
 }

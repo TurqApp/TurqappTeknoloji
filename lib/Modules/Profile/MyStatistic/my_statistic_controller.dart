@@ -1,11 +1,32 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/profile_stats_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyStatisticController extends GetxController {
+  static MyStatisticController ensure({
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      MyStatisticController(),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static MyStatisticController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<MyStatisticController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<MyStatisticController>(tag: tag);
+  }
+
+  final ProfileStatsRepository _statsRepository =
+      ProfileStatsRepository.ensure();
   final isLoading = true.obs;
-  StreamSubscription<DocumentSnapshot>? _userDocSub;
+  StreamSubscription<dynamic>? _userDocSub;
 
   // Core stats
   final totalPostViews = 0.obs;
@@ -28,12 +49,13 @@ class MyStatisticController extends GetxController {
   // Approx profile visits (story views in last 30d)
   final profileVisitsApprox = 0.obs;
 
-  // Controls
-  final int postBatchSize = 20; // progressive aggregation
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
+  // Controls
   @override
   void onInit() {
     super.onInit();
+    _loadWarmCache();
     _loadAll();
     _bindUserDocCounters();
   }
@@ -50,17 +72,20 @@ class MyStatisticController extends GetxController {
   }
 
   void _bindUserDocCounters() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
     _userDocSub?.cancel();
-    _userDocSub = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .snapshots()
-        .listen((doc) {
+    final userService = CurrentUserService.instance;
+    final current = userService.currentUser;
+    if (current != null && current.userID == uid) {
+      totalPosts.value = current.counterOfPosts;
+      followerCount.value = current.counterOfFollowers;
+    }
+    _userDocSub = userService.userStream.listen((user) {
       try {
-        totalPosts.value = (doc.data()?['counterOfPosts'] ?? 0) as int;
-        followerCount.value = (doc.data()?['counterOfFollowers'] ?? 0) as int;
+        if (user == null || user.userID != uid) return;
+        totalPosts.value = user.counterOfPosts;
+        followerCount.value = user.counterOfFollowers;
       } catch (_) {}
     });
   }
@@ -68,8 +93,8 @@ class MyStatisticController extends GetxController {
   Future<void> _loadAll() async {
     isLoading.value = true;
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
+      final uid = _currentUid;
+      if (uid.isEmpty) {
         _reset();
         return;
       }
@@ -79,9 +104,9 @@ class MyStatisticController extends GetxController {
         _loadStoryViewsAndVisits(uid),
       ]);
       _computeDerived();
-    } catch (e) {
-      // Keep partial results; just log
-      print('MyStatisticController load error: $e');
+      await _statsRepository.setStats(uid, _buildStatsSnapshot());
+    } catch (_) {
+      // Keep partial results.
     } finally {
       isLoading.value = false;
     }
@@ -102,210 +127,81 @@ class MyStatisticController extends GetxController {
     profileVisitsApprox.value = 0;
   }
 
+  Future<void> _loadWarmCache() async {
+    final uid = _currentUid;
+    if (uid.isEmpty) return;
+    final cached = await _statsRepository.getStats(uid, preferCache: true);
+    if (cached == null || cached.isEmpty) return;
+    _applyStatsSnapshot(cached);
+    isLoading.value = false;
+  }
+
+  Map<String, dynamic> _buildStatsSnapshot() {
+    return <String, dynamic>{
+      'totalPostViews': totalPostViews.value,
+      'totalStoryViews': totalStoryViews.value,
+      'totalPosts': totalPosts.value,
+      'followerCount': followerCount.value,
+      'postViews30d': postViews30d.value,
+      'posts30d': posts30d.value,
+      'stories30d': stories30d.value,
+      'followerGrowth30d': followerGrowth30d.value,
+      'followerGrowthPrev30d': followerGrowthPrev30d.value,
+      'followerGrowthPct': followerGrowthPct.value,
+      'postViewRatePct': postViewRatePct.value,
+      'profileVisitsApprox': profileVisitsApprox.value,
+    };
+  }
+
+  void _applyStatsSnapshot(Map<String, dynamic> data) {
+    int asInt(String key) => ((data[key] ?? 0) as num).toInt();
+    double asDouble(String key) => ((data[key] ?? 0) as num).toDouble();
+
+    totalPostViews.value = asInt('totalPostViews');
+    totalStoryViews.value = asInt('totalStoryViews');
+    totalPosts.value = asInt('totalPosts');
+    followerCount.value = asInt('followerCount');
+    postViews30d.value = asInt('postViews30d');
+    posts30d.value = asInt('posts30d');
+    stories30d.value = asInt('stories30d');
+    followerGrowth30d.value = asInt('followerGrowth30d');
+    followerGrowthPrev30d.value = asInt('followerGrowthPrev30d');
+    followerGrowthPct.value = asDouble('followerGrowthPct');
+    postViewRatePct.value = asDouble('postViewRatePct');
+    profileVisitsApprox.value = asInt('profileVisitsApprox');
+  }
+
   Future<void> _loadFollowerCounts(String uid) async {
     try {
-      final now = DateTime.now();
-      final tsNow = Timestamp.fromDate(now);
-      final ts30 = Timestamp.fromDate(now.subtract(const Duration(days: 30)));
-      final ts60 = Timestamp.fromDate(now.subtract(const Duration(days: 60)));
-
-      // Total followers
-      final totalAgg = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('Takipciler')
-          .count()
-          .get();
-      followerCount.value = totalAgg.count ?? 0;
-
-      // Growth last 30 days (requires timestamp on follower docs)
-      final last30Agg = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('Takipciler')
-          .where('timeStamp', isGreaterThanOrEqualTo: ts30)
-          .where('timeStamp', isLessThanOrEqualTo: tsNow)
-          .count()
-          .get();
-      followerGrowth30d.value = last30Agg.count ?? 0;
-
-      final prev30Agg = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('Takipciler')
-          .where('timeStamp', isGreaterThanOrEqualTo: ts60)
-          .where('timeStamp', isLessThan: ts30)
-          .count()
-          .get();
-      followerGrowthPrev30d.value = prev30Agg.count ?? 0;
-    } catch (e) {
-      print('Follower counts error: $e');
+      final current = CurrentUserService.instance.currentUser;
+      if (current != null && current.userID == uid) {
+        followerCount.value = current.counterOfFollowers;
+      }
+      final result = await _statsRepository.fetchFollowerGrowth(uid);
+      followerGrowth30d.value = result['followerGrowth30d'] ?? 0;
+      followerGrowthPrev30d.value = result['followerGrowthPrev30d'] ?? 0;
+    } catch (_) {
       // still show what we have
     }
   }
 
   Future<void> _loadPostCountsAndViews(String uid) async {
     try {
-      // Count posts (visible, not deleted/archived)
-      final now = DateTime.now();
-      final nowMs = now.millisecondsSinceEpoch;
-      final ts30 = Timestamp.fromDate(now.subtract(const Duration(days: 30)));
-
-      final postsSnap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where('userID', isEqualTo: uid)
-          .get();
-      // In-memory filter to avoid index issues and tolerate missing fields
-      final List<QueryDocumentSnapshot<Map<String, dynamic>>> postDocs =
-          postsSnap.docs.where((d) {
-        final data = d.data();
-        final arsiv = data['arsiv'] == true;
-        final deleted = data['deletedPost'] == true;
-        final ts = data['timeStamp'];
-        final tsOk = ts is int ? ts <= nowMs : true;
-        return !arsiv && !deleted && tsOk;
-      }).toList();
-      totalPosts.value = postDocs.length;
-
-      // Posts created in last 30 days (filter in-memory to tolerate missing fields)
-      try {
-        final startMs = ts30.millisecondsSinceEpoch;
-        int recent = 0;
-        for (final d in postDocs) {
-          final t = d.data()['timeStamp'];
-          if (t is int && t >= startMs && t <= nowMs) recent++;
-        }
-        posts30d.value = recent;
-      } catch (e) {
-        posts30d.value = 0;
-      }
-
-      // Progressive sum of views across user posts
-      int sum = 0;
-      int sum30 = 0;
-      // Process in small batches to avoid overwhelming Firestore
-      for (int i = 0; i < postDocs.length; i += postBatchSize) {
-        final batch =
-            postDocs.sublist(i, (i + postBatchSize).clamp(0, postDocs.length));
-        final Iterable<Future<int>> futures = batch.map((d) async {
-          try {
-            final agg = await d.reference.collection('viewers').count().get();
-            return agg.count ?? 0;
-          } catch (e) {
-            // Fallback: manual count (bounded)
-            try {
-              final snap = await d.reference
-                  .collection('viewers')
-                  .limit(10000)
-                  .get();
-              return snap.size;
-            } catch (_) {
-              return 0;
-            }
-          }
-        });
-        final List<int> partial = await Future.wait<int>(futures);
-        sum += partial.fold<int>(0, (a, b) => a + b);
-        totalPostViews.value = sum; // update progressively
-
-        // 30-day views for the same batch
-        final Iterable<Future<int>> futures30 = batch.map((d) async {
-          try {
-            final agg = await d.reference
-                .collection('viewers')
-                .where('timeStamp', isGreaterThanOrEqualTo: ts30.millisecondsSinceEpoch)
-                .count()
-                .get();
-            return agg.count ?? 0;
-          } catch (e) {
-            // Fallback: manual get
-            try {
-              final snap = await d.reference
-                  .collection('viewers')
-                  .where('timeStamp', isGreaterThanOrEqualTo: ts30.millisecondsSinceEpoch)
-                  .limit(10000)
-                  .get();
-              return snap.size;
-            } catch (_) {
-              return 0;
-            }
-          }
-        });
-        final List<int> partial30 = await Future.wait<int>(futures30);
-        sum30 += partial30.fold<int>(0, (a, b) => a + b);
-        postViews30d.value = sum30;
-      }
-    } catch (e) {
-      print('Post counts/views error: $e');
-    }
+      final result = await _statsRepository.fetchPostStats(uid);
+      totalPosts.value = result['totalPosts'] ?? 0;
+      posts30d.value = result['posts30d'] ?? 0;
+      totalPostViews.value = result['totalPostViews'] ?? 0;
+      postViews30d.value = result['postViews30d'] ?? 0;
+    } catch (_) {}
   }
 
   Future<void> _loadStoryViewsAndVisits(String uid) async {
     try {
-      // Last 30 days stories (approx profile visits)
-      final now = DateTime.now();
-      final ts30 = Timestamp.fromDate(now.subtract(const Duration(days: 30)));
-
-      final storiesSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: uid)
-          .get();
-
-      // Filter in-memory to tolerate createdAt as int or Timestamp
-      final nowDt = DateTime.now();
-      final threshold = nowDt.subtract(const Duration(days: 30));
-      final recentStories = storiesSnap.docs.where((d) {
-        final data = d.data();
-        final v = data['createdAt'];
-        DateTime created;
-        if (v is int) {
-          created = DateTime.fromMillisecondsSinceEpoch(v);
-        } else if (v is Timestamp) {
-          created = v.toDate();
-        } else {
-          return false;
-        }
-        return created.isAfter(threshold);
-      }).toList();
-
-      stories30d.value = recentStories.length;
-      int visits = 0;
-      for (final d in recentStories) {
-        try {
-          final agg = await d.reference.collection('Viewers').count().get();
-          visits += agg.count ?? 0;
-        } catch (_) {}
-      }
-      // Replace approximate with actual profile visits if available
-      try {
-        final actualVisitsAgg = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('ProfileVisits')
-            .where('timeStamp', isGreaterThanOrEqualTo: ts30.millisecondsSinceEpoch)
-            .count()
-            .get();
-        profileVisitsApprox.value = actualVisitsAgg.count ?? 0;
-      } catch (_) {
-        profileVisitsApprox.value = visits; // fallback to story-based approx
-      }
-
-      // Total story views lifetime (optional)
-      final storiesAllSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: uid)
-          .get();
-      int totalStory = 0;
-      for (final d in storiesAllSnap.docs) {
-        try {
-          final agg = await d.reference.collection('Viewers').count().get();
-          totalStory += agg.count ?? 0;
-        } catch (_) {}
-      }
-      totalStoryViews.value = totalStory;
-    } catch (e) {
-      print('Story views error: $e');
-    }
+      final result = await _statsRepository.fetchStoryStats(uid);
+      stories30d.value = result['stories30d'] ?? 0;
+      profileVisitsApprox.value = result['profileVisitsApprox'] ?? 0;
+      totalStoryViews.value = result['totalStoryViews'] ?? 0;
+    } catch (_) {}
   }
 
   void _computeDerived() {

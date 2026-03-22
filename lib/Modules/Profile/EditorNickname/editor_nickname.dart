@@ -6,12 +6,42 @@ import 'package:turqappv2/Core/Helpers/custom_nickname_formatter.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
-class EditorNickname extends StatelessWidget {
-  EditorNickname({super.key});
-  final controller = Get.put(EditorNicknameController());
-  final user = Get.find<FirebaseMyStore>();
+class EditorNickname extends StatefulWidget {
+  const EditorNickname({super.key});
+
+  @override
+  State<EditorNickname> createState() => _EditorNicknameState();
+}
+
+class _EditorNicknameState extends State<EditorNickname> {
+  late final EditorNicknameController controller;
+  late final bool _ownsController;
+  final userService = CurrentUserService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingController = EditorNicknameController.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = EditorNicknameController.ensure();
+      _ownsController = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(EditorNicknameController.maybeFind(), controller)) {
+      Get.delete<EditorNicknameController>(force: true);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,15 +49,18 @@ class EditorNickname extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kullanıcı Adı"),
+            BackButtons(text: 'editor_nickname.title'.tr),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Obx(() {
+                      final current = userService.currentUserRx.value;
+                      final rozet = current?.rozet ?? '';
+                      final nickname = current?.nickname ?? '';
                       return Column(
                         children: [
-                          if (user.rozet.value == "")
+                          if (rozet == "")
                             Container(
                               height: 50,
                               alignment: Alignment.centerLeft,
@@ -51,7 +84,7 @@ class EditorNickname extends StatelessWidget {
                                           CustomNicknameFormatter(),
                                         ],
                                         decoration: InputDecoration(
-                                          hintText: "Kullanıcı Adı Oluştur",
+                                          hintText: 'editor_nickname.hint'.tr,
                                           hintStyle: TextStyle(
                                               color: Colors.grey,
                                               fontFamily: "MontserratMedium"),
@@ -67,7 +100,7 @@ class EditorNickname extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (user.rozet.value == "")
+                          if (rozet == "")
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Obx(() {
@@ -121,20 +154,20 @@ class EditorNickname extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 15),
                                   child: Text(
-                                    user.nickname.value,
+                                    nickname,
                                     style: TextStyle(
                                         color: Colors.grey,
                                         fontSize: 15,
                                         fontFamily: "MontserratMedium"),
                                   )),
                             ),
-                          if (user.rozet.value != "")
+                          if (rozet != "")
                             Padding(
                               padding: EdgeInsets.only(top: 12),
                               child: Row(
                                 children: [
                                   Text(
-                                    "Onaylı kullanıcılar, kullanıcı adını değiştiremez",
+                                    'editor_nickname.verified_locked'.tr,
                                     style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 15,
@@ -150,7 +183,7 @@ class EditorNickname extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Gerçek kişileri taklit eden kullanıcı adları, topluluğumuzu korumak adına Turqapp tarafından değiştirilebilir.",
+                                    'editor_nickname.mimic_warning'.tr,
                                     style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 14,
@@ -158,7 +191,7 @@ class EditorNickname extends StatelessWidget {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    "Türkçe karakterler otomatik dönüştürülür. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)",
+                                    'editor_nickname.tr_char_info'.tr,
                                     style: TextStyle(
                                         color: Colors.grey.shade700,
                                         fontSize: 12,

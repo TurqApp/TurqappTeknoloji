@@ -1,8 +1,33 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class LessonBasedTestsController extends GetxController {
+  static LessonBasedTestsController ensure(
+    String testTuru, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      LessonBasedTestsController(testTuru),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static LessonBasedTestsController? maybeFind({String? tag}) {
+    final isRegistered = Get.isRegistered<LessonBasedTestsController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<LessonBasedTestsController>(tag: tag);
+  }
+
+  final TestRepository _testRepository = TestRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String testTuru;
   final list = <TestsModel>[].obs;
   final isLoading = false.obs;
@@ -12,43 +37,43 @@ class LessonBasedTestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
-    try {
-      list.clear();
-      final snap =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .where("testTuru", isEqualTo: testTuru)
-              .get();
-
-      for (var doc in snap.docs) {
-        final aciklama = doc.get("aciklama") as String;
-        final testTuru = doc.get("testTuru") as String;
-        final dersler = List<String>.from(doc['dersler'] ?? []);
-        final img = doc.get("img") as String;
-        final timeStamp = doc.get("timeStamp") as String;
-        final userID = doc.get("userID") as String;
-        final paylasilabilir = doc.get("paylasilabilir") as bool;
-        final taslak = doc.get("taslak") as bool;
-
-        list.add(
-          TestsModel(
-            userID: userID,
-            timeStamp: timeStamp,
-            aciklama: aciklama,
-            dersler: dersler,
-            img: img,
-            docID: doc.id,
-            paylasilabilir: paylasilabilir,
-            testTuru: testTuru,
-            taslak: taslak,
-          ),
-        );
+  Future<void> _bootstrapData() async {
+    final cached = await _testRepository.fetchByType(
+      testTuru,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      isLoading.value = false;
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:type:$testTuru',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
       }
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
+    try {
+      final items = await _testRepository.fetchByType(
+        testTuru,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      list.assignAll(items);
+      SilentRefreshGate.markRefreshed('tests:type:$testTuru');
     } finally {
       isLoading.value = false;
     }

@@ -1,84 +1,127 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryCommentsController extends GetxController {
+  static String? _activeTag;
+
+  static StoryCommentsController ensure({
+    required String nickname,
+    required String storyID,
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) {
+      _activeTag = tag;
+      return existing;
+    }
+    final created = Get.put(
+      StoryCommentsController(
+        nickname: nickname,
+        storyID: storyID,
+      ),
+      tag: tag,
+      permanent: permanent,
+    );
+    created.controllerTag = tag;
+    _activeTag = tag;
+    return created;
+  }
+
+  static StoryCommentsController? maybeFind({String? tag}) {
+    final resolvedTag = (tag ?? _activeTag)?.trim();
+    final isRegistered = Get.isRegistered<StoryCommentsController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
+    if (!isRegistered) return null;
+    return Get.find<StoryCommentsController>(
+      tag: resolvedTag?.isEmpty == true ? null : resolvedTag,
+    );
+  }
+
+  final StoryRepository _storyRepository = StoryRepository.ensure();
   RxList<StoryCommentModel> list = <StoryCommentModel>[].obs;
   FocusNode commentFocus = FocusNode();
   TextEditingController commentTextfield = TextEditingController();
   String nickname = "";
   String storyID = "";
+  String? controllerTag;
   var totalComment = 0.obs;
+  final RxString selectedGifUrl = ''.obs;
+  final RxString lastSuccessfulCommentText = ''.obs;
+  final RxString lastSuccessfulCommentGif = ''.obs;
 
   StoryCommentsController({required this.nickname, required this.storyID});
 
-  Future<void> getData() async {
-    await FirebaseFirestore.instance
-        .collection("stories")
-        .doc(storyID)
-        .collection("Yorumlar")
-        .limit(50)
-        .get()
-        .then((snap) {
-      final items = snap.docs
-          .map((doc) => StoryCommentModel.fromMap(doc.data(), docID: doc.id))
-          .toList();
-      list.assignAll(items);
-    });
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
-    FirebaseFirestore.instance
-        .collection("stories")
-        .doc(storyID)
-        .collection("Yorumlar")
-        .count()
-        .get()
-        .then((counts) {
-      totalComment.value = counts.count ?? 0;
-    });
+  Future<void> getData() async {
+    if ((controllerTag ?? '').trim().isNotEmpty) {
+      _activeTag = controllerTag;
+    }
+    list.assignAll(await _storyRepository.fetchStoryComments(storyID));
+    totalComment.value = await _storyRepository.fetchStoryCommentCount(storyID);
   }
 
   Future<void> getLast() async {
-    await FirebaseFirestore.instance
-        .collection("stories")
-        .doc(storyID)
-        .collection("Yorumlar")
-        .limit(1)
-        .orderBy("timeStamp", descending: true)
-        .get()
-        .then((snap) {
-      for (var doc in snap.docs) {
-        final model = StoryCommentModel.fromMap(doc.data(), docID: doc.id);
-        list.insert(0, model);
-      }
-    });
+    final last = await _storyRepository.fetchLatestStoryComment(storyID);
+    if (last != null) {
+      list.insert(0, last);
+    }
 
     totalComment.value++;
   }
 
   Future<void> setComment() async {
     final text = commentTextfield.text.trim();
-    if (text.isEmpty) {
+    final gif = selectedGifUrl.value.trim();
+    if (text.isEmpty && gif.isEmpty) {
       return;
     }
     try {
-      await FirebaseFirestore.instance
-          .collection("stories")
-          .doc(storyID)
-          .collection("Yorumlar")
-          .add({
-        "userID": FirebaseAuth.instance.currentUser!.uid,
-        "metin": text,
-        "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "gif": ""
-      });
+      await _storyRepository.addStoryComment(
+        storyID,
+        userId: _currentUserId,
+        text: text,
+        gif: gif,
+      );
+      lastSuccessfulCommentText.value = text;
+      lastSuccessfulCommentGif.value = gif;
       commentTextfield.clear();
+      selectedGifUrl.value = '';
       await getLast();
       closeKeyboard(Get.context!);
     } catch (e) {
-      print("setComment error: $e");
+      debugPrint("setComment error: $e");
     }
+  }
+
+  Future<void> pickGif(BuildContext context) async {
+    final url = await GiphyPickerService.pickGifUrl(
+      context,
+      randomId: 'turqapp_story_comments',
+    );
+    if (url != null && url.trim().isNotEmpty) {
+      selectedGifUrl.value = url.trim();
+    }
+  }
+
+  void clearSelectedGif() {
+    selectedGifUrl.value = '';
+  }
+
+  @override
+  void onClose() {
+    if (_activeTag == controllerTag) {
+      _activeTag = null;
+    }
+    commentFocus.dispose();
+    commentTextfield.dispose();
+    super.onClose();
   }
 }

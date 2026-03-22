@@ -1,13 +1,40 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
+  static DenemeSinaviPreviewController ensure({
+    required String tag,
+    required SinavModel model,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      DenemeSinaviPreviewController(model: model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static DenemeSinaviPreviewController? maybeFind({required String tag}) {
+    final isRegistered =
+        Get.isRegistered<DenemeSinaviPreviewController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DenemeSinaviPreviewController>(tag: tag);
+  }
+
+  final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var dahaOnceBasvurdu = false.obs;
   var basvuranSayisi = 0.obs;
   var currentTime = DateTime.now().millisecondsSinceEpoch.obs;
@@ -16,9 +43,11 @@ class DenemeSinaviPreviewController extends GetxController {
   var examTime = 0.obs;
   var isLoading = true.obs;
   var isInitialized = false.obs;
+  var isSaved = false.obs;
   final int fifteenMinutes = 15 * 60 * 1000;
 
   final SinavModel model;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   DenemeSinaviPreviewController({required this.model});
 
@@ -29,18 +58,20 @@ class DenemeSinaviPreviewController extends GetxController {
     fetchUserData();
     basvuruKontrol();
     getGecersizlikDurumu();
+    syncSavedState();
   }
 
   Future<void> fetchUserData() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(model.userID)
-          .get();
-      nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
+      final data = await _userSummaryResolver.resolve(
+            model.userID,
+            preferCache: true,
+          ) ??
+          _userSummaryResolver.resolveFromMaps(model.userID);
+      nickname.value = data.preferredName;
+      avatarUrl.value = data.avatarUrl;
     } catch (error) {
-      AppSnackbar("Hata", "Kullanıcı bilgileri yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);
     } finally {
       isLoading.value = false;
       isInitialized.value = true;
@@ -49,11 +80,10 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> getGecersizlikDurumu() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .get();
-      final data = doc.data();
+      final data = await _practiceExamRepository.fetchRawById(
+        model.docID,
+        preferCache: true,
+      );
 
       if (data == null || !data.containsKey('gecersizSayilanlar')) {
         sinavaGirebilir.value = true;
@@ -63,57 +93,54 @@ class DenemeSinaviPreviewController extends GetxController {
       List<String> gecersizSayilanlar = List<String>.from(
         data['gecersizSayilanlar'] ?? [],
       );
-      sinavaGirebilir.value = !gecersizSayilanlar.contains(
-        FirebaseAuth.instance.currentUser!.uid,
-      );
+      sinavaGirebilir.value = !gecersizSayilanlar.contains(_currentUserId);
     } catch (error) {
-      AppSnackbar("Hata", "Geçersizlik durumu yüklenemedi.");
+      AppSnackbar('common.error'.tr, 'practice.invalidity_load_failed'.tr);
       sinavaGirebilir.value = true;
     }
   }
 
   Future<Map<String, num>?> _getLatestExamSummary() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final yanitlar = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Yanitlar")
-          .where("userID", isEqualTo: uid)
-          .get();
+      final uid = _currentUserId;
+      if (uid.isEmpty) return null;
+      final answers = await _practiceExamRepository.fetchAnswers(
+        model.docID,
+        preferCache: true,
+      );
+      final userAnswers = answers
+          .where((doc) => (doc["userID"] ?? "").toString() == uid)
+          .toList(growable: false);
 
-      if (yanitlar.docs.isEmpty) return null;
+      if (userAnswers.isEmpty) return null;
 
-      QueryDocumentSnapshot<Map<String, dynamic>> latest = yanitlar.docs.first;
-      for (final doc in yanitlar.docs) {
-        final currentTs = (doc.data()["timeStamp"] ?? 0) as num;
-        final latestTs = (latest.data()["timeStamp"] ?? 0) as num;
+      Map<String, dynamic> latest = userAnswers.first;
+      for (final doc in userAnswers) {
+        final currentTs = (doc["timeStamp"] ?? 0) as num;
+        final latestTs = (latest["timeStamp"] ?? 0) as num;
         if (currentTs > latestTs) {
           latest = doc;
         }
       }
+
+      final latestId = (latest["_docId"] ?? latest["id"] ?? "").toString();
+      if (latestId.isEmpty) return null;
 
       num dogru = 0;
       num yanlis = 0;
       num bos = 0;
       num net = 0;
 
-      for (final ders in model.dersler) {
-        final sonucDoc = await FirebaseFirestore.instance
-            .collection("practiceExams")
-            .doc(model.docID)
-            .collection("Yanitlar")
-            .doc(latest.id)
-            .collection(ders)
-            .doc(latest.id)
-            .get();
-
-        if (!sonucDoc.exists) continue;
-        final data = sonucDoc.data() ?? {};
-        dogru += (data["dogru"] ?? 0) as num;
-        yanlis += (data["yanlis"] ?? 0) as num;
-        bos += (data["bos"] ?? 0) as num;
-        net += (data["net"] ?? 0) as num;
+      final results = await _practiceExamRepository.fetchLessonResults(
+        model.docID,
+        latestId,
+        model.dersler,
+      );
+      for (final result in results) {
+        dogru += result.dogru;
+        yanlis += result.yanlis;
+        bos += result.bos;
+        net += result.net;
       }
 
       return {
@@ -134,18 +161,20 @@ class DenemeSinaviPreviewController extends GetxController {
         .collection("SinaviBitenler")
         .doc(DateTime.now().millisecondsSinceEpoch.toString())
         .set({
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "userID": _currentUserId,
       "timeStamp": DateTime.now().millisecondsSinceEpoch,
     });
     SetOptions(merge: true);
 
     final summary = await _getLatestExamSummary();
     final resultText = summary == null
-        ? "Sonuç hesaplanamadı."
-        : "Doğru: ${summary["dogru"]?.toInt() ?? 0}   •   "
-            "Yanlış: ${summary["yanlis"]?.toInt() ?? 0}   •   "
-            "Boş: ${summary["bos"]?.toInt() ?? 0}   •   "
-            "Net: ${(summary["net"] ?? 0).toStringAsFixed(2)}";
+        ? 'practice.result_unavailable'.tr
+        : 'practice.result_summary'.trParams({
+            'correct': '${summary["dogru"]?.toInt() ?? 0}',
+            'wrong': '${summary["yanlis"]?.toInt() ?? 0}',
+            'blank': '${summary["bos"]?.toInt() ?? 0}',
+            'net': (summary["net"] ?? 0).toStringAsFixed(2),
+          });
 
     Get.bottomSheet(
       Container(
@@ -158,10 +187,10 @@ class DenemeSinaviPreviewController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Tebrikler!",
+            Text(
+              'practice.congrats_title'.tr,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 18,
                 fontFamily: "MontserratBold",
@@ -194,8 +223,8 @@ class DenemeSinaviPreviewController extends GetxController {
                         color: Colors.black,
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
-                      child: const Text(
-                        "Tamam",
+                      child: Text(
+                        'common.ok'.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -219,62 +248,70 @@ class DenemeSinaviPreviewController extends GetxController {
 
   void showGecersizAlert() {
     AppSnackbar(
-      "Sınavdan Atıldınız!",
-      "Bir çok kez seni uyardık! Maalesef sınav kurallarına uymadığınız için sınavdan atıldınız ve sınavınız geçersiz sayıldı",
+      'practice.removed_title'.tr,
+      'practice.removed_body'.tr,
     );
   }
 
   Future<void> addBasvuru() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
+      final currentUid = _currentUserId;
+      if (currentUid.isEmpty) return;
+      final examRef = FirebaseFirestore.instance
           .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Basvurular")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
+          .doc(model.docID);
+      final applicationRef = examRef.collection("Basvurular").doc(currentUid);
+      var alreadyApplied = false;
 
-      if (doc.exists) {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final applicationDoc = await transaction.get(applicationRef);
+        if (applicationDoc.exists) {
+          alreadyApplied = true;
+          return;
+        }
+
+        final examDoc = await transaction.get(examRef);
+        final currentCount = ((examDoc.data() ??
+                const <String, dynamic>{})['participantCount'] as num?) ??
+            0;
+
+        transaction.set(applicationRef, {
+          "userID": currentUid,
+          "timeStamp": DateTime.now().millisecondsSinceEpoch,
+        });
+        transaction.update(examRef, {
+          "participantCount": currentCount.toInt() + 1,
+        });
+      });
+
+      if (alreadyApplied) {
         AppSnackbar(
-          "Başvurunuz Alınmıştır!",
-          "Başvurunuz başarıyla alınmıştır. Şu anda yapılacak başka bir işlem bulunmamaktadır",
+          'practice.applied_title'.tr,
+          'practice.applied_body'.tr,
         );
       } else {
-        await FirebaseFirestore.instance
-            .collection("practiceExams")
-            .doc(model.docID)
-            .collection("Basvurular")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .set({"timeStamp": DateTime.now().microsecondsSinceEpoch});
-        SetOptions(merge: true);
-
         showSucces.value = true;
         dahaOnceBasvurdu.value = true;
+        basvuranSayisi.value = basvuranSayisi.value + 1;
       }
     } catch (error) {
-      AppSnackbar("Hata", "Başvuru işlemi başarısız.");
+      AppSnackbar('common.error'.tr, 'practice.apply_failed'.tr);
     }
   }
 
   Future<void> basvuruKontrol() async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Basvurular")
-          .get();
-
-      basvuranSayisi.value = querySnapshot.docs.length;
-
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Basvurular")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-
-      dahaOnceBasvurdu.value = doc.exists;
+      basvuranSayisi.value =
+          await _practiceExamRepository.fetchParticipantCount(
+        model.docID,
+        preferCache: true,
+      );
+      dahaOnceBasvurdu.value = await _practiceExamRepository.hasApplication(
+        model.docID,
+        _currentUserId,
+      );
     } catch (error) {
-      AppSnackbar("Hata", "Başvuru kontrolü başarısız.");
+      AppSnackbar('common.error'.tr, 'practice.application_check_failed'.tr);
     }
   }
 
@@ -282,5 +319,21 @@ class DenemeSinaviPreviewController extends GetxController {
     currentTime.value = DateTime.now().millisecondsSinceEpoch;
     await fetchUserData();
     await basvuruKontrol();
+    await syncSavedState();
+  }
+
+  Future<void> syncSavedState() async {
+    final savedController = SavedPracticeExamsController.ensure();
+    if (savedController.savedExamIds.isEmpty &&
+        !savedController.isLoading.value) {
+      await savedController.loadSavedExams();
+    }
+    isSaved.value = savedController.savedExamIds.contains(model.docID);
+  }
+
+  Future<void> toggleSaved() async {
+    final savedController = SavedPracticeExamsController.ensure();
+    await savedController.toggleSavedExam(model.docID);
+    isSaved.value = savedController.savedExamIds.contains(model.docID);
   }
 }

@@ -3,21 +3,48 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:turqappv2/Core/sizes.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 import 'social_qr_code_controller.dart';
 
-class SocialQrCode extends StatelessWidget {
+class SocialQrCode extends StatefulWidget {
   final String userID;
-  SocialQrCode({super.key, required this.userID});
+  const SocialQrCode({super.key, required this.userID});
+
+  @override
+  State<SocialQrCode> createState() => _SocialQrCodeState();
+}
+
+class _SocialQrCodeState extends State<SocialQrCode> {
   late final SocialQrCodeController controller;
-  final user = Get.find<FirebaseMyStore>();
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = 'social_qr_${widget.userID}_${identityHashCode(this)}';
+    controller = SocialQrCodeController.ensure(
+      userID: widget.userID,
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (SocialQrCodeController.maybeFind(tag: _controllerTag) != null &&
+        identical(
+          SocialQrCodeController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<SocialQrCodeController>(tag: _controllerTag);
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(SocialQrCodeController(userID: userID));
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -92,7 +119,7 @@ class SocialQrCode extends StatelessWidget {
                                 child: QrImageView(
                                   data: controller.profileLink.value.isNotEmpty
                                       ? controller.profileLink.value
-                                      : userID,
+                                      : widget.userID,
                                   version: QrVersions.auto,
                                   size: 250.0,
                                   backgroundColor: Colors.white,
@@ -113,8 +140,9 @@ class SocialQrCode extends StatelessWidget {
                           borderRadius: BorderRadius.all(Radius.circular(18)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 
-                                  0.1), // Gölge rengi (opacity ile yumuşatılır)
+                              color: Colors.black.withValues(
+                                  alpha:
+                                      0.1), // Gölge rengi (opacity ile yumuşatılır)
                               spreadRadius: 2, // Gölgenin yayılma alanı
                               blurRadius: 2, // Gölge yumuşaklığı
                               offset: Offset(0, 0), // X ve Y ekseninde kaydırma
@@ -152,7 +180,7 @@ class SocialQrCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "Paylaş",
+                                      'common.share'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,
@@ -190,7 +218,7 @@ class SocialQrCode extends StatelessWidget {
                                       height: 12,
                                     ),
                                     Text(
-                                      "Linki Kopyala",
+                                      'common.copy_link'.tr,
                                       style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 12,

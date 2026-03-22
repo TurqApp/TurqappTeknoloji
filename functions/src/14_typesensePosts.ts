@@ -3,6 +3,7 @@ import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functio
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
+import { enforceRateLimitForKey, RateLimits } from "./rateLimiter";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
@@ -12,6 +13,24 @@ const MAX_LIMIT = 50;
 
 function ensureAdmin() {
   if (getApps().length === 0) initializeApp();
+}
+
+function requireAuth(request: CallableRequest<unknown>): string {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "auth_required");
+  }
+  return uid;
+}
+
+function requireAdminAuth(request: CallableRequest<unknown>): string {
+  const uid = requireAuth(request);
+  const token = request.auth?.token as { admin?: unknown } | undefined;
+  if (token?.admin !== true) {
+    throw new HttpsError("permission-denied", "admin_required");
+  }
+  RateLimits.admin(uid);
+  return uid;
 }
 
 function getEnv(name: string): string {
@@ -51,6 +70,40 @@ function asBool(x: unknown): boolean {
 function asStringArray(x: unknown): string[] {
   if (!Array.isArray(x)) return [];
   return x.map((v) => String(v || "").trim()).filter(Boolean);
+}
+
+function asNumber(x: unknown, fallback = 0): number {
+  if (typeof x === "number" && Number.isFinite(x)) return x;
+  if (typeof x === "string") {
+    const parsed = Number(x);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function clipText(value: string, maxLen: number): string {
+  const text = String(value || "").trim();
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+
+function resolveHandle(
+  nickname: unknown,
+  username: unknown,
+  usernameLower?: unknown
+): string {
+  const n = asString(nickname).trim();
+  const u = asString(username).trim();
+  const ul = asString(usernameLower).trim();
+  const hasSpace = /\s/.test(n);
+  if (n && !hasSpace) return n;
+  if (u) return u;
+  if (ul) return ul;
+  return n;
+}
+
+function typesenseStringLiteral(value: string): string {
+  return `\`${String(value || "").replace(/`/g, "\\`")}\``;
 }
 
 function asEpochSeconds(x: unknown): number {
@@ -99,14 +152,42 @@ async function ensurePostsCollection() {
       });
       const fields: Array<{ name?: string }> = Array.isArray(existing.data?.fields) ? existing.data.fields : [];
       const required = [
+        { name: "userID", type: "string", optional: true },
+        { name: "authorNickname", type: "string", optional: true },
+        { name: "authorDisplayName", type: "string", optional: true },
+        { name: "authorAvatarUrl", type: "string", optional: true },
+        { name: "rozet", type: "string", optional: true },
+        { name: "metin", type: "string", optional: true },
+        { name: "hashtags", type: "string[]", optional: true },
+        { name: "mentions", type: "string[]", optional: true },
+        { name: "img", type: "string[]", optional: true },
+        { name: "thumbnail", type: "string", optional: true },
+        { name: "video", type: "string", optional: true },
+        { name: "hlsMasterUrl", type: "string", optional: true },
         { name: "paylasGizliligi", type: "int32", optional: true },
         { name: "arsiv", type: "bool", optional: true },
         { name: "deletedPost", type: "bool", optional: true },
         { name: "gizlendi", type: "bool", optional: true },
         { name: "isUploading", type: "bool", optional: true },
         { name: "hlsStatus", type: "string", optional: true },
-        { name: "imageURL", type: "string", optional: true },
-        { name: "timeStamp", type: "int64", optional: true },
+        { name: "hasPlayableVideo", type: "bool", optional: true },
+        { name: "aspectRatio", type: "float", optional: true },
+        { name: "likeCount", type: "int32", optional: true },
+        { name: "commentCount", type: "int32", optional: true },
+        { name: "savedCount", type: "int32", optional: true },
+        { name: "retryCount", type: "int32", optional: true },
+        { name: "statsCount", type: "int32", optional: true },
+        { name: "flood", type: "bool", optional: true },
+        { name: "floodCount", type: "int32", optional: true },
+        { name: "locationCity", type: "string", optional: true },
+        { name: "originalPostID", type: "string", optional: true },
+        { name: "originalUserID", type: "string", optional: true },
+        { name: "quotedPost", type: "bool", optional: true },
+        { name: "mainFlood", type: "string", optional: true },
+        { name: "contentType", type: "string", optional: true },
+        { name: "editTime", type: "int64", optional: true },
+        { name: "timeStamp", type: "int64" },
+        { name: "createdAtTs", type: "int64" },
       ];
       const missing = required.filter((rf) => !fields.some((f) => f?.name === rf.name));
       if (missing.length) {
@@ -128,22 +209,42 @@ async function ensurePostsCollection() {
         name: POSTS_COLLECTION,
         fields: [
           { name: "id", type: "string" },
-          { name: "authorId", type: "string", optional: true },
-          { name: "caption", type: "string", optional: true },
+          { name: "userID", type: "string", optional: true },
+          { name: "authorNickname", type: "string", optional: true },
+          { name: "authorDisplayName", type: "string", optional: true },
+          { name: "authorAvatarUrl", type: "string", optional: true },
+          { name: "rozet", type: "string", optional: true },
+          { name: "metin", type: "string", optional: true },
           { name: "hashtags", type: "string[]", optional: true },
           { name: "mentions", type: "string[]", optional: true },
-          { name: "hlsUrl", type: "string", optional: true },
-          { name: "hlsThumbnailUrl", type: "string", optional: true },
-          { name: "rawVideoUrl", type: "string", optional: true },
-          { name: "imageURL", type: "string", optional: true },
-          { name: "previewUrl", type: "string", optional: true },
+          { name: "img", type: "string[]", optional: true },
+          { name: "thumbnail", type: "string", optional: true },
+          { name: "video", type: "string", optional: true },
+          { name: "hlsMasterUrl", type: "string", optional: true },
           { name: "paylasGizliligi", type: "int32", optional: true },
           { name: "arsiv", type: "bool", optional: true },
           { name: "deletedPost", type: "bool", optional: true },
           { name: "gizlendi", type: "bool", optional: true },
           { name: "isUploading", type: "bool", optional: true },
           { name: "hlsStatus", type: "string", optional: true },
-          { name: "timeStamp", type: "int64", optional: true },
+          { name: "hasPlayableVideo", type: "bool", optional: true },
+          { name: "aspectRatio", type: "float", optional: true },
+          { name: "likeCount", type: "int32", optional: true },
+          { name: "commentCount", type: "int32", optional: true },
+          { name: "savedCount", type: "int32", optional: true },
+          { name: "retryCount", type: "int32", optional: true },
+          { name: "statsCount", type: "int32", optional: true },
+          { name: "flood", type: "bool", optional: true },
+          { name: "floodCount", type: "int32", optional: true },
+          { name: "locationCity", type: "string", optional: true },
+          { name: "originalPostID", type: "string", optional: true },
+          { name: "originalUserID", type: "string", optional: true },
+          { name: "quotedPost", type: "bool", optional: true },
+          { name: "mainFlood", type: "string", optional: true },
+          { name: "contentType", type: "string", optional: true },
+          { name: "editTime", type: "int64", optional: true },
+          { name: "timeStamp", type: "int64" },
+          { name: "createdAtTs", type: "int64" },
         ],
         default_sorting_field: "timeStamp",
       },
@@ -177,11 +278,11 @@ async function ensureUsersCollection() {
         { name: "nickname", type: "string", optional: true },
         { name: "firstName", type: "string", optional: true },
         { name: "lastName", type: "string", optional: true },
-        { name: "pfImage", type: "string", optional: true },
+        { name: "avatarUrl", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
-        { name: "gizliHesap", type: "bool", optional: true },
-        { name: "deletedAccount", type: "bool", optional: true },
-        { name: "hesapOnayi", type: "bool", optional: true },
+        { name: "isPrivate", type: "bool", optional: true },
+        { name: "isDeleted", type: "bool", optional: true },
+        { name: "isApproved", type: "bool", optional: true },
       ];
       const missing = required.filter((rf) => !fields.some((f) => f?.name === rf.name));
       if (missing.length) {
@@ -206,11 +307,11 @@ async function ensureUsersCollection() {
           { name: "nickname", type: "string", optional: true },
           { name: "firstName", type: "string", optional: true },
           { name: "lastName", type: "string", optional: true },
-          { name: "pfImage", type: "string", optional: true },
+          { name: "avatarUrl", type: "string", optional: true },
           { name: "rozet", type: "string", optional: true },
-          { name: "gizliHesap", type: "bool", optional: true },
-          { name: "deletedAccount", type: "bool", optional: true },
-          { name: "hesapOnayi", type: "bool", optional: true },
+          { name: "isPrivate", type: "bool", optional: true },
+          { name: "isDeleted", type: "bool", optional: true },
+          { name: "isApproved", type: "bool", optional: true },
           { name: "updatedAtTs", type: "int32" },
         ],
         default_sorting_field: "updatedAtTs",
@@ -296,76 +397,228 @@ async function ensureTagsCollection() {
 
 type PostSearchDoc = {
   id: string;
-  authorId: string;
-  caption: string;
+  userID: string;
+  authorNickname: string;
+  authorDisplayName: string;
+  authorAvatarUrl: string;
+  rozet: string;
+  metin: string;
   hashtags: string[];
   mentions: string[];
-  hlsUrl: string;
-  hlsThumbnailUrl: string;
-  rawVideoUrl: string;
-  imageURL: string;
-  previewUrl: string;
+  img: string[];
+  thumbnail: string;
+  video: string;
+  hlsMasterUrl: string;
   paylasGizliligi: number;
   arsiv: boolean;
   deletedPost: boolean;
   gizlendi: boolean;
   isUploading: boolean;
   hlsStatus: string;
+  hasPlayableVideo: boolean;
+  aspectRatio: number;
+  likeCount: number;
+  commentCount: number;
+  savedCount: number;
+  retryCount: number;
+  statsCount: number;
+  flood: boolean;
+  floodCount: number;
+  locationCity: string;
+  originalPostID: string;
+  originalUserID: string;
+  quotedPost: boolean;
+  mainFlood: string;
+  contentType: string;
+  editTime: number;
   timeStamp: number;
   createdAtTs: number;
 };
 
+type AuthorSummary = {
+  authorNickname: string;
+  authorDisplayName: string;
+  authorAvatarUrl: string;
+  rozet: string;
+};
+
 function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSearchDoc {
   const analysis = (data.analysis as Record<string, unknown> | undefined) || {};
+  const stats = (data.stats as Record<string, unknown> | undefined) || {};
   const paylas = Number((data as any).paylasGizliligi);
   const paylasGizliligi = Number.isFinite(paylas) ? paylas : 0;
   const deletedPost = asBool((data as any).deletedPost) || asBool(data.isDeleted);
   const arsiv = asBool((data as any).arsiv) || asBool((data as any).isArchived);
   const gizlendi = asBool((data as any).gizlendi) || asBool((data as any).isHidden);
   const isUploading = asBool((data as any).isUploading);
-  const caption = asString((data as any).metin) || asString(data.caption);
-  const imgList = Array.isArray((data as any).img) ? (data as any).img : [];
-  const firstImg = imgList.length ? String(imgList[0] || "") : "";
-  const hlsMasterUrl = asString((data as any).hlsMasterUrl) || asString(data.hlsUrl);
-  const thumbnailUrl = asString((data as any).thumbnail) || asString(data.hlsThumbnailUrl);
-  const rawVideoUrl = asString(data.rawVideoUrl) || asString((data as any).video);
+  const metin = asString((data as any).metin);
+  const imgList = asStringArray((data as any).img);
+  const hlsMasterUrl = asString((data as any).hlsMasterUrl);
+  const thumbnailUrl = asString((data as any).thumbnail);
+  const videoUrl = asString((data as any).video);
   const hlsStatusRaw = asString((data as any).hlsStatus).toLowerCase();
   const hlsStatus = hlsStatusRaw || (asBool(data.hlsReady) ? "ready" : "none");
+  const hasPlayableVideo = hlsStatus === "ready" && hlsMasterUrl.length > 0;
   const timeStamp =
     Number((data as any).timeStamp || 0) ||
     asEpochMillis(data.createdAt) ||
     Date.now();
+  const aspectRatio =
+    asNumber((data as any).aspectRatio) ||
+    asNumber((data as any).imgAspectRatio) ||
+    1.77;
+  const flood = asBool((data as any).flood);
+  const floodCount = Math.max(0, Math.floor(asNumber((data as any).floodCount)));
+  const likeCount = Math.max(0, Math.floor(asNumber(stats.likeCount ?? (data as any).likeCount ?? (data as any).begeniSayisi)));
+  const commentCount = Math.max(0, Math.floor(asNumber(stats.commentCount ?? (data as any).commentCount ?? (data as any).yorumSayisi)));
+  const savedCount = Math.max(0, Math.floor(asNumber(stats.savedCount ?? (data as any).savedCount)));
+  const retryCount = Math.max(0, Math.floor(asNumber(stats.retryCount ?? (data as any).retryCount ?? (data as any).reshareCount)));
+  const statsCount = Math.max(0, Math.floor(asNumber(stats.statsCount ?? (data as any).statsCount)));
+  const contentType = (() => {
+    if (flood) return "flood";
+    if (hasPlayableVideo && metin) return "video_text";
+    if (hasPlayableVideo) return "video";
+    if (imgList.length > 0 && metin) return "photo_text";
+    if (imgList.length > 0) return "photo";
+    return "text";
+  })();
   const createdAtTs = timeStamp;
+  const userID = asString((data as any).userID);
+  const authorNickname = asString((data as any).authorNickname);
+  const authorDisplayName = asString((data as any).authorDisplayName) || authorNickname;
+  const authorAvatarUrl = asString((data as any).authorAvatarUrl);
+  const rozet = asString((data as any).rozet);
 
   return {
     id: postId,
-    authorId: asString(data.authorId) || asString((data as any).userID),
-    caption,
+    userID,
+    authorNickname,
+    authorDisplayName,
+    authorAvatarUrl,
+    rozet,
+    metin,
     hashtags: extractPostTags(data).map((x) => x.tag),
     mentions: asStringArray(analysis.mentions),
-    hlsUrl: hlsMasterUrl,
-    hlsThumbnailUrl: thumbnailUrl,
-    rawVideoUrl,
-    imageURL: asString(data.imageURL) || firstImg,
-    previewUrl:
-      thumbnailUrl ||
-      asString(data.imageURL) ||
-      firstImg ||
-      asString((Array.isArray((data as any).images) ? (data as any).images[0] : "")) ||
-      "",
+    img: imgList,
+    thumbnail: thumbnailUrl,
+    video: videoUrl,
+    hlsMasterUrl,
     paylasGizliligi,
     arsiv,
     deletedPost,
     gizlendi,
     isUploading,
     hlsStatus,
+    hasPlayableVideo,
+    aspectRatio,
+    likeCount,
+    commentCount,
+    savedCount,
+    retryCount,
+    statsCount,
+    flood,
+    floodCount,
+    locationCity: asString((data as any).locationCity) || asString((data as any).konum),
+    originalPostID: asString((data as any).originalPostID),
+    originalUserID: asString((data as any).originalUserID),
+    quotedPost: asBool((data as any).quotedPost),
+    mainFlood: asString((data as any).mainFlood),
+    contentType,
+    editTime: asEpochMillis((data as any).editTime),
     timeStamp,
     createdAtTs,
   };
 }
 
+async function fetchAuthorSummary(authorId: string): Promise<AuthorSummary> {
+  const normalizedAuthorId = String(authorId || "").trim();
+  if (!normalizedAuthorId) {
+    return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+  }
+
+  try {
+    const snap = await getFirestore().collection("users").doc(normalizedAuthorId).get();
+    if (!snap.exists) {
+      return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+    }
+    const data = (snap.data() || {}) as Record<string, unknown>;
+    const authorNickname = asString((data as any).nickname);
+    const authorDisplayName =
+      asString((data as any).displayName) ||
+      asString((data as any).fullName) ||
+      [asString((data as any).firstName), asString((data as any).lastName)]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      authorNickname;
+    return {
+      authorNickname,
+      authorDisplayName,
+      authorAvatarUrl:
+        asString((data as any).avatarUrl) ||
+        asString((data as any).profileImage) ||
+        asString((data as any).photoUrl) ||
+        asString((data as any).imageUrl),
+      rozet: asString((data as any).rozet),
+    };
+  } catch (err) {
+    console.error("typesense_author_summary_fetch_failed", normalizedAuthorId, err);
+    return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+  }
+}
+
+async function buildSearchDocForIndexing(
+  postId: string,
+  data: Record<string, unknown>
+): Promise<PostSearchDoc> {
+  const doc = buildSearchDoc(postId, data);
+  const summary = await fetchAuthorSummary(doc.userID);
+  if (!summary.authorNickname && !summary.authorDisplayName && !summary.authorAvatarUrl && !summary.rozet) {
+    return doc;
+  }
+
+  return {
+    ...doc,
+    userID: doc.userID,
+    authorNickname: doc.authorNickname || summary.authorNickname,
+    authorDisplayName: doc.authorDisplayName || summary.authorDisplayName,
+    authorAvatarUrl: doc.authorAvatarUrl || summary.authorAvatarUrl,
+    rozet: doc.rozet || summary.rozet,
+  };
+}
+
 function shouldIndex(doc: PostSearchDoc): boolean {
-  return true;
+  if (!doc.id || !doc.userID) return false;
+  if (doc.deletedPost || doc.gizlendi || doc.isUploading) return false;
+  if (doc.timeStamp <= 0) return false;
+  const hasVisual = doc.thumbnail.length > 0 || doc.img.length > 0;
+  const hasVideoSignal = doc.video.length > 0 || doc.hlsMasterUrl.length > 0;
+  if (hasVideoSignal) {
+    return doc.hasPlayableVideo && hasVisual;
+  }
+  return doc.metin.length > 0 || hasVisual || doc.floodCount > 1;
+}
+
+function collectSkipReasons(doc: PostSearchDoc): string[] {
+  const reasons: string[] = [];
+  if (!doc.id) reasons.push("missing_id");
+  if (!doc.userID) reasons.push("missing_author");
+  if (doc.deletedPost) reasons.push("deleted");
+  if (doc.gizlendi) reasons.push("hidden");
+  if (doc.isUploading) reasons.push("uploading");
+  if (doc.timeStamp <= 0) reasons.push("invalid_timestamp");
+
+  const hasVisual = doc.thumbnail.length > 0 || doc.img.length > 0;
+  const hasVideoSignal = doc.video.length > 0 || doc.hlsMasterUrl.length > 0;
+
+  if (hasVideoSignal) {
+    if (!doc.hasPlayableVideo) reasons.push("video_not_playable");
+    if (!hasVisual) reasons.push("video_missing_visual");
+  } else if (!(doc.metin.length > 0 || hasVisual || doc.floodCount > 1)) {
+    reasons.push("empty_card");
+  }
+
+  return reasons;
 }
 
 function normalizeTag(tag: string): string {
@@ -504,11 +757,11 @@ type UserSearchDoc = {
   nickname: string;
   firstName: string;
   lastName: string;
-  pfImage: string;
+  avatarUrl: string;
   rozet: string;
-  gizliHesap: boolean;
-  deletedAccount: boolean;
-  hesapOnayi: boolean;
+  isPrivate: boolean;
+  isDeleted: boolean;
+  isApproved: boolean;
   updatedAtTs: number;
 };
 
@@ -524,11 +777,13 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
     nickname: asString(data.nickname) || asString((data as any).username),
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
-    pfImage: asString(data.pfImage) || asString((data as any).avatarUrl) || asString((data as any).profileImageUrl),
+    avatarUrl: asString((data as any).avatarUrl),
     rozet: asString((data as any).rozet),
-    gizliHesap: asBool((data as any).gizliHesap),
-    deletedAccount: asBool((data as any).deletedAccount) || asBool((data as any).isDeleted) || isPendingOrDeleted,
-    hesapOnayi: asBool((data as any).hesapOnayi) || asBool((data as any).isVerified),
+    isPrivate: asBool((data as any).isPrivate),
+    isDeleted:
+      asBool((data as any).isDeleted) ||
+      isPendingOrDeleted,
+    isApproved: asBool((data as any).isApproved) || asBool((data as any).isVerified),
     updatedAtTs:
       asEpochSeconds(data.updatedAt) ||
       asEpochSeconds(data.createdAt) ||
@@ -577,12 +832,12 @@ async function searchPostsFromTypesense(q: string, limit: number, page: number) 
     timeout: 10000,
     params: {
       q,
-      query_by: "caption,hashtags,mentions",
+      query_by: "metin,hashtags,mentions,authorNickname,authorDisplayName",
       per_page: limit,
       page,
       sort_by: "timeStamp:desc",
       filter_by: "paylasGizliligi:=0 && arsiv:=false && deletedPost:=false && gizlendi:=false && isUploading:=false",
-      prefix: "true,true,true",
+      prefix: "true,true,true,true,true",
       typo_tokens_threshold: 1,
     },
   });
@@ -598,19 +853,51 @@ async function searchPostsFromTypesense(q: string, limit: number, page: number) 
     out_of: Number(body.out_of || 0),
     search_time_ms: Number(body.search_time_ms || 0),
     hits: hits.map((h: any) => ({
-      id: h?.document?.id,
-      authorId: h?.document?.authorId,
-      caption: h?.document?.caption,
-      hashtags: h?.document?.hashtags || [],
-      mentions: h?.document?.mentions || [],
-      hlsUrl: h?.document?.hlsUrl || "",
-      hlsThumbnailUrl: h?.document?.hlsThumbnailUrl || "",
-      rawVideoUrl: h?.document?.rawVideoUrl || "",
-      imageURL: h?.document?.imageURL || "",
-      previewUrl: h?.document?.previewUrl || "",
-      timeStamp: h?.document?.timeStamp || 0,
+      ...(h?.document || {}),
       text_match: h?.text_match || 0,
     })),
+  };
+}
+
+async function getPostCardsByIdsFromTypesense(ids: string[]) {
+  await ensurePostsCollection();
+
+  const uniqueIds = Array.from(new Set(ids.map((x) => String(x || "").trim()).filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return {
+      requested: 0,
+      found: 0,
+      search_time_ms: 0,
+      missingIds: [],
+      hits: [],
+    };
+  }
+
+  const baseUrl = getTypesenseBaseUrl();
+  const resp = await axios.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
+    headers: headers(),
+    timeout: 10000,
+    params: {
+      q: "*",
+      query_by: "metin",
+      per_page: uniqueIds.length,
+      page: 1,
+      filter_by: `id:=[${uniqueIds.map(typesenseStringLiteral).join(",")}]`,
+      sort_by: "timeStamp:desc",
+    },
+  });
+
+  const body = resp.data || {};
+  const hits = Array.isArray(body.hits) ? body.hits : [];
+  const docs = hits.map((h: any) => h?.document || {}).filter((doc: any) => !!doc?.id);
+  const foundIds = new Set(docs.map((doc: any) => String(doc.id)));
+
+  return {
+    requested: uniqueIds.length,
+    found: docs.length,
+    search_time_ms: Number(body.search_time_ms || 0),
+    missingIds: uniqueIds.filter((id) => !foundIds.has(id)),
+    hits: docs,
   };
 }
 
@@ -623,7 +910,7 @@ async function getLatestPostIdsFromTypesense(limit: number, page: number) {
     timeout: 10000,
     params: {
       q: "*",
-      query_by: "caption",
+      query_by: "metin",
       per_page: limit,
       page,
       sort_by: "timeStamp:desc",
@@ -662,7 +949,7 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
       per_page: limit,
       page,
       sort_by: "updatedAtTs:desc",
-      filter_by: "deletedAccount:=false && gizliHesap:=false",
+      filter_by: "isDeleted:=false && isPrivate:=false",
       prefix: "true,true,true",
       typo_tokens_threshold: 1,
     },
@@ -683,11 +970,11 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
       nickname: h?.document?.nickname || "",
       firstName: h?.document?.firstName || "",
         lastName: h?.document?.lastName || "",
-        pfImage: h?.document?.pfImage || "",
+        avatarUrl: h?.document?.avatarUrl || "",
         rozet: h?.document?.rozet || "",
-        gizliHesap: h?.document?.gizliHesap === true,
-        deletedAccount: h?.document?.deletedAccount === true,
-        hesapOnayi: h?.document?.hesapOnayi === true,
+        isPrivate: h?.document?.isPrivate === true,
+        isDeleted: h?.document?.isDeleted === true,
+        isApproved: h?.document?.isApproved === true,
       text_match: h?.text_match || 0,
     })),
   };
@@ -745,8 +1032,8 @@ export const f14_syncPostsToTypesense = onDocumentWritten(
     const beforeData = event.data?.before?.data() as Record<string, unknown> | undefined;
     const afterData = event.data?.after?.data() as Record<string, unknown> | undefined;
 
-    const beforeDoc = beforeData ? buildSearchDoc(postId, beforeData) : null;
-    const afterDoc = afterData ? buildSearchDoc(postId, afterData) : null;
+    const beforeDoc = beforeData ? await buildSearchDocForIndexing(postId, beforeData) : null;
+    const afterDoc = afterData ? await buildSearchDocForIndexing(postId, afterData) : null;
 
     const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
     const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
@@ -757,12 +1044,41 @@ export const f14_syncPostsToTypesense = onDocumentWritten(
     const afterTags = afterTagEntries.map((x) => x.tag);
 
     if (!afterData || !afterIndexed || !afterDoc) {
+      if (!afterData) {
+        console.log("post_sync_delete", { postId });
+      } else if (afterDoc) {
+        console.log("post_sync_skip", {
+          postId,
+          reasons: collectSkipReasons(afterDoc),
+          hlsStatus: afterDoc.hlsStatus,
+          hasPlayableVideo: afterDoc.hasPlayableVideo,
+          thumbnail: !!afterDoc.thumbnail,
+          imgCount: afterDoc.img.length,
+          video: !!afterDoc.video,
+          hlsMasterUrl: !!afterDoc.hlsMasterUrl,
+          arsiv: afterDoc.arsiv,
+          deletedPost: afterDoc.deletedPost,
+          gizlendi: afterDoc.gizlendi,
+          isUploading: afterDoc.isUploading,
+        });
+      }
       await deleteDoc(postId);
       if (beforeTags.length) await deleteTagDocs(postId, beforeTags);
       return;
     }
 
     await upsertDoc(afterDoc);
+    console.log("post_sync_upsert", {
+      postId,
+      hlsStatus: afterDoc.hlsStatus,
+      hasPlayableVideo: afterDoc.hasPlayableVideo,
+      thumbnail: !!afterDoc.thumbnail,
+      imgCount: afterDoc.img.length,
+      video: !!afterDoc.video,
+      hlsMasterUrl: !!afterDoc.hlsMasterUrl,
+      flood: afterDoc.flood,
+      floodCount: afterDoc.floodCount,
+    });
 
     const beforeSet = new Set(beforeTags);
     const afterSet = new Set(afterTags);
@@ -777,7 +1093,7 @@ export const f14_syncPostsToTypesense = onDocumentWritten(
     if (toUpsertEntries.length) {
       await upsertTagDocs(
         postId,
-        afterDoc.authorId || "",
+        afterDoc.userID || "",
         Number(afterDoc.timeStamp || Date.now()),
         toUpsertEntries
       );
@@ -841,6 +1157,9 @@ export const f14_searchPosts = onRequest(
       return;
     }
 
+    const rateKey = String(req.headers["cf-connecting-ip"] || req.ip || "unknown");
+    enforceRateLimitForKey(rateKey, "typesense_http_search", 240, 60);
+
     if (!typesenseReady()) {
       res.status(503).json({ error: "typesense_not_configured" });
       return;
@@ -873,6 +1192,9 @@ export const f14_searchPostsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -902,6 +1224,9 @@ const f14_searchUsersCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -931,6 +1256,9 @@ const f14_searchTagsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -976,6 +1304,7 @@ export const f14_reindexPostsToTypesenseCallable = onCall(
   },
   async (request: CallableRequest<ReindexPostsInput>): Promise<ReindexPostsOutput> => {
     ensureAdmin();
+    requireAdminAuth(request);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
@@ -999,7 +1328,7 @@ export const f14_reindexPostsToTypesenseCallable = onCall(
       scanned += 1;
       const postId = docSnap.id;
       const data = docSnap.data() as Record<string, unknown>;
-      const doc = buildSearchDoc(postId, data);
+      const doc = await buildSearchDocForIndexing(postId, data);
       const tags = extractPostTags(data);
 
       if (!shouldIndex(doc)) {
@@ -1011,15 +1340,10 @@ export const f14_reindexPostsToTypesenseCallable = onCall(
         continue;
       }
 
-      if (!doc.caption && (!doc.hashtags || doc.hashtags.length === 0)) {
-        skipped += 1;
-        continue;
-      }
-
       if (!dryRun) {
         await upsertDoc(doc);
         if (tags.length) {
-          await upsertTagDocs(postId, doc.authorId || "", Number(doc.timeStamp || Date.now()), tags);
+          await upsertTagDocs(postId, doc.userID || "", Number(doc.timeStamp || Date.now()), tags);
         }
       }
       upserted += 1;
@@ -1033,6 +1357,77 @@ export const f14_reindexPostsToTypesenseCallable = onCall(
   }
 );
 
+export const f15_syncPostToTypesenseCallable = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+  },
+  async (request: CallableRequest) => {
+    ensureAdmin();
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
+    if (!typesenseReady()) {
+      throw new HttpsError("failed-precondition", "typesense_not_configured");
+    }
+
+    const postId = String(request.data?.postId || "").trim();
+    if (!postId) {
+      throw new HttpsError("invalid-argument", "post_id_required");
+    }
+
+    const db = getFirestore();
+    const snap = await db.collection("Posts").doc(postId).get();
+    if (!snap.exists) {
+      await deleteDoc(postId);
+      return {
+        postId,
+        found: false,
+        indexed: false,
+        deleted: true,
+        reasons: ["missing_post"],
+      };
+    }
+
+    const data = snap.data() as Record<string, unknown>;
+    const ownerId = asString((data as any).userID) || asString(data.authorId);
+    const isAdmin = (request.auth?.token as { admin?: unknown } | undefined)?.admin === true;
+    if (!isAdmin && ownerId && ownerId !== uid) {
+      throw new HttpsError("permission-denied", "post_owner_required");
+    }
+
+    const doc = await buildSearchDocForIndexing(postId, data);
+    const tags = extractPostTags(data);
+
+    if (!shouldIndex(doc)) {
+      await deleteDoc(postId);
+      if (tags.length) await deleteTagDocs(postId, tags.map((x) => x.tag));
+      return {
+        postId,
+        found: true,
+        indexed: false,
+        deleted: true,
+        reasons: collectSkipReasons(doc),
+      };
+    }
+
+    await upsertDoc(doc);
+    if (tags.length) {
+      await upsertTagDocs(postId, doc.userID || "", Number(doc.timeStamp || Date.now()), tags);
+    }
+
+    return {
+      postId,
+      found: true,
+      indexed: true,
+      deleted: false,
+      reasons: [],
+    };
+  }
+);
+
 export const f15_getLatestPostIdsCallable = onCall(
   {
     region: REGION,
@@ -1041,6 +1436,9 @@ export const f15_getLatestPostIdsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -1050,6 +1448,39 @@ export const f15_getLatestPostIdsCallable = onCall(
 
     try {
       return await getLatestPostIdsFromTypesense(limit, page);
+    } catch (err: any) {
+      const detail = err?.response?.data || err?.message || "unknown_error";
+      throw new HttpsError("internal", "typesense_search_failed", detail);
+    }
+  }
+);
+
+export const f15_getPostCardsByIdsCallable = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+  },
+  async (request: CallableRequest) => {
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
+
+    if (!typesenseReady()) {
+      throw new HttpsError("failed-precondition", "typesense_not_configured");
+    }
+
+    const idsRaw = Array.isArray(request.data?.ids) ? request.data?.ids : [];
+    const ids = idsRaw.map((x: unknown) => String(x || "").trim()).filter(Boolean);
+    if (ids.length === 0) {
+      throw new HttpsError("invalid-argument", "ids_required");
+    }
+    if (ids.length > MAX_LIMIT) {
+      throw new HttpsError("invalid-argument", "too_many_ids");
+    }
+
+    try {
+      return await getPostCardsByIdsFromTypesense(ids);
     } catch (err: any) {
       const detail = err?.response?.data || err?.message || "unknown_error";
       throw new HttpsError("internal", "typesense_search_failed", detail);

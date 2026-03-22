@@ -6,9 +6,23 @@ import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/video_state_manager.dart';
+import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
+import '../../../Core/Services/global_video_adapter_pool.dart';
+import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
+import '../../Explore/explore_controller.dart';
+import '../../NavBar/nav_bar_controller.dart';
+import '../../Profile/MyProfile/profile_controller.dart';
+import '../../Profile/Archives/archives_controller.dart';
+import '../../Profile/LikedPosts/liked_posts_controller.dart';
+import '../../Profile/Settings/settings_controller.dart';
+import '../../SocialProfile/social_profile_controller.dart';
+import '../../Agenda/TopTags/top_tags_contoller.dart';
+import '../../Agenda/TagPosts/tag_posts_controller.dart';
+import '../../Agenda/FloodListing/flood_listing_controller.dart';
 import 'post_content_controller.dart';
 
 /// Base widget/state that encapsulates the shared behaviour between
@@ -19,6 +33,7 @@ abstract class PostContentBase extends StatefulWidget {
     required this.model,
     required this.isPreview,
     required this.shouldPlay,
+    this.instanceTag,
     required this.isReshared,
     required this.reshareUserID,
     required this.showComments,
@@ -28,6 +43,7 @@ abstract class PostContentBase extends StatefulWidget {
   final PostsModel model;
   final bool isPreview;
   final bool shouldPlay;
+  final String? instanceTag;
   final bool isReshared;
   final String? reshareUserID;
   final bool showComments;
@@ -39,7 +55,9 @@ abstract class PostContentBase extends StatefulWidget {
 
 mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
-  final agendaController = Get.find<AgendaController>();
+  late final AgendaController agendaController = _resolveAgendaController();
+  late final GlobalVideoAdapterPool adapterPool =
+      GlobalVideoAdapterPool.ensure();
   final videoStateManager = VideoStateManager.instance;
 
   late final PostContentController controller;
@@ -47,14 +65,28 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _hasAutoPlayed = false;
   bool _skipNextPause = false;
   bool _blockPause = false;
+  bool _replayOverlayLatched = false;
+  bool _replayAdPrewarmed = false;
+  bool _replayAdVisible = false;
+  bool _replayButtonVisible = false;
+  bool _replayAdImpressionReceived = false;
+  Timer? _replayAdHideTimer;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
+  Worker? _playbackSuspendedWorker;
+  Worker? _navSelectionWorker;
   Timer? _lazyInitTimer;
+  Timer? _playbackRecoveryTimer;
+  bool _playbackIntentTracked = false;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
   final ValueNotifier<HLSVideoValue> videoValueNotifier =
       ValueNotifier(const HLSVideoValue());
+
+  AgendaController _resolveAgendaController() {
+    return AgendaController.ensure();
+  }
 
   /// videoController benzeri erişim — mevcut widget'lar uyumlu çalışır
   HLSVideoAdapter? get videoController => _videoAdapter;
@@ -62,9 +94,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get isVideoFromCache {
     if (!widget.model.hasPlayableVideo) return false;
     try {
-      if (!Get.isRegistered<SegmentCacheManager>()) return false;
       final entry =
-          Get.find<SegmentCacheManager>().getEntry(widget.model.docID);
+          SegmentCacheManager.maybeFind()?.getEntry(widget.model.docID);
       if (entry == null) return false;
       return entry.cachedSegmentCount > 0;
     } catch (_) {
@@ -78,17 +109,40 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   double get bufferedAutoplayThreshold => 0.10;
 
   /// Unique tag for GetX controller retrieval.
-  String get controllerTag => widget.model.docID;
+  String get controllerTag => widget.instanceTag ?? widget.model.docID;
+
+  /// Playback handle identity must be unique per mounted video surface.
+  /// Otherwise feed card and SinglePost can fight over the same player slot.
+  String get playbackHandleKey => widget.instanceTag ?? widget.model.docID;
+
+  bool get isStandalonePostInstance =>
+      (widget.instanceTag ?? '').startsWith('single_');
+
+  bool get _isProfileSurfaceInstance =>
+      (widget.instanceTag ?? '').startsWith('profile_');
+
+  bool get _isSurfacePlaybackAllowed {
+    if (isStandalonePostInstance) return true;
+    if (!_isProfileSurfaceInstance) {
+      return agendaController.canClaimPlaybackNow;
+    }
+    final nav = NavBarController.maybeFind();
+    final settings = SettingsController.maybeFind();
+    final hasEducation = settings?.educationScreenIsOn.value ?? false;
+    final profileIndex = hasEducation ? 4 : 3;
+    return nav?.selectedIndex.value == profileIndex;
+  }
+
+  bool get shouldLoopVideo => isStandalonePostInstance;
 
   @override
   void initState() {
     super.initState();
 
-    if (Get.isRegistered<PostContentController>(tag: controllerTag)) {
-      controller = Get.find<PostContentController>(tag: controllerTag);
-    } else {
-      controller = Get.put(widget.createController(), tag: controllerTag);
-    }
+    controller = PostContentController.ensure(
+      tag: controllerTag,
+      create: widget.createController,
+    );
 
     if (widget.showArchivePost) {
       controller.arsiv.value = false;
@@ -98,10 +152,29 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     // ve raster crash'e yol açabiliyor. Player'ı yalnızca oynatma gerektiğinde aç.
     // Hızlı scroll sırasında native view oluşturmayı engellemek için kısa gecikme.
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
-      _lazyInitTimer = Timer(const Duration(milliseconds: 150), () {
+      final delay = isStandalonePostInstance
+          ? Duration.zero
+          : const Duration(milliseconds: 150);
+      _lazyInitTimer = Timer(delay, () {
         if (!mounted) return;
-        if (widget.shouldPlay) {
+        if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
           _initVideoController();
+          if (isStandalonePostInstance) {
+            Future.delayed(const Duration(milliseconds: 220), () {
+              if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
+                return;
+              }
+              _videoAdapter!.setVolume(1.0);
+              _videoAdapter!.play();
+              videoStateManager.playOnlyThis(playbackHandleKey);
+              Future.delayed(const Duration(milliseconds: 220), () {
+                if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
+                  return;
+                }
+                _videoAdapter!.setVolume(1.0);
+              });
+            });
+          }
         }
       });
     }
@@ -121,28 +194,66 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   void _initVideoController() {
     if (_videoAdapter != null) return;
-    _videoAdapter = HLSVideoAdapter(
+    _videoAdapter = adapterPool.acquire(
+      cacheKey: playbackHandleKey,
       url: widget.model.playbackUrl,
-      autoPlay: widget.shouldPlay,
-      loop: true,
+      // Feed/SinglePost playback tek yerden (_startPlayback) yönetilsin.
+      // Native autoPlay + sonradan gelen play() dalgası Android'de
+      // ses sürerken görüntü freeze davranışı üretebiliyor.
+      autoPlay: false,
+      loop: shouldLoopVideo,
     );
+    _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
     videoStateManager.registerPlaybackHandle(
-      widget.model.docID,
+      playbackHandleKey,
       HLSAdapterPlaybackHandle(_videoAdapter!),
     );
+    if (isStandalonePostInstance) {
+      videoStateManager.enterExclusiveMode(playbackHandleKey);
+    }
 
     _videoAdapter!.addListener(_onVideoUpdate);
 
-    _muteWorker = ever<bool>(agendaController.isMuted, (muted) {
-      _videoAdapter?.setVolume(muted ? 0.0 : 1.0);
-    });
+    if (!isStandalonePostInstance) {
+      _muteWorker = ever<bool>(agendaController.isMuted, (muted) {
+        _videoAdapter?.setVolume(muted ? 0.0 : 1.0);
+        _syncRuntimeHints(isAudible: !muted);
+      });
+    } else {
+      _videoAdapter?.setVolume(1.0);
+      _syncRuntimeHints(isAudible: true);
+    }
 
-    _pauseAllWorker = ever(agendaController.pauseAll, (value) {
-      if (value == true) {
-        _safePauseVideo();
+    if (!isStandalonePostInstance) {
+      _pauseAllWorker = ever(agendaController.pauseAll, (value) {
+        if (value == true) {
+          _safePauseVideo();
+        }
+      });
+
+      _playbackSuspendedWorker = ever<bool>(
+        agendaController.playbackSuspended,
+        (suspended) {
+          if (suspended || !_isSurfacePlaybackAllowed) {
+            _safePauseVideo();
+          }
+        },
+      );
+
+      final nav = NavBarController.maybeFind();
+      if (nav != null) {
+        _navSelectionWorker = ever<int>(nav.selectedIndex, (_) {
+          if (!_isSurfacePlaybackAllowed) {
+            _safePauseVideo();
+          }
+        });
       }
-    });
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -160,11 +271,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     } catch (_) {}
 
     _lazyInitTimer?.cancel();
+    _playbackRecoveryTimer?.cancel();
+    _replayAdHideTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
-    videoStateManager.unregisterVideoController(widget.model.docID);
-    _videoAdapter?.dispose();
+    if (isStandalonePostInstance) {
+      videoStateManager.exitExclusiveMode();
+    }
+    videoStateManager.unregisterVideoController(playbackHandleKey);
+    final adapter = _videoAdapter;
+    if (adapter != null) {
+      unawaited(adapterPool.release(adapter));
+    }
     _muteWorker?.dispose();
     _pauseAllWorker?.dispose();
+    _playbackSuspendedWorker?.dispose();
+    _navSelectionWorker?.dispose();
     videoValueNotifier.dispose();
     super.dispose();
   }
@@ -179,12 +300,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         if (_videoAdapter == null && widget.model.hasPlayableVideo) {
           _initVideoController();
         }
-        _videoAdapter?.play();
-        videoStateManager.playOnlyThis(widget.model.docID);
-        // Cache state machine: playing olarak işaretle
-        try {
-          Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
-        } catch (_) {}
+        if (isStandalonePostInstance) {
+          videoStateManager.enterExclusiveMode(playbackHandleKey);
+        }
+        if (_videoAdapter?.value.isInitialized == true) {
+          _startPlayback();
+        }
       } else {
         // Bekleyen lazy init varsa iptal et
         _lazyInitTimer?.cancel();
@@ -212,8 +333,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   @override
   void didPopNext() {
     if (widget.shouldPlay && _videoAdapter != null) {
-      _videoAdapter?.play();
-      videoStateManager.playOnlyThis(widget.model.docID);
+      if (isStandalonePostInstance) {
+        videoStateManager.enterExclusiveMode(playbackHandleKey);
+      }
+      if (_videoAdapter!.value.isInitialized) {
+        _startPlayback();
+      }
     }
   }
 
@@ -226,13 +351,90 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _onVideoUpdate() {
     if (!mounted) return;
     final v = _videoAdapter!.value;
+    final remaining =
+        v.duration > Duration.zero ? v.duration - v.position : null;
+    const replayAdWarmupLead = Duration(seconds: 2);
+    final replayAdWarmupTarget =
+        Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
+
+    if (!isStandalonePostInstance &&
+        !_replayAdPrewarmed &&
+        remaining != null &&
+        remaining <= replayAdWarmupLead &&
+        remaining > Duration.zero) {
+      _replayAdPrewarmed = true;
+      unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+    }
+
+    if (v.isCompleted) {
+      if (!_replayOverlayLatched) {
+        _replayOverlayLatched = true;
+        _replayAdHideTimer?.cancel();
+        _replayAdVisible = AdmobKare.hasRenderableBanner;
+        _replayButtonVisible = !_replayAdVisible;
+        _replayAdImpressionReceived = false;
+        if (!isStandalonePostInstance) {
+          unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+        }
+        if (_replayAdVisible) {
+          _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
+            if (!mounted) return;
+            setState(() {
+              _replayAdVisible = false;
+              _replayButtonVisible = true;
+            });
+          });
+        }
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } else if (_replayOverlayLatched &&
+        (v.isPlaying || v.position == Duration.zero)) {
+      _replayOverlayLatched = false;
+      _replayAdPrewarmed = false;
+      _replayAdVisible = false;
+      _replayButtonVisible = false;
+      _replayAdImpressionReceived = false;
+      _replayAdHideTimer?.cancel();
+    }
 
     // İlk kez ready olduğunda ses ayarla
     if (v.isInitialized && !_hasAutoPlayed) {
-      _videoAdapter!.setVolume(agendaController.isMuted.value ? 0.0 : 1.0);
-      if (widget.shouldPlay) {
-        _hasAutoPlayed = true;
+      if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
+        _startPlayback();
+      } else {
+        _applyPlaybackVolume();
       }
+    }
+
+    final shouldRecoverPlayback = widget.shouldPlay &&
+        _isSurfacePlaybackAllowed &&
+        v.isInitialized &&
+        !v.isPlaying &&
+        !v.isBuffering &&
+        !v.isCompleted &&
+        v.position > Duration.zero;
+    if (shouldRecoverPlayback) {
+      _playbackRecoveryTimer ??=
+          Timer(const Duration(milliseconds: 260), () {
+        _playbackRecoveryTimer = null;
+        if (!mounted) return;
+        final adapter = _videoAdapter;
+        final current = adapter?.value;
+        if (adapter == null || current == null) return;
+        final stillNeedsRecovery = widget.shouldPlay &&
+            _isSurfacePlaybackAllowed &&
+            current.isInitialized &&
+            !current.isPlaying &&
+            !current.isBuffering &&
+            !current.isCompleted;
+        if (!stillNeedsRecovery) return;
+        _startPlayback();
+      });
+    } else {
+      _playbackRecoveryTimer?.cancel();
+      _playbackRecoveryTimer = null;
     }
 
     // Watch progress bildirimi (feed videoları için)
@@ -240,8 +442,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
       if (progress > 0) {
         try {
-          Get.find<SegmentCacheManager>()
-              .updateWatchProgress(widget.model.docID, progress);
+          SegmentCacheManager.maybeFind()
+              ?.updateWatchProgress(widget.model.docID, progress);
         } catch (_) {}
       }
     }
@@ -255,10 +457,55 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (v != null) {
       v.pause();
       _hasAutoPlayed = false;
+      _playbackIntentTracked = false;
+      _syncRuntimeHints(hasStableFocus: false);
     }
   }
 
   void pauseVideo() => _safePauseVideo();
+
+  void _applyPlaybackVolume() {
+    _videoAdapter?.setVolume(
+      isStandalonePostInstance
+          ? 1.0
+          : (agendaController.isMuted.value ? 0.0 : 1.0),
+    );
+    _syncRuntimeHints(isAudible: _currentIsAudible());
+  }
+
+  void _startPlayback() {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    if (!_isSurfacePlaybackAllowed) return;
+    unawaited(adapter.setLooping(shouldLoopVideo));
+    _applyPlaybackVolume();
+    _hasAutoPlayed = true;
+    unawaited(adapter.play());
+    if (isStandalonePostInstance) {
+      videoStateManager.playOnlyThis(playbackHandleKey);
+    } else {
+      // Feed card already issues adapter.play() above. Using requestPlayVideo
+      // here avoids VideoStateManager's delayed second play wave, which can
+      // stall the renderer while audio keeps flowing on some Android devices.
+      videoStateManager.requestPlayVideo(
+        playbackHandleKey,
+        HLSAdapterPlaybackHandle(adapter),
+      );
+    }
+    _syncRuntimeHints(
+      isAudible: _currentIsAudible(),
+      hasStableFocus: true,
+    );
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
+      if (!_isSurfacePlaybackAllowed) return;
+      _applyPlaybackVolume();
+    });
+    _trackPlaybackIntent();
+    try {
+      SegmentCacheManager.maybeFind()?.markPlaying(widget.model.docID);
+    } catch (_) {}
+  }
 
   /// Alt sınıflar route geçişinde bir sonraki otomatik pause'u atlamak istediğinde çağırır.
   void markSkipNextPause() {
@@ -276,16 +523,323 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void tryAutoPlayWhenBuffered() {
     // Adapter initialize olmadan çağrı gelirse pending-play kuyruğa alınır.
     if (_videoAdapter != null) {
+      unawaited(_videoAdapter!.setLooping(shouldLoopVideo));
       _videoAdapter!.play();
     }
+  }
+
+  Future<void> replayVideoFromStart() async {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    _replayOverlayLatched = false;
+    _replayAdPrewarmed = false;
+    _replayAdVisible = false;
+    _replayButtonVisible = false;
+    _replayAdImpressionReceived = false;
+    _replayAdHideTimer?.cancel();
+    await adapter.setLooping(shouldLoopVideo);
+    await adapter.seekTo(Duration.zero);
+    _startPlayback();
+  }
+
+  void _onReplayAdImpression() {
+    if (_replayAdImpressionReceived) return;
+    _replayAdImpressionReceived = true;
+  }
+
+  Widget buildFeedReplayOverlay(HLSVideoValue value) {
+    if (isStandalonePostInstance) return const SizedBox.shrink();
+    if (!_replayOverlayLatched && !_replayAdVisible && !_replayButtonVisible) {
+      return const SizedBox.shrink();
+    }
+    final showReplayButton = _replayButtonVisible;
+    final showAdPanel = _replayAdVisible;
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: false,
+        child: ColoredBox(
+          color: Colors.black.withValues(alpha: showReplayButton ? 0.28 : 0.18),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: AspectRatio(
+                  aspectRatio: 9 / 16,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (showAdPanel) ...[
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 300,
+                                height: 250,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: AdmobKare(
+                                  showChrome: false,
+                                  onImpression: _onReplayAdImpression,
+                                ),
+                              ),
+                              if (showReplayButton) const SizedBox(height: 16),
+                              if (showReplayButton)
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => unawaited(replayVideoFromStart()),
+                                  child: Container(
+                                    width: 148,
+                                    height: 44,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'Tekrar izle',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 14,
+                                          fontFamily: 'MontserratSemiBold',
+                                          height: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.10),
+                          ),
+                        ],
+                        if (showReplayButton && !showAdPanel)
+                          Center(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => unawaited(replayVideoFromStart()),
+                              child: Container(
+                                width: 148,
+                                height: 44,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'Tekrar izle',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 14,
+                                      fontFamily: 'MontserratSemiBold',
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void reportMediaVisibility(double visibleFraction) {
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex < 0) return;
-    agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
+    if (modelIndex >= 0) {
+      agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
+    }
+
+    final surfaceTag = widget.instanceTag ?? '';
+    if (visibleFraction < 0.55) return;
+
+    final profileController = ProfileController.maybeFind();
+    if (surfaceTag.startsWith('profile_') && profileController != null) {
+      final profileIndex = profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (profileIndex >= 0) {
+        profileController.currentVisibleIndex.value = profileIndex;
+        profileController.capturePendingCenteredEntry(
+          preferredIndex: profileIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          profileController.centeredIndex.value = profileIndex;
+          profileController.lastCenteredIndex = profileIndex;
+        }
+      }
+    }
+
+    final socialProfileController = SocialProfileController.maybeFind();
+    if (surfaceTag.startsWith('social_') && socialProfileController != null) {
+      final socialIndex = socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (socialIndex >= 0) {
+        socialProfileController.currentVisibleIndex.value = socialIndex;
+        socialProfileController.capturePendingCenteredEntry(
+          preferredIndex: socialIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          socialProfileController.centeredIndex.value = socialIndex;
+          socialProfileController.lastCenteredIndex = socialIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('archives_')) {
+      final archiveController = ArchiveController.maybeFind();
+      if (archiveController == null) return;
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.currentVisibleIndex.value = archiveIndex;
+        archiveController.capturePendingCenteredEntry(
+          preferredIndex: archiveIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          archiveController.centeredIndex.value = archiveIndex;
+          archiveController.lastCenteredIndex = archiveIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('liked_post_')) {
+      final likedController = LikedPostControllers.maybeFind();
+      if (likedController == null) return;
+      final likedIndex =
+          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      if (likedIndex >= 0) {
+        likedController.currentVisibleIndex.value = likedIndex;
+        likedController.capturePendingCenteredEntry(preferredIndex: likedIndex);
+        if (visibleFraction >= 0.72) {
+          likedController.centeredIndex.value = likedIndex;
+          likedController.lastCenteredIndex = likedIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('top_tag_')) {
+      final topTagsController = TopTagsController.maybeFind();
+      if (topTagsController == null) return;
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.currentVisibleIndex.value = topTagsIndex;
+        topTagsController.capturePendingCenteredEntry(
+          preferredIndex: topTagsIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          topTagsController.centeredIndex.value = topTagsIndex;
+          topTagsController.lastCenteredIndex = topTagsIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('tag_post_')) {
+      final tagPostsController = TagPostsController.maybeFind();
+      if (tagPostsController == null) return;
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.currentVisibleIndex.value = tagPostIndex;
+        tagPostsController.capturePendingCenteredEntry(
+          preferredIndex: tagPostIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          tagPostsController.centeredIndex.value = tagPostIndex;
+          tagPostsController.lastCenteredIndex = tagPostIndex;
+        }
+      }
+    }
+
+    if (surfaceTag.startsWith('flood_')) {
+      final floodController = FloodListingController.maybeFind();
+      if (floodController == null) return;
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.currentVisibleIndex.value = floodIndex;
+        floodController.capturePendingCenteredEntry(preferredIndex: floodIndex);
+        if (visibleFraction >= 0.72) {
+          floodController.centeredIndex.value = floodIndex;
+          floodController.lastCenteredIndex = floodIndex;
+        }
+      }
+    }
+
+    final exploreController = ExploreController.maybeFind();
+    if (surfaceTag.startsWith('explore_series_') && exploreController != null) {
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.floodsVisibleIndex.value = exploreIndex;
+        exploreController.capturePendingFloodEntry(
+          preferredIndex: exploreIndex,
+        );
+        if (visibleFraction >= 0.72) {
+          exploreController.lastFloodVisibleIndex = exploreIndex;
+        }
+      }
+    }
   }
 
   void onPostInitialized() {}
+
+  bool _currentIsAudible() {
+    if (isStandalonePostInstance) return true;
+    return !agendaController.isMuted.value;
+  }
+
+  void _syncRuntimeHints({
+    bool? isAudible,
+    bool? hasStableFocus,
+  }) {
+    VideoTelemetryService.instance.updateRuntimeHints(
+      widget.model.docID,
+      isAudible: isAudible,
+      hasStableFocus: hasStableFocus,
+    );
+  }
+
+  void _trackPlaybackIntent() {
+    if (_playbackIntentTracked) return;
+    final playbackKpi = PlaybackKpiService.maybeFind();
+    if (playbackKpi == null) return;
+    _playbackIntentTracked = true;
+    playbackKpi.track(
+      PlaybackKpiEventType.playbackIntent,
+      {
+        'surface': isStandalonePostInstance ? 'single_post' : 'feed_post',
+        'videoId': widget.model.docID,
+        'audible': _currentIsAudible(),
+        'stableFocus': true,
+      },
+    );
+  }
 }

@@ -1,17 +1,52 @@
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
+import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
+part 'job_finder_controller_data_part.dart';
+part 'job_finder_controller_sheet_part.dart';
+
 class JobFinderController extends GetxController {
+  static JobFinderController ensure({bool permanent = false}) {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(JobFinderController(), permanent: permanent);
+  }
+
+  static JobFinderController? maybeFind() {
+    final isRegistered = Get.isRegistered<JobFinderController>();
+    if (!isRegistered) return null;
+    return Get.find<JobFinderController>();
+  }
+
+  static const int _fullBootstrapLimit = 150;
+  static const String _listingSelectionPrefKeyPrefix =
+      'pasaj_job_listing_selection';
+  static const String _allTurkeyRaw = 'Tüm Türkiye';
+
+  final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
+      JobHomeSnapshotRepository.ensure();
+  final JobRepository _jobRepository = JobRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   final List<String> imgList = [
     AppAssets.practice1,
     AppAssets.practice2,
@@ -21,7 +56,12 @@ class JobFinderController extends GetxController {
   // Tab management
   final innerTabIndex = 0.obs;
   final innerPageController = PageController();
-  final innerTabTitles = ["Keşfet", "İlan Ver", "Başvurularım", "Kariyer Profili"];
+  List<String> get innerTabTitles => [
+        'pasaj.job_finder.tab.explore'.tr,
+        'pasaj.job_finder.tab.create'.tr,
+        'pasaj.job_finder.tab.applications'.tr,
+        'pasaj.job_finder.tab.career_profile'.tr,
+      ];
 
   RxList<JobModel> allJobs = <JobModel>[].obs;
   RxList<JobModel> list = <JobModel>[].obs;
@@ -29,24 +69,115 @@ class JobFinderController extends GetxController {
 
   TextEditingController search = TextEditingController();
   var listingSelection = 0.obs;
+  final RxBool listingSelectionReady = false.obs;
   var sehir = "".obs;
   final sehirler = <String>[].obs;
   var short = 0.obs;
   var filtre = false.obs;
-  var isLoading = false.obs;
+  var isLoading = true.obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   var kullaniciSehiri = "".obs;
+  int _searchRequestId = 0;
+  double? _userLat;
+  double? _userLong;
+  Position? _lastResolvedPosition;
+  StreamSubscription<CachedResource<List<JobModel>>>? _homeSnapshotSub;
+  Timer? _deferredLocationTimer;
+
+  bool _sameJobEntries(List<JobModel> current, List<JobModel> next) {
+    final currentKeys = current
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    final nextKeys = next
+        .map(
+          (job) => [
+            job.docID,
+            job.logo,
+            job.brand,
+            job.meslek,
+            job.ilanBasligi,
+            job.city,
+            job.town,
+            job.timeStamp,
+            job.viewCount,
+            job.applicationCount,
+            job.kacKm.toStringAsFixed(2),
+            job.calismaTuru.join('|'),
+          ].join('::'),
+        )
+        .toList(growable: false);
+    return listEquals(currentKeys, nextKeys);
+  }
+
+  bool _sameJobList(List<JobModel> next) => _sameJobEntries(list, next);
+
+  String get _allTurkeyLabel => 'pasaj.common.all_turkiye'.tr;
+  bool isAllTurkeySelection(String value) =>
+      value.trim().isEmpty ||
+      value == _allTurkeyRaw ||
+      value == _allTurkeyLabel;
+
+  String _listingSelectionKeyFor(String uid) =>
+      '${_listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelection() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      listingSelectionReady.value = true;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      listingSelection.value = stored == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    } finally {
+      listingSelectionReady.value = true;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
 
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreListingSelection());
     loadSehirler();
-    getStartData();
+    unawaited(bootstrapStartData());
     search.addListener(_searchListener);
   }
 
   @override
   void onClose() {
+    _homeSnapshotSub?.cancel();
+    _deferredLocationTimer?.cancel();
     innerPageController.dispose();
     search.dispose();
     super.onClose();
@@ -61,524 +192,32 @@ class JobFinderController extends GetxController {
     innerTabIndex.value = index;
   }
 
+  void toggleListingSelection() {
+    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
+  }
+
   Future<void> refreshJob(String docID) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docID)
-          .get();
-
-      if (doc.exists) {
-        final updatedJob = JobModel.fromMap(doc.data()!, doc.id);
+      final updatedJob = await _jobRepository.fetchById(docID,
+          preferCache: false, forceRefresh: true);
+      if (updatedJob != null) {
         final index = list.indexWhere((e) => e.docID == docID);
         if (index != -1) {
-          list[index] = updatedJob;
+          list[index] = _attachDistance(updatedJob);
           list.refresh();
         }
       }
-    } catch (e) {
-      print("İlan güncelleme hatası: $e");
-    }
+    } catch (_) {}
   }
 
   void _searchListener() {
     final query = search.text.trim();
     if (query.length >= 2) {
-      searchFromFirestore(query);
+      searchFromTypesense(query);
     } else {
+      _searchRequestId++;
       aramaSonucu.clear();
     }
-  }
-
-  Future<void> searchFromFirestore(String query) async {
-    isLoading.value = true;
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .where("ended", isEqualTo: false)
-          .get();
-
-      List<JobModel> allResults = snapshot.docs
-          .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-          .toList();
-
-      final q = query.toLowerCase();
-      List<JobModel> results = allResults.where((job) {
-        return job.isTanimi.toLowerCase().contains(q) ||
-            job.brand.toLowerCase().contains(q) ||
-            job.meslek.toLowerCase().contains(q) ||
-            job.ilanBasligi.toLowerCase().contains(q);
-      }).toList();
-
-      aramaSonucu.value = results;
-    } catch (e) {
-      print("Arama hatası: $e");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> getStartData() async {
-    isLoading.value = true;
-    try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .orderBy("timeStamp", descending: true)
-          .limit(150)
-          .get();
-
-      List<JobModel> jobs = [];
-
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final job = JobModel.fromMap(data, doc.id);
-
-        if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(doc.id)
-              .update({"ended": true});
-          continue;
-        }
-
-        if (!job.ended) {
-          jobs.add(job);
-        }
-      }
-
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (!serviceEnabled ||
-          permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        jobs.shuffle();
-        list.value = jobs;
-        allJobs.value = jobs;
-        isLoading.value = false;
-        return;
-      }
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          list.value = jobs;
-          allJobs.value = jobs;
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      double userLat = position.latitude;
-      double userLong = position.longitude;
-
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(userLat, userLong);
-
-      if (placemarks.isNotEmpty) {
-        final cityName = placemarks.first.administrativeArea ?? '';
-        sehir.value = cityName;
-        kullaniciSehiri.value = cityName;
-      }
-
-      List<JobModel> updatedJobs = jobs.map((job) {
-        double distanceInMeters = Geolocator.distanceBetween(
-          userLat,
-          userLong,
-          job.lat,
-          job.long,
-        );
-        double distanceInKm = distanceInMeters / 1000;
-
-        return job.copyWith(
-          kacKm: double.parse(distanceInKm.toStringAsFixed(2)),
-        );
-      }).toList();
-
-      updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
-      list.value = updatedJobs;
-      allJobs.value = updatedJobs;
-    } catch (e) {
-      print("Hata oluştu: $e");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> siralaTapped() async {
-    final context = Get.context;
-    if (context == null) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: EdgeInsets.fromLTRB(
-              20,
-              12,
-              20,
-              MediaQuery.of(sheetContext).padding.bottom + 12,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  "Sıralama Ölçütü",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontFamily: "MontserratBold",
-                  ),
-                ),
-                const SizedBox(height: 12),
-                buildRow(0, "Önerilen Sıralama", () {
-                  short.value = 0;
-                  list.shuffle();
-                  Navigator.of(sheetContext).pop();
-                }),
-                buildRow(1, "Maaş'a Göre (Önce En Yüksek)", () {
-                  short.value = 1;
-                  applySorting(list);
-                  Navigator.of(sheetContext).pop();
-                }),
-                buildRow(2, "Maaş'a Göre (Önce En Düşük)", () {
-                  short.value = 2;
-                  applySorting(list);
-                  Navigator.of(sheetContext).pop();
-                }),
-                buildRow(3, "Bana En Yakın", () {
-                  short.value = 3;
-                  applySorting(list);
-                  Navigator.of(sheetContext).pop();
-                }),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> filtreTapped() async {
-    RxString selectedType = "".obs;
-    RxString selectedDeneyim = "".obs;
-
-    final types = ["Tam Zamanlı", "Yarı Zamanlı", "Part-Time", "Uzaktan", "Hibrit"];
-    final deneyimSeviyeleri = ["Deneyimsiz", "Junior", "Mid-Level", "Senior"];
-
-    final context = Get.context;
-    if (context == null) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: EdgeInsets.fromLTRB(
-              20,
-              12,
-              20,
-              MediaQuery.of(sheetContext).padding.bottom + 12,
-            ),
-            child: Obx(() {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    "Filtreleme Ölçütü",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Çalışma Türü",
-                    style: TextStyle(fontFamily: "MontserratMedium"),
-                  ),
-                  const SizedBox(height: 8),
-                  ...types.map((type) => buildFilterRow(
-                        type,
-                        selectedType.value == type,
-                        () {
-                          selectedType.value =
-                              selectedType.value == type ? "" : type;
-                        },
-                      )),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Deneyim Seviyesi",
-                    style: TextStyle(fontFamily: "MontserratMedium"),
-                  ),
-                  const SizedBox(height: 8),
-                  ...deneyimSeviyeleri.map((seviye) => buildFilterRow(
-                        seviye,
-                        selectedDeneyim.value == seviye,
-                        () {
-                          selectedDeneyim.value =
-                              selectedDeneyim.value == seviye ? "" : seviye;
-                        },
-                      )),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () {
-                      filtre.value = true;
-
-                      final filtered = allJobs.where((job) {
-                        final matchCity =
-                            sehir.value.isEmpty || sehir.value == "Tüm Türkiye" || job.city == sehir.value;
-                        final matchType = selectedType.value.isEmpty ||
-                            job.calismaTuru
-                                .map((e) => e.toLowerCase().trim())
-                                .contains(
-                                    selectedType.value.toLowerCase().trim());
-                        final matchDeneyim = selectedDeneyim.value.isEmpty ||
-                            job.deneyimSeviyesi == selectedDeneyim.value;
-                        return matchCity && matchType && matchDeneyim;
-                      }).toList();
-
-                      applySorting(filtered);
-                      list.value = filtered;
-                      Navigator.of(sheetContext).pop();
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        "Filtreyi Uygula",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: () {
-                      filtre.value = false;
-                      short.value = 0;
-                      list.value = allJobs.toList();
-                      applySorting(list);
-                      Navigator.of(sheetContext).pop();
-                    },
-                    child: const Center(
-                      child: Text(
-                        "Filtreleri Temizle",
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-              );
-            }),
-          ),
-        );
-      },
-    );
-  }
-
-  void applySorting(List<JobModel> jobs) {
-    switch (short.value) {
-      case 1: // Önce En Yüksek
-        jobs.sort((a, b) => b.maas1.compareTo(a.maas1));
-        break;
-      case 2: // Önce En Düşük
-        jobs.sort((a, b) => a.maas1.compareTo(b.maas1));
-        break;
-      case 3:
-        jobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
-        break;
-      default:
-        jobs.shuffle();
-    }
-  }
-
-  Widget buildFilterRow(String text, bool isSelected, VoidCallback onSelected) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onTap: onSelected,
-        child: Row(
-          children: [
-            Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey),
-              ),
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? Colors.black : Colors.white,
-                ),
-              ),
-            ),
-            SizedBox(width: 12),
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.black,
-                fontFamily: "MontserratMedium",
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildRow(int selection, String text, VoidCallback onSelected) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 15),
-      child: GestureDetector(
-        onTap: onSelected,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                border: Border.all(color: Colors.grey),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(3),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color:
-                        short.value == selection ? Colors.black : Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 12),
-            Text(
-              text,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: "MontserratMedium",
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> loadSehirler() async {
-    try {
-      final String response =
-          await rootBundle.loadString('assets/data/CityDistrict.json');
-      final List<dynamic> data = json.decode(response);
-      sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-      sehirler.insert(0, "Tüm Türkiye");
-    } catch (e) {
-      print("Error loading cities: $e");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> showIlSec() async {
-    final sehirlerlist = sehirler;
-    sehirlerlist.remove(sehir.value);
-    sehirlerlist.insert(0, sehir.value);
-    if (sehir.value != kullaniciSehiri.value) {
-      sehirlerlist.insert(1, kullaniciSehiri.value);
-    }
-    Get.bottomSheet(
-      SizedBox(
-        height: Get.height / 2,
-        child: ListBottomSheet(
-          list: sehirlerlist.toSet().toList(),
-          title: "Şehir Seç",
-          startSelection: sehir.value,
-          onBackData: (v) {
-            sehir.value = v;
-
-            filtre.value = false;
-            short.value = 0;
-
-            if (v == "Tüm Türkiye" || v.isEmpty) {
-              list.value = allJobs.where((job) => !job.ended).toList();
-            } else {
-              list.value =
-                  allJobs.where((job) => job.city == v && !job.ended).toList();
-            }
-          },
-        ),
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-      ),
-    );
   }
 }

@@ -2,109 +2,157 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'tutoring_application_review_controller.dart';
 
-class TutoringApplicationReview extends StatelessWidget {
+class TutoringApplicationReview extends StatefulWidget {
   final String tutoringDocID;
   final String tutoringTitle;
 
-  TutoringApplicationReview({
+  const TutoringApplicationReview({
     super.key,
     required this.tutoringDocID,
     required this.tutoringTitle,
   });
 
-  late final controller = Get.put(
-    TutoringApplicationReviewController(tutoringDocID: tutoringDocID),
-    tag: tutoringDocID,
-  );
+  @override
+  State<TutoringApplicationReview> createState() =>
+      _TutoringApplicationReviewState();
+}
+
+class _TutoringApplicationReviewState extends State<TutoringApplicationReview> {
+  late final TutoringApplicationReviewController controller;
+  late final bool _ownsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = TutoringApplicationReviewController.maybeFind(
+          tag: widget.tutoringDocID,
+        ) ==
+        null;
+    controller = TutoringApplicationReviewController.ensure(
+      tutoringDocID: widget.tutoringDocID,
+      tag: widget.tutoringDocID,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          TutoringApplicationReviewController.maybeFind(
+            tag: widget.tutoringDocID,
+          ),
+          controller,
+        )) {
+      Get.delete<TutoringApplicationReviewController>(
+        tag: widget.tutoringDocID,
+      );
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leadingWidth: 52,
+        titleSpacing: 8,
+        leading: const AppBackButton(),
+        title: AppPageTitle('tutoring.applicants_title'.tr),
+      ),
       body: SafeArea(
+        top: false,
         bottom: false,
-        child: Column(
-          children: [
-            BackButtons(text: "Başvuranlar"),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(child: CupertinoActivityIndicator());
-                }
-                if (controller.applicants.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "Henüz başvuru yok",
-                      style: TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 15,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: controller.applicants.length,
-                  padding: const EdgeInsets.only(top: 5),
-                  itemBuilder: (context, index) {
-                    final app = controller.applicants[index];
-                    return _applicantCard(app, context);
-                  },
-                );
-              }),
-            ),
-          ],
-        ),
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+          if (controller.applicants.isEmpty) {
+            return Center(
+              child: Text(
+                'tutoring.no_applications'.tr,
+                style: const TextStyle(
+                  fontFamily: "MontserratMedium",
+                  fontSize: 15,
+                  color: Colors.grey,
+                ),
+              ),
+            );
+          }
+          return ListView.builder(
+            itemCount: controller.applicants.length,
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+            itemBuilder: (context, index) {
+              final app = controller.applicants[index];
+              return _applicantCard(app, context);
+            },
+          );
+        }),
       ),
     );
   }
 
-  Widget _applicantCard(
-      TutoringApplicationModel app, BuildContext context) {
+  Widget _applicantCard(TutoringApplicationModel app, BuildContext context) {
     return FutureBuilder<Map<String, dynamic>?>(
       future: controller.getApplicantProfile(app.userID),
       builder: (context, profileSnap) {
         final profile = profileSnap.data;
-        final name = profile != null
+        final fetchedName = profile != null
             ? '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
                 .trim()
-            : 'Yükleniyor...';
-        final pfImage = profile?['pfImage'] as String? ?? '';
+            : '';
+        final fetchedNickname = ((profile?['nickname'] ??
+                profile?['username'] ??
+                profile?['displayName'] ??
+                '') as String)
+            .trim();
+        final name = fetchedName.isNotEmpty
+            ? fetchedName
+            : app.tutorName.isNotEmpty
+                ? app.tutorName
+                : fetchedNickname.isNotEmpty
+                    ? fetchedNickname
+                    : 'common.unknown_user'.tr;
+        final avatarUrl =
+            (profile?['avatarUrl'] as String?)?.trim().isNotEmpty == true
+                ? (profile?['avatarUrl'] as String).trim()
+                : app.tutorImage;
 
         return Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withAlpha(40)),
+              border: Border.all(color: const Color(0x14000000)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: pfImage.isNotEmpty
+                        width: 56,
+                        height: 56,
+                        child: avatarUrl.isNotEmpty
                             ? CachedNetworkImage(
-                                imageUrl: pfImage,
-                                fit: BoxFit.cover)
-                            : Container(
-                                color: Colors.grey.withAlpha(30),
-                                child: const Icon(
-                                    CupertinoIcons.person_fill,
-                                    color: Colors.grey,
-                                    size: 20),
-                              ),
+                                imageUrl: avatarUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => _fallbackAvatar(),
+                              )
+                            : _fallbackAvatar(),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -120,10 +168,22 @@ class TutoringApplicationReview extends StatelessWidget {
                               color: Colors.black,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            fetchedNickname.isNotEmpty
+                                ? '@$fetchedNickname'
+                                : 'tutoring.application_label'.tr,
+                            style: TextStyle(
+                              fontFamily: "MontserratMedium",
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           Text(
                             _formatDate(app.timeStamp),
                             style: TextStyle(
-                              fontFamily: "Montserrat",
+                              fontFamily: "MontserratMedium",
                               fontSize: 12,
                               color: Colors.grey.shade600,
                             ),
@@ -135,56 +195,117 @@ class TutoringApplicationReview extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // CV preview button
-                GestureDetector(
-                  onTap: () =>
-                      _showCvPreview(app.userID, name, context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withAlpha(20),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.doc_text,
-                            size: 16, color: Colors.blueAccent),
-                        SizedBox(width: 6),
-                        Text("CV Görüntüle",
-                            style: TextStyle(
-                                fontFamily: "MontserratMedium",
+                if (app.status == 'pending' || app.status == 'reviewing') ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: OutlinedButton(
+                            onPressed: () => Get.to(
+                              () => SocialProfile(userID: app.userID),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Colors.grey.withAlpha(120),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'common.open_profile'.tr,
+                              style: const TextStyle(
+                                color: Colors.black,
                                 fontSize: 13,
-                                color: Colors.blueAccent)),
-                      ],
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              controller.updateStatus(app.userID, 'rejected');
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Colors.grey.withAlpha(120),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'common.reject'.tr,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              controller.updateStatus(app.userID, 'accepted');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'common.accept'.tr,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: OutlinedButton(
+                      onPressed: () => Get.to(
+                        () => SocialProfile(userID: app.userID),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: Colors.grey.withAlpha(120),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Profili Aç',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontFamily: 'MontserratBold',
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                // Status actions
-                Row(
-                  children: [
-                    if (app.status != 'accepted')
-                      _actionButton("Kabul Et", Colors.green, () {
-                        controller.updateStatus(
-                            app.userID, 'accepted');
-                      }),
-                    const SizedBox(width: 8),
-                    if (app.status != 'reviewing' &&
-                        app.status != 'accepted')
-                      _actionButton("İncele", Colors.blue, () {
-                        controller.updateStatus(
-                            app.userID, 'reviewing');
-                      }),
-                    const SizedBox(width: 8),
-                    if (app.status != 'rejected')
-                      _actionButton("Reddet", Colors.red, () {
-                        controller.updateStatus(
-                            app.userID, 'rejected');
-                      }),
-                  ],
-                ),
+                ],
               ],
             ),
           ),
@@ -193,26 +314,13 @@ class TutoringApplicationReview extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(
-      String text, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withAlpha(20),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withAlpha(80)),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontFamily: "MontserratMedium",
-          ),
-        ),
+  Widget _fallbackAvatar() {
+    return Container(
+      color: Colors.grey.withAlpha(30),
+      child: const Icon(
+        CupertinoIcons.person_fill,
+        color: Colors.grey,
+        size: 20,
       ),
     );
   }
@@ -222,25 +330,24 @@ class TutoringApplicationReview extends StatelessWidget {
     Color textColor;
     switch (status) {
       case 'reviewing':
-        bgColor = Colors.blue.withAlpha(25);
-        textColor = Colors.blue;
+        bgColor = const Color(0xFFEAF2FF);
+        textColor = const Color(0xFF2F6FED);
         break;
       case 'accepted':
-        bgColor = Colors.green.withAlpha(25);
-        textColor = Colors.green;
+        bgColor = const Color(0xFFEAF7EE);
+        textColor = const Color(0xFF2D8A45);
         break;
       case 'rejected':
-        bgColor = Colors.red.withAlpha(25);
-        textColor = Colors.red;
+        bgColor = const Color(0xFFFCECEC);
+        textColor = const Color(0xFFC64242);
         break;
       default:
-        bgColor = Colors.orange.withAlpha(25);
-        textColor = Colors.orange;
+        bgColor = const Color(0xFFFCF4E4);
+        textColor = const Color(0xFFB57911);
     }
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
@@ -253,165 +360,6 @@ class TutoringApplicationReview extends StatelessWidget {
           fontFamily: "MontserratMedium",
         ),
       ),
-    );
-  }
-
-  void _showCvPreview(
-      String userID, String name, BuildContext context) async {
-    final cv = await controller.getApplicantCV(userID);
-    if (cv == null) {
-      Get.snackbar(
-          "CV Bulunamadı", "Bu kullanıcının CV'si mevcut değil",
-          snackPosition: SnackPosition.BOTTOM);
-      return;
-    }
-
-    Get.bottomSheet(
-      Container(
-        height: Get.height * 0.7,
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "${cv['firstName'] ?? ''} ${cv['lastName'] ?? ''}",
-                style: const TextStyle(
-                  fontFamily: "MontserratBold",
-                  fontSize: 18,
-                  color: Colors.black,
-                ),
-              ),
-              if ((cv['about'] as String?)?.isNotEmpty == true) ...[
-                const SizedBox(height: 8),
-                Text(
-                  cv['about'] ?? '',
-                  style: const TextStyle(
-                    fontFamily: "Montserrat",
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-              if (cv['mail'] != null &&
-                  cv['mail'].toString().isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text("E-posta: ${cv['mail']}",
-                    style: const TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 13)),
-              ],
-              if (cv['phone'] != null &&
-                  cv['phone'].toString().isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text("Telefon: ${cv['phone']}",
-                    style: const TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 13)),
-              ],
-              // Schools
-              if (cv['okullar'] != null &&
-                  (cv['okullar'] as List).isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text("Eğitim",
-                    style: TextStyle(
-                        fontFamily: "MontserratBold",
-                        fontSize: 15,
-                        color: Colors.black)),
-                const SizedBox(height: 8),
-                ...(cv['okullar'] as List).map((e) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      "${e['school']} - ${e['branch']} (${e['lastYear']})",
-                      style: const TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 13),
-                    ),
-                  );
-                }),
-              ],
-              // Experience
-              if (cv['deneyim'] != null &&
-                  (cv['deneyim'] as List).isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text("İş Deneyimi",
-                    style: TextStyle(
-                        fontFamily: "MontserratBold",
-                        fontSize: 15,
-                        color: Colors.black)),
-                const SizedBox(height: 8),
-                ...(cv['deneyim'] as List).map((e) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${e['position']} - ${e['company']} (${e['year1']}-${e['year2']})",
-                          style: const TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 13),
-                        ),
-                        if ((e['description'] as String?)
-                                ?.isNotEmpty ==
-                            true)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              e['description'],
-                              style: TextStyle(
-                                  fontFamily: "Montserrat",
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600),
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-              // Skills
-              if (cv['skills'] != null &&
-                  (cv['skills'] as List).isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text("Beceriler",
-                    style: TextStyle(
-                        fontFamily: "MontserratBold",
-                        fontSize: 15,
-                        color: Colors.black)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: (cv['skills'] as List).map((s) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withAlpha(20),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(s.toString(),
-                          style: const TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 12,
-                              color: Colors.blueAccent)),
-                    );
-                  }).toList(),
-                ),
-              ],
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-      isScrollControlled: true,
     );
   }
 

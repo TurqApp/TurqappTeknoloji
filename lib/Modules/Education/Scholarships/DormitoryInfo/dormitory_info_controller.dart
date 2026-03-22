@@ -1,26 +1,56 @@
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class DormitoryInfoController extends GetxController {
+  static DormitoryInfoController ensure({
+    required String tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(DormitoryInfoController(), tag: tag, permanent: permanent);
+  }
+
+  static DormitoryInfoController? maybeFind({required String tag}) {
+    final isRegistered = Get.isRegistered<DormitoryInfoController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<DormitoryInfoController>(tag: tag);
+  }
+
+  static const String _selectCity = "Şehir Seç";
+  static const String _selectDistrict = "İlçe Seç";
+  static const String _selectAdminType = "İdari Seç";
+  static const String _publicAdminType = "DEVLET";
+  static const String _privateAdminType = "ÖZEL";
+  String get selectCityValue => _selectCity;
+  String get selectDistrictValue => _selectDistrict;
+  String get selectAdminTypeValue => _selectAdminType;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
+  final EducationReferenceDataService _referenceDataService =
+      EducationReferenceDataService.ensure();
   final isLoading = true.obs;
-  final sehir = "Şehir Seç".obs;
-  final ilce = "İlçe Seç".obs;
+  final sehir = _selectCity.obs;
+  final ilce = _selectDistrict.obs;
   final yurt = "".obs;
-  final sub = "İdari Seç".obs;
+  final sub = _selectAdminType.obs;
   final listedeYok = false.obs;
   final yurtInput = TextEditingController();
   final yurtSelectionController = TextEditingController();
   final yurtInputText = "".obs;
-  final subList = ["DEVLET", "ÖZEL"].obs;
+  final subList = [_publicAdminType, _privateAdminType].obs;
   final sehirler = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   final yurtList = <DormitoryModel>[].obs;
@@ -39,6 +69,72 @@ class DormitoryInfoController extends GetxController {
     });
   }
 
+  String localizedAdminType(String value) {
+    switch (value) {
+      case _publicAdminType:
+        return 'dormitory.admin_public'.tr;
+      case _privateAdminType:
+        return 'dormitory.admin_private'.tr;
+      case _selectAdminType:
+        return 'dormitory.select_admin_type'.tr;
+      default:
+        return value;
+    }
+  }
+
+  String localizedSelectLabel(String value) {
+    switch (value) {
+      case _selectCity:
+        return 'common.select_city'.tr;
+      case _selectDistrict:
+        return 'common.select_district'.tr;
+      case _selectAdminType:
+        return 'dormitory.select_admin_type'.tr;
+      default:
+        return value;
+    }
+  }
+
+  bool get isCityUnselected =>
+      sehir.value.isEmpty || sehir.value == _selectCity;
+
+  bool _matchesValue(String value, Set<String> variants) =>
+      variants.contains(value.trim());
+
+  String normalizedAdminType(String value) {
+    if (_matchesValue(value, const <String>{
+      _publicAdminType,
+      'Public',
+      'Öffentlich',
+      'Publique',
+      'Pubblico',
+      'Государственный',
+    })) {
+      return _publicAdminType;
+    }
+    if (_matchesValue(value, const <String>{
+      _privateAdminType,
+      'Private',
+      'Privat',
+      'Privé',
+      'Privato',
+      'Частный',
+    })) {
+      return _privateAdminType;
+    }
+    if (_matchesValue(value, const <String>{
+      _selectAdminType,
+      'Select Administration',
+      'Verwaltung wählen',
+      'Choisir ladministration',
+      'Seleziona amministrazione',
+      'Выберите управление',
+    })) {
+      return _selectAdminType;
+    }
+    return value;
+  }
+
   @override
   void onClose() {
     yurtInput.dispose();
@@ -48,29 +144,16 @@ class DormitoryInfoController extends GetxController {
 
   Future<void> loadSehirler() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/CityDistrict.json',
-      );
-      final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      print("Error loading cities: $e");
-    }
+          await _cityDirectoryService.getCitiesAndDistricts();
+      sehirler.value = await _cityDirectoryService.getSortedCities();
+    } catch (_) {}
   }
 
   Future<void> fetchYurtData() async {
     try {
-      String jsonString = await rootBundle.loadString(
-        'assets/data/Dormitory.json',
-      );
-      List<dynamic> jsonResponse = jsonDecode(jsonString);
-      yurtList.value =
-          jsonResponse.map((data) => DormitoryModel.fromJson(data)).toList();
-    } catch (e) {
-      print("Error loading yurt data: $e");
+      yurtList.value = await _referenceDataService.getDormitories();
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -78,27 +161,27 @@ class DormitoryInfoController extends GetxController {
 
   Future<void> fetchFirestoreData() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      if (doc.exists) {
-        yurt.value = doc.get("yurt") ?? "";
+      final data = await _userRepository.getUserRaw(
+        CurrentUserService.instance.effectiveUserId,
+      );
+      if (data != null) {
+        yurt.value = userString(
+          data,
+          key: "yurt",
+          scope: "family",
+        );
       }
-    } catch (e) {
-      print("Error fetching Firestore data: $e");
-    }
+    } catch (_) {}
   }
 
   void showIdariSec() {
     Get.bottomSheet(
       AppBottomSheet(
-        list: subList,
-        title: "İdari Seç",
-        startSelection: sub.value,
+        list: subList.map(localizedAdminType).toList(),
+        title: 'dormitory.select_admin_type'.tr,
+        startSelection: localizedAdminType(sub.value),
         onBackData: (v) {
-          print("SELECTED $v");
-          sub.value = v;
+          sub.value = normalizedAdminType(v);
           yurt.value = "";
           yurtSelectionController.clear();
         },
@@ -115,10 +198,9 @@ class DormitoryInfoController extends GetxController {
     Get.bottomSheet(
       ListBottomSheet(
         list: sehirler,
-        title: "Şehir Seç",
-        startSelection: sehir.value,
+        title: 'common.select_city'.tr,
+        startSelection: isCityUnselected ? null : sehir.value,
         onBackData: (v) {
-          print("SELECTED $v");
           sehir.value = v;
           ilce.value = "";
           yurt.value = "";
@@ -137,24 +219,23 @@ class DormitoryInfoController extends GetxController {
     final filteredYurtList = yurtList
         .where(
           (item) =>
-              item.sub == sub.value.toUpperCase() &&
+              item.sub == normalizedAdminType(sub.value).toUpperCase() &&
               item.ilAdi == sehir.value.toUpperCase(),
         )
         .map((item) => item.adi)
         .toList();
 
     if (filteredYurtList.isEmpty) {
-      AppSnackbar("Bilgi", "Bu şehir ve idari tür için yurt bulunamadı");
+      AppSnackbar('common.warning'.tr, 'dormitory.not_found_for_filters'.tr);
       return;
     }
 
     Get.bottomSheet(
       ListBottomSheet(
         list: filteredYurtList,
-        title: "Yurt Seç",
+        title: 'dormitory.select_dormitory'.tr,
         startSelection: yurt.value.isEmpty ? null : yurt.value,
         onBackData: (v) {
-          print("SELECTED YURT $v");
           yurt.value = v;
           listedeYok.value = false;
           yurtInput.clear();
@@ -182,8 +263,8 @@ class DormitoryInfoController extends GetxController {
 
   void selectYurt(DormitoryModel item) {
     yurt.value = item.adi;
-    sehir.value = "Şehir Seç";
-    sub.value = "İdari Seç";
+    sehir.value = _selectCity;
+    sub.value = _selectAdminType;
     listedeYok.value = false;
     yurtInput.clear();
     yurtInputText.value = "";
@@ -196,22 +277,23 @@ class DormitoryInfoController extends GetxController {
       try {
         final String savedYurt =
             listedeYok.value ? yurtInputText.value : yurt.value;
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update({"yurt": savedYurt});
+        await _userRepository.updateUserFields(
+          CurrentUserService.instance.effectiveUserId,
+          scopedUserUpdate(
+            scope: 'family',
+            values: {"yurt": savedYurt},
+          ),
+        );
         yurt.value = savedYurt;
         Get.back();
-        AppSnackbar("Başarılı", "Yurt Bilgileriniz Kaydedildi.");
-      } catch (e) {
-        print("Error saving data: $e");
-        AppSnackbar("Hata", "Veri kaydedilemedi.");
+        AppSnackbar('common.success'.tr, 'dormitory.saved'.tr);
+      } catch (_) {
+        AppSnackbar('common.error'.tr, 'dormitory.save_failed'.tr);
       }
     } else {
-      AppSnackbar("Hata", "Lütfen bir yurt seçin veya yurt adı girin");
+      AppSnackbar('common.error'.tr, 'dormitory.select_or_enter'.tr);
     }
   }
 
-  String capitalize(String s) =>
-      s.isNotEmpty ? s[0].toUpperCase() + s.substring(1).toLowerCase() : s;
+  String capitalize(String s) => capitalizeWords(s);
 }

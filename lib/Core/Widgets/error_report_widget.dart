@@ -8,11 +8,11 @@ class ErrorReportWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final errorService = Get.find<ErrorHandlingService>();
+    final errorService = ErrorHandlingService.ensure();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hata Raporu'),
+        title: Text('error_report.title'.tr),
         backgroundColor: Colors.red[600],
         foregroundColor: Colors.white,
         actions: [
@@ -45,22 +45,22 @@ class ErrorReportWidget extends StatelessWidget {
         case 'good':
           statusColor = Colors.green;
           statusIcon = Icons.check_circle;
-          statusText = 'İyi';
+          statusText = 'error_report.status_good'.tr;
           break;
         case 'fair':
           statusColor = Colors.orange;
           statusIcon = Icons.warning;
-          statusText = 'Orta';
+          statusText = 'error_report.status_fair'.tr;
           break;
         case 'poor':
           statusColor = Colors.red;
           statusIcon = Icons.error;
-          statusText = 'Kötü';
+          statusText = 'error_report.status_poor'.tr;
           break;
         default:
           statusColor = Colors.grey;
           statusIcon = Icons.help;
-          statusText = 'Bilinmeyen';
+          statusText = 'error_report.status_unknown'.tr;
       }
 
       return Container(
@@ -69,7 +69,10 @@ class ErrorReportWidget extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [statusColor.withValues(alpha: 0.1), statusColor.withValues(alpha: 0.05)],
+            colors: [
+              statusColor.withValues(alpha: 0.1),
+              statusColor.withValues(alpha: 0.05)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -84,7 +87,7 @@ class ErrorReportWidget extends StatelessWidget {
                 Icon(statusIcon, color: statusColor, size: 30),
                 const SizedBox(width: 10),
                 Text(
-                  'Sistem Sağlığı: $statusText',
+                  'error_report.system_health'.trParams({'status': statusText}),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -98,18 +101,21 @@ class ErrorReportWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildHealthMetric(
-                  'Son 30 dk',
-                  '${health['recentErrors']} hata',
+                  'error_report.last_30_minutes'.tr,
+                  'error_report.error_count'
+                      .trParams({'count': '${health['recentErrors']}'}),
                   Colors.blue,
                 ),
                 _buildHealthMetric(
-                  'Kritik Hatalar',
+                  'error_report.critical_errors'.tr,
                   '${health['criticalErrors']}',
                   Colors.red,
                 ),
                 _buildHealthMetric(
-                  'Bağlantı',
-                  health['isOnline'] ? 'Çevrimiçi' : 'Çevrimdışı',
+                  'error_report.connection'.tr,
+                  health['isOnline']
+                      ? 'error_report.online'.tr
+                      : 'error_report.offline'.tr,
                   health['isOnline'] ? Colors.green : Colors.red,
                 ),
               ],
@@ -153,7 +159,7 @@ class ErrorReportWidget extends StatelessWidget {
           children: [
             Expanded(
               child: _buildStatCard(
-                'Toplam Hata',
+                'error_report.total_errors'.tr,
                 '${stats['total']}',
                 Icons.bug_report,
                 Colors.blue,
@@ -162,7 +168,7 @@ class ErrorReportWidget extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _buildStatCard(
-                'Son 24 Saat',
+                'error_report.last_24_hours'.tr,
                 '${stats['last24Hours']}',
                 Icons.schedule,
                 Colors.orange,
@@ -171,7 +177,7 @@ class ErrorReportWidget extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _buildStatCard(
-                'Kritik',
+                'error_report.critical'.tr,
                 '${stats['critical']}',
                 Icons.priority_high,
                 Colors.red,
@@ -180,7 +186,7 @@ class ErrorReportWidget extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: _buildStatCard(
-                'Tekrarlanabilir',
+                'error_report.retryable'.tr,
                 '${stats['retryableErrors']}',
                 Icons.refresh,
                 Colors.green,
@@ -192,7 +198,8 @@ class ErrorReportWidget extends StatelessWidget {
     });
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -231,19 +238,19 @@ class ErrorReportWidget extends StatelessWidget {
       final errors = errorService.errorHistory.reversed.toList();
 
       if (errors.isEmpty) {
-        return const Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle, size: 80, color: Colors.green),
-              SizedBox(height: 20),
+              const Icon(Icons.check_circle, size: 80, color: Colors.green),
+              const SizedBox(height: 20),
               Text(
-                'Henüz hata kaydı yok',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                'error_report.empty_title'.tr,
+                style: const TextStyle(fontSize: 18, color: Colors.grey),
               ),
               Text(
-                'Sistem düzgün çalışıyor!',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                'error_report.empty_body'.tr,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ],
           ),
@@ -298,7 +305,8 @@ class ErrorReportWidget extends StatelessWidget {
             ),
             if (error.retryCount > 0)
               Text(
-                'Tekrar Deneme: ${error.retryCount}',
+                'error_report.retry_count'
+                    .trParams({'count': '${error.retryCount}'}),
                 style: const TextStyle(color: Colors.orange, fontSize: 12),
               ),
           ],
@@ -309,16 +317,20 @@ class ErrorReportWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailRow('Hata Kodu', error.code),
-                _buildDetailRow('Kategori', error.category.label),
-                _buildDetailRow('Önem Derecesi', error.severity.label),
-                _buildDetailRow('Tekrarlanabilir', error.isRetryable ? 'Evet' : 'Hayır'),
+                _buildDetailRow('error_report.error_code'.tr, error.code),
+                _buildDetailRow(
+                    'error_report.category'.tr, error.category.label),
+                _buildDetailRow(
+                    'error_report.severity'.tr, error.severity.label),
+                _buildDetailRow('error_report.retryable'.tr,
+                    error.isRetryable ? 'common.yes'.tr : 'common.no'.tr),
                 if (error.metadata.isNotEmpty)
-                  _buildDetailRow('Metadata', error.metadata.toString()),
+                  _buildDetailRow(
+                      'error_report.metadata'.tr, error.metadata.toString()),
                 if (error.stackTrace != null) ...[
                   const SizedBox(height: 10),
-                  const Text(
-                    'Stack Trace:',
+                  Text(
+                    'error_report.stack_trace'.tr,
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 5),
@@ -372,11 +384,13 @@ class ErrorReportWidget extends StatelessWidget {
     final difference = now.difference(timestamp);
 
     if (difference.inMinutes < 1) {
-      return 'Az önce';
+      return 'error_report.just_now'.tr;
     } else if (difference.inHours < 1) {
-      return '${difference.inMinutes} dakika önce';
+      return 'error_report.minutes_ago'
+          .trParams({'count': '${difference.inMinutes}'});
     } else if (difference.inDays < 1) {
-      return '${difference.inHours} saat önce';
+      return 'error_report.hours_ago'
+          .trParams({'count': '${difference.inHours}'});
     } else {
       return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
     }
@@ -384,18 +398,18 @@ class ErrorReportWidget extends StatelessWidget {
 
   void _showClearDialog(ErrorHandlingService errorService) {
     Get.defaultDialog(
-      title: 'Hata Geçmişini Temizle',
-      middleText: 'Tüm hata kayıtları silinecek. Bu işlem geri alınamaz.',
-      textConfirm: 'Temizle',
-      textCancel: 'İptal',
+      title: 'error_report.clear_title'.tr,
+      middleText: 'error_report.clear_body'.tr,
+      textConfirm: 'common.clear'.tr,
+      textCancel: 'common.cancel'.tr,
       confirmTextColor: Colors.white,
       buttonColor: Colors.red,
       onConfirm: () {
         errorService.clearErrorHistory();
         Get.back();
         AppSnackbar(
-          'Temizlendi',
-          'Hata geçmişi başarıyla temizlendi',
+          'common.clear'.tr,
+          'error_report.clear_success'.tr,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );

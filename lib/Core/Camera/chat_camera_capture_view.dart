@@ -188,10 +188,11 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                         ),
                         child: Text(
                           _mode == ChatCameraMode.photo
-                              ? "Yakala"
+                              ? 'chat.camera.capture'.tr
                               : (_isRecording
-                                  ? "Kayıt: ${_recordSec}s / 60s"
-                                  : "Video (Maks. 1 dk)"),
+                                  ? 'chat.camera.recording'
+                                      .trParams({'seconds': '$_recordSec'})
+                                  : 'chat.camera.video_max'.tr),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -208,7 +209,8 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _modeButton("YAKALA", ChatCameraMode.photo),
+                        _modeButton('chat.camera.capture'.tr,
+                            ChatCameraMode.photo),
                         const SizedBox(width: 18),
                         GestureDetector(
                           onTap: () async {
@@ -238,13 +240,14 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                           ),
                         ),
                         const SizedBox(width: 18),
-                        _modeButton("VIDEO", ChatCameraMode.video),
+                        _modeButton('common.video'.tr, ChatCameraMode.video),
                       ],
                     ),
                   ),
                 ],
               )
-            : const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+            : const Center(
+                child: CupertinoActivityIndicator(color: Colors.white)),
       ),
     );
   }
@@ -259,7 +262,9 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? Colors.white.withValues(alpha: 0.3) : Colors.transparent,
+          color: selected
+              ? Colors.white.withValues(alpha: 0.3)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
         ),
@@ -275,4 +280,3 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
     );
   }
 }
-

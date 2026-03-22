@@ -1,9 +1,32 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ResultsAndAnswersController extends GetxController {
+  static ResultsAndAnswersController ensure(
+    OpticalFormModel model, {
+    String? tag,
+    bool permanent = false,
+  }) {
+    final existing = maybeFind(tag: tag);
+    if (existing != null) return existing;
+    return Get.put(
+      ResultsAndAnswersController(model),
+      tag: tag,
+      permanent: permanent,
+    );
+  }
+
+  static ResultsAndAnswersController? maybeFind({String? tag}) {
+    final isRegistered =
+        Get.isRegistered<ResultsAndAnswersController>(tag: tag);
+    if (!isRegistered) return null;
+    return Get.find<ResultsAndAnswersController>(tag: tag);
+  }
+
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
   final OpticalFormModel model;
   final cevaplar = <String>[].obs;
   final dogruSayisi = 0.obs;
@@ -16,14 +39,11 @@ class ResultsAndAnswersController extends GetxController {
   }
 
   Future<void> getCevaplarim() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get();
-
-    final fetchedCevaplar = List<String>.from(doc['cevaplar'] ?? []);
+    final fetchedCevaplar = await _opticalFormRepository.fetchUserAnswers(
+      model.docID,
+      CurrentUserService.instance.effectiveUserId,
+      preferCache: true,
+    );
     cevaplar.assignAll(fetchedCevaplar);
     hesaplaDogruYanlisBos();
   }

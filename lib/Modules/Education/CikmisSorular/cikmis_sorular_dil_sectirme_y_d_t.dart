@@ -1,6 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 
 import 'cikmis_sorular_yil_sectirme.dart';
 
@@ -20,36 +21,52 @@ class CikmisSorularDilSectirmeYDT extends StatefulWidget {
 
 class _CikmisSorularDilSectirmeYDTState
     extends State<CikmisSorularDilSectirmeYDT> {
+  static const _ydt = 'YDT';
+
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> diller = [];
+
+  String _localizedLanguage(String raw) {
+    switch (raw) {
+      case 'İngilizce':
+        return 'tests.language.english'.tr;
+      case 'Almanca':
+        return 'tests.language.german'.tr;
+      case 'Arapça':
+        return 'tests.language.arabic'.tr;
+      case 'Fransızca':
+        return 'tests.language.french'.tr;
+      case 'Rusça':
+        return 'tests.language.russian'.tr;
+      default:
+        return raw;
+    }
+  }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      for (var doc in snapshot.docs) {
-        String sinavTuru = doc.get("sinavTuru");
-        String baslik2 = doc.get("baslik2");
-
-        if (!diller.contains(baslik2) && sinavTuru == "YDT") {
-          if (baslik2 != "İngilizce") {
-            if (mounted) {
-              setState(() {
-                diller.add(baslik2);
-              });
-            }
-          } else {
-            if (mounted) {
-              setState(() {
-                diller.insert(0, baslik2);
-              });
-            }
-          }
+    _repository
+        .distinctValues(
+          where: (doc) =>
+              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+              (doc['sinavTuru'] ?? '').toString() == 'YDT',
+          field: 'baslik2',
+        )
+        .then((items) {
+      final ordered = <String>[];
+      for (final item in items) {
+        if (item != 'İngilizce') {
+          ordered.add(item);
+        } else {
+          ordered.insert(0, item);
         }
+      }
+      if (mounted) {
+        setState(() {
+          diller = ordered;
+        });
       }
     });
   }
@@ -61,7 +78,10 @@ class _CikmisSorularDilSectirmeYDTState
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "${widget.sinavTuru} Dilleri"),
+            BackButtons(
+              text: 'past_questions.languages_title'
+                  .trParams({'type': widget.sinavTuru}),
+            ),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -82,7 +102,7 @@ class _CikmisSorularDilSectirmeYDTState
                         itemBuilder: (context, index) {
                           return GestureDetector(
                             onTap: () {
-                              if (widget.sinavTuru == "YDT") {
+                              if (widget.sinavTuru == _ydt) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -91,7 +111,7 @@ class _CikmisSorularDilSectirmeYDTState
                                       anaBaslik: widget.anaBaslik,
                                       sinavTuru: widget.sinavTuru,
                                       baslik2: diller[index],
-                                      baslik3: "YDT",
+                                      baslik3: _ydt,
                                     ),
                                   ),
                                 );
@@ -127,8 +147,8 @@ class _CikmisSorularDilSectirmeYDTState
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.purple,
-                                        Colors.black.withValues(alpha: 
-                                          0.9,
+                                        Colors.black.withValues(
+                                          alpha: 0.9,
                                         ), // Alt renk
                                       ],
                                       begin: Alignment
@@ -141,8 +161,8 @@ class _CikmisSorularDilSectirmeYDTState
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 
-                                          0.3,
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.3,
                                         ), // Gölge rengi ve opaklık
                                         blurRadius: 6, // Gölge bulanıklık
                                         offset: Offset(
@@ -163,7 +183,9 @@ class _CikmisSorularDilSectirmeYDTState
                                               MainAxisAlignment.center,
                                           children: [
                                             Text(
-                                              diller[index],
+                                              _localizedLanguage(
+                                                diller[index],
+                                              ),
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 30,

@@ -15,6 +15,8 @@ class VideoSessionMetrics {
   int seekCount = 0;
   String? errorMessage;
   bool completed = false;
+  bool isAudible = false;
+  bool hasStableFocus = false;
   DateTime? _lastBufferStart;
 
   VideoSessionMetrics({required this.videoId, required this.videoUrl})
@@ -27,8 +29,9 @@ class VideoSessionMetrics {
   double get watchTimeSeconds =>
       DateTime.now().difference(sessionStart).inMilliseconds / 1000.0;
 
-  double get completionRate =>
-      videoDuration > 0 ? (maxPositionReached / videoDuration).clamp(0.0, 1.0) : 0.0;
+  double get completionRate => videoDuration > 0
+      ? (maxPositionReached / videoDuration).clamp(0.0, 1.0)
+      : 0.0;
 
   double get rebufferRatio {
     final total = watchTimeSeconds * 1000;
@@ -75,13 +78,36 @@ class VideoSessionMetrics {
         'seekCount': seekCount,
         'videoDurationSec': videoDuration.round(),
         'error': errorMessage,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
 }
 
+class ActiveVideoSessionSnapshot {
+  final double watchTimeSeconds;
+  final double completionRate;
+  final double rebufferRatio;
+  final bool hasFirstFrame;
+  final bool isAudible;
+  final bool hasStableFocus;
+
+  const ActiveVideoSessionSnapshot({
+    required this.watchTimeSeconds,
+    required this.completionRate,
+    required this.rebufferRatio,
+    required this.hasFirstFrame,
+    required this.isAudible,
+    required this.hasStableFocus,
+  });
+}
+
 class VideoTelemetryService {
-  static final VideoTelemetryService instance =
-      VideoTelemetryService._internal();
+  static VideoTelemetryService? _instance;
+  static VideoTelemetryService? maybeFind() => _instance;
+
+  static VideoTelemetryService ensure() =>
+      maybeFind() ?? (_instance = VideoTelemetryService._internal());
+
+  static VideoTelemetryService get instance => ensure();
   VideoTelemetryService._internal();
 
   final _userService = CurrentUserService.instance;
@@ -134,6 +160,34 @@ class VideoTelemetryService {
     _activeSessions[videoId]?.onError(message);
   }
 
+  void updateRuntimeHints(
+    String videoId, {
+    bool? isAudible,
+    bool? hasStableFocus,
+  }) {
+    final session = _activeSessions[videoId];
+    if (session == null) return;
+    if (isAudible != null) {
+      session.isAudible = isAudible;
+    }
+    if (hasStableFocus != null) {
+      session.hasStableFocus = hasStableFocus;
+    }
+  }
+
+  ActiveVideoSessionSnapshot? activeSessionSnapshot(String videoId) {
+    final session = _activeSessions[videoId];
+    if (session == null) return null;
+    return ActiveVideoSessionSnapshot(
+      watchTimeSeconds: session.watchTimeSeconds,
+      completionRate: session.completionRate,
+      rebufferRatio: session.rebufferRatio,
+      hasFirstFrame: session.firstFrameAt != null,
+      isAudible: session.isAudible,
+      hasStableFocus: session.hasStableFocus,
+    );
+  }
+
   /// End session and flush metrics to Firestore.
   Future<void> endSession(String videoId) async {
     final session = _activeSessions.remove(videoId);
@@ -152,7 +206,8 @@ class VideoTelemetryService {
 
   Future<void> _flush(VideoSessionMetrics session) async {
     if (!_canWrite) return;
-    if (!_userService.isLoggedIn) return;
+    final uid = _userService.effectiveUserId;
+    if (uid.isEmpty) return;
     // Skip very short sessions (less than 1 second watch time).
     if (session.watchTimeSeconds < 1.0) return;
 
@@ -160,7 +215,7 @@ class VideoTelemetryService {
       await FirebaseFirestore.instance
           .collection('Analytics')
           .doc('VideoPlayback')
-          .collection(_userService.userId)
+          .collection(uid)
           .add(session.toMap());
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {

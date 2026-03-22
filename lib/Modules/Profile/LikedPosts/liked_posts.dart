@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -18,16 +19,36 @@ class LikedPosts extends StatefulWidget {
 
 class _LikedPostsState extends State<LikedPosts> {
   late LikedPostControllers controller;
-  late PageLineBarController pageLineBarController;
+  bool _ownsController = false;
   final scrollController = ScrollController();
+  late final String _pageLineBarTag =
+      '${kLikedPostsPageLineBarTag}_${identityHashCode(this)}';
+
+  int _estimatedCenteredIndex() {
+    if (!scrollController.hasClients || controller.all.isEmpty) {
+      return -1;
+    }
+    final position = scrollController.position;
+    final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
+      320.0,
+      680.0,
+    );
+    final rawIndex = ((position.pixels + position.viewportDimension * 0.25) /
+            estimatedItemExtent)
+        .floor();
+    return rawIndex.clamp(0, controller.all.length - 1);
+  }
+
   @override
   void initState() {
     super.initState();
-    controller = Get.put(LikedPostControllers());
-    pageLineBarController = Get.put(
-      PageLineBarController(pageName: "LikedPosts"),
-      tag: "LikedPosts",
-    );
+    final existingController = LikedPostControllers.maybeFind();
+    if (existingController != null) {
+      controller = existingController;
+    } else {
+      controller = LikedPostControllers.ensure();
+      _ownsController = true;
+    }
 
     scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
@@ -35,40 +56,34 @@ class _LikedPostsState extends State<LikedPosts> {
 
   @override
   void dispose() {
-    if (Get.isRegistered<LikedPostControllers>()) {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    if (_ownsController &&
+        identical(LikedPostControllers.maybeFind(), controller)) {
       Get.delete<LikedPostControllers>(force: true);
     }
     super.dispose();
   }
 
   void _onScroll() {
-    // ScrollController bağlı değilse çık
-    if (!scrollController.hasClients) return;
-
-    // Ortadaki widget’ı tespit etmek için
-    final screenHeight = MediaQuery.of(context).size.height;
-    final centerY = screenHeight / 2;
-
-    for (int i = 0; i < controller.all.length; i++) {
-      final key = controller.getPostKey(i);
-      final ctx = key.currentContext;
-      if (ctx == null) continue;
-
-      final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null || !box.attached) continue;
-
-      final pos = box.localToGlobal(Offset.zero);
-      final top = pos.dy;
-      final bottom = pos.dy + box.size.height;
-
-      if (top <= centerY && bottom >= centerY) {
-        if (controller.centeredIndex.value != i) {
-          setState(() {
-            controller.centeredIndex.value = i;
-          });
-        }
-        break;
+    final nextIndex = _estimatedCenteredIndex();
+    if (nextIndex < 0) return;
+    if (controller.centeredIndex.value != nextIndex) {
+      final previousIndex = controller.lastCenteredIndex;
+      if (previousIndex != null &&
+          previousIndex >= 0 &&
+          previousIndex < controller.all.length &&
+          previousIndex != nextIndex) {
+        controller.disposeAgendaContentController(
+          controller.all[previousIndex].docID,
+        );
       }
+      setState(() {
+        controller.centeredIndex.value = nextIndex;
+        controller.currentVisibleIndex.value = nextIndex;
+        controller.lastCenteredIndex = nextIndex;
+        controller.capturePendingCenteredEntry(preferredIndex: nextIndex);
+      });
     }
   }
 
@@ -79,10 +94,14 @@ class _LikedPostsState extends State<LikedPosts> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Beğenilenler"),
+            BackButtons(text: "settings.liked_posts".tr),
             PageLineBar(
-              barList: ["Tümü", "Videolar", "Fotoğraflar"],
-              pageName: "LikedPosts",
+              barList: [
+                "common.all".tr,
+                "common.videos".tr,
+                "common.photos".tr,
+              ],
+              pageName: _pageLineBarTag,
               pageController: controller.pageController,
             ),
             Expanded(
@@ -90,9 +109,7 @@ class _LikedPostsState extends State<LikedPosts> {
                 return PageView(
                   controller: controller.pageController,
                   onPageChanged: (v) {
-                    Get.find<PageLineBarController>(tag: 'LikedPosts')
-                        .selection
-                        .value = v;
+                    syncPageLineBarSelection(_pageLineBarTag, v);
                   },
                   children: [
                     posts(),
@@ -110,8 +127,13 @@ class _LikedPostsState extends State<LikedPosts> {
 
   Widget posts() {
     final list = controller.all;
+    if (controller.isLoading.value && list.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
     if (list.isEmpty) {
-      return EmptyRow(text: "Sonuç bulunamadı");
+      return EmptyRow(text: "common.no_results".tr);
     }
     return SizedBox.expand(
       child: Container(
@@ -120,7 +142,7 @@ class _LikedPostsState extends State<LikedPosts> {
               ? RefreshIndicator(
                   backgroundColor: Colors.black,
                   color: Colors.white,
-                  onRefresh: () async {},
+                  onRefresh: controller.refresh,
                   child: NotificationListener<ScrollNotification>(
                       onNotification: (notification) {
                         WidgetsBinding.instance.addPostFrameCallback(
@@ -144,7 +166,7 @@ class _LikedPostsState extends State<LikedPosts> {
 
                           final actualIndex = index - 1;
                           final model = controller.all[actualIndex];
-                          final itemKey = controller.getPostKey(actualIndex);
+                          final itemKey = controller.getPostKey(model.docID);
                           final isCentered =
                               controller.centeredIndex.value == actualIndex;
 
@@ -160,6 +182,8 @@ class _LikedPostsState extends State<LikedPosts> {
                                     model: model,
                                     isPreview: false,
                                     shouldPlay: isCentered,
+                                    instanceTag: controller
+                                        .agendaInstanceTag(model.docID),
                                   ),
                                 ),
                                 SizedBox(
@@ -175,15 +199,20 @@ class _LikedPostsState extends State<LikedPosts> {
                       )),
                 )
               : Center(
-                  child: EmptyRow(text: "Gönderi yok"),
+                  child: EmptyRow(text: "liked_posts.no_posts".tr),
                 )),
     );
   }
 
   Widget photos() {
     final list = controller.all.where((val) => val.img.isNotEmpty).toList();
+    if (controller.isLoading.value && list.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
     if (list.isEmpty) {
-      return EmptyRow(text: "Sonuç bulunamadı");
+      return EmptyRow(text: "common.no_results".tr);
     }
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -195,11 +224,18 @@ class _LikedPostsState extends State<LikedPosts> {
       itemCount: list.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () {
-            Get.to(() => PhotoShorts(
+          onTap: () async {
+            controller.capturePendingCenteredEntry(model: list[index]);
+            controller.lastCenteredIndex =
+                controller.currentVisibleIndex.value >= 0
+                    ? controller.currentVisibleIndex.value
+                    : controller.lastCenteredIndex;
+            controller.centeredIndex.value = -1;
+            await Get.to(() => PhotoShorts(
                   startModel: list[index],
                   fetchedList: list,
                 ));
+            controller.resumeCenteredPost();
           },
           child: CachedNetworkImage(
             imageUrl: list[index].img.first,
@@ -217,8 +253,13 @@ class _LikedPostsState extends State<LikedPosts> {
 
   Widget videos() {
     final list = controller.all.where((val) => val.hasPlayableVideo).toList();
+    if (controller.isLoading.value && list.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
     if (list.isEmpty) {
-      return EmptyRow(text: "Sonuç bulunamadı");
+      return EmptyRow(text: "common.no_results".tr);
     }
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -230,11 +271,18 @@ class _LikedPostsState extends State<LikedPosts> {
       itemCount: list.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () {
-            Get.to(() => SingleShortView(
+          onTap: () async {
+            controller.capturePendingCenteredEntry(model: list[index]);
+            controller.lastCenteredIndex =
+                controller.currentVisibleIndex.value >= 0
+                    ? controller.currentVisibleIndex.value
+                    : controller.lastCenteredIndex;
+            controller.centeredIndex.value = -1;
+            await Get.to(() => SingleShortView(
                   startModel: list[index],
                   startList: list,
                 ));
+            controller.resumeCenteredPost();
           },
           child: CachedNetworkImage(
             imageUrl: list[index].thumbnail,

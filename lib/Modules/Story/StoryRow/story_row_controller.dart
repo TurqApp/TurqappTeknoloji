@@ -1,102 +1,191 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
-import '../../../Core/Services/performance_service.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
+import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
-import '../../../Services/firebase_my_store.dart';
+import '../../../Core/Services/user_profile_cache_service.dart';
+import '../../../Core/Utils/avatar_url.dart';
+import '../../../Core/Utils/nickname_utils.dart';
+import '../../../Services/current_user_service.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/story_model.dart';
 import 'story_user_model.dart';
 
 class StoryRowController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
+  static StoryRowController ensure() {
+    final existing = maybeFind();
+    if (existing != null) return existing;
+    return Get.put(StoryRowController());
+  }
+
+  static StoryRowController? maybeFind() {
+    final isRegistered = Get.isRegistered<StoryRowController>();
+    if (!isRegistered) return null;
+    return Get.find<StoryRowController>();
+  }
+
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
-  final userStore = Get.find<FirebaseMyStore>();
-  StreamSubscription? _followingSub;
+  final userService = CurrentUserService.instance;
+  UserProfileCacheService get _userCache => UserProfileCacheService.ensure();
+
   final int initialLimit = 30;
   final int fullLimit = 100;
   bool _backgroundScheduled = false;
   final RxBool isLoading = false.obs;
-  static const Duration _miniCacheTtl = Duration(minutes: 15);
-  String? _miniCachePath;
+  static const Duration _expireCleanupInterval = Duration(minutes: 15);
+  DateTime? _lastExpireCleanupAt;
+  final StoryRepository _storyRepository = StoryRepository.ensure();
+
+  String get _currentUid => userService.effectiveUserId;
+
+  void _ensureMyUserPlaceholder() {
+    final myUid = _currentUid;
+    if (myUid.isEmpty) return;
+    if (users.any((u) => u.userID == myUid)) return;
+
+    final nickname = userService.nickname.trim();
+    final fullName = userService.fullName.trim();
+
+    users.insert(
+      0,
+      StoryUserModel(
+        nickname:
+            nickname.isNotEmpty ? nickname : 'story.placeholder_nickname'.tr,
+        avatarUrl: userService.avatarUrl,
+        fullName: fullName,
+        userID: myUid,
+        stories: const [],
+      ),
+    );
+  }
+
+  String _resolveStoryNickname(Map<String, dynamic> data) {
+    final nickname = (data['nickname'] ?? '').toString().trim();
+    final username = (data['username'] ?? '').toString().trim();
+    final usernameLower = (data['usernameLower'] ?? '').toString().trim();
+    final hasSpace = hasNicknameWhitespace(nickname);
+    if (nickname.isNotEmpty && !hasSpace) return nickname;
+    if (username.isNotEmpty) return username;
+    if (usernameLower.isNotEmpty) return usernameLower;
+    return '';
+  }
+
+  String _resolveAvatar(Map<String, dynamic> data) {
+    final profile = (data['profile'] is Map)
+        ? Map<String, dynamic>.from(data['profile'] as Map)
+        : const <String, dynamic>{};
+    return resolveAvatarUrl(data, profile: profile);
+  }
 
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
     try {
-      final controller = Get.find<StoryRowController>();
+      final controller = maybeFind();
+      if (controller == null) return;
       await controller.loadStories();
-      print("🔄 Stories refreshed globally");
     } catch (e) {
-      print("🔄 Global story refresh error: $e");
+      debugPrint("Story refresh error: $e");
     }
   }
 
   @override
   void onInit() {
     super.onInit();
-    unawaited(_initMiniCache());
-    unawaited(_loadStoriesFromMiniCache());
+    _ensureMyUserPlaceholder();
+    unawaited(_bootstrapStoryRow());
     // Main.dart'ta zaten hikayeler yüklendiği için burada sadece listener'ları bağla
-    _bindFollowingListener();
     // Arka planda tam listeyi genişlet (düşük öncelik)
     _scheduleBackgroundFullLoad();
+  }
+
+  Future<void> _bootstrapStoryRow() async {
+    await _loadStoriesFromMiniCache();
+    final myUid = _currentUid;
+    if (users.isEmpty ||
+        SilentRefreshGate.shouldRefresh(
+          'story:row:$myUid',
+          minInterval: _silentRefreshInterval,
+        )) {
+      unawaited(loadStories(silentLoad: true, cacheFirst: true));
+    }
   }
 
   // Kendi kullanıcıyı hemen ekle (boş hikayelerle bile olsa görünür olsun)
   Future<void> addMyUserImmediately() async {
     try {
-      final myUid = FirebaseAuth.instance.currentUser?.uid;
-      if (myUid != null) {
-        DocumentSnapshot<Map<String, dynamic>> userSnap;
-        try {
-          // Önce cache'ten dene
-          userSnap = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(myUid)
-              .get(const GetOptions(source: Source.cache));
-        } catch (_) {
-          // Cache yoksa ağdan çek
-          userSnap = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(myUid)
-              .get();
-        }
-
-        if (userSnap.exists) {
-          final data = userSnap.data()!;
+      final myUid = _currentUid;
+      if (myUid.isNotEmpty) {
+        final data = await _userCache.getProfile(
+          myUid,
+          preferCache: true,
+          cacheOnly: !ContentPolicy.isConnected,
+        );
+        if (data != null) {
+          final existingIndex =
+              users.indexWhere((item) => item.userID == myUid);
+          final List<StoryModel> existingStories = existingIndex == -1
+              ? const <StoryModel>[]
+              : users[existingIndex].stories;
           final myUser = StoryUserModel(
-            nickname: data['nickname'] ?? "",
-            pfImage: data['pfImage'] ?? "",
+            nickname: _resolveStoryNickname(data),
+            avatarUrl: _resolveAvatar(data),
             fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
             userID: myUid,
-            stories: [], // Boş hikayelerle başla
+            stories: existingStories,
           );
-          users.add(myUser);
+          if (existingIndex == -1) {
+            users.insert(0, myUser);
+          } else {
+            users[existingIndex] = myUser;
+            if (existingIndex != 0) {
+              users.removeAt(existingIndex);
+              users.insert(0, myUser);
+            }
+          }
+          unawaited(_warmVisibleAvatarFiles(users, take: 6));
         }
       }
     } catch (e) {
-      print("📚 AddMyUserImmediately error: $e");
+      debugPrint("AddMyUserImmediately error: $e");
     }
   }
 
-  void _bindFollowingListener() {
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid == null) return;
-    _followingSub?.cancel();
+  Future<void> _warmVisibleAvatarFiles(
+    Iterable<StoryUserModel> source, {
+    int take = 12,
+  }) async {
+    final urls = source
+        .map((e) => e.avatarUrl.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .take(take)
+        .toList();
+    if (urls.isEmpty) return;
 
-    // ✅ OPTIMIZED: No real-time listener needed
-    // Following list doesn't change frequently
-    // Manual refresh on user action (pull-to-refresh) is sufficient
+    for (final url in urls) {
+      try {
+        await TurqImageCacheManager.instance.getSingleFile(url);
+      } catch (_) {}
+    }
   }
 
-  @override
-  void onClose() {
-    _followingSub?.cancel();
-    super.onClose();
+  Future<void> clearSessionCache() async {
+    final ownerUid = _currentUid;
+    users.clear();
+    _backgroundScheduled = false;
+    if (ownerUid.isEmpty) return;
+    try {
+      await _storyRepository.invalidateStoryCachesForUser(
+        ownerUid,
+        clearDeletedStories: false,
+      );
+    } catch (e) {
+      debugPrint('Story mini cache clear error: $e');
+    }
   }
 
   Future<void> loadStories(
@@ -112,171 +201,49 @@ class StoryRowController extends GetxController {
         return;
       }
       final lim = limit ?? initialLimit;
+      final myUid = _currentUid;
 
-      QuerySnapshot<Map<String, dynamic>> snap;
-      if (cacheFirst) {
-        // Önce cache'ten dene
-        snap = await PerformanceService.traceOperation(
-          'story_load_cache_first',
-          () => FirebaseFirestore.instance
-              .collection("stories")
-              .orderBy("createdAt", descending: true)
-              .limit(lim)
-              .get(const GetOptions(source: Source.cache)),
-        );
-        cacheHit = snap.docs.isNotEmpty;
-
-        // Cache boşsa ağdan çek
-        if (snap.docs.isEmpty) {
-          snap = await PerformanceService.traceOperation(
-            'story_load_network_fallback',
-            () => FirebaseFirestore.instance
-                .collection("stories")
-                .orderBy("createdAt", descending: true)
-                .limit(lim)
-                .get(),
-          );
-        }
-      } else {
-        // Normal ağ isteği
-        snap = await PerformanceService.traceOperation(
-          'story_load_network',
-          () => FirebaseFirestore.instance
-              .collection("stories")
-              .orderBy("createdAt", descending: true)
-              .limit(lim)
-              .get(),
-        );
-      }
-
-      Map<String, List<StoryModel>> userStories = {};
-      final myUid = FirebaseAuth.instance.currentUser?.uid;
-
-      final now = DateTime.now();
-      final expiry = now.subtract(const Duration(hours: 24));
-
-      for (var doc in snap.docs) {
-        try {
-          final data = doc.data();
-          if ((data['deleted'] ?? false) == true) {
-            // Silinmiş hikayeleri listeleme
-            continue;
-          }
-          final story = StoryModel.fromDoc(doc);
-          if (myUid != null && story.userId == myUid) {
-            print(
-                "📚 My story candidate: id=${story.id} createdAt=${story.createdAt.toIso8601String()} deleted=${data['deleted'] ?? false}");
-          }
-          // 24 saatten eski hikayeleri listeye dahil etme
-          if (story.createdAt.isBefore(expiry)) {
-            if (myUid != null && story.userId == myUid) {
-              print(
-                  "📚 My story filtered as expired: id=${story.id} createdAt=${story.createdAt.toIso8601String()} expiry=${expiry.toIso8601String()}");
-            }
-            // Expire olan karşı taraf hikayelerini göstermiyoruz.
-            // Kendi hikayelerimiz için arşivleme/temizlik aşağıda yapılacak.
-            continue;
-          }
-          userStories.putIfAbsent(story.userId, () => []);
-          userStories[story.userId]!.add(story);
-        } catch (e) {
-          print("📚 Error parsing story ${doc.id}: $e");
-          continue;
+      if (myUid.isNotEmpty) {
+        final now = DateTime.now();
+        final shouldCleanup = _lastExpireCleanupAt == null ||
+            now.difference(_lastExpireCleanupAt!) >= _expireCleanupInterval;
+        if (shouldCleanup) {
+          _lastExpireCleanupAt = now;
+          await _storyRepository.markExpiredStoriesDeleted(myUid);
         }
       }
 
-      List<StoryUserModel> tempList = [];
-
-      // Kullanıcı profil verilerini batched whereIn ile çek
-      final userIds = userStories.keys.toList();
-      Map<String, Map<String, dynamic>> userDataMap = {};
-      const chunkSize = 10; // Firestore whereIn max 10
-      for (var i = 0; i < userIds.length; i += chunkSize) {
-        final chunk = userIds.sublist(
-            i, i + chunkSize > userIds.length ? userIds.length : i + chunkSize);
-        final qs = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final d in qs.docs) {
-          userDataMap[d.id] = d.data();
-        }
-      }
-
-      // Takip edilen kullanıcılar (gizli hesap filtresi için)
-      final Set<String> followingIDs = {};
-      if (myUid != null) {
-        final followingSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(myUid)
-            .collection('TakipEdilenler')
-            .get();
-        followingIDs.addAll(followingSnap.docs.map((d) => d.id));
-      }
-
-      for (var entry in userStories.entries) {
-        final userId = entry.key;
-        // Newest-to-oldest within a user's stories
-        final stories = [...entry.value]
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        final data = userDataMap[userId];
-        if (data == null) continue;
-
-        // Gizlilik filtresi: gizli hesapsa sadece ben veya takip ettiğim kullanıcılar
-        final isPrivate = (data['gizliHesap'] ?? false) == true;
-        final isMine = myUid != null && userId == myUid;
-        final iFollow = followingIDs.contains(userId);
-        if (isPrivate && !isMine && !iFollow) {
-          if (isMine) {
-            print("📚 My story user unexpectedly filtered as private");
-          }
-          continue;
-        }
-
-        // Engellediklerimi gösterme
-        if (userStore.blockedUsers.contains(userId)) {
-          if (isMine) {
-            print("📚 My story user unexpectedly filtered as blocked");
-          }
-          continue;
-        }
-        final userModel = StoryUserModel(
-          nickname: data['nickname'] ?? "",
-          pfImage: data['pfImage'] ?? "",
-          fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
-          userID: userId,
-          stories: stories,
-        );
-        tempList.add(userModel);
-        if (isMine) {
-          print(
-              "📚 My story user added to row with ${stories.length} active stories");
-        }
-      }
+      final result = await _storyRepository.fetchStoryUsers(
+        limit: lim,
+        cacheFirst: cacheFirst,
+        currentUid: myUid,
+        blockedUserIds: userService.blockedUserIds,
+      );
+      cacheHit = result.cacheHit;
+      final tempList = [...result.users];
 
       // Önce kendi kullanıcını oluştur/çek
       StoryUserModel? myStoryUser;
 
-      if (myUid != null) {
+      if (myUid.isNotEmpty) {
         // Story'si varsa model tempList'te olacak
         myStoryUser = tempList.firstWhereOrNull((u) => u.userID == myUid);
 
         // Eğer kendi kullanıcının hiç story'si yoksa yine de başa ekle!
         if (myStoryUser == null) {
-          final userSnap = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(myUid)
-              .get();
-          if (userSnap.exists) {
-            final data = userSnap.data()!;
+          final data = await _userCache.getProfile(
+            myUid,
+            preferCache: true,
+            cacheOnly: !ContentPolicy.isConnected,
+          );
+          if (data != null) {
             myStoryUser = StoryUserModel(
-              nickname: data['nickname'] ?? "",
-              pfImage: data['pfImage'] ?? "",
+              nickname: _resolveStoryNickname(data),
+              avatarUrl: _resolveAvatar(data),
               fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
               userID: myUid,
               stories: [], // Burada boş!
             );
-            print("📚 My story user fallback added with 0 stories");
           }
         }
 
@@ -288,13 +255,11 @@ class StoryRowController extends GetxController {
       bool allSeen(StoryUserModel u) {
         if (u.stories.isEmpty) return true; // boşsa seen kabul
 
-        // REACTIVE: userStore.readStories'ı dinle
-        if (!userStore.readStories.contains(u.userID)) {
+        if (!userService.hasReadStory(u.userID)) {
           return false; // Hiç okunmamışsa
         }
 
-        // REACTIVE: userStore.readStoriesTimes'ı dinle
-        final lastSeen = userStore.readStoriesTimes[u.userID];
+        final lastSeen = userService.getStoryReadTime(u.userID);
         if (lastSeen == null) return false;
 
         // Tüm hikayelerin zamanını kontrol et
@@ -321,23 +286,25 @@ class StoryRowController extends GetxController {
         ...unseen,
         ...seen,
       ];
-      if (myUid != null) {
+      unawaited(_warmVisibleAvatarFiles(users));
+      if (kDebugMode && myUid.isNotEmpty) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
-        print(
-            "📚 Story row final self state: exists=${me != null} stories=${me?.stories.length ?? 0}");
+        debugPrint(
+            "Story row self state: exists=${me != null} stories=${me?.stories.length ?? 0}");
       }
-      unawaited(_saveStoriesToMiniCache(users));
-
-      // Kendi süresi dolmuş hikayelerini arşivle ve kaldır
-      if (myUid != null) {
-        await _archiveAndRemoveExpiredMyStories(myUid);
+      if (myUid.isNotEmpty) {
+        unawaited(
+          _storyRepository.saveStoryRowCache(users, ownerUid: myUid),
+        );
+        SilentRefreshGate.markRefreshed('story:row:$myUid');
       }
     } catch (e) {
-      print("📚 LoadStories error: $e");
+      debugPrint("LoadStories error: $e");
       if (users.isEmpty) {
-        await _loadStoriesFromMiniCache(allowExpired: true);
+        await _loadStoriesFromMiniCache();
       }
     } finally {
+      _ensureMyUserPlaceholder();
       loadWatch.stop();
       if (cacheFirst) {
         unawaited(UserAnalyticsService.instance.trackCachePerformance(
@@ -351,67 +318,20 @@ class StoryRowController extends GetxController {
     }
   }
 
-  Future<void> _initMiniCache() async {
-    try {
-      final dir = await getApplicationSupportDirectory();
-      final storyDir = Directory('${dir.path}/story_mini_cache');
-      if (!await storyDir.exists()) {
-        await storyDir.create(recursive: true);
-      }
-      _miniCachePath = '${storyDir.path}/story_row.json';
-    } catch (e) {
-      print('Story mini cache init error: $e');
-    }
-  }
-
-  Future<void> _saveStoriesToMiniCache(List<StoryUserModel> list) async {
-    if (list.isEmpty) return;
-    if (_miniCachePath == null) await _initMiniCache();
-    final path = _miniCachePath;
-    if (path == null) return;
-    try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final payload = {
-        'savedAt': now,
-        'users': list.map((u) => u.toCacheMap()).toList(),
-      };
-      final file = File(path);
-      final tmp = File('$path.tmp');
-      await tmp.writeAsString(jsonEncode(payload), flush: true);
-      await tmp.rename(file.path);
-    } catch (e) {
-      print('Story mini cache save error: $e');
-    }
-  }
-
   Future<void> _loadStoriesFromMiniCache({bool allowExpired = false}) async {
-    if (_miniCachePath == null) await _initMiniCache();
-    final path = _miniCachePath;
-    if (path == null) return;
     try {
-      final file = File(path);
-      if (!await file.exists()) return;
-      final raw = await file.readAsString();
-      if (raw.trim().isEmpty) return;
-      final data = jsonDecode(raw);
-      if (data is! Map) return;
-      final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
-      if (!allowExpired && savedAt > 0) {
-        final age = DateTime.now()
-            .difference(DateTime.fromMillisecondsSinceEpoch(savedAt));
-        if (age > _miniCacheTtl) return;
-      }
-      final usersJson =
-          (data['users'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-      final loaded = usersJson
-          .map(StoryUserModel.fromCacheMap)
-          .where((u) => u.userID.isNotEmpty)
-          .toList();
+      final expectedUid = userService.effectiveUserId;
+      final loaded = await _storyRepository.restoreStoryRowCache(
+        ownerUid: expectedUid,
+        allowExpired: allowExpired,
+      );
       if (loaded.isNotEmpty) {
         users.assignAll(loaded);
+        unawaited(_warmVisibleAvatarFiles(loaded));
       }
+      _ensureMyUserPlaceholder();
     } catch (e) {
-      print('Story mini cache load error: $e');
+      debugPrint('Story mini cache load error: $e');
     }
   }
 
@@ -428,38 +348,5 @@ class StoryRowController extends GetxController {
       } catch (_) {}
       _backgroundScheduled = false;
     });
-  }
-
-  Future<void> _archiveAndRemoveExpiredMyStories(String myUid) async {
-    try {
-      final now = DateTime.now();
-      final expiry = now.subtract(const Duration(hours: 24));
-
-      final expiredSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: myUid)
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      for (final doc in expiredSnap.docs) {
-        try {
-          final model = StoryModel.fromDoc(doc);
-          if (model.createdAt.isAfter(expiry)) continue;
-          // Archiving/removal yerine sadece deleted:true işaretle
-          await FirebaseFirestore.instance
-              .collection('stories')
-              .doc(model.id)
-              .update({
-            'deleted': true,
-            'deletedAt': DateTime.now().millisecondsSinceEpoch,
-            'deleteReason': 'expired'
-          });
-        } catch (e) {
-          print('Archive expired story error: $e');
-        }
-      }
-    } catch (e) {
-      print('archiveAndRemoveExpiredMyStories error: $e');
-    }
   }
 }

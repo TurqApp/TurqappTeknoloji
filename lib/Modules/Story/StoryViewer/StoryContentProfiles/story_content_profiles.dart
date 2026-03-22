@@ -1,29 +1,72 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'story_content_profile_controller.dart';
 
-class StoryContentProfiles extends StatelessWidget {
+class StoryContentProfiles extends StatefulWidget {
   final String userID;
 
-  StoryContentProfiles({super.key, required this.userID});
+  const StoryContentProfiles({super.key, required this.userID});
+
+  @override
+  State<StoryContentProfiles> createState() => _StoryContentProfilesState();
+}
+
+class _StoryContentProfilesState extends State<StoryContentProfiles> {
+  late final StoryContentProfileController controller;
+  late final String _controllerTag;
+  late final bool _ownsController;
+
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'story_content_profile_${widget.userID}_${identityHashCode(this)}';
+    final existingController =
+        StoryContentProfileController.maybeFind(tag: _controllerTag);
+    if (existingController != null) {
+      controller = existingController;
+      _ownsController = false;
+    } else {
+      controller = StoryContentProfileController.ensure(
+        tag: _controllerTag,
+      );
+      _ownsController = true;
+    }
+    controller.getUserData(widget.userID);
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController &&
+        identical(
+          StoryContentProfileController.maybeFind(tag: _controllerTag),
+          controller,
+        )) {
+      Get.delete<StoryContentProfileController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(StoryContentProfileController(), tag: userID);
-    controller.getUserData(userID);
     return Obx(() {
       return Column(
         children: [
           GestureDetector(
             onTap: () {
-              if (userID != FirebaseAuth.instance.currentUser!.uid) {
-                Get.to(() => SocialProfile(userID: userID));
+              if (widget.userID != _currentUserId) {
+                Get.to(() => SocialProfile(userID: widget.userID));
               }
             },
             child: Container(
@@ -37,9 +80,9 @@ class StoryContentProfiles extends StatelessWidget {
                       child: SizedBox(
                         width: 40,
                         height: 40,
-                        child: controller.pfImage.value != ""
+                        child: controller.avatarUrl.value != ""
                             ? CachedNetworkImage(
-                                imageUrl: controller.pfImage.value,
+                                imageUrl: controller.avatarUrl.value,
                                 fit: BoxFit.cover,
                               )
                             : Center(
@@ -65,7 +108,7 @@ class StoryContentProfiles extends StatelessWidget {
                                     fontSize: 15,
                                     fontFamily: "MontserratMedium"),
                               ),
-                              RozetContent(size: 13, userID: userID)
+                              RozetContent(size: 13, userID: widget.userID)
                             ],
                           ),
                           Text(
