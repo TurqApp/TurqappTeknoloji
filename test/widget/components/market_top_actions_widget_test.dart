@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Modules/Education/widgets/market_top_action_button.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -15,29 +16,6 @@ class _MarketTopActionsHarness extends StatefulWidget {
 class _MarketTopActionsHarnessState extends State<_MarketTopActionsHarness> {
   bool _isGridMode = true;
   String _lastSheet = 'none';
-
-  Widget _actionButton({
-    required String keyValue,
-    required IconData icon,
-    required VoidCallback onTap,
-    bool active = false,
-  }) {
-    return GestureDetector(
-      key: ValueKey<String>(keyValue),
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: active ? Colors.pink.withValues(alpha: 0.12) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black12),
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon),
-      ),
-    );
-  }
 
   Future<void> _openSheet(BuildContext context, String name) async {
     setState(() {
@@ -60,8 +38,8 @@ class _MarketTopActionsHarnessState extends State<_MarketTopActionsHarness> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _actionButton(
-                keyValue: IntegrationTestKeys.marketTopActionViewMode,
+              MarketTopActionButton(
+                semanticsLabel: IntegrationTestKeys.marketTopActionViewMode,
                 icon: _isGridMode
                     ? Icons.grid_view_rounded
                     : Icons.view_agenda_outlined,
@@ -72,14 +50,14 @@ class _MarketTopActionsHarnessState extends State<_MarketTopActionsHarness> {
                 },
               ),
               const SizedBox(width: 8),
-              _actionButton(
-                keyValue: IntegrationTestKeys.marketTopActionSort,
+              MarketTopActionButton(
+                semanticsLabel: IntegrationTestKeys.marketTopActionSort,
                 icon: Icons.swap_vert_rounded,
                 onTap: () => _openSheet(context, 'sort'),
               ),
               const SizedBox(width: 8),
-              _actionButton(
-                keyValue: IntegrationTestKeys.marketTopActionFilter,
+              MarketTopActionButton(
+                semanticsLabel: IntegrationTestKeys.marketTopActionFilter,
                 icon: Icons.filter_alt_outlined,
                 active: _lastSheet == 'filter',
                 onTap: () => _openSheet(context, 'filter'),
@@ -95,7 +73,9 @@ class _MarketTopActionsHarnessState extends State<_MarketTopActionsHarness> {
 }
 
 void main() {
-  testWidgets('all market top action keys are rendered', (tester) async {
+  testWidgets('all market top action keys are rendered by production widget', (
+    tester,
+  ) async {
     await pumpApp(tester, const _MarketTopActionsHarness());
 
     expect(
@@ -134,9 +114,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('sheet=sort'), findsOneWidget);
 
-    Navigator.of(
-      tester.element(find.text('sheet=sort')),
-    ).pop();
+    Navigator.of(tester.element(find.text('sheet=sort'))).pop();
     await tester.pumpAndSettle();
 
     await tester.tap(

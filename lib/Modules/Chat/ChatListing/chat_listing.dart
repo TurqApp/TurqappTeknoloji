@@ -11,6 +11,7 @@ import 'package:turqappv2/Modules/Chat/ChatListingContent/chat_listing_content.d
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+import 'chat_search_field.dart';
 import 'chat_listing_controller.dart';
 
 class ChatListing extends StatefulWidget {
@@ -128,38 +129,8 @@ class _ChatListingState extends State<ChatListing> {
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Container(
-                height: 40,
-                alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF2F4F5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TextField(
-                    key: const ValueKey(IntegrationTestKeys.inputChatSearch),
-                    controller: controller.search,
-                    decoration: InputDecoration(
-                      hintText: 'common.search'.tr,
-                      hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontFamily: "MontserratMedium",
-                      ),
-                      border: InputBorder.none,
-                      icon: Icon(
-                        CupertinoIcons.search,
-                        color: Colors.grey,
-                        size: 18,
-                      ),
-                    ),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
-                    ),
-                  ),
-                ),
+              child: ChatSearchField(
+                controller: controller.search,
               ),
             ),
             const SizedBox(height: 10),

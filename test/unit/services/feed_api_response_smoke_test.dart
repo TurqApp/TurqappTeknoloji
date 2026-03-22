@@ -9,6 +9,7 @@ import '../../helpers/feed_api_smoke_support.dart';
 class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
+  final feedUri = Uri.parse('https://api.example.com/feed');
   late MockHttpClient client;
   late FeedApiSmokeService api;
 
@@ -16,14 +17,14 @@ void main() {
     client = MockHttpClient();
     api = FeedApiSmokeService(
       client: client,
-      uri: Uri.parse('https://api.example.com/feed'),
+      uri: feedUri,
     );
   });
 
   test('SMOKE - Feed response structure', () async {
     when(
       client.get(
-        any,
+        feedUri,
         headers: anyNamed('headers'),
       ),
     ).thenAnswer(
@@ -51,7 +52,7 @@ void main() {
   test('SMOKE - Feed request sends basic accept header', () async {
     when(
       client.get(
-        any,
+        feedUri,
         headers: anyNamed('headers'),
       ),
     ).thenAnswer(
@@ -74,7 +75,7 @@ void main() {
   test('SMOKE - Feed rejects non-200 status', () async {
     when(
       client.get(
-        any,
+        feedUri,
         headers: anyNamed('headers'),
       ),
     ).thenAnswer((_) async => http.Response('{"error":"bad"}', 500));
@@ -88,7 +89,7 @@ void main() {
   test('SMOKE - Feed rejects empty items list', () async {
     when(
       client.get(
-        any,
+        feedUri,
         headers: anyNamed('headers'),
       ),
     ).thenAnswer((_) async => http.Response('{"items":[]}', 200));
@@ -102,7 +103,7 @@ void main() {
   test('SMOKE - Feed rejects missing required video field', () async {
     when(
       client.get(
-        any,
+        feedUri,
         headers: anyNamed('headers'),
       ),
     ).thenAnswer(

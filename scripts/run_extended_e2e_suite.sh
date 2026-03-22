@@ -4,19 +4,19 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-source "scripts/test_suite_manifest.sh"
-
 if [[ -f ".env.integration.local" ]]; then
   set -a
   source ".env.integration.local"
   set +a
 fi
 
+source "scripts/test_suite_manifest.sh"
+
 : "${INTEGRATION_LOGIN_EMAIL:?set INTEGRATION_LOGIN_EMAIL}"
 : "${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
 
 DEVICE_ID="${INTEGRATION_SMOKE_DEVICE_ID:-192.168.1.196:5555}"
-MANIFEST="config/test_suites/turqapp_test_smoke.txt"
+MANIFEST="config/test_suites/extended_smoke.txt"
 
 mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
 
@@ -33,11 +33,12 @@ COMMON_ARGS=(
   "${DEVICE_ID}"
 )
 
-echo "[turqapp-test] device=${DEVICE_ID}"
-echo "[turqapp-test] manifest=${MANIFEST} count=${#suite_tests[@]}"
+echo "[extended-e2e] device=${DEVICE_ID}"
+echo "[extended-e2e] manifest=${MANIFEST} count=${#suite_tests[@]}"
+
 for test_file in "${suite_tests[@]}"; do
-  echo "[turqapp-test] suite=$(basename "$test_file" .dart)"
+  echo "[extended-e2e] running $(basename "$test_file")"
   flutter "${COMMON_ARGS[@]}" "$test_file"
 done
 
-echo "[turqapp-test] all suites passed"
+echo "[extended-e2e] all suites passed"

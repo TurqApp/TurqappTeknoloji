@@ -33,7 +33,7 @@ void main() {
 
   test('market top actions use real widget keys, not semantics only', () {
     final source =
-        _read('lib/Modules/Education/education_view_actions_part.dart');
+        _read('lib/Modules/Education/widgets/market_top_action_button.dart');
 
     expect(
       source,

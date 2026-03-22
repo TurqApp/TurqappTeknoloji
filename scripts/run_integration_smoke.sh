@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+source "scripts/test_suite_manifest.sh"
+
 if [[ -f ".env.integration.local" ]]; then
   set -a
   source ".env.integration.local"
@@ -43,21 +45,8 @@ if [[ "$allow_stored_auth" != "1" ]]; then
   fi
 fi
 
-declare -a smoke_tests=(
-  "integration_test/feed/feed_resume_test.dart"
-  "integration_test/explore/explore_preview_gate_test.dart"
-  "integration_test/profile/profile_resume_test.dart"
-  "integration_test/shorts/short_refresh_preserve_test.dart"
-  "integration_test/notifications/notifications_snapshot_mutation_test.dart"
-)
-
-declare -a smoke_artifacts=(
-  "$artifact_dir/feed_resume.json"
-  "$artifact_dir/explore_preview_gate.json"
-  "$artifact_dir/profile_resume.json"
-  "$artifact_dir/short_refresh_preserve.json"
-  "$artifact_dir/notifications_snapshot_mutation.json"
-)
+SMOKE_MANIFEST="config/test_suites/integration_smoke.tsv"
+mapfile -t smoke_entries < <(load_suite_pairs "$SMOKE_MANIFEST")
 
 declare -a flutter_args=(
   "test"
@@ -161,7 +150,8 @@ if [[ -n "$device_id" ]]; then
   echo "[integration-smoke] target device: $device_id"
 fi
 
-echo "[integration-smoke] running ${#smoke_tests[@]} smoke tests"
+echo "[integration-smoke] manifest: $SMOKE_MANIFEST"
+echo "[integration-smoke] running ${#smoke_entries[@]} smoke tests"
 smoke_status=0
 
 is_android_package_installed() {
@@ -197,9 +187,10 @@ pull_android_artifact() {
   fi
 }
 
-for index in "${!smoke_tests[@]}"; do
-  test_file="${smoke_tests[$index]}"
-  artifact="${smoke_artifacts[$index]}"
+smoke_artifacts=()
+for entry in "${smoke_entries[@]}"; do
+  IFS='|' read -r test_file artifact <<<"$entry"
+  smoke_artifacts+=("$artifact")
   scenario_name="$(scenario_name_for_artifact "$artifact")"
   echo "[integration-smoke] running $(basename "$test_file")"
   set +e

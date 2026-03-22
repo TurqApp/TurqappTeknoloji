@@ -12,7 +12,7 @@ void main() {
   });
 
   test('Login success', () async {
-    when(api.login(any, any)).thenAnswer(
+    when(api.login('test', '123')).thenAnswer(
       (_) async => http.Response('OK', 200),
     );
 

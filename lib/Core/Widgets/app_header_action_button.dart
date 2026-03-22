@@ -9,6 +9,7 @@ class AppHeaderActionButton extends StatelessWidget {
     required this.child,
     this.onTap,
     this.showBadge = false,
+    this.badgeKey,
     this.badgeColor = const Color(0xFF00C853),
     this.size = AppIconSurface.kSize,
     this.opacity = 1,
@@ -18,6 +19,7 @@ class AppHeaderActionButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
   final bool showBadge;
+  final Key? badgeKey;
   final Color badgeColor;
   final double size;
   final double opacity;
@@ -36,6 +38,7 @@ class AppHeaderActionButton extends StatelessWidget {
             child,
             if (showBadge)
               Positioned(
+                key: badgeKey,
                 right: -2,
                 top: -2,
                 child: Container(

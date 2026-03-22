@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,6 +11,7 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dar
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
 
 import 'in_app_notifications_controller.dart';
+import 'notification_actions_sheet_content.dart';
 
 class InAppNotifications extends StatefulWidget {
   const InAppNotifications({super.key});
@@ -141,104 +140,22 @@ class _InAppNotificationsState extends State<InAppNotifications> {
         return SafeArea(
           top: false,
           child: Obx(() {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(215),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 46,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.black12,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _actionTile(
-                          icon: Icons.mark_email_read_outlined,
-                          title: controller.busyMarkAllRead.value
-                              ? "notifications.marking_read".tr
-                              : "notifications.mark_all_read".tr,
-                          integrationKey: IntegrationTestKeys
-                              .actionNotificationsMarkAllRead,
-                          enabled: controller.unreadCount > 0 &&
-                              !controller.busyMarkAllRead.value,
-                          onTap: () {
-                            Navigator.of(ctx).pop();
-                            controller.markAllAsRead();
-                          },
-                        ),
-                        Divider(height: 1, color: Colors.black.withAlpha(18)),
-                        _actionTile(
-                          icon: Icons.delete_outline,
-                          title: "notifications.delete_all".tr,
-                          integrationKey:
-                              IntegrationTestKeys.actionNotificationsDeleteAll,
-                          isDestructive: true,
-                          onTap: () {
-                            Navigator.of(ctx).pop();
-                            controller.list.clear();
-                            controller.bildirimleriTopluSil();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            return NotificationActionsSheetContent(
+              unreadCount: controller.unreadCount,
+              busyMarkAllRead: controller.busyMarkAllRead.value,
+              onMarkAllRead: () {
+                Navigator.of(ctx).pop();
+                controller.markAllAsRead();
+              },
+              onDeleteAll: () {
+                Navigator.of(ctx).pop();
+                controller.list.clear();
+                controller.bildirimleriTopluSil();
+              },
             );
           }),
         );
       },
-    );
-  }
-
-  Widget _actionTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    String? integrationKey,
-    bool enabled = true,
-    bool isDestructive = false,
-  }) {
-    final textColor = !enabled
-        ? Colors.black38
-        : (isDestructive ? Colors.redAccent : Colors.black87);
-    return InkWell(
-      key: integrationKey == null ? null : ValueKey(integrationKey),
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-        child: Row(
-          children: [
-            Icon(icon, color: textColor, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Modules/InAppNotifications/notification_actions_sheet_content.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -35,40 +36,24 @@ class _NotificationsMenuHarnessState extends State<_NotificationsMenuHarness> {
     return showModalBottomSheet<void>(
       context: context,
       builder: (_) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              key: const ValueKey(
-                IntegrationTestKeys.actionNotificationsMarkAllRead,
-              ),
-              enabled: _unreadCount > 0,
-              onTap: _unreadCount == 0
-                  ? null
-                  : () {
-                      setState(() {
-                        _markAllReadCalls += 1;
-                        _unreadCount = 0;
-                      });
-                      Navigator.of(context).pop();
-                    },
-              title: const Text('Mark all read'),
-            ),
-            ListTile(
-              key: const ValueKey(
-                IntegrationTestKeys.actionNotificationsDeleteAll,
-              ),
-              onTap: () {
-                setState(() {
-                  _deleteAllCalls += 1;
-                  _notificationCount = 0;
-                  _unreadCount = 0;
-                });
-                Navigator.of(context).pop();
-              },
-              title: const Text('Delete all'),
-            ),
-          ],
+        return NotificationActionsSheetContent(
+          unreadCount: _unreadCount,
+          busyMarkAllRead: false,
+          onMarkAllRead: () {
+            setState(() {
+              _markAllReadCalls += 1;
+              _unreadCount = 0;
+            });
+            Navigator.of(context).pop();
+          },
+          onDeleteAll: () {
+            setState(() {
+              _deleteAllCalls += 1;
+              _notificationCount = 0;
+              _unreadCount = 0;
+            });
+            Navigator.of(context).pop();
+          },
         );
       },
     );
@@ -110,7 +95,7 @@ void main() {
     );
   });
 
-  testWidgets('more action opens notification menu with both actions', (
+  testWidgets('more action opens production notification action menu', (
     tester,
   ) async {
     await pumpApp(tester, const _NotificationsMenuHarness());
@@ -145,12 +130,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final markAll = tester.widget<ListTile>(
+    final markAll = tester.widget<InkWell>(
       find.byKey(
         const ValueKey(IntegrationTestKeys.actionNotificationsMarkAllRead),
       ),
     );
-    expect(markAll.enabled, isFalse);
+    expect(markAll.onTap, isNull);
 
     await tester.tap(
       find.byKey(

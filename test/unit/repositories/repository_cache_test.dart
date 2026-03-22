@@ -38,7 +38,7 @@ void main() {
 
   test('Fetch from API and cache', () async {
     when(api.getData()).thenAnswer((_) async => 'DATA');
-    when(storage.save(any)).thenAnswer((_) async {});
+    when(storage.save('DATA')).thenAnswer((_) async {});
 
     final result = await repo.getData();
 

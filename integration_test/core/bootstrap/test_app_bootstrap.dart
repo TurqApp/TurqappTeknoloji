@@ -20,6 +20,13 @@ const String kIntegrationLoginPassword =
 
 AccountSessionCredential? _cachedIntegrationCredential;
 
+String _redactEmail(String email) {
+  final normalized = email.trim();
+  final atIndex = normalized.indexOf('@');
+  if (atIndex <= 1) return '<redacted>';
+  return '${normalized.substring(0, 1)}***${normalized.substring(atIndex)}';
+}
+
 IntegrationTestWidgetsFlutterBinding ensureIntegrationBinding() {
   Get.testMode = true;
   return IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -94,7 +101,8 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
 
   try {
     debugPrint(
-        '[integration-smoke] auth: sign-in start for ${credentials.email}');
+      '[integration-smoke] auth: sign-in start for ${_redactEmail(credentials.email)}',
+    );
     await FirebaseAuth.instance.signInWithEmailAndPassword(
       email: credentials.email,
       password: credentials.password,
@@ -106,7 +114,7 @@ Future<void> ensureSignedInForSmoke(WidgetTester tester) async {
     debugPrint('[integration-smoke] auth: sign-in success');
   } on FirebaseAuthException catch (error) {
     throw TestFailure(
-      'Integration smoke sign-in failed for ${credentials.email}: ${error.code}',
+      'Integration smoke sign-in failed for ${_redactEmail(credentials.email)}: ${error.code}',
     );
   }
 

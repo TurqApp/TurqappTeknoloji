@@ -46,6 +46,7 @@ class AuthApiService {
 }
 
 void main() {
+  final loginUri = Uri.parse('https://api.example.com/login');
   late MockHttpClient client;
   late AuthApiService service;
 
@@ -60,7 +61,7 @@ void main() {
   test('returns parsed JSON on 200', () async {
     when(
       client.post(
-        any,
+        loginUri,
         headers: anyNamed('headers'),
         body: anyNamed('body'),
       ),
@@ -74,7 +75,7 @@ void main() {
   test('throws on non-200 responses', () async {
     when(
       client.post(
-        any,
+        loginUri,
         headers: anyNamed('headers'),
         body: anyNamed('body'),
       ),
@@ -89,7 +90,7 @@ void main() {
   test('throws on timeout', () async {
     when(
       client.post(
-        any,
+        loginUri,
         headers: anyNamed('headers'),
         body: anyNamed('body'),
       ),
@@ -106,7 +107,7 @@ void main() {
   test('throws on invalid JSON body', () async {
     when(
       client.post(
-        any,
+        loginUri,
         headers: anyNamed('headers'),
         body: anyNamed('body'),
       ),
@@ -121,7 +122,7 @@ void main() {
   test('sends expected request payload and headers', () async {
     when(
       client.post(
-        any,
+        loginUri,
         headers: anyNamed('headers'),
         body: anyNamed('body'),
       ),

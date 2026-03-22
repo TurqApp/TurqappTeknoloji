@@ -1,15 +1,13 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+
+import 'comment_composer_bar.dart';
 
 class PostComments extends StatefulWidget {
   final String postID;
@@ -238,238 +236,40 @@ class _PostCommentsState extends State<PostComments> {
       left: 0,
       right: 0,
       bottom: 14,
-      child: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(50)),
-              child: SizedBox(
-                width: 28,
-                height: 28,
-                child: user.avatarUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: user.avatarUrl,
-                        fit: BoxFit.cover,
-                      )
-                    : const Icon(
-                        CupertinoIcons.person_fill,
-                        color: Colors.black54,
-                        size: 14,
-                      ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Obx(() {
-                    if (controller.replyingToCommentId.value.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 4, bottom: 4),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'comments.replying_to'.trParams({
-                                'nickname': controller.replyingToNickname.value,
-                              }),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontFamily: "MontserratMedium",
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            key: const ValueKey(
-                              IntegrationTestKeys.actionCommentClearReply,
-                            ),
-                            onTap: () {
-                              controller.clearReplyTarget();
-                              textEditingController.clear();
-                              setState(() {});
-                            },
-                            child: const Icon(
-                              CupertinoIcons.xmark_circle_fill,
-                              size: 14,
-                              color: Colors.black38,
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                  }),
-                  Obx(() {
-                    final gifUrl = controller.selectedGifUrl.value.trim();
-                    if (gifUrl.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 4, bottom: 6),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: gifUrl,
-                              cacheManager: TurqImageCacheManager.instance,
-                              width: 76,
-                              height: 76,
-                              fit: BoxFit.cover,
-                              fadeInDuration: Duration.zero,
-                              fadeOutDuration: Duration.zero,
-                              placeholderFadeInDuration: Duration.zero,
-                              placeholder: (context, _) => Container(
-                                width: 76,
-                                height: 76,
-                                color: const Color(0xFFF5F6F8),
-                                child: const Center(
-                                  child: CupertinoActivityIndicator(),
-                                ),
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                width: 76,
-                                height: 76,
-                                color: const Color(0xFFF5F6F8),
-                                child: const Icon(
-                                  CupertinoIcons.exclamationmark_triangle,
-                                  color: Colors.black38,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: controller.clearSelectedGif,
-                              child: Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.55),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  CupertinoIcons.xmark,
-                                  color: Colors.white,
-                                  size: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F6F8),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 62),
-                      child: TextField(
-                        key: const ValueKey(IntegrationTestKeys.inputComment),
-                        controller: textEditingController,
-                        focusNode: focusNode,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        inputFormatters: [
-                          LengthLimitingTextInputFormatter(280)
-                        ],
-                        decoration: InputDecoration(
-                          hintText: 'comments.input_hint'.tr,
-                          hintStyle: const TextStyle(
-                            color: Colors.black45,
-                            fontFamily: "MontserratMedium",
-                            fontSize: 13,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: "MontserratMedium",
-                          height: 1.35,
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              key: const ValueKey(IntegrationTestKeys.actionCommentGifPicker),
-              onTap: () async {
-                await controller.pickGif(context);
-                if (mounted) {
-                  setState(() {});
-                }
+      child: Obx(
+        () => CommentComposerBar(
+          avatarUrl: user.avatarUrl,
+          textController: textEditingController,
+          focusNode: focusNode,
+          replyingToNickname: controller.replyingToNickname.value,
+          selectedGifUrl: controller.selectedGifUrl.value.trim(),
+          onTextChanged: (_) => setState(() {}),
+          onClearReply: () {
+            controller.clearReplyTarget();
+            textEditingController.clear();
+            setState(() {});
+          },
+          onPickGif: () async {
+            await controller.pickGif(context);
+            if (mounted) {
+              setState(() {});
+            }
+          },
+          onClearGif: () {
+            controller.clearSelectedGif();
+            setState(() {});
+          },
+          onSend: () {
+            controller.yorumYap(
+              context,
+              textEditingController.text,
+              onComplete: () {
+                textEditingController.clear();
+                setState(() {});
               },
-              child: Container(
-                width: 34,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black26),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  "chat.gif".tr,
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 10,
-                    fontFamily: AppFontFamilies.mbold,
-                  ),
-                ),
-              ),
-            ),
-            if (textEditingController.text.isNotEmpty ||
-                controller.selectedGifUrl.value.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: GestureDetector(
-                  key: const ValueKey(IntegrationTestKeys.actionCommentSend),
-                  onTap: () {
-                    controller.yorumYap(
-                      context,
-                      textEditingController.text,
-                      onComplete: () {
-                        textEditingController.clear();
-                        setState(() {});
-                      },
-                    );
-                    setState(() {});
-                  },
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: const Icon(
-                      Icons.send,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
-                ),
-              ),
-          ],
+            );
+            setState(() {});
+          },
         ),
       ),
     );

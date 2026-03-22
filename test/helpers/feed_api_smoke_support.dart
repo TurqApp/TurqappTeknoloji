@@ -62,8 +62,7 @@ class FeedApiSmokeService {
 
     final firstItem = Map<String, dynamic>.from(first);
     final videoValue = firstItem[videoFieldKey];
-    if (videoValue == null ||
-        (videoValue is String && videoValue.trim().isEmpty)) {
+    if (videoValue is! String || videoValue.trim().isEmpty) {
       throw StateError('Feed item is missing required "$videoFieldKey".');
     }
 

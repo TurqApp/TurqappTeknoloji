@@ -40,6 +40,15 @@ jobs:
       - name: Unit + Widget tests
         run: flutter test --coverage
 
+      - name: Enforce Coverage Floor
+        run: bash scripts/check_flutter_coverage.sh
+
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-lcov
+          path: coverage/lcov.info
+
   functions-tests:
     name: Functions Build + Unit
     runs-on: ubuntu-latest
