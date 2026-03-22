@@ -7,7 +7,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
-import 'package:turqappv2/Core/Functions.dart';
+import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/posts_model.dart';
