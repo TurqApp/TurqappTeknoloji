@@ -1,6 +1,6 @@
 // ignore_for_file: file_names
 
-part of 'package:turqappv2/Modules/Profile/Settings/Settings.dart';
+part of 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 
 extension _SettingsViewSectionsPart on _SettingsViewState {
   List<Widget> _buildPrimarySections() {
