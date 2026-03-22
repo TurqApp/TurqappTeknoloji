@@ -74,28 +74,49 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
+      - name: Check integration smoke secrets
+        id: integration-secrets
+        shell: bash
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [[ -n "${INTEGRATION_LOGIN_EMAIL}" && -n "${INTEGRATION_LOGIN_PASSWORD}" && -n "${FIREBASE_SERVICE_ACCOUNT_JSON}" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Android integration smoke secrets are missing; skipping emulator smoke lane."
+          fi
+
       - name: Install Functions deps for seed automation
+        if: steps.integration-secrets.outputs.available == 'true'
         run: |
           cd functions
           npm ci
 
       - name: Run Android integration smoke on emulator
+        if: steps.integration-secrets.outputs.available == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
           profile: pixel_7
           script: |
-            INTEGRATION_SMOKE_DEVICE_ID=emulator-5554 \
-            INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}" \
-            INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
-            INTEGRATION_AUTO_SEED=1 \
-            INTEGRATION_REQUIRE_SEED=1 \
-            FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
+            export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
+            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
+            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
+            export INTEGRATION_AUTO_SEED=1
+            export INTEGRATION_REQUIRE_SEED=1
+            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_turqapp_test_smoke.sh
 
+      - name: Skip Android integration smoke without secrets
+        if: steps.integration-secrets.outputs.available != 'true'
+        run: echo "Android integration smoke skipped because required secrets are not configured."
+
       - name: Upload integration smoke artifacts
-        if: always()
+        if: always() && steps.integration-secrets.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: integration-smoke-artifacts
@@ -122,17 +143,35 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
+      - name: Check integration smoke secrets
+        id: integration-secrets
+        shell: bash
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [[ -n "${INTEGRATION_LOGIN_EMAIL}" && -n "${INTEGRATION_LOGIN_PASSWORD}" && -n "${FIREBASE_SERVICE_ACCOUNT_JSON}" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "iOS integration smoke secrets are missing; skipping simulator smoke lane."
+          fi
+
       - name: Install Functions deps for seed automation
+        if: steps.integration-secrets.outputs.available == 'true'
         run: |
           cd functions
           npm ci
 
       - name: Install CocoaPods deps
+        if: steps.integration-secrets.outputs.available == 'true'
         run: |
           cd ios
           pod install
 
       - name: Boot iOS simulator
+        if: steps.integration-secrets.outputs.available == 'true'
         run: |
           SIM_UDID="$(xcrun simctl list devices available | awk -v name="$IOS_SIMULATOR_NAME" -F '[()]' '$0 ~ name {print $2; exit}')"
           if [[ -z "$SIM_UDID" ]]; then
@@ -145,6 +184,7 @@ jobs:
           echo "INTEGRATION_SMOKE_DEVICE_ID=$SIM_UDID" >> "$GITHUB_ENV"
 
       - name: Run iOS integration smoke
+        if: steps.integration-secrets.outputs.available == 'true'
         env:
           INTEGRATION_TARGET_PLATFORM: ios
           INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
@@ -154,8 +194,12 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: bash scripts/run_turqapp_test_smoke.sh
 
+      - name: Skip iOS integration smoke without secrets
+        if: steps.integration-secrets.outputs.available != 'true'
+        run: echo "iOS integration smoke skipped because required secrets are not configured."
+
       - name: Upload iOS integration smoke artifacts
-        if: always()
+        if: always() && steps.integration-secrets.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ios-integration-smoke-artifacts

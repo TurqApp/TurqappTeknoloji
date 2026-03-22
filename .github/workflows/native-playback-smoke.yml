@@ -36,8 +36,7 @@ jobs:
           profile: pixel_7
           script: |
             cd android
-            ./gradlew :app:connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.turqapp.app.qa.ExoPlayerFeedSmokeTest
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.turqapp.app.qa.ExoPlayerFeedSmokeTest
 
   ios-native-playback:
     name: iOS AVPlayer Smoke
