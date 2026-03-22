@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_servic
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -206,6 +207,9 @@ class _ShortViewState extends State<ShortView> {
     super.initState();
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
     try {
       VideoStateManager.instance.pauseAllVideos(force: true);
     } catch (_) {}

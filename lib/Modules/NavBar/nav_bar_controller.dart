@@ -96,7 +96,7 @@ class NavBarController extends GetxController
   }
 
   Future<void> restorePersistedIndex() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -108,7 +108,7 @@ class NavBarController extends GetxController
 
   Future<void> _persistSelectedIndex(int index) async {
     if (index == 2) return;
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -309,23 +309,15 @@ class NavBarController extends GetxController
     selectedIndex.value = index;
     unawaited(_persistSelectedIndex(index));
 
-    // Feed dışında bir sekmeye geçildiğinde medya seslerini her durumda sustur.
-    // (Sadece previous==0 kontrolü bazı hızlı geçişlerde kaçırabiliyordu.)
-    if (index != 0) {
-      try {
-        VideoStateManager.instance.pauseAllVideos(force: true);
-      } catch (_) {}
-      try {
-        AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-      } catch (_) {}
+    if (index != previous) {
+      suspendFeedForTabExit();
+      pauseGlobalTabMedia();
     }
 
     if (index == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
-        try {
-          AgendaController.maybeFind()?.resumeFeedPlayback();
-        } catch (_) {}
+        resumeFeedIfNeeded();
       });
     }
 
@@ -342,6 +334,30 @@ class NavBarController extends GetxController
       // Keşfet'ten çıkarken resetle; geri dönünce Gündem ile açılır.
       ExploreController.maybeFind()?.resetSearchToDefault();
     }
+  }
+
+  void pauseGlobalTabMedia() {
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
+  }
+
+  void suspendFeedForTabExit() {
+    final agenda = AgendaController.maybeFind();
+    if (agenda == null) return;
+    final prevIndex = agenda.lastCenteredIndex;
+    agenda.lastCenteredIndex = prevIndex;
+    agenda.centeredIndex.value = -1;
+    agenda.suspendPlaybackForOverlay();
+  }
+
+  void resumeFeedIfNeeded() {
+    try {
+      AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
+    } catch (_) {}
   }
 
   Future<void> ensureProactiveShortPreloadStarted() async {

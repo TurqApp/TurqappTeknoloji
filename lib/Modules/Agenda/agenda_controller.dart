@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
@@ -30,6 +29,8 @@ import 'AgendaContent/agenda_content_controller.dart';
 
 part 'agenda_controller_feed_part.dart';
 part 'agenda_controller_loading_part.dart';
+part 'agenda_controller_playback_part.dart';
+part 'agenda_controller_render_part.dart';
 part 'agenda_controller_reshare_part.dart';
 
 enum FeedViewMode { forYou, following, city }
@@ -87,6 +88,7 @@ class AgendaController extends GetxController {
   /// sadece eşik aşıldığında güncellenir (scroll jank'ı engeller).
   final RxBool showFAB = true.obs;
   final RxInt centeredIndex = 0.obs;
+  final RxBool playbackSuspended = false.obs;
   int? lastCenteredIndex;
   var isMuted = false.obs;
   DocumentSnapshot? lastDoc;
@@ -99,6 +101,7 @@ class AgendaController extends GetxController {
   final RxSet<String> highlightDocIDs = <String>{}.obs;
   Timer? _visibilityDebounce;
   Timer? _feedPrefetchDebounce;
+  Timer? _scrollIdleDebounce;
   Timer? _agendaRetryTimer;
   int _agendaRetryCount = 0;
   Worker? _mergedFeedWorker;
@@ -244,6 +247,7 @@ class AgendaController extends GetxController {
     super.onInit();
     // Liste boşsa ilk yüklemeyi geciktirmeden başlat.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (playbackSuspended.value) return;
       if (agendaList.isEmpty && !isLoading.value) {
         unawaited(fetchAgendaBigData(initial: true));
       }
@@ -265,6 +269,7 @@ class AgendaController extends GetxController {
     // centeredIndex zaten 0 olduğu için listener tetiklenmiyor
     // Manual olarak ilk videoyu oynatmalıyız
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (playbackSuspended.value) return;
       if (agendaList.isNotEmpty && centeredIndex.value == 0) {
         final videoManager = VideoStateManager.instance;
         final firstPost = agendaList[0];
@@ -283,6 +288,7 @@ class AgendaController extends GetxController {
     _renderFeedWorker?.dispose();
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
+    _scrollIdleDebounce?.cancel();
     _agendaRetryTimer?.cancel();
     unawaited(persistWarmLaunchCache());
     scrollController.removeListener(_onScroll);
@@ -372,248 +378,59 @@ class AgendaController extends GetxController {
     }
   }
 
-  void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
-    if (modelIndex < 0 || modelIndex >= agendaList.length) return;
-    final prev = _visibleFractions[modelIndex];
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) =>
+      _performOnPostVisibilityChanged(modelIndex, visibleFraction);
 
-    // Android'de hızlı scroll sırasında çok sık visibility callback gelir;
-    // küçük dalgalanmaları ignore ederek rebuild/focus thrash'i azalt.
-    if (GetPlatform.isAndroid &&
-        prev != null &&
-        (prev - visibleFraction).abs() < 0.08) {
-      return;
-    }
+  void suspendPlaybackForOverlay() {
+    playbackSuspended.value = true;
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+  }
 
-    if (visibleFraction <= 0.01) {
-      _visibleFractions.remove(modelIndex);
-      _visibleUpdatedAt.remove(modelIndex);
-    } else {
-      _visibleFractions[modelIndex] = visibleFraction;
-      _visibleUpdatedAt[modelIndex] = DateTime.now();
-    }
-
-    // Arşiv projedeki daha stabil akış:
-    // %80+ görünürlükte oynat, %40 altına düşünce durdur.
-    // Böylece üstte çok az görünen video oynatılmaz; merkezdeki video öncelik alır.
-    const double playThreshold = 0.80;
-    // Stop threshold'u Android'de biraz daha düşük tut:
-    // merkez postu gereksiz yere -1 yapıp oynatma/pausa döngüsü oluşturmasın.
-    final double stopThreshold = GetPlatform.isAndroid ? 0.25 : 0.40;
-
-    _scheduleVisibilityEvaluation(
-      playThreshold: playThreshold,
-      stopThreshold: stopThreshold,
-    );
+  void resumePlaybackAfterOverlay() {
+    playbackSuspended.value = false;
+    resumeFeedPlayback();
   }
 
   void _scheduleVisibilityEvaluation({
     required double playThreshold,
     required double stopThreshold,
-  }) {
-    _visibilityDebounce?.cancel();
-    _visibilityDebounce = Timer(
-      GetPlatform.isAndroid
-          ? const Duration(milliseconds: 24)
-          : const Duration(milliseconds: 40),
-      () => _evaluateCenteredPlayback(
+  }) =>
+      _performScheduleVisibilityEvaluation(
         playThreshold: playThreshold,
         stopThreshold: stopThreshold,
-      ),
-    );
-  }
+      );
 
   void _evaluateCenteredPlayback({
     required double playThreshold,
     required double stopThreshold,
-  }) {
-    final current = centeredIndex.value;
-    var bestIndex = -1;
-    var bestFraction = 0.0;
-    var fallbackIndex = -1;
-    var fallbackFraction = 0.0;
+  }) =>
+      _performEvaluateCenteredPlayback(
+        playThreshold: playThreshold,
+        stopThreshold: stopThreshold,
+      );
 
-    _visibleFractions.forEach((index, fraction) {
-      if (index < 0 || index >= agendaList.length) return;
-      final post = agendaList[index];
-      if (!_canAutoplayVideoPost(post)) return;
-      if (fraction > fallbackFraction) {
-        fallbackFraction = fraction;
-        fallbackIndex = index;
-      }
-      if (fraction < playThreshold) return;
-      if (fraction > bestFraction) {
-        bestFraction = fraction;
-        bestIndex = index;
-      }
-    });
-
-    if (bestIndex >= 0) {
-      final currentFraction =
-          current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
-      final hysteresis = GetPlatform.isAndroid ? 0.10 : 0.06;
-      final shouldSwitch = current == -1 ||
-          current == bestIndex ||
-          currentFraction < playThreshold ||
-          bestFraction >= currentFraction + hysteresis;
-
-      if (shouldSwitch && centeredIndex.value != bestIndex) {
-        centeredIndex.value = bestIndex;
-        lastCenteredIndex = bestIndex;
-      }
-      _trackPlaybackWindow();
-      return;
-    }
-
-    final secondaryThreshold = GetPlatform.isAndroid ? 0.55 : 0.62;
-    if (fallbackIndex >= 0 && fallbackFraction >= secondaryThreshold) {
-      if (centeredIndex.value != fallbackIndex) {
-        centeredIndex.value = fallbackIndex;
-        lastCenteredIndex = fallbackIndex;
-      }
-      _trackPlaybackWindow();
-      return;
-    }
-
-    if (current >= 0) {
-      final currentFraction = _visibleFractions[current] ?? 0.0;
-      final lingerThreshold = GetPlatform.isAndroid ? 0.14 : stopThreshold;
-      if (currentFraction < lingerThreshold) {
-        centeredIndex.value = -1;
-      }
-    }
-
-    _trackPlaybackWindow();
-  }
-
-  void _trackPlaybackWindow() {
-    final playbackKpi = PlaybackKpiService.maybeFind();
-    if (playbackKpi == null) return;
-    final centered = centeredIndex.value;
-    final activeDocId = centered >= 0 && centered < agendaList.length
-        ? agendaList[centered].docID
-        : '';
-    final visibleCount = _visibleFractions.length;
-    var strongestIndex = -1;
-    var strongestFraction = 0.0;
-    _visibleFractions.forEach((index, fraction) {
-      if (fraction > strongestFraction) {
-        strongestFraction = fraction;
-        strongestIndex = index;
-      }
-    });
-    final signature = <String>[
-      '$centered',
-      activeDocId,
-      '$visibleCount',
-      '$strongestIndex',
-      strongestFraction.toStringAsFixed(2),
-    ].join('|');
-    if (signature == _lastPlaybackWindowSignature) return;
-    _lastPlaybackWindowSignature = signature;
-    playbackKpi.track(
-      PlaybackKpiEventType.playbackWindow,
-      <String, dynamic>{
-        'surface': 'feed',
-        'activeIndex': centered,
-        'activeDocId': activeDocId,
-        'visibleCount': visibleCount,
-        'strongestIndex': strongestIndex,
-        'strongestFraction': strongestFraction,
-      },
-    );
-  }
+  void _trackPlaybackWindow() => _performTrackPlaybackWindow();
 
   void _bindFollowingListener() {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     // İlk yükleme: pull-based (SWR pattern)
     _fetchFollowingAndReshares(uid);
   }
 
-  void _bindMergedFeedEntries() {
-    _mergedFeedWorker?.dispose();
-    _mergedFeedWorker = everAll(
-      [agendaList, feedReshareEntries],
-      (_) => _rebuildMergedFeedEntries(),
-    );
-    _rebuildMergedFeedEntries();
-  }
+  void _bindMergedFeedEntries() => _performBindMergedFeedEntries();
 
-  void _bindFilteredFeedEntries() {
-    _filteredFeedWorker?.dispose();
-    _filteredFeedWorker = everAll(
-      [
-        mergedFeedEntries,
-        feedViewMode,
-        followingIDs,
-        CurrentUserService.instance.currentUserRx,
-      ],
-      (_) => _rebuildFilteredFeedEntries(),
-    );
-    _rebuildFilteredFeedEntries();
-  }
+  void _bindFilteredFeedEntries() => _performBindFilteredFeedEntries();
 
-  void _bindRenderFeedEntries() {
-    _renderFeedWorker?.dispose();
-    _renderFeedWorker = ever<List<Map<String, dynamic>>>(
-      filteredFeedEntries,
-      (_) => _rebuildRenderFeedEntries(),
-    );
-    _rebuildRenderFeedEntries();
-  }
+  void _bindRenderFeedEntries() => _performBindRenderFeedEntries();
 
-  void _rebuildMergedFeedEntries() {
-    if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
-      mergedFeedEntries.clear();
-      return;
-    }
-    final merged = _feedRenderCoordinator.buildMergedEntries(
-      agendaList: agendaList.toList(growable: false),
-      feedReshareEntries: feedReshareEntries.toList(growable: false),
-    );
-    final patch = _feedRenderCoordinator.buildPatch(
-      previous: mergedFeedEntries.toList(growable: false),
-      next: merged,
-      reason: 'merged_feed_rebuild',
-    );
-    _feedRenderCoordinator.applyPatch(mergedFeedEntries, patch);
-  }
+  void _rebuildMergedFeedEntries() => _performRebuildMergedFeedEntries();
 
-  void _rebuildFilteredFeedEntries() {
-    if (mergedFeedEntries.isEmpty) {
-      filteredFeedEntries.clear();
-      return;
-    }
-    final filtered = _feedRenderCoordinator.filterEntries(
-      mergedEntries: mergedFeedEntries.toList(growable: false),
-      isFollowingMode: isFollowingMode,
-      isCityMode: isCityMode,
-      followingIds: followingIDs.toSet(),
-      city: currentUserLocationCity,
-    );
-    final patch = _feedRenderCoordinator.buildPatch(
-      previous: filteredFeedEntries.toList(growable: false),
-      next: filtered,
-      reason: 'filtered_feed_rebuild',
-    );
-    _feedRenderCoordinator.applyPatch(filteredFeedEntries, patch);
-  }
+  void _rebuildFilteredFeedEntries() => _performRebuildFilteredFeedEntries();
 
-  void _rebuildRenderFeedEntries() {
-    if (filteredFeedEntries.isEmpty) {
-      renderFeedEntries.clear();
-      return;
-    }
-    final renderEntries = _feedRenderCoordinator.buildRenderEntries(
-      filteredEntries: filteredFeedEntries.toList(growable: false),
-    );
-    final patch = _feedRenderCoordinator.buildPatch(
-      previous: renderFeedEntries.toList(growable: false),
-      next: renderEntries,
-      reason: 'render_feed_rebuild',
-    );
-    _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
-  }
+  void _rebuildRenderFeedEntries() => _performRebuildRenderFeedEntries();
 
   /// Pull-based following + reshares fetch (realtime listener yerine).
   /// Dışarıdan da çağrılabilir (ör. follow/unfollow sonrası).

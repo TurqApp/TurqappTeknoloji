@@ -121,6 +121,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isSurfacePlaybackAllowed {
     if (isStandalonePostInstance) return true;
+    if (agendaController.playbackSuspended.value) return false;
     if (!_isProfileSurfaceInstance) return true;
     final nav = NavBarController.maybeFind();
     final settings = SettingsController.maybeFind();

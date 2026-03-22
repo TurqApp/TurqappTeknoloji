@@ -372,9 +372,12 @@ class NavBarView extends StatelessWidget {
                                                     .catchError((_) {});
                                               }
 
+                                              controller.suspendFeedForTabExit();
+                                              controller.pauseGlobalTabMedia();
                                               await Get.to(
                                                 () => const ShortView(),
                                               );
+                                              controller.resumeFeedIfNeeded();
                                             }
                                           },
                                           child: Builder(builder: (_) {

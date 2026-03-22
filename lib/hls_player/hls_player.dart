@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -70,6 +71,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
   void _onPlatformViewCreated(int viewId) {
     _isInitialized = true;
     widget.controller.initialize(viewId);
+    unawaited(_loadVideo());
   }
 
   Future<void> _loadVideo() async {
