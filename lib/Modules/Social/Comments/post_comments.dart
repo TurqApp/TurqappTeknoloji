@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
@@ -71,6 +72,7 @@ class _PostCommentsState extends State<PostComments> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenComments),
       backgroundColor: Colors.transparent,
       // <<< Prevent the layout from resizing when keyboard opens
       resizeToAvoidBottomInset: false,
@@ -287,6 +289,9 @@ class _PostCommentsState extends State<PostComments> {
                             ),
                           ),
                           GestureDetector(
+                            key: const ValueKey(
+                              IntegrationTestKeys.actionCommentClearReply,
+                            ),
                             onTap: () {
                               controller.clearReplyTarget();
                               textEditingController.clear();
@@ -374,6 +379,7 @@ class _PostCommentsState extends State<PostComments> {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 62),
                       child: TextField(
+                        key: const ValueKey(IntegrationTestKeys.inputComment),
                         controller: textEditingController,
                         focusNode: focusNode,
                         maxLines: null,
@@ -406,6 +412,7 @@ class _PostCommentsState extends State<PostComments> {
             ),
             const SizedBox(width: 8),
             GestureDetector(
+              key: const ValueKey(IntegrationTestKeys.actionCommentGifPicker),
               onTap: () async {
                 await controller.pickGif(context);
                 if (mounted) {
@@ -435,6 +442,7 @@ class _PostCommentsState extends State<PostComments> {
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: GestureDetector(
+                  key: const ValueKey(IntegrationTestKeys.actionCommentSend),
                   onTap: () {
                     controller.yorumYap(
                       context,

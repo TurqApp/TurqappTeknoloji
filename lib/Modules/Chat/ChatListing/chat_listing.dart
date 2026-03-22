@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListingContent/chat_listing_content.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
@@ -26,7 +27,7 @@ class _ChatListingState extends State<ChatListing> {
   final ValueNotifier<String?> _openedChatId = ValueNotifier<String?>(null);
   bool _ownsController = false;
 
-  String get _uid => CurrentUserService.instance.userId;
+  String get _uid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _ChatListingState extends State<ChatListing> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenChat),
       backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
@@ -102,6 +104,9 @@ class _ChatListingState extends State<ChatListing> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         GestureDetector(
+                          key: const ValueKey(
+                            IntegrationTestKeys.actionChatCreate,
+                          ),
                           onTap: controller.showCreateChatBottomSheet,
                           child: Container(
                             width: 26,
@@ -133,6 +138,7 @@ class _ChatListingState extends State<ChatListing> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: TextField(
+                    key: const ValueKey(IntegrationTestKeys.inputChatSearch),
                     controller: controller.search,
                     decoration: InputDecoration(
                       hintText: 'common.search'.tr,
@@ -165,16 +171,19 @@ class _ChatListingState extends State<ChatListing> {
                   children: [
                     _TopTab(
                       label: 'chat.tab_all'.tr,
+                      integrationKey: IntegrationTestKeys.chatTabAll,
                       active: controller.selectedTab.value == "all",
                       onTap: () => controller.setTab("all"),
                     ),
                     _TopTab(
                       label: 'chat.tab_unread'.tr,
+                      integrationKey: IntegrationTestKeys.chatTabUnread,
                       active: controller.selectedTab.value == "unread",
                       onTap: () => controller.setTab("unread"),
                     ),
                     _TopTab(
                       label: 'chat.tab_archive'.tr,
+                      integrationKey: IntegrationTestKeys.chatTabArchive,
                       active: controller.selectedTab.value == "archive",
                       onTap: () => controller.setTab("archive"),
                     ),
@@ -207,7 +216,9 @@ class _ChatListingState extends State<ChatListing> {
                                 final item = controller.filteredList[index];
 
                                 return _SwipeActionTile(
-                                  key: ValueKey(item.chatID),
+                                  key: ValueKey(
+                                    IntegrationTestKeys.chatTile(item.chatID),
+                                  ),
                                   tileId: item.chatID,
                                   openedId: _openedChatId,
                                   isArchiveTab:
@@ -495,10 +506,12 @@ class _SwipeActionTileState extends State<_SwipeActionTile> {
 
 class _TopTab extends StatelessWidget {
   final String label;
+  final String? integrationKey;
   final bool active;
   final VoidCallback? onTap;
   const _TopTab({
     required this.label,
+    this.integrationKey,
     this.active = false,
     this.onTap,
   });
@@ -507,6 +520,7 @@ class _TopTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
+        key: integrationKey == null ? null : ValueKey(integrationKey!),
         onTap: onTap,
         child: Container(
           height: 44,

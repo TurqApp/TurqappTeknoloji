@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -79,10 +80,11 @@ class _PostCommentContentState extends State<PostCommentContent> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final currentUID = CurrentUserService.instance.userId;
+      final currentUID = CurrentUserService.instance.effectiveUserId;
       final hasLiked =
           currentUID.isNotEmpty && controller.likes.contains(currentUID);
       return Padding(
+        key: ValueKey(IntegrationTestKeys.commentItem(model.docID)),
         padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,6 +209,9 @@ class _PostCommentContentState extends State<PostCommentContent> {
                     Row(
                       children: [
                         GestureDetector(
+                          key: ValueKey(
+                            IntegrationTestKeys.commentReplyButton(model.docID),
+                          ),
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
                             onReplyTap?.call(
@@ -228,6 +233,11 @@ class _PostCommentContentState extends State<PostCommentContent> {
                         if (model.userID == currentUID) ...[
                           10.pw,
                           GestureDetector(
+                            key: ValueKey(
+                              IntegrationTestKeys.commentDeleteButton(
+                                model.docID,
+                              ),
+                            ),
                             behavior: HitTestBehavior.opaque,
                             onTap: () => _confirmDelete(controller),
                             child: Text(
@@ -247,6 +257,9 @@ class _PostCommentContentState extends State<PostCommentContent> {
             ),
             if (!isPending)
               GestureDetector(
+                key: ValueKey(
+                  IntegrationTestKeys.commentLikeButton(model.docID),
+                ),
                 onTap: controller.toggleLike,
                 behavior: HitTestBehavior.opaque,
                 child: Padding(

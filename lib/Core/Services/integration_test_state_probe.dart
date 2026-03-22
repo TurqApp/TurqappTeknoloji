@@ -1,5 +1,8 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
+import 'package:turqappv2/Modules/Education/education_controller.dart';
+import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
@@ -13,6 +16,9 @@ class IntegrationTestStateProbe {
     final routing = Get.routing;
     return <String, dynamic>{
       'feed': _feedSnapshot(),
+      'explore': _exploreSnapshot(),
+      'education': _educationSnapshot(),
+      'chat': _chatSnapshot(),
       'short': _shortSnapshot(),
       'profile': _profileSnapshot(),
       'socialProfile': _socialProfileSnapshot(),
@@ -73,6 +79,61 @@ class IntegrationTestStateProbe {
           index >= 0 && index < items.length ? items[index].docID : '',
       'docIds':
           items.take(24).map((item) => item.docID).toList(growable: false),
+    };
+  }
+
+  static Map<String, dynamic> _exploreSnapshot() {
+    final controller = ExploreController.maybeFind();
+    if (controller == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      'selection': controller.selection.value,
+      'searchMode': controller.isSearchMode.value,
+      'trendingCount': controller.trendingTags.length,
+      'exploreCount': controller.explorePosts.length,
+      'floodCount': controller.exploreFloods.length,
+      'floodVisibleIndex': controller.floodsVisibleIndex.value,
+      'exploreDocIds': controller.explorePosts
+          .take(24)
+          .map((item) => item.docID)
+          .toList(growable: false),
+      'floodDocIds': controller.exploreFloods
+          .take(24)
+          .map((item) => item.docID)
+          .toList(growable: false),
+    };
+  }
+
+  static Map<String, dynamic> _educationSnapshot() {
+    final controller = EducationController.maybeFind();
+    if (controller == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      'selectedTab': controller.selectedTab.value,
+      'visibleTabIndexes': controller.visibleTabIndexes.toList(growable: false),
+      'visibleTabIds': controller.visibleTabIndexes
+          .map((index) => controller.titles[index])
+          .toList(growable: false),
+      'searchMode': controller.isSearchMode.value,
+    };
+  }
+
+  static Map<String, dynamic> _chatSnapshot() {
+    final controller = ChatListingController.maybeFind();
+    if (controller == null) {
+      return const <String, dynamic>{'registered': false};
+    }
+    return <String, dynamic>{
+      'registered': true,
+      'selectedTab': controller.selectedTab.value,
+      'count': controller.list.length,
+      'filteredCount': controller.filteredList.length,
+      'chatIds': controller.filteredList.take(24).map((e) => e.chatID).toList(),
+      'userIds': controller.filteredList.take(24).map((e) => e.userID).toList(),
     };
   }
 

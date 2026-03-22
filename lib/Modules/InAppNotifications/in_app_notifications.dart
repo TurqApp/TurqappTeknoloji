@@ -114,6 +114,9 @@ class _InAppNotificationsState extends State<InAppNotifications> {
               return Align(
                 alignment: Alignment.centerRight,
                 child: IconButton(
+                  key: const ValueKey(
+                    IntegrationTestKeys.actionNotificationsMore,
+                  ),
                   onPressed: () => _showNotificationActions(context),
                   icon: const Icon(
                     Icons.more_horiz,
@@ -168,6 +171,8 @@ class _InAppNotificationsState extends State<InAppNotifications> {
                           title: controller.busyMarkAllRead.value
                               ? "notifications.marking_read".tr
                               : "notifications.mark_all_read".tr,
+                          integrationKey: IntegrationTestKeys
+                              .actionNotificationsMarkAllRead,
                           enabled: controller.unreadCount > 0 &&
                               !controller.busyMarkAllRead.value,
                           onTap: () {
@@ -179,6 +184,8 @@ class _InAppNotificationsState extends State<InAppNotifications> {
                         _actionTile(
                           icon: Icons.delete_outline,
                           title: "notifications.delete_all".tr,
+                          integrationKey:
+                              IntegrationTestKeys.actionNotificationsDeleteAll,
                           isDestructive: true,
                           onTap: () {
                             Navigator.of(ctx).pop();
@@ -202,6 +209,7 @@ class _InAppNotificationsState extends State<InAppNotifications> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    String? integrationKey,
     bool enabled = true,
     bool isDestructive = false,
   }) {
@@ -209,6 +217,7 @@ class _InAppNotificationsState extends State<InAppNotifications> {
         ? Colors.black38
         : (isDestructive ? Colors.redAccent : Colors.black87);
     return InkWell(
+      key: integrationKey == null ? null : ValueKey(integrationKey),
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(14),
       child: Padding(

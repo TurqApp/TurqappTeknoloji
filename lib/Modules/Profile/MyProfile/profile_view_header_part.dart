@@ -58,6 +58,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     AppHeaderActionButton(
+                      key: const ValueKey(
+                        IntegrationTestKeys.actionProfileOpenQr,
+                      ),
                       size: 36,
                       onTap: () {
                         _suspendProfileFeedForRoute();
@@ -73,6 +76,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     ),
                     const SizedBox(width: 6),
                     AppHeaderActionButton(
+                      key: const ValueKey(
+                        IntegrationTestKeys.actionProfileOpenChat,
+                      ),
                       size: 36,
                       onTap: () {
                         _suspendProfileFeedForRoute();
@@ -88,6 +94,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     ),
                     const SizedBox(width: 6),
                     AppHeaderActionButton(
+                      key: const ValueKey(
+                        IntegrationTestKeys.actionProfileOpenSettings,
+                      ),
                       size: 36,
                       onTap: () {
                         _suspendProfileFeedForRoute();
@@ -217,6 +226,9 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                   children: [
                     Expanded(
                       child: GestureDetector(
+                        key: const ValueKey(
+                          IntegrationTestKeys.actionProfileEdit,
+                        ),
                         onTap: () {
                           _suspendProfileFeedForRoute();
                           Get.to(() => EditProfile())?.then((_) {
