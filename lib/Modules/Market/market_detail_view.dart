@@ -27,6 +27,10 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 
+part 'market_detail_view_actions_part.dart';
+part 'market_detail_view_reviews_part.dart';
+part 'market_detail_view_ui_part.dart';
+
 class MarketDetailView extends StatefulWidget {
   const MarketDetailView({
     super.key,
@@ -58,7 +62,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       const <String, Map<String, dynamic>>{};
 
   MarketItemModel get item => _item;
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
   bool get _isOwner {
     final uid = _currentUserId.trim();
     return uid.isNotEmpty && uid == item.userId;
@@ -90,6 +94,11 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _updateViewState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
   }
 
   @override
@@ -234,8 +243,10 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                       : 'pasaj.market.message_only'.tr,
                 ),
                 _infoRow('common.views'.tr, item.viewCount.toString()),
-                _infoRow('pasaj.market.saved_count'.tr, item.favoriteCount.toString()),
-                _infoRow('pasaj.market.offer_count'.tr, item.offerCount.toString()),
+                _infoRow('pasaj.market.saved_count'.tr,
+                    item.favoriteCount.toString()),
+                _infoRow(
+                    'pasaj.market.offer_count'.tr, item.offerCount.toString()),
               ],
             ),
             const SizedBox(height: 18),
@@ -250,7 +261,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   GestureDetector(
                     onTap: _isOwner || item.userId.trim().isEmpty
                         ? null
-                        : () => Get.to(() => SocialProfile(userID: item.userId)),
+                        : () =>
+                            Get.to(() => SocialProfile(userID: item.userId)),
                     child: Row(
                       children: [
                         CircleAvatar(
@@ -491,1176 +503,79 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     );
   }
 
-  Future<void> _showReportSheet() async {
-    if (_isSubmittingReport) return;
-    final selections = await _reportRepository.fetchSelections();
-    final selected = await showCupertinoModalPopup<ReportModel>(
-      context: context,
-      builder: (sheetContext) => CupertinoActionSheet(
-        title: Text('pasaj.market.report_listing'.tr),
-        message: Text('pasaj.market.report_reason'.tr),
-        actions: selections
-            .map(
-              (selection) => CupertinoActionSheetAction(
-                onPressed: () => Navigator.of(sheetContext).pop(selection),
-                child: Text(selection.title),
-              ),
-            )
-            .toList(growable: false),
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.of(sheetContext).pop(),
-          isDefaultAction: true,
-          child: Text('common.cancel'.tr),
-        ),
-      ),
-    );
+  Future<void> _showReportSheet() => _performShowReportSheet();
 
-    if (selected == null || !mounted) return;
-    await _submitReport(selected);
-  }
+  Future<void> _submitReport(ReportModel selection) =>
+      _performSubmitReport(selection);
 
-  Future<void> _submitReport(ReportModel selection) async {
-    if (_isSubmittingReport) return;
-    setState(() {
-      _isSubmittingReport = true;
-    });
-    try {
-      await _reportRepository.submitReport(
-        targetUserId: item.userId,
-        postId: item.id,
-        commentId: '',
-        selection: selection,
-        targetType: 'market',
-      );
-      if (!mounted) return;
-      AppSnackbar(
-        'pasaj.market.report_received_title'.tr,
-        'pasaj.market.report_received_body'.tr,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      AppSnackbar('common.error'.tr, 'pasaj.market.report_failed'.tr);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmittingReport = false;
-        });
-      }
-    }
-  }
+  Widget _buildGallery(List<String> images) => _performBuildGallery(images);
 
-  Widget _buildGallery(List<String> images) {
-    if (images.isEmpty) {
-      return AspectRatio(
-        aspectRatio: 1.18,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: _imageFallback(),
-        ),
-      );
-    }
+  Widget _buildGalleryIndicator(int count) =>
+      _performBuildGalleryIndicator(count);
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.width * 0.82,
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: images.length,
-        onPageChanged: (value) {
-          if (!mounted) return;
-          setState(() {
-            _currentPage = value;
-          });
-        },
-        itemBuilder: (context, index) {
-          final image = images[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: image.isNotEmpty
-                  ? Image.network(
-                      image,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imageFallback(),
-                    )
-                  : _imageFallback(),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Future<void> _showOfferSheet(BuildContext context) =>
+      _performShowOfferSheet(context);
 
-  Widget _buildGalleryIndicator(int count) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(
-        count,
-        (index) => AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: _currentPage == index ? 18 : 7,
-          height: 7,
-          decoration: BoxDecoration(
-            color: _currentPage == index ? Colors.black : Colors.black26,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildReviewsSection() => _performBuildReviewsSection();
 
-  Future<void> _showOfferSheet(BuildContext context) async {
-    final double basePrice = item.price <= 0 ? 0.0 : item.price;
-    final suggestionRates = <double>[0.70, 0.80, 0.90];
-    final List<double> suggestions = suggestionRates
-        .map((rate) => _normalizeOfferPrice(basePrice * rate))
-        .where((value) => value > 0)
-        .toSet()
-        .toList();
-    double? selectedOffer =
-        suggestions.length > 1 ? suggestions[1] : suggestions.firstOrNull;
-    bool customMode = false;
-    final customController = TextEditingController(
-      text: selectedOffer == null ? '' : _plainOfferText(selectedOffer),
-    );
+  Widget _buildReviewCard(MarketReviewModel review) =>
+      _performBuildReviewCard(review);
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            Future<void> submitOffer() async {
-              final rawText = customController.text.trim().replaceAll('.', '');
-              final offerPrice = customMode
-                  ? double.tryParse(rawText.replaceAll(',', '.'))
-                  : selectedOffer;
-              if (offerPrice == null || offerPrice <= 0) {
-                AppSnackbar(
-                  'support.empty_title'.tr,
-                  'pasaj.market.invalid_offer'.tr,
-                );
-                return;
-              }
-              try {
-                await MarketOfferService.createOffer(
-                  item: item,
-                  offerPrice: offerPrice,
-                  message: '',
-                );
-                if (mounted) {
-                  setState(() {
-                    _item = item.copyWith(
-                      offerCount: item.offerCount + 1,
-                    );
-                  });
-                }
-                if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                AppSnackbar('common.success'.tr, 'pasaj.market.offer_sent'.tr);
-              } catch (e) {
-                final message =
-                    e.toString().contains('own_item_offer_not_allowed')
-                        ? 'pasaj.market.offer_own_forbidden'.tr
-                        : e.toString().contains('daily_offer_limit_reached')
-                        ? 'pasaj.market.offer_daily_limit'.tr
-                        : 'pasaj.market.offer_failed'.tr;
-                AppSnackbar('common.error'.tr, message);
-              }
-            }
+  Future<void> _loadReviews() => _performLoadReviews();
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                18,
-                10,
-                18,
-                MediaQuery.of(sheetContext).viewInsets.bottom + 22,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 56,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD1D5DB),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      'pasaj.market.offer_count'.tr,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 13,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                        children: [
-                          TextSpan(
-                            text:
-                                '${_formattedMoney(selectedOffer ?? basePrice)} ${_currencyLabel(item.currency)}',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontFamily: 'MontserratBold',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: suggestions.map((offer) {
-                      final selected = !customMode && selectedOffer == offer;
-                      final discount = basePrice > 0
-                          ? ((1 - (offer / basePrice)) * 100).round()
-                          : 0;
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: offer == suggestions.last ? 0 : 10,
-                          ),
-                          child: GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                customMode = false;
-                                selectedOffer = offer;
-                                customController.text = _plainOfferText(offer);
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? Colors.black
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: selected
-                                      ? Colors.black
-                                      : const Color(0xFFE5E7EB),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    '${_formattedMoney(offer)} ${_currencyLabel(item.currency)}',
-                                    style: TextStyle(
-                                      color: selected
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontSize: 17,
-                                      fontFamily: 'MontserratBold',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    '$discount% indirim',
-                                    style: TextStyle(
-                                      color: selected
-                                          ? Colors.white
-                                          : Colors.black45,
-                                      fontSize: 11,
-                                      fontFamily: 'MontserratMedium',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(growable: false),
-                  ),
-                  const SizedBox(height: 16),
-                  if (customMode) ...[
-                    TextField(
-                      controller: customController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration:
-                          _inputDecoration('pasaj.market.offer_count'.tr),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: submitOffer,
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                      child: Text(
-                        'pasaj.market.offer_count'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: 'MontserratBold',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  GestureDetector(
-                    onTap: () {
-                      setModalState(() {
-                        customMode = true;
-                        if (selectedOffer != null &&
-                            customController.text.trim().isEmpty) {
-                          customController.text =
-                              _plainOfferText(selectedOffer!);
-                        }
-                      });
-                    },
-                    child: Text(
-                      'pasaj.market.offer_count'.tr,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontFamily: 'MontserratMedium',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  Future<void> _showReviewSheet({MarketReviewModel? existingReview}) =>
+      _performShowReviewSheet(existingReview: existingReview);
 
-  Widget _buildReviewsSection() {
-    final canReview = !_isOwner;
-    final currentUserId = _currentUserId;
-    final existingReview = _reviews
-        .where((review) => review.userId == currentUserId)
-        .cast<MarketReviewModel?>()
-        .firstOrNull;
-    final totalReviews = _reviews.length;
-    final ratingCounts = <int, int>{
-      for (var star = 1; star <= 5; star++) star: 0,
-    };
-    for (final review in _reviews) {
-      final rating = review.rating.clamp(1, 5);
-      ratingCounts[rating] = (ratingCounts[rating] ?? 0) + 1;
-    }
+  Future<void> _deleteReview(String reviewId) => _performDeleteReview(reviewId);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'pasaj.market.reviews'.tr,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: 'MontserratBold',
-                ),
-              ),
-            ),
-            if (canReview)
-              GestureDetector(
-                onTap: () => _showReviewSheet(existingReview: existingReview),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    existingReview == null
-                        ? 'pasaj.market.rate'.tr
-                        : 'pasaj.market.review_edit'.tr,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_isLoadingReviews)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: CupertinoActivityIndicator(),
-          )
-        else if (_reviews.isEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => const Padding(
-                    padding: EdgeInsets.only(right: 2),
-                    child: Icon(
-                      Icons.star_border_rounded,
-                      size: 18,
-                      color: Colors.amber,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'pasaj.market.no_reviews'.tr,
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 13,
-                  fontFamily: 'MontserratMedium',
-                ),
-              ),
-            ],
-          )
-        else ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              children: List.generate(5, (index) {
-                final star = 5 - index;
-                final count = ratingCounts[star] ?? 0;
-                final percent = totalReviews == 0 ? 0.0 : count / totalReviews;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: index == 4 ? 0 : 8),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 18,
-                        child: Text(
-                          '$star',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontFamily: 'MontserratBold',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.star, size: 14, color: Colors.amber),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: percent,
-                            minHeight: 8,
-                            backgroundColor: Colors.grey.shade300,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.amber,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 42,
-                        child: Text(
-                          '%${(percent * 100).round()}',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                            fontFamily: 'MontserratMedium',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ..._reviews.map(_buildReviewCard),
-        ],
-      ],
-    );
-  }
+  double _normalizeOfferPrice(double value) =>
+      _performNormalizeOfferPrice(value);
 
-  Widget _buildReviewCard(MarketReviewModel review) {
-    final currentUserId = _currentUserId;
-    final user = _reviewUsers[review.userId] ?? const <String, dynamic>{};
-    final name = (user['nickname'] ??
-            user['username'] ??
-            user['displayName'] ??
-            user['fullName'] ??
-            '')
-        .toString()
-        .trim();
-    final avatarUrl = (user['avatarUrl'] ?? '').toString().trim();
-    final rozet = (user['rozet'] ?? '').toString().trim();
-    final isOwn = currentUserId == review.userId;
-    final shouldHide = name.isEmpty && avatarUrl.isEmpty && review.comment.isEmpty;
-    if (shouldHide) return const SizedBox.shrink();
+  String _plainOfferText(double value) => _performPlainOfferText(value);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: const Color(0xFFE5E7EB),
-                backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                child: avatarUrl.isEmpty
-                    ? const Icon(Icons.person, size: 16, color: Colors.black54)
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 4,
-                  children: [
-                    Text(
-                      name.isEmpty ? 'Kullanici' : name,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    if (rozet.isNotEmpty)
-                      RozetContent(
-                        size: 12,
-                        userID: review.userId,
-                        rozetValue: rozet,
-                        leftSpacing: 1,
-                      ),
-                  ],
-                ),
-              ),
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => Icon(
-                    index < review.rating ? Icons.star : Icons.star_border,
-                    size: 16,
-                    color: Colors.amber,
-                  ),
-                ),
-              ),
-              if (isOwn) ...[
-                GestureDetector(
-                  onTap: () => _showReviewSheet(existingReview: review),
-                  child: const Icon(
-                    CupertinoIcons.pencil,
-                    size: 16,
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                GestureDetector(
-                  onTap: () => _deleteReview(review.reviewId),
-                  child: const Icon(
-                    CupertinoIcons.trash,
-                    size: 16,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          if (review.comment.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              review.comment,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 14,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  String _formattedMoney(double value) => _performFormattedMoney(value);
 
-  Future<void> _loadReviews() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoadingReviews = true;
-    });
-    try {
-      final reviews = await _reviewService.fetchReviews(item.id);
-      final userIds = reviews.map((e) => e.userId).toSet().toList(growable: false);
-      final summaries = userIds.isEmpty
-          ? const <String, dynamic>{}
-          : await _userRepository.getUsers(userIds);
-      if (!mounted) return;
-      setState(() {
-        _reviews = reviews;
-        _reviewUsers = {
-          for (final entry in summaries.entries) entry.key: entry.value.toMap(),
-        };
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _reviews = const <MarketReviewModel>[];
-        _reviewUsers = const <String, Map<String, dynamic>>{};
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingReviews = false;
-        });
-      }
-    }
-  }
+  String _currencyLabel(String currency) => _performCurrencyLabel(currency);
 
-  Future<void> _showReviewSheet({MarketReviewModel? existingReview}) async {
-    final currentUserId = _currentUserId;
-    if (currentUserId.isEmpty) {
-      AppSnackbar(
-        'common.info'.tr,
-        'pasaj.market.sign_in_to_review'.tr,
-      );
-      return;
-    }
-    final selectedRating = ValueNotifier<int>(existingReview?.rating ?? 5);
-    final commentController = TextEditingController();
-    commentController.text = existingReview?.comment ?? '';
-    final isSubmitting = ValueNotifier<bool>(false);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            MediaQuery.of(sheetContext).viewInsets.bottom + 20,
-          ),
-          child: ValueListenableBuilder<bool>(
-            valueListenable: isSubmitting,
-            builder: (context, submitting, _) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'pasaj.market.rate'.tr,
-                    style: TextStyle(
-                      fontFamily: 'MontserratBold',
-                      fontSize: 18,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ValueListenableBuilder<int>(
-                      valueListenable: selectedRating,
-                      builder: (context, rating, _) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            return GestureDetector(
-                              onTap: () => selectedRating.value = index + 1,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                child: Icon(
-                                  index < rating ? Icons.star : Icons.star_border,
-                                  size: 28,
-                                  color: index < rating
-                                      ? Colors.amber
-                                      : Colors.grey,
-                                ),
-                              ),
-                            );
-                          }),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: commentController,
-                    maxLines: 3,
-                    decoration:
-                        _inputDecoration('pasaj.market.review_comment_hint'.tr),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: submitting
-                          ? null
-                          : () async {
-                              if (selectedRating.value == 0) {
-                                AppSnackbar(
-                                  'common.error'.tr,
-                                  'pasaj.market.select_rating'.tr,
-                                );
-                                return;
-                              }
-                              isSubmitting.value = true;
-                              try {
-                                await _reviewService.submitReview(
-                                  itemId: item.id,
-                                  ownerId: item.userId,
-                                  rating: selectedRating.value,
-                                  comment: commentController.text.trim(),
-                                );
-                                if (sheetContext.mounted) {
-                                  Navigator.of(sheetContext).pop();
-                                }
-                                await _loadReviews();
-                                AppSnackbar(
-                                  'common.success'.tr,
-                                  existingReview == null
-                                      ? 'pasaj.market.review_saved'.tr
-                                      : 'pasaj.market.review_updated'.tr,
-                                );
-                              } catch (e) {
-                                final message = e.toString().contains(
-                                      'own_item_review_not_allowed',
-                                    )
-                                    ? 'pasaj.market.review_own_forbidden'.tr
-                                    : 'pasaj.market.review_failed'.tr;
-                                AppSnackbar('common.error'.tr, message);
-                              } finally {
-                                isSubmitting.value = false;
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                          ),
-                      child: submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : Text(
-                              'common.save'.tr,
-                              style: TextStyle(
-                                fontFamily: 'MontserratBold',
-                                fontSize: 15,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _deleteReview(String reviewId) async {
-    try {
-      await _reviewService.deleteReview(itemId: item.id, reviewId: reviewId);
-      await _loadReviews();
-      AppSnackbar('common.success'.tr, 'pasaj.market.review_deleted'.tr);
-    } catch (_) {
-      AppSnackbar('common.error'.tr, 'pasaj.market.review_delete_failed'.tr);
-    }
-  }
-
-  double _normalizeOfferPrice(double value) {
-    if (value <= 0) return 0;
-    if (value < 100) return value.roundToDouble();
-    if (value < 1000) return ((value / 10).round() * 10).toDouble();
-    return ((value / 50).round() * 50).toDouble();
-  }
-
-  String _plainOfferText(double value) {
-    return value.toStringAsFixed(0);
-  }
-
-  String _formattedMoney(double value) {
-    final text = value.toStringAsFixed(0);
-    final chars = text.split('');
-    final buffer = StringBuffer();
-    for (int i = 0; i < chars.length; i++) {
-      final remaining = chars.length - i;
-      buffer.write(chars[i]);
-      if (remaining > 1 && remaining % 3 == 1) {
-        buffer.write('.');
-      }
-    }
-    return buffer.toString();
-  }
-
-  String _currencyLabel(String currency) {
-    return marketCurrencyLabel(currency);
-  }
-
-  Widget _imageFallback() {
-    return Container(
-      color: const Color(0xFFF3F4F6),
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.image_outlined,
-        size: 42,
-        color: Colors.black45,
-      ),
-    );
-  }
+  Widget _imageFallback() => _performImageFallback();
 
   Widget _infoCard({
     required String title,
     required List<Widget> children,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: const Color(0xFFF6F7FB),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 15,
-              fontFamily: 'MontserratBold',
-            ),
-          ),
-          const SizedBox(height: 10),
-          ...children,
-        ],
-      ),
-    );
-  }
+  }) =>
+      _performInfoCard(title: title, children: children);
 
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 13,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.trim().isEmpty ? '-' : value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 13,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _infoRow(String label, String value) => _performInfoRow(label, value);
 
   Widget _primaryButton({
     required String label,
     required VoidCallback onTap,
-  }) {
-    return SizedBox(
-      height: 46,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
-      ),
-    );
-  }
+  }) =>
+      _performPrimaryButton(label: label, onTap: onTap);
 
-  Widget _relatedCard(MarketItemModel related) {
-    return GestureDetector(
-      onTap: () async {
-        await Get.to(() => MarketDetailView(item: related));
-        await _refreshItem(silent: true);
-      },
-      child: SizedBox(
-        width: 170,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: related.coverImageUrl.isNotEmpty
-                    ? Image.network(
-                        related.coverImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imageFallback(),
-                      )
-                    : _imageFallback(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              related.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${related.price.toStringAsFixed(0)} ${_currencyLabel(related.currency)}',
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              related.locationText.isEmpty
-                  ? 'pasaj.market.location_missing'.tr
-                  : related.locationText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 12,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _relatedCard(MarketItemModel related) => _performRelatedCard(related);
 
   Widget _secondaryButton({
     required String label,
     required VoidCallback onTap,
-  }) {
-    return SizedBox(
-      height: 46,
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0x22000000)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
-      ),
-    );
-  }
+  }) =>
+      _performSecondaryButton(label: label, onTap: onTap);
 
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'sold':
-        return 'pasaj.market.status.sold'.tr;
-      case 'draft':
-        return 'pasaj.market.status.draft'.tr;
-      case 'archived':
-        return 'pasaj.market.status.archived'.tr;
-      case 'reserved':
-        return 'pasaj.market.status.reserved'.tr;
-      default:
-        return 'pasaj.market.status.active'.tr;
-    }
-  }
+  String _statusLabel(String status) => _performStatusLabel(status);
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(
-        color: Colors.black45,
-        fontSize: 13,
-        fontFamily: 'MontserratMedium',
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0x22000000)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0x22000000)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.black),
-      ),
-    );
-  }
+  InputDecoration _inputDecoration(String hint) =>
+      _performInputDecoration(hint);
 
-  Future<void> _refreshItem({bool silent = false}) async {
-    if (_isRefreshing) return;
-    if (!silent && mounted) {
-      setState(() {
-        _isRefreshing = true;
-      });
-    } else {
-      _isRefreshing = true;
-    }
-    try {
-      final latest = await _repository.fetchById(
-        item.id,
-        preferCache: false,
-        forceRefresh: true,
-      );
-      if (latest != null && mounted) {
-        final preserved = _preserveProtectedFields(
-          latest,
-          _item,
-        );
-        setState(() {
-          _item = preserved;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-        });
-      } else {
-        _isRefreshing = false;
-      }
-    }
-  }
+  Future<void> _refreshItem({bool silent = false}) =>
+      _performRefreshItem(silent: silent);
 
   MarketItemModel _preserveProtectedFields(
     MarketItemModel remote,
     MarketItemModel local,
-  ) {
-    final shouldKeepPhone =
-        !remote.canShowPhone &&
-        local.canShowPhone &&
-        local.sellerPhoneNumber.trim().isNotEmpty;
+  ) =>
+      _performPreserveProtectedFields(remote, local);
 
-    if (!shouldKeepPhone) return remote;
+  Future<void> _incrementViewCount() => _performIncrementViewCount();
 
-    return remote.copyWith(
-      showPhone: true,
-      contactPreference: 'phone',
-      sellerPhoneNumber: local.sellerPhoneNumber,
-    );
-  }
-
-  Future<void> _incrementViewCount() async {
-    final currentUid = CurrentUserService.instance.userId.trim();
-    if (currentUid.isNotEmpty && currentUid == item.userId) return;
-    try {
-      await _repository.incrementViewCount(
-        docId: item.id,
-        userId: item.userId,
-      );
-      if (!mounted) return;
-      setState(() {
-        _item = item.copyWith(viewCount: item.viewCount + 1);
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _openEdit() async {
-    final result = await Get.to(() => MarketCreateView(initialItem: item));
-    if (result == null) return;
-    await _refreshItem();
-  }
-
+  Future<void> _openEdit() => _performOpenEdit();
 }

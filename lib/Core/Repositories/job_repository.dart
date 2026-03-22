@@ -433,6 +433,37 @@ class JobRepository extends GetxService {
     return 0;
   }
 
+  Future<void> cancelApplication({
+    required String jobDocId,
+    required String userId,
+  }) async {
+    if (jobDocId.trim().isEmpty || userId.trim().isEmpty) return;
+    final applicationRef = _firestore
+        .collection(JobCollection.name)
+        .doc(jobDocId)
+        .collection('Applications')
+        .doc(userId);
+    final userApplicationRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('myApplications')
+        .doc(jobDocId);
+    final jobDocRef = _firestore.collection(JobCollection.name).doc(jobDocId);
+
+    final batch = _firestore.batch();
+    batch.delete(applicationRef);
+    batch.delete(userApplicationRef);
+    batch.update(jobDocRef, {'applicationCount': FieldValue.increment(-1)});
+    await batch.commit();
+
+    _boolMemory['application:$jobDocId:$userId'] = _TimedBool(
+      value: false,
+      cachedAt: DateTime.now(),
+    );
+    await _invalidateListCache('applications:$jobDocId');
+    await normalizeApplicationCount(jobDocId);
+  }
+
   Future<void> toggleApplication({
     required String jobDocId,
     required String ownerUserId,
@@ -460,21 +491,15 @@ class JobRepository extends GetxService {
     final jobDocRef = _firestore.collection(JobCollection.name).doc(jobDocId);
 
     final snap = await applicationRef.get();
-    final batch = _firestore.batch();
     if (snap.exists) {
-      batch.delete(applicationRef);
-      batch.delete(userApplicationRef);
-      batch.update(jobDocRef, {'applicationCount': FieldValue.increment(-1)});
-      await batch.commit();
-      _boolMemory['application:$jobDocId:$userId'] = _TimedBool(
-        value: false,
-        cachedAt: DateTime.now(),
+      await cancelApplication(
+        jobDocId: jobDocId,
+        userId: userId,
       );
-      await _invalidateListCache('applications:$jobDocId');
-      await normalizeApplicationCount(jobDocId);
       return;
     }
 
+    final batch = _firestore.batch();
     final payload = <String, dynamic>{
       'timeStamp': now,
       'status': 'pending',

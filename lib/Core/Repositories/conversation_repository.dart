@@ -43,6 +43,34 @@ class ConversationRepository extends GetxService {
     return result;
   }
 
+  bool participantBoolValue(
+    dynamic raw,
+    String uid, {
+    bool defaultValue = false,
+  }) {
+    return _sanitizeBoolParticipantMap(
+          raw,
+          <String>[uid],
+          defaultValue: defaultValue,
+        )[uid] ??
+        defaultValue;
+  }
+
+  int participantIntValue(
+    dynamic raw,
+    String uid, {
+    int defaultValue = 0,
+    bool nonNegative = true,
+  }) {
+    return _sanitizeIntParticipantMap(
+          raw,
+          <String>[uid],
+          defaultValue: defaultValue,
+          nonNegative: nonNegative,
+        )[uid] ??
+        defaultValue;
+  }
+
   Map<String, bool> _sanitizeBoolParticipantMap(
     dynamic raw,
     List<String> participants, {
@@ -369,6 +397,88 @@ class ConversationRepository extends GetxService {
         .snapshots();
   }
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> watchConversation(
+    String chatId,
+  ) {
+    return _firestore.collection("conversations").doc(chatId).snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchConversationMessagesHead(
+    String chatId, {
+    required int limit,
+    bool cacheOnly = false,
+  }) {
+    final source = cacheOnly ? ListenSource.cache : ListenSource.defaultSource;
+    return _firestore
+        .collection("conversations")
+        .doc(chatId)
+        .collection("messages")
+        .orderBy("createdDate", descending: true)
+        .limit(limit)
+        .snapshots(source: source);
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> fetchLatestMessages(
+    String chatId, {
+    required int limit,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) {
+    final query = _firestore
+        .collection("conversations")
+        .doc(chatId)
+        .collection("messages")
+        .orderBy("createdDate", descending: true)
+        .limit(limit);
+    return _getWithCachePreference(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> fetchMessagesAfter(
+    String chatId, {
+    required int createdAfterMs,
+    required int limit,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) {
+    final query = _firestore
+        .collection("conversations")
+        .doc(chatId)
+        .collection("messages")
+        .where("createdDate", isGreaterThan: createdAfterMs)
+        .orderBy("createdDate", descending: false)
+        .limit(limit);
+    return _getWithCachePreference(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> fetchOlderMessages(
+    String chatId, {
+    required DocumentSnapshot<Map<String, dynamic>> startAfter,
+    required int limit,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) {
+    final query = _firestore
+        .collection("conversations")
+        .doc(chatId)
+        .collection("messages")
+        .orderBy("createdDate", descending: true)
+        .startAfterDocument(startAfter)
+        .limit(limit);
+    return _getWithCachePreference(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+  }
+
   Future<void> deleteMessageForUser({
     required String chatId,
     required String messageId,
@@ -377,6 +487,30 @@ class ConversationRepository extends GetxService {
     await _messageRef(chatId, messageId).set({
       "deletedFor": FieldValue.arrayUnion([currentUid]),
     }, SetOptions(merge: true));
+  }
+
+  Future<void> deleteMessagesForUser({
+    required String chatId,
+    required Iterable<String> messageIds,
+    required String currentUid,
+  }) async {
+    final ids = messageIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return;
+    final batch = _firestore.batch();
+    for (final messageId in ids) {
+      batch.set(
+        _messageRef(chatId, messageId),
+        {
+          "deletedFor": FieldValue.arrayUnion([currentUid]),
+        },
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
   }
 
   Future<void> unsendMessage({
@@ -395,6 +529,60 @@ class ConversationRepository extends GetxService {
       "contact": FieldValue.delete(),
       "postRef": FieldValue.delete(),
       "replyTo": FieldValue.delete(),
+    });
+  }
+
+  Future<void> setMessageStar({
+    required String chatId,
+    required String messageId,
+    required bool isStarred,
+  }) async {
+    await _messageRef(chatId, messageId).set({
+      "isStarred": isStarred,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> updateMessageText({
+    required String chatId,
+    required String messageId,
+    required String text,
+  }) async {
+    await _messageRef(chatId, messageId).update({
+      "text": text,
+      "isEdited": true,
+    });
+  }
+
+  Future<void> toggleMessageReaction({
+    required String chatId,
+    required String messageId,
+    required String currentUid,
+    required String emoji,
+  }) async {
+    final ref = _messageRef(chatId, messageId);
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) return;
+
+      final data = snap.data() ?? const <String, dynamic>{};
+      final reactions = Map<String, dynamic>.from(data["reactions"] ?? {});
+      final selectedUsers = List<String>.from(reactions[emoji] ?? const []);
+      final wasSelected = selectedUsers.contains(currentUid);
+
+      final updates = <String, dynamic>{};
+      for (final entry in reactions.entries) {
+        final key = entry.key.toString();
+        final users = List<String>.from(entry.value ?? const []);
+        if (users.contains(currentUid)) {
+          updates["reactions.$key"] = FieldValue.arrayRemove([currentUid]);
+        }
+      }
+
+      if (!wasSelected) {
+        updates["reactions.$emoji"] = FieldValue.arrayUnion([currentUid]);
+      }
+
+      tx.update(ref, updates);
     });
   }
 
@@ -419,6 +607,44 @@ class ConversationRepository extends GetxService {
     await _messageRef(chatId, messageId).update({
       "mediaUrls": FieldValue.arrayRemove([imgUrl]),
     });
+  }
+
+  Future<void> markMessagesSeenAndDelivered({
+    required String chatId,
+    required String currentUid,
+    required Iterable<String> seenMessageIds,
+    required Iterable<String> deliveredMessageIds,
+  }) async {
+    final seenIds = seenMessageIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final deliveredIds = deliveredMessageIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty && !seenIds.contains(id))
+        .toSet();
+    if (seenIds.isEmpty && deliveredIds.isEmpty) return;
+
+    final batch = _firestore.batch();
+    for (final messageId in seenIds.take(25)) {
+      batch.update(_messageRef(chatId, messageId), {
+        "seenBy": FieldValue.arrayUnion([currentUid]),
+        "status": "read",
+      });
+    }
+    for (final messageId in deliveredIds.take(25)) {
+      batch.update(_messageRef(chatId, messageId), {
+        "status": "delivered",
+      });
+    }
+    batch.set(
+      _firestore.collection("conversations").doc(chatId),
+      {
+        "unread.$currentUid": 0,
+      },
+      SetOptions(merge: true),
+    );
+    await batch.commit();
   }
 
   Future<Map<String, dynamic>?> getConversation(
@@ -459,25 +685,20 @@ class ConversationRepository extends GetxService {
     }, SetOptions(merge: true));
   }
 
-  Future<void> ensureConversationForPostShare({
-    required String chatId,
+  Map<String, dynamic> _buildConversationEnvelope({
+    required Map<String, dynamic>? existing,
     required String currentUid,
     required String otherUid,
+    required String lastMessage,
     required int nowMs,
-  }) async {
-    final existing = await getConversation(
-      chatId,
-      preferCache: true,
-      cacheOnly: false,
-    );
+  }) {
     final participants = [currentUid, otherUid]..sort();
-
     if (existing == null) {
-      await _firestore.collection("conversations").doc(chatId).set({
+      return {
         "participants": participants,
         "userID1": participants.first,
         "userID2": participants.last,
-        "lastMessage": kConversationPostMessageMarker,
+        "lastMessage": lastMessage,
         "lastMessageAt": nowMs,
         "lastMessageAtMs": nowMs,
         "lastSenderId": currentUid,
@@ -505,8 +726,7 @@ class ConversationRepository extends GetxService {
           currentUid: 0,
           otherUid: 0,
         },
-      });
-      return;
+      };
     }
 
     final existingParticipants = existing["participants"] is List
@@ -549,11 +769,11 @@ class ConversationRepository extends GetxService {
       defaultValue: 0,
       nonNegative: true,
     );
-    await _firestore.collection("conversations").doc(chatId).set({
+    return {
       if (!hasCanonicalParticipants) "participants": participants,
       if (!hasCanonicalParticipants) "userID1": participants.first,
       if (!hasCanonicalParticipants) "userID2": participants.last,
-      "lastMessage": kConversationPostMessageMarker,
+      "lastMessage": lastMessage,
       "lastMessageAt": nowMs,
       "lastMessageAtMs": nowMs,
       "lastSenderId": currentUid,
@@ -563,7 +783,67 @@ class ConversationRepository extends GetxService {
       "muted": muted,
       "pinned": pinned,
       "chatBg": chatBg,
+    };
+  }
+
+  Future<void> upsertConversationEnvelope({
+    required String chatId,
+    required String currentUid,
+    required String otherUid,
+    required String lastMessage,
+    required int nowMs,
+  }) async {
+    final existing = await getConversation(
+      chatId,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    final envelope = _buildConversationEnvelope(
+      existing: existing,
+      currentUid: currentUid,
+      otherUid: otherUid,
+      lastMessage: lastMessage,
+      nowMs: nowMs,
+    );
+    await _firestore
+        .collection("conversations")
+        .doc(chatId)
+        .set(envelope, SetOptions(merge: true));
+  }
+
+  Future<void> setTypingTimestamp({
+    required String chatId,
+    required String currentUid,
+    required int timestampMs,
+  }) async {
+    await _firestore.collection("conversations").doc(chatId).set({
+      "typing.$currentUid": timestampMs < 0 ? 0 : timestampMs,
     }, SetOptions(merge: true));
+  }
+
+  Future<void> setChatBackgroundIndex({
+    required String chatId,
+    required String currentUid,
+    required int index,
+  }) async {
+    await _firestore.collection("conversations").doc(chatId).set({
+      "chatBg.$currentUid": index.clamp(0, 5),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> ensureConversationForPostShare({
+    required String chatId,
+    required String currentUid,
+    required String otherUid,
+    required int nowMs,
+  }) async {
+    await upsertConversationEnvelope(
+      chatId: chatId,
+      currentUid: currentUid,
+      otherUid: otherUid,
+      lastMessage: kConversationPostMessageMarker,
+      nowMs: nowMs,
+    );
   }
 
   Future<void> addPostShareMessage({
@@ -572,28 +852,38 @@ class ConversationRepository extends GetxService {
     required String postId,
     required String postType,
   }) async {
-    await _firestore
+    await addMessage(
+      chatId: chatId,
+      payload: {
+        "senderId": currentUid,
+        "text": "",
+        "createdDate": DateTime.now().millisecondsSinceEpoch,
+        "seenBy": [currentUid],
+        "type": "post",
+        "mediaUrls": [],
+        "likes": <String>[],
+        "isDeleted": false,
+        "isEdited": false,
+        "audioUrl": "",
+        "postRef": {
+          "postId": postId,
+          "postType": postType,
+          "previewText": "",
+          "previewImageUrl": "",
+        }
+      },
+    );
+  }
+
+  Future<DocumentReference<Map<String, dynamic>>> addMessage({
+    required String chatId,
+    required Map<String, dynamic> payload,
+  }) async {
+    return _firestore
         .collection("conversations")
         .doc(chatId)
         .collection("messages")
-        .add({
-      "senderId": currentUid,
-      "text": "",
-      "createdDate": DateTime.now().millisecondsSinceEpoch,
-      "seenBy": [currentUid],
-      "type": "post",
-      "mediaUrls": [],
-      "likes": <String>[],
-      "isDeleted": false,
-      "isEdited": false,
-      "audioUrl": "",
-      "postRef": {
-        "postId": postId,
-        "postType": postType,
-        "previewText": "",
-        "previewImageUrl": "",
-      }
-    });
+        .add(payload);
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(

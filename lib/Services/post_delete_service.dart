@@ -306,7 +306,11 @@ class PostDeleteService {
       final currentCount = (userSnap.data()?['counterOfLikes'] ?? 0) as int;
       final dec = likeCount > currentCount ? currentCount : likeCount;
       if (dec > 0) {
-        await userRef.update({'counterOfLikes': FieldValue.increment(-dec)});
+        await UserRepository.ensure().updateUserFields(
+          model.userID,
+          {'counterOfLikes': FieldValue.increment(-dec)},
+          mergeIntoCache: false,
+        );
       }
     } catch (_) {}
   }

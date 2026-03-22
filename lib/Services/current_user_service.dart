@@ -33,6 +33,9 @@ import '../Models/current_user_model.dart';
 
 part 'current_user_service_cache_part.dart';
 part 'current_user_service_account_part.dart';
+part 'current_user_service_auth_part.dart';
+part 'current_user_service_lifecycle_part.dart';
+part 'current_user_service_sync_part.dart';
 
 class _TimedValue<T> {
   final T value;
@@ -121,114 +124,58 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   String get userId => _currentUser?.userID ?? '';
 
   /// Auth fallback dahil efektif kullanıcı ID'si.
-  String get effectiveUserId {
-    final serviceUid = userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return authUserId;
-  }
+  String get effectiveUserId => _performEffectiveUserId();
 
-  User? get currentAuthUser => FirebaseAuth.instance.currentUser;
+  User? get currentAuthUser => _performCurrentAuthUser();
 
-  bool get hasAuthUser => currentAuthUser != null;
+  bool get hasAuthUser => _performHasAuthUser();
 
-  String get authUserId => currentAuthUser?.uid.trim() ?? '';
+  String get authUserId => _performAuthUserId();
 
-  String get authEmail => currentAuthUser?.email?.trim() ?? '';
+  String get authEmail => _performAuthEmail();
 
-  String get authDisplayName => currentAuthUser?.displayName?.trim() ?? '';
+  String get authDisplayName => _performAuthDisplayName();
 
-  String get effectiveEmail {
-    final cached = email.trim();
-    if (cached.isNotEmpty) return cached;
-    return authEmail;
-  }
+  String get effectiveEmail => _performEffectiveEmail();
 
-  String get effectivePhoneNumber {
-    final cached = phoneNumber.trim();
-    if (cached.isNotEmpty) return cached;
-    return currentAuthUser?.phoneNumber?.trim() ?? '';
-  }
+  String get effectivePhoneNumber => _performEffectivePhoneNumber();
 
-  String get effectiveDisplayName {
-    final cachedFullName = fullName.trim();
-    if (cachedFullName.isNotEmpty) return cachedFullName;
-    final cachedNickname = nickname.trim();
-    if (cachedNickname.isNotEmpty) return cachedNickname;
-    return authDisplayName;
-  }
+  String get effectiveDisplayName => _performEffectiveDisplayName();
 
-  Stream<User?> authStateChanges() => FirebaseAuth.instance.authStateChanges();
+  Stream<User?> authStateChanges() => _performAuthStateChanges();
 
   Future<User?> resolveAuthUser({
     bool waitForAuthState = false,
     Duration timeout = const Duration(seconds: 3),
-  }) async {
-    final existing = currentAuthUser;
-    if (existing != null) return existing;
-    if (!waitForAuthState) return null;
-    try {
-      return await authStateChanges()
-          .firstWhere((candidate) => candidate != null)
-          .timeout(timeout);
-    } catch (_) {
-      return currentAuthUser;
-    }
-  }
+  }) =>
+      _performResolveAuthUser(
+        waitForAuthState: waitForAuthState,
+        timeout: timeout,
+      );
 
-  Future<User?> reloadCurrentAuthUser() async {
-    final user = currentAuthUser;
-    if (user == null) return null;
-    await user.reload();
-    return currentAuthUser;
-  }
+  Future<User?> reloadCurrentAuthUser() => _performReloadCurrentAuthUser();
 
   Future<String?> ensureAuthReady({
     bool waitForAuthState = false,
     bool forceTokenRefresh = false,
     Duration timeout = const Duration(seconds: 3),
-  }) async {
-    final user = await resolveAuthUser(
-      waitForAuthState: waitForAuthState,
-      timeout: timeout,
-    );
-    if (user == null) return null;
-    if (forceTokenRefresh) {
-      try {
-        await user.getIdToken(true);
-      } catch (_) {
-        // Best effort refresh only.
-      }
-    }
-    final uid = user.uid.trim();
-    return uid.isEmpty ? null : uid;
-  }
+  }) =>
+      _performEnsureAuthReady(
+        waitForAuthState: waitForAuthState,
+        forceTokenRefresh: forceTokenRefresh,
+        timeout: timeout,
+      );
 
   Future<void> refreshAuthTokenIfNeeded({
     bool waitForAuthState = true,
-  }) async {
-    try {
-      await ensureAuthReady(
+  }) =>
+      _performRefreshAuthTokenIfNeeded(
         waitForAuthState: waitForAuthState,
-        forceTokenRefresh: true,
       );
-    } catch (_) {
-      // Best effort only.
-    }
-  }
 
-  Future<void> signOutAuth() async {
-    await FirebaseAuth.instance.signOut();
-  }
+  Future<void> signOutAuth() => _performSignOutAuth();
 
-  Future<void> deleteAuthUserIfPresent() async {
-    final user = currentAuthUser;
-    if (user == null) return;
-    try {
-      await user.delete();
-    } catch (_) {
-      rethrow;
-    }
-  }
+  Future<void> deleteAuthUserIfPresent() => _performDeleteAuthUserIfPresent();
 
   /// Current user nickname (shortcut)
   String get nickname => _currentUser?.nickname ?? '';
@@ -337,88 +284,10 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   /// Initialize service (can be called multiple times, e.g., after fresh login)
   ///
   /// Returns true if user loaded from cache/Firebase
-  Future<bool> initialize() async {
-    try {
-      _prefs ??= await SharedPreferences.getInstance();
-
-      final firebaseUser = currentAuthUser;
-      if (firebaseUser == null) {
-        _purgeUserScopedCaches(_currentUser?.userID);
-        _isInitialized = true;
-        emailVerifiedRx.value = true;
-        return false;
-      }
-      emailVerifiedRx.value = firebaseUser.emailVerified;
-      unawaited(_adoptFreshSessionKeyIfNeeded());
-      _lastKnownViewSelection =
-          _prefs?.getInt(_viewSelectionKey(firebaseUser.uid));
-      viewSelectionRx.value = _lastKnownViewSelection ?? 1;
-
-      // If already initialized and user exists, just ensure sync is running
-      if (_isInitialized &&
-          _currentUser != null &&
-          _currentUser!.userID == firebaseUser.uid) {
-        // Same user, ensure Firebase sync is active
-        if (!_isSyncing) {
-          unawaited(_startFirebaseSync());
-        }
-        // Auth tarafı gecikmeli/yanlış dönebileceği için Firestore alanı ile
-        // arka planda kesinleştir.
-        unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
-        unawaited(_loadEmailVerifyConfig());
-        return true;
-      }
-
-      // Different user or first init - reload everything
-      if (_currentUser != null && _currentUser!.userID != firebaseUser.uid) {
-        _purgeUserScopedCaches(_currentUser!.userID);
-      }
-      // 1️⃣ Try loading from cache first (FAST - ~10ms)
-      final cacheLoaded = await _loadFromCache(expectedUid: firebaseUser.uid);
-
-      // 1.5️⃣ Theme/view mode kritik bir ayar: sync'i beklemeden Firestore'dan
-      // tek alan okuyup ilk render öncesi kesinleştir.
-      await _primeViewSelectionFromFirestore(firebaseUser.uid)
-          .timeout(const Duration(milliseconds: 350), onTimeout: () {});
-
-      // 2️⃣ Ağır ağ işlerini arka planda başlat; startup'ı bloklamasın.
-      unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
-      unawaited(_loadEmailVerifyConfig());
-
-      // 3️⃣ Start Firebase sync in background (await etme — cache yeterli)
-      unawaited(_startFirebaseSync());
-
-      _isInitialized = true;
-      return cacheLoaded || isLoggedIn;
-    } catch (_) {
-      _isInitialized = true;
-      return false;
-    }
-  }
+  Future<bool> initialize() => _performInitialize();
 
   /// Force refresh from Firebase (bypasses cache)
-  Future<void> forceRefresh() async {
-    final firebaseUser = currentAuthUser;
-    if (firebaseUser == null) return;
-
-    try {
-      _purgeUserScopedCaches(firebaseUser.uid);
-      final data = await _readRootUserData(
-        firebaseUser.uid,
-        preferCache: false,
-        forceServer: true,
-      );
-
-      if (data.isNotEmpty) {
-        final merged = await _buildMergedUserData(
-          uid: firebaseUser.uid,
-          rootData: data,
-        );
-        await _updateUser(CurrentUserModel.fromJson(merged));
-      }
-      await refreshEmailVerificationStatus(reloadAuthUser: true);
-    } catch (_) {}
-  }
+  Future<void> forceRefresh() => _performForceRefresh();
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 💾 Cache Management
@@ -429,439 +298,28 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   /// Start Firebase realtime sync
-  Future<void> _startFirebaseSync() async {
-    if (_isSyncing) return;
+  Future<void> _startFirebaseSync() => _performStartFirebaseSync();
 
-    final firebaseUser = currentAuthUser;
-    if (firebaseUser == null) return;
+  Future<void> _adoptFreshSessionKeyIfNeeded() =>
+      _performAdoptFreshSessionKeyIfNeeded();
 
-    try {
-      _isSyncing = true;
+  void _startExclusiveSessionHeartbeat(String uid) =>
+      _performStartExclusiveSessionHeartbeat(uid);
 
-      // Cancel existing subscription
-      await _firestoreSubscription?.cancel();
-
-      // Listen to user document changes
-      _firestoreSubscription =
-          UserRepository.ensure().watchUserRaw(firebaseUser.uid).listen(
-        (data) async {
-          if (data == null || data.isEmpty) {
-            return;
-          }
-          if (await _handleExclusiveSessionIfNeeded(firebaseUser.uid, data)) {
-            return;
-          }
-          final rootSignature = jsonEncode(data);
-          if (_currentUser?.userID == firebaseUser.uid &&
-              _lastRootSyncSignature == rootSignature) {
-            return;
-          }
-          _storeRootUserData(firebaseUser.uid, data);
-          _lastRootSyncSignature = rootSignature;
-
-          final merged = await _buildMergedUserData(
-            uid: firebaseUser.uid,
-            rootData: data,
-          );
-          final user = CurrentUserModel.fromJson(merged);
-          await _updateUser(user);
-        },
-        onError: (_) {},
-      );
-      _startExclusiveSessionHeartbeat(firebaseUser.uid);
-      unawaited(_adoptFreshSessionKeyIfNeeded());
-      unawaited(_validateExclusiveSessionFromServer(firebaseUser.uid));
-    } catch (_) {
-      _isSyncing = false;
-    }
-  }
-
-  Future<void> _adoptFreshSessionKeyIfNeeded() async {
-    final uid = authUserId;
-    if (uid.isEmpty) return;
-    if (!DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) return;
-    try {
-      await AccountCenterService.ensure()
-          .registerCurrentDeviceSessionIfEnabled();
-    } catch (_) {}
-  }
-
-  void _startExclusiveSessionHeartbeat(String uid) {
-    _exclusiveSessionHeartbeat?.cancel();
-    _exclusiveSessionHeartbeat = Timer.periodic(
-      _exclusiveSessionHeartbeatInterval,
-      (_) => unawaited(_validateExclusiveSessionFromServer(uid)),
-    );
-  }
-
-  Future<void> _validateExclusiveSessionFromServer(String uid) async {
-    if (uid.trim().isEmpty || _handlingSessionDisplacement) return;
-    try {
-      final raw = await UserRepository.ensure().getUserRaw(
-        uid,
-        preferCache: false,
-        forceServer: true,
-      );
-      if (raw == null || raw.isEmpty) return;
-      await _handleExclusiveSessionIfNeeded(uid, raw);
-    } catch (_) {}
-  }
+  Future<void> _validateExclusiveSessionFromServer(String uid) =>
+      _performValidateExclusiveSessionFromServer(uid);
 
   Future<Map<String, dynamic>> _buildMergedUserData({
     required String uid,
     required Map<String, dynamic> rootData,
-  }) async {
-    final merged = <String, dynamic>{...rootData};
-    final currentSnapshot =
-        (_currentUser != null && _currentUser!.userID == uid)
-            ? _currentUser!.toJson()
-            : const <String, dynamic>{};
-
-    Map<String, dynamic> extractRootMap(String key) {
-      final raw = rootData[key];
-      if (raw is Map<String, dynamic>) return Map<String, dynamic>.from(raw);
-      if (raw is Map) {
-        return raw.map((mapKey, value) => MapEntry(mapKey.toString(), value));
-      }
-      return <String, dynamic>{};
-    }
-
-    Map<String, dynamic> extractCurrentMap(String key) {
-      final raw = currentSnapshot[key];
-      if (raw is Map<String, dynamic>) return Map<String, dynamic>.from(raw);
-      if (raw is Map) {
-        return raw.map((mapKey, value) => MapEntry(mapKey.toString(), value));
-      }
-      return <String, dynamic>{};
-    }
-
-    Future<Map<String, dynamic>> readSubdocCached(
-      String col,
-      String doc,
-    ) async {
-      final repository = UserSubdocRepository.ensure();
-      try {
-        final data = await repository.getDoc(
-          uid,
-          collection: col,
-          docId: doc,
-          preferCache: true,
-          ttl: _subdocCacheTtl,
-        );
-        return data;
-      } catch (e, st) {
-        _logSilently('subdoc.$col.$doc', e, st);
-        return <String, dynamic>{};
-      }
-    }
-
-    Future<Map<String, dynamic>> readListCache(
-      String key,
-      Future<Map<String, dynamic>> Function() loader,
-    ) async {
-      final cacheKey = _listCacheKey(uid, key);
-      final cached = _listCache[cacheKey];
-      if (cached != null && _isFresh(cached.fetchedAt, _listCacheTtl)) {
-        return Map<String, dynamic>.from(cached.value);
-      }
-      try {
-        final loaded = await loader();
-        _listCache[cacheKey] = _TimedValue<Map<String, dynamic>>(
-          value: loaded,
-          fetchedAt: DateTime.now(),
-        );
-        return loaded;
-      } catch (e, st) {
-        _logSilently('subcol.$key', e, st);
-        if (cached != null) {
-          return Map<String, dynamic>.from(cached.value);
-        }
-        return <String, dynamic>{};
-      }
-    }
-
-    // Read amplification guard:
-    // If root already has canonical map blocks, skip extra sub-doc reads.
-    final rootPrivate = extractRootMap('private');
-    final rootEducation = extractRootMap('education');
-    final rootFamily = extractRootMap('family');
-    final rootSettings = extractRootMap('settings');
-    final rootStats = extractRootMap('stats');
-    final currentPrivate = extractCurrentMap('private');
-    final currentEducation = extractCurrentMap('education');
-    final currentFamily = extractCurrentMap('family');
-    final currentSettings = extractCurrentMap('settings');
-    final currentStats = extractCurrentMap('stats');
-
-    final privateAccount = rootPrivate.isNotEmpty
-        ? rootPrivate
-        : (currentPrivate.isNotEmpty
-            ? currentPrivate
-            : await readSubdocCached('private', 'account'));
-    final education = rootEducation.isNotEmpty
-        ? rootEducation
-        : (currentEducation.isNotEmpty
-            ? currentEducation
-            : await readSubdocCached('education', 'info'));
-    final family = rootFamily.isNotEmpty
-        ? rootFamily
-        : (currentFamily.isNotEmpty
-            ? currentFamily
-            : await readSubdocCached('family', 'info'));
-    final settings = rootSettings.isNotEmpty
-        ? rootSettings
-        : (currentSettings.isNotEmpty
-            ? currentSettings
-            : await readSubdocCached('settings', 'preferences'));
-    final stats = rootStats.isNotEmpty
-        ? rootStats
-        : (currentStats.isNotEmpty
-            ? currentStats
-            : await readSubdocCached('stats', 'summary'));
-
-    void mergeOverride(Map<String, dynamic> source) {
-      source.forEach((k, v) {
-        merged[k] = v;
-      });
-    }
-
-    void mergeRootScope(String scope) {
-      final raw = rootData[scope];
-      if (raw is Map<String, dynamic>) {
-        mergeOverride(raw);
-        return;
-      }
-      if (raw is Map) {
-        mergeOverride(
-          raw.map((key, value) => MapEntry(key.toString(), value)),
-        );
-      }
-    }
-
-    // Support canonical map blocks on root document.
-    mergeRootScope('profile');
-    mergeRootScope('private');
-    mergeRootScope('education');
-    mergeRootScope('family');
-    mergeRootScope('settings');
-    mergeRootScope('stats');
-    mergeRootScope('account');
-    mergeRootScope('preferences');
-    mergeRootScope('finance');
-
-    // Canonical source is sub-docs; override root values when present.
-    mergeOverride(privateAccount);
-    mergeOverride(education);
-    mergeOverride(family);
-    mergeOverride(settings);
-    mergeOverride(stats);
-
-    bool hasNonEmptyString(dynamic value) =>
-        value is String && value.trim().isNotEmpty;
-
-    void preferRootString(String key) {
-      if (!rootData.containsKey(key)) return;
-      final value = rootData[key];
-      if (hasNonEmptyString(value)) {
-        merged[key] = value;
-      }
-    }
-
-    void preferCurrentString(String key) {
-      if (hasNonEmptyString(merged[key])) return;
-      final value = currentSnapshot[key];
-      if (hasNonEmptyString(value)) {
-        merged[key] = value;
-      }
-    }
-
-    void preferRootScalar(String key) {
-      if (!rootData.containsKey(key)) return;
-      final value = rootData[key];
-      if (value != null) {
-        merged[key] = value;
-      }
-    }
-
-    // Root canonical identity fields must win over legacy nested maps.
-    for (final key in const [
-      'avatarUrl',
-      'nickname',
-      'nickName',
-      'username',
-      'userName',
-      'usernameLower',
-      'displayName',
-      'firstName',
-      'lastName',
-      'email',
-      'phoneNumber',
-      'bio',
-      'rozet',
-      'badge',
-      'meslekKategori',
-      'token',
-    ]) {
-      preferRootString(key);
-    }
-    for (final key in const [
-      'avatarUrl',
-      'nickname',
-      'nickName',
-      'username',
-      'userName',
-      'usernameLower',
-      'displayName',
-      'firstName',
-      'lastName',
-      'email',
-      'phoneNumber',
-      'bio',
-      'rozet',
-      'badge',
-      'meslekKategori',
-      'token',
-    ]) {
-      preferCurrentString(key);
-    }
-    for (final key in const [
-      'counterOfFollowers',
-      'counterOfFollowings',
-      'counterOfPosts',
-      'counterOfLikes',
-      'antPoint',
-      'dailyDurations',
-      'createdDate',
-      'updatedDate',
-      'viewSelection',
-    ]) {
-      preferRootScalar(key);
-    }
-
-    // blockedUsers/readStories/lastSearches canonical subcollections.
-    final currentBlocked = currentSnapshot['blockedUsers'];
-    if (merged['blockedUsers'] is! List) {
-      if (currentBlocked is List && currentBlocked.isNotEmpty) {
-        merged['blockedUsers'] =
-            currentBlocked.map((e) => e.toString()).toList(growable: false);
-      } else {
-        final blocked = await readListCache('blockedUsers', () async {
-          final entries = await _userSubcollectionRepository.getEntries(
-            uid,
-            subcollection: 'blockedUsers',
-            preferCache: true,
-          );
-          return <String, dynamic>{
-            'blockedUsers': entries.map((d) => d.id).toList(growable: false),
-          };
-        });
-        final list = blocked['blockedUsers'];
-        if (list is List) {
-          merged['blockedUsers'] = list.map((e) => e.toString()).toList();
-        }
-      }
-    }
-    final currentReadStories = currentSnapshot['readStories'];
-    final currentReadStoriesTimes = currentSnapshot['readStoriesTimes'];
-    if (merged['readStories'] is! List) {
-      if (currentReadStories is List && currentReadStories.isNotEmpty) {
-        merged['readStories'] =
-            currentReadStories.map((e) => e.toString()).toList(growable: false);
-        if (currentReadStoriesTimes is Map &&
-            currentReadStoriesTimes.isNotEmpty) {
-          final normalized = <String, int>{};
-          currentReadStoriesTimes.forEach((k, v) {
-            if (v is num) normalized[k.toString()] = v.toInt();
-          });
-          if (normalized.isNotEmpty) {
-            merged['readStoriesTimes'] = normalized;
-          }
-        }
-      } else {
-        final readStories = await readListCache('readStories', () async {
-          final entries = await _userSubcollectionRepository.getEntries(
-            uid,
-            subcollection: 'readStories',
-            preferCache: true,
-          );
-          final times = <String, int>{};
-          for (final entry in entries) {
-            final t = entry.data['readDate'];
-            if (t is num) times[entry.id] = t.toInt();
-          }
-          return <String, dynamic>{
-            'readStories': entries.map((e) => e.id).toList(growable: false),
-            'readStoriesTimes': times,
-          };
-        });
-        final list = readStories['readStories'];
-        if (list is List) {
-          merged['readStories'] = list.map((e) => e.toString()).toList();
-        }
-        final times = readStories['readStoriesTimes'];
-        if (times is Map) {
-          final normalized = <String, int>{};
-          times.forEach((k, v) {
-            if (v is num) normalized[k.toString()] = v.toInt();
-          });
-          if (normalized.isNotEmpty) {
-            merged['readStoriesTimes'] = normalized;
-          }
-        }
-      }
-    }
-    final currentLastSearchList = currentSnapshot['lastSearchList'];
-    if (merged['lastSearchList'] is! List) {
-      if (currentLastSearchList is List && currentLastSearchList.isNotEmpty) {
-        merged['lastSearchList'] = currentLastSearchList
-            .map((e) => e.toString())
-            .toList(growable: false);
-      } else {
-        final searches = await readListCache('lastSearches', () async {
-          final entries = await _userSubcollectionRepository.getEntries(
-            uid,
-            subcollection: 'lastSearches',
-            preferCache: true,
-          );
-          final docs = entries.toList()
-            ..sort((a, b) {
-              final aData = a.data;
-              final bData = b.data;
-              final aTs = (aData['updatedDate'] is num)
-                  ? (aData['updatedDate'] as num).toInt()
-                  : ((aData['timeStamp'] is num)
-                      ? (aData['timeStamp'] as num).toInt()
-                      : 0);
-              final bTs = (bData['updatedDate'] is num)
-                  ? (bData['updatedDate'] as num).toInt()
-                  : ((bData['timeStamp'] is num)
-                      ? (bData['timeStamp'] as num).toInt()
-                      : 0);
-              return bTs.compareTo(aTs);
-            });
-          return <String, dynamic>{
-            'lastSearchList':
-                docs.take(100).map((d) => d.id).toList(growable: false),
-          };
-        });
-        final list = searches['lastSearchList'];
-        if (list is List) {
-          merged['lastSearchList'] = list.map((e) => e.toString()).toList();
-        }
-      }
-    }
-
-    return merged;
-  }
+  }) =>
+      _performBuildMergedUserData(
+        uid: uid,
+        rootData: rootData,
+      );
 
   /// Stop Firebase sync
-  Future<void> _stopFirebaseSync() async {
-    await _firestoreSubscription?.cancel();
-    _firestoreSubscription = null;
-    _exclusiveSessionHeartbeat?.cancel();
-    _exclusiveSessionHeartbeat = null;
-    _isSyncing = false;
-  }
+  Future<void> _stopFirebaseSync() => _performStopFirebaseSync();
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔄 User Updates
@@ -869,131 +327,32 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   /// Update current user (internal)
   Future<void> _updateUser(CurrentUserModel user) async {
-    final resolvedUser = await _applyStoredViewSelection(user);
-    if (await _handlePermanentBanIfNeeded(resolvedUser)) {
-      return;
-    }
-    _currentUser = resolvedUser;
-    final didPublish = _publishResolvedUser(resolvedUser);
-    await UserRepository.ensure().seedCurrentUser(resolvedUser);
-    unawaited(_warmAvatar(resolvedUser));
-    if (didPublish) {
-      await _saveToCache(resolvedUser);
-    }
+    await _performUpdateUser(user);
   }
 
   Future<bool> _handlePermanentBanIfNeeded(CurrentUserModel user) async {
-    if (!user.isPermanentAppBan || _handlingPermanentBan) {
-      return false;
-    }
-
-    _handlingPermanentBan = true;
-    try {
-      AppSnackbar(
-        'Hesap Engellendi',
-        'Bu hesap uygulamaya erişimden kalıcı olarak uzaklaştırıldı.',
-      );
-      await _signOutToSignIn();
-      return true;
-    } catch (_) {
-      return true;
-    } finally {
-      _handlingPermanentBan = false;
-    }
+    return _performHandlePermanentBanIfNeeded(user);
   }
 
   Future<bool> _handleExclusiveSessionIfNeeded(
     String uid,
     Map<String, dynamic> data,
   ) async {
-    if (_handlingSessionDisplacement) return false;
-    if (data['singleDeviceSessionEnabled'] != true) return false;
-    final activeDeviceKey =
-        (data['activeSessionDeviceKey'] ?? '').toString().trim();
-    if (activeDeviceKey.isEmpty) return false;
-    final localDeviceKey =
-        await DeviceSessionService.instance.getOrCreateDeviceKey();
-    if (activeDeviceKey == localDeviceKey) return false;
-    if (DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) {
-      try {
-        await AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled();
-        return false;
-      } catch (_) {}
-    }
-    if (DeviceSessionService.instance.hasPendingSessionClaim(uid)) {
-      try {
-        await AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled();
-        return false;
-      } catch (_) {}
-    }
-    final legacyDeviceKey =
-        (await DeviceSessionService.instance.getLegacyDeviceKey() ?? '').trim();
-    if (legacyDeviceKey.isNotEmpty && activeDeviceKey == legacyDeviceKey) {
-      try {
-        await AccountCenterService.ensure()
-            .registerCurrentDeviceSessionIfEnabled();
-        return false;
-      } catch (_) {}
-    }
-
-    _handlingSessionDisplacement = true;
-    try {
-      await AccountCenterService.ensure().markSessionState(
-        uid: uid,
-        isSessionValid: false,
-        requiresReauth: true,
-      );
-      await AccountSessionVault.instance.delete(uid);
-      AppSnackbar(
-        'Oturum Kapatıldı',
-        'Bu hesap başka bir telefonda açıldı. Yeniden giriş için şifre gerekir.',
-      );
-      await _signOutToSignIn(
-        initialIdentifier: (data['email'] ?? '').toString().trim(),
-      );
-      return true;
-    } catch (_) {
-      return true;
-    } finally {
-      _handlingSessionDisplacement = false;
-    }
+    return _performHandleExclusiveSessionIfNeeded(uid, data);
   }
 
   bool _publishResolvedUser(CurrentUserModel user) {
-    viewSelectionRx.value = user.viewSelection;
-    final nextSignature = jsonEncode(user.toJson());
-    if (_lastReactiveSignature == nextSignature) {
-      return false;
-    }
-    _lastReactiveSignature = nextSignature;
-    currentUserRx.value = user;
-    _emitUserEvent(user);
-    return true;
+    return _performPublishResolvedUser(user);
   }
 
   Future<void> _warmAvatar(CurrentUserModel? user) async {
-    final url = (user?.avatarUrl ?? '').trim();
-    if (url.isEmpty) return;
-    if (_lastWarmedAvatarUrl == url) return;
-    try {
-      await TurqImageCacheManager.instance.getSingleFile(url);
-      _lastWarmedAvatarUrl = url;
-    } catch (_) {}
+    await _performWarmAvatar(user);
   }
 
   Future<void> _signOutToSignIn({
     String initialIdentifier = '',
   }) async {
-    await logout();
-    await signOutAuth();
-    if (Get.key.currentContext == null) return;
-    await Get.offAll(
-      () => SignIn(
-        initialIdentifier: initialIdentifier,
-      ),
-    );
+    await _performSignOutToSignIn(initialIdentifier: initialIdentifier);
   }
 
   /// Update specific fields (optimistic update)
@@ -1041,33 +400,7 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   /// Logout and clear all data
   Future<void> logout() async {
-    try {
-      final oldUid = _currentUser?.userID;
-      await _stopFirebaseSync();
-      await _clearCache(oldUid);
-      _purgeUserScopedCaches(oldUid);
-      await FollowRepository.maybeFind()?.clearAll();
-      _silentLogAt.clear();
-
-      // Cancel pending cache writes
-      _cacheSaveTimer?.cancel();
-      _cacheSaveTimer = null;
-      _lastCacheSignature = null;
-      _lastReactiveSignature = null;
-      _lastRootSyncSignature = null;
-      _lastWarmedAvatarUrl = null;
-
-      _currentUser = null;
-      viewSelectionRx.value = 1;
-      currentUserRx.value = null;
-      _emitUserEvent(null);
-
-      // 🔥 CRITICAL: Reset initialization flag to allow re-initialization
-      _isInitialized = false;
-      _isSyncing = false;
-      emailVerifiedRx.value = true;
-      _lastEmailPromptAt = null;
-    } catch (_) {}
+    await _performLogout();
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1076,22 +409,13 @@ class CurrentUserService extends GetxController with WidgetsBindingObserver {
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _stopFirebaseSync();
-    _subdocCache.clear();
-    _listCache.clear();
-    _silentLogAt.clear();
-    _userStreamController.close();
-    _instance = null;
+    _disposeLifecycleResources();
     super.onClose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
-    final uid = authUserId;
-    if (uid.isEmpty) return;
-    unawaited(_validateExclusiveSessionFromServer(uid));
+    _handleLifecycleStateChange(state);
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

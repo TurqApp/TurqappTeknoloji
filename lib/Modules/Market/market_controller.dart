@@ -30,6 +30,9 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'market_schema_service.dart';
 
+part 'market_controller_filter_part.dart';
+part 'market_controller_home_part.dart';
+
 class MarketController extends GetxController {
   static MarketController ensure({bool permanent = false}) {
     final existing = maybeFind();
@@ -169,35 +172,9 @@ class MarketController extends GetxController {
   String _listingSelectionKeyFor(String uid) =>
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
-  Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
-    if (uid.isEmpty) {
-      listingSelection.value = 0;
-      listingSelectionReady.value = true;
-      return;
-    }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
-      listingSelection.value = stored == 1 ? 1 : 0;
-    } catch (_) {
-      listingSelection.value = 0;
-    } finally {
-      listingSelectionReady.value = true;
-    }
-  }
+  Future<void> _restoreListingSelection() => _performRestoreListingSelection();
 
-  Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
-    if (uid.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        _listingSelectionKeyFor(uid),
-        listingSelection.value == 1 ? 1 : 0,
-      );
-    } catch (_) {}
-  }
+  Future<void> _persistListingSelection() => _performPersistListingSelection();
 
   @override
   void onInit() {
@@ -218,184 +195,41 @@ class MarketController extends GetxController {
     super.onClose();
   }
 
-  Future<void> _bootstrapHomeData() async {
-    try {
-      await _schemaService.loadSchema();
-      final loadedCategories = _schemaService
-          .categories()
-          .where(_isVisibleCategory)
-          .toList(growable: true)
-        ..sort(
-          (a, b) => _compareCategoryPriority(
-            (a['label'] ?? '').toString(),
-            (b['label'] ?? '').toString(),
-          ),
-        );
-      final roundMenu = _schemaService.roundMenuItems();
-      if (!_sameMapList(categories, loadedCategories)) {
-        categories.assignAll(loadedCategories);
-      }
-      if (!_sameMapList(roundMenuItems, roundMenu)) {
-        roundMenuItems.assignAll(roundMenu);
-      }
-    } catch (_) {}
-    await _loadSavedItems();
-    final userId = CurrentUserService.instance.userId;
-    _homeSnapshotSub?.cancel();
-    _homeSnapshotSub = _marketSnapshotRepository
-        .openHome(
-      userId: userId,
-      limit: 120,
-    )
-        .listen((resource) {
-      unawaited(_applyHomeSnapshotResource(resource));
-    });
-  }
+  Future<void> _bootstrapHomeData() => _performBootstrapHomeData();
 
   Future<void> loadHomeData({
     bool forceRefresh = false,
     bool silent = false,
-  }) async {
-    final shouldShowLoader = !silent && items.isEmpty && visibleItems.isEmpty;
-    if (shouldShowLoader) {
-      isLoading.value = true;
-    }
-    try {
-      await _schemaService.loadSchema();
-      final loadedCategories = _schemaService
-          .categories()
-          .where(_isVisibleCategory)
-          .toList(growable: true)
-        ..sort(
-          (a, b) => _compareCategoryPriority(
-            (a['label'] ?? '').toString(),
-            (b['label'] ?? '').toString(),
-          ),
-        );
-      final roundMenu = _schemaService.roundMenuItems();
-      if (!_sameMapList(categories, loadedCategories)) {
-        categories.assignAll(loadedCategories);
-      }
-      if (!_sameMapList(roundMenuItems, roundMenu)) {
-        roundMenuItems.assignAll(roundMenu);
-      }
-      await _loadListingFromSnapshot(forceRefresh: forceRefresh);
-      await _loadAllCityOptions();
-      await _loadSavedItems();
-      await _loadRoundMenuBadges(forceRefresh: forceRefresh);
-      _applyFilters();
-    } finally {
-      if (shouldShowLoader) {
-        isLoading.value = false;
-      }
-    }
-  }
-
-  void setSearchQuery(String value) {
-    searchQuery.value = value;
-    if (search.text != value) {
-      search.value = TextEditingValue(
-        text: value,
-        selection: TextSelection.collapsed(offset: value.length),
+  }) =>
+      _performLoadHomeData(
+        forceRefresh: forceRefresh,
+        silent: silent,
       );
-    }
-    _searchDebounce?.cancel();
-    final normalized = value.trim();
-    if (normalized.length >= 2) {
-      final requestId = ++_searchRequestId;
-      isSearchLoading.value = true;
-      searchedItems.clear();
-      _applyFilters();
-      _searchDebounce = Timer(const Duration(milliseconds: 280), () {
-        unawaited(_searchFromTypesense(normalized, requestId));
-      });
-    } else {
-      _searchRequestId++;
-      isSearchLoading.value = false;
-      searchedItems.clear();
-      _applyFilters();
-    }
-  }
 
-  void applyRecentSearch(String value) {
-    final normalized = value.trim();
-    if (normalized.isEmpty) return;
-    setSearchQuery(normalized);
-  }
+  void setSearchQuery(String value) => _performSetSearchQuery(value);
 
-  Future<void> clearRecentSearches() async {
-    recentSearches.clear();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_recentSearchesKey);
-  }
+  void applyRecentSearch(String value) => _performApplyRecentSearch(value);
 
-  int _compareCategoryPriority(String left, String right) {
-    final leftIndex = _preferredCategoryIndex(left);
-    final rightIndex = _preferredCategoryIndex(right);
-    if (leftIndex != rightIndex) {
-      return leftIndex.compareTo(rightIndex);
-    }
-    return compareTurkishStrings(left, right);
-  }
+  Future<void> clearRecentSearches() => _performClearRecentSearches();
 
-  int _preferredCategoryIndex(String label) {
-    final normalized = _categoryOrderKey(label);
-    for (var i = 0; i < _preferredCategoryOrder.length; i++) {
-      if (_categoryOrderKey(_preferredCategoryOrder[i]) == normalized) {
-        return i;
-      }
-    }
-    return _preferredCategoryOrder.length + 100;
-  }
+  int _compareCategoryPriority(String left, String right) =>
+      _performCompareCategoryPriority(left, right);
 
-  String _categoryOrderKey(String value) {
-    final normalized = normalizeMarketCategoryLabel(value);
-    switch (normalized) {
-      case 'kozmetik':
-        return normalizeMarketCategoryLabel('Kişisel Bakım');
-      default:
-        return normalized;
-    }
-  }
+  int _preferredCategoryIndex(String label) =>
+      _performPreferredCategoryIndex(label);
 
-  bool _isVisibleCategory(Map<String, dynamic> category) {
-    final key = (category['key'] ?? '').toString().trim().toLowerCase();
-    return key != 'emlak';
-  }
+  String _categoryOrderKey(String value) => _performCategoryOrderKey(value);
 
-  void toggleListingSelection() {
-    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
-    unawaited(_persistListingSelection());
-  }
+  bool _isVisibleCategory(Map<String, dynamic> category) =>
+      _performIsVisibleCategory(category);
 
-  void selectCategory(String key) {
-    final normalized = key.trim();
-    selectedCategoryKey.value =
-        selectedCategoryKey.value == normalized ? '' : normalized;
-    if (searchQuery.value.trim().length >= 2) {
-      setSearchQuery(searchQuery.value);
-      return;
-    }
-    _applyFilters();
-  }
+  void toggleListingSelection() => _performToggleListingSelection();
 
-  void clearCategoryFilter() {
-    if (selectedCategoryKey.value.isEmpty) {
-      _applyFilters();
-      return;
-    }
-    selectedCategoryKey.value = '';
-    if (searchQuery.value.trim().length >= 2) {
-      setSearchQuery(searchQuery.value);
-      return;
-    }
-    _applyFilters();
-  }
+  void selectCategory(String key) => _performSelectCategory(key);
 
-  Future<void> openItem(MarketItemModel item) async {
-    await Get.to(() => MarketDetailView(item: item));
-    await loadHomeData(forceRefresh: true);
-  }
+  void clearCategoryFilter() => _performClearCategoryFilter();
+
+  Future<void> openItem(MarketItemModel item) => _performOpenItem(item);
 
   List<String> get availableCities {
     if (allCityOptions.isNotEmpty) {
@@ -430,112 +264,12 @@ class MarketController extends GetxController {
   Future<void> toggleSaved(
     MarketItemModel item, {
     bool showSnackbar = true,
-  }) async {
-    if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveMarket)) {
-      return;
-    }
-    final uid = _currentUid;
-    if (uid.isEmpty) {
-      AppSnackbar(
-        'pasaj.market.sign_in_required_title'.tr,
-        'pasaj.market.sign_in_to_save'.tr,
-      );
-      return;
-    }
-    final currentlySaved = isSaved(item.id);
-    if (currentlySaved) {
-      savedItemIds.remove(item.id);
-      _applyLocalFavoriteDelta(item.id, -1);
-    } else {
-      savedItemIds.add(item.id);
-      _applyLocalFavoriteDelta(item.id, 1);
-    }
-    try {
-      if (currentlySaved) {
-        await MarketSavedStore.unsave(uid, item.id);
-      } else {
-        await MarketSavedStore.save(uid, item.id);
-      }
-      if (showSnackbar) {
-        AppSnackbar(
-          'common.success'.tr,
-          currentlySaved
-              ? 'pasaj.market.unsaved'.tr
-              : 'pasaj.market.saved_success'.tr,
-        );
-      }
-    } catch (e) {
-      if (currentlySaved) {
-        savedItemIds.add(item.id);
-        _applyLocalFavoriteDelta(item.id, 1);
-      } else {
-        savedItemIds.remove(item.id);
-        _applyLocalFavoriteDelta(item.id, -1);
-      }
-      if (showSnackbar) {
-        AppSnackbar(
-          'common.error'.tr,
-          'pasaj.market.save_failed'.tr,
-        );
-      }
-    }
-  }
+  }) =>
+      _performToggleSaved(item, showSnackbar: showSnackbar);
 
-  Future<void> openRoundMenu(String key) async {
-    switch (key) {
-      case 'create':
-        final result = await Get.to(() => const MarketCreateView());
-        if (result != null) {
-          if (result is Map) {
-            final item = MarketItemModel.fromJson(
-              Map<String, dynamic>.from(result),
-            );
-            _upsertVisibleItem(item);
-            _applyFilters();
-            Future.delayed(const Duration(seconds: 2), () {
-              unawaited(loadHomeData(forceRefresh: true));
-            });
-          } else {
-            await loadHomeData(forceRefresh: true);
-          }
-        }
-        return;
-      case 'my_items':
-        await Get.to(() => const MarketMyItemsView());
-        await loadHomeData(forceRefresh: true);
-        return;
-      case 'saved':
-        await Get.to(() => const MarketSavedView());
-        await loadHomeData(forceRefresh: true);
-        return;
-      case 'offers':
-        await Get.to(() => const MarketOffersView());
-        await loadHomeData(forceRefresh: true);
-        return;
-      case 'categories':
-        Get.bottomSheet(
-          MarketCategorySheet(controller: this),
-          backgroundColor: Colors.white,
-          isScrollControlled: true,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-        );
-        return;
-      case 'nearby':
-        unawaited(focusNearbyItems());
-        return;
-      default:
-        showComingSoon(key.isEmpty ? 'Market' : key);
-    }
-  }
+  Future<void> openRoundMenu(String key) => _performOpenRoundMenu(key);
 
-  void showComingSoon(String title) {
-    AppSnackbar(
-      'pasaj.market.coming_soon_title'.tr,
-      'pasaj.market.coming_soon_body'.trParams({'title': title}),
-    );
-  }
+  void showComingSoon(String title) => _performShowComingSoon(title);
 
   void applyAdvancedFilters({
     required String city,
@@ -543,514 +277,100 @@ class MarketController extends GetxController {
     required String minPrice,
     required String maxPrice,
     required String sortBy,
-  }) {
-    selectedCityFilter.value = city.trim();
-    selectedContactFilter.value = contactPreference.trim();
-    minPriceFilter.value = minPrice.trim();
-    maxPriceFilter.value = maxPrice.trim();
-    sortSelection.value = sortBy.trim().isEmpty ? 'newest' : sortBy.trim();
-    refreshFilters();
-  }
-
-  void clearAdvancedFilters() {
-    selectedCityFilter.value = '';
-    selectedContactFilter.value = '';
-    minPriceFilter.value = '';
-    maxPriceFilter.value = '';
-    sortSelection.value = 'newest';
-    refreshFilters();
-  }
-
-  void refreshFilters() {
-    if (searchQuery.value.trim().length >= 2) {
-      setSearchQuery(searchQuery.value);
-      return;
-    }
-    unawaited(_reloadListingForCurrentFilters());
-  }
-
-  Future<void> refreshHome() async {
-    await loadHomeData(forceRefresh: true);
-  }
-
-  Future<void> focusNearbyItems() async {
-    try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        AppSnackbar(
-          'pasaj.market.permission_required_title'.tr,
-          'pasaj.market.nearby_permission_required'.tr,
-        );
-        return;
-      }
-
-      Position? position = await Geolocator.getLastKnownPosition();
-      position ??= await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
+  }) =>
+      _performApplyAdvancedFilters(
+        city: city,
+        contactPreference: contactPreference,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
       );
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      final city = placemarks.isNotEmpty
-          ? (placemarks.first.administrativeArea ??
-                  placemarks.first.locality ??
-                  '')
-              .trim()
-          : '';
-      if (city.isEmpty) {
-        AppSnackbar(
-          'pasaj.market.location_not_found_title'.tr,
-          'pasaj.market.city_not_found'.tr,
-        );
-        return;
-      }
 
-      if (!availableCities.contains(city)) {
-        AppSnackbar(
-          'pasaj.market.limited_results_title'.tr,
-          'pasaj.market.no_city_results'.trParams({'city': city}),
-        );
-        return;
-      }
+  void clearAdvancedFilters() => _performClearAdvancedFilters();
 
-      selectedCityFilter.value = city;
-      refreshFilters();
-      AppSnackbar(
-        'common.success'.tr,
-        'pasaj.market.nearby_ready'.trParams({'city': city}),
-      );
-    } catch (_) {
-      AppSnackbar(
-        'common.error'.tr,
-        'pasaj.market.nearby_failed'.tr,
-      );
-    }
-  }
+  void refreshFilters() => _performRefreshFilters();
+
+  Future<void> refreshHome() => _performRefreshHome();
+
+  Future<void> focusNearbyItems() => _performFocusNearbyItems();
 
   void _onScroll() {
     if (!scrollController.hasClients) return;
     scrollOffset.value = scrollController.offset;
   }
 
-  void _applyFilters() {
-    final query = normalizeSearchText(searchQuery.value);
-    final categoryKey = selectedCategoryKey.value.trim();
-    final cityFilter = normalizeSearchText(selectedCityFilter.value);
-    final contactFilter = selectedContactFilter.value.trim();
-    final minPrice = double.tryParse(
-          minPriceFilter.value.trim().replaceAll(',', '.'),
-        ) ??
-        0;
-    final maxPriceRaw =
-        double.tryParse(maxPriceFilter.value.trim().replaceAll(',', '.'));
-    final useRemoteResults = query.length >= 2;
-    final source = useRemoteResults ? searchedItems : items;
-    final filtered = source.where((item) {
-      if (item.status != 'active') return false;
-      final matchesCategory = _matchesCategory(item, categoryKey);
-      if (!matchesCategory) return false;
-      if (cityFilter.isNotEmpty &&
-          normalizeSearchText(item.city) != cityFilter) {
-        return false;
-      }
-      if (contactFilter.isNotEmpty && item.contactPreference != contactFilter) {
-        return false;
-      }
-      if (item.price < minPrice) return false;
-      if (maxPriceRaw != null && maxPriceRaw > 0 && item.price > maxPriceRaw) {
-        return false;
-      }
-      if (useRemoteResults || query.isEmpty) return true;
-      return _matchesLocalQuery(item, query);
-    }).toList(growable: false)
-      ..sort(_compareItems);
-    if (_sameVisibleItems(filtered)) {
-      return;
-    }
-    visibleItems.assignAll(filtered);
-  }
+  void _applyFilters() => _performApplyFilters();
 
-  bool _matchesCategory(MarketItemModel item, String categoryKey) {
-    if (categoryKey.isEmpty) return true;
-    if (item.categoryKey == categoryKey ||
-        item.categoryKey.startsWith('$categoryKey/')) {
-      return true;
-    }
+  bool _matchesCategory(MarketItemModel item, String categoryKey) =>
+      _performMatchesCategory(item, categoryKey);
 
-    final selectedCategory = categories.firstWhereOrNull(
-      (category) => (category['key'] ?? '').toString() == categoryKey,
-    );
-    final selectedLabel = normalizeSearchText(
-      (selectedCategory?['label'] ?? '').toString(),
-    );
-    if (selectedLabel.isEmpty) return false;
+  Future<void> _searchFromTypesense(String query, int requestId) =>
+      _performSearchFromTypesense(query, requestId);
 
-    final topLabel = item.categoryPath.isEmpty
-        ? ''
-        : normalizeSearchText(item.categoryPath.first);
-    if (topLabel == selectedLabel) return true;
+  Future<void> _loadRecentSearches() => _performLoadRecentSearches();
 
-    final fullPath = normalizeSearchText(item.categoryPath.join(' '));
-    final keyWords = normalizeSearchText(categoryKey.replaceAll('-', ' '));
-    return fullPath.contains(selectedLabel) || fullPath.contains(keyWords);
-  }
-
-  Future<void> _searchFromTypesense(String query, int requestId) async {
-    try {
-      final fetched = await _marketSnapshotRepository.search(
-        query: query,
-        userId: CurrentUserService.instance.userId,
-        limit: 40,
-        forceSync: true,
-      );
-      if (!_isLatestSearch(requestId, query)) return;
-
-      final results = (fetched.data ?? const <MarketItemModel>[])
-          .where((item) => item.status == 'active')
-          .toList(
-            growable: false,
-          );
-      if (!_sameMarketEntries(searchedItems, results)) {
-        searchedItems.assignAll(results);
-      }
-      if (results.isNotEmpty) {
-        await _storeRecentSearch(query);
-      }
-    } catch (_) {
-      if (!_isLatestSearch(requestId, query)) return;
-      searchedItems.clear();
-    } finally {
-      if (_isLatestSearch(requestId, query)) {
-        isSearchLoading.value = false;
-        _applyFilters();
-      }
-    }
-  }
-
-  Future<void> _loadRecentSearches() async {
-    final prefs = await SharedPreferences.getInstance();
-    final values = prefs.getStringList(_recentSearchesKey) ?? const <String>[];
-    final next = values
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
-    if (_sameStringList(recentSearches, next)) {
-      return;
-    }
-    recentSearches.assignAll(next);
-  }
-
-  Future<void> _storeRecentSearch(String query) async {
-    final normalized = query.trim();
-    if (normalized.isEmpty) return;
-    final normalizedSearchKey = normalizeSearchText(normalized);
-    final next = <String>[
-      normalized,
-      ...recentSearches.where(
-        (item) => normalizeSearchText(item) != normalizedSearchKey,
-      ),
-    ];
-    if (next.length > 12) {
-      next.removeRange(12, next.length);
-    }
-    if (!_sameStringList(recentSearches, next)) {
-      recentSearches.assignAll(next);
-    }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_recentSearchesKey, next);
-  }
+  Future<void> _storeRecentSearch(String query) =>
+      _performStoreRecentSearch(query);
 
   Future<void> _loadListingFromSnapshot({
     bool forceRefresh = false,
-  }) async {
-    try {
-      final fetched = await _marketSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
-        limit: 120,
-        forceSync: forceRefresh,
-      );
-      final activeFetched = (fetched.data ?? const <MarketItemModel>[])
-          .where((item) => item.status == 'active')
-          .toList(growable: false);
-      final merged = _mergePendingCreatedItems(activeFetched);
-      if (!_sameMarketList(merged)) {
-        items.assignAll(merged);
-      }
-    } catch (_) {
-      final merged = _mergePendingCreatedItems(const <MarketItemModel>[]);
-      if (!_sameMarketList(merged)) {
-        items.assignAll(merged);
-      }
-    }
-  }
+  }) =>
+      _performLoadListingFromSnapshot(forceRefresh: forceRefresh);
 
-  Future<void> _reloadListingForCurrentFilters() async {
-    isSearchLoading.value = true;
-    try {
-      await _loadListingFromSnapshot();
-      await _loadAllCityOptions();
-      _applyFilters();
-    } finally {
-      isSearchLoading.value = false;
-    }
-  }
+  Future<void> _reloadListingForCurrentFilters() =>
+      _performReloadListingForCurrentFilters();
 
   Future<void> _applyHomeSnapshotResource(
     CachedResource<List<MarketItemModel>> resource,
-  ) async {
-    final activeItems = (resource.data ?? const <MarketItemModel>[])
-        .where((item) => item.status == 'active')
-        .toList(growable: false);
-    if (activeItems.isNotEmpty) {
-      final nextItems = _mergePendingCreatedItems(activeItems);
-      if (!_sameMarketList(nextItems)) {
-        items.assignAll(nextItems);
-        _applyFilters();
-      }
-      unawaited(_loadAllCityOptions());
-      unawaited(_loadSavedItems());
-      unawaited(_loadRoundMenuBadges(forceRefresh: false));
-    }
+  ) =>
+      _performApplyHomeSnapshotResource(resource);
 
-    if (!resource.isRefreshing || activeItems.isNotEmpty) {
-      isLoading.value = false;
-      return;
-    }
-    if (items.isEmpty && visibleItems.isEmpty) {
-      isLoading.value = true;
-    }
-  }
+  Future<void> _loadAllCityOptions() => _performLoadAllCityOptions();
 
-  Future<void> _loadAllCityOptions() async {
-    try {
-      final next = await _cityDirectoryService.getSortedCities();
-      if (_sameStringList(allCityOptions, next)) {
-        return;
-      }
-      allCityOptions.assignAll(next);
-    } catch (_) {
-      final fallback = <String>{
-        ...availableCities,
-      }.toList(growable: true);
-      sortTurkishStrings(fallback);
-      if (_sameStringList(allCityOptions, fallback)) {
-        return;
-      }
-      allCityOptions.assignAll(fallback);
-    }
-  }
+  bool _isLatestSearch(int requestId, String query) =>
+      _performIsLatestSearch(requestId, query);
 
-  bool _isLatestSearch(int requestId, String query) {
-    return requestId == _searchRequestId && searchQuery.value.trim() == query;
-  }
+  bool _matchesLocalQuery(MarketItemModel item, String query) =>
+      _performMatchesLocalQuery(item, query);
 
-  bool _matchesLocalQuery(MarketItemModel item, String query) {
-    final haystack = <String>[
-      item.title,
-      item.description,
-      item.locationText,
-      item.city,
-      item.district,
-      item.categoryLabel,
-      item.categoryPath.join(' '),
-      item.sellerName,
-      item.attributes.values.map((value) => value.toString()).join(' '),
-    ].join(' ');
-    final normalizedHaystack = normalizeSearchText(haystack);
-    return normalizedHaystack.contains(query);
-  }
+  int _compareItems(MarketItemModel a, MarketItemModel b) =>
+      _performCompareItems(a, b);
 
-  int _compareItems(MarketItemModel a, MarketItemModel b) {
-    switch (sortSelection.value) {
-      case 'price_asc':
-        return a.price.compareTo(b.price);
-      case 'price_desc':
-        return b.price.compareTo(a.price);
-      default:
-        final aTs = a.createdAt;
-        final bTs = b.createdAt;
-        return bTs.compareTo(aTs);
-    }
-  }
+  Future<void> _loadSavedItems() => _performLoadSavedItems();
 
-  Future<void> _loadSavedItems() async {
-    final uid = _currentUid;
-    if (uid.isEmpty) {
-      if (savedItemIds.isNotEmpty) {
-        savedItemIds.clear();
-      }
-      return;
-    }
-    try {
-      final ids = (await MarketSavedStore.getSavedItemIds(uid)).toList(
-        growable: false,
-      )..sort();
-      if (_sameStringList(savedItemIds, ids)) {
-        return;
-      }
-      savedItemIds.assignAll(ids);
-    } catch (_) {
-      if (savedItemIds.isNotEmpty) {
-        savedItemIds.clear();
-      }
-    }
-  }
+  Future<void> _loadRoundMenuBadges({required bool forceRefresh}) =>
+      _performLoadRoundMenuBadges(forceRefresh: forceRefresh);
 
-  Future<void> _loadRoundMenuBadges({required bool forceRefresh}) async {
-    final uid = _currentUid;
-    if (uid.isEmpty) {
-      if (roundMenuBadges.isNotEmpty) {
-        roundMenuBadges.assignAll(const <String, int>{});
-      }
-      return;
-    }
-
-    try {
-      final ownerFuture = _repository.fetchByOwner(
-        uid,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
-      final sentFuture = MarketOfferService.fetchSentOffers(uid);
-      final receivedFuture = MarketOfferService.fetchReceivedOffers(uid);
-      final results = await Future.wait<dynamic>([
-        ownerFuture,
-        sentFuture,
-        receivedFuture,
-      ]);
-
-      final ownerItems = (results[0] as List<MarketItemModel>)
-          .where((item) => item.status != 'archived')
-          .length;
-      final sentOffers = results[1] as List<MarketOfferModel>;
-      final receivedOffers = results[2] as List<MarketOfferModel>;
-      final totalOffers = sentOffers.length + receivedOffers.length;
-
-      final next = <String, int>{
-        'my_items': ownerItems,
-        'saved': savedItemIds.length,
-        'offers': totalOffers,
-      };
-      if (_sameBadgeMap(roundMenuBadges, next)) {
-        return;
-      }
-      roundMenuBadges.assignAll(next);
-    } catch (_) {
-      final fallback = <String, int>{
-        'my_items': roundMenuBadges['my_items'] ?? 0,
-        'saved': savedItemIds.length,
-        'offers': roundMenuBadges['offers'] ?? 0,
-      };
-      if (_sameBadgeMap(roundMenuBadges, fallback)) {
-        return;
-      }
-      roundMenuBadges.assignAll(fallback);
-    }
-  }
-
-  void _applyLocalFavoriteDelta(String itemId, int delta) {
-    if (delta == 0) return;
-    items.assignAll(_updateFavoriteCount(items, itemId, delta));
-    searchedItems.assignAll(_updateFavoriteCount(searchedItems, itemId, delta));
-    _applyFilters();
-  }
+  void _applyLocalFavoriteDelta(String itemId, int delta) =>
+      _performApplyLocalFavoriteDelta(itemId, delta);
 
   List<MarketItemModel> _updateFavoriteCount(
     List<MarketItemModel> source,
     String itemId,
     int delta,
-  ) {
-    return source.map((item) {
-      if (item.id != itemId) return item;
-      final nextCount = item.favoriteCount + delta;
-      return item.copyWith(
-        favoriteCount: nextCount < 0 ? 0 : nextCount,
-      );
-    }).toList(growable: false);
-  }
+  ) =>
+      _performUpdateFavoriteCount(source, itemId, delta);
 
-  void _upsertVisibleItem(MarketItemModel item) {
-    if (item.status != 'active') return;
-    final next = <MarketItemModel>[item];
-    next.addAll(items.where((existing) => existing.id != item.id));
-    items.assignAll(next);
-    pendingCreatedItems.removeWhere((existing) => existing.id == item.id);
-    pendingCreatedItems.insert(0, item);
-  }
+  void _upsertVisibleItem(MarketItemModel item) =>
+      _performUpsertVisibleItem(item);
 
   List<MarketItemModel> _mergePendingCreatedItems(
-      List<MarketItemModel> source) {
-    if (pendingCreatedItems.isEmpty) return source;
-    final merged = <MarketItemModel>[];
-    final seenIds = <String>{};
-    final syncedIds = <String>{};
-    final pendingById = <String, MarketItemModel>{
-      for (final pending in pendingCreatedItems) pending.id: pending,
-    };
-
-    for (final item in source) {
-      final pending = pendingById[item.id];
-      if (pending != null && pending.status == 'active') {
-        final protected = _preserveProtectedFields(item, pending);
-        merged.add(protected);
-        if (_isSyncedWithPending(protected, pending)) {
-          syncedIds.add(item.id);
-        }
-      } else {
-        merged.add(item);
-      }
-      seenIds.add(item.id);
-    }
-
-    for (final pending in pendingCreatedItems) {
-      if (pending.status != 'active') continue;
-      if (!seenIds.add(pending.id)) continue;
-      merged.insert(0, pending);
-    }
-
-    pendingCreatedItems
-        .removeWhere((pending) => syncedIds.contains(pending.id));
-    return merged;
-  }
+          List<MarketItemModel> source) =>
+      _performMergePendingCreatedItems(source);
 
   MarketItemModel _preserveProtectedFields(
     MarketItemModel remote,
     MarketItemModel local,
-  ) {
-    final shouldKeepPhone = !remote.canShowPhone &&
-        local.canShowPhone &&
-        local.sellerPhoneNumber.trim().isNotEmpty;
-
-    if (!shouldKeepPhone) return remote;
-
-    return remote.copyWith(
-      showPhone: true,
-      contactPreference: 'phone',
-      sellerPhoneNumber: local.sellerPhoneNumber,
-    );
-  }
+  ) =>
+      _performPreserveProtectedFields(remote, local);
 
   bool _isSyncedWithPending(
     MarketItemModel remote,
     MarketItemModel local,
-  ) {
-    if (local.canShowPhone &&
-        local.sellerPhoneNumber.trim().isNotEmpty &&
-        (!remote.canShowPhone ||
-            remote.sellerPhoneNumber.trim() !=
-                local.sellerPhoneNumber.trim())) {
-      return false;
-    }
-    return true;
-  }
+  ) =>
+      _performIsSyncedWithPending(remote, local);
 
   String get _currentUid {
-    return CurrentUserService.instance.userId;
+    return CurrentUserService.instance.effectiveUserId;
   }
 }

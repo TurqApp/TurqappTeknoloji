@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
@@ -43,7 +41,7 @@ class MyApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapApplications() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       isLoading.value = false;
       return;
@@ -80,7 +78,7 @@ class MyApplicationsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       final items = await _subcollectionRepository.getEntries(
         uid,
@@ -103,33 +101,13 @@ class MyApplicationsController extends GetxController {
 
   Future<void> cancelApplication(String jobDocID) async {
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      batch.delete(FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('myApplications')
-          .doc(jobDocID));
-
-      batch.delete(FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(jobDocID)
-          .collection('Applications')
-          .doc(uid));
-
-      batch.update(
-          FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(jobDocID),
-          {'applicationCount': FieldValue.increment(-1)});
-
-      await batch.commit();
-
-      // Prevent negative count
-      await _jobRepository.normalizeApplicationCount(jobDocID);
+      await _jobRepository.cancelApplication(
+        jobDocId: jobDocID,
+        userId: uid,
+      );
 
       applications.removeWhere((a) => a.jobDocID == jobDocID);
       await _subcollectionRepository.setEntries(

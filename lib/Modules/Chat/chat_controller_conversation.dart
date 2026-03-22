@@ -140,11 +140,9 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _listenTypingState() {
-    _typingStream = FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatID)
-        .snapshots()
-        .listen((doc) {
+    _typingStream = _conversationRepository.watchConversation(chatID).listen((
+      doc,
+    ) {
       if (!doc.exists) return;
       final data = doc.data() ?? {};
       _recipientMuted =
@@ -229,14 +227,12 @@ extension _ChatControllerConversationX on ChatController {
   }
 
   void _listenRealtimeMessages({bool cacheOnly = false}) {
-    final source = cacheOnly ? ListenSource.cache : ListenSource.defaultSource;
-    _messagesSubscription = FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatID)
-        .collection("messages")
-        .orderBy("createdDate", descending: true)
-        .limit(cacheOnly ? ChatController._syncHeadSize : 1)
-        .snapshots(source: source)
+    _messagesSubscription = _conversationRepository
+        .watchConversationMessagesHead(
+      chatID,
+      limit: cacheOnly ? ChatController._syncHeadSize : 1,
+      cacheOnly: cacheOnly,
+    )
         .listen((snapshot) {
       if (!_isOffline && !cacheOnly) {
         _messageSyncTimer?.cancel();
@@ -268,14 +264,10 @@ extension _ChatControllerConversationX on ChatController {
     final cacheOnly = _isOffline;
     final shouldHitServer = !cacheOnly && forceServer;
     try {
-      final convBase = FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .collection("messages")
-          .orderBy("createdDate", descending: true);
-
-      final conversationSnapshot = await _getWithCachePreference(
-        convBase.limit(ChatController._initialPageSize),
+      final conversationSnapshot =
+          await _conversationRepository.fetchLatestMessages(
+        chatID,
+        limit: ChatController._initialPageSize,
         preferCache: !shouldHitServer,
         cacheOnly: cacheOnly,
       );
@@ -303,24 +295,20 @@ extension _ChatControllerConversationX on ChatController {
     _isMessageSyncing = true;
     try {
       final latestLoadedTs = _latestLoadedTimestampMs();
-      final convRef = FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .collection("messages");
-      final Query<Map<String, dynamic>> convQuery = latestLoadedTs > 0
-          ? convRef
-              .where("createdDate", isGreaterThan: latestLoadedTs)
-              .orderBy("createdDate", descending: false)
-              .limit(ChatController._syncHeadSize)
-          : convRef
-              .orderBy("createdDate", descending: true)
-              .limit(ChatController._syncHeadSize);
-
-      final conversationSnapshot = await _getWithCachePreference(
-        convQuery,
-        preferCache: !shouldHitServer,
-        cacheOnly: cacheOnly,
-      );
+      final conversationSnapshot = latestLoadedTs > 0
+          ? await _conversationRepository.fetchMessagesAfter(
+              chatID,
+              createdAfterMs: latestLoadedTs,
+              limit: ChatController._syncHeadSize,
+              preferCache: !shouldHitServer,
+              cacheOnly: cacheOnly,
+            )
+          : await _conversationRepository.fetchLatestMessages(
+              chatID,
+              limit: ChatController._syncHeadSize,
+              preferCache: !shouldHitServer,
+              cacheOnly: cacheOnly,
+            );
 
       _applyConversationSnapshot(conversationSnapshot.docs, replace: false);
       _refreshMergedMessages();
@@ -342,15 +330,10 @@ extension _ChatControllerConversationX on ChatController {
     try {
       final cacheOnly = _isOffline;
       if (_conversationHasMore && _conversationOldestCursor != null) {
-        final convQuery = FirebaseFirestore.instance
-            .collection("conversations")
-            .doc(chatID)
-            .collection("messages")
-            .orderBy("createdDate", descending: true)
-            .startAfterDocument(_conversationOldestCursor!)
-            .limit(ChatController._olderPageSize);
-        final convSnapshot = await _getWithCachePreference(
-          convQuery,
+        final convSnapshot = await _conversationRepository.fetchOlderMessages(
+          chatID,
+          startAfter: _conversationOldestCursor!,
+          limit: ChatController._olderPageSize,
           preferCache: true,
           cacheOnly: cacheOnly,
         );
@@ -416,21 +399,5 @@ extension _ChatControllerConversationX on ChatController {
     if (raw is Timestamp) return raw.millisecondsSinceEpoch;
     if (raw is num) return raw.toInt();
     return int.tryParse("$raw") ?? 0;
-  }
-
-  Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(
-    Query<Map<String, dynamic>> query, {
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    if (preferCache) {
-      try {
-        return await query.get(const GetOptions(source: Source.cache));
-      } catch (_) {}
-    }
-    if (cacheOnly) {
-      return query.get(const GetOptions(source: Source.cache));
-    }
-    return query.get(const GetOptions(source: Source.server));
   }
 }
