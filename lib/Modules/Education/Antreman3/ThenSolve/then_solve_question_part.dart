@@ -145,8 +145,8 @@ extension _ThenSolveQuestionPart on ThenSolve {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(optionCount, (i) {
           final option = String.fromCharCode(65 + i);
-          var containerColor = Colors.grey;
-          var textColor = Colors.white;
+          Color containerColor = Colors.grey;
+          Color textColor = Colors.white;
 
           if (initialAnswer.isNotEmpty) {
             if (option == initialAnswer) {

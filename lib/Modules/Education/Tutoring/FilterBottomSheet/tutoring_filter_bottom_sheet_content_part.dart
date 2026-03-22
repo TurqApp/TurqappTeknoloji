@@ -108,7 +108,7 @@ extension TutoringFilterBottomSheetContentPart on TutoringFilterBottomSheet {
   Widget _buildSingleSelectSection({
     required String title,
     required List<String> values,
-    required RxnString selectedValue,
+    required Rx<String?> selectedValue,
     required String Function(String value) labelBuilder,
   }) {
     return Column(

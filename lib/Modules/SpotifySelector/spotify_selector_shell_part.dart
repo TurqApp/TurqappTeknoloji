@@ -111,11 +111,14 @@ extension _SpotifySelectorShellPart on _SpotifySelectorState {
       () => SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: List.generate(_tabs.length, (index) {
+          children: List.generate(_SpotifySelectorState._tabs.length, (index) {
             final selected = controller.selectedTab.value == index;
             return Padding(
               padding:
-                  EdgeInsets.only(right: index == _tabs.length - 1 ? 0 : 8),
+                  EdgeInsets.only(
+                    right:
+                        index == _SpotifySelectorState._tabs.length - 1 ? 0 : 8,
+                  ),
               child: GestureDetector(
                 onTap: () => controller.selectedTab.value = index,
                 child: AnimatedContainer(
@@ -131,7 +134,7 @@ extension _SpotifySelectorShellPart on _SpotifySelectorState {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    _tabs[index].tr,
+                    _SpotifySelectorState._tabs[index].tr,
                     style: TextStyle(
                       color: selected ? Colors.white : const Color(0xFF5B6572),
                       fontSize: 12,

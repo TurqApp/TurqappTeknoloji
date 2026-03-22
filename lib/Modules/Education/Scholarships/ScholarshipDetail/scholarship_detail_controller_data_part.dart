@@ -63,21 +63,21 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
             userString(data, key: 'dogumTarihi', scope: 'profile').isNotEmpty &&
             userString(data, key: 'medeniHal', scope: 'profile').isNotEmpty &&
             userString(data, key: 'cinsiyet', scope: 'profile') !=
-                _selectActionValue &&
+                ScholarshipDetailController._selectActionValue &&
             userString(data, key: 'engelliRaporu', scope: 'family')
                 .isNotEmpty &&
             userString(data, key: 'calismaDurumu', scope: 'profile').isNotEmpty;
 
         bool isEducationInfoComplete = educationLevel.isNotEmpty &&
             userString(data, key: 'ulke', scope: 'profile').isNotEmpty &&
-            (educationLevel == _middleSchool
+            (educationLevel == ScholarshipDetailController._middleSchool
                 ? (userString(data, key: 'ortaOkul', scope: 'education')
                         .isNotEmpty &&
                     userString(data, key: 'sinif', scope: 'education')
                         .isNotEmpty &&
                     userString(data, key: 'il', scope: 'profile').isNotEmpty &&
                     userString(data, key: 'ilce', scope: 'profile').isNotEmpty)
-                : educationLevel == _highSchool
+                : educationLevel == ScholarshipDetailController._highSchool
                     ? (userString(data, key: 'lise', scope: 'education')
                             .isNotEmpty &&
                         userString(data, key: 'sinif', scope: 'education')
@@ -96,33 +96,34 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
                         userString(data, key: 'il', scope: 'profile')
                             .isNotEmpty));
 
-        bool isFamilyInfoComplete = fatherLiving != _selectValue &&
-            motherLiving != _selectValue &&
+        bool isFamilyInfoComplete =
+            fatherLiving != ScholarshipDetailController._selectValue &&
+            motherLiving != ScholarshipDetailController._selectValue &&
             userInt(data, key: 'totalLiving', scope: 'family') > 0 &&
             userString(data, key: 'evMulkiyeti', scope: 'family') !=
-                _selectActionValue &&
+                ScholarshipDetailController._selectActionValue &&
             userString(data, key: 'ikametSehir', scope: 'profile').isNotEmpty &&
             userString(data, key: 'ikametIlce', scope: 'profile').isNotEmpty;
 
-        if (fatherLiving == _yesValue) {
+        if (fatherLiving == ScholarshipDetailController._yesValue) {
           isFamilyInfoComplete = isFamilyInfoComplete &&
               userString(data, key: 'fatherName', scope: 'family').isNotEmpty &&
               userString(data, key: 'fatherSurname', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'fatherJob', scope: 'family') !=
-                  _selectJobValue &&
+                  ScholarshipDetailController._selectJobValue &&
               userString(data, key: 'fatherSalary', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'fatherPhone', scope: 'family').isNotEmpty;
         }
 
-        if (motherLiving == _yesValue) {
+        if (motherLiving == ScholarshipDetailController._yesValue) {
           isFamilyInfoComplete = isFamilyInfoComplete &&
               userString(data, key: 'motherName', scope: 'family').isNotEmpty &&
               userString(data, key: 'motherSurname', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'motherJob', scope: 'family') !=
-                  _selectJobValue &&
+                  ScholarshipDetailController._selectJobValue &&
               userString(data, key: 'motherSalary', scope: 'family')
                   .isNotEmpty &&
               userString(data, key: 'motherPhone', scope: 'family').isNotEmpty;

@@ -5,8 +5,8 @@ extension _StoryCircleContentPart on _StoryCircleState {
     return Column(
       children: [
         SizedBox(
-          width: _storyCircleSize,
-          height: _storyCircleSize,
+          width: _StoryCircleState._storyCircleSize,
+          height: _StoryCircleState._storyCircleSize,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -23,8 +23,8 @@ extension _StoryCircleContentPart on _StoryCircleState {
                     ? GestureDetector(
                         onTap: _openStoryMaker,
                         child: Container(
-                          width: _addBadgeSize,
-                          height: _addBadgeSize,
+                          width: _StoryCircleState._addBadgeSize,
+                          height: _StoryCircleState._addBadgeSize,
                           alignment: Alignment.center,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
@@ -44,7 +44,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
         ),
         const SizedBox(height: 2),
         SizedBox(
-          width: _labelWidth,
+          width: _StoryCircleState._labelWidth,
           child: Text(
             widget.model.nickname,
             maxLines: 1,
@@ -171,7 +171,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
           if (widget.isFirst && hasStory)
             Positioned(
               left: -34,
-              top: (_storyCircleSize / 2) - 2,
+              top: (_StoryCircleState._storyCircleSize / 2) - 2,
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: 30),
                 duration: const Duration(milliseconds: 900),
@@ -226,10 +226,10 @@ extension _StoryCircleContentPart on _StoryCircleState {
       child: CachedUserAvatar(
         userId: widget.model.userID,
         imageUrl: imageUrl,
-        radius: _storyAvatarRadius,
+        radius: _StoryCircleState._storyAvatarRadius,
         backgroundColor: Colors.transparent,
         placeholder: const DefaultAvatar(
-          radius: _storyAvatarRadius,
+          radius: _StoryCircleState._storyAvatarRadius,
           backgroundColor: Colors.transparent,
         ),
       ),
