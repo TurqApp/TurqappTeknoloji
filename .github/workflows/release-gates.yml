@@ -203,9 +203,7 @@ jobs:
           npm ci
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         run: |
@@ -253,9 +251,7 @@ jobs:
           npm ci
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         run: |
@@ -303,9 +299,7 @@ jobs:
           npm ci
 
       - name: Install CocoaPods deps
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         run: |

@@ -167,9 +167,7 @@ jobs:
 
       - name: Install CocoaPods deps
         if: steps.integration-secrets.outputs.available == 'true'
-        run: |
-          cd ios
-          pod install
+        run: bash scripts/pod_install_with_retry.sh
 
       - name: Boot iOS simulator
         if: steps.integration-secrets.outputs.available == 'true'
