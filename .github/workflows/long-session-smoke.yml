@@ -34,6 +34,12 @@ jobs:
           npm ci
 
       - name: Run long session suite on emulator
+        env:
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -41,11 +47,6 @@ jobs:
           profile: pixel_7
           script: |
             export INTEGRATION_SMOKE_DEVICE_ID=emulator-5554
-            export INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}"
-            export INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}"
-            export INTEGRATION_AUTO_SEED=1
-            export INTEGRATION_REQUIRE_SEED=1
-            export FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}'
             bash scripts/run_long_session_suite.sh
 
       - name: Upload Android long-session artifacts
