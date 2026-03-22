@@ -52,3 +52,6 @@ tests/load/k6_results.json
 tests/load/k6_results_latest.json
 tests/load/k6_summary*.json
 tests/load/k6_summary_*_latest.json
+
+# Local coverage output
+coverage/

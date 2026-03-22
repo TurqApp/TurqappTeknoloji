@@ -370,6 +370,8 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          titleSpacing: 8,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,

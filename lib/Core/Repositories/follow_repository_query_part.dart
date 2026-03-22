@@ -1,0 +1,119 @@
+part of 'follow_repository.dart';
+
+extension FollowRepositoryQueryPart on FollowRepository {
+  Future<Set<String>> getFollowingIds(
+    String uid, {
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) async {
+    return getRelationIds(
+      uid,
+      relation: 'followings',
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<Set<String>> getFollowerIds(
+    String uid, {
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) async {
+    return getRelationIds(
+      uid,
+      relation: 'followers',
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<Set<String>> getRelationIds(
+    String uid, {
+    required String relation,
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) async {
+    if (uid.isEmpty) return <String>{};
+    final relationKey = _relationKey(uid, relation);
+
+    if (!forceRefresh) {
+      final memory = _getRelationFromMemory(relationKey, allowStale: false);
+      if (preferCache && memory != null) {
+        return memory;
+      }
+
+      final disk = await _getRelationFromPrefs(relationKey, allowStale: false);
+      if (preferCache && disk != null) {
+        _relationMemory[relationKey] = _CachedFollowingSet(
+          ids: disk,
+          cachedAt: DateTime.now(),
+        );
+        return disk;
+      }
+    }
+
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection(relation)
+        .get();
+    final ids = snap.docs.map((doc) => doc.id).toSet();
+    await _persistRelation(relationKey, ids);
+    return ids;
+  }
+
+  Future<int> countFollowersInRange(
+    String uid, {
+    required int fromInclusive,
+    int? toInclusive,
+    int? toExclusive,
+  }) async {
+    if (uid.isEmpty) return 0;
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('followers')
+        .where('timeStamp', isGreaterThanOrEqualTo: fromInclusive);
+    if (toInclusive != null) {
+      query = query.where('timeStamp', isLessThanOrEqualTo: toInclusive);
+    } else if (toExclusive != null) {
+      query = query.where('timeStamp', isLessThan: toExclusive);
+    }
+    final aggregate = await query.count().get();
+    return aggregate.count ?? 0;
+  }
+
+  Future<bool> isFollowing(
+    String otherUid, {
+    String? currentUid,
+    bool preferCache = true,
+  }) async {
+    final me = currentUid ?? CurrentUserService.instance.effectiveUserId;
+    if (me.isEmpty || otherUid.isEmpty) return false;
+
+    final cached = await getFollowingIds(
+      me,
+      preferCache: preferCache,
+      forceRefresh: false,
+    );
+    if (cached.contains(otherUid)) return true;
+
+    if (preferCache && _hasFreshCache(me)) {
+      return false;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(me)
+        .collection('followings')
+        .doc(otherUid)
+        .get();
+    if (!doc.exists) return false;
+    await applyToggle(
+      me,
+      otherUid,
+      nowFollowing: true,
+    );
+    return true;
+  }
+}
