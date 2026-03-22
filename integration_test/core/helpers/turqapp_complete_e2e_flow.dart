@@ -59,6 +59,35 @@ Future<void> runTurqAppMasterE2EScenario(
           step: const Duration(milliseconds: 200),
           maxPumps: 8,
         );
+        expect(
+          await _waitForAnyKeyPrefix(
+            tester,
+            'it-comment-item-',
+          ),
+          isTrue,
+          reason: 'Comments route should expose at least one comment item key.',
+        );
+        expect(
+          await _waitForAnyKeyPrefix(
+            tester,
+            'it-comment-reply-',
+          ),
+          isTrue,
+          reason: 'Comments route should expose reply action keys.',
+        );
+        expect(
+          await _waitForAnyKeyPrefix(
+            tester,
+            'it-comment-like-',
+          ),
+          isTrue,
+          reason: 'Comments route should expose like action keys.',
+        );
+        await _waitForAnyKeyPrefix(
+          tester,
+          'it-comment-delete-',
+          maxPumps: 4,
+        );
         await _tapFirstKeyPrefixIfPresent(tester, 'it-comment-like-');
         await _tapFirstKeyPrefixIfPresent(tester, 'it-comment-reply-');
         await _tapIfPresent(
@@ -72,7 +101,41 @@ Future<void> runTurqAppMasterE2EScenario(
       await _step(tester, scenario, 'profile', () async {
         await tapItKey(tester, IntegrationTestKeys.navProfile);
         expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+        expect(
+          byItKey(IntegrationTestKeys.profileFollowersCounter),
+          findsOneWidget,
+        );
+        expect(
+          byItKey(IntegrationTestKeys.profileFollowingCounter),
+          findsOneWidget,
+        );
         await _assertNoFeedLeakIfSupported(tester, 'profile');
+      });
+
+      await _step(tester, scenario, 'profile_followers', () async {
+        await _tapIfPresent(
+          tester,
+          byItKey(IntegrationTestKeys.profileFollowersCounter),
+        );
+        expect(
+          byItKey(IntegrationTestKeys.screenFollowingFollowers),
+          findsOneWidget,
+        );
+        await pageBackAndSettle(tester);
+        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
+      });
+
+      await _step(tester, scenario, 'profile_following', () async {
+        await _tapIfPresent(
+          tester,
+          byItKey(IntegrationTestKeys.profileFollowingCounter),
+        );
+        expect(
+          byItKey(IntegrationTestKeys.screenFollowingFollowers),
+          findsOneWidget,
+        );
+        await pageBackAndSettle(tester);
+        expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
       });
 
       await _step(tester, scenario, 'profile_edit', () async {
@@ -92,6 +155,10 @@ Future<void> runTurqAppMasterE2EScenario(
           IntegrationTestKeys.actionProfileOpenSettings,
         );
         expect(byItKey(IntegrationTestKeys.screenSettings), findsOneWidget);
+        expect(
+          byItKey(IntegrationTestKeys.actionSettingsSignOut),
+          findsOneWidget,
+        );
         await pageBackAndSettle(tester);
         expect(byItKey(IntegrationTestKeys.screenProfile), findsOneWidget);
       });
@@ -133,6 +200,10 @@ Future<void> runTurqAppMasterE2EScenario(
           'TurqApp master draft ${DateTime.now().millisecondsSinceEpoch}',
         );
         await tester.pump(const Duration(milliseconds: 300));
+        expect(
+          byItKey(IntegrationTestKeys.actionPostCreatorPublish),
+          findsOneWidget,
+        );
         await pageBackAndSettle(tester);
         await expectFeedScreen(tester);
       });
@@ -185,6 +256,14 @@ Future<void> runTurqAppMasterE2EScenario(
               tester,
               byItKey(IntegrationTestKeys.educationTab(tabId)),
             );
+            if (tabId == PasajTabIds.market) {
+              await _exerciseMarketTopActions(tester);
+            } else if (tabId == PasajTabIds.questionBank) {
+              await _exerciseQuestionBankSurface(tester);
+            } else if (tabId == PasajTabIds.practiceExams ||
+                tabId == PasajTabIds.onlineExam) {
+              await _exercisePracticeExamSurface(tester);
+            }
             await _assertNoFeedLeakIfSupported(tester, currentStep);
           });
         }
@@ -211,7 +290,27 @@ Future<void> runTurqAppMasterE2EScenario(
           'turq',
         );
         await tester.pump(const Duration(milliseconds: 300));
+        expect(
+          await _waitForAnyKeyPrefix(
+            tester,
+            'it-chat-tile-',
+            maxPumps: 6,
+          ),
+          isTrue,
+          reason: 'Chat route should expose at least one chat tile key.',
+        );
       });
+
+      await _step(tester, scenario, 'chat_tile_surface', () async {
+        await _tapFirstKeyPrefixIfPresent(
+          tester,
+          'it-chat-tile-',
+          afterTap: () async {
+            await popRouteAndSettle(tester, settlePumps: 6);
+            expect(byItKey(IntegrationTestKeys.screenChat), findsOneWidget);
+          },
+        );
+      }, allowNoOp: true);
 
       await _step(tester, scenario, 'chat_create', () async {
         await _tapIfPresent(
@@ -297,8 +396,7 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'short', () async {
-        await tapItKey(tester, IntegrationTestKeys.navShort,
-            settlePumps: 12);
+        await tapItKey(tester, IntegrationTestKeys.navShort, settlePumps: 12);
         expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'short');
       });
@@ -472,6 +570,89 @@ Future<void> _tapIfPresent(
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 200));
   }
+}
+
+Future<bool> _waitForAnyKeyPrefix(
+  WidgetTester tester,
+  String prefix, {
+  int maxPumps = 10,
+  Duration step = const Duration(milliseconds: 200),
+}) async {
+  for (var i = 0; i < maxPumps; i++) {
+    if (_findItKeyPrefix(prefix).evaluate().isNotEmpty) {
+      return true;
+    }
+    await tester.pump(step);
+  }
+  return _findItKeyPrefix(prefix).evaluate().isNotEmpty;
+}
+
+Future<void> _exerciseMarketTopActions(WidgetTester tester) async {
+  final viewMode = byItKey(IntegrationTestKeys.marketTopActionViewMode);
+  final sort = byItKey(IntegrationTestKeys.marketTopActionSort);
+  final filter = byItKey(IntegrationTestKeys.marketTopActionFilter);
+
+  expect(
+    viewMode,
+    findsOneWidget,
+    reason: 'Market tab should expose view-mode action key.',
+  );
+  expect(
+    sort,
+    findsOneWidget,
+    reason: 'Market tab should expose sort action key.',
+  );
+  expect(
+    filter,
+    findsOneWidget,
+    reason: 'Market tab should expose filter action key.',
+  );
+
+  await _tapIfPresent(tester, viewMode, settlePumps: 4);
+  await _tapIfPresent(tester, sort, settlePumps: 4);
+  await popRouteAndSettle(tester, settlePumps: 4);
+  await _tapIfPresent(tester, filter, settlePumps: 4);
+  await popRouteAndSettle(tester, settlePumps: 4);
+}
+
+Future<void> _exerciseQuestionBankSurface(WidgetTester tester) async {
+  final found = await _waitForAnyKeyPrefix(
+    tester,
+    'it-question-bank-category-',
+    maxPumps: 8,
+  );
+  if (!found) return;
+
+  await _tapFirstKeyPrefixIfPresent(
+    tester,
+    'it-question-bank-category-',
+    afterTap: () async {
+      if (byItKey(IntegrationTestKeys.screenEducation).evaluate().isEmpty) {
+        await pageBackAndSettle(tester, settlePumps: 6);
+      }
+      expect(byItKey(IntegrationTestKeys.screenEducation), findsOneWidget);
+    },
+  );
+}
+
+Future<void> _exercisePracticeExamSurface(WidgetTester tester) async {
+  final found = await _waitForAnyKeyPrefix(
+    tester,
+    'it-practice-exam-open-',
+    maxPumps: 8,
+  );
+  if (!found) return;
+
+  await _tapFirstKeyPrefixIfPresent(
+    tester,
+    'it-practice-exam-open-',
+    afterTap: () async {
+      if (byItKey(IntegrationTestKeys.screenEducation).evaluate().isEmpty) {
+        await pageBackAndSettle(tester, settlePumps: 6);
+      }
+      expect(byItKey(IntegrationTestKeys.screenEducation), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _fillEditProfileFields(WidgetTester tester) async {

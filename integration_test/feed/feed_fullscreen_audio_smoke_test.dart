@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
@@ -65,6 +66,10 @@ void main() {
               await tester.pump(const Duration(milliseconds: 180));
             }
             await expectNoFlutterException(tester);
+            expect(
+              byItKey(IntegrationTestKeys.screenSingleShort),
+              findsOneWidget,
+            );
 
             final fullscreenMuted = await adapter.isMutedNative();
             if (fullscreenMuted) {

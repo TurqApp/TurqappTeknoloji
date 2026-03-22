@@ -1,5 +1,6 @@
 class IntegrationTestKeys {
   static const String screenSplash = 'it-screen-splash';
+  static const String screenSignIn = 'it-screen-sign-in';
   static const String navBarRoot = 'it-nav-bar-root';
   static const String navFeed = 'it-nav-feed';
   static const String navExplore = 'it-nav-explore';

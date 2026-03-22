@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Profile/Policies/policies.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_controller.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
@@ -54,6 +55,7 @@ class _SignInState extends State<SignIn> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenSignIn),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(15),

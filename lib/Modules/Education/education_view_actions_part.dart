@@ -100,6 +100,7 @@ extension EducationViewActionsPart on EducationView {
       label: semanticsLabel,
       button: true,
       child: GestureDetector(
+        key: semanticsLabel == null ? null : ValueKey<String>(semanticsLabel),
         onTap: onTap,
         child: Container(
           width: 40,

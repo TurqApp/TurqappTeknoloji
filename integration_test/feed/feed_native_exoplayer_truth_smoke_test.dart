@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
 import '../core/helpers/native_exoplayer_probe.dart';
@@ -48,7 +49,7 @@ void main() {
 
             for (var i = 0; i < 5; i++) {
               await tester.drag(
-                byItKey('it-screen-feed'),
+                byItKey(IntegrationTestKeys.screenFeed),
                 const Offset(0, -420),
               );
               for (var j = 0; j < 8; j++) {
@@ -72,7 +73,8 @@ void main() {
         FlutterError.onError = originalOnError;
       }
     },
-    skip: !kRunIntegrationSmoke || defaultTargetPlatform != TargetPlatform.android,
+    skip: !kRunIntegrationSmoke ||
+        defaultTargetPlatform != TargetPlatform.android,
   );
 }
 

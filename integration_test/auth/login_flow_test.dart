@@ -26,6 +26,8 @@ void main() {
     );
 
     await app.main();
+    await tester.pump();
+    expect(byItKey(IntegrationTestKeys.screenSplash), findsOneWidget);
     await pumpForAppStartup(tester, maxPumps: 32);
 
     final navBarFinder = byItKey(IntegrationTestKeys.navBarRoot);
@@ -43,6 +45,7 @@ void main() {
         find.byKey(const ValueKey<String>('login_submit_button'));
 
     await pumpUntilVisible(tester, loginButton, maxPumps: 48);
+    expect(byItKey(IntegrationTestKeys.screenSignIn), findsOneWidget);
     await tester.tap(loginButton);
     await tester.pump(const Duration(milliseconds: 300));
 

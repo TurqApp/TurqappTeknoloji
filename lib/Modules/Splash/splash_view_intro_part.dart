@@ -64,6 +64,7 @@ extension _SplashViewIntroPart on _SplashViewState {
 
   Widget _buildSplashView(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenSplash),
       backgroundColor: Colors.black,
       body: Center(
         child: MediaQuery(

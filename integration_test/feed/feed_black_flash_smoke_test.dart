@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -78,7 +79,7 @@ void main() {
               }
 
               await tester.drag(
-                byItKey('it-screen-feed'),
+                byItKey(IntegrationTestKeys.screenFeed),
                 const Offset(0, -440),
               );
               for (var i = 0; i < 10; i++) {
