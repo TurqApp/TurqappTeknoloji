@@ -1,0 +1,121 @@
+part of 'scholarship_detail_controller.dart';
+
+extension ScholarshipDetailControllerActionsPart
+    on ScholarshipDetailController {
+  Future<void> applyForScholarship(String scholarshipId, String type) async {
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
+    if (currentUserId.isEmpty) {
+      AppSnackbar("common.error".tr, "scholarship.login_required".tr);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      await checkUserApplicationReadiness();
+
+      if (!applyReady.value) {
+        return;
+      }
+
+      final docRef = ScholarshipFirestorePath.doc(scholarshipId);
+      const field = 'basvurular';
+
+      await docRef.collection('Basvurular').doc(currentUserId).set({
+        'timeStamp': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      await docRef.update({
+        field: FieldValue.arrayUnion([currentUserId]),
+      });
+      await _scholarshipRepository.setUserAppliedCache(
+        scholarshipId,
+        currentUserId,
+        true,
+      );
+
+      allreadyApplied.value = true;
+      AppSnackbar("common.success".tr, "scholarship.applied_success".tr);
+    } catch (e) {
+      AppSnackbar("common.error".tr, "scholarship.apply_failed".tr);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void updatePageIndex(int pageIndex) {
+    currentPageIndex.value = pageIndex;
+  }
+
+  void toggleUniversityList() {
+    showAllUniversities.value = !showAllUniversities.value;
+  }
+
+  Future<void> toggleFollowStatus(String userID) async {
+    if (isFollowLoading.value) return;
+    final wasFollowing = isFollowing.value;
+    isFollowing.value = !wasFollowing;
+    isFollowLoading.value = true;
+    try {
+      final outcome = await FollowService.toggleFollow(userID);
+      isFollowing.value = outcome.nowFollowing;
+      if (outcome.limitReached) {
+        AppSnackbar(
+          'scholarship.follow_limit_title'.tr,
+          'scholarship.follow_limit_body'.tr,
+        );
+      }
+    } catch (e) {
+      isFollowing.value = wasFollowing;
+      AppSnackbar("common.error".tr, "scholarship.follow_failed".tr);
+    } finally {
+      isFollowLoading.value = false;
+    }
+  }
+
+  Future<void> deleteScholarship(String scholarshipId, String type) async {
+    if (scholarshipId.isEmpty) {
+      AppSnackbar("common.error".tr, "scholarship.invalid".tr);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      await ScholarshipFirestorePath.doc(scholarshipId).delete();
+      Get.back();
+      await ScholarshipsController.maybeFind()?.fetchScholarships();
+      AppSnackbar("common.success".tr, "scholarship.delete_success".tr);
+    } catch (e) {
+      AppSnackbar("common.error".tr, "scholarship.delete_failed".tr);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> cancelApplication(String scholarshipId, String type) async {
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
+    if (currentUserId.isEmpty) {
+      AppSnackbar("common.error".tr, "scholarship.login_required".tr);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      final docRef = ScholarshipFirestorePath.doc(scholarshipId);
+      const field = 'basvurular';
+
+      await docRef.collection('Basvurular').doc(currentUserId).delete();
+
+      await docRef.update({
+        field: FieldValue.arrayRemove([currentUserId]),
+      });
+
+      allreadyApplied.value = false;
+      await checkUserApplicationReadiness();
+      AppSnackbar("common.success".tr, "scholarship.cancel_success".tr);
+    } catch (e) {
+      AppSnackbar("common.error".tr, "scholarship.cancel_failed".tr);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}

@@ -111,7 +111,8 @@ extension CreateTestBodyPart on _CreateTestState {
                                           width: coverSelectButtonWidth,
                                           child: Material(
                                             color: Colors.pink,
-                                            borderRadius: const BorderRadius.all(
+                                            borderRadius:
+                                                const BorderRadius.all(
                                               Radius.circular(20),
                                             ),
                                             child: Center(
