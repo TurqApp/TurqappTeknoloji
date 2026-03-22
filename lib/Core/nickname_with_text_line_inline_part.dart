@@ -20,7 +20,7 @@ extension NicknameWithTextLineInlinePart on _NicknameWithTextLineState {
         Padding(
           padding: const EdgeInsets.only(top: 3),
           child: GestureDetector(
-            onTap: () => setState(() => expanded = true),
+            onTap: () => _setExpanded(true),
             child: Text(buttonText, style: buttonStyle),
           ),
         ),
@@ -73,7 +73,7 @@ extension NicknameWithTextLineInlinePart on _NicknameWithTextLineState {
 
       if (!combinedPainter.didExceedMaxLines) {
         return GestureDetector(
-          onTap: () => setState(() => expanded = true),
+          onTap: () => _setExpanded(true),
           child: RichText(
             text: TextSpan(
               style: defaultStyle,
@@ -102,7 +102,7 @@ extension NicknameWithTextLineInlinePart on _NicknameWithTextLineState {
           Padding(
             padding: const EdgeInsets.only(top: 3),
             child: GestureDetector(
-              onTap: () => setState(() => expanded = true),
+              onTap: () => _setExpanded(true),
               child: Text(buttonText, style: buttonStyle),
             ),
           ),
@@ -120,7 +120,7 @@ extension NicknameWithTextLineInlinePart on _NicknameWithTextLineState {
     final lines = testPainter.computeLineMetrics();
     if (lines.isNotEmpty && lines.last.width <= constraints.maxWidth) {
       return GestureDetector(
-        onTap: () => setState(() => expanded = false),
+        onTap: () => _setExpanded(false),
         child: RichText(
           text: TextSpan(
             style: defaultStyle,
@@ -144,7 +144,7 @@ extension NicknameWithTextLineInlinePart on _NicknameWithTextLineState {
         Padding(
           padding: const EdgeInsets.only(top: 3),
           child: GestureDetector(
-            onTap: () => setState(() => expanded = false),
+            onTap: () => _setExpanded(false),
             child: Text(buttonText, style: buttonStyle),
           ),
         ),

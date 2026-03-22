@@ -117,18 +117,14 @@ extension NicknameWithTextLineViewPart on _NicknameWithTextLineState {
       )..layout(maxWidth: constraints.maxWidth);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && tp.didExceedMaxLines != showExpandButton) {
-          setState(() {
-            showExpandButton = tp.didExceedMaxLines;
-          });
-        }
+        _setShowExpandButton(tp.didExceedMaxLines);
       });
       return;
     }
 
     if (showExpandButton) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => showExpandButton = false);
+        _setShowExpandButton(false);
       });
     }
   }

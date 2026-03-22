@@ -65,6 +65,10 @@ class HLSVideoAdapter extends ChangeNotifier {
   HLSVideoValue _value = const HLSVideoValue();
   HLSVideoValue get value => _value;
 
+  void _notifyAdapterListeners() {
+    notifyListeners();
+  }
+
   StreamSubscription? _stateSub;
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;

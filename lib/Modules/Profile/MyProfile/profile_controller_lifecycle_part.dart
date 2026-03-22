@@ -1,0 +1,88 @@
+part of 'profile_controller.dart';
+
+extension ProfileControllerLifecyclePart on ProfileController {
+  String? _performResolvedActiveUid() {
+    final active = _activeUid?.trim();
+    if (active != null && active.isNotEmpty) return active;
+    final effectiveUid = userService.effectiveUserId.trim();
+    if (effectiveUid.isNotEmpty) return effectiveUid;
+    return null;
+  }
+
+  ScrollController _performScrollControllerForSelection(int selection) {
+    return _scrollControllers.putIfAbsent(
+      selection,
+      () => _performBuildTrackedScrollController(selection),
+    );
+  }
+
+  ScrollController _performCurrentScrollController() {
+    return scrollControllerForSelection(postSelection.value);
+  }
+
+  Future<void> _performAnimateCurrentSelectionToTop() async {
+    final controller = currentScrollController;
+    if (!controller.hasClients) return;
+    await controller.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _performOnInit() {
+    _activeUid = _resolvedActiveUid;
+    _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
+
+    _bindCacheWorkers();
+    unawaited(_bootstrapProfileData());
+    for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
+      scrollControllerForSelection(selection);
+    }
+    _postSelectionWorker = ever<int>(postSelection, (selection) {
+      final controller = scrollControllerForSelection(selection);
+      _performSyncScrollToTopVisibility(
+        controller.hasClients ? controller.offset : 0,
+      );
+      if (selection == 5 &&
+          (scheduledPosts.isEmpty || lastScheduledDoc == null)) {
+        unawaited(fetchScheduledPosts(isInitial: true));
+      }
+    });
+  }
+
+  void _performOnClose() {
+    _authSub?.cancel();
+    _resharesSub?.cancel();
+    _counterSub?.cancel();
+    _persistCacheTimer?.cancel();
+    _visibilityDebounce?.cancel();
+    _allPostsWorker?.dispose();
+    _photosWorker?.dispose();
+    _videosWorker?.dispose();
+    _resharesWorker?.dispose();
+    _scheduledWorker?.dispose();
+    _mergedPostsWorker?.dispose();
+    _postSelectionWorker?.dispose();
+    for (final controller in _scrollControllers.values) {
+      controller.dispose();
+    }
+  }
+
+  ScrollController _performBuildTrackedScrollController(int selection) {
+    final controller = ScrollController();
+    controller.addListener(() {
+      if (postSelection.value != selection) return;
+      _performSyncScrollToTopVisibility(controller.offset);
+    });
+    return controller;
+  }
+
+  void _performSyncScrollToTopVisibility(double offset) {
+    final shouldShow = offset > 500;
+    if (showScrollToTop.value == shouldShow) {
+      return;
+    }
+    showScrollToTop.value = shouldShow;
+  }
+}

@@ -12,7 +12,7 @@ extension TestsControllerDataPart on TestsController {
 
   Future<void> _bootstrapData() async {
     final cachedPage = await _testRepository.fetchSharedPage(
-      limit: _pageSize,
+      limit: TestsController._pageSize,
       cacheOnly: true,
     );
     if (cachedPage.items.isNotEmpty) {
@@ -41,7 +41,7 @@ extension TestsControllerDataPart on TestsController {
     _lastDocument = null;
     try {
       final page = await _testRepository.fetchSharedPage(
-        limit: _pageSize,
+        limit: TestsController._pageSize,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
@@ -63,7 +63,7 @@ extension TestsControllerDataPart on TestsController {
     try {
       final page = await _testRepository.fetchSharedPage(
         startAfter: _lastDocument,
-        limit: _pageSize,
+        limit: TestsController._pageSize,
       );
       list.addAll(page.items);
       _lastDocument = page.lastDocument;

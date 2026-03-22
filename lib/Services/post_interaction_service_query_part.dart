@@ -34,7 +34,7 @@ extension PostInteractionServiceQueryPart on PostInteractionService {
 
     final cacheKey = _cacheKey(userId, postId);
     final cached = _interactionStatusCache[cacheKey];
-    if (cached != null && !cached.isExpired(_cacheTTL)) {
+    if (cached != null && !cached.isExpired(PostInteractionService._cacheTTL)) {
       return Map<String, bool>.from(cached.status);
     }
 

@@ -56,6 +56,16 @@ class _NicknameWithTextLineState extends State<NicknameWithTextLine> {
     color: Color(0xFF4F718E),
   );
 
+  void _setExpanded(bool value) {
+    if (!mounted || expanded == value) return;
+    setState(() => expanded = value);
+  }
+
+  void _setShowExpandButton(bool value) {
+    if (!mounted || showExpandButton == value) return;
+    setState(() => showExpandButton = value);
+  }
+
   @override
   Widget build(BuildContext context) => _buildNicknameLine(context);
 }

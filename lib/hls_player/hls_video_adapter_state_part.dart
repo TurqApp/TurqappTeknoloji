@@ -25,7 +25,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
       aspectRatio: _value.aspectRatio,
       buffered: _value.buffered,
     );
-    notifyListeners();
+    _notifyAdapterListeners();
   }
 
   void _performSubscribeToStreams() {
@@ -47,7 +47,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         aspectRatio: _value.aspectRatio,
         buffered: _value.buffered,
       );
-      notifyListeners();
+      _notifyAdapterListeners();
 
       if (_viewReady && !wasReady) {
         _executePendingCommands();
@@ -68,7 +68,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         aspectRatio: _value.aspectRatio,
         buffered: _value.buffered,
       );
-      notifyListeners();
+      _notifyAdapterListeners();
     });
 
     _durSub = _hls.onDurationChanged.listen((dur) {
@@ -85,7 +85,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         aspectRatio: _value.aspectRatio,
         buffered: _value.buffered,
       );
-      notifyListeners();
+      _notifyAdapterListeners();
     });
 
     _firstFrameSub = _hls.onFirstFrameChanged.listen((hasRenderedFirstFrame) {
@@ -102,7 +102,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         aspectRatio: _value.aspectRatio,
         buffered: _value.buffered,
       );
-      notifyListeners();
+      _notifyAdapterListeners();
     });
   }
 

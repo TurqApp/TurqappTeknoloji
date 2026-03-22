@@ -51,7 +51,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
       return;
     }
 
-    final cdnUrl = '$_cdnOrigin$path';
+    final cdnUrl = '${HLSProxyServer._cdnOrigin}$path';
     try {
       final response = await _httpClient
           .get(Uri.parse(cdnUrl), headers: _cdnHeaders)
@@ -126,7 +126,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
       final masterDir =
           masterPath.substring(0, masterPath.lastIndexOf('/') + 1);
       final variantPath = '$masterDir${best.uri}';
-      final variantCdnUrl = '$_cdnOrigin$variantPath';
+      final variantCdnUrl = '${HLSProxyServer._cdnOrigin}$variantPath';
 
       _httpClient
           .get(Uri.parse(variantCdnUrl), headers: _cdnHeaders)
@@ -138,7 +138,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
           if (cacheManager != null) {
             cacheManager.updateEntryMeta(
               docID,
-              '$_cdnOrigin$masterPath',
+              '${HLSProxyServer._cdnOrigin}$masterPath',
               segments.length,
             );
             final relativePath = variantPath.startsWith('/')

@@ -25,6 +25,7 @@ import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 part 'profile_controller_header_part.dart';
 part 'profile_controller_feed_part.dart';
+part 'profile_controller_lifecycle_part.dart';
 
 class ProfileController extends GetxController {
   static ProfileController ensure() {
@@ -87,15 +88,6 @@ class ProfileController extends GetxController {
   final RxString headerBio = ''.obs;
   final RxString headerAdres = ''.obs;
 
-  String _preserveNonEmpty(
-    RxString target,
-    dynamic raw,
-  ) {
-    final next = (raw ?? '').toString().trim();
-    if (next.isNotEmpty) return next;
-    return target.value.trim();
-  }
-
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
   final RxList<Map<String, dynamic>> mergedPosts = <Map<String, dynamic>>[].obs;
   DocumentSnapshot? lastPostDoc;
@@ -137,73 +129,21 @@ class ProfileController extends GetxController {
       <int, ScrollController>{};
   var showPfImage = false.obs;
 
-  String? get _resolvedActiveUid {
-    final active = _activeUid?.trim();
-    if (active != null && active.isNotEmpty) return active;
-    final effectiveUid = userService.effectiveUserId.trim();
-    if (effectiveUid.isNotEmpty) return effectiveUid;
-    return null;
-  }
+  String? get _resolvedActiveUid => _performResolvedActiveUid();
 
-  ScrollController scrollControllerForSelection(int selection) {
-    return _scrollControllers.putIfAbsent(
-      selection,
-      () => _buildTrackedScrollController(selection),
-    );
-  }
+  ScrollController scrollControllerForSelection(int selection) =>
+      _performScrollControllerForSelection(selection);
 
   ScrollController get currentScrollController =>
-      scrollControllerForSelection(postSelection.value);
+      _performCurrentScrollController();
 
-  Future<void> animateCurrentSelectionToTop() async {
-    final controller = currentScrollController;
-    if (!controller.hasClients) return;
-    await controller.animateTo(
-      0,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOut,
-    );
-  }
+  Future<void> animateCurrentSelectionToTop() =>
+      _performAnimateCurrentSelectionToTop();
 
   @override
   void onInit() {
     super.onInit();
-    // Aktif kullanıcıyı kaydet ve auth değişimini dinle
-    _activeUid = _resolvedActiveUid;
-    _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
-
-    _bindCacheWorkers();
-    unawaited(_bootstrapProfileData());
-    for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
-      scrollControllerForSelection(selection);
-    }
-    _postSelectionWorker = ever<int>(postSelection, (selection) {
-      final controller = scrollControllerForSelection(selection);
-      _syncScrollToTopVisibility(
-        controller.hasClients ? controller.offset : 0,
-      );
-      if (selection == 5 &&
-          (scheduledPosts.isEmpty || lastScheduledDoc == null)) {
-        unawaited(fetchScheduledPosts(isInitial: true));
-      }
-    });
-  }
-
-  ScrollController _buildTrackedScrollController(int selection) {
-    final controller = ScrollController();
-    controller.addListener(() {
-      if (postSelection.value != selection) return;
-      _syncScrollToTopVisibility(controller.offset);
-    });
-    return controller;
-  }
-
-  void _syncScrollToTopVisibility(double offset) {
-    final shouldShow = offset > 500;
-    if (showScrollToTop.value == shouldShow) {
-      return;
-    }
-    showScrollToTop.value = shouldShow;
+    _performOnInit();
   }
 
   int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();
@@ -215,21 +155,7 @@ class ProfileController extends GetxController {
 
   @override
   void onClose() {
-    // Bellek sızıntısını önlemek için dinleyiciyi kapat
-    _authSub?.cancel();
-    _resharesSub?.cancel();
-    _counterSub?.cancel();
-    _persistCacheTimer?.cancel();
-    _allPostsWorker?.dispose();
-    _photosWorker?.dispose();
-    _videosWorker?.dispose();
-    _resharesWorker?.dispose();
-    _scheduledWorker?.dispose();
-    _mergedPostsWorker?.dispose();
-    _postSelectionWorker?.dispose();
-    for (final controller in _scrollControllers.values) {
-      controller.dispose();
-    }
+    _performOnClose();
     super.onClose();
   }
 

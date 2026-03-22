@@ -1,6 +1,15 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerHeaderPart on ProfileController {
+  String _preserveNonEmpty(
+    RxString target,
+    dynamic raw,
+  ) {
+    final next = (raw ?? '').toString().trim();
+    if (next.isNotEmpty) return next;
+    return target.value.trim();
+  }
+
   Future<void> _performBootstrapProfileData() async {
     await _restoreCachedListsForActiveUser();
     await _bootstrapHeaderFromTypesense();
