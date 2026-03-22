@@ -496,7 +496,11 @@ extension SignInControllerSignupPart on SignInController {
         email: normalizeEmailAddress(email.value),
         password: password.value.trim(),
       );
-      addToFirestore(context);
+      // Hand off to the Firestore provisioning step. This method has its own
+      // loading guard, so the signup flow must release the current wait flag
+      // before entering it.
+      wait.value = false;
+      await addToFirestore(context);
     } on FirebaseFunctionsException catch (e) {
       wait.value = false;
       String message;
