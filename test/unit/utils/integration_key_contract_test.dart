@@ -38,7 +38,7 @@ void main() {
     expect(
       source,
       contains(
-        "key: semanticsLabel == null ? null : ValueKey<String>(semanticsLabel)",
+        "key: semanticsLabel == null ? null : ValueKey<String>(semanticsLabel!)",
       ),
     );
   });
@@ -76,7 +76,7 @@ void main() {
       "it-comment-delete-",
       "it-comment-like-",
       "it-chat-tile-",
-      "it-notification-item-",
+      "IntegrationTestKeys.notificationItem(",
       "it-story-reaction-",
       "it-market-item-",
       "it-job-item-",

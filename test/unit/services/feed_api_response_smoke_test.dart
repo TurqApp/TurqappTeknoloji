@@ -2,37 +2,43 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:mockito/mockito.dart';
 
 import '../../helpers/feed_api_smoke_support.dart';
 
-class MockHttpClient extends Mock implements http.Client {}
+class FakeHttpClient extends http.BaseClient {
+  FakeHttpClient(this._handler);
+
+  final Future<http.Response> Function(http.Request request) _handler;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request is! http.Request) {
+      throw UnsupportedError('Only http.Request is supported in tests.');
+    }
+    final response = await _handler(request);
+    return http.StreamedResponse(
+      Stream<List<int>>.fromIterable(<List<int>>[response.bodyBytes]),
+      response.statusCode,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+      request: request,
+    );
+  }
+}
 
 void main() {
   final feedUri = Uri.parse('https://api.example.com/feed');
-  late MockHttpClient client;
+  late http.Client client;
   late FeedApiSmokeService api;
 
-  setUp(() {
-    client = MockHttpClient();
-    api = FeedApiSmokeService(
-      client: client,
-      uri: feedUri,
-    );
-  });
-
   test('SMOKE - Feed response structure', () async {
-    when(
-      client.get(
-        feedUri,
-        headers: anyNamed('headers'),
-      ),
-    ).thenAnswer(
-      (_) async => http.Response(
+    client = FakeHttpClient(
+      (request) async => http.Response(
         '{"items":[{"id":"1","videoUrl":"https://cdn.example.com/v1.m3u8"}]}',
         200,
       ),
     );
+    api = FeedApiSmokeService(client: client, uri: feedUri);
 
     final response = await api.getFeed();
 
@@ -50,35 +56,29 @@ void main() {
   });
 
   test('SMOKE - Feed request sends basic accept header', () async {
-    when(
-      client.get(
-        feedUri,
-        headers: anyNamed('headers'),
-      ),
-    ).thenAnswer(
-      (_) async => http.Response(
-        '{"items":[{"id":"1","videoUrl":"https://cdn.example.com/v1.m3u8"}]}',
-        200,
-      ),
+    late http.Request capturedRequest;
+    client = FakeHttpClient(
+      (request) async {
+        capturedRequest = request;
+        return http.Response(
+          '{"items":[{"id":"1","videoUrl":"https://cdn.example.com/v1.m3u8"}]}',
+          200,
+        );
+      },
     );
+    api = FeedApiSmokeService(client: client, uri: feedUri);
 
     await api.getFeed();
 
-    verify(
-      client.get(
-        Uri.parse('https://api.example.com/feed'),
-        headers: const <String, String>{'accept': 'application/json'},
-      ),
-    ).called(1);
+    expect(capturedRequest.url, feedUri);
+    expect(capturedRequest.headers['accept'], 'application/json');
   });
 
   test('SMOKE - Feed rejects non-200 status', () async {
-    when(
-      client.get(
-        feedUri,
-        headers: anyNamed('headers'),
-      ),
-    ).thenAnswer((_) async => http.Response('{"error":"bad"}', 500));
+    client = FakeHttpClient(
+      (request) async => http.Response('{"error":"bad"}', 500),
+    );
+    api = FeedApiSmokeService(client: client, uri: feedUri);
 
     expect(
       api.getFeed,
@@ -87,12 +87,10 @@ void main() {
   });
 
   test('SMOKE - Feed rejects empty items list', () async {
-    when(
-      client.get(
-        feedUri,
-        headers: anyNamed('headers'),
-      ),
-    ).thenAnswer((_) async => http.Response('{"items":[]}', 200));
+    client = FakeHttpClient(
+      (request) async => http.Response('{"items":[]}', 200),
+    );
+    api = FeedApiSmokeService(client: client, uri: feedUri);
 
     expect(
       api.getFeed,
@@ -101,17 +99,13 @@ void main() {
   });
 
   test('SMOKE - Feed rejects missing required video field', () async {
-    when(
-      client.get(
-        feedUri,
-        headers: anyNamed('headers'),
-      ),
-    ).thenAnswer(
-      (_) async => http.Response(
+    client = FakeHttpClient(
+      (request) async => http.Response(
         '{"items":[{"id":"1","title":"No video"}]}',
         200,
       ),
     );
+    api = FeedApiSmokeService(client: client, uri: feedUri);
 
     expect(
       api.getFeed,

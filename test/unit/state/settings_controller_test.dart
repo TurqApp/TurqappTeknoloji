@@ -1,11 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  String scoped(String key) => userScopedKey(key);
 
   tearDown(() async {
     Get.reset();
@@ -27,7 +30,7 @@ void main() {
 
   test('loads persisted education visibility from preferences', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
-      'educationScreenIsOn:guest': false,
+      scoped('educationScreenIsOn'): false,
     });
     final controller = SettingsController();
 
@@ -45,12 +48,12 @@ void main() {
 
     final prefs = await SharedPreferences.getInstance();
     expect(controller.educationScreenIsOn.value, isFalse);
-    expect(prefs.getBool('educationScreenIsOn:guest'), isFalse);
+    expect(prefs.getBool(scoped('educationScreenIsOn')), isFalse);
   });
 
   test('legacy pasaj visibility values are normalized on load', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
-      'pasajVisibility:guest': <String>['Market', 'Burslar'],
+      scoped('pasajVisibility'): <String>['Market', 'Burslar'],
     });
     final controller = SettingsController();
 

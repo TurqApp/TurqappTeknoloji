@@ -124,16 +124,18 @@ void main() {
       find.byKey(const ValueKey(IntegrationTestKeys.inputComment)),
       'TurqApp comment',
     );
+    await tester.pump();
     await tester.tap(
       find.byKey(const ValueKey(IntegrationTestKeys.actionCommentSend)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('submitted=TurqApp comment'), findsOneWidget);
     expect(
       find.byKey(const ValueKey(IntegrationTestKeys.actionCommentSend)),
       findsNothing,
     );
+    expect(find.text('gif=0'), findsOneWidget);
   });
 
   testWidgets('clear reply action removes reply banner', (tester) async {

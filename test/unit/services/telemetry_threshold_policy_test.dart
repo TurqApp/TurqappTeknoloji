@@ -53,7 +53,7 @@ void main() {
     );
   });
 
-  test('builds report from playback kpi service summaries', () {
+  test('builds report from playback kpi service summaries', () async {
     final service = PlaybackKpiService();
     for (var i = 0; i < 4; i++) {
       service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
@@ -72,6 +72,8 @@ void main() {
         'maxAttachedPlayers': 3,
       });
     }
+
+    await Future<void>.delayed(Duration.zero);
 
     final report = TelemetryThresholdPolicyAdapter.evaluateKpiService(service);
     expect(report.hasIssues, isTrue);

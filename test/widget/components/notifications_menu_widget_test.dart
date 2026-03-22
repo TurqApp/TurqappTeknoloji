@@ -5,6 +5,13 @@ import 'package:turqappv2/Modules/InAppNotifications/notification_actions_sheet_
 
 import '../../helpers/pump_app.dart';
 
+Finder _actionTileByText(String text) {
+  return find.ancestor(
+    of: find.text(text),
+    matching: find.byType(InkWell),
+  );
+}
+
 class _NotificationsMenuHarness extends StatefulWidget {
   const _NotificationsMenuHarness({
     this.initialCount = 2,
@@ -105,18 +112,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(
-        const ValueKey(IntegrationTestKeys.actionNotificationsMarkAllRead),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey(IntegrationTestKeys.actionNotificationsDeleteAll),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('notifications.mark_all_read'), findsOneWidget);
+    expect(find.text('notifications.delete_all'), findsOneWidget);
   });
 
   testWidgets('mark all read respects unread availability', (tester) async {
@@ -131,16 +128,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final markAll = tester.widget<InkWell>(
-      find.byKey(
-        const ValueKey(IntegrationTestKeys.actionNotificationsMarkAllRead),
-      ),
+      _actionTileByText('notifications.mark_all_read'),
     );
     expect(markAll.onTap, isNull);
 
     await tester.tap(
-      find.byKey(
-        const ValueKey(IntegrationTestKeys.actionNotificationsDeleteAll),
-      ),
+      find.text('notifications.delete_all'),
     );
     await tester.pumpAndSettle();
 

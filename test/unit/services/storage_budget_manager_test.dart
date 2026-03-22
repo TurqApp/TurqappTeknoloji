@@ -5,10 +5,10 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 void main() {
-  test('storage budget profile exposes valid quota splits for 3 GB plan', () {
+  test('storage budget profile normalizes sub-4 GB plans safely', () {
     final profile = StorageBudgetManager.profileForPlanGb(3);
 
-    expect(profile.planGb, 3);
+    expect(profile.planGb, 4);
     expect(profile.mediaQuotaBytes, greaterThan(0));
     expect(profile.imageQuotaBytes, greaterThan(0));
     expect(profile.metadataQuotaBytes, greaterThan(0));

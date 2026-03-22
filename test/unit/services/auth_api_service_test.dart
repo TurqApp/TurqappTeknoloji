@@ -4,9 +4,27 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:mockito/mockito.dart';
 
-class MockHttpClient extends Mock implements http.Client {}
+class FakeHttpClient extends http.BaseClient {
+  FakeHttpClient(this._handler);
+
+  final Future<http.Response> Function(http.Request request) _handler;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request is! http.Request) {
+      throw UnsupportedError('Only http.Request is supported in tests.');
+    }
+    final response = await _handler(request);
+    return http.StreamedResponse(
+      Stream<List<int>>.fromIterable(<List<int>>[response.bodyBytes]),
+      response.statusCode,
+      headers: response.headers,
+      reasonPhrase: response.reasonPhrase,
+      request: request,
+    );
+  }
+}
 
 class AuthApiService {
   AuthApiService(
@@ -47,25 +65,14 @@ class AuthApiService {
 
 void main() {
   final loginUri = Uri.parse('https://api.example.com/login');
-  late MockHttpClient client;
+  late http.Client client;
   late AuthApiService service;
 
-  setUp(() {
-    client = MockHttpClient();
-    service = AuthApiService(
-      client,
-      baseUrl: 'https://api.example.com',
-    );
-  });
-
   test('returns parsed JSON on 200', () async {
-    when(
-      client.post(
-        loginUri,
-        headers: anyNamed('headers'),
-        body: anyNamed('body'),
-      ),
-    ).thenAnswer((_) async => http.Response('{"token":"abc"}', 200));
+    client = FakeHttpClient(
+      (request) async => http.Response('{"token":"abc"}', 200),
+    );
+    service = AuthApiService(client, baseUrl: 'https://api.example.com');
 
     final result = await service.login('test@mail.com', '123456');
 
@@ -73,13 +80,10 @@ void main() {
   });
 
   test('throws on non-200 responses', () async {
-    when(
-      client.post(
-        loginUri,
-        headers: anyNamed('headers'),
-        body: anyNamed('body'),
-      ),
-    ).thenAnswer((_) async => http.Response('{"error":"unauthorized"}', 401));
+    client = FakeHttpClient(
+      (request) async => http.Response('{"error":"unauthorized"}', 401),
+    );
+    service = AuthApiService(client, baseUrl: 'https://api.example.com');
 
     expect(
       () => service.login('test@mail.com', '123456'),
@@ -88,15 +92,13 @@ void main() {
   });
 
   test('throws on timeout', () async {
-    when(
-      client.post(
-        loginUri,
-        headers: anyNamed('headers'),
-        body: anyNamed('body'),
+    client = FakeHttpClient(
+      (request) => Future<http.Response>.delayed(
+        const Duration(seconds: 5),
+        () => http.Response('{"token":"late"}', 200),
       ),
-    ).thenAnswer(
-      (_) => Future<http.Response>.delayed(const Duration(seconds: 5)),
     );
+    service = AuthApiService(client, baseUrl: 'https://api.example.com');
 
     expect(
       () => service.login('test@mail.com', '123456'),
@@ -105,13 +107,10 @@ void main() {
   });
 
   test('throws on invalid JSON body', () async {
-    when(
-      client.post(
-        loginUri,
-        headers: anyNamed('headers'),
-        body: anyNamed('body'),
-      ),
-    ).thenAnswer((_) async => http.Response('invalid-json', 200));
+    client = FakeHttpClient(
+      (request) async => http.Response('invalid-json', 200),
+    );
+    service = AuthApiService(client, baseUrl: 'https://api.example.com');
 
     expect(
       () => service.login('test@mail.com', '123456'),
@@ -120,25 +119,19 @@ void main() {
   });
 
   test('sends expected request payload and headers', () async {
-    when(
-      client.post(
-        loginUri,
-        headers: anyNamed('headers'),
-        body: anyNamed('body'),
-      ),
-    ).thenAnswer((_) async => http.Response('{"token":"abc"}', 200));
+    late http.Request capturedRequest;
+    client = FakeHttpClient((request) async {
+      capturedRequest = request;
+      return http.Response('{"token":"abc"}', 200);
+    });
+    service = AuthApiService(client, baseUrl: 'https://api.example.com');
 
     await service.login('test@mail.com', '123456');
 
-    verify(
-      client.post(
-        Uri.parse('https://api.example.com/login'),
-        headers: const <String, String>{
-          'content-type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: '{"email":"test@mail.com","password":"123456"}',
-      ),
-    ).called(1);
+    expect(capturedRequest.url, loginUri);
+    expect(capturedRequest.headers['content-type'], 'application/json');
+    expect(capturedRequest.headers['accept'], 'application/json');
+    expect(
+        capturedRequest.body, '{"email":"test@mail.com","password":"123456"}');
   });
 }

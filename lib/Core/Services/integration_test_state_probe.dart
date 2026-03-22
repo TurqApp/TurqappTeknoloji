@@ -352,13 +352,24 @@ class IntegrationTestStateProbe {
     final accountCenter = AccountCenterService.maybeFind();
     final activeUid = accountCenter?.activeUid.value.trim() ?? '';
     final lastUsedUid = accountCenter?.lastUsedUid.value.trim() ?? '';
-    final currentUid = currentUserService.effectiveUserId.trim();
+    String currentUid;
+    try {
+      currentUid = currentUserService.effectiveUserId.trim();
+    } catch (_) {
+      currentUid = '';
+    }
     final activeAccount =
         activeUid.isEmpty ? null : accountCenter?.accountByUid(activeUid);
+    var isFirebaseSignedIn = false;
+    try {
+      isFirebaseSignedIn = FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      isFirebaseSignedIn = false;
+    }
     return <String, dynamic>{
       'registered': true,
       'currentUid': currentUid,
-      'isFirebaseSignedIn': FirebaseAuth.instance.currentUser != null,
+      'isFirebaseSignedIn': isFirebaseSignedIn,
       'currentUserLoaded': currentUserService.currentUser != null,
       'viewSelection': currentUserService.effectiveViewSelection,
       'accountCenterRegistered': accountCenter != null,
