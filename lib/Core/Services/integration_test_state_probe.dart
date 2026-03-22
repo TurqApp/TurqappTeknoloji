@@ -1,5 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Core/Services/integration_media_test_harness.dart';
+import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
@@ -13,6 +17,8 @@ import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class IntegrationTestStateProbe {
   const IntegrationTestStateProbe._();
@@ -31,6 +37,9 @@ class IntegrationTestStateProbe {
       'socialProfile': _socialProfileSnapshot(),
       'notifications': _notificationsSnapshot(),
       'storyComments': _storyCommentsSnapshot(),
+      'auth': _authSnapshot(),
+      'testHarnesses': _testHarnessSnapshot(),
+      'snackbar': readLastSnackbarDebugState(),
       'navBar': _navBarSnapshot(),
       'currentRoute': Get.currentRoute,
       'previousRoute': routing.previous,
@@ -172,6 +181,13 @@ class IntegrationTestStateProbe {
       'latestMessageMediaCount': latest?.imgs.length ?? 0,
       'latestMessageVideoUrl': latest?.video ?? '',
       'latestMessageAudioUrl': latest?.sesliMesaj ?? '',
+      'selectedImageCount': controller.images.length,
+      'hasPendingVideo': controller.pendingVideo.value != null,
+      'selection': controller.selection.value,
+      'isRecording': controller.isRecording.value,
+      'lastMediaAction': controller.lastMediaAction.value,
+      'lastMediaFailureCode': controller.lastMediaFailureCode.value,
+      'lastMediaFailureDetail': controller.lastMediaFailureDetail.value,
     };
   }
 
@@ -302,6 +318,36 @@ class IntegrationTestStateProbe {
       'selectedGifUrl': controller.selectedGifUrl.value,
       'lastSuccessfulCommentText': controller.lastSuccessfulCommentText.value,
       'lastSuccessfulCommentGif': controller.lastSuccessfulCommentGif.value,
+    };
+  }
+
+  static Map<String, dynamic> _authSnapshot() {
+    final currentUserService = CurrentUserService.instance;
+    final accountCenter = AccountCenterService.maybeFind();
+    final activeUid = accountCenter?.activeUid.value.trim() ?? '';
+    final lastUsedUid = accountCenter?.lastUsedUid.value.trim() ?? '';
+    final currentUid = currentUserService.effectiveUserId.trim();
+    final activeAccount =
+        activeUid.isEmpty ? null : accountCenter?.accountByUid(activeUid);
+    return <String, dynamic>{
+      'registered': true,
+      'currentUid': currentUid,
+      'isFirebaseSignedIn': FirebaseAuth.instance.currentUser != null,
+      'currentUserLoaded': currentUserService.currentUser != null,
+      'viewSelection': currentUserService.effectiveViewSelection,
+      'accountCenterRegistered': accountCenter != null,
+      'accountCount': accountCenter?.accounts.length ?? 0,
+      'activeUid': activeUid,
+      'lastUsedUid': lastUsedUid,
+      'activeSessionValid': activeAccount?.isSessionValid ?? false,
+      'activeRequiresReauth': activeAccount?.requiresReauth ?? false,
+    };
+  }
+
+  static Map<String, dynamic> _testHarnessSnapshot() {
+    return <String, dynamic>{
+      'permissionHarness': IntegrationPermissionTestHarness.snapshot(),
+      'mediaHarness': IntegrationMediaTestHarness.snapshot(),
     };
   }
 }

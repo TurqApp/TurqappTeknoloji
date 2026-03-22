@@ -274,6 +274,7 @@ extension ChatComposerPart on ChatView {
     return Row(
       children: [
         GestureDetector(
+          key: const ValueKey(IntegrationTestKeys.actionChatRecordingCancel),
           onTap: controller.cancelVoiceRecording,
           child: Container(
             width: 35,
@@ -313,6 +314,7 @@ extension ChatComposerPart on ChatView {
           }),
         ),
         GestureDetector(
+          key: const ValueKey(IntegrationTestKeys.actionChatRecordingSend),
           onTap: controller.stopVoiceRecording,
           child: Container(
             width: 35,

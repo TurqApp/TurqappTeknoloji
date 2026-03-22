@@ -90,10 +90,14 @@ class CommentComposerBar extends StatelessWidget {
                             IntegrationTestKeys.actionCommentClearReply,
                           ),
                           onTap: onClearReply,
-                          child: const Icon(
-                            CupertinoIcons.xmark_circle_fill,
-                            size: 14,
-                            color: Colors.black38,
+                          child: Semantics(
+                            button: true,
+                            label: 'Clear comment reply target',
+                            child: const Icon(
+                              CupertinoIcons.xmark_circle_fill,
+                              size: 14,
+                              color: Colors.black38,
+                            ),
                           ),
                         ),
                       ],
@@ -201,20 +205,24 @@ class CommentComposerBar extends StatelessWidget {
           GestureDetector(
             key: const ValueKey(IntegrationTestKeys.actionCommentGifPicker),
             onTap: onPickGif,
-            child: Container(
-              width: 34,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black26),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'chat.gif'.tr,
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 10,
-                  fontFamily: AppFontFamilies.mbold,
+            child: Semantics(
+              button: true,
+              label: 'Open comment GIF picker',
+              child: Container(
+                width: 34,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black26),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'chat.gif'.tr,
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 10,
+                    fontFamily: AppFontFamilies.mbold,
+                  ),
                 ),
               ),
             ),
@@ -225,17 +233,21 @@ class CommentComposerBar extends StatelessWidget {
               child: GestureDetector(
                 key: const ValueKey(IntegrationTestKeys.actionCommentSend),
                 onTap: onSend,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: const Icon(
-                    Icons.send,
-                    color: Colors.white,
-                    size: 16,
+                child: Semantics(
+                  button: true,
+                  label: 'Send comment',
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Icon(
+                      Icons.send,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ),

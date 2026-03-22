@@ -5,6 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 source "scripts/test_suite_manifest.sh"
+source "scripts/integration_device_resolver.sh"
 
 if [[ -f ".env.integration.local" ]]; then
   set -a
@@ -15,7 +16,8 @@ fi
 : "${INTEGRATION_LOGIN_EMAIL:?set INTEGRATION_LOGIN_EMAIL}"
 : "${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
 
-DEVICE_ID="${INTEGRATION_SMOKE_DEVICE_ID:-192.168.1.196:5555}"
+TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
+DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
 MANIFEST="config/test_suites/turqapp_test_smoke.txt"
 
 mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
@@ -33,6 +35,7 @@ COMMON_ARGS=(
   "${DEVICE_ID}"
 )
 
+echo "[turqapp-test] platform=${TARGET_PLATFORM}"
 echo "[turqapp-test] device=${DEVICE_ID}"
 echo "[turqapp-test] manifest=${MANIFEST} count=${#suite_tests[@]}"
 for test_file in "${suite_tests[@]}"; do

@@ -2,7 +2,10 @@ part of 'permissions_view.dart';
 
 extension _PermissionDetailPart on _PermissionDetailViewState {
   Future<void> _loadStatus() async {
-    final status = await widget.item.permission.status;
+    final status = await IntegrationPermissionTestHarness.statusFor(
+      widget.item.permission,
+      permissionId: _permissionId(widget.item.permission),
+    );
     _updatePermissionDetailState(() => _status = status);
   }
 
@@ -20,8 +23,11 @@ extension _PermissionDetailPart on _PermissionDetailViewState {
       final canDirectRequest =
           _status.isDenied || _status.isLimited || _status.isProvisional;
       if (!_usesDeviceSettingStyle && canDirectRequest && !_enabled) {
-        await widget.item.permission.request();
-        await _loadStatus();
+        final next = await IntegrationPermissionTestHarness.request(
+          widget.item.permission,
+          permissionId: _permissionId(widget.item.permission),
+        );
+        _updatePermissionDetailState(() => _status = next);
       } else {
         final shouldOpen = await _confirmOpenSettings();
         if (shouldOpen) {
@@ -78,7 +84,11 @@ extension _PermissionDetailPart on _PermissionDetailViewState {
   }
 
   Widget _buildPermissionDetailScaffold(BuildContext context) {
+    final permissionId = _permissionId(widget.item.permission);
     return Scaffold(
+      key: ValueKey<String>(
+        IntegrationTestKeys.screenPermissionDetail(permissionId),
+      ),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -108,6 +118,11 @@ extension _PermissionDetailPart on _PermissionDetailViewState {
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
+                        key: ValueKey<String>(
+                          IntegrationTestKeys.actionPermissionPrimary(
+                            permissionId,
+                          ),
+                        ),
                         onPressed: _busy ? null : _onActionPressed,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,

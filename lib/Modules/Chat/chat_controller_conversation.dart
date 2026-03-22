@@ -172,6 +172,7 @@ extension _ChatControllerConversationX on ChatController {
   Future<void> getData() async {
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();
+    _realtimeHeadSignature = '';
 
     final hasLocalWindow = await _loadLocalConversationWindow();
     await _loadInitialMessages(forceServer: !hasLocalWindow);
@@ -230,7 +231,7 @@ extension _ChatControllerConversationX on ChatController {
     _messagesSubscription = _conversationRepository
         .watchConversationMessagesHead(
       chatID,
-      limit: cacheOnly ? ChatController._syncHeadSize : 1,
+      limit: ChatController._syncHeadSize,
       cacheOnly: cacheOnly,
     )
         .listen((snapshot) {
@@ -248,8 +249,17 @@ extension _ChatControllerConversationX on ChatController {
         return;
       }
       if (snapshot.docs.isEmpty) return;
+      final previousHeadSignature = _realtimeHeadSignature;
+      final nextHeadSignature = _buildHeadSignature(snapshot.docs);
+      _realtimeHeadSignature = nextHeadSignature;
       final latestRemoteTs = _extractCreatedDateMs(snapshot.docs.first.data());
-      if (latestRemoteTs > _latestLoadedTimestampMs()) {
+      final shouldSync = ChatRealtimeSyncPolicy.shouldTriggerSync(
+        previousHeadSignature: previousHeadSignature,
+        nextHeadSignature: nextHeadSignature,
+        latestLoadedTimestampMs: _latestLoadedTimestampMs(),
+        latestRemoteTimestampMs: latestRemoteTs,
+      );
+      if (shouldSync) {
         unawaited(_syncMessages(forceServer: true));
       }
     }, onError: (_) {
@@ -399,5 +409,47 @@ extension _ChatControllerConversationX on ChatController {
     if (raw is Timestamp) return raw.millisecondsSinceEpoch;
     if (raw is num) return raw.toInt();
     return int.tryParse("$raw") ?? 0;
+  }
+
+  int _extractUpdatedDateMs(Map<String, dynamic> data) {
+    final raw = data["updatedDate"];
+    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+    if (raw is num) return raw.toInt();
+    return int.tryParse("$raw") ?? 0;
+  }
+
+  String _buildHeadSignature(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    return ChatRealtimeSyncPolicy.buildHeadSignature(
+      docs.map((doc) {
+        final data = doc.data();
+        final reactions = data['reactions'];
+        final seenBy = data['seenBy'];
+        final likes = data['likes'];
+        final deletedFor = data['deletedFor'];
+        var reactionSelectionCount = 0;
+        if (reactions is Map) {
+          for (final value in reactions.values) {
+            if (value is List) {
+              reactionSelectionCount += value.length;
+            }
+          }
+        }
+        return ChatRealtimeHeadEntry(
+          id: doc.id,
+          createdDateMs: _extractCreatedDateMs(data),
+          updatedDateMs: _extractUpdatedDateMs(data),
+          status: (data['status'] ?? '').toString(),
+          isEdited: data['isEdited'] == true,
+          isUnsent: data['unsent'] == true,
+          seenByCount: seenBy is List ? seenBy.length : 0,
+          reactionBucketCount: reactions is Map ? reactions.length : 0,
+          reactionSelectionCount: reactionSelectionCount,
+          likeCount: likes is List ? likes.length : 0,
+          deletedForCount: deletedFor is List ? deletedFor.length : 0,
+        );
+      }),
+    );
   }
 }

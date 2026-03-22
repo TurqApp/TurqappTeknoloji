@@ -1,6 +1,8 @@
 class IntegrationTestKeys {
   static const String screenSplash = 'it-screen-splash';
   static const String screenSignIn = 'it-screen-sign-in';
+  static const String screenAccountCenter = 'it-screen-account-center';
+  static const String screenPermissions = 'it-screen-permissions';
   static const String navBarRoot = 'it-nav-bar-root';
   static const String navFeed = 'it-nav-feed';
   static const String navExplore = 'it-nav-explore';
@@ -44,6 +46,10 @@ class IntegrationTestKeys {
   static const String actionProfileOpenChat = 'it-action-profile-open-chat';
   static const String actionProfileEdit = 'it-action-profile-edit';
   static const String actionSettingsSignOut = 'it-action-settings-sign-out';
+  static const String actionSettingsOpenAccountCenter =
+      'it-action-settings-open-account-center';
+  static const String actionSettingsOpenPermissions =
+      'it-action-settings-open-permissions';
   static const String actionEditProfileUpdate = 'it-action-edit-profile-update';
   static const String actionPostCreatorPublish =
       'it-action-post-creator-publish';
@@ -57,10 +63,17 @@ class IntegrationTestKeys {
       'it-action-notifications-delete-all';
   static const String actionChatCreate = 'it-action-chat-create';
   static const String actionChatAttach = 'it-action-chat-attach';
+  static const String actionChatAttachPhotos = 'it-action-chat-attach-photos';
+  static const String actionChatAttachVideos = 'it-action-chat-attach-videos';
+  static const String actionChatAttachLocation =
+      'it-action-chat-attach-location';
   static const String actionChatGifPicker = 'it-action-chat-gif-picker';
   static const String actionChatCamera = 'it-action-chat-camera';
   static const String actionChatSend = 'it-action-chat-send';
   static const String actionChatMic = 'it-action-chat-mic';
+  static const String actionChatRecordingCancel =
+      'it-action-chat-recording-cancel';
+  static const String actionChatRecordingSend = 'it-action-chat-recording-send';
   static const String actionStoryOpenComments = 'it-action-story-open-comments';
   static const String actionStoryCommentGifPicker =
       'it-action-story-comment-gif-picker';
@@ -68,6 +81,8 @@ class IntegrationTestKeys {
   static const String actionStoryCommentClearGif =
       'it-action-story-comment-clear-gif';
   static const String actionStoryLike = 'it-action-story-like';
+  static const String actionAccountCenterSingleDeviceToggle =
+      'it-action-account-center-single-device-toggle';
   static const String profileFollowersCounter = 'it-profile-followers-counter';
   static const String profileFollowingCounter = 'it-profile-following-counter';
   static const String inputEditProfileFirstName =
@@ -114,6 +129,14 @@ class IntegrationTestKeys {
   static String jobItem(String jobId) => 'it-job-item-$jobId';
   static String scholarshipItem(String scholarshipId) =>
       'it-scholarship-item-$scholarshipId';
+  static String permissionItem(String permissionId) =>
+      'it-permission-item-$permissionId';
+  static String permissionStatus(String permissionId) =>
+      'it-permission-status-$permissionId';
+  static String screenPermissionDetail(String permissionId) =>
+      'it-screen-permission-detail-$permissionId';
+  static String actionPermissionPrimary(String permissionId) =>
+      'it-action-permission-primary-$permissionId';
 
   static const String marketTopActionViewMode = 'it-market-top-action-view';
   static const String marketTopActionSort = 'it-market-top-action-sort';

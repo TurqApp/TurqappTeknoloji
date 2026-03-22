@@ -10,8 +10,10 @@ if [[ -f ".env.integration.local" ]]; then
 fi
 
 source "scripts/test_suite_manifest.sh"
+source "scripts/integration_device_resolver.sh"
 
-DEVICE_ID="${INTEGRATION_SMOKE_DEVICE_ID:-192.168.1.196:5555}"
+TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
+DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
 LOGIN_EMAIL="${INTEGRATION_LOGIN_EMAIL:?set INTEGRATION_LOGIN_EMAIL}"
 LOGIN_PASSWORD="${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
 MANIFEST="config/test_suites/release_gate_e2e.txt"
@@ -28,6 +30,8 @@ run_test() {
     --dart-define=INTEGRATION_LOGIN_PASSWORD="$LOGIN_PASSWORD"
 }
 
+echo "[release-gate-e2e] platform=$TARGET_PLATFORM"
+echo "[release-gate-e2e] device=$DEVICE_ID"
 echo "[release-gate-e2e] manifest=$MANIFEST count=${#suite_tests[@]}"
 for test_file in "${suite_tests[@]}"; do
   run_test "$test_file"

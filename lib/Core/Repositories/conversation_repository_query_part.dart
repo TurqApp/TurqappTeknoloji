@@ -110,7 +110,13 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
       String uid) {
     return _firestore
         .collection("conversations")
-        .where("participants", arrayContains: uid)
+        .where(
+          Filter.or(
+            Filter("participants", arrayContains: uid),
+            Filter("userID1", isEqualTo: uid),
+            Filter("userID2", isEqualTo: uid),
+          ),
+        )
         .snapshots();
   }
 

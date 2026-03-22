@@ -26,6 +26,8 @@ extension _SettingsViewSectionsPart on _SettingsViewState {
         'settings.account_center'.tr,
         CupertinoIcons.person_2_square_stack,
         () => Get.to(() => AccountCenterView()),
+        valueKey:
+            const ValueKey(IntegrationTestKeys.actionSettingsOpenAccountCenter),
       ),
       buildRow(
         'settings.career_profile'.tr,
@@ -64,6 +66,8 @@ extension _SettingsViewSectionsPart on _SettingsViewState {
         'settings.permissions'.tr,
         CupertinoIcons.lock_shield,
         () => Get.to(() => const PermissionsView()),
+        valueKey:
+            const ValueKey(IntegrationTestKeys.actionSettingsOpenPermissions),
       ),
       buildRow(
         'settings.pasaj'.tr,

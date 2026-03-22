@@ -133,16 +133,19 @@ class _ChatTextFieldState extends State<_ChatTextField> {
       position: position,
       items: [
         PullDownMenuItem(
+          key: const ValueKey(IntegrationTestKeys.actionChatAttachPhotos),
           title: 'chat.attach_photos'.tr,
           icon: CupertinoIcons.photo_on_rectangle,
           onTap: widget.controller.pickImage,
         ),
         PullDownMenuItem(
+          key: const ValueKey(IntegrationTestKeys.actionChatAttachVideos),
           title: 'chat.attach_videos'.tr,
           icon: AppIcons.playFilled,
           onTap: widget.controller.pickVideo,
         ),
         PullDownMenuItem(
+          key: const ValueKey(IntegrationTestKeys.actionChatAttachLocation),
           title: 'chat.attach_location'.tr,
           icon: AppIcons.locationSolid,
           onTap: () {
@@ -165,18 +168,22 @@ class _ChatTextFieldState extends State<_ChatTextField> {
           GestureDetector(
             key: const ValueKey(IntegrationTestKeys.actionChatAttach),
             onTap: _showAttachmentMenu,
-            child: Container(
-              key: _plusButtonKey,
-              width: 36,
-              height: 36,
-              margin: const EdgeInsets.only(bottom: 2),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.grey.withAlpha(40),
-                shape: BoxShape.circle,
+            child: Semantics(
+              button: true,
+              label: 'Open chat attachments',
+              child: Container(
+                key: _plusButtonKey,
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.only(bottom: 2),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withAlpha(40),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(CupertinoIcons.add,
+                    color: Colors.black87, size: 22),
               ),
-              child: const Icon(CupertinoIcons.add,
-                  color: Colors.black87, size: 22),
             ),
           ),
           const SizedBox(width: 8),
@@ -227,28 +234,36 @@ class _ChatTextFieldState extends State<_ChatTextField> {
           const SizedBox(width: 6),
           GestureDetector(
             onTap: () => widget.controller.pickGif(context),
-            child: Container(
-              key: const ValueKey(IntegrationTestKeys.actionChatGifPicker),
-              width: 36,
-              height: 36,
-              margin: const EdgeInsets.only(bottom: 2),
-              alignment: Alignment.center,
-              child: const Icon(Icons.gif_box_outlined,
-                  color: Colors.black87, size: 22),
+            child: Semantics(
+              button: true,
+              label: 'Open GIF picker',
+              child: Container(
+                key: const ValueKey(IntegrationTestKeys.actionChatGifPicker),
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.only(bottom: 2),
+                alignment: Alignment.center,
+                child: const Icon(Icons.gif_box_outlined,
+                    color: Colors.black87, size: 22),
+              ),
             ),
           ),
           const SizedBox(width: 2),
           // Kamera butonu
           GestureDetector(
             onTap: widget.controller.openCustomCameraCapture,
-            child: Container(
-              key: const ValueKey(IntegrationTestKeys.actionChatCamera),
-              width: 36,
-              height: 36,
-              margin: const EdgeInsets.only(bottom: 2),
-              alignment: Alignment.center,
-              child: const Icon(CupertinoIcons.camera,
-                  color: Colors.black87, size: 22),
+            child: Semantics(
+              button: true,
+              label: 'Open camera capture',
+              child: Container(
+                key: const ValueKey(IntegrationTestKeys.actionChatCamera),
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.only(bottom: 2),
+                alignment: Alignment.center,
+                child: const Icon(CupertinoIcons.camera,
+                    color: Colors.black87, size: 22),
+              ),
             ),
           ),
           const SizedBox(width: 2),
@@ -310,31 +325,42 @@ class _ChatTrailingButton extends StatelessWidget {
               );
             }
           },
-          child: Container(
-            key: const ValueKey(IntegrationTestKeys.actionChatSend),
-            width: 36,
-            height: 36,
-            margin: const EdgeInsets.only(bottom: 2),
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: Colors.black,
-              shape: BoxShape.circle,
+          child: Semantics(
+            button: true,
+            label: 'Send chat message',
+            child: Container(
+              key: const ValueKey(IntegrationTestKeys.actionChatSend),
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(bottom: 2),
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.send, color: Colors.white, size: 18),
             ),
-            child: const Icon(Icons.send, color: Colors.white, size: 18),
           ),
         );
       }
 
       return GestureDetector(
         onTap: controller.startVoiceRecording,
-        child: Container(
-          key: const ValueKey(IntegrationTestKeys.actionChatMic),
-          width: 36,
-          height: 36,
-          margin: const EdgeInsets.only(bottom: 2),
-          alignment: Alignment.center,
-          child:
-              const Icon(CupertinoIcons.mic, color: Colors.black87, size: 22),
+        child: Semantics(
+          button: true,
+          label: 'Start voice recording',
+          child: Container(
+            key: const ValueKey(IntegrationTestKeys.actionChatMic),
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.only(bottom: 2),
+            alignment: Alignment.center,
+            child: const Icon(
+              CupertinoIcons.mic,
+              color: Colors.black87,
+              size: 22,
+            ),
+          ),
         ),
       );
     });

@@ -1,0 +1,60 @@
+name: Post Deploy Feed API Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      feed_url:
+        description: Feed endpoint URL
+        required: false
+        type: string
+      items_key:
+        description: Root items key
+        required: false
+        default: items
+        type: string
+      video_key:
+        description: Video field key
+        required: false
+        default: videoUrl
+        type: string
+  workflow_call:
+    inputs:
+      feed_url:
+        required: false
+        type: string
+      items_key:
+        required: false
+        type: string
+      video_key:
+        required: false
+        type: string
+    secrets:
+      FEED_API_SMOKE_URL:
+        required: false
+      FEED_API_SMOKE_BEARER:
+        required: false
+
+jobs:
+  feed-api-live-smoke:
+    name: Feed API Live Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FEED_API_SMOKE_URL: ${{ inputs.feed_url || secrets.FEED_API_SMOKE_URL }}
+      FEED_API_SMOKE_BEARER: ${{ secrets.FEED_API_SMOKE_BEARER }}
+      FEED_API_SMOKE_ITEMS_KEY: ${{ inputs.items_key || 'items' }}
+      FEED_API_SMOKE_VIDEO_KEY: ${{ inputs.video_key || 'videoUrl' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter deps
+        run: flutter pub get
+
+      - name: Run live feed API smoke
+        run: bash scripts/run_feed_api_live_smoke.sh

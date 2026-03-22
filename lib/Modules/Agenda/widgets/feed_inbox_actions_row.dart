@@ -33,10 +33,14 @@ class FeedInboxActionsRow extends StatelessWidget {
           size: actionSize,
           showBadge: showChatBadge,
           onTap: onChatTap,
-          child: const Icon(
-            CupertinoIcons.mail,
-            color: Colors.black,
-            size: AppIconSurface.kIconSize,
+          child: Semantics(
+            button: true,
+            label: 'Open inbox',
+            child: const Icon(
+              CupertinoIcons.mail,
+              color: Colors.black,
+              size: AppIconSurface.kIconSize,
+            ),
           ),
         ),
         SizedBox(width: spacing),
@@ -46,10 +50,14 @@ class FeedInboxActionsRow extends StatelessWidget {
           size: actionSize,
           showBadge: showNotificationBadge,
           onTap: onNotificationsTap,
-          child: const Icon(
-            CupertinoIcons.bell,
-            color: Colors.black,
-            size: AppIconSurface.kIconSize,
+          child: Semantics(
+            button: true,
+            label: 'Open notifications',
+            child: const Icon(
+              CupertinoIcons.bell,
+              color: Colors.black,
+              size: AppIconSurface.kIconSize,
+            ),
           ),
         ),
       ],

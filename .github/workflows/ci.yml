@@ -49,6 +49,50 @@ jobs:
           name: flutter-lcov
           path: coverage/lcov.info
 
+  android-integration-smoke:
+    name: Android Integration Smoke
+    needs:
+      - flutter-quality
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter deps
+        run: flutter pub get
+
+      - name: Run Android integration smoke on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_7
+          script: |
+            INTEGRATION_SMOKE_DEVICE_ID=emulator-5554 \
+            INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}" \
+            INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
+            bash scripts/run_turqapp_test_smoke.sh
+
+      - name: Upload integration smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-smoke-artifacts
+          path: artifacts/integration_smoke
+
   functions-tests:
     name: Functions Build + Unit
     runs-on: ubuntu-latest

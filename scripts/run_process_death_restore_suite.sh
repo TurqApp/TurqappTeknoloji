@@ -18,12 +18,17 @@ source "scripts/integration_device_resolver.sh"
 
 TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
 DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
-MANIFEST="config/test_suites/long_session_e2e.txt"
+MANIFEST="config/test_suites/process_death_e2e.txt"
 artifact_dir="artifacts/integration_smoke"
 android_package="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 
 mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+
+if [[ "${#suite_tests[@]}" -ne 2 ]]; then
+  echo "[process-death-e2e] expected exactly 2 suite entries" >&2
+  exit 1
+fi
 
 COMMON_ARGS=(
   test
@@ -38,10 +43,9 @@ COMMON_ARGS=(
   "${DEVICE_ID}"
 )
 
-echo "[long-session-e2e] platform=${TARGET_PLATFORM}"
-echo "[long-session-e2e] device=${DEVICE_ID}"
-echo "[long-session-e2e] manifest=${MANIFEST} count=${#suite_tests[@]}"
-
+echo "[process-death-e2e] platform=${TARGET_PLATFORM}"
+echo "[process-death-e2e] device=${DEVICE_ID}"
+echo "[process-death-e2e] prepare=$(basename "${suite_tests[0]}")"
 mkdir -p "$artifact_dir"
 
 scenario_name_for_test() {
@@ -65,18 +69,27 @@ pull_android_artifact() {
   fi
 }
 
-for test_file in "${suite_tests[@]}"; do
-  echo "[long-session-e2e] running $(basename "$test_file")"
-  flutter "${COMMON_ARGS[@]}" "$test_file"
-  if [[ "${TARGET_PLATFORM}" == "android" ]]; then
-    scenario_name="$(scenario_name_for_test "$test_file")"
-    artifact_path="${artifact_dir}/${scenario_name}.json"
-    if pull_android_artifact "$artifact_path"; then
-      echo "[long-session-e2e] artifact ok: $artifact_path"
-    else
-      echo "[long-session-e2e] artifact missing: $artifact_path" >&2
-    fi
-  fi
-done
+flutter "${COMMON_ARGS[@]}" "${suite_tests[0]}"
+if [[ "${TARGET_PLATFORM}" == "android" ]]; then
+  prepare_artifact="${artifact_dir}/$(scenario_name_for_test "${suite_tests[0]}").json"
+  pull_android_artifact "$prepare_artifact" || true
+fi
 
-echo "[long-session-e2e] all suites passed"
+if [[ "${TARGET_PLATFORM}" == "ios" ]]; then
+  echo "[process-death-e2e] terminating iOS app"
+  xcrun simctl terminate "${DEVICE_ID}" com.turqapp.app || true
+else
+  echo "[process-death-e2e] force-stopping Android app"
+  /Users/turqapp/Library/Android/sdk/platform-tools/adb -s "${DEVICE_ID}" shell am force-stop com.turqapp.app
+fi
+
+sleep 2
+
+echo "[process-death-e2e] verify=$(basename "${suite_tests[1]}")"
+flutter "${COMMON_ARGS[@]}" "${suite_tests[1]}"
+if [[ "${TARGET_PLATFORM}" == "android" ]]; then
+  verify_artifact="${artifact_dir}/$(scenario_name_for_test "${suite_tests[1]}").json"
+  pull_android_artifact "$verify_artifact" || true
+fi
+
+echo "[process-death-e2e] restore flow passed"

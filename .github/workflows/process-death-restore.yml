@@ -1,15 +1,15 @@
-name: Long Session Smoke
+name: Process Death Restore
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 1 * * 2"
 
 jobs:
-  long-session-android:
-    name: Android Long Session Smoke
+  process-death-android:
+    name: Android Process Death Restore
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 75
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
-      - name: Run long session suite on emulator
+      - name: Run process death restore suite on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -38,20 +38,20 @@ jobs:
             INTEGRATION_SMOKE_DEVICE_ID=emulator-5554 \
             INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}" \
             INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
-            bash scripts/run_long_session_suite.sh
+            bash scripts/run_process_death_restore_suite.sh
 
-      - name: Upload Android long-session artifacts
+      - name: Upload Android process-death artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: long-session-android-artifacts
+          name: process-death-android-artifacts
           path: artifacts/integration_smoke
 
-  long-session-ios:
+  process-death-ios:
     if: github.event_name == 'workflow_dispatch'
-    name: iOS Long Session Smoke
+    name: iOS Process Death Restore
     runs-on: macos-14
-    timeout-minutes: 240
+    timeout-minutes: 90
     env:
       IOS_SIMULATOR_NAME: iPhone 16
     steps:
@@ -83,16 +83,16 @@ jobs:
           xcrun simctl bootstatus "$SIM_UDID" -b
           echo "INTEGRATION_SMOKE_DEVICE_ID=$SIM_UDID" >> "$GITHUB_ENV"
 
-      - name: Run long session suite on iOS simulator
+      - name: Run process death restore suite on iOS simulator
         env:
           INTEGRATION_TARGET_PLATFORM: ios
           INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
-        run: bash scripts/run_long_session_suite.sh
+        run: bash scripts/run_process_death_restore_suite.sh
 
-      - name: Upload iOS long-session artifacts
+      - name: Upload iOS process-death artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: long-session-ios-artifacts
+          name: process-death-ios-artifacts
           path: artifacts/integration_smoke

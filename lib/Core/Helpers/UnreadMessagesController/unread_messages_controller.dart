@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Modules/Chat/chat_unread_policy.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Services/network_awareness_service.dart';
 
@@ -120,7 +121,7 @@ class UnreadMessagesController extends GetxController {
         uid,
         preferCache: !shouldHitServer,
         cacheOnly: cacheOnly,
-        includeLegacy: false,
+        includeLegacy: true,
       );
       _applyConversationDocs(docs, uid);
       if (shouldHitServer) {
@@ -156,20 +157,20 @@ class UnreadMessagesController extends GetxController {
         lastMessageAtMs =
             fallback is int ? fallback : int.tryParse("$fallback") ?? 0;
       }
-      final localReadCutoff = _localReadCutoffByChatId[doc.id] ?? 0;
-      final persistedReadCutoff = _persistedReadCutoffByChatId[doc.id] ?? 0;
-      final effectiveReadCutoff = localReadCutoff > persistedReadCutoff
-          ? localReadCutoff
-          : persistedReadCutoff;
-      final shouldForceRead =
-          lastMessageAtMs > 0 && effectiveReadCutoff >= lastMessageAtMs;
-      final sentBySelf = lastSenderId.isNotEmpty && lastSenderId == uid;
-      if (sentBySelf) {
-        unread = 0;
-      }
-      if (shouldForceRead) {
-        unread = 0;
-      }
+      final effectiveReadCutoff = ChatUnreadPolicy.maxLocalReadCutoff([
+        _localReadCutoffByChatId[doc.id] ?? 0,
+        _persistedReadCutoffByChatId[doc.id] ?? 0,
+      ]);
+      final deletedCutoff =
+          _conversationRepository.participantIntValue(data["deletedAt"], uid);
+      unread = ChatUnreadPolicy.resolveUnreadCount(
+        serverUnread: serverUnreadRaw,
+        lastMessageAtMs: lastMessageAtMs,
+        locallySeenAtMs: effectiveReadCutoff,
+        currentUid: uid,
+        lastSenderId: lastSenderId,
+        deletedCutoffMs: deletedCutoff,
+      );
       if (unread <= 0) continue;
       final participants = List<String>.from(data["participants"] ?? []);
       final otherUid = participants.firstWhere(

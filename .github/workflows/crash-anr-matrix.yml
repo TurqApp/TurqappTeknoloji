@@ -1,0 +1,37 @@
+name: Crash ANR Matrix
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 2"
+
+jobs:
+  android-crash-anr-matrix:
+    name: Android Crash ANR Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter deps
+        run: flutter pub get
+
+      - name: Run Android crash/ANR resilience matrix
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_7
+          script: bash scripts/run_native_crash_anr_matrix.sh

@@ -7,6 +7,18 @@ String? _lastSnackbarSignature;
 DateTime? _lastSnackbarAt;
 const Duration _snackbarDedupWindow = Duration(milliseconds: 1200);
 
+Map<String, dynamic> readLastSnackbarDebugState() {
+  return <String, dynamic>{
+    'signature': _lastSnackbarSignature ?? '',
+    'timestampMs': _lastSnackbarAt?.millisecondsSinceEpoch ?? 0,
+  };
+}
+
+void clearLastSnackbarDebugState() {
+  _lastSnackbarSignature = null;
+  _lastSnackbarAt = null;
+}
+
 class _AppSnackbarPalette {
   final Color background;
   final Color border;

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -12,6 +11,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/chat_listing_model.dart';
 import '../../../Core/Services/network_awareness_service.dart';
 import '../../../Core/Services/user_profile_cache_service.dart';
+import '../chat_unread_policy.dart';
 import '../CreateChat/create_chat.dart';
 
 class ChatListingController extends GetxController {
@@ -394,15 +394,17 @@ class ChatListingController extends GetxController {
       final lastSenderId = (data["lastSenderId"] ?? "").toString();
       final seenKey = "chat_last_opened_${uid}_${doc.id}";
       final seenTs = prefs.getInt(seenKey) ?? 0;
-      final localUnread =
-          lastSenderId.isNotEmpty && lastSenderId != uid && ts > seenTs;
-      final seenCoversLatestMessage = ts > 0 && seenTs >= ts;
       final deletedCutoff =
           _conversationRepository.participantIntValue(data["deletedAt"], uid);
       final isDeleted = deletedCutoff > 0 && ts > 0 && ts <= deletedCutoff;
-      final unreadCount = seenCoversLatestMessage
-          ? 0
-          : math.max(serverUnread, localUnread ? 1 : 0);
+      final unreadCount = ChatUnreadPolicy.resolveUnreadCount(
+        serverUnread: serverUnread,
+        lastMessageAtMs: ts,
+        locallySeenAtMs: seenTs,
+        currentUid: uid,
+        lastSenderId: lastSenderId,
+        deletedCutoffMs: deletedCutoff,
+      );
 
       tempList.add(ChatListingModel(
         chatID: doc.id,

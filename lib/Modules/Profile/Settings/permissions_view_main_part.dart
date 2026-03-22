@@ -88,7 +88,10 @@ extension _PermissionsViewMainPart on _PermissionsViewState {
     _updatePermissionsViewState(() => _loading = true);
     final next = <String, PermissionStatus>{};
     for (final item in _items) {
-      next[item.title] = await item.permission.status;
+      next[item.title] = await IntegrationPermissionTestHarness.statusFor(
+        item.permission,
+        permissionId: _permissionId(item.permission),
+      );
     }
     _updatePermissionsViewState(() {
       _statuses
@@ -105,6 +108,7 @@ extension _PermissionsViewMainPart on _PermissionsViewState {
 
   Widget _buildPermissionsScaffold(BuildContext context) {
     return Scaffold(
+      key: const ValueKey<String>(IntegrationTestKeys.screenPermissions),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -184,8 +188,13 @@ extension _PermissionsViewMainPart on _PermissionsViewState {
 
   Widget _buildPermissionListItem(_PermissionItem item) {
     final status = _statuses[item.title] ?? PermissionStatus.denied;
+    final permissionId = _permissionId(item.permission);
     return InkWell(
-      onTap: () => Get.to(() => _PermissionDetailView(item: item)),
+      key: ValueKey<String>(IntegrationTestKeys.permissionItem(permissionId)),
+      onTap: () async {
+        await Get.to(() => _PermissionDetailView(item: item));
+        await _refreshStatuses();
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 13),
         child: Row(
@@ -202,6 +211,9 @@ extension _PermissionsViewMainPart on _PermissionsViewState {
             ),
             Text(
               _statusLabel(status),
+              key: ValueKey<String>(
+                IntegrationTestKeys.permissionStatus(permissionId),
+              ),
               style: const TextStyle(
                 color: Colors.black38,
                 fontSize: 15,

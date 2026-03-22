@@ -4,12 +4,46 @@ extension ChatControllerMediaPart on ChatController {
   Future<void> pickImage() async {
     final ctx = Get.context;
     if (ctx == null) return;
+    _recordMediaAction('pick_image');
+    _clearMediaFailure();
+    if (IntegrationMediaTestHarness.consumeFailure(
+      IntegrationMediaFailureKind.photosDenied,
+    )) {
+      _recordMediaFailure('photos_denied');
+      return;
+    }
+    if (IntegrationMediaTestHarness.consumeFailure(
+      IntegrationMediaFailureKind.pickerCancelled,
+    )) {
+      _recordMediaFailure('picker_cancelled');
+      return;
+    }
+    if (IntegrationMediaTestHarness.consumeFailure(
+      IntegrationMediaFailureKind.pickerFailed,
+    )) {
+      _recordMediaFailure('picker_failed');
+      return;
+    }
+    final harnessSelection =
+        IntegrationMediaTestHarness.takeGalleryImageSelection();
+    if (harnessSelection != null) {
+      images.value = harnessSelection;
+      pendingVideo.value = null;
+      selection.value = harnessSelection.isEmpty ? 0 : 1;
+      return;
+    }
     final files = await AppImagePickerService.pickImages(ctx, maxAssets: 10);
-    if (files.isEmpty) return;
+    if (files.isEmpty) {
+      if (lastMediaFailureCode.value.isEmpty) {
+        _recordMediaFailure('picker_empty');
+      }
+      return;
+    }
 
     for (final f in files) {
       final r = await OptimizedNSFWService.checkImage(f);
       if (r.isNSFW) {
+        _recordMediaFailure('nsfw_image');
         AppSnackbar(
           "Yükleme Başarısız!",
           "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
@@ -25,13 +59,33 @@ extension ChatControllerMediaPart on ChatController {
   }
 
   Future<void> pickCameraImage() async {
+    _recordMediaAction('pick_camera_image');
+    _clearMediaFailure();
+    final harnessPhoto = IntegrationMediaTestHarness.takeCameraPhoto();
+    if (harnessPhoto == null &&
+        IntegrationMediaTestHarness.consumeFailure(
+          IntegrationMediaFailureKind.cameraDenied,
+        )) {
+      _recordMediaFailure('camera_denied');
+      return;
+    }
+    if (harnessPhoto != null) {
+      images.value = [harnessPhoto];
+      pendingVideo.value = null;
+      selection.value = 1;
+      return;
+    }
     final XFile? pickedFile =
         await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-    if (pickedFile == null) return;
+    if (pickedFile == null) {
+      _recordMediaFailure('picker_empty');
+      return;
+    }
 
     final file = File(pickedFile.path);
     final r = await OptimizedNSFWService.checkImage(file);
     if (r.isNSFW) {
+      _recordMediaFailure('nsfw_camera_image');
       AppSnackbar(
         "Yükleme Başarısız!",
         "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
@@ -47,6 +101,8 @@ extension ChatControllerMediaPart on ChatController {
 
   Future<void> uploadImageToStorage() async {
     if (images.isEmpty) return;
+    _recordMediaAction('upload_image');
+    _clearMediaFailure();
     isUploading.value = true;
     uploadPercent.value = 1;
     final storage = FirebaseStorage.instance;
@@ -55,6 +111,11 @@ extension ChatControllerMediaPart on ChatController {
     final downloadUrls = <String>[];
 
     try {
+      if (IntegrationMediaTestHarness.consumeFailure(
+        IntegrationMediaFailureKind.imageUploadFailed,
+      )) {
+        throw StateError('image_upload_failed');
+      }
       for (int i = 0; i < images.length; i++) {
         final image = images[i];
         File fileToUpload = image;
@@ -112,6 +173,7 @@ extension ChatControllerMediaPart on ChatController {
       uploadPercent.value = 0;
       isUploading.value = false;
       images.clear();
+      _recordMediaFailure('image_upload_failed', detail: '$e');
       AppSnackbar(
         'common.error'.tr,
         'chat.image_upload_failed_with_error'.trParams({
@@ -122,38 +184,108 @@ extension ChatControllerMediaPart on ChatController {
   }
 
   Future<void> pickVideo() async {
+    _recordMediaAction('pick_video');
+    _clearMediaFailure();
+    if (IntegrationMediaTestHarness.consumeFailure(
+      IntegrationMediaFailureKind.photosDenied,
+    )) {
+      _recordMediaFailure('photos_denied');
+      return;
+    }
+    if (IntegrationMediaTestHarness.consumeFailure(
+      IntegrationMediaFailureKind.pickerCancelled,
+    )) {
+      _recordMediaFailure('picker_cancelled');
+      return;
+    }
+    if (IntegrationMediaTestHarness.consumeFailure(
+      IntegrationMediaFailureKind.pickerFailed,
+    )) {
+      _recordMediaFailure('picker_failed');
+      return;
+    }
+    final harnessVideo = IntegrationMediaTestHarness.takeGalleryVideo();
+    if (harnessVideo != null) {
+      images.clear();
+      pendingVideo.value = harnessVideo;
+      selection.value = 1;
+      return;
+    }
     final XFile? pickedFile = await picker.pickVideo(
       source: ImageSource.gallery,
       maxDuration: const Duration(minutes: 3),
     );
-    if (pickedFile == null) return;
+    if (pickedFile == null) {
+      _recordMediaFailure('picker_empty');
+      return;
+    }
     images.clear();
     pendingVideo.value = File(pickedFile.path);
     selection.value = 1;
   }
 
   Future<void> pickCameraVideo() async {
+    _recordMediaAction('pick_camera_video');
+    _clearMediaFailure();
+    final harnessVideo = IntegrationMediaTestHarness.takeCameraCaptureResult();
+    if (harnessVideo == null &&
+        IntegrationMediaTestHarness.consumeFailure(
+          IntegrationMediaFailureKind.cameraDenied,
+        )) {
+      _recordMediaFailure('camera_denied');
+      return;
+    }
+    if (harnessVideo != null) {
+      images.clear();
+      pendingVideo.value = harnessVideo;
+      selection.value = 1;
+      return;
+    }
     final XFile? pickedFile = await picker.pickVideo(
       source: ImageSource.camera,
       maxDuration: const Duration(minutes: 1),
     );
-    if (pickedFile == null) return;
+    if (pickedFile == null) {
+      _recordMediaFailure('picker_empty');
+      return;
+    }
     images.clear();
     pendingVideo.value = File(pickedFile.path);
     selection.value = 1;
   }
 
   Future<void> openCustomCameraCapture() async {
+    _recordMediaAction('open_custom_camera_capture');
+    _clearMediaFailure();
+    final harnessCapture =
+        IntegrationMediaTestHarness.takeCameraCaptureResult();
+    if (harnessCapture == null &&
+        IntegrationMediaTestHarness.consumeFailure(
+          IntegrationMediaFailureKind.cameraDenied,
+        )) {
+      _recordMediaFailure('camera_denied');
+      return;
+    }
+    if (harnessCapture != null) {
+      images.value = [harnessCapture];
+      pendingVideo.value = null;
+      selection.value = 1;
+      return;
+    }
     final result = await Get.to<ChatCameraCaptureResult>(
       () => const ChatCameraCaptureView(),
       transition: Transition.fadeIn,
     );
-    if (result == null) return;
+    if (result == null) {
+      _recordMediaFailure('picker_empty');
+      return;
+    }
 
     if (result.mode == ChatCameraMode.photo) {
       final file = result.file;
       final r = await OptimizedNSFWService.checkImage(file);
       if (r.isNSFW) {
+        _recordMediaFailure('nsfw_camera_image');
         AppSnackbar(
           "Yükleme Başarısız!",
           "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
@@ -175,6 +307,7 @@ extension ChatControllerMediaPart on ChatController {
   Future<void> uploadPendingVideoToStorage() async {
     final file = pendingVideo.value;
     if (file == null) return;
+    _recordMediaAction('upload_video');
     await _processAndSendVideo(file);
     pendingVideo.value = null;
     selection.value = 0;
@@ -187,16 +320,23 @@ extension ChatControllerMediaPart on ChatController {
   }
 
   Future<void> _processAndSendVideo(File videoFile) async {
+    _clearMediaFailure();
     isUploading.value = true;
     uploadPercent.value = 1;
     final uuid = Uuid();
     final storage = FirebaseStorage.instance;
 
     try {
+      if (IntegrationMediaTestHarness.consumeFailure(
+        IntegrationMediaFailureKind.videoUploadFailed,
+      )) {
+        throw StateError('video_upload_failed');
+      }
       final nsfw = await OptimizedNSFWService.checkVideo(videoFile);
       if (nsfw.isNSFW) {
         isUploading.value = false;
         uploadPercent.value = 0;
+        _recordMediaFailure('nsfw_video');
         AppSnackbar(
           "Yükleme Başarısız!",
           "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
@@ -264,20 +404,47 @@ extension ChatControllerMediaPart on ChatController {
         videoUrl: videoDownloadUrl,
         videoThumbnail: thumbUrl,
       );
-    } catch (_) {
+    } catch (error) {
       uploadPercent.value = 0;
       isUploading.value = false;
+      _recordMediaFailure('video_upload_failed', detail: '$error');
       AppSnackbar('common.error'.tr, 'chat.video_upload_failed'.tr);
     }
   }
 
   Future<void> startVoiceRecording() async {
     try {
-      if (!await _audioRecorder.hasPermission()) {
+      _recordMediaAction('start_voice_recording');
+      _clearMediaFailure();
+      if (IntegrationMediaTestHarness.consumeFailure(
+        IntegrationMediaFailureKind.microphoneDenied,
+      )) {
+        _recordMediaFailure('microphone_denied');
         AppSnackbar(
           'chat.microphone_permission_required'.tr,
           'chat.microphone_permission_denied'.tr,
         );
+        return;
+      }
+      final harnessPermission =
+          IntegrationMediaTestHarness.takeVoicePermission();
+      final hasPermission =
+          harnessPermission ?? await _audioRecorder.hasPermission();
+      if (!hasPermission) {
+        _recordMediaFailure('microphone_denied');
+        AppSnackbar(
+          'chat.microphone_permission_required'.tr,
+          'chat.microphone_permission_denied'.tr,
+        );
+        return;
+      }
+      if (IntegrationMediaTestHarness.isActive) {
+        final dir = Directory.systemTemp;
+        final path = '${dir.path}/${Uuid().v4()}.m4a';
+        await File(path).writeAsBytes(const <int>[0, 1, 2, 3], flush: true);
+        _recordingPath = path;
+        isRecording.value = true;
+        recordingDuration.value = 1;
         return;
       }
       final dir = Directory.systemTemp;
@@ -294,13 +461,20 @@ extension ChatControllerMediaPart on ChatController {
       });
     } catch (_) {
       isRecording.value = false;
+      _recordMediaFailure('voice_record_start_failed');
       AppSnackbar('common.error'.tr, 'chat.voice_record_start_failed'.tr);
     }
   }
 
   Future<void> stopVoiceRecording() async {
     _recordingTimer?.cancel();
-    final path = await _audioRecorder.stop();
+    String? path;
+    try {
+      path = await _audioRecorder.stop();
+    } catch (_) {
+      path = null;
+    }
+    path ??= _recordingPath;
     isRecording.value = false;
     final durationMs = recordingDuration.value * 1000;
     recordingDuration.value = 0;
@@ -310,6 +484,13 @@ extension ChatControllerMediaPart on ChatController {
     isUploading.value = true;
     uploadPercent.value = 1;
     try {
+      _recordMediaAction('upload_audio');
+      _clearMediaFailure();
+      if (IntegrationMediaTestHarness.consumeFailure(
+        IntegrationMediaFailureKind.audioUploadFailed,
+      )) {
+        throw StateError('audio_upload_failed');
+      }
       final file = File(path);
       final storage = FirebaseStorage.instance;
       final fileName = Uuid().v4();
@@ -332,9 +513,10 @@ extension ChatControllerMediaPart on ChatController {
 
       await sendMessage(audioUrl: downloadUrl, audioDurationMs: durationMs);
       _recordingPath = null;
-    } catch (_) {
+    } catch (error) {
       uploadPercent.value = 0;
       isUploading.value = false;
+      _recordMediaFailure('audio_upload_failed', detail: '$error');
       AppSnackbar('common.error'.tr, 'chat.voice_message_upload_failed'.tr);
     }
   }

@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -129,6 +131,16 @@ class _PermissionsViewState extends State<PermissionsView> {
   Widget build(BuildContext context) {
     return _buildPermissionsScaffold(context);
   }
+}
+
+String _permissionId(Permission permission) {
+  if (permission == Permission.camera) return 'camera';
+  if (permission == Permission.contacts) return 'contacts';
+  if (permission == Permission.locationWhenInUse) return 'location';
+  if (permission == Permission.microphone) return 'microphone';
+  if (permission == Permission.notification) return 'notification';
+  if (permission == Permission.photos) return 'photos';
+  return permission.toString().split('.').last;
 }
 
 class _PermissionDetailView extends StatefulWidget {

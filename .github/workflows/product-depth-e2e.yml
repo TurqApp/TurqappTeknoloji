@@ -38,6 +38,13 @@ jobs:
             INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
             bash scripts/run_product_depth_e2e.sh
 
+      - name: Upload Android product-depth artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-depth-android-artifacts
+          path: artifacts/integration_smoke
+
   product-depth-ios:
     name: Product Depth iOS E2E
     runs-on: macos-14
@@ -79,3 +86,10 @@ jobs:
           INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
         run: bash scripts/run_product_depth_e2e.sh
+
+      - name: Upload iOS product-depth artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-depth-ios-artifacts
+          path: artifacts/integration_smoke

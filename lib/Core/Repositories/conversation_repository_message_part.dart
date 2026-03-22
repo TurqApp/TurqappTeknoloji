@@ -1,6 +1,32 @@
 part of 'conversation_repository.dart';
 
 extension ConversationRepositoryMessagePart on ConversationRepository {
+  Future<void> _commitMessageUpdatesInChunks(
+    String chatId,
+    Iterable<String> messageIds, {
+    required Map<String, dynamic> update,
+    int chunkSize = 200,
+  }) async {
+    final ids = messageIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+    if (ids.isEmpty) return;
+
+    for (var start = 0; start < ids.length; start += chunkSize) {
+      final batch = _firestore.batch();
+      final end = (start + chunkSize).clamp(0, ids.length).toInt();
+      for (final messageId in ids.sublist(start, end)) {
+        batch.set(
+          _messageRef(chatId, messageId),
+          update,
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
+    }
+  }
+
   Future<void> deleteMessageForUser({
     required String chatId,
     required String messageId,
@@ -8,6 +34,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
   }) async {
     await _messageRef(chatId, messageId).set({
       "deletedFor": FieldValue.arrayUnion([currentUid]),
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
   }
 
@@ -22,17 +49,14 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         .toSet()
         .toList(growable: false);
     if (ids.isEmpty) return;
-    final batch = _firestore.batch();
-    for (final messageId in ids) {
-      batch.set(
-        _messageRef(chatId, messageId),
-        {
-          "deletedFor": FieldValue.arrayUnion([currentUid]),
-        },
-        SetOptions(merge: true),
-      );
-    }
-    await batch.commit();
+    await _commitMessageUpdatesInChunks(
+      chatId,
+      ids,
+      update: {
+        "deletedFor": FieldValue.arrayUnion([currentUid]),
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
+      },
+    );
   }
 
   Future<void> unsendMessage({
@@ -51,6 +75,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       "contact": FieldValue.delete(),
       "postRef": FieldValue.delete(),
       "replyTo": FieldValue.delete(),
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     });
   }
 
@@ -61,6 +86,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
   }) async {
     await _messageRef(chatId, messageId).set({
       "isStarred": isStarred,
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
   }
 
@@ -72,6 +98,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     await _messageRef(chatId, messageId).update({
       "text": text,
       "isEdited": true,
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     });
   }
 
@@ -103,6 +130,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       if (!wasSelected) {
         updates["reactions.$emoji"] = FieldValue.arrayUnion([currentUid]);
       }
+      updates["updatedDate"] = DateTime.now().millisecondsSinceEpoch;
 
       tx.update(ref, updates);
     });
@@ -118,6 +146,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       "likes": isLiked
           ? FieldValue.arrayRemove([currentUid])
           : FieldValue.arrayUnion([currentUid]),
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     });
   }
 
@@ -128,6 +157,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
   }) async {
     await _messageRef(chatId, messageId).update({
       "mediaUrls": FieldValue.arrayRemove([imgUrl]),
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     });
   }
 
@@ -147,18 +177,25 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         .toSet();
     if (seenIds.isEmpty && deliveredIds.isEmpty) return;
 
-    final batch = _firestore.batch();
-    for (final messageId in seenIds.take(25)) {
-      batch.update(_messageRef(chatId, messageId), {
+    await _commitMessageUpdatesInChunks(
+      chatId,
+      seenIds,
+      update: {
         "seenBy": FieldValue.arrayUnion([currentUid]),
         "status": "read",
-      });
-    }
-    for (final messageId in deliveredIds.take(25)) {
-      batch.update(_messageRef(chatId, messageId), {
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+    await _commitMessageUpdatesInChunks(
+      chatId,
+      deliveredIds,
+      update: {
         "status": "delivered",
-      });
-    }
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+
+    final batch = _firestore.batch();
     batch.set(
       _firestore.collection("conversations").doc(chatId),
       {
