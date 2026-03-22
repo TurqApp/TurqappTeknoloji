@@ -149,6 +149,7 @@ extension SignInAuthPart on _SignInState {
           Material(
             color: Colors.transparent,
             child: InkWell(
+              key: const ValueKey('login_button'),
               borderRadius: BorderRadius.circular(12),
               onTap: () {
                 controller.clearStoredAccountContext();
@@ -316,6 +317,7 @@ extension SignInAuthPart on _SignInState {
                                   child: Transform.translate(
                                     offset: Offset(0, 1),
                                     child: TextField(
+                                      key: const ValueKey('email'),
                                       controller: controller.emailcontroller,
                                       focusNode: controller.emailFocus.value,
                                       keyboardType: TextInputType.emailAddress,
@@ -405,6 +407,7 @@ extension SignInAuthPart on _SignInState {
                                     child: Transform.translate(
                                       offset: Offset(0, 1),
                                       child: TextField(
+                                        key: const ValueKey('password'),
                                         controller:
                                             controller.passwordcontroller,
                                         focusNode:
@@ -523,6 +526,7 @@ extension SignInAuthPart on _SignInState {
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
+                          key: const ValueKey('login_submit_button'),
                           borderRadius: BorderRadius.circular(8),
                           onTap: controller.wait.value
                               ? null
