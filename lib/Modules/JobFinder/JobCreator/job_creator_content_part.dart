@@ -29,7 +29,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
               const SizedBox(height: 8),
               TextField(
                 controller: controller.brand,
-                inputFormatters: const [
+                inputFormatters: [
                   LengthLimitingTextInputFormatter(150),
                 ],
                 decoration:
@@ -64,7 +64,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
               const SizedBox(height: 8),
               TextField(
                 controller: controller.ilanBasligi,
-                inputFormatters: const [
+                inputFormatters: [
                   LengthLimitingTextInputFormatter(100),
                 ],
                 decoration: _inputDecoration(
@@ -131,7 +131,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
                 controller: controller.isTanimi,
                 minLines: 4,
                 maxLines: 8,
-                inputFormatters: const [
+                inputFormatters: [
                   LengthLimitingTextInputFormatter(2000),
                 ],
                 decoration:
@@ -164,7 +164,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
                     child: TextField(
                       controller: controller.pozisyonSayisi,
                       keyboardType: TextInputType.number,
-                      inputFormatters: const [
+                      inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(3),
                       ],

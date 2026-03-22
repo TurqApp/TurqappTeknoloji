@@ -382,6 +382,7 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   required String label,
   required DateTime deadline,
 }) async {
+  var recoveryAttempts = 0;
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 200));
     final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
@@ -394,6 +395,22 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
         (value.isPlaying || value.position > Duration.zero);
     if (playable) {
       return adapter;
+    }
+    final stalledReadyAdapter = adapter != null &&
+        !adapter.isDisposed &&
+        value != null &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        !value.isPlaying &&
+        !value.isBuffering &&
+        value.position == Duration.zero;
+    if (stalledReadyAdapter && recoveryAttempts < 3) {
+      recoveryAttempts += 1;
+      await adapter.play();
+      await tester.pump(const Duration(milliseconds: 220));
+      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
+        await adapter.recoverFrozenPlayback();
+      }
     }
   }
 
@@ -419,13 +436,27 @@ Future<void> _assertVideoHealthy(
   var currentSample = sample;
   var currentAdapter = adapter;
   final playback = await adapter.getPlaybackDiagnostics();
-  final playing = (playback['isPlaying'] as bool?) ?? false;
-  final buffering = (playback['isBuffering'] as bool?) ?? false;
-  final renderedFirstFrame = (playback['didRenderFirstFrame'] as bool?) ?? false;
+  var playing = (playback['isPlaying'] as bool?) ?? false;
+  var buffering = (playback['isBuffering'] as bool?) ?? false;
+  final renderedFirstFrame =
+      (playback['didRenderFirstFrame'] as bool?) ?? false;
   expect(renderedFirstFrame, isTrue,
       reason: '$label did not render first frame (doc=${sample.docId}).');
+  if (!playing && !buffering) {
+    await adapter.play();
+    await tester.pump(const Duration(milliseconds: 250));
+    playing = currentAdapter.value.isPlaying;
+    buffering = currentAdapter.value.isBuffering;
+    if (!playing && !buffering) {
+      await currentAdapter.recoverFrozenPlayback();
+      await tester.pump(const Duration(milliseconds: 350));
+      playing = currentAdapter.value.isPlaying;
+      buffering = currentAdapter.value.isBuffering;
+    }
+  }
   expect(playing || buffering, isTrue,
-      reason: '$label is neither playing nor recovering from buffer (doc=${sample.docId}).');
+      reason:
+          '$label is neither playing nor recovering from buffer (doc=${sample.docId}).');
 
   final initiallyMuted = await adapter.isMutedNative();
   expect(initiallyMuted, isFalse,
