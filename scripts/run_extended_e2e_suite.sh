@@ -11,14 +11,20 @@ if [[ -f ".env.integration.local" ]]; then
 fi
 
 source "scripts/test_suite_manifest.sh"
+source "scripts/integration_device_resolver.sh"
+source "scripts/integration_seed_helper.sh"
 
 : "${INTEGRATION_LOGIN_EMAIL:?set INTEGRATION_LOGIN_EMAIL}"
 : "${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
 
-DEVICE_ID="${INTEGRATION_SMOKE_DEVICE_ID:-192.168.1.196:5555}"
+TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
+DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
 MANIFEST="config/test_suites/extended_smoke.txt"
 
 mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+
+seed_integration_fixture_if_enabled
+trap 'reset_integration_fixture_if_enabled' EXIT
 
 COMMON_ARGS=(
   test
@@ -33,6 +39,7 @@ COMMON_ARGS=(
   "${DEVICE_ID}"
 )
 
+echo "[extended-e2e] platform=${TARGET_PLATFORM}"
 echo "[extended-e2e] device=${DEVICE_ID}"
 echo "[extended-e2e] manifest=${MANIFEST} count=${#suite_tests[@]}"
 

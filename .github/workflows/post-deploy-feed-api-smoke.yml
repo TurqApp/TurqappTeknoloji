@@ -33,10 +33,17 @@ on:
         required: false
       FEED_API_SMOKE_BEARER:
         required: false
+  workflow_run:
+    workflows:
+      - Release Gates
+      - Deploy Production
+    types:
+      - completed
 
 jobs:
   feed-api-live-smoke:
     name: Feed API Live Smoke
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

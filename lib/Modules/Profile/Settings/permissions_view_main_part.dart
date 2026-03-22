@@ -88,11 +88,13 @@ extension _PermissionsViewMainPart on _PermissionsViewState {
     _updatePermissionsViewState(() => _loading = true);
     final next = <String, PermissionStatus>{};
     for (final item in _items) {
-      next[item.title] = await IntegrationPermissionTestHarness.statusFor(
+      next[_permissionId(item.permission)] =
+          await IntegrationPermissionTestHarness.statusFor(
         item.permission,
         permissionId: _permissionId(item.permission),
       );
     }
+    IntegrationTestStateProbe.updatePermissionStatuses(next);
     _updatePermissionsViewState(() {
       _statuses
         ..clear()
@@ -187,8 +189,8 @@ extension _PermissionsViewMainPart on _PermissionsViewState {
   }
 
   Widget _buildPermissionListItem(_PermissionItem item) {
-    final status = _statuses[item.title] ?? PermissionStatus.denied;
     final permissionId = _permissionId(item.permission);
+    final status = _statuses[permissionId] ?? PermissionStatus.denied;
     return InkWell(
       key: ValueKey<String>(IntegrationTestKeys.permissionItem(permissionId)),
       onTap: () async {

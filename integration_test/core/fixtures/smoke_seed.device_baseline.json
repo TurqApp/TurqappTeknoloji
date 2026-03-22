@@ -1,0 +1,83 @@
+{
+  "variables": {
+    "PEER_UID": "it_seed_peer",
+    "PEER_EMAIL": "integration-peer@turqapp.local",
+    "MESSAGE_ID": "it_seed_message_1",
+    "NOTIFICATION_ID": "it_notification_follow_profile"
+  },
+  "apply": [
+    {
+      "op": "merge",
+      "path": "users/{{PEER_UID}}",
+      "data": {
+        "userID": "{{PEER_UID}}",
+        "nickname": "integration_peer",
+        "username": "integration_peer",
+        "adSoyad": "Integration Peer",
+        "email": "{{PEER_EMAIL}}",
+        "pfImage": "",
+        "rozet": "",
+        "isApproved": true,
+        "isPrivate": false,
+        "timeStamp": "{{NOW_MS}}"
+      }
+    },
+    {
+      "op": "merge",
+      "path": "conversations/{{CHAT_ID}}",
+      "data": {
+        "participants": [
+          "{{LOGIN_UID}}",
+          "{{PEER_UID}}"
+        ],
+        "userID1": "{{LOGIN_UID}}",
+        "userID2": "{{PEER_UID}}",
+        "lastMessage": "Integration fixture message",
+        "lastMessageAt": "{{NOW_MS}}",
+        "lastMessageAtMs": "{{NOW_MS}}",
+        "typingUsers": [],
+        "unread": {
+          "{{LOGIN_UID}}": 0,
+          "{{PEER_UID}}": 1
+        }
+      }
+    },
+    {
+      "op": "merge",
+      "path": "conversations/{{CHAT_ID}}/messages/{{MESSAGE_ID}}",
+      "data": {
+        "senderId": "{{PEER_UID}}",
+        "text": "Integration fixture message",
+        "createdDate": "{{NOW_MS}}",
+        "seenBy": [
+          "{{PEER_UID}}"
+        ],
+        "mediaUrls": [],
+        "likes": [],
+        "isDeleted": false,
+        "isEdited": false,
+        "audioUrl": "",
+        "videoUrl": "",
+        "videoThumbnail": "",
+        "audioDurationMs": 0,
+        "status": "sent"
+      }
+    },
+    {
+      "op": "merge",
+      "path": "users/{{LOGIN_UID}}/notifications/{{NOTIFICATION_ID}}",
+      "data": {
+        "userID": "{{PEER_UID}}",
+        "type": "follow",
+        "postType": "User",
+        "postID": "{{PEER_UID}}",
+        "title": "integration_peer",
+        "desc": "Fixture follow notification",
+        "thumbnail": "",
+        "timeStamp": "{{NOW_MS}}",
+        "read": false,
+        "isRead": false
+      }
+    }
+  ]
+}

@@ -74,6 +74,11 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
       - name: Run Android integration smoke on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -84,6 +89,9 @@ jobs:
             INTEGRATION_SMOKE_DEVICE_ID=emulator-5554 \
             INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}" \
             INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
+            INTEGRATION_AUTO_SEED=1 \
+            INTEGRATION_REQUIRE_SEED=1 \
+            FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
             bash scripts/run_turqapp_test_smoke.sh
 
       - name: Upload integration smoke artifacts
@@ -91,6 +99,66 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-smoke-artifacts
+          path: artifacts/integration_smoke
+
+  ios-integration-smoke:
+    name: iOS Integration Smoke
+    needs:
+      - flutter-quality
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-14
+    timeout-minutes: 110
+    env:
+      IOS_SIMULATOR_NAME: iPhone 16
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Flutter deps
+        run: flutter pub get
+
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
+      - name: Install CocoaPods deps
+        run: |
+          cd ios
+          pod install
+
+      - name: Boot iOS simulator
+        run: |
+          SIM_UDID="$(xcrun simctl list devices available | awk -v name="$IOS_SIMULATOR_NAME" -F '[()]' '$0 ~ name {print $2; exit}')"
+          if [[ -z "$SIM_UDID" ]]; then
+            echo "Simulator not found: $IOS_SIMULATOR_NAME"
+            exit 1
+          fi
+          xcrun simctl boot "$SIM_UDID" || true
+          open -a Simulator --args -CurrentDeviceUDID "$SIM_UDID"
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          echo "INTEGRATION_SMOKE_DEVICE_ID=$SIM_UDID" >> "$GITHUB_ENV"
+
+      - name: Run iOS integration smoke
+        env:
+          INTEGRATION_TARGET_PLATFORM: ios
+          INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
+          INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: bash scripts/run_turqapp_test_smoke.sh
+
+      - name: Upload iOS integration smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-integration-smoke-artifacts
           path: artifacts/integration_smoke
 
   functions-tests:

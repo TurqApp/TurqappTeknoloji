@@ -12,6 +12,7 @@ fi
 
 source "scripts/test_suite_manifest.sh"
 source "scripts/integration_device_resolver.sh"
+source "scripts/integration_seed_helper.sh"
 
 : "${INTEGRATION_LOGIN_EMAIL:?set INTEGRATION_LOGIN_EMAIL}"
 : "${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
@@ -24,6 +25,9 @@ android_package="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 
 mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+
+seed_integration_fixture_if_enabled
+trap 'reset_integration_fixture_if_enabled' EXIT
 
 if [[ "${#suite_tests[@]}" -ne 2 ]]; then
   echo "[process-death-e2e] expected exactly 2 suite entries" >&2

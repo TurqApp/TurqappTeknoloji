@@ -28,6 +28,11 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
       - name: Run long session suite on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -38,6 +43,9 @@ jobs:
             INTEGRATION_SMOKE_DEVICE_ID=emulator-5554 \
             INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}" \
             INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
+            INTEGRATION_AUTO_SEED=1 \
+            INTEGRATION_REQUIRE_SEED=1 \
+            FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
             bash scripts/run_long_session_suite.sh
 
       - name: Upload Android long-session artifacts
@@ -48,7 +56,6 @@ jobs:
           path: artifacts/integration_smoke
 
   long-session-ios:
-    if: github.event_name == 'workflow_dispatch'
     name: iOS Long Session Smoke
     runs-on: macos-14
     timeout-minutes: 240
@@ -65,6 +72,11 @@ jobs:
 
       - name: Install Flutter deps
         run: flutter pub get
+
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
 
       - name: Install CocoaPods deps
         run: |
@@ -88,6 +100,9 @@ jobs:
           INTEGRATION_TARGET_PLATFORM: ios
           INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: bash scripts/run_long_session_suite.sh
 
       - name: Upload iOS long-session artifacts

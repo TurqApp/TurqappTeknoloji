@@ -2,6 +2,8 @@ name: Product Depth E2E
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * 4"
 
 jobs:
   product-depth-android:
@@ -26,6 +28,11 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
       - name: Run product depth suite on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -36,6 +43,9 @@ jobs:
             INTEGRATION_SMOKE_DEVICE_ID=emulator-5554 \
             INTEGRATION_LOGIN_EMAIL="${{ secrets.INTEGRATION_LOGIN_EMAIL }}" \
             INTEGRATION_LOGIN_PASSWORD="${{ secrets.INTEGRATION_LOGIN_PASSWORD }}" \
+            INTEGRATION_AUTO_SEED=1 \
+            INTEGRATION_REQUIRE_SEED=1 \
+            FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
             bash scripts/run_product_depth_e2e.sh
 
       - name: Upload Android product-depth artifacts
@@ -63,6 +73,11 @@ jobs:
       - name: Install Flutter deps
         run: flutter pub get
 
+      - name: Install Functions deps for seed automation
+        run: |
+          cd functions
+          npm ci
+
       - name: Install CocoaPods deps
         run: |
           cd ios
@@ -85,6 +100,9 @@ jobs:
           INTEGRATION_TARGET_PLATFORM: ios
           INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
           INTEGRATION_LOGIN_PASSWORD: ${{ secrets.INTEGRATION_LOGIN_PASSWORD }}
+          INTEGRATION_AUTO_SEED: "1"
+          INTEGRATION_REQUIRE_SEED: "1"
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: bash scripts/run_product_depth_e2e.sh
 
       - name: Upload iOS product-depth artifacts

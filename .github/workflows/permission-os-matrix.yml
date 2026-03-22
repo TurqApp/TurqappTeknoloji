@@ -1,15 +1,15 @@
-name: Process Death Restore
+name: Permission OS Matrix
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 1 * * 2"
+    - cron: "0 6 * * 2"
 
 jobs:
-  process-death-android:
-    name: Android Process Death Restore
+  permission-os-matrix-android:
+    name: Android Permission OS Matrix
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 80
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
           cd functions
           npm ci
 
-      - name: Run process death restore suite on emulator
+      - name: Run Android OS permission matrix on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -46,19 +46,19 @@ jobs:
             INTEGRATION_AUTO_SEED=1 \
             INTEGRATION_REQUIRE_SEED=1 \
             FIREBASE_SERVICE_ACCOUNT_JSON='${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
-            bash scripts/run_process_death_restore_suite.sh
+            bash scripts/run_permission_os_matrix_suite.sh
 
-      - name: Upload Android process-death artifacts
+      - name: Upload Android permission artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: process-death-android-artifacts
+          name: permission-os-matrix-android-artifacts
           path: artifacts/integration_smoke
 
-  process-death-ios:
-    name: iOS Process Death Restore
+  permission-os-matrix-ios:
+    name: iOS Permission OS Matrix
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 100
     env:
       IOS_SIMULATOR_NAME: iPhone 16
     steps:
@@ -95,7 +95,7 @@ jobs:
           xcrun simctl bootstatus "$SIM_UDID" -b
           echo "INTEGRATION_SMOKE_DEVICE_ID=$SIM_UDID" >> "$GITHUB_ENV"
 
-      - name: Run process death restore suite on iOS simulator
+      - name: Run iOS OS permission matrix
         env:
           INTEGRATION_TARGET_PLATFORM: ios
           INTEGRATION_LOGIN_EMAIL: ${{ secrets.INTEGRATION_LOGIN_EMAIL }}
@@ -103,11 +103,11 @@ jobs:
           INTEGRATION_AUTO_SEED: "1"
           INTEGRATION_REQUIRE_SEED: "1"
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: bash scripts/run_process_death_restore_suite.sh
+        run: bash scripts/run_permission_os_matrix_suite.sh
 
-      - name: Upload iOS process-death artifacts
+      - name: Upload iOS permission artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: process-death-ios-artifacts
+          name: permission-os-matrix-ios-artifacts
           path: artifacts/integration_smoke

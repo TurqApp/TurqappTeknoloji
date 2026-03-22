@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
 import 'package:turqappv2/Core/Services/integration_media_test_harness.dart';
@@ -23,6 +24,23 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class IntegrationTestStateProbe {
   const IntegrationTestStateProbe._();
 
+  static Map<String, String> _permissionStatuses = <String, String>{};
+  static bool _permissionsRegistered = false;
+
+  static void updatePermissionStatuses(
+    Map<String, PermissionStatus> statuses,
+  ) {
+    _permissionsRegistered = true;
+    _permissionStatuses = statuses.map(
+      (key, value) => MapEntry(key, value.name),
+    );
+  }
+
+  static void clearPermissionStatuses() {
+    _permissionsRegistered = false;
+    _permissionStatuses = <String, String>{};
+  }
+
   static Map<String, dynamic> snapshot() {
     final routing = Get.routing;
     return <String, dynamic>{
@@ -36,6 +54,7 @@ class IntegrationTestStateProbe {
       'profile': _profileSnapshot(),
       'socialProfile': _socialProfileSnapshot(),
       'notifications': _notificationsSnapshot(),
+      'permissions': _permissionsSnapshot(),
       'storyComments': _storyCommentsSnapshot(),
       'auth': _authSnapshot(),
       'testHarnesses': _testHarnessSnapshot(),
@@ -303,6 +322,13 @@ class IntegrationTestStateProbe {
           notifyReader?.lastOpenedNotificationType.value ?? '',
       'lastOpenedRouteKind': notifyReader?.lastOpenedRouteKind.value ?? '',
       'lastOpenedTargetId': notifyReader?.lastOpenedTargetId.value ?? '',
+    };
+  }
+
+  static Map<String, dynamic> _permissionsSnapshot() {
+    return <String, dynamic>{
+      'registered': _permissionsRegistered,
+      'statuses': Map<String, String>.from(_permissionStatuses),
     };
   }
 

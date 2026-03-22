@@ -11,6 +11,7 @@ fi
 
 source "scripts/test_suite_manifest.sh"
 source "scripts/integration_device_resolver.sh"
+source "scripts/integration_seed_helper.sh"
 
 TARGET_PLATFORM="${INTEGRATION_TARGET_PLATFORM:-android}"
 DEVICE_ID="$(resolve_integration_device_id "${TARGET_PLATFORM}")"
@@ -19,6 +20,9 @@ LOGIN_PASSWORD="${INTEGRATION_LOGIN_PASSWORD:?set INTEGRATION_LOGIN_PASSWORD}"
 MANIFEST="config/test_suites/release_gate_e2e.txt"
 
 mapfile -t suite_tests < <(load_suite_entries "$MANIFEST")
+
+seed_integration_fixture_if_enabled
+trap 'reset_integration_fixture_if_enabled' EXIT
 
 run_test() {
   local target="$1"

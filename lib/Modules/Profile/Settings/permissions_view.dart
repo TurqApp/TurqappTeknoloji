@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -120,6 +121,12 @@ class _PermissionsViewState extends State<PermissionsView> {
   void initState() {
     super.initState();
     _initializePermissionsView();
+  }
+
+  @override
+  void dispose() {
+    IntegrationTestStateProbe.clearPermissionStatuses();
+    super.dispose();
   }
 
   void _updatePermissionsViewState(VoidCallback fn) {

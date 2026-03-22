@@ -5,6 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 source "scripts/test_suite_manifest.sh"
+source "scripts/integration_seed_helper.sh"
 
 if [[ -f ".env.integration.local" ]]; then
   set -a
@@ -74,6 +75,9 @@ fi
 
 rm -rf "$artifact_dir"
 mkdir -p "$artifact_dir"
+
+seed_integration_fixture_if_enabled
+trap 'reset_integration_fixture_if_enabled' EXIT
 
 pick_android_device() {
   local android_devices=()
