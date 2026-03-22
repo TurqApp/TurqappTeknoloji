@@ -559,7 +559,11 @@ Future<void> _scrollFeed(
   Offset offset, {
   required int steps,
 }) async {
-  await tester.drag(byItKey(IntegrationTestKeys.screenFeed), offset);
+  await tester.drag(
+    byItKey(IntegrationTestKeys.screenFeed),
+    offset,
+    warnIfMissed: false,
+  );
   for (var i = 0; i < steps; i++) {
     await tester.pump(const Duration(milliseconds: 180));
   }

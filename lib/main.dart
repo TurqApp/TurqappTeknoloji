@@ -69,7 +69,12 @@ Future<void> main() async {
   // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
   // cagrilip startup fallback ekranina dusuyordu.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
-  await firebaseBootstrapFuture;
+  await firebaseBootstrapFuture.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () {
+      debugPrint('[bootstrap] startup timed out before runApp; continuing.');
+    },
+  );
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   VideoStateManager.instance;
@@ -139,10 +144,31 @@ void _handleAppBackgroundTransition() {
 }
 
 Future<void> _bootstrapFirebaseAndCrashlytics() async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await _activateAppCheck();
+  var firebaseReady = false;
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).timeout(const Duration(seconds: 4));
+    firebaseReady = true;
+  } catch (e, st) {
+    debugPrint('[bootstrap] Firebase.initializeApp failed: $e');
+    debugPrintStack(stackTrace: st);
+  }
+
+  if (firebaseReady) {
+    try {
+      await _activateAppCheck().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('[AppCheck] activation timed out.');
+        },
+      );
+    } catch (e, st) {
+      debugPrint('[AppCheck] activation failed before handlers: $e');
+      debugPrintStack(stackTrace: st);
+    }
+  }
 
   FlutterError.onError = (FlutterErrorDetails details) {
     final error = details.exception;
@@ -152,7 +178,9 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
       return;
     }
     FlutterError.presentError(details);
-    FirebaseCrashlytics.instance.recordFlutterError(details);
+    if (firebaseReady) {
+      FirebaseCrashlytics.instance.recordFlutterError(details);
+    }
     debugPrint('FlutterError captured: $error');
     if (stack != null) {
       debugPrintStack(stackTrace: stack);
@@ -163,7 +191,9 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
       debugPrint('Platform suppressed non-fatal: $error');
       return true;
     }
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
+    if (firebaseReady) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
+    }
     return true;
   };
 }
