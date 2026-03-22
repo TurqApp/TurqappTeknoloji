@@ -1,0 +1,542 @@
+part of 'moderation_settings_view.dart';
+
+class _UserBanSection extends StatefulWidget {
+  const _UserBanSection();
+
+  @override
+  State<_UserBanSection> createState() => _UserBanSectionState();
+}
+
+class _UserBanSectionState extends State<_UserBanSection> {
+  final TextEditingController _nicknameController = TextEditingController();
+  final TextEditingController _reasonController = TextEditingController();
+  final AdminApprovalRepository _approvalRepository =
+      AdminApprovalRepository.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nicknameController.dispose();
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = FirebaseFirestore.instance
+        .collection('adminConfig')
+        .doc('admin')
+        .collection('bannedUser')
+        .orderBy('updatedAt', descending: true)
+        .limit(50)
+        .snapshots();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'admin.moderation.user_ban_title'.tr,
+            style: const TextStyle(
+              fontFamily: 'MontserratBold',
+              fontSize: 14,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'admin.moderation.user_ban_help'.tr,
+            style: const TextStyle(
+              fontFamily: 'MontserratMedium',
+              fontSize: 11,
+              color: Colors.black54,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _nicknameController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              hintText: 'admin.tasks.username'.tr,
+              prefixIcon: const Icon(CupertinoIcons.at),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _reasonController,
+            minLines: 2,
+            maxLines: 3,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              hintText: 'admin.moderation.ban_reason'.tr,
+              prefixIcon: const Padding(
+                padding: EdgeInsets.only(bottom: 28),
+                child: Icon(CupertinoIcons.exclamationmark_bubble),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _saving ? null : () => _applyByNickname('advance'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(CupertinoIcons.hammer_fill, size: 16),
+                  label: Text(
+                    'admin.moderation.apply_next_penalty'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _saving ? null : () => _applyByNickname('clear'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    side:
+                        BorderSide(color: Colors.black.withValues(alpha: 0.2)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(CupertinoIcons.refresh_thick, size: 16),
+                  label: Text(
+                    'admin.moderation.clear_ban'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'admin.moderation.active_bans'.tr,
+            style: const TextStyle(
+              fontFamily: 'MontserratBold',
+              fontSize: 13,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: stream,
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snap.hasError) {
+                return Text(
+                  'admin.moderation.ban_list_failed'.tr,
+                  style: const TextStyle(
+                    fontFamily: 'MontserratMedium',
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                );
+              }
+
+              final docs = (snap.data?.docs ?? const [])
+                  .where((doc) => (doc.data()['status'] ?? '') != 'cleared')
+                  .toList(growable: false);
+              if (docs.isEmpty) {
+                return Text(
+                  'admin.moderation.no_active_bans'.tr,
+                  style: const TextStyle(
+                    fontFamily: 'MontserratMedium',
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                );
+              }
+
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 280),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: docs
+                        .map(
+                          (doc) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _buildBannedUserCard(doc),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBannedUserCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final nickname = ((data['nickname'] ?? '').toString().trim()).isEmpty
+        ? doc.id
+        : (data['nickname'] ?? '').toString().trim();
+    final reason = (data['reason'] ?? '').toString().trim();
+    final strikeCount = _asInt(data['strikeCount']);
+    final level = _asInt(data['banLevel']);
+    final untilMs = _asInt(data['restrictedUntil']);
+    final permanent = (data['permanent'] ?? false) == true;
+    final status = (data['status'] ?? 'active').toString();
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final expired = !permanent && untilMs > 0 && untilMs <= nowMs;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '@$nickname',
+                  style: const TextStyle(
+                    fontFamily: 'MontserratBold',
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              _BanChip(
+                text: permanent
+                    ? 'admin.moderation.permanent'.tr
+                    : expired
+                        ? 'admin.moderation.expired'.tr
+                        : 'admin.moderation.level'
+                            .trParams(<String, String>{'level': '$level'}),
+                color: permanent
+                    ? Colors.red
+                    : expired
+                        ? Colors.orange
+                        : Colors.black,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'admin.moderation.strike_status'.trParams(<String, String>{
+              'count': '$strikeCount',
+              'status': status,
+            }),
+            style: const TextStyle(
+              fontFamily: 'MontserratMedium',
+              fontSize: 11,
+              color: Colors.black54,
+            ),
+          ),
+          if (untilMs > 0 && !permanent)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'admin.moderation.ends_at'.trParams(
+                  <String, String>{
+                    'date': _formatDate(
+                      DateTime.fromMillisecondsSinceEpoch(untilMs),
+                    ),
+                  },
+                ),
+                style: const TextStyle(
+                  fontFamily: 'MontserratMedium',
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
+              ),
+            ),
+          if (reason.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                reason,
+                style: const TextStyle(
+                  fontFamily: 'MontserratMedium',
+                  fontSize: 12,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed:
+                      _saving ? null : () => _applyByUserId(doc.id, 'advance'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'admin.moderation.next_penalty'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed:
+                      _saving ? null : () => _applyByUserId(doc.id, 'clear'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    side:
+                        BorderSide(color: Colors.black.withValues(alpha: 0.2)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'admin.moderation.clear_ban'.tr,
+                    style: const TextStyle(fontFamily: 'MontserratBold'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _applyByNickname(String action) async {
+    final nickname = normalizeNicknameInput(_nicknameController.text);
+    if (nickname.isEmpty) {
+      AppSnackbar(
+        'admin.tasks.missing_info'.tr,
+        'admin.tasks.username_required'.tr,
+      );
+      return;
+    }
+    await _callBanAction(
+      callableName: 'setUserBanByNickname',
+      payload: <String, dynamic>{
+        'nickname': nickname,
+        'action': action,
+        'reason': _reasonController.text.trim(),
+      },
+    );
+  }
+
+  Future<void> _applyByUserId(String userId, String action) async {
+    await _callBanAction(
+      callableName: 'setUserBanByUserId',
+      payload: <String, dynamic>{
+        'userId': userId,
+        'action': action,
+        'reason': _reasonController.text.trim(),
+      },
+    );
+  }
+
+  Future<void> _callBanAction({
+    required String callableName,
+    required Map<String, dynamic> payload,
+  }) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final isPrimaryAdmin = await AdminAccessService.isPrimaryAdmin();
+      if (!isPrimaryAdmin) {
+        String targetUserId = (payload['userId'] ?? '').toString().trim();
+        String targetNickname = '';
+        if (targetUserId.isEmpty) {
+          final nickname = (payload['nickname'] ?? '').toString().trim();
+          final user = await _userRepository.findUserByNickname(nickname);
+          if (user == null) {
+            AppSnackbar(
+              'support.error_title'.tr,
+              'admin.tasks.user_not_found'.tr,
+            );
+            return;
+          }
+          targetUserId = (user['id'] ?? '').toString().trim();
+          targetNickname = (user['nickname'] ?? '').toString().trim();
+        } else {
+          final user = await _userRepository.getUserRaw(targetUserId);
+          targetNickname = (user?['nickname'] ?? '').toString().trim();
+        }
+        final action = (payload['action'] ?? '').toString().trim();
+        final reason = (payload['reason'] ?? '').toString().trim();
+        await _approvalRepository.createApproval(
+          type: 'user_ban',
+          title: action == 'clear'
+              ? 'admin.moderation.clear_ban_approval'.tr
+              : 'admin.moderation.ban_approval'.tr,
+          summary: action == 'clear'
+              ? 'admin.moderation.clear_ban_summary'
+                  .trParams(<String, String>{'nickname': targetNickname})
+              : 'admin.moderation.advance_penalty_summary'
+                  .trParams(<String, String>{'nickname': targetNickname}),
+          targetUserId: targetUserId,
+          targetNickname: targetNickname,
+          payload: <String, dynamic>{
+            'userId': targetUserId,
+            'action': action,
+            'reason': reason,
+          },
+        );
+        AppSnackbar(
+          'admin.moderation.title'.tr,
+          'admin.moderation.sent_for_approval'.tr,
+        );
+        if (callableName == 'setUserBanByNickname') {
+          _nicknameController.clear();
+        }
+        _reasonController.clear();
+        return;
+      }
+
+      final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable(callableName);
+      final response = await callable.call<Map<String, dynamic>>(payload);
+      final data = Map<String, dynamic>.from(response.data);
+      final nickname = (data['nickname'] ?? '').toString().trim();
+      final permanent = (data['permanent'] ?? false) == true;
+      final level = _asInt(data['banLevel']);
+      final cleared = (data['status'] ?? '') == 'cleared';
+      if (!mounted) return;
+      AppSnackbar(
+        'admin.moderation.title'.tr,
+        cleared
+            ? 'admin.moderation.ban_removed'
+                .trParams(<String, String>{'nickname': nickname})
+            : permanent
+                ? 'admin.moderation.permanent_applied'
+                    .trParams(<String, String>{'nickname': nickname})
+                : 'admin.moderation.level_applied'.trParams(
+                    <String, String>{
+                      'nickname': nickname,
+                      'level': '$level',
+                    },
+                  ),
+      );
+      if (callableName == 'setUserBanByNickname') {
+        _nicknameController.clear();
+      }
+      if (cleared || permanent || level > 0) {
+        _reasonController.clear();
+      }
+    } on FirebaseFunctionsException catch (e) {
+      AppSnackbar('support.error_title'.tr, _errorMessage(e));
+    } catch (e) {
+      AppSnackbar(
+        'support.error_title'.tr,
+        '${'admin.moderation.action_failed'.tr}: $e',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  String _errorMessage(FirebaseFunctionsException error) {
+    switch (error.code) {
+      case 'not-found':
+        return 'admin.tasks.user_not_found'.tr;
+      case 'permission-denied':
+        return 'admin.badges.permission_required'.tr;
+      case 'invalid-argument':
+        return error.message ?? 'admin.badges.invalid_input'.tr;
+      case 'failed-precondition':
+        return 'admin.badges.multiple_users'.tr;
+      default:
+        return error.message ?? 'admin.moderation.action_failed'.tr;
+    }
+  }
+
+  static int _asInt(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
+
+  static String _formatDate(DateTime dt) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(dt.day)}.${two(dt.month)}.${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+  }
+}
+
+class _BanChip extends StatelessWidget {
+  const _BanChip({
+    required this.text,
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: 'MontserratBold',
+          fontSize: 11,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
