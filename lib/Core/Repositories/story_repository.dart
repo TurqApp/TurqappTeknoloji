@@ -20,6 +20,9 @@ import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'story_repository_helpers_part.dart';
+part 'story_repository_cache_part.dart';
+part 'story_repository_deleted_part.dart';
+part 'story_repository_engagement_part.dart';
 
 class DeletedStoryCachePayload {
   const DeletedStoryCachePayload({
@@ -61,6 +64,9 @@ class StoryRepository extends GetxService {
   static const Duration _storyRowCacheTtl = Duration(minutes: 15);
   static const Duration _deletedStoriesCacheTtl = Duration(hours: 12);
   static const int _deletedStoriesCacheLimit = 100;
+  Duration get storyRowCacheTtlInternal => _storyRowCacheTtl;
+  Duration get deletedStoriesCacheTtlInternal => _deletedStoriesCacheTtl;
+  int get deletedStoriesCacheLimitInternal => _deletedStoriesCacheLimit;
 
   UserProfileCacheService get _userCache {
     return UserProfileCacheService.ensure();
@@ -75,6 +81,7 @@ class StoryRepository extends GetxService {
 
   static DateTime get _storyExpiryCutoff =>
       DateTime.now().subtract(const Duration(hours: 24));
+  DateTime get storyExpiryCutoffInternal => _storyExpiryCutoff;
 
   int _asEpochMillis(dynamic value, {int fallback = 0}) {
     if (value is Timestamp) return value.millisecondsSinceEpoch;
@@ -141,1020 +148,237 @@ class StoryRepository extends GetxService {
     required bool cacheFirst,
     required String currentUid,
     required List<String> blockedUserIds,
-  }) async {
-    QuerySnapshot<Map<String, dynamic>> snap;
-    var cacheHit = false;
-
-    if (cacheFirst) {
-      snap = await PerformanceService.traceOperation(
-        'story_load_cache_first',
-        () => FirebaseFirestore.instance
-            .collection('stories')
-            .orderBy('createdDate', descending: true)
-            .limit(limit)
-            .get(const GetOptions(source: Source.cache)),
+  }) =>
+      _performFetchStoryUsers(
+        limit: limit,
+        cacheFirst: cacheFirst,
+        currentUid: currentUid,
+        blockedUserIds: blockedUserIds,
       );
-      cacheHit = snap.docs.isNotEmpty;
-
-      if (snap.docs.isEmpty) {
-        snap = await PerformanceService.traceOperation(
-          'story_load_network_fallback',
-          () => FirebaseFirestore.instance
-              .collection('stories')
-              .orderBy('createdDate', descending: true)
-              .limit(limit)
-              .get(),
-        );
-      }
-    } else {
-      snap = await PerformanceService.traceOperation(
-        'story_load_network',
-        () => FirebaseFirestore.instance
-            .collection('stories')
-            .orderBy('createdDate', descending: true)
-            .limit(limit)
-            .get(),
-      );
-    }
-
-    final userStories = <String, List<StoryModel>>{};
-    final storyEmbeddedUserMeta = <String, Map<String, dynamic>>{};
-    final expiry = DateTime.now().subtract(const Duration(hours: 24));
-
-    for (final doc in snap.docs) {
-      try {
-        final data = doc.data();
-        if ((data['deleted'] ?? false) == true) continue;
-        final story = StoryModel.fromDoc(doc);
-        if (story.createdAt.isBefore(expiry)) continue;
-        userStories.putIfAbsent(story.userId, () => <StoryModel>[]);
-        userStories[story.userId]!.add(story);
-
-        final embeddedNickname = (data['nickname'] ?? '').toString().trim();
-        final embeddedAvatar = (data['avatarUrl'] ?? '').toString().trim();
-        final embeddedUsername = (data['username'] ?? '').toString().trim();
-        if (embeddedNickname.isNotEmpty ||
-            embeddedAvatar.isNotEmpty ||
-            embeddedUsername.isNotEmpty) {
-          storyEmbeddedUserMeta[story.userId] = <String, dynamic>{
-            'nickname': embeddedNickname,
-            'avatarUrl': embeddedAvatar,
-            'username': embeddedUsername,
-            'firstName': (data['firstName'] ?? '').toString(),
-            'lastName': (data['lastName'] ?? '').toString(),
-            'isPrivate': data['isPrivate'] == true,
-          };
-        }
-      } catch (_) {}
-    }
-
-    final userIds = userStories.keys.toList(growable: false);
-    final userDataMap = await _userCache.getProfiles(
-      userIds,
-      preferCache: true,
-      cacheOnly: false,
-    );
-    final missingUserIds =
-        userIds.where((id) => userDataMap[id] == null).toList(growable: false);
-    if (missingUserIds.isNotEmpty) {
-      userDataMap.addAll(await _loadMissingProfilesFromUsers(missingUserIds));
-    }
-
-    final followingIds =
-        await VisibilityPolicyService.ensure().loadViewerFollowingIds(
-      viewerUserId: currentUid,
-      preferCache: true,
-    );
-    final blockedSet = blockedUserIds.toSet();
-    final current = CurrentUserService.instance;
-    final users = <StoryUserModel>[];
-
-    for (final entry in userStories.entries) {
-      final userId = entry.key;
-      if (blockedSet.contains(userId)) continue;
-
-      final stories = [...entry.value]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      final rawData = userDataMap[userId] ?? storyEmbeddedUserMeta[userId];
-      final data = Map<String, dynamic>.from(
-        rawData ?? _fallbackUserData(userId, current),
-      );
-
-      final isPrivate = (data['isPrivate'] ?? false) == true;
-      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
-        authorUserId: userId,
-        followingIds: followingIds,
-        isPrivate: isPrivate,
-        isDeleted: false,
-      );
-      if (!canSeeAuthor) continue;
-
-      final resolvedNickname = _resolveStoryNickname(data).trim();
-      users.add(
-        StoryUserModel(
-          nickname: resolvedNickname.isNotEmpty
-              ? resolvedNickname
-              : (data['nickname']?.toString().trim().isNotEmpty == true
-                  ? data['nickname'].toString().trim()
-                  : (currentUid.isNotEmpty && userId == currentUid
-                      ? (current.nickname.isNotEmpty ? current.nickname : 'sen')
-                      : 'kullanici')),
-          avatarUrl: _resolveAvatar(data),
-          fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
-          userID: userId,
-          stories: stories,
-        ),
-      );
-    }
-
-    return StoryFetchResult(users: users, cacheHit: cacheHit);
-  }
 
   Future<void> saveStoryRowCache(
     List<StoryUserModel> list, {
     required String ownerUid,
-  }) async {
-    if (list.isEmpty) return;
-    await _ensureInitialized();
-    final path = _storyRowCachePathForOwner(ownerUid);
-    if (path == null) return;
-    try {
-      final payload = {
-        'savedAt': DateTime.now().millisecondsSinceEpoch,
-        'ownerUid': ownerUid,
-        'users': list.map((u) => u.toCacheMap()).toList(),
-      };
-      final file = File(path);
-      final tmp = File('$path.tmp');
-      await tmp.writeAsString(jsonEncode(payload), flush: true);
-      await tmp.rename(file.path);
-    } catch (_) {}
-  }
+  }) =>
+      _performSaveStoryRowCache(list, ownerUid: ownerUid);
 
   Future<List<StoryUserModel>> restoreStoryRowCache({
     required String ownerUid,
     bool allowExpired = false,
-  }) async {
-    await _ensureInitialized();
-    final path = _storyRowCachePathForOwner(ownerUid);
-    if (path == null) return const <StoryUserModel>[];
-    try {
-      final file = File(path);
-      if (!await file.exists()) return const <StoryUserModel>[];
-      final raw = await file.readAsString();
-      if (raw.trim().isEmpty) return const <StoryUserModel>[];
-      final data = jsonDecode(raw);
-      if (data is! Map) return const <StoryUserModel>[];
-      final cacheOwnerUid = (data['ownerUid'] ?? '').toString();
-      if (cacheOwnerUid.isNotEmpty && cacheOwnerUid != ownerUid) {
-        return const <StoryUserModel>[];
-      }
-      final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
-      if (!allowExpired && savedAt > 0) {
-        final age = DateTime.now().difference(
-          DateTime.fromMillisecondsSinceEpoch(savedAt),
-        );
-        if (age > _storyRowCacheTtl) return const <StoryUserModel>[];
-      }
-      final usersJson =
-          (data['users'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-      final expiryCutoff = _storyExpiryCutoff;
-      return usersJson
-          .map(StoryUserModel.fromCacheMap)
-          .map((user) {
-            if (allowExpired) return user;
-            final activeStories = user.stories
-                .where((story) => story.createdAt.isAfter(expiryCutoff))
-                .toList(growable: false)
-              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return StoryUserModel(
-              nickname: user.nickname,
-              avatarUrl: user.avatarUrl,
-              fullName: user.fullName,
-              userID: user.userID,
-              stories: activeStories,
-            );
-          })
-          .where((u) => u.userID.isNotEmpty)
-          .where((u) => u.stories.isNotEmpty || u.userID == ownerUid)
-          .toList(growable: false);
-    } catch (_) {
-      return const <StoryUserModel>[];
-    }
-  }
+  }) =>
+      _performRestoreStoryRowCache(
+        ownerUid: ownerUid,
+        allowExpired: allowExpired,
+      );
 
-  Future<void> clearStoryRowCacheForCurrentUser(String ownerUid) async {
-    await _ensureInitialized();
-    final path = _storyRowCachePathForOwner(ownerUid);
-    if (path == null) return;
-    try {
-      final file = File(path);
-      if (await file.exists()) {
-        await file.delete();
-      }
-    } catch (_) {}
-  }
+  Future<void> clearStoryRowCacheForCurrentUser(String ownerUid) =>
+      _performClearStoryRowCacheForCurrentUser(ownerUid);
 
   Future<void> invalidateStoryCachesForUser(
     String uid, {
     bool clearDeletedStories = true,
-  }) async {
-    if (uid.trim().isEmpty) return;
-    await clearStoryRowCacheForCurrentUser(uid);
-    if (clearDeletedStories) {
-      await clearDeletedStoriesCache(uid);
-    }
-  }
+  }) =>
+      _performInvalidateStoryCachesForUser(
+        uid,
+        clearDeletedStories: clearDeletedStories,
+      );
 
-  Future<Map<String, StoryModel>> fetchStoriesByIds(
-    List<String> storyIds,
-  ) async {
-    final ids = storyIds.where((e) => e.trim().isNotEmpty).toSet().toList();
-    if (ids.isEmpty) return const <String, StoryModel>{};
-    final stories = <String, StoryModel>{};
-    const chunkSize = 10;
-    for (var i = 0; i < ids.length; i += chunkSize) {
-      final end = (i + chunkSize > ids.length) ? ids.length : i + chunkSize;
-      final chunk = ids.sublist(i, end);
-      final snap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        try {
-          final data = doc.data();
-          if ((data['deleted'] ?? false) == true) continue;
-          final story = StoryModel.fromDoc(doc);
-          stories[story.id] = story;
-        } catch (_) {}
-      }
-    }
-    return stories;
-  }
+  Future<Map<String, StoryModel>> fetchStoriesByIds(List<String> storyIds) =>
+      _performFetchStoriesByIds(storyIds);
 
   Future<StoryModel?> fetchStoryById(
     String storyId, {
     bool preferCache = true,
-  }) async {
-    final raw = await getStoryRaw(storyId, preferCache: preferCache);
-    if (raw == null || raw.isEmpty) return null;
-    return StoryModel.fromCacheMap(<String, dynamic>{
-      'id': storyId,
-      ...raw,
-    });
-  }
+  }) =>
+      _performFetchStoryById(
+        storyId,
+        preferCache: preferCache,
+      );
 
   Future<List<StoryModel>> fetchActiveStoriesByMusicId(
     String musicId, {
     int limit = 60,
-  }) async {
-    final cleanId = musicId.trim();
-    if (cleanId.isEmpty) return const <StoryModel>[];
-    final snap = await FirebaseFirestore.instance
-        .collection('stories')
-        .where('musicId', isEqualTo: cleanId)
-        .limit(limit)
-        .get();
-    final expiry = DateTime.now().subtract(const Duration(hours: 24));
-    return snap.docs
-        .map((doc) {
-          try {
-            final data = doc.data();
-            if ((data['deleted'] ?? false) == true) {
-              return null;
-            }
-            return StoryModel.fromDoc(doc);
-          } catch (_) {
-            return null;
-          }
-        })
-        .whereType<StoryModel>()
-        .where((story) => story.createdAt.isAfter(expiry))
-        .toList(growable: false);
-  }
+  }) =>
+      _performFetchActiveStoriesByMusicId(
+        musicId,
+        limit: limit,
+      );
 
-  Future<void> markExpiredStoriesDeleted(String uid) async {
-    try {
-      final expiry = DateTime.now().subtract(const Duration(hours: 24));
-      final expiredSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: uid)
-          .get();
-      var didMutate = false;
-
-      for (final doc in expiredSnap.docs) {
-        try {
-          final model = StoryModel.fromDoc(doc);
-          if (model.createdAt.isAfter(expiry)) continue;
-          await FirebaseFirestore.instance
-              .collection('stories')
-              .doc(model.id)
-              .update({
-            'deleted': true,
-            'deletedAt': DateTime.now().millisecondsSinceEpoch,
-            'deleteReason': 'expired',
-          });
-          didMutate = true;
-        } catch (_) {}
-      }
-      if (didMutate) {
-        await invalidateStoryCachesForUser(uid);
-      }
-    } catch (_) {}
-  }
+  Future<void> markExpiredStoriesDeleted(String uid) =>
+      _performMarkExpiredStoriesDeleted(uid);
 
   Future<String> softDeleteStory(
     String storyId, {
     String reason = 'manual',
-  }) async {
-    if (storyId.isEmpty) return '';
-    final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
-    final musicId = (raw['musicId'] ?? '').toString().trim();
-    final uid = (raw['userId'] ?? '').toString().trim();
-    await FirebaseFirestore.instance.collection('stories').doc(storyId).update({
-      'deleted': true,
-      'deletedAt': DateTime.now().millisecondsSinceEpoch,
-      'deleteReason': reason,
-    });
-    if (uid.isNotEmpty) {
-      await invalidateStoryCachesForUser(uid);
-    }
-    return musicId;
-  }
-
-  Future<void> restoreDeletedStory(String storyId) async {
-    if (storyId.isEmpty) return;
-    final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
-    await FirebaseFirestore.instance.collection('stories').doc(storyId).update({
-      'deleted': false,
-      'deletedAt': 0,
-      'deleteReason': FieldValue.delete(),
-    });
-    final uid = (raw['userId'] ?? '').toString().trim();
-    if (uid.isNotEmpty) {
-      await invalidateStoryCachesForUser(uid);
-    }
-  }
-
-  Future<void> permanentlyDeleteStory(String storyId) async {
-    if (storyId.isEmpty) return;
-    final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
-    final uid = (raw['userId'] ?? '').toString().trim();
-    final musicId = (raw['musicId'] ?? '').toString().trim();
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('stories')
-          .doc(storyId)
-          .delete();
-    } catch (_) {}
-
-    if (uid.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('DeletedStories')
-            .doc(storyId)
-            .delete();
-      } catch (_) {}
-
-      try {
-        final archiveSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('DeletedStories')
-            .where('storyId', isEqualTo: storyId)
-            .get();
-        for (final doc in archiveSnap.docs) {
-          try {
-            await doc.reference.delete();
-          } catch (_) {}
-        }
-      } catch (_) {}
-    }
-
-    if (musicId.isNotEmpty) {
-      unawaited(
-        StoryMusicLibraryService.instance.removeStoryUsage(
-          musicId: musicId,
-          storyId: storyId,
-        ),
+  }) =>
+      _performSoftDeleteStory(
+        storyId,
+        reason: reason,
       );
-    }
 
-    if (uid.isNotEmpty) {
-      await invalidateStoryCachesForUser(uid);
-    }
-  }
+  Future<void> restoreDeletedStory(String storyId) =>
+      _performRestoreDeletedStory(storyId);
 
-  Future<String> repostDeletedStory(StoryModel story) async {
-    final uid = CurrentUserService.instance.userId.isNotEmpty
-        ? CurrentUserService.instance.userId
-        : story.userId;
-    if (uid.trim().isEmpty) return '';
+  Future<void> permanentlyDeleteStory(String storyId) =>
+      _performPermanentlyDeleteStory(storyId);
 
-    final docRef = FirebaseFirestore.instance.collection('stories').doc();
-    final createdAt = DateTime.now().millisecondsSinceEpoch;
-    final storyId = docRef.id;
+  Future<String> repostDeletedStory(StoryModel story) =>
+      _performRepostDeletedStory(story);
 
-    final serialized = story.elements
-        .map(
-          (e) => <String, dynamic>{
-            'type': e.type.toString().split('.').last,
-            'content': e.content,
-            'width': e.width,
-            'height': e.height,
-            'position': {'x': e.position.dx, 'y': e.position.dy},
-            'rotation': e.rotation,
-            'zIndex': e.zIndex,
-            'isMuted': e.isMuted,
-            'fontSize': e.fontSize,
-            'aspectRatio': e.aspectRatio,
-            'textColor': e.textColor,
-            'textBgColor': e.textBgColor,
-            'hasTextBg': e.hasTextBg,
-            'textAlign': e.textAlign,
-            'fontWeight': e.fontWeight,
-            'italic': e.italic,
-            'underline': e.underline,
-            'shadowBlur': e.shadowBlur,
-            'shadowOpacity': e.shadowOpacity,
-            'fontFamily': e.fontFamily,
-            'hasOutline': e.hasOutline,
-            'outlineColor': e.outlineColor,
-            'stickerType': e.stickerType,
-            'stickerData': e.stickerData,
-          },
-        )
-        .toList(growable: false);
-
-    await docRef.set({
-      'userId': uid,
-      'createdDate': createdAt,
-      'backgroundColor': story.backgroundColor.toARGB32(),
-      'musicId': story.musicId,
-      'musicUrl': story.musicUrl,
-      'musicTitle': story.musicTitle,
-      'musicArtist': story.musicArtist,
-      'musicCoverUrl': story.musicCoverUrl,
-      'elements': serialized,
-      'deleted': false,
-      'deletedAt': 0,
-    });
-
-    if (story.musicId.trim().isNotEmpty) {
-      final track = await StoryMusicLibraryService.instance.fetchTrackById(
-        story.musicId,
-        preferCache: true,
-      );
-      if (track != null) {
-        await StoryMusicLibraryService.instance.recordStoryUsage(
-          track: track,
-          storyId: storyId,
-          userId: uid,
-          createdAt: createdAt,
-        );
-      }
-    }
-
-    await invalidateStoryCachesForUser(uid);
-
-    return storyId;
-  }
-
-  Future<DeletedStoryCachePayload?> restoreDeletedStoriesCache(
-      String uid) async {
-    await _ensureInitialized();
-    try {
-      final raw = _prefs?.getString(_deletedStoriesCacheKey(uid));
-      if (raw == null || raw.isEmpty) return null;
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return null;
-      final savedAtMs = (decoded['savedAt'] as num?)?.toInt() ?? 0;
-      if (savedAtMs <= 0) return null;
-      final cacheAge = DateTime.now().difference(
-        DateTime.fromMillisecondsSinceEpoch(savedAtMs),
-      );
-      if (cacheAge > _deletedStoriesCacheTtl) return null;
-      final items = (decoded['items'] as List?) ?? const [];
-      final restoredStories = <StoryModel>[];
-      final restoredDeletedAt = <String, int>{};
-      final restoredReasons = <String, String>{};
-      for (final item in items) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item.cast<String, dynamic>());
-        final storyMap = Map<String, dynamic>.from(
-          (map['story'] as Map?)?.cast<String, dynamic>() ?? const {},
-        );
-        if (storyMap.isEmpty) continue;
-        final story = StoryModel.fromCacheMap(storyMap);
-        restoredStories.add(story);
-        restoredDeletedAt[story.id] = (map['deletedAt'] as num?)?.toInt() ?? 0;
-        final reason = (map['deleteReason'] ?? '').toString();
-        if (reason.isNotEmpty) restoredReasons[story.id] = reason;
-      }
-      if (restoredStories.isEmpty) return null;
-      return DeletedStoryCachePayload(
-        stories: restoredStories,
-        deletedAtById: restoredDeletedAt,
-        deleteReasonById: restoredReasons,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
+  Future<DeletedStoryCachePayload?> restoreDeletedStoriesCache(String uid) =>
+      _performRestoreDeletedStoriesCache(uid);
 
   Future<void> persistDeletedStoriesCache({
     required String uid,
     required List<StoryModel> stories,
     required Map<String, int> deletedAtById,
     required Map<String, String> deleteReasonById,
-  }) async {
-    await _ensureInitialized();
-    try {
-      final items = stories
-          .map((story) => <String, dynamic>{
-                'story': story.toCacheMap(),
-                'deletedAt': deletedAtById[story.id] ?? 0,
-                'deleteReason': deleteReasonById[story.id] ?? '',
-              })
-          .toList();
-      await _prefs?.setString(
-        _deletedStoriesCacheKey(uid),
-        jsonEncode({
-          'savedAt': DateTime.now().millisecondsSinceEpoch,
-          'items': items,
-        }),
+  }) =>
+      _performPersistDeletedStoriesCache(
+        uid: uid,
+        stories: stories,
+        deletedAtById: deletedAtById,
+        deleteReasonById: deleteReasonById,
       );
-    } catch (_) {}
-  }
 
-  Future<void> clearDeletedStoriesCache(String uid) async {
-    if (uid.isEmpty) return;
-    await _ensureInitialized();
-    try {
-      await _prefs?.remove(_deletedStoriesCacheKey(uid));
-    } catch (_) {}
-  }
+  Future<void> clearDeletedStoriesCache(String uid) =>
+      _performClearDeletedStoriesCache(uid);
 
-  Future<DeletedStoryCachePayload> fetchDeletedStories(String uid) async {
-    final items = <StoryModel>[];
-    final deletedAtById = <String, int>{};
-    final deleteReasonById = <String, String>{};
-    final seenStoryIds = <String>{};
-    var deletedDocCount = 0;
-    var parseErrorCount = 0;
-
-    try {
-      final archiveSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('DeletedStories')
-          .get();
-
-      for (final d in archiveSnap.docs) {
-        try {
-          final data = d.data();
-          final storyId = (data['storyId'] ?? d.id).toString().trim();
-          if (storyId.isEmpty || !seenStoryIds.add(storyId)) continue;
-          deletedDocCount++;
-
-          final createdAtMs = _asEpochMillis(
-            data['createdAtOriginal'] ?? data['createdDate'],
-            fallback: DateTime.now().millisecondsSinceEpoch,
-          );
-
-          final model = StoryModel.fromCacheMap(<String, dynamic>{
-            'id': storyId,
-            'userId': (data['userId'] ?? uid).toString(),
-            'createdDate': createdAtMs,
-            'backgroundColor':
-                _asEpochMillis(data['backgroundColor'], fallback: 0xFF000000),
-            'musicId': (data['musicId'] ?? '').toString(),
-            'musicUrl': (data['musicUrl'] ?? '').toString(),
-            'musicTitle': (data['musicTitle'] ?? '').toString(),
-            'musicArtist': (data['musicArtist'] ?? '').toString(),
-            'musicCoverUrl': (data['musicCoverUrl'] ?? '').toString(),
-            'elements': _normalizeStoryElements(data['elements']),
-          });
-          items.add(model);
-          deletedAtById[model.id] = _asEpochMillis(data['deletedAt']);
-          final reason =
-              (data['reason'] ?? data['deleteReason'] ?? '').toString().trim();
-          if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
-        } catch (e) {
-          parseErrorCount++;
-          debugPrint('Deleted archive parse skipped');
-        }
-      }
-    } catch (e) {
-      debugPrint('Deleted stories archive fetch error: $e');
-    }
-
-    final snap = await FirebaseFirestore.instance
-        .collection('stories')
-        .where('userId', isEqualTo: uid)
-        .get();
-
-    for (final d in snap.docs) {
-      try {
-        final data = d.data();
-        if ((data['deleted'] ?? false) != true) continue;
-        if (!seenStoryIds.add(d.id)) continue;
-        deletedDocCount++;
-        final model = StoryModel.fromCacheMap(<String, dynamic>{
-          'id': d.id,
-          ...data,
-          'createdDate': _asEpochMillis(
-            data['createdDate'],
-            fallback: DateTime.now().millisecondsSinceEpoch,
-          ),
-          'backgroundColor':
-              _asEpochMillis(data['backgroundColor'], fallback: 0xFF000000),
-          'elements': _normalizeStoryElements(data['elements']),
-        });
-        items.add(model);
-        final delAt = _asEpochMillis(data['deletedAt']);
-        deletedAtById[model.id] = delAt;
-        final reason = (data['deleteReason'] ?? '').toString();
-        if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
-      } catch (e) {
-        parseErrorCount++;
-        debugPrint('Deleted story parse skipped');
-      }
-    }
-
-    debugPrint(
-      'Deleted stories fetch: liveDocs=${snap.docs.length} '
-      'deletedDocs=$deletedDocCount parsed=${items.length} parseErrors=$parseErrorCount '
-      'reasons=${deleteReasonById.length}',
-    );
-
-    items.sort((a, b) {
-      final aDeletedAt = deletedAtById[a.id] ?? 0;
-      final bDeletedAt = deletedAtById[b.id] ?? 0;
-      return bDeletedAt.compareTo(aDeletedAt);
-    });
-
-    final trimmed =
-        items.take(_deletedStoriesCacheLimit).toList(growable: false);
-    final keptIds = trimmed.map((e) => e.id).toSet();
-    deletedAtById.removeWhere((key, _) => !keptIds.contains(key));
-    deleteReasonById.removeWhere((key, _) => !keptIds.contains(key));
-
-    return DeletedStoryCachePayload(
-      stories: trimmed,
-      deletedAtById: deletedAtById,
-      deleteReasonById: deleteReasonById,
-    );
-  }
+  Future<DeletedStoryCachePayload> fetchDeletedStories(String uid) =>
+      _performFetchDeletedStories(uid);
 
   Future<Map<String, dynamic>?> getStoryRaw(
     String storyId, {
     bool preferCache = true,
-  }) async {
-    if (storyId.isEmpty) return null;
-    if (preferCache) {
-      try {
-        final cached = await FirebaseFirestore.instance
-            .collection('stories')
-            .doc(storyId)
-            .get(const GetOptions(source: Source.cache));
-        if (cached.exists) {
-          return Map<String, dynamic>.from(cached.data() ?? const {});
-        }
-      } catch (_) {}
-    }
-    final server = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .get();
-    if (!server.exists) return null;
-    return Map<String, dynamic>.from(server.data() ?? const {});
-  }
+  }) =>
+      _performGetStoryRaw(
+        storyId,
+        preferCache: preferCache,
+      );
 
   Future<List<StoryModel>> getStoriesForUser(
     String userId, {
     bool preferCache = true,
     bool includeDeleted = false,
-  }) async {
-    if (userId.isEmpty) return const <StoryModel>[];
-
-    Future<QuerySnapshot<Map<String, dynamic>>> runQuery(GetOptions? options) {
-      final query = FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdDate', descending: true);
-      if (options == null) return query.get();
-      return query.get(options);
-    }
-
-    QuerySnapshot<Map<String, dynamic>> snap;
-    if (preferCache) {
-      try {
-        snap = await runQuery(const GetOptions(source: Source.cache));
-        if (snap.docs.isEmpty) {
-          snap = await runQuery(null);
-        }
-      } catch (_) {
-        snap = await runQuery(null);
-      }
-    } else {
-      snap = await runQuery(null);
-    }
-
-    final expiryCutoff = _storyExpiryCutoff;
-    final stories = snap.docs
-        .where(
-          (doc) => includeDeleted || (doc.data()['deleted'] ?? false) != true,
-        )
-        .map(StoryModel.fromDoc)
-        .where(
-            (story) => includeDeleted || story.createdAt.isAfter(expiryCutoff))
-        .toList(growable: false)
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return stories;
-  }
+  }) =>
+      _performGetStoriesForUser(
+        userId,
+        preferCache: preferCache,
+        includeDeleted: includeDeleted,
+      );
 
   Future<List<String>> fetchStoryViewerIds(
     String storyId, {
     int limit = 50,
-  }) async {
-    if (storyId.isEmpty) return const <String>[];
-    final snap = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Viewers')
-        .limit(limit)
-        .get();
-    return snap.docs.map((doc) => doc.id).toList(growable: false);
-  }
+  }) =>
+      _performFetchStoryViewerIds(
+        storyId,
+        limit: limit,
+      );
 
-  Future<int> fetchStoryViewerCount(String storyId) async {
-    if (storyId.isEmpty) return 0;
-    final counts = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Viewers')
-        .count()
-        .get();
-    return counts.count ?? 0;
-  }
+  Future<int> fetchStoryViewerCount(String storyId) =>
+      _performFetchStoryViewerCount(storyId);
 
   Future<List<StoryCommentModel>> fetchStoryComments(
     String storyId, {
     int limit = 50,
-  }) async {
-    if (storyId.isEmpty) return const <StoryCommentModel>[];
-    final snap = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Yorumlar')
-        .orderBy('timeStamp', descending: true)
-        .limit(limit)
-        .get();
-    return snap.docs
-        .map((doc) => StoryCommentModel.fromMap(doc.data(), docID: doc.id))
-        .toList(growable: false);
-  }
+  }) =>
+      _performFetchStoryComments(
+        storyId,
+        limit: limit,
+      );
 
-  Future<int> fetchStoryCommentCount(String storyId) async {
-    if (storyId.isEmpty) return 0;
-    final counts = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Yorumlar')
-        .count()
-        .get();
-    return counts.count ?? 0;
-  }
+  Future<int> fetchStoryCommentCount(String storyId) =>
+      _performFetchStoryCommentCount(storyId);
 
-  Future<StoryCommentModel?> fetchLatestStoryComment(String storyId) async {
-    if (storyId.isEmpty) return null;
-    final snap = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Yorumlar')
-        .limit(1)
-        .orderBy('timeStamp', descending: true)
-        .get();
-    if (snap.docs.isEmpty) return null;
-    final doc = snap.docs.first;
-    return StoryCommentModel.fromMap(doc.data(), docID: doc.id);
-  }
+  Future<StoryCommentModel?> fetchLatestStoryComment(String storyId) =>
+      _performFetchLatestStoryComment(storyId);
 
   Future<void> addStoryComment(
     String storyId, {
     required String userId,
     required String text,
     required String gif,
-  }) async {
-    if (storyId.isEmpty || userId.isEmpty) return;
-    await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Yorumlar')
-        .add({
-      'userID': userId,
-      'metin': text,
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
-      'gif': gif,
-    });
-  }
+  }) =>
+      _performAddStoryComment(
+        storyId,
+        userId: userId,
+        text: text,
+        gif: gif,
+      );
 
   Future<void> deleteStoryComment(
     String storyId, {
     required String commentId,
-  }) async {
-    if (storyId.isEmpty || commentId.isEmpty) return;
-    await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Yorumlar')
-        .doc(commentId)
-        .delete();
-  }
+  }) =>
+      _performDeleteStoryComment(
+        storyId,
+        commentId: commentId,
+      );
 
   Future<void> addScreenshotEvent(
     String storyId, {
     required String userId,
-  }) async {
-    if (storyId.isEmpty || userId.isEmpty) return;
-    await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('screenshots')
-        .doc(userId)
-        .set({
-      'userId': userId,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
+  }) =>
+      _performAddScreenshotEvent(
+        storyId,
+        userId: userId,
+      );
 
   Future<void> markUserStoriesFullyViewed({
     required String currentUid,
     required String targetUserId,
     required int latestStoryTime,
-  }) async {
-    if (currentUid.isEmpty || targetUserId.isEmpty || latestStoryTime <= 0) {
-      return;
-    }
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUid)
-        .collection('readStories')
-        .doc(targetUserId)
-        .set({
-      'storyId': targetUserId,
-      'readDate': latestStoryTime,
-      'lastSeenAt': latestStoryTime,
-      'updatedDate': DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-  }
+  }) =>
+      _performMarkUserStoriesFullyViewed(
+        currentUid: currentUid,
+        targetUserId: targetUserId,
+        latestStoryTime: latestStoryTime,
+      );
 
-  Future<List<String>> fetchStoryLikeIds(String storyId) async {
-    if (storyId.isEmpty) return const <String>[];
-    final snap = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('likes')
-        .get();
-    return snap.docs.map((doc) => doc.id).toList(growable: false);
-  }
+  Future<List<String>> fetchStoryLikeIds(String storyId) =>
+      _performFetchStoryLikeIds(storyId);
 
-  Future<int> fetchStoryLikeCount(String storyId) async {
-    if (storyId.isEmpty) return 0;
-    final counts = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('likes')
-        .count()
-        .get();
-    return counts.count ?? 0;
-  }
+  Future<int> fetchStoryLikeCount(String storyId) =>
+      _performFetchStoryLikeCount(storyId);
 
   Future<StoryEngagementSnapshot> fetchStoryEngagement(
     String storyId, {
     required String currentUid,
-  }) async {
-    if (storyId.isEmpty) {
-      return const StoryEngagementSnapshot(
-        likeCount: 0,
-        isLiked: false,
-        reactionCounts: <String, int>{},
-        myReaction: '',
+  }) =>
+      _performFetchStoryEngagement(
+        storyId,
+        currentUid: currentUid,
       );
-    }
-
-    final likeCountFuture = fetchStoryLikeCount(storyId);
-    final likeStatusFuture = currentUid.trim().isEmpty
-        ? Future<bool>.value(false)
-        : FirebaseFirestore.instance
-            .collection('stories')
-            .doc(storyId)
-            .collection('likes')
-            .doc(currentUid)
-            .get()
-            .then((doc) => doc.exists)
-            .catchError((_) => false);
-    final storyRawFuture = getStoryRaw(storyId, preferCache: true);
-
-    final results = await Future.wait<dynamic>([
-      likeCountFuture,
-      likeStatusFuture,
-      storyRawFuture,
-    ]);
-
-    final likeCount = results[0] as int? ?? 0;
-    final isLiked = results[1] as bool? ?? false;
-    final data = results[2] as Map<String, dynamic>?;
-
-    final reactionCounts = <String, int>{};
-    var myReaction = '';
-    if (data != null && data['reactions'] is Map) {
-      final reactions = Map<String, dynamic>.from(data['reactions']);
-      for (final entry in reactions.entries) {
-        final users = List<String>.from(entry.value ?? const <String>[]);
-        reactionCounts[entry.key] = users.length;
-        if (currentUid.isNotEmpty && users.contains(currentUid)) {
-          myReaction = entry.key;
-        }
-      }
-    }
-
-    return StoryEngagementSnapshot(
-      likeCount: likeCount,
-      isLiked: isLiked,
-      reactionCounts: reactionCounts,
-      myReaction: myReaction,
-    );
-  }
 
   Future<bool> toggleStoryLike(
     String storyId, {
     required String currentUid,
-  }) async {
-    if (storyId.isEmpty || currentUid.trim().isEmpty) return false;
-    final docRef = FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('likes')
-        .doc(currentUid);
-
-    final doc = await docRef.get();
-    if (doc.exists) {
-      await docRef.delete();
-      return false;
-    }
-    await docRef.set({
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
-    });
-    return true;
-  }
+  }) =>
+      _performToggleStoryLike(
+        storyId,
+        currentUid: currentUid,
+      );
 
   Future<String> toggleStoryReaction(
     String storyId, {
     required String currentUid,
     required String emoji,
     required String currentReaction,
-  }) async {
-    if (storyId.isEmpty || currentUid.trim().isEmpty || emoji.trim().isEmpty) {
-      return currentReaction;
-    }
-    final docRef =
-        FirebaseFirestore.instance.collection('stories').doc(storyId);
-
-    if (currentReaction == emoji) {
-      await docRef.update({
-        'reactions.$emoji': FieldValue.arrayRemove([currentUid]),
-      });
-      return '';
-    }
-
-    if (currentReaction.isNotEmpty) {
-      await docRef.update({
-        'reactions.$currentReaction': FieldValue.arrayRemove([currentUid]),
-      });
-    }
-    await docRef.update({
-      'reactions.$emoji': FieldValue.arrayUnion([currentUid]),
-    });
-    return emoji;
-  }
+  }) =>
+      _performToggleStoryReaction(
+        storyId,
+        currentUid: currentUid,
+        emoji: emoji,
+        currentReaction: currentReaction,
+      );
 
   Future<void> setStorySeen(
     String storyId, {
     required String currentUid,
-  }) async {
-    if (storyId.isEmpty || currentUid.trim().isEmpty) return;
-    await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .collection('Viewers')
-        .doc(currentUid)
-        .set({
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
+  }) =>
+      _performSetStorySeen(
+        storyId,
+        currentUid: currentUid,
+      );
 }

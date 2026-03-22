@@ -1,0 +1,542 @@
+part of 'short_controller.dart';
+
+extension ShortControllerLoadingPart on ShortController {
+  void _bindFollowingListener() {
+    final myUid = CurrentUserService.instance.effectiveUserId;
+    if (myUid.isEmpty) return;
+    _followingSub?.cancel();
+    _fetchFollowingList(myUid);
+  }
+
+  Future<void> _fetchFollowingList(String myUid) async {
+    try {
+      final ids = await _visibilityPolicy.loadViewerFollowingIds(
+        viewerUserId: myUid,
+        preferCache: true,
+      );
+      _followingIDs
+        ..clear()
+        ..addAll(ids);
+    } catch (e) {
+      _log('following fetch error: $e');
+    }
+  }
+
+  Future<_ShortPageResult> _fetchPage({
+    QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+  }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
+    QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
+    bool hasMoreDocs = true;
+    const int maxEmptyPageSkips = 3;
+
+    for (int attempt = 0; attempt < maxEmptyPageSkips; attempt++) {
+      final page = await _shortRepository.fetchReadyPage(
+        startAfter: cursor,
+        pageSize: pageSize,
+        nowMs: nowMs,
+      );
+
+      lastDoc = page.lastDoc;
+      hasMoreDocs = page.hasMore;
+
+      if (page.posts.isEmpty) {
+        return _ShortPageResult(
+          posts: const [],
+          lastDoc: cursor,
+          hasMore: false,
+        );
+      }
+
+      final rawWithVideo =
+          page.posts.where(_isEligibleShortPost).toList(growable: false);
+      final timeFiltered = rawWithVideo
+          .where((p) => p.timeStamp <= nowMs)
+          .toList(growable: false);
+      final arsivFiltered =
+          timeFiltered.where((p) => p.arsiv == false).toList(growable: false);
+      final finalFiltered = arsivFiltered
+          .where((p) => p.deletedPost != true)
+          .toList(growable: false);
+
+      if (finalFiltered.isNotEmpty) {
+        final authorIds = finalFiltered.map((e) => e.userID).toSet().toList();
+        final userPrivacy = await _fetchUsersPrivacy(authorIds);
+
+        final filtered = <PostsModel>[];
+        for (final p in finalFiltered) {
+          final isPrivate = userPrivacy[p.userID] == true;
+          final include = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+            authorUserId: p.userID,
+            followingIds: _followingIDs,
+            isPrivate: isPrivate,
+            isDeleted: false,
+          );
+          if (include) {
+            filtered.add(p);
+          }
+        }
+
+        if (filtered.isNotEmpty) {
+          return _ShortPageResult(
+            posts: filtered,
+            lastDoc: lastDoc,
+            hasMore: hasMoreDocs,
+          );
+        }
+      }
+
+      if (!page.hasMore || page.lastDoc == null) {
+        break;
+      }
+      cursor = page.lastDoc;
+    }
+
+    return _ShortPageResult(
+      posts: const [],
+      lastDoc: lastDoc,
+      hasMore: hasMoreDocs,
+    );
+  }
+
+  Future<void> backgroundPreload() async {
+    if (_isFirstVideoReady()) {
+      return;
+    }
+
+    if (_backgroundPreloadFuture != null) {
+      return _backgroundPreloadFuture;
+    }
+
+    _log(
+        '[Shorts] 🚀 Background preload başlatılıyor (disk cache destekli)...');
+
+    final future = _runBackgroundPreload();
+    _backgroundPreloadFuture = future;
+
+    try {
+      await future;
+    } finally {
+      if (identical(_backgroundPreloadFuture, future)) {
+        _backgroundPreloadFuture = null;
+      }
+    }
+  }
+
+  Future<void> _runInitialLoadOnce() {
+    final inFlight = _initialLoadFuture;
+    if (inFlight != null) return inFlight;
+
+    final future = _performInitialLoad();
+    _initialLoadFuture = future;
+    return future.whenComplete(() {
+      if (identical(_initialLoadFuture, future)) {
+        _initialLoadFuture = null;
+      }
+    });
+  }
+
+  Future<void> _performInitialLoad() async {
+    _log(
+      '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: ${ShortController._globalShuffleCompleted})',
+    );
+    _log(
+      '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}',
+    );
+
+    if (shorts.isEmpty) {
+      final snapshot = await _shortSnapshotRepository.loadHome(
+        userId: _currentUserId,
+        limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+      );
+      final applied = _applySnapshotResource(snapshot);
+      if (applied) {
+        await preloadRange(0, range: 0);
+        if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
+          unawaited(_loadNextPage());
+        }
+        return;
+      }
+      _log('[Shorts] Liste boş - sıfırlama yapılıyor');
+      isLoading.value = false;
+      hasMore.value = true;
+      _lastDoc = null;
+      clearCache();
+      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
+      await _loadNextPage();
+    } else {
+      final sanitized =
+          shorts.where(_isEligibleShortPost).toList(growable: false);
+      if (sanitized.length != shorts.length) {
+        _replaceShorts(sanitized, remapCache: true);
+      }
+      _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
+      await preloadRange(0, range: 0);
+    }
+
+    _log(
+      '[Shorts] loadInitialShorts - TAMAMLANDI, shorts.length: ${shorts.length}',
+    );
+    _log(
+      '[Shorts] Current shorts list IDs AFTER: ${shorts.map((s) => s.docID).take(5).toList()}',
+    );
+  }
+
+  Future<void> _runBackgroundPreload() async {
+    if (shorts.isNotEmpty) {
+      _log(
+          '[Shorts] 🔄 Liste zaten mevcut (${shorts.length} video), ilk 5 preload');
+      final initialCount =
+          math.min(ShortController._initialPreloadCount, shorts.length);
+      final futures = <Future>[];
+      for (int i = 0; i < initialCount; i++) {
+        if (!cache.containsKey(i)) {
+          futures.add(_preloadSingleVideoWithCache(i, shorts[i]));
+        }
+      }
+      await Future.wait(futures);
+      for (int i = 0; i < initialCount; i++) {
+        cache[i]?.setPreferredBufferDuration(
+          ShortController._neighborBufferSeconds,
+        );
+        _tiers[i] = _CacheTier.hot;
+      }
+      return;
+    }
+
+    try {
+      _log('[Shorts] 📱 İlk defa yükleme yapılıyor...');
+      await _runInitialLoadOnce();
+
+      if (shorts.isNotEmpty) {
+        final initialCount =
+            math.min(ShortController._initialPreloadCount, shorts.length);
+        _log('[Shorts] ⚡ İlk $initialCount video preload ediliyor...');
+        final futures = <Future>[];
+        for (int i = 0; i < initialCount; i++) {
+          if (!cache.containsKey(i)) {
+            futures.add(_preloadSingleVideoWithCache(i, shorts[i]));
+          }
+        }
+        await Future.wait(futures);
+        for (int i = 0; i < initialCount; i++) {
+          cache[i]?.setPreferredBufferDuration(
+            ShortController._neighborBufferSeconds,
+          );
+          _tiers[i] = _CacheTier.hot;
+        }
+        _log(
+          '[Shorts] ✅ Background preload tamamlandı - ilk $initialCount video hazır',
+        );
+      }
+    } catch (e) {
+      _log('[Shorts] ❌ Background preload hatası: $e');
+    }
+  }
+
+  Future<void> refreshShorts() async {
+    if (isRefreshing.value || isLoading.value) {
+      return;
+    }
+
+    _log('[Shorts] 🔄 Refresh başlatıldı');
+    isRefreshing.value = true;
+
+    try {
+      isLoading.value = false;
+      hasMore.value = true;
+      _lastDoc = null;
+
+      final result = await _fetchPage();
+
+      if (result.posts.isEmpty) {
+        _log('[Shorts] ⚠️ Refresh sonucu boş - mevcut liste korunuyor');
+        hasMore.value = result.hasMore;
+        return;
+      }
+
+      final previousShorts = shorts.toList(growable: false);
+      final previousIndex = lastIndex.value
+          .clamp(0, previousShorts.isEmpty ? 0 : previousShorts.length - 1);
+      final previousDocId =
+          previousShorts.isEmpty ? '' : previousShorts[previousIndex].docID;
+      final newList = List<PostsModel>.from(result.posts);
+
+      _replaceShorts(newList, remapCache: false);
+      await _remapCacheForNewList(
+        previous: previousShorts,
+        next: newList,
+      );
+
+      _lastDoc = result.lastDoc;
+      hasMore.value = result.hasMore;
+      final remappedIndex = previousDocId.isEmpty
+          ? 0
+          : newList.indexWhere((item) => item.docID == previousDocId);
+      lastIndex.value = remappedIndex >= 0
+          ? remappedIndex
+          : math.min(previousIndex, newList.length - 1);
+      if (newList.isNotEmpty && !cache.containsKey(lastIndex.value)) {
+        await _preloadSingleVideoWithCache(
+          lastIndex.value,
+          newList[lastIndex.value],
+        );
+      }
+      unawaited(_persistVisibleSnapshot());
+    } catch (e) {
+      _log('[Shorts] ❌ Refresh hatası: $e');
+      hasMore.value = true;
+    } finally {
+      isRefreshing.value = false;
+    }
+  }
+
+  Future<void> loadInitialShorts() async {
+    await _runInitialLoadOnce();
+  }
+
+  Future<void> loadMoreIfNeeded(int currentIndex) async {
+    _log(
+      '[Shorts] loadMoreIfNeeded called - currentIndex: $currentIndex, shorts.length: ${shorts.length}, isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
+    );
+    if (isLoading.value || !hasMore.value) {
+      _log(
+        '[Shorts] loadMoreIfNeeded BLOCKED - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
+      );
+      return;
+    }
+    if (currentIndex >= shorts.length - 3) {
+      _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
+      await _loadNextPage();
+    } else {
+      _log(
+        '[Shorts] loadMoreIfNeeded - Not yet time to load (need ${shorts.length - 3} but at $currentIndex)',
+      );
+    }
+  }
+
+  Future<void> warmStart({int targetCount = 20, int maxPages = 2}) async {
+    try {
+      if (shorts.isEmpty) {
+        if (_backgroundPreloadFuture != null) {
+          await _backgroundPreloadFuture;
+        } else {
+          await _runInitialLoadOnce();
+        }
+      }
+      if (shorts.isNotEmpty) {
+        await updateCacheTiers(0);
+      }
+      int loops = 0;
+      while (shorts.length < targetCount && hasMore.value && loops < maxPages) {
+        await _loadNextPage();
+        loops++;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadNextPage() async {
+    _log(
+      '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
+    );
+    if (isLoading.value || !hasMore.value) return;
+    isLoading.value = true;
+    try {
+      final result = await _fetchPage(startAfter: _lastDoc);
+
+      if (result.posts.isEmpty) {
+        hasMore.value = result.hasMore;
+        if (!result.hasMore) {
+          _log('[Shorts] Yeni sayfa bulunamadı, hasMore=false');
+        }
+        return;
+      }
+
+      _lastDoc = result.lastDoc;
+
+      final existingIds = shorts.map((post) => post.docID).toSet();
+      final incoming = result.posts
+          .where(_isEligibleShortPost)
+          .where((post) => !existingIds.contains(post.docID))
+          .toList(growable: false);
+      if (incoming.isNotEmpty) {
+        if (shorts.isEmpty && !ShortController._globalShuffleCompleted) {
+          final shuffled = List<PostsModel>.from(incoming);
+          shuffled.shuffle();
+          shorts.addAll(shuffled);
+          unawaited(_persistVisibleSnapshot());
+          ShortController._globalShuffleCompleted = true;
+        } else {
+          shorts.addAll(incoming);
+          unawaited(_persistVisibleSnapshot());
+        }
+      }
+
+      hasMore.value = result.hasMore;
+    } catch (e) {
+      _log('loadNextPage error: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<Map<String, bool>> _fetchUsersPrivacy(List<String> uids) async {
+    if (uids.isEmpty) return {};
+
+    final result = <String, bool>{};
+    final missing = <String>[];
+    for (final uid in uids) {
+      final cached = _privacyCache.get(uid);
+      if (cached != null) {
+        result[uid] = cached;
+      } else {
+        missing.add(uid);
+      }
+    }
+
+    if (missing.isEmpty) return result;
+
+    const chunk = 10;
+    for (int i = 0; i < missing.length; i += chunk) {
+      final part = missing.sublist(i, (i + chunk).clamp(0, missing.length));
+      try {
+        final users = await _userSummaryResolver.resolveMany(
+          part,
+          preferCache: true,
+        );
+
+        for (final entry in users.entries) {
+          final isPrivate = entry.value.isPrivate;
+          result[entry.key] = isPrivate;
+          _privacyCache.put(entry.key, isPrivate);
+        }
+      } catch (e) {
+        _log('_fetchUsersPrivacy chunk error: $e');
+      }
+
+      for (final uid in part) {
+        result.putIfAbsent(uid, () => false);
+        if (!_privacyCache.containsKey(uid)) {
+          _privacyCache.put(uid, false);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  bool _applySnapshotResource(CachedResource<List<PostsModel>> resource) {
+    final data = resource.data;
+    if (data == null || data.isEmpty) return false;
+    final filtered = data.where(_isEligibleShortPost).toList(growable: false);
+    if (filtered.isEmpty) return false;
+    _replaceShorts(filtered);
+    hasMore.value = true;
+    return true;
+  }
+
+  void _replaceShorts(
+    List<PostsModel> newItems, {
+    bool remapCache = true,
+  }) {
+    newItems = newItems.where(_isEligibleShortPost).toList(growable: false);
+    if (_hasSameRenderOrder(shorts, newItems)) {
+      return;
+    }
+    final previous = shorts.toList(growable: false);
+    shorts.assignAll(newItems);
+    if (remapCache) {
+      unawaited(_remapCacheForNewList(
+        previous: previous,
+        next: newItems,
+      ));
+    }
+  }
+
+  bool _hasSameRenderOrder(
+    List<PostsModel> current,
+    List<PostsModel> next,
+  ) {
+    if (identical(current, next)) return true;
+    if (current.length != next.length) return false;
+    for (int i = 0; i < current.length; i++) {
+      if (current[i].docID != next[i].docID) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _persistVisibleSnapshot() async {
+    final userId = _currentUserId;
+    if (userId.isEmpty || shorts.isEmpty) return;
+    await _shortSnapshotRepository.persistHomeSnapshot(
+      userId: userId,
+      posts: shorts.toList(growable: false),
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+      source: CachedResourceSource.server,
+    );
+  }
+
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+
+  Future<void> _remapCacheForNewList({
+    required List<PostsModel> previous,
+    required List<PostsModel> next,
+  }) async {
+    if (cache.isEmpty) return;
+
+    final adaptersByDocId = <String, HLSVideoAdapter>{};
+    final tiersByDocId = <String, _CacheTier>{};
+
+    for (int i = 0; i < previous.length; i++) {
+      final docId = previous[i].docID;
+      if (docId.isEmpty) continue;
+      final adapter = cache[i];
+      if (adapter != null) {
+        adaptersByDocId[docId] = adapter;
+      }
+      final tier = _tiers[i];
+      if (tier != null) {
+        tiersByDocId[docId] = tier;
+      }
+    }
+
+    final remappedCache = <int, HLSVideoAdapter>{};
+    final remappedTiers = <int, _CacheTier>{};
+    final retainedDocIds = <String>{};
+
+    for (int i = 0; i < next.length; i++) {
+      final docId = next[i].docID;
+      final adapter = adaptersByDocId[docId];
+      if (adapter != null) {
+        remappedCache[i] = adapter;
+        retainedDocIds.add(docId);
+      }
+      final tier = tiersByDocId[docId];
+      if (tier != null) {
+        remappedTiers[i] = tier;
+      }
+    }
+
+    final releaseTasks = <Future<void>>[];
+    for (final entry in adaptersByDocId.entries) {
+      if (retainedDocIds.contains(entry.key)) continue;
+      releaseTasks.add(_videoPool.release(entry.value));
+    }
+
+    cache
+      ..clear()
+      ..addAll(remappedCache);
+    _tiers
+      ..clear()
+      ..addAll(remappedTiers);
+
+    if (releaseTasks.isNotEmpty) {
+      try {
+        await Future.wait(releaseTasks);
+      } catch (_) {}
+    }
+  }
+}
