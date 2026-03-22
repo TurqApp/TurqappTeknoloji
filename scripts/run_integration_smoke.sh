@@ -4,12 +4,18 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+if [[ -f ".env.integration.local" ]]; then
+  set -a
+  source ".env.integration.local"
+  set +a
+fi
+
 artifact_dir="artifacts/integration_smoke"
 android_package="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 android_remote_artifact_dir="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 last_artifact_export_reason=""
 
-default_fixture_file="integration_test/fixtures/smoke_fixture.device_baseline.json"
+default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
 allow_stored_auth="${INTEGRATION_ALLOW_STORED_AUTH:-0}"
@@ -38,11 +44,11 @@ if [[ "$allow_stored_auth" != "1" ]]; then
 fi
 
 declare -a smoke_tests=(
-  "integration_test/feed_resume_test.dart"
-  "integration_test/explore_preview_gate_test.dart"
-  "integration_test/profile_resume_test.dart"
-  "integration_test/short_refresh_preserve_test.dart"
-  "integration_test/notifications_snapshot_mutation_test.dart"
+  "integration_test/feed/feed_resume_test.dart"
+  "integration_test/explore/explore_preview_gate_test.dart"
+  "integration_test/profile/profile_resume_test.dart"
+  "integration_test/shorts/short_refresh_preserve_test.dart"
+  "integration_test/notifications/notifications_snapshot_mutation_test.dart"
 )
 
 declare -a smoke_artifacts=(

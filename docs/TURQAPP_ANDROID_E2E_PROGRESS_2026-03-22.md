@@ -27,12 +27,13 @@ Bu E2E/test matrisi şu alanları kapsar:
 - native ExoPlayer truth snapshot
 - off-screen audible feed playback assertion
 
-## Ana Test Dosyaları
+## Ana Test Yapısı
 
-- `integration_test/turqapp_master_e2e_test.dart`
-  - tek uzun oturumlu ana matris
+- `integration_test/turqapp_complete_e2e_test.dart`
+  - tek resmi ana E2E entrypoint
+  - eski `full`, `all_tabs` ve `master` kapsamını tek uzun oturumda birleştirir
   - launch + auth bootstrap
-  - feed like/comment/reply/delete yüzeyi
+  - feed like/comment/reply yüzeyi
   - profile edit + settings
   - composer draft
   - explore sekmeleri
@@ -43,23 +44,11 @@ Bu E2E/test matrisi şu alanları kapsar:
   - her adımda progress/artifact kaydı
   - native Exo audio ownership assertion
 
-- `integration_test/turqapp_full_e2e_test.dart`
-  - ana kullanıcı yolculuğu
-  - feed like
-  - comment
-  - profile edit
-  - settings aç/kapat
-  - post creator draft akışı
+- `integration_test/core/helpers/turqapp_complete_e2e_flow.dart`
+  - complete E2E akışının reusable gövdesi
+  - daha sonra iOS eşlemesinde de aynı matris mantığı korunacak
 
-- `integration_test/turqapp_all_tabs_e2e_test.dart`
-  - ana tab yüzeyleri
-  - explore iç sekmeleri
-  - education/pasaj iç sekmeleri
-  - chat
-  - notifications
-  - short
-
-- `integration_test/turqapp_audio_ownership_e2e_test.dart`
+- `integration_test/feed/turqapp_audio_ownership_e2e_test.dart`
   - off-feed yüzeylerde audible feed leak assertion
   - profile
   - education + tüm visible pasaj sekmeleri
@@ -68,28 +57,54 @@ Bu E2E/test matrisi şu alanları kapsar:
   - short
   - background/resume sonrası tekrar assertion
 
-- `integration_test/feed_production_smoke_suite_test.dart`
+- `integration_test/feed/feed_production_smoke_suite_test.dart`
   - feed playback
   - normal/fast/aggressive scroll
   - perf monitor
   - background/resume
   - network override
 
-- `integration_test/feed_black_flash_smoke_test.dart`
+- `integration_test/feed/feed_black_flash_smoke_test.dart`
   - black flash / renderer stall / surface rebind erken başlangıç smoke
 
-- `integration_test/feed_fullscreen_audio_smoke_test.dart`
+- `integration_test/feed/feed_fullscreen_audio_smoke_test.dart`
   - fullscreen handoff
   - ses ve playback continuity
 
-- `integration_test/feed_network_resilience_smoke_test.dart`
+- `integration_test/feed/feed_network_resilience_smoke_test.dart`
   - cellular/offline resilience
 
-- `integration_test/short_ten_video_smoke_test.dart`
+- `integration_test/shorts/short_ten_video_smoke_test.dart`
   - ilk 10 short playback continuity
 
-- `integration_test/feed_native_exoplayer_truth_smoke_test.dart`
+- `integration_test/feed/feed_native_exoplayer_truth_smoke_test.dart`
   - native ExoPlayer truth smoke hattı
+
+## Resmi Set ve Genisletilmis Havuz
+
+Resmi master release-gate set:
+
+- `integration_test/turqapp_complete_e2e_test.dart`
+- `integration_test/feed/feed_black_flash_smoke_test.dart`
+- `integration_test/feed/feed_fullscreen_audio_smoke_test.dart`
+- `integration_test/feed/feed_network_resilience_smoke_test.dart`
+- `integration_test/feed/feed_normal_scroll_playback_smoke_test.dart`
+- `integration_test/shorts/short_first_two_playback_test.dart`
+- `integration_test/feed/turqapp_audio_ownership_e2e_test.dart`
+- `integration_test/feed/hls_data_usage_suite_test.dart`
+
+Genisletilmis ama master disi uzman havuz:
+
+- `integration_test/feed/feed_production_smoke_suite_test.dart`
+- `integration_test/feed/feed_native_exoplayer_truth_smoke_test.dart`
+- `integration_test/feed/feed_resume_test.dart`
+- `integration_test/explore/explore_preview_gate_test.dart`
+- `integration_test/profile/profile_resume_test.dart`
+- `integration_test/notifications/notifications_snapshot_mutation_test.dart`
+- `integration_test/chat/chat_listing_smoke_test.dart`
+- `integration_test/shorts/short_five_item_playback_stress_test.dart`
+- `integration_test/shorts/short_ten_video_smoke_test.dart`
+- diger tek-risk odakli playback ve replay testleri
 
 ## Native Truth / Log Katmanı
 
@@ -101,11 +116,11 @@ Bu E2E/test matrisi şu alanları kapsar:
   - `android/app/src/main/kotlin/com/turqapp/app/qa/ExoPlayerPlaybackProbe.kt`
 
 - Flutter side helpers:
-  - `integration_test/helpers/native_exoplayer_probe.dart`
-  - `integration_test/helpers/smoke_artifact_collector.dart`
-  - `integration_test/helpers/e2e_matrix_logger.dart`
-  - `integration_test/helpers/e2e_progress_tracker.dart`
-  - `integration_test/helpers/test_state_probe.dart`
+  - `integration_test/core/helpers/native_exoplayer_probe.dart`
+  - `integration_test/core/helpers/smoke_artifact_collector.dart`
+  - `integration_test/core/helpers/e2e_matrix_logger.dart`
+  - `integration_test/core/helpers/e2e_progress_tracker.dart`
+  - `integration_test/core/helpers/test_state_probe.dart`
 
 ## Key / Probe Hazırlığı
 
@@ -146,12 +161,12 @@ Cihaz:
 
 ### Geçenler
 
-- `integration_test/turqapp_all_tabs_e2e_test.dart`
+- `integration_test/turqapp_complete_e2e_test.dart`
   - gerçek cihazda geçti
   - explore iç sekmeleri dahil
   - pasaj iç sekmeleri dahil
 
-- `integration_test/turqapp_audio_ownership_e2e_test.dart`
+- `integration_test/feed/turqapp_audio_ownership_e2e_test.dart`
   - yazıldı
   - gerçek cihaz koşusu başlatıldı
   - son görülen ilerleme:
@@ -169,20 +184,114 @@ Cihaz:
     - `resume_education`
   - bu noktaya kadar audible feed leak assertion düşmedi
 
-- `integration_test/feed_production_smoke_suite_test.dart`
+- `integration_test/feed/feed_production_smoke_suite_test.dart`
   - geçti
 
-- `integration_test/feed_black_flash_smoke_test.dart`
+- `integration_test/feed/feed_black_flash_smoke_test.dart`
   - geçti
 
-- `integration_test/feed_network_resilience_smoke_test.dart`
+- `integration_test/feed/feed_network_resilience_smoke_test.dart`
   - geçti
 
-- `integration_test/feed_fullscreen_audio_smoke_test.dart`
+- `integration_test/feed/feed_fullscreen_audio_smoke_test.dart`
   - son düzeltmeler sonrası geçti
 
-- `integration_test/short_ten_video_smoke_test.dart`
+- `integration_test/shorts/short_ten_video_smoke_test.dart`
   - geçti
+
+## Mevcut Fonksiyonel Coverage Karari
+
+Guclu taraf:
+
+- launch + auth
+- feed playback
+- short playback
+- ownership / off-screen audio
+- profile temel akislar
+- explore/profile/chat/notifications/education tab traversal
+
+Kismi taraf:
+
+- comments
+- chat derinligi
+- notifications route derinligi
+- story interaksiyonlari
+- market ve education detail akislar
+- uzun oturum trendi
+
+Net eksik Phase 3 alanlari:
+
+- yorumda gercek reply send
+- yorum delete
+- chat icinde gercek conversation acip mesaj gonderme
+- notification item deep-link hedef route dogrulamasi
+- single short'a gercek entrypoint'ten gitme
+- story reply/reaction
+- market detail derin akisi
+- education detail derin akislar:
+  - burs detay
+  - job finder detay
+  - test solve
+- 10-15 dakikalik stress/memory assertion lane
+
+Unutulmaya acik ikinci halka bosluklar:
+
+- auth/session churn:
+  - logout
+  - stored account reauth
+  - account switch
+- explore gercek search mode + recent search persistence
+- social graph + safety:
+  - follow/unfollow
+  - report/block
+- post publish + media persistence
+- permission matrix:
+  - camera
+  - gallery
+  - microphone
+  - location
+- passage owner/applicant mutasyonlari:
+  - job apply
+  - tutoring create/save
+  - practice exam apply/save
+  - answer key saved/owner yuzeyleri
+- story management:
+  - story maker
+  - highlights
+  - deleted stories restore/repost/delete
+  - story music
+- settings/raw-form round-trip persistence
+
+Onerilen yeni entrypoint ailesi:
+
+- `integration_test/comment_reply_send_e2e_test.dart`
+- `integration_test/comment_delete_e2e_test.dart`
+- `integration_test/chat_conversation_send_e2e_test.dart`
+- `integration_test/notifications_deeplink_route_e2e_test.dart`
+- `integration_test/short_real_entry_e2e_test.dart`
+- `integration_test/story_reply_reaction_e2e_test.dart`
+- `integration_test/market_detail_deep_e2e_test.dart`
+- `integration_test/education_detail_deep_e2e_test.dart`
+- `integration_test/long_session_stress_memory_e2e_test.dart`
+
+Ikinci halka onerilen entrypointler:
+
+- `integration_test/auth_session_churn_e2e_test.dart`
+- `integration_test/explore_search_mode_e2e_test.dart`
+- `integration_test/social_graph_safety_e2e_test.dart`
+- `integration_test/post_publish_persistence_e2e_test.dart`
+- `integration_test/permission_matrix_e2e_test.dart`
+- `integration_test/passage_actions_e2e_test.dart`
+- `integration_test/story_management_e2e_test.dart`
+- `integration_test/settings_roundtrip_e2e_test.dart`
+
+Karar:
+
+- complete E2E artik eskisine gore anlamli sekilde daha genis
+- ama uygulamanin tum islevsel derinligi acisindan Phase 3 kapanmis degil
+- buna ek olarak operasyonel sertlik acisindan ikinci halka bosluklar da acik
+- yeni derin akislari tek bir dev complete teste yigmamak gerekir
+- once uzman entrypoint olarak yesile cekip, sonra uygun olanlari master sete promote etmek gerekir
 
 ### Kök Fix Özetleri
 
@@ -207,21 +316,25 @@ Cihaz:
 
 ## Sonraki Adım
 
-Devam edilecek ilk komut:
+Tek ana E2E:
 
 ```bash
-flutter test integration_test/turqapp_master_e2e_test.dart \
+flutter test integration_test/turqapp_complete_e2e_test.dart \
   -d 192.168.1.196:5555 \
   --dart-define=RUN_INTEGRATION_SMOKE=true \
   --dart-define=INTEGRATION_LOGIN_EMAIL=turqapp@gmail.com \
   --dart-define=INTEGRATION_LOGIN_PASSWORD=Nisa1512.
 ```
 
-Ardından toplu matris koşusu:
+Complete E2E + uzman smoke zinciri:
 
 ```bash
-bash scripts/run_turqapp_android_e2e_matrix.sh
+bash scripts/run_turqapp_master_e2e.sh
 ```
+
+Phase 3 kanonik dokumani:
+
+- `docs/TURQAPP_TEST_SYSTEM_2026-03-22.md`
 
 ## Not
 
