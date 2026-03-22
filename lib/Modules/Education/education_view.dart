@@ -676,6 +676,7 @@ class EducationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenEducation),
       body: SafeArea(
         bottom: false,
         child: Stack(
@@ -893,9 +894,13 @@ class EducationView extends StatelessWidget {
                                 (visibleIndex) {
                           final actualIndex =
                               controller.actualIndexForVisible(visibleIndex);
+                          final tabId = controller.titles[actualIndex];
                           final isSelected =
                               controller.selectedTab.value == actualIndex;
                           return GestureDetector(
+                            key: ValueKey(
+                              IntegrationTestKeys.educationTab(tabId),
+                            ),
                             onTap: () => controller.onTabTap(visibleIndex),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -913,7 +918,7 @@ class EducationView extends StatelessWidget {
                               ),
                               child: Text(
                                 _localizedPasajTitle(
-                                  controller.titles[actualIndex],
+                                  tabId,
                                 ),
                                 style: TextStyle(
                                   color: Colors.black,

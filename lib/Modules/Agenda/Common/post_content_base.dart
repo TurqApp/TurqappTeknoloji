@@ -73,6 +73,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
+  Worker? _playbackSuspendedWorker;
+  Worker? _navSelectionWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
   bool _playbackIntentTracked = false;
@@ -121,8 +123,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isSurfacePlaybackAllowed {
     if (isStandalonePostInstance) return true;
-    if (agendaController.playbackSuspended.value) return false;
-    if (!_isProfileSurfaceInstance) return true;
+    if (!_isProfileSurfaceInstance) {
+      return agendaController.canClaimPlaybackNow;
+    }
     final nav = NavBarController.maybeFind();
     final settings = SettingsController.maybeFind();
     final hasEducation = settings?.educationScreenIsOn.value ?? false;
@@ -228,6 +231,24 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           _safePauseVideo();
         }
       });
+
+      _playbackSuspendedWorker = ever<bool>(
+        agendaController.playbackSuspended,
+        (suspended) {
+          if (suspended || !_isSurfacePlaybackAllowed) {
+            _safePauseVideo();
+          }
+        },
+      );
+
+      final nav = NavBarController.maybeFind();
+      if (nav != null) {
+        _navSelectionWorker = ever<int>(nav.selectedIndex, (_) {
+          if (!_isSurfacePlaybackAllowed) {
+            _safePauseVideo();
+          }
+        });
+      }
     }
 
     if (mounted) {
@@ -263,6 +284,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     _muteWorker?.dispose();
     _pauseAllWorker?.dispose();
+    _playbackSuspendedWorker?.dispose();
+    _navSelectionWorker?.dispose();
     videoValueNotifier.dispose();
     super.dispose();
   }

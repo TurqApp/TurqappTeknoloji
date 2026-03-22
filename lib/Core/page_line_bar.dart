@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
@@ -123,6 +124,9 @@ class _PageLineBarState extends State<PageLineBar> {
           final item = widget.barList[index];
           return Expanded(
             child: GestureDetector(
+              key: ValueKey(
+                IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
+              ),
               onTap: () {
                 controller.selection.value = index;
                 _syncExternalPageController(index, animate: true);
