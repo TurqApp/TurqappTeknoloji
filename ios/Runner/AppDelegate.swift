@@ -1,8 +1,10 @@
 import Flutter
 import UIKit
+import FirebaseMessaging
 import GoogleMaps
 import AVFAudio
 import AVFoundation
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -20,7 +22,25 @@ import AVFoundation
     if let hlsRegistrar = self.registrar(forPlugin: "HLSPlayerPlugin") {
       HLSPlayerPlugin.register(with: hlsRegistrar)
     }
+    PlaybackHealthStore.shared.installDebugLabelIfNeeded()
+    UNUserNotificationCenter.current().delegate = self
+    application.registerForRemoteNotifications()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    Messaging.messaging().apnsToken = deviceToken
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
   }
 }

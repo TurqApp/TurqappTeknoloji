@@ -525,6 +525,258 @@ Bu iki yüzey birlikte ele alınmalı çünkü aynı candidate snapshot problem 
 
 Bu son faz olmalı çünkü en hassas ve regresyon riski en yüksek yüzey bu.
 
+## Mevcut Mimarimizi Gelistiren Uygulama Plani
+
+Bu planin amaci mevcut sistemi cope atmak degil, zaten calisan parcali altyapiyi tek kontrata dogru evrimlestirmektir.
+
+Temel ilke:
+
+- `CurrentUserService` referans pattern olarak korunacak
+- `IndexPoolStore` kaldirilmayacak, ama rolu daraltilacak
+- `SWRController` bir anda tum ekrandan sokulmeyecek
+- mevcut `GlobalVideoAdapterPool`, `VideoStateManager`, `PrefetchScheduler` ve `SegmentCache` tekrar kullanilacak
+- ilk adimlar bridge ve facade katmanlari olacak
+- Pasaj ve egitim listeleme aileleri `Typesense-first` kabul edilecek; tekil ekran istisnasi gibi ele alinmayacak
+
+### 1. Veri Plani: cache-first, scoped-snapshot, sync-backed
+
+Hedef:
+
+- veri yukleme davranisini standartlastirmak
+- mevcut cache kaynaklarini tek kontrat altinda toplamak
+- controller icindeki fetch/cache/fallback daginikligini azaltmak
+
+Mevcut yapidan korunacaklar:
+
+- `CurrentUserService` icindeki cache-first + background sync davranisi
+- `IndexPoolStore`un warm-start hizi
+- `PostRepository`, `JobRepository`, `TypesenseEducationSearchService`, `NotificationsRepository` icindeki mevcut fetch yetenekleri
+- `UserProfileCacheService` ve `UserRepository` icindeki ortak user summary cozumu
+- `TypesenseMarketSearchService` ve `TypesenseEducationSearchService` icindeki mevcut Pasaj arama/on-yukleme yetenekleri
+- `TypesenseUserService` ile profile header bootstrap akisi
+- `ProfilePostsCacheService` ile profile bucket cache akisi
+
+Evrim adimlari:
+
+1. Ortak `CachedResource<T>` ve `ScopedSnapshotStore` kontrati tanimlanacak.
+2. `IndexPoolStore`, ana snapshot store olmaktan cikarilip `WarmLaunchPool` rolune dusurulecek.
+3. `resolve` hatti icin ortak `UserSummaryResolver` katmani tanimlanacak; `avatarUrl`, `nickname`, `displayName`, `rozet` tek yerden beslenecek.
+4. `Typesense-first` yuzeyler icin ortak `Typesense -> resolve -> scoped snapshot` adapter katmani kurulacak.
+5. `Feed` ve `Explore` icin `CandidateAssembler` katmani eklenecek.
+6. `Short` icin `eligible snapshot` write/read hatti eklenecek.
+7. `Job` icin `Typesense` ve repository cache hattini birlestiren `JobHomeSnapshotRepository` olusturulacak.
+8. `Market`, `Tutoring`, `Scholarships`, `PracticeExams`, `AnswerKey`, `Workout`, `PastQuestion` gibi Pasaj/Egitim listing aileleri ayni adapter ustune alinacak.
+9. `TypesenseUserService` user card cache'siz kaldigi icin `TypesenseUserCardCacheSource` ile `UserSummaryResolver`a ikinci kaynak olarak baglanacak.
+10. `PracticeExams`, `AnswerKey`, `PastQuestion` gibi sadece `docId` donduren arama akislari icin ayri `docId -> repository hydration -> snapshot` adapter'i kurulacak.
+11. `Profile` icin mevcut `ProfilePostsCacheService` yeni kontrata baglanacak; `ProfileSnapshotRepository` aile planina alinacak.
+12. `Notifications` icin Firestore cache uzerine uygulamanin kendi ordered snapshot katmani eklenecek.
+
+Somut cikti:
+
+- `FeedSnapshotRepository`
+- `ExploreSnapshotRepository`
+- `ShortSnapshotStore`
+- `JobHomeSnapshotRepository`
+- `NotificationsSnapshotStore`
+- `UserSummaryResolver`
+- `TypesenseListingAdapter`
+- `TypesenseDocIdHydrationAdapter`
+- `TypesenseUserCardCacheSource`
+- `ProfileSnapshotRepository`
+
+### 2. Playback Plani: state-machine + bounded player pool
+
+Hedef:
+
+- video takilmalarini veri katmanindan ayirmak
+- aktif, warm ve cold player durumlarini standardize etmek
+- ayni videoya gir ciklarda player churn maliyetini dusurmek
+
+Mevcut yapidan korunacaklar:
+
+- `GlobalVideoAdapterPool`
+- `VideoStateManager`
+- `PrefetchScheduler`
+- `SegmentCache`
+
+Evrim adimlari:
+
+1. `GlobalVideoAdapterPool` tek basina kullanilan utility olmaktan cikarilip surface bazli budget ile calistirilacak.
+2. `ShortController` icindeki aktif/warm/cold ve preload mantigi `ShortPlaybackCoordinator` icine alinacak.
+3. `Feed` icin daha hafif bir `FeedPlaybackCoordinator` eklenecek.
+4. Ortak playback state machine su durumlari yonetecek:
+   - `idle`
+   - `primed`
+   - `attaching`
+   - `ready`
+   - `active`
+   - `suspended`
+   - `disposed`
+5. Bounded player pool kurallari yuzey bazli sabitlenecek:
+   - `Short`: dusuk cihazda `1 active + 1 warm`, yuksek cihazda kontrollu artis
+   - `Feed`: tek aktif autoplay, cok sinirli komsu hazirligi
+6. `PrefetchScheduler` veri listesinden degil `playback coordinator` kararindan queue alacak noktaya tasinacak.
+
+Somut cikti:
+
+- `ShortPlaybackCoordinator`
+- `FeedPlaybackCoordinator`
+- ortak `PlaybackStateMachine`
+- surface bazli `PlayerBudgetPolicy`
+
+### 3. Render Plani: diff-based, visibility-driven, placeholder-first
+
+Hedef:
+
+- full list reset yerine patch bazli guncelleme
+- gorunmeyen hucrelerde gereksiz rebuild ve medya attach maliyetini azaltmak
+- ilk boya sirasinda thumbnail ve placeholder ile hiz kazanmak
+
+Mevcut yapidan korunacaklar:
+
+- mevcut `ShortView`, `SingleShortView`, `AgendaContent` widget agaci
+- mevcut thumbnail ve media-ready sinyalleri
+
+Evrim adimlari:
+
+1. Liste degisimleri `assignAll` ile tam reset yerine diff/patch mantigina tasinacak.
+2. `ShortView` ve `Feed` tarafinda visibility karari scroll event'ten ayrilacak; debounced `active index` modeli getirilecek.
+3. Media hucreleri icin `placeholder-first` davranis standartlastirilacak:
+   - once thumbnail
+   - sonra player attach
+   - sonra overlay ve interaktif UI
+4. `RenderScheduler` veya esdeger surface state modeli ile aktif hucre disindakiler sade render alacak.
+5. `ShortView` icindeki ilk aktif index davranisi veri listesinden bagimsiz sert kural olmaktan cikarilacak.
+
+Somut cikti:
+
+- `RenderListPatch`
+- `ViewportTracker`
+- `ActiveCellModel`
+- `MediaPlaceholderPolicy`
+
+### 4. Reklam ve Gelir Plani: app-wide warm pool, strict fill policy
+
+Hedef:
+
+- gelir ureten reklam slotlarini "best effort" degil, uygulama kritik envanter olarak ele almak
+- `AdmobKare` bannerlarini ekran bazli rastgele istek atan widget davranisindan cikarip global sicak havuz mantigina oturtmak
+- `Feed` ve Pasaj yuzeylerinde bos reklam slotu oranini dusurmek
+
+Mevcut yapidan korunacaklar:
+
+- `AdmobKare` widget'i
+- mevcut `PasajListingAdLayout` yerlesimleri
+- splash sirasinda yapilan erken isinatma davranisi
+
+Kati kurallar:
+
+1. `MobileAds` SDK uygulama omrunda bir kez initialize edilir.
+2. Banner envanteri app-wide bir warm pool olarak tutulur; her ekran ayri speculative load yapmaz.
+3. Splash sadece ilk doluluk icin havuzu isitir; ekran girisleri yalnizca throttle edilmis top-up yapar.
+4. `Feed`, `Market` ve `JobFinder` reklam acisindan birincil gelir yuzeyleri olarak ayni warmup politikasina baglanir.
+5. Pasaj icindeki `Market` ve `JobFinder` liste/grid reklam slotlari bos kalirsa widget kaybolmaz; placeholder ve cooldown retry uygular.
+6. Reklam slotlari veri ranking'inin parcasi olmaz; content snapshot'tan sonra mix edilir.
+7. Warmup kararlarinda surface key kullanilir:
+   - `feed`
+   - `pasaj:market`
+   - `pasaj:job_finder`
+8. KPI olmadan reklam warmup degisikligi tamamlanmis sayilmaz:
+   - ad request success rate
+   - on-screen fill rate
+   - empty slot rate
+   - first ad paint
+   - retry recovery rate
+
+Evrim adimlari:
+
+1. `AdmobBannerWarmupService` global giris kapisi olarak kullanilacak.
+2. Splash `warmFromSplash()` ile ilk havuzu kuracak.
+3. `Agenda`, `Market` ve `JobFinder` ekran girisleri kendi surface key'leriyle top-up warmup cagiracak.
+4. Gerekirse ikinci asamada Pasaj icindeki diger listeleme yuzeyleri de ayni modele alinacak.
+
+Somut cikti:
+
+- ortak `AdmobBannerWarmupService`
+- surface bazli warmup politikalari
+- Pasaj gelir yuzeyleri icin bos slotu azaltan retry/fallback kontrati
+
+### 5. Uygulama Sirasi: Mevcut Kod Uzerinden Adim Adim
+
+#### Sprint 0
+
+- audit ve teknik kararlar netlestirilecek
+- ortak terimler ve kontratlar tanimlanacak
+- KPI listesi sabitlenecek
+
+#### Sprint 1
+
+- `CachedResource<T>`
+- `ScopedSnapshotStore`
+- `WarmLaunchPool` ayrimi
+- `IndexPoolStore` rol sinirlamasi
+- `AdmobBannerWarmupService` uzerinden app-wide reklam warm pool kurallari
+- `UserSummaryResolver` ile ortak resolve katmani
+
+Bu sprint mevcut davranisi bozmaz; sadece ortak zemin kurar.
+
+#### Sprint 2
+
+- `FeedSnapshotRepository`
+- `ExploreSnapshotRepository`
+- mevcut `AgendaController` ve `ExploreController` icine bridge katmani
+- Pasaj/Egitim listing aileleri icin ortak `TypesenseListingAdapter`
+
+Bu sprintte controller tamamen dagitilmaz; once veri akis kapisi degistirilir.
+
+#### Sprint 3
+
+- `JobHomeSnapshotRepository`
+- `MarketSnapshotRepository`
+- `TutoringSnapshotRepository`
+- `ScholarshipSnapshotRepository`
+- `ProfileSnapshotRepository`
+- `NotificationsSnapshotStore`
+- mevcut ekranlarda snapshot-first + silent sync kontrati standartlastirilir
+- Pasaj `Market` ve `JobFinder` reklam top-up girisleri standardize edilir
+- Egitim listeleme reklam yuzeyleri icin warmup girisleri standardize edilir
+
+#### Sprint 4
+
+- `ShortSnapshotStore`
+- `ShortPlaybackCoordinator`
+- `ShortView` aktif index ve bootstrap mantigi sade state machine'e tasinir
+
+Bu sprintte en hassas degisiklik short ekraninda yapilir.
+
+#### Sprint 5
+
+- `FeedPlaybackCoordinator`
+- render patching ve visibility-driven update
+- aktif medya hucreleri icin bounded autoplay standardi
+
+### 6. Hemen Baslanacak Isler
+
+Bu auditten sonra mevcut mimariyi gelistirmek icin ilk uygulanacak paket su olmali:
+
+1. `CachedResource<T>` ve `ScopedSnapshotStore` kontratini ekle.
+2. `IndexPoolStore`u `WarmLaunchPool` olarak yeniden adlandirilmaya hazir hale getir.
+3. `avatar/nickname/displayName/rozet` icin `UserSummaryResolver` katmanini sabitle.
+4. Pasaj ve egitim listeleme aileleri icin ortak `TypesenseListingAdapter` kur.
+5. `PracticeExams`, `AnswerKey`, `PastQuestion` icin `TypesenseDocIdHydrationAdapter` kur.
+6. `TypesenseUserService` ustune cache'li `UserCard` source ekle ve `UserSummaryResolver`a bagla.
+7. `ProfilePostsCacheService`i `ProfileSnapshotRepository` altinda yeni kontrata yaklastir.
+8. `Feed` icin data bridge olustur:
+   - mevcut `AgendaController` kalsin
+   - ama veri giris noktasi `FeedSnapshotRepository` uzerinden aksin
+9. `Short` icin eligibility bridge olustur:
+   - quick-fill ve pagination ayni eligibility servisinden gecsin
+10. `ShortView` acilis index davranisini sert kural olmaktan cikar.
+11. `GlobalVideoAdapterPool` icin surface budget policy ekle.
+12. `Feed`, `Market`, `JobFinder`, `Tutoring`, `Scholarships`, `PracticeExams`, `AnswerKey` icin app-wide banner warmup top-up girislerini standartlastir.
+
+Bu sira, bugunku mimariyi bozup yeniden kurmak yerine, halihazirdaki parcalari kontrollu sekilde profesyonel yapiya tasir.
+
 ## Net Teknik Kararlar
 
 TurqApp için alınması gereken kararlar:

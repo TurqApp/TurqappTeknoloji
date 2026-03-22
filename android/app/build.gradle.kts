@@ -141,4 +141,6 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
     androidTestImplementation("androidx.test.espresso:espresso-contrib:3.2.0")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation(platform("com.google.firebase:firebase-bom:34.9.0"))
+    androidTestImplementation("com.google.firebase:firebase-auth")
 }
