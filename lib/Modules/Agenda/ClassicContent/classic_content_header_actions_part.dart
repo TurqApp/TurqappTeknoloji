@@ -810,6 +810,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
       final Color displayColor = _ClassicContentState._actionColor;
 
       return AnimatedActionButton(
+        key: ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
         enabled: canInteract,
         semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
@@ -839,6 +840,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           isLiked ? Colors.blueAccent : _ClassicContentState._actionColor;
 
       return AnimatedActionButton(
+        key: ValueKey(IntegrationTestKeys.feedLikeButton(widget.model.docID)),
         enabled: true,
         semanticsLabel: 'common.likes'.tr,
         onTap: controller.like,

@@ -253,7 +253,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> _tryQuickFillFromPool() async {
-    final me = CurrentUserService.instance.userId;
+    final me = CurrentUserService.instance.effectiveUserId;
     if (me.isEmpty) return;
     final snapshot = await _feedSnapshotRepository.bootstrapHome(
       userId: me,
@@ -430,7 +430,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     Map<String, Map<String, dynamic>> _,
   ) async {
     if (posts.isEmpty) return;
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) return;
     await _feedSnapshotRepository.persistHomeSnapshot(
       userId: userId,
@@ -477,7 +477,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       return _loadLegacyAgendaSourcePage(
         nowMs: nowMs,
@@ -566,7 +566,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
 
       // Following/reshare verilerini yenile (SWR)
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
       // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.

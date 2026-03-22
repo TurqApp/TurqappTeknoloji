@@ -115,14 +115,15 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
 
     // Nickname varsa göster
     if (_displayName != null) {
-      final useBackdrop = widget.showBackdrop || widget.textColor == Colors.white;
+      final useBackdrop =
+          widget.showBackdrop || widget.textColor == Colors.white;
       final labelText =
           'Kimden: $_displayName${widget.labelSuffix.isEmpty ? '' : ' ${widget.labelSuffix.trim()}'}';
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
           // Kendi ID'si ise tıklanabilir olmasın
-          final currentUserID = CurrentUserService.instance.userId;
+          final currentUserID = CurrentUserService.instance.effectiveUserId;
           if (effectiveUserID != currentUserID) {
             Get.to(() => SocialProfile(userID: effectiveUserID));
           }

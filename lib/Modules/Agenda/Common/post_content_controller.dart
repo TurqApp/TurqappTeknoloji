@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -156,11 +155,7 @@ class PostContentController extends GetxController {
   final reShareUserNickname = "".obs;
   final reShareUserUserID = "".obs;
 
-  String get _currentUid {
-    final serviceUid = userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => userService.effectiveUserId;
 
   final arsiv = false.obs;
   final gizlendi = false.obs;

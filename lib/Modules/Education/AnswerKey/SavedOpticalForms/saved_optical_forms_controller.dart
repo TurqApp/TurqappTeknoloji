@@ -81,7 +81,7 @@ class SavedOpticalFormsController extends GetxController {
 
   Future<void> _bootstrapData() async {
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) {
         isLoading.value = false;
         return;
@@ -128,7 +128,7 @@ class SavedOpticalFormsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       final savedEntries = await _userSubcollectionRepository.getEntries(
         uid,
         subcollection: "books",

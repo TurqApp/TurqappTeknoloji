@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -9,11 +8,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class MyAdminApprovalResultsView extends StatelessWidget {
   const MyAdminApprovalResultsView({super.key});
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -61,15 +56,13 @@ class MyAdminApprovalResultsView extends StatelessWidget {
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
                       final data = docs[index].data();
-                      final status = (data['status'] ?? 'pending')
+                      final status =
+                          (data['status'] ?? 'pending').toString().trim();
+                      final title = (data['title'] ??
+                              'admin.my_approvals.default_title'.tr)
                           .toString()
                           .trim();
-                      final title =
-                          (data['title'] ?? 'admin.my_approvals.default_title'.tr)
-                              .toString()
-                              .trim();
-                      final summary =
-                          (data['summary'] ?? '').toString().trim();
+                      final summary = (data['summary'] ?? '').toString().trim();
                       final targetNickname =
                           (data['targetNickname'] ?? '').toString().trim();
                       final resolvedByNickname =
@@ -127,7 +120,8 @@ class MyAdminApprovalResultsView extends StatelessWidget {
                                 ),
                               ),
                             ],
-                            if (resolvedAt != null || resolvedByNickname.isNotEmpty)
+                            if (resolvedAt != null ||
+                                resolvedByNickname.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(

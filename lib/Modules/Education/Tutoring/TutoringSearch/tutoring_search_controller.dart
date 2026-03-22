@@ -97,7 +97,7 @@ class TutoringSearchController extends GetxController {
   Future<void> _bootstrapInitialData() async {
     try {
       final resource = await _tutoringSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 60,
       );
       final cachedItems = resource.data ?? const <TutoringModel>[];
@@ -125,7 +125,7 @@ class TutoringSearchController extends GetxController {
     }
     try {
       final result = await _tutoringSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 60,
         forceSync: forceRefresh,
       );
@@ -153,7 +153,7 @@ class TutoringSearchController extends GetxController {
     try {
       final result = await _tutoringSnapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 60,
         forceSync: true,
       );

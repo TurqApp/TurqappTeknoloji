@@ -5,7 +5,7 @@ class AdsAdminGuard {
   const AdsAdminGuard._();
 
   static Future<bool> canAccessAdsCenter() async {
-    if (CurrentUserService.instance.userId.isEmpty) return false;
+    if (CurrentUserService.instance.effectiveUserId.isEmpty) return false;
     return AdminAccessService.canAccessTask('ads_center');
   }
 
@@ -15,7 +15,7 @@ class AdsAdminGuard {
 
   static Future<String?> currentUidIfAdmin() async {
     final ok = await canAccessAdsCenter();
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     return ok && uid.isNotEmpty ? uid : null;
   }
 }

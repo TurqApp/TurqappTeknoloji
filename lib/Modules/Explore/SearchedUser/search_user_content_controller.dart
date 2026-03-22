@@ -24,7 +24,7 @@ class SearchUserContentController extends GetxController {
       );
       explore?.resumeExplorePreview();
 
-      final currentUserID = CurrentUserService.instance.userId;
+      final currentUserID = CurrentUserService.instance.effectiveUserId;
       if (currentUserID.isEmpty) return;
       await _userSubcollectionRepository.upsertEntry(
         currentUserID,
@@ -46,7 +46,7 @@ class SearchUserContentController extends GetxController {
   }
 
   Future<void> removeFromLastSearch() async {
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty) return;
     await _userSubcollectionRepository.deleteEntry(
       currentUserID,

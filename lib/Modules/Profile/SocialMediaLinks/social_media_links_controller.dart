@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -39,11 +38,7 @@ class SocialMediaController extends GetxController {
   var enableSave = false.obs;
   var isUploading = false.obs;
   var isLoading = false.obs;
-  String get currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get currentUid => CurrentUserService.instance.effectiveUserId;
 
   List<String> sosyal = List<String>.from(kSocialMediaEmbeddedKeys);
 

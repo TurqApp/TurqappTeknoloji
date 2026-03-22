@@ -34,6 +34,7 @@ class UnreadMessagesController extends GetxController {
       ConversationRepository.ensure();
 
   NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
@@ -46,13 +47,13 @@ class UnreadMessagesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if (CurrentUserService.instance.userId.isNotEmpty) {
+    if (_currentUid.isNotEmpty) {
       startListeners();
     }
   }
 
   void startListeners({bool force = false}) {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     if (!force && _listenersStarted && _activeUid == uid) return;
 
@@ -105,7 +106,7 @@ class UnreadMessagesController extends GetxController {
   }
 
   Future<void> _syncUnread({required bool forceServer}) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty || _isSyncing) return;
 
     final cacheOnly = _isOffline;
@@ -222,7 +223,7 @@ class UnreadMessagesController extends GetxController {
   }
 
   Future<void> _persistReadCutoff(String chatId, int cutoffMs) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     if (uid.isEmpty || chatId.trim().isEmpty || cutoffMs <= 0) return;
     try {
       final prefs = await SharedPreferences.getInstance();

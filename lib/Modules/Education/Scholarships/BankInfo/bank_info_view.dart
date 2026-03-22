@@ -79,7 +79,7 @@ class _BankInfoViewState extends State<BankInfoView> {
                                   controller.defaultFastTypeEmail;
                               controller.iban.clear();
                               await _userRepository.updateUserFields(
-                                CurrentUserService.instance.userId,
+                                CurrentUserService.instance.effectiveUserId,
                                 {
                                   ...scopedUserUpdate(
                                     scope: 'finance',

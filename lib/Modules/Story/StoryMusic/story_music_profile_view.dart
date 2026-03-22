@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -35,11 +34,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
   MusicModel? _track;
   List<_MusicStoryEntry> _entries = const [];
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {
@@ -52,7 +47,8 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
     setState(() => _isLoading = true);
 
     final service = StoryMusicLibraryService.instance;
-    final track = await service.fetchTrackById(widget.musicId, preferCache: true);
+    final track =
+        await service.fetchTrackById(widget.musicId, preferCache: true);
     final links = await service.fetchStoryLinks(widget.musicId, limit: 60);
 
     final storyIds = <String>{};
@@ -65,12 +61,14 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
 
     final storyDocsById = <String, StoryModel>{};
     if (storyIds.isNotEmpty) {
-      storyDocsById.addAll(await _storyRepository.fetchStoriesByIds(storyIds.toList(growable: false)));
+      storyDocsById.addAll(await _storyRepository
+          .fetchStoriesByIds(storyIds.toList(growable: false)));
     }
 
     if (storyDocsById.isEmpty) {
       try {
-        final fallbackStories = await _storyRepository.fetchActiveStoriesByMusicId(
+        final fallbackStories =
+            await _storyRepository.fetchActiveStoriesByMusicId(
           widget.musicId,
           limit: 60,
         );
@@ -101,8 +99,7 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
         .toList(growable: false);
 
     final userDataById = await _userSummaryResolver.resolveMany(userIds);
-    if (userIds.isNotEmpty) {
-    }
+    if (userIds.isNotEmpty) {}
 
     final currentUid = _currentUid;
     final entries = activeStories.map((story) {
@@ -236,7 +233,8 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(18),
+                                          borderRadius:
+                                              BorderRadius.circular(18),
                                           border: Border.all(
                                             color: const Color(0xFFE7EAF0),
                                           ),
@@ -283,7 +281,8 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                                                         color: const Color(
                                                             0xFFF2F4F7),
                                                         child: const Icon(
-                                                          CupertinoIcons.music_note_2,
+                                                          CupertinoIcons
+                                                              .music_note_2,
                                                           color: Colors.grey,
                                                           size: 34,
                                                         ),
@@ -332,20 +331,22 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                                                               .isNotEmpty
                                                           ? CachedNetworkImage(
                                                               imageUrl: entry
-                                                                  .user.avatarUrl,
+                                                                  .user
+                                                                  .avatarUrl,
                                                               cacheManager:
                                                                   TurqImageCacheManager
                                                                       .instance,
                                                               fit: BoxFit.cover,
-                                                              placeholder: (_,
-                                                                      __) =>
-                                                                  Container(
+                                                              placeholder:
+                                                                  (_, __) =>
+                                                                      Container(
                                                                 color: const Color(
                                                                     0xFFF2F4F7),
                                                               ),
-                                                              errorWidget:
-                                                                  (_, __, ___) =>
-                                                                      Container(
+                                                              errorWidget: (_,
+                                                                      __,
+                                                                      ___) =>
+                                                                  Container(
                                                                 color: const Color(
                                                                     0xFFF2F4F7),
                                                               ),
@@ -377,8 +378,8 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
                                                           ),
                                                         ),
                                                         Text(
-                                                          _timeAgo(entry.story
-                                                              .createdAt),
+                                                          _timeAgo(entry
+                                                              .story.createdAt),
                                                           maxLines: 1,
                                                           overflow: TextOverflow
                                                               .ellipsis,

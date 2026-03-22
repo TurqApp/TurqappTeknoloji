@@ -1,7 +1,7 @@
 import 'package:turqappv2/Services/current_user_service.dart';
 
 String activeUserScope({String guestFallback = 'guest'}) {
-  final uid = CurrentUserService.instance.userId.trim();
+  final uid = CurrentUserService.instance.effectiveUserId;
   return uid.isEmpty ? guestFallback : uid;
 }
 
@@ -11,7 +11,8 @@ String userScopedKey(
   String guestFallback = 'guest',
 }) {
   final normalizedPrefix = prefix.trim();
-  final normalizedUid = (uid ?? CurrentUserService.instance.userId).trim();
+  final normalizedUid =
+      (uid ?? CurrentUserService.instance.effectiveUserId).trim();
   final scope = normalizedUid.isEmpty ? guestFallback.trim() : normalizedUid;
   if (scope.isEmpty) {
     return normalizedPrefix;

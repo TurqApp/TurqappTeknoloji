@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
@@ -46,11 +45,7 @@ class FollowerController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<void> getData(String userID) async {
     if (isLoaded.value) return;

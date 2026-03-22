@@ -26,8 +26,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
     final Map<String, dynamic> userData =
         (scholarshipData['userData'] as Map<String, dynamic>?) ??
             <String, dynamic>{};
-    final bool isOwnScholarship =
-        userData['userID']?.toString() == CurrentUserService.instance.userId;
+    final bool isOwnScholarship = userData['userID']?.toString() ==
+        CurrentUserService.instance.effectiveUserId;
     final userImage = (userData['avatarUrl'] ?? '').toString();
     final userNick = (userData['displayName'] ??
             userData['username'] ??

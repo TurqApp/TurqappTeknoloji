@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
@@ -41,11 +40,7 @@ class BlockedUsersController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {

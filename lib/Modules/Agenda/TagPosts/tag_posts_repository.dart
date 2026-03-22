@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -15,11 +14,7 @@ class TagPostsRepository {
         _visibilityPolicy = VisibilityPolicyService.ensure(),
         _userRepository = UserRepository.ensure();
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<List<PostsModel>> fetchByTag(String tag) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;

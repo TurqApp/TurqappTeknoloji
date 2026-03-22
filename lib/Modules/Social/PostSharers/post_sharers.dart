@@ -151,7 +151,7 @@ class _PostSharerTileState extends State<_PostSharerTile> {
   bool _followStateReady = false;
   bool _ownsFollowController = false;
 
-  String get _currentUid => CurrentUserService.instance.userId;
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {

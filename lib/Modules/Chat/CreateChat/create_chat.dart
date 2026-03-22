@@ -34,7 +34,7 @@ class _CreateChatState extends State<CreateChat> {
     } else {
       followersFollowing = FollowingFollowersController.ensure(
         initialPage: 0,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
       );
       _ownsFollowersController = true;
     }
@@ -150,7 +150,7 @@ class _CreateChatState extends State<CreateChat> {
                             ));
                       } else {
                         final chatId = buildConversationId(
-                          CurrentUserService.instance.userId,
+                          CurrentUserService.instance.effectiveUserId,
                           selectedUserId,
                         );
                         await Get.to(() => ChatView(

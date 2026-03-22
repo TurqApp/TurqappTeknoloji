@@ -86,6 +86,32 @@ class HLSVideoAdapter extends ChangeNotifier {
   HLSController get hlsController => _hls;
   int get rendererStallCount => _hls.rendererStallCount;
   int get surfaceRebindCount => _hls.surfaceRebindCount;
+  Future<bool> isPlayingNative() => _hls.isPlayingNative();
+  Future<bool> isBufferingNative() => _hls.isBufferingNative();
+  Future<Map<String, dynamic>> getPlaybackDiagnostics() =>
+      _hls.getPlaybackDiagnostics();
+  Future<Map<String, dynamic>> getProcessDiagnostics() =>
+      _hls.getProcessDiagnostics();
+
+  Future<void> recoverFrozenPlayback() async {
+    if (_disposed) return;
+    final resumeAt = _value.position;
+    await stopPlayback();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await reloadVideo();
+    if (resumeAt > Duration.zero) {
+      _pendingSeek = resumeAt;
+    }
+    _wantPlay = true;
+    _wantPause = false;
+    if (_viewReady) {
+      await _hls.loadVideo(url, autoPlay: true, loop: loop);
+      if (resumeAt > Duration.zero) {
+        await _hls.seekTo(resumeAt.inMilliseconds / 1000.0);
+      }
+      await _hls.play();
+    }
+  }
 
   HLSVideoAdapter({
     required String url,

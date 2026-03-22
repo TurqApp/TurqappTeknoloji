@@ -213,6 +213,28 @@ class VideoStateManager extends GetxController {
     });
   }
 
+  void reassertOnlyThis(String docID) {
+    if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
+      return;
+    }
+
+    final handle = _allVideoControllers[docID];
+    if (handle == null || !handle.isInitialized) return;
+
+    _playRequestSeq++;
+    final int requestSeq = _playRequestSeq;
+    pauseAllExcept(docID);
+    _pendingPlayTimer?.cancel();
+    _pendingPlayTimer = Timer(_playResumeDelay, () {
+      if (requestSeq != _playRequestSeq) return;
+      if (_currentPlayingDocID != docID) return;
+      final currentHandle = _allVideoControllers[docID];
+      if (currentHandle != null && currentHandle.isInitialized) {
+        currentHandle.play();
+      }
+    });
+  }
+
   /// GLOBAL VIDEO CONTROL: Video oynatma isteği
   void requestPlayVideo(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;

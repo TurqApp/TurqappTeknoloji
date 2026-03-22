@@ -41,7 +41,7 @@ class SavedTutoringsController extends GetxController {
   }
 
   Future<void> loadSavedTutorings() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final entries = await _subcollectionRepository.getEntries(
@@ -60,7 +60,7 @@ class SavedTutoringsController extends GetxController {
   Future<void> addSavedTutoring(String docId) async {
     if (!savedTutoringIds.contains(docId)) {
       savedTutoringIds.add(docId);
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) {
         await _subcollectionRepository.setEntries(
           uid,
@@ -81,7 +81,7 @@ class SavedTutoringsController extends GetxController {
   Future<void> removeSavedTutoring(String docId) async {
     if (savedTutoringIds.contains(docId)) {
       savedTutoringIds.remove(docId);
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) {
         await _subcollectionRepository.setEntries(
           uid,

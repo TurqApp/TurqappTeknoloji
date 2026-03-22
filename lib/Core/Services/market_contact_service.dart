@@ -21,7 +21,7 @@ class MarketContactService {
       ConversationRepository.ensure();
 
   Future<void> openChat(MarketItemModel item) async {
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (currentUid.isEmpty) {
       AppSnackbar('login.sign_in'.tr, 'market_contact.sign_in_required'.tr);
       return;

@@ -95,7 +95,7 @@ class DenemeSinavlariController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -113,7 +113,7 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -145,7 +145,7 @@ class DenemeSinavlariController extends GetxController {
       permanent: true,
     );
     await savedController.loadSavedExams(silent: true);
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _practiceExamSnapshotRepository
         .openHome(
@@ -183,7 +183,7 @@ class DenemeSinavlariController extends GetxController {
   Future<void> getOkulBilgisi() async {
     try {
       final data = await _userSummaryResolver.resolve(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
         preferCache: true,
       );
       final rozet = data?.rozet;
@@ -203,7 +203,7 @@ class DenemeSinavlariController extends GetxController {
     _lastDocument = null;
     try {
       final resource = await _practiceExamSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: _pageSize,
       );
       final items = resource.data ?? const <SinavModel>[];
@@ -260,7 +260,7 @@ class DenemeSinavlariController extends GetxController {
     try {
       final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );

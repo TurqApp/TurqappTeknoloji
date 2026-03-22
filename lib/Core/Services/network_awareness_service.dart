@@ -167,14 +167,15 @@ class NetworkAwarenessService extends GetxController {
   ).obs;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  NetworkType? _debugOverrideNetwork;
 
-  NetworkType get currentNetwork => _currentNetwork.value;
+  NetworkType get currentNetwork => _debugOverrideNetwork ?? _currentNetwork.value;
   NetworkSettings get settings => _settings.value;
   DataUsageStats get dataUsage => _dataUsage.value;
 
-  bool get isConnected => _currentNetwork.value != NetworkType.none;
-  bool get isOnWiFi => _currentNetwork.value == NetworkType.wifi;
-  bool get isOnCellular => _currentNetwork.value == NetworkType.cellular;
+  bool get isConnected => currentNetwork != NetworkType.none;
+  bool get isOnWiFi => currentNetwork == NetworkType.wifi;
+  bool get isOnCellular => currentNetwork == NetworkType.cellular;
 
   static const String _settingsKey = 'network_settings';
   static const String _dataUsageKey = 'data_usage_stats';
@@ -207,6 +208,9 @@ class NetworkAwarenessService extends GetxController {
 
   /// Update network type
   void _updateNetworkType(List<ConnectivityResult> results) {
+    if (_debugOverrideNetwork != null) {
+      return;
+    }
     // iOS'ta sonuç listesi [vpn, wifi] gibi gelebiliyor.
     // first'e bakmak yanlış şekilde offline kararına yol açıyordu.
     if (results.contains(ConnectivityResult.wifi) ||
@@ -225,6 +229,17 @@ class NetworkAwarenessService extends GetxController {
     final scheduler = PrefetchScheduler.maybeFind();
     if (scheduler == null) return;
     if (_currentNetwork.value == NetworkType.wifi) {
+      scheduler.resume();
+    } else {
+      scheduler.pause();
+    }
+  }
+
+  void debugSetNetworkOverride(NetworkType? type) {
+    _debugOverrideNetwork = type;
+    final scheduler = PrefetchScheduler.maybeFind();
+    if (scheduler == null) return;
+    if (isOnWiFi) {
       scheduler.resume();
     } else {
       scheduler.pause();

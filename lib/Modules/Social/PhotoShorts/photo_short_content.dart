@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,11 +46,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   late final String _controllerTag;
   late final bool _ownsController;
   int _currentPage = 0;
-  String get _currentUserId {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {

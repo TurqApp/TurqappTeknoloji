@@ -133,7 +133,7 @@ class JobFinderController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -151,7 +151,7 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -224,7 +224,7 @@ class JobFinderController extends GetxController {
     try {
       final resource = await _jobHomeSnapshotRepository.search(
         query: query,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );
@@ -248,7 +248,7 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> _bootstrapStartData() async {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     await JobContentController.warmSavedIdsForCurrentUser();
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _jobHomeSnapshotRepository
@@ -271,7 +271,7 @@ class JobFinderController extends GetxController {
     }
     try {
       final resource = await _jobHomeSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: limit,
         forceSync: forceRefresh,
       );

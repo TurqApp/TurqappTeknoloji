@@ -47,7 +47,7 @@ class ReportRepository extends GetxService {
     required ReportModel selection,
     String targetType = 'post',
   }) async {
-    final reporterUserId = CurrentUserService.instance.userId;
+    final reporterUserId = CurrentUserService.instance.effectiveUserId;
     if (reporterUserId.isEmpty) {
       throw StateError('auth_required');
     }
@@ -128,7 +128,7 @@ class ReportRepository extends GetxService {
   }
 
   Future<Map<String, dynamic>> ensureConfigWithCallable() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('ensureReportsConfig');
     final res = await callable.call(<String, dynamic>{
@@ -145,7 +145,7 @@ class ReportRepository extends GetxService {
     required String aggregateId,
     required bool restore,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('reviewReportedTarget');
     await callable.call(<String, dynamic>{

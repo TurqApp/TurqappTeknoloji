@@ -6,10 +6,13 @@ class MarketReviewService {
   const MarketReviewService();
 
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   CollectionReference<Map<String, dynamic>> _reviewsRef(String itemId) {
-    return _firestore.collection('marketStore').doc(itemId).collection('Reviews');
+    return _firestore
+        .collection('marketStore')
+        .doc(itemId)
+        .collection('Reviews');
   }
 
   Future<List<MarketReviewModel>> fetchReviews(String itemId) async {

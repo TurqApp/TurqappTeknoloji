@@ -2,7 +2,7 @@ part of 'agenda_controller.dart';
 
 extension AgendaControllerFeedPart on AgendaController {
   void _ensureFeedPlaybackForIndex(int index) {
-    if (playbackSuspended.value) return;
+    if (!canClaimPlaybackNow) return;
     if (index < 0 || index >= agendaList.length) return;
     final post = agendaList[index];
     if (!_canAutoplayVideoPost(post)) return;
@@ -43,6 +43,11 @@ extension AgendaControllerFeedPart on AgendaController {
       final videoManager = VideoStateManager.instance;
 
       if (playbackSuspended.value) {
+        videoManager.pauseAllVideos(force: true);
+        return;
+      }
+
+      if (!isPrimaryFeedRouteVisible) {
         videoManager.pauseAllVideos(force: true);
         return;
       }
@@ -171,7 +176,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void resumeFeedPlayback() {
-    if (playbackSuspended.value) return;
+    if (!canClaimPlaybackNow) return;
     if (agendaList.isEmpty) return;
 
     pauseAll.value = false;

@@ -415,7 +415,27 @@ export const onUserNotificationCreate = functions.firestore
         tokenPresent: true,
         targetPresent: targetDocID.length > 0,
       });
-    } catch (e) {
+    } catch (e: any) {
+      const code = String(e?.errorInfo?.code || e?.code || "");
+      if (code === "messaging/registration-token-not-registered") {
+        try {
+          const uid = context.params.uid as string;
+          await db.collection("users").doc(uid).set(
+            {
+              fcmToken: admin.firestore.FieldValue.delete(),
+            },
+            { merge: true }
+          );
+          console.log("onUserNotificationCreate cleared_invalid_token", {
+            uid,
+          });
+        } catch (cleanupError) {
+          console.error(
+            "onUserNotificationCreate clear_invalid_token_error",
+            cleanupError
+          );
+        }
+      }
       console.error("onUserNotificationCreate error", e);
     }
   });

@@ -105,7 +105,7 @@ class RecommendedUserListController extends GetxController {
     isLoadingFollowing = true;
 
     try {
-      final currentUserId = CurrentUserService.instance.userId;
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
       final ids = await _visibilityPolicy.loadViewerFollowingIds(
         viewerUserId: currentUserId,
         preferCache: true,
@@ -135,7 +135,7 @@ class RecommendedUserListController extends GetxController {
     hasError.value = false;
 
     try {
-      final currentUserId = CurrentUserService.instance.userId;
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
 
       // Takip ettiklerimizi yükleyelim (cache'ten gelirse hızlı)
       await getFollowing();

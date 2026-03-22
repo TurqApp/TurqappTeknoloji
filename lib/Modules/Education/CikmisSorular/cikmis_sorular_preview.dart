@@ -247,170 +247,176 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                         final questionEntry =
                                             subjectQuestions[i];
                                         children.add(Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.grey.withValues(
-                                                alpha: 0.5,
-                                              ),
-                                              spreadRadius: 2,
-                                              blurRadius: 5,
-                                              offset: Offset(0, 3),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 15,
-                                          ),
-                                          child: Column(
-                                            children: [
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 15,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withValues(
+                                                  alpha: 0.5,
                                                 ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Column(
-                                                        children: [
-                                                          Row(
-                                                            children: [
-                                                              Text(
-                                                                'tests.question_number'.trParams({
-                                                                  'index':
-                                                                      questionEntry
-                                                                          .value
-                                                                          .soruNo,
-                                                                }),
-                                                                style:
-                                                                    TextStyle(
-                                                                  color: Colors
-                                                                      .black,
-                                                                  fontSize: 20,
-                                                                  fontFamily:
-                                                                      "MontserratBold",
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          SizedBox(height: 10),
-                                                          CachedNetworkImage(
-                                                            imageUrl:
-                                                                questionEntry
-                                                                    .value.soru,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(height: 10),
-                                              Container(
-                                                color: Colors.pinkAccent
-                                                    .withValues(alpha: 0.5),
-                                                child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                    horizontal: 15,
-                                                    vertical: 10,
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        widget.anaBaslik ==
-                                                                "LGS"
-                                                            ? MainAxisAlignment
-                                                                .spaceAround
-                                                            : MainAxisAlignment
-                                                                .spaceBetween,
-                                                    children:
-                                                        (widget.anaBaslik ==
-                                                                    "LGS"
-                                                                ? [
-                                                                    'A',
-                                                                    'B',
-                                                                    'C',
-                                                                    'D',
-                                                                  ]
-                                                                : [
-                                                                    'A',
-                                                                    'B',
-                                                                    'C',
-                                                                    'D',
-                                                                    'E',
-                                                                  ])
-                                                            .map((option) {
-                                                      final isSelected =
-                                                          selectedAnswers[
-                                                                  questionEntry
-                                                                      .key] ==
-                                                              option;
-                                                      return GestureDetector(
-                                                        onTap: () {
-                                                          if (isSelected) {
-                                                            if (mounted) {
-                                                              setState(() {
-                                                                selectedAnswers[
-                                                                    questionEntry
-                                                                        .key] = "";
-                                                              });
-                                                            }
-                                                          } else {
-                                                            if (mounted) {
-                                                              setState(() {
-                                                                selectedAnswers[
-                                                                    questionEntry
-                                                                        .key] = option;
-                                                              });
-                                                            }
-                                                          }
-                                                        },
-                                                        child: Container(
-                                                          width: 40,
-                                                          height: 40,
-                                                          alignment:
-                                                              Alignment.center,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: isSelected
-                                                                ? Colors.black
-                                                                : Colors
-                                                                    .grey[100],
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            border: Border.all(
-                                                              color:
-                                                                  Colors.black,
-                                                            ),
-                                                          ),
-                                                          child: Text(
-                                                            option,
-                                                            style: TextStyle(
-                                                              color: isSelected
-                                                                  ? Colors.white
-                                                                  : Colors
-                                                                      .black,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 20,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }).toList(),
-                                                  ),
-                                                ),
+                                                spreadRadius: 2,
+                                                blurRadius: 5,
+                                                offset: Offset(0, 3),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      ));
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 15,
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 15,
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Expanded(
+                                                        child: Column(
+                                                          children: [
+                                                            Row(
+                                                              children: [
+                                                                Text(
+                                                                  'tests.question_number'
+                                                                      .trParams({
+                                                                    'index': questionEntry
+                                                                        .value
+                                                                        .soruNo,
+                                                                  }),
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Colors
+                                                                        .black,
+                                                                    fontSize:
+                                                                        20,
+                                                                    fontFamily:
+                                                                        "MontserratBold",
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            SizedBox(
+                                                                height: 10),
+                                                            CachedNetworkImage(
+                                                              imageUrl:
+                                                                  questionEntry
+                                                                      .value
+                                                                      .soru,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                SizedBox(height: 10),
+                                                Container(
+                                                  color: Colors.pinkAccent
+                                                      .withValues(alpha: 0.5),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                      horizontal: 15,
+                                                      vertical: 10,
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment: widget
+                                                                  .anaBaslik ==
+                                                              "LGS"
+                                                          ? MainAxisAlignment
+                                                              .spaceAround
+                                                          : MainAxisAlignment
+                                                              .spaceBetween,
+                                                      children:
+                                                          (widget.anaBaslik ==
+                                                                      "LGS"
+                                                                  ? [
+                                                                      'A',
+                                                                      'B',
+                                                                      'C',
+                                                                      'D',
+                                                                    ]
+                                                                  : [
+                                                                      'A',
+                                                                      'B',
+                                                                      'C',
+                                                                      'D',
+                                                                      'E',
+                                                                    ])
+                                                              .map((option) {
+                                                        final isSelected =
+                                                            selectedAnswers[
+                                                                    questionEntry
+                                                                        .key] ==
+                                                                option;
+                                                        return GestureDetector(
+                                                          onTap: () {
+                                                            if (isSelected) {
+                                                              if (mounted) {
+                                                                setState(() {
+                                                                  selectedAnswers[
+                                                                      questionEntry
+                                                                          .key] = "";
+                                                                });
+                                                              }
+                                                            } else {
+                                                              if (mounted) {
+                                                                setState(() {
+                                                                  selectedAnswers[
+                                                                      questionEntry
+                                                                          .key] = option;
+                                                                });
+                                                              }
+                                                            }
+                                                          },
+                                                          child: Container(
+                                                            width: 40,
+                                                            height: 40,
+                                                            alignment: Alignment
+                                                                .center,
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isSelected
+                                                                  ? Colors.black
+                                                                  : Colors.grey[
+                                                                      100],
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                              border:
+                                                                  Border.all(
+                                                                color: Colors
+                                                                    .black,
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              option,
+                                                              style: TextStyle(
+                                                                color: isSelected
+                                                                    ? Colors
+                                                                        .white
+                                                                    : Colors
+                                                                        .black,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 20,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ));
                                         if ((i + 1) % 3 == 0) {
                                           children.add(
                                             const Padding(
@@ -440,8 +446,8 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
             GestureDetector(
               onTap: () {
                 _repository.saveResult(
-                  uid: CurrentUserService.instance.userId.isNotEmpty
-                      ? CurrentUserService.instance.userId
+                  uid: CurrentUserService.instance.effectiveUserId.isNotEmpty
+                      ? CurrentUserService.instance.effectiveUserId
                       : "local",
                   anaBaslik: widget.anaBaslik,
                   sinavTuru: widget.sinavTuru,

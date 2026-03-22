@@ -1,11 +1,7 @@
 part of 'explore_controller.dart';
 
 extension ExploreControllerRecentSearchPart on ExploreController {
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<void> _applyUserCacheQuota() async {
     try {

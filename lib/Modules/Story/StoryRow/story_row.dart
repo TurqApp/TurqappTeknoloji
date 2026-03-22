@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_circle.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
@@ -59,7 +60,7 @@ class _StoryRowState extends State<StoryRow> {
                 height: StoryRow._storyRowHeight,
                 width: double.infinity,
                 child: ListView.builder(
-                  key: const ValueKey('story_real'),
+                  key: const ValueKey(IntegrationTestKeys.storyRow),
                   scrollDirection: Axis.horizontal,
                   itemCount: controller.users.length,
                   itemBuilder: (context, index) {

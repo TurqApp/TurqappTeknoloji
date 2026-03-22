@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -54,11 +53,8 @@ class AnswerKeyContentController extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
-  static String _resolveCurrentUid() {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
-  }
+  static String _resolveCurrentUid() =>
+      CurrentUserService.instance.effectiveUserId;
 
   bool get isOwner => isCurrentUserId(model.userID);
 

@@ -7,8 +7,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 class MarketNotificationService {
   MarketNotificationService._();
 
-  static String get _currentUid =>
-      CurrentUserService.instance.userId;
+  static String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   static String get _senderLabel {
     final fullName = CurrentUserService.instance.fullName.trim();

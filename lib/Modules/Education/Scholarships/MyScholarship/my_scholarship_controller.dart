@@ -40,7 +40,7 @@ class MyScholarshipController extends GetxController {
   }
 
   Future<void> _bootstrapMyScholarships() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;
@@ -75,7 +75,7 @@ class MyScholarshipController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       isLoading.value = false;

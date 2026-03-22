@@ -77,11 +77,8 @@ class PostInteractionService extends GetxController {
   static const String _moderationConfigPath = 'adminConfig/moderation';
 
   String? get currentUserID {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-
-    final authUid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-    return authUid.isEmpty ? null : authUid;
+    final uid = CurrentUserService.instance.effectiveUserId;
+    return uid.isEmpty ? null : uid;
   }
 
   bool get _isOffline =>

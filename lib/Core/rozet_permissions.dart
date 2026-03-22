@@ -88,7 +88,7 @@ Future<String> getCurrentUserRozet() async {
   final cached = (CurrentUserService.instance.currentUser?.rozet ?? '').trim();
   if (cached.isNotEmpty) return cached;
 
-  final uid = CurrentUserService.instance.userId;
+  final uid = CurrentUserService.instance.effectiveUserId;
   if (uid.isEmpty) return '';
 
   try {

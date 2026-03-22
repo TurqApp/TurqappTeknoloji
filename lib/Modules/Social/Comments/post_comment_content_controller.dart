@@ -73,7 +73,7 @@ class PostCommentContentController extends GetxController {
   }
 
   Future<void> toggleLike() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final wasLiked = likes.contains(uid);
     _applyLocalLikeState(uid: uid, liked: !wasLiked);

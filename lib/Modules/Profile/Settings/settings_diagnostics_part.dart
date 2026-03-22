@@ -1,6 +1,6 @@
 // ignore_for_file: file_names
 
-part of 'Settings.dart';
+part of 'package:turqappv2/Modules/Profile/Settings/Settings.dart';
 
 extension _SettingsViewDiagnosticsPart on _SettingsViewState {
   void _showDataUsageDialog() {

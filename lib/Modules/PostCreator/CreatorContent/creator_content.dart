@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +9,7 @@ import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -100,11 +100,8 @@ class CreatorContent extends StatelessWidget {
           final isFirstInThread = threadIndex <= 0;
           final isLastInThread = threadIndex == -1 ||
               threadIndex == mainController.postList.length - 1;
-          final composerUserId = (currentUser?.userID ??
-                  (userService.userId.isNotEmpty
-                      ? userService.userId
-                      : (FirebaseAuth.instance.currentUser?.uid ?? '')))
-              .trim();
+          final composerUserId =
+              (currentUser?.userID ?? userService.effectiveUserId).trim();
           final composerAvatarUrl =
               (currentUser?.avatarUrl ?? userService.avatarUrl).trim();
           return IntrinsicHeight(
@@ -324,6 +321,9 @@ class CreatorContent extends StatelessWidget {
                   padding: const EdgeInsets.all(10),
                   child: Scrollbar(
                     child: TextField(
+                      key: ValueKey(
+                        IntegrationTestKeys.composerText(model.index),
+                      ),
                       focusNode: controller.focus,
                       controller: controller.textEdit,
                       textCapitalization: TextCapitalization.sentences,

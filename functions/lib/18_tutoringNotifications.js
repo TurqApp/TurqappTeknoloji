@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onTutoringApplicationUpdate = exports.onTutoringApplicationCreate = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const notificationInbox_1 = require("./notificationInbox");
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
@@ -33,11 +34,7 @@ exports.onTutoringApplicationCreate = functions.firestore
             applicantData.nickname ||
             "Bir kullanıcı");
         // Öğretmene bildirim oluştur
-        await db
-            .collection("users")
-            .doc(tutorUID)
-            .collection("notifications")
-            .add({
+        await (0, notificationInbox_1.addInboxItem)(db, tutorUID, {
             type: "tutoring_application",
             fromUserID: applicantId,
             title: "Yeni Başvuru",
@@ -77,11 +74,7 @@ exports.onTutoringApplicationUpdate = functions.firestore
         if (!statusText)
             return;
         // Başvurana bildirim oluştur
-        await db
-            .collection("users")
-            .doc(applicantId)
-            .collection("notifications")
-            .add({
+        await (0, notificationInbox_1.addInboxItem)(db, applicantId, {
             type: "tutoring_status",
             fromUserID: "",
             title: "Başvuru Durumu Güncellendi",

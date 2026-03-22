@@ -20,7 +20,7 @@ class MarketFeedPostShareService {
   const MarketFeedPostShareService();
 
   Future<void> shareItem(MarketItemModel item) async {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     if (currentUid.isEmpty) {
       AppSnackbar(
           'login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);

@@ -150,7 +150,7 @@ class PostCommentController extends GetxController {
         imgs: gifUrl.isEmpty ? null : <String>[gifUrl],
       );
       if (commentId != null && commentId.startsWith('offline_')) {
-        final currentUid = userService.userId;
+        final currentUid = userService.effectiveUserId;
         if (currentUid.isNotEmpty) {
           final local = PostCommentModel(
             likes: [],

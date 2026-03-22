@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
@@ -44,6 +45,7 @@ class _MyQRCodeState extends State<MyQRCode> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenMyQr),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -106,7 +108,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                                       data: controller
                                               .profileLink.value.isNotEmpty
                                           ? controller.profileLink.value
-                                          : userService.userId,
+                                          : userService.effectiveUserId,
                                       version: QrVersions.auto,
                                       size: 250.0,
                                       backgroundColor: Colors.white,

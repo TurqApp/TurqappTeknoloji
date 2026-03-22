@@ -62,11 +62,7 @@ class NotificationService {
   static const _chatTypes = {'chat', 'message'};
   static const String _fcmTokenKeyPrefix = 'fcm_token';
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<void> initialize() async {
     if (!_bgRegistered) {

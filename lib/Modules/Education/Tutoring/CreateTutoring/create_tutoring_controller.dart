@@ -314,7 +314,7 @@ class CreateTutoringController extends GetxController {
   Future<List<String>> uploadImages() async {
     List<String> imageUrls = [];
     final storage = firebase_storage.FirebaseStorage.instance;
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     // Not: Storage’dan hiçbir veri silinmeyecek — eski görseller korunur
 
     final newLocalImages =
@@ -429,7 +429,7 @@ class CreateTutoringController extends GetxController {
         sehir: cityController.text,
         telefon: isPhoneOpen.value,
         timeStamp: DateTime.now().millisecondsSinceEpoch,
-        userID: CurrentUserService.instance.userId,
+        userID: CurrentUserService.instance.effectiveUserId,
         whatsapp: false,
         availability: availability.isNotEmpty
             ? Map<String, List<String>>.from(availability)

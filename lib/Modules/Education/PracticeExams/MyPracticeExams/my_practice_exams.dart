@@ -36,7 +36,7 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
 
     if (uid.isEmpty) {
       return Scaffold(

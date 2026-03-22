@@ -209,7 +209,7 @@ class NotificationContentController extends GetxController {
   }
 
   Future<void> _loadFollowingState() async {
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     if (currentUid.isEmpty) return;
     following.value = await _followRepository.isFollowing(
       userID,

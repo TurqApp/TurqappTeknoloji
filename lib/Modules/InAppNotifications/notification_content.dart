@@ -102,14 +102,10 @@ class _NotificationContentState extends State<NotificationContent> {
     return base.endsWith(".") ? base : "$base.";
   }
 
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   Widget build(BuildContext context) {
-    // FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).collection("Bildirimler").doc(model.docID).update(
-    //     {
-    //       "postID" : "f4932ae6-19e8-4633-91bf-9f0d5d35f388"
-    //     });
     return Obx(() {
       return Column(
         children: [

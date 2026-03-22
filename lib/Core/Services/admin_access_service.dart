@@ -16,7 +16,7 @@ class AdminAccessService {
   static List<String> _taskCache = <String>[];
 
   static bool isKnownAdminSync() {
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (_cachedUid != currentUid) {
       _cachedUid = currentUid;
       _adminCached = false;
@@ -67,7 +67,8 @@ class AdminAccessService {
     return token.claims?["admin"] == true;
   }
 
-  static Future<List<String>> fetchAssignedTaskIds({bool forceRefresh = false}) async {
+  static Future<List<String>> fetchAssignedTaskIds(
+      {bool forceRefresh = false}) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       _taskCache = <String>[];
@@ -92,7 +93,9 @@ class AdminAccessService {
       final assignment = await AdminTaskAssignmentRepository.ensure()
           .fetchAssignment(currentUser.uid);
       _taskCache = normalizeAdminTaskIds(
-        assignment?['taskIds'] is List ? assignment!['taskIds'] as List : const [],
+        assignment?['taskIds'] is List
+            ? assignment!['taskIds'] as List
+            : const [],
       );
     } catch (_) {
       _taskCache = <String>[];

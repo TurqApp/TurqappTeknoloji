@@ -199,7 +199,7 @@ class StoryMusicLibraryService {
   }
 
   Future<Set<String>> fetchSavedMusicIds() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return <String>{};
     try {
       final entries = await _userSubcollectionRepository.getEntries(
@@ -216,7 +216,7 @@ class StoryMusicLibraryService {
   }
 
   Future<bool> toggleSavedMusic(MusicModel track) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     final cleanId = track.docID.trim();
     if (uid.isEmpty || cleanId.isEmpty) return false;
     final existing = await _userSubcollectionRepository.getEntry(

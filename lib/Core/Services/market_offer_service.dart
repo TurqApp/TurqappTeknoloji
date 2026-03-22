@@ -15,13 +15,7 @@ class MarketOfferService {
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  static String get _currentUid {
-    final authUid = CurrentUserService.instance.userId.trim();
-    if (authUid.isNotEmpty) {
-      return authUid;
-    }
-    return CurrentUserService.instance.userId;
-  }
+  static String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   static Future<void> createOffer({
     required MarketItemModel item,

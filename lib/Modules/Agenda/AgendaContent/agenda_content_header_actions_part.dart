@@ -827,6 +827,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
       final Color displayColor = _AgendaContentState._actionColor;
 
       return AnimatedActionButton(
+        key: ValueKey(IntegrationTestKeys.feedCommentButton(widget.model.docID)),
         enabled: canInteract,
         semanticsLabel: 'common.comments'.tr,
         onTap: canInteract
@@ -856,6 +857,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         isLiked ? Colors.blueAccent : _AgendaContentState._actionColor;
 
     return AnimatedActionButton(
+      key: ValueKey(IntegrationTestKeys.feedLikeButton(widget.model.docID)),
       enabled: true,
       semanticsLabel: 'common.likes'.tr,
       onTap: controller.like,

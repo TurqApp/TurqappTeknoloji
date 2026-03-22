@@ -391,7 +391,7 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           'text': controller.textEdit.text.trim(),
           'location': '',
           'gif': controller.gif.value,
-          'userID': CurrentUserService.instance.userId,
+          'userID': CurrentUserService.instance.effectiveUserId,
           'authorNickname': authorSummary.nickname,
           'authorDisplayName': authorSummary.displayName,
           'authorAvatarUrl': authorSummary.avatarUrl,

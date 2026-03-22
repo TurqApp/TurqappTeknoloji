@@ -85,7 +85,7 @@ class ScholarshipDetailController extends GetxController {
     final docId =
         scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '';
     if (docId.isEmpty) return;
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) return;
     final model = scholarshipData['model'];
     if (model is IndividualScholarshipsModel && model.userID == currentUserId) {
@@ -97,7 +97,7 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> checkUserApplicationReadiness({bool showErrors = true}) async {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) {
       applyReady.value = false;
       if (showErrors) {
@@ -218,7 +218,7 @@ class ScholarshipDetailController extends GetxController {
     Map<String, dynamic> scholarshipData, {
     bool showErrors = true,
   }) async {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) {
       allreadyApplied.value = false;
       return;
@@ -248,7 +248,7 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> applyForScholarship(String scholarshipId, String type) async {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) {
       AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;
@@ -288,7 +288,7 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> initializeFollowState(String followedId) async {
-    final followerId = CurrentUserService.instance.userId;
+    final followerId = CurrentUserService.instance.effectiveUserId;
     if (followerId.isEmpty) {
       isFollowing.value = false;
       return;
@@ -360,7 +360,7 @@ class ScholarshipDetailController extends GetxController {
   }
 
   Future<void> cancelApplication(String scholarshipId, String type) async {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) {
       AppSnackbar("common.error".tr, "scholarship.login_required".tr);
       return;

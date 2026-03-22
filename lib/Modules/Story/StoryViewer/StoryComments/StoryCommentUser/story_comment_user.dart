@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -34,11 +33,7 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
   late final String _controllerTag;
   late final bool _ownsController;
 
-  String get _currentUserId {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {

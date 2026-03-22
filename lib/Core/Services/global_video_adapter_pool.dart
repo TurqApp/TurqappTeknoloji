@@ -145,6 +145,15 @@ class GlobalVideoAdapterPool extends GetxService {
     return _warmAdapters[cacheKey]?.adapter;
   }
 
+  Map<String, dynamic> debugSnapshot() {
+    return <String, dynamic>{
+      'warmCount': _warmAdapters.length,
+      'leasedCount': _leasedKeys.length,
+      'leaseKeyCount': _leaseCounts.length,
+      'warmKeys': _warmOrder.toList(growable: false),
+    };
+  }
+
   bool _isReusable(
     _WarmAdapterEntry entry,
     String requestedUrl,

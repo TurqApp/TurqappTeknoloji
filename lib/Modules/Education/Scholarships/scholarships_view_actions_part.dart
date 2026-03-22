@@ -46,8 +46,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                     softWrap: false,
                   ),
                 ),
-                if (isIndividualScholarshipType(type) &&
-                    userId.isNotEmpty) ...[
+                if (isIndividualScholarshipType(type) && userId.isNotEmpty) ...[
                   4.pw,
                   RozetContent(
                     size: 13,
@@ -87,7 +86,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   VoidCallback? _getUserTapHandler(
       String type, Map<String, dynamic>? userData) {
     final uid = userData?['userID']?.toString() ?? '';
-    if (uid != CurrentUserService.instance.userId) {
+    if (uid != CurrentUserService.instance.effectiveUserId) {
       return () {
         Get.to(() => SocialProfile(userID: uid));
       };
@@ -119,7 +118,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     return userData?['userID']?.toString() != currentUid;
   }
 
@@ -394,7 +393,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       return Padding(
         padding: EdgeInsets.only(left: 8),
         child: Text(
-          '(${ 'scholarship.closed'.tr})',
+          '(${'scholarship.closed'.tr})',
           style: TextStyle(
             fontSize: 14,
             fontFamily: "MontserratBold",
@@ -548,7 +547,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   ) {
     final isOwnScholarship = isIndividualScholarshipType(type) &&
         userData?['userID']?.toString() ==
-            CurrentUserService.instance.userId;
+            CurrentUserService.instance.effectiveUserId;
 
     return GestureDetector(
       onTap: () =>

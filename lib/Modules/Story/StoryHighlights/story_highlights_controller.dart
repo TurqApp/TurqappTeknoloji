@@ -32,6 +32,7 @@ class StoryHighlightsController extends GetxController {
       StoryHighlightsRepository.ensure();
   final StoryRepository _storyRepository = StoryRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
+  String get _currentUid => _userService.effectiveUserId;
 
   RxList<StoryHighlightModel> highlights = <StoryHighlightModel>[].obs;
   RxBool isLoading = false.obs;
@@ -90,7 +91,7 @@ class StoryHighlightsController extends GetxController {
     String coverUrl = '',
   }) async {
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       if (uid.isEmpty) return null;
 
       final docRefId = DateTime.now().microsecondsSinceEpoch.toString();
@@ -124,7 +125,7 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> addStoryToHighlight(String highlightId, String storyId) async {
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       if (uid.isEmpty) return;
 
       await _repository.addStoryToHighlight(
@@ -147,7 +148,7 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> deleteHighlight(String highlightId) async {
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       if (uid.isEmpty) return;
 
       await _repository.deleteHighlight(
@@ -166,7 +167,7 @@ class StoryHighlightsController extends GetxController {
   Future<void> updateHighlight(
       String highlightId, String title, String coverUrl) async {
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       if (uid.isEmpty) return;
 
       await _repository.updateHighlight(
@@ -191,7 +192,7 @@ class StoryHighlightsController extends GetxController {
 
   Future<void> _hydrateMissingCoverUrls() async {
     if (highlights.isEmpty) return;
-    final currentUid = _userService.userId.trim();
+    final currentUid = _currentUid;
     final canPersist = currentUid.isNotEmpty && currentUid == userId;
     var anyLocalUpdate = false;
 

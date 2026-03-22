@@ -81,7 +81,7 @@ class _PersonelInfoViewState extends State<PersonelInfoView> {
                               controller.resetToOriginal();
                               // 2) Firestore güncellemesi
                               await _userRepository.updateUserFields(
-                                CurrentUserService.instance.userId,
+                                CurrentUserService.instance.effectiveUserId,
                                 {
                                   ...scopedUserUpdate(
                                     scope: 'family',

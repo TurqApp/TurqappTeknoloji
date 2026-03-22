@@ -51,7 +51,7 @@ import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
-import 'package:turqappv2/Modules/Profile/Settings/settings.dart';
+import 'package:turqappv2/Modules/Profile/Settings/Settings.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 
 import '../../../Core/text_styles.dart';

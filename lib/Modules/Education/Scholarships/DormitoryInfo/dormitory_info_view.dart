@@ -86,7 +86,7 @@ class _DormitoryInfoViewState extends State<DormitoryInfoView> {
                             controller.yurtSelectionController.clear();
 
                             await _userRepository.updateUserFields(
-                              CurrentUserService.instance.userId,
+                              CurrentUserService.instance.effectiveUserId,
                               scopedUserUpdate(
                                 scope: 'family',
                                 values: {"yurt": ""},

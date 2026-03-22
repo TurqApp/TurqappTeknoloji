@@ -66,7 +66,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     final nextResolved = _normalizeUrl(widget.imageUrl);
     if (oldWidget.userId != widget.userId ||
         oldWidget.imageUrl != widget.imageUrl) {
-      final sameUser = (oldWidget.userId ?? '').trim() == (widget.userId ?? '').trim();
+      final sameUser =
+          (oldWidget.userId ?? '').trim() == (widget.userId ?? '').trim();
       final shouldPreserveResolvedUrl =
           sameUser && nextResolved.isEmpty && _resolvedUrl.isNotEmpty;
       _resolvedUrl = shouldPreserveResolvedUrl ? _resolvedUrl : nextResolved;
@@ -86,7 +87,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     }
 
     final currentUser = CurrentUserService.instance;
-    if (uid == currentUser.userId) {
+    if (uid == currentUser.effectiveUserId) {
       final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
       if (currentAvatar.isNotEmpty) {
         _resolvedUrl = currentAvatar;
@@ -175,7 +176,9 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         forceServer: true,
       );
       final fetchedRawUrl = _pickAvatarUrl(fetchedRaw);
-      if (fetchedRawUrl.isNotEmpty && fetchedRawUrl != _resolvedUrl && mounted) {
+      if (fetchedRawUrl.isNotEmpty &&
+          fetchedRawUrl != _resolvedUrl &&
+          mounted) {
         setState(() {
           _resolvedUrl = fetchedRawUrl;
         });
@@ -221,7 +224,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     final userService = CurrentUserService.instance;
     final uid = (widget.userId ?? '').trim();
 
-    if (uid.isNotEmpty && uid == userService.userId) {
+    if (uid.isNotEmpty && uid == userService.effectiveUserId) {
       return StreamBuilder(
         stream: userService.userStream,
         initialData: userService.currentUser,
@@ -358,7 +361,7 @@ class CachedUserAvatarWithName extends StatelessWidget {
   Widget build(BuildContext context) {
     final userService = CurrentUserService.instance;
 
-    if (userId != null && userId == userService.userId) {
+    if (userId != null && userId == userService.effectiveUserId) {
       return StreamBuilder(
         stream: userService.userStream,
         initialData: userService.currentUser,

@@ -43,7 +43,7 @@ class SavedItemsController extends GetxController {
   }
 
   Future<void> _bootstrapSavedItems() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
@@ -87,7 +87,7 @@ class SavedItemsController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
@@ -198,7 +198,7 @@ class SavedItemsController extends GetxController {
   }
 
   Future<void> toggleLike(String docId, String type) async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;
@@ -216,7 +216,7 @@ class SavedItemsController extends GetxController {
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.login_required'.tr);
       return;

@@ -47,6 +47,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_health_dashboard.dart';
 import 'package:turqappv2/Core/Widgets/error_report_widget.dart';
 import 'package:turqappv2/Core/Services/error_handling_service.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/upload_queue_service.dart';
 import 'package:turqappv2/Core/Services/draft_service.dart';
@@ -126,6 +127,7 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenSettings),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -156,8 +158,10 @@ class _SettingsViewState extends State<SettingsView> {
   Widget buildRow(String text, IconData icon, VoidCallback onTap,
       {bool isNew = false,
       bool usePasajIcon = false,
-      bool showLanguageLabel = false}) {
+      bool showLanguageLabel = false,
+      Key? valueKey}) {
     return TextButton(
+      key: valueKey,
       onPressed: onTap,
       style: TextButton.styleFrom(
         padding: EdgeInsets.zero,

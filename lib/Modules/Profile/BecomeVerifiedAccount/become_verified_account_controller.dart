@@ -61,7 +61,7 @@ class BecomeVerifiedAccountController extends GetxController {
     super.onInit();
     _verifiedAccountRepository
         .fetchApplicationState(
-      CurrentUserService.instance.userId,
+      CurrentUserService.instance.effectiveUserId,
     )
         .then((state) {
       existingApplicationStatus.value = state?.status ?? '';
@@ -183,7 +183,7 @@ class BecomeVerifiedAccountController extends GetxController {
   Future<bool> submitApplication() async {
     if (isSubmitting.value) return false;
     isSubmitting.value = true;
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     try {
       if (uid.isEmpty) {
         AppSnackbar('common.error'.tr, 'become_verified.session_missing'.tr);

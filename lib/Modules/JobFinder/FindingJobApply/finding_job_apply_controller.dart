@@ -17,8 +17,7 @@ class FindingJobApplyController extends GetxController {
   }
 
   static FindingJobApplyController? maybeFind({String? tag}) {
-    final isRegistered =
-        Get.isRegistered<FindingJobApplyController>(tag: tag);
+    final isRegistered = Get.isRegistered<FindingJobApplyController>(tag: tag);
     if (!isRegistered) return null;
     return Get.find<FindingJobApplyController>(tag: tag);
   }
@@ -33,7 +32,7 @@ class FindingJobApplyController extends GetxController {
   }
 
   Future<void> cvCheck() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final data = await _cvRepository.getCv(uid, preferCache: true);
@@ -45,7 +44,7 @@ class FindingJobApplyController extends GetxController {
   }
 
   Future<void> toggleFindingJob() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty || !cvVar.value) return;
     final next = !isFinding.value;
     isFinding.value = next;

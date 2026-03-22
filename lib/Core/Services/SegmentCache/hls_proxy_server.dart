@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../network_awareness_service.dart';
 import 'cache_manager.dart';
+import 'hls_data_usage_probe.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
 
@@ -111,6 +112,7 @@ class HLSProxyServer extends GetxController {
   Future<void> _handlePlaylist(
       HttpRequest request, String path, String? docID) async {
     final cacheManager = _getCacheManager();
+    final probe = HlsDataUsageProbe.ensure();
     final relativePath = path.startsWith('/') ? path.substring(1) : path;
 
     // Disk cache kontrol
@@ -118,6 +120,25 @@ class HLSProxyServer extends GetxController {
     if (cached != null) {
       try {
         final content = await cached.readAsString();
+        if (docID != null) {
+          if (M3U8Parser.isMasterPlaylist(content)) {
+            probe.recordMasterPlaylist(
+              docId: docID,
+              path: path,
+              content: content,
+              source: HlsTrafficSource.playback,
+              cacheHit: true,
+            );
+          } else {
+            probe.recordVariantPlaylist(
+              docId: docID,
+              path: path,
+              content: content,
+              source: HlsTrafficSource.playback,
+              cacheHit: true,
+            );
+          }
+        }
         request.response
           ..statusCode = HttpStatus.ok
           ..headers.contentType =
@@ -156,6 +177,29 @@ class HLSProxyServer extends GetxController {
       }
 
       final content = response.body;
+      await probe.maybeApplyDebugDelay(
+        isPlaylist: true,
+        source: HlsTrafficSource.playback,
+      );
+      if (docID != null) {
+        if (M3U8Parser.isMasterPlaylist(content)) {
+          probe.recordMasterPlaylist(
+            docId: docID,
+            path: path,
+            content: content,
+            source: HlsTrafficSource.playback,
+            cacheHit: false,
+          );
+        } else {
+          probe.recordVariantPlaylist(
+            docId: docID,
+            path: path,
+            content: content,
+            source: HlsTrafficSource.playback,
+            cacheHit: false,
+          );
+        }
+      }
 
       // Disk'e cache'le
       if (cacheManager != null) {
@@ -187,6 +231,7 @@ class HLSProxyServer extends GetxController {
       HttpRequest request, String path, String? docID) async {
     final cacheManager = _getCacheManager();
     final metrics = cacheManager?.metrics;
+    final probe = HlsDataUsageProbe.ensure();
 
     if (docID != null && cacheManager != null) {
       // Segment key: docID'den sonraki kısım, örn. "720p/segment_0.ts"
@@ -200,6 +245,13 @@ class HLSProxyServer extends GetxController {
             final bytes = await cached.readAsBytes();
             metrics?.recordHit(bytes.length);
             cacheManager.touchEntry(docID);
+            probe.recordSegmentTransfer(
+              docId: docID,
+              segmentKey: segmentKey,
+              bytes: bytes.length,
+              source: HlsTrafficSource.playback,
+              cacheHit: true,
+            );
 
             request.response
               ..statusCode = HttpStatus.ok
@@ -236,6 +288,16 @@ class HLSProxyServer extends GetxController {
       if (existing != null) {
         bytes = await existing;
       } else {
+        if (docID != null) {
+          final segmentKey = _extractSegmentKey(path, docID);
+          if (segmentKey != null) {
+            probe.recordSegmentStart(
+              docId: docID,
+              segmentKey: segmentKey,
+              source: HlsTrafficSource.playback,
+            );
+          }
+        }
         final future = _fetchSegmentFromCDN(cdnUrl);
         _segmentFetchInFlight[path] = future;
         try {
@@ -245,6 +307,10 @@ class HLSProxyServer extends GetxController {
         }
       }
 
+      await probe.maybeApplyDebugDelay(
+        isPlaylist: false,
+        source: HlsTrafficSource.playback,
+      );
       metrics?.recordMiss(bytes.length);
       _trackDownloadBytes(bytes.length);
 
@@ -252,6 +318,13 @@ class HLSProxyServer extends GetxController {
       if (docID != null && cacheManager != null) {
         final segmentKey = _extractSegmentKey(path, docID);
         if (segmentKey != null) {
+          probe.recordSegmentTransfer(
+            docId: docID,
+            segmentKey: segmentKey,
+            bytes: bytes.length,
+            source: HlsTrafficSource.playback,
+            cacheHit: false,
+          );
           unawaited(cacheManager.writeSegment(docID, segmentKey, bytes));
         }
       }

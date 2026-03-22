@@ -204,7 +204,7 @@ class SinavHazirlaController extends GetxController {
             soruSayisiTextFields.map((controller) => controller.text).toList(),
         "taslak": true,
         "public": public.value,
-        "userID": CurrentUserService.instance.userId,
+        "userID": CurrentUserService.instance.effectiveUserId,
         "bitisDk": sure.value,
         "bitis": combinedDateTime.millisecondsSinceEpoch + (sure.value * 60000),
       }, SetOptions(merge: true));

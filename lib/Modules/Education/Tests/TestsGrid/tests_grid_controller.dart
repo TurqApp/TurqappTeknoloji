@@ -92,7 +92,7 @@ class TestsGridController extends GetxController {
   }
 
   void checkIfFavorite() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     final data = await _testRepository.fetchRawById(
       model.docID,
       preferCache: true,
@@ -105,7 +105,7 @@ class TestsGridController extends GetxController {
   }
 
   void toggleFavorite() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     isFavorite.value = await _testRepository.toggleFavorite(
       model.docID,
       userId: userId,
@@ -314,7 +314,7 @@ class TestsGridController extends GetxController {
   }
 
   void handleTestAction(BuildContext context) {
-    if (model.userID == CurrentUserService.instance.userId) {
+    if (model.userID == CurrentUserService.instance.effectiveUserId) {
       Get.bottomSheet(
         Padding(
           padding: const EdgeInsets.all(20),
@@ -526,7 +526,7 @@ class TestsGridController extends GetxController {
   }
 
   void navigateToProfile(BuildContext context) {
-    if (model.userID != CurrentUserService.instance.userId) {
+    if (model.userID != CurrentUserService.instance.effectiveUserId) {
       Get.to(() => SocialProfile(userID: model.userID));
     } else {
       Get.to(() => ProfileView());

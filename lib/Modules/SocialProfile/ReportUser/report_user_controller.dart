@@ -112,7 +112,7 @@ class ReportUserController extends GetxController {
   }
 
   Future<void> block() async {
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
     final blockedEntries = await _userSubcollectionRepository.getEntries(
       userID,
       subcollection: "blockedUsers",

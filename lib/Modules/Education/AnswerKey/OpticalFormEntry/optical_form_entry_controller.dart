@@ -100,7 +100,7 @@ class OpticalFormEntryController extends GetxController {
       try {
         final userAnswers = await _opticalFormRepository.fetchUserAnswers(
           currentModel.docID,
-          CurrentUserService.instance.userId,
+          CurrentUserService.instance.effectiveUserId,
           forceRefresh: true,
         );
         final answerKey = currentModel.cevaplar;

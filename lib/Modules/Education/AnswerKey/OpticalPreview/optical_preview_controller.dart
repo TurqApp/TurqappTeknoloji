@@ -72,7 +72,7 @@ class OpticalPreviewController extends GetxController {
     _opticalFormRepository
         .saveUserAnswers(
           model.docID,
-          CurrentUserService.instance.userId,
+          CurrentUserService.instance.effectiveUserId,
           answers: cevaplar.toList(growable: false),
           ogrenciNo: ogrenciNo.text,
           fullName: fullName.text,
@@ -83,7 +83,7 @@ class OpticalPreviewController extends GetxController {
   void kullaniciyiSinavGirdiKaydet() {
     _opticalFormRepository.initializeUserAnswers(
       model.docID,
-      CurrentUserService.instance.userId,
+      CurrentUserService.instance.effectiveUserId,
       model.cevaplar.length,
     );
   }

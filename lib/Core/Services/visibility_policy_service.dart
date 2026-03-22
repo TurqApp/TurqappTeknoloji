@@ -25,7 +25,7 @@ class VisibilityPolicyService extends GetxService {
     bool forceRefresh = false,
   }) async {
     final viewerUid =
-        (viewerUserId ?? CurrentUserService.instance.userId).trim();
+        (viewerUserId ?? CurrentUserService.instance.effectiveUserId).trim();
     if (viewerUid.isEmpty) return <String>{};
     return _followRepository.getFollowingIds(
       viewerUid,
@@ -42,7 +42,7 @@ class VisibilityPolicyService extends GetxService {
     final uid = authorUserId.trim();
     if (uid.isEmpty) return false;
 
-    final me = CurrentUserService.instance.userId.trim();
+    final me = CurrentUserService.instance.effectiveUserId;
     if (me.isNotEmpty && me == uid) return true;
 
     final summary = await _resolver.resolve(
@@ -65,7 +65,7 @@ class VisibilityPolicyService extends GetxService {
     if (uid.isEmpty) return false;
     if (isDeleted) return false;
 
-    final me = CurrentUserService.instance.userId.trim();
+    final me = CurrentUserService.instance.effectiveUserId;
     if (me.isNotEmpty && me == uid) return true;
     if (!isPrivate) return true;
     return followingIds.contains(uid);

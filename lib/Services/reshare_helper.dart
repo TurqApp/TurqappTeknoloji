@@ -38,7 +38,7 @@ class ReshareHelper {
       final safeUserID = userID.trim();
       if (safeUserID.isEmpty) return _unknownUser;
 
-      final me = CurrentUserService.instance.userId.trim();
+      final me = CurrentUserService.instance.effectiveUserId;
       final current = CurrentUserService.maybeFind();
       if (me.isNotEmpty && safeUserID == me && current != null) {
         final myNickname = current.nickname.trim();
@@ -88,7 +88,7 @@ class ReshareHelper {
       final safeUserID = userID.trim();
       if (safeUserID.isEmpty) return _unknownUser;
 
-      final me = CurrentUserService.instance.userId.trim();
+      final me = CurrentUserService.instance.effectiveUserId;
       final current = CurrentUserService.maybeFind();
       if (me.isNotEmpty && safeUserID == me && current != null) {
         final myFullName = current.fullName.trim();

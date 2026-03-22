@@ -44,7 +44,7 @@ class RecommendedUserContentController extends GetxController {
   Future<void> getTakipStatus() async {
     isFollowing.value = await _followRepository.isFollowing(
       userID,
-      currentUid: CurrentUserService.instance.userId,
+      currentUid: CurrentUserService.instance.effectiveUserId,
       preferCache: true,
     );
   }

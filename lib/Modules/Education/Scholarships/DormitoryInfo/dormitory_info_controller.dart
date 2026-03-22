@@ -162,7 +162,7 @@ class DormitoryInfoController extends GetxController {
   Future<void> fetchFirestoreData() async {
     try {
       final data = await _userRepository.getUserRaw(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
       );
       if (data != null) {
         yurt.value = userString(
@@ -278,7 +278,7 @@ class DormitoryInfoController extends GetxController {
         final String savedYurt =
             listedeYok.value ? yurtInputText.value : yurt.value;
         await _userRepository.updateUserFields(
-          CurrentUserService.instance.userId,
+          CurrentUserService.instance.effectiveUserId,
           scopedUserUpdate(
             scope: 'family',
             values: {"yurt": savedYurt},

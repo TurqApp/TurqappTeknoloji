@@ -13,7 +13,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
     return Obx(() {
       final isLoading = controller.isLoading.value;
       final isOwnScholarship = userData['userID']?.toString() ==
-          CurrentUserService.instance.userId;
+          CurrentUserService.instance.effectiveUserId;
 
       // Tarih kontrolü
       bool isExpired = false;

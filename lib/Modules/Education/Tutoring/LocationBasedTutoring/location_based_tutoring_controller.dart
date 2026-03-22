@@ -119,7 +119,7 @@ class LocationBasedTutoringController extends GetxController {
       );
 
       final result = await _tutoringSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 250,
         forceSync: !silent,
       );

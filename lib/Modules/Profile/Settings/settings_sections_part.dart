@@ -1,6 +1,6 @@
 // ignore_for_file: file_names
 
-part of 'Settings.dart';
+part of 'package:turqappv2/Modules/Profile/Settings/Settings.dart';
 
 extension _SettingsViewSectionsPart on _SettingsViewState {
   List<Widget> _buildPrimarySections() {
@@ -241,6 +241,7 @@ extension _SettingsViewSectionsPart on _SettingsViewState {
         'settings.sign_out'.tr,
         CupertinoIcons.square_arrow_right,
         _showSignOutDialog,
+        valueKey: const ValueKey(IntegrationTestKeys.actionSettingsSignOut),
       ),
     ];
   }

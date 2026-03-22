@@ -36,11 +36,7 @@ class ArchiveController extends GetxController {
   StreamSubscription<User?>? _authSub;
   String? _currentUserId;
 
-  String get _resolvedCurrentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _resolvedCurrentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {

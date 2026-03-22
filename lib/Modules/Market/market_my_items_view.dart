@@ -30,7 +30,7 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
   @override
   void initState() {
     super.initState();
-    uid = CurrentUserService.instance.userId;
+    uid = CurrentUserService.instance.effectiveUserId;
     _reload();
   }
 
@@ -62,8 +62,8 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final visible =
-              (snapshot.data ?? const <MarketItemModel>[]).toList(growable: false);
+          final visible = (snapshot.data ?? const <MarketItemModel>[])
+              .toList(growable: false);
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -180,7 +180,8 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
                             icon: CupertinoIcons.check_mark,
                           ),
                       ],
-                      buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                      buttonBuilder: (context, showMenu) =>
+                          AppHeaderActionButton(
                         onTap: showMenu,
                         child: Icon(
                           AppIcons.ellipsisVertical,

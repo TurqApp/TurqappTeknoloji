@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:async';
@@ -92,11 +91,7 @@ class ShortContentController extends GetxController {
   Worker? _postDataWorker;
   Timer? _deleteFadeTimer;
   Timer? _deleteRemoveTimer;
-  String get _currentUserId {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {

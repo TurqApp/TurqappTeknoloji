@@ -75,7 +75,7 @@ class PostController extends GetxController {
   }
 
   Future<void> begen(String postID) async {
-    final userID = CurrentUserService.instance.userId;
+    final userID = CurrentUserService.instance.effectiveUserId;
     if (userID.isEmpty) return;
     final nextLiked = await _postRepository.toggleLike(model);
     if (nextLiked) {
@@ -86,7 +86,7 @@ class PostController extends GetxController {
   }
 
   Future<void> begenme(String postID) async {
-    final userID = CurrentUserService.instance.userId;
+    final userID = CurrentUserService.instance.effectiveUserId;
     if (userID.isEmpty) return;
 
     final cached = await _postRepository.fetchPostRawById(postID);
@@ -121,7 +121,7 @@ class PostController extends GetxController {
   }
 
   Future<void> kayitEt(String postID) async {
-    final userID = CurrentUserService.instance.userId;
+    final userID = CurrentUserService.instance.effectiveUserId;
     if (userID.isEmpty) return;
     final nextSaved = await _postRepository.toggleSave(model);
     if (nextSaved) {
@@ -133,41 +133,6 @@ class PostController extends GetxController {
 
   Future<void> yenidenPaylas() async {
     // final docID = const Uuid().v4();
-    // final times = DateTime.now().millisecondsSinceEpoch;
-    // FirebaseFirestore.instance.collection("Posts").doc(docID).set({
-    //   "arsiv": false,
-    //   "begeniler": [],
-    //   "hedefKitle": model.hedefKitle,
-    //   "img": model.img,
-    //   "kategori": [],
-    //   "kayitEdenler": [],
-    //   "muzik": model.muzik,
-    //   "tekrarPaylas": model.tekrarPaylas,
-    //   "timeStamp": times,
-    //   "userID": FirebaseAuth.instance.currentUser!.uid,
-    //   "konum": model.konum,
-    //   "metin": model.metin,
-    //   "video": model.video,
-    //   "yasKilidi": model.yasKilidi,
-    //   "yorumlar": model.yorumlar,
-    //   "yenidenPaylasilanPostlar": [],
-    //   "yenidenPaylasilanKullanicilar": [],
-    //   "anaPaylasimPostID": model.anaPaylasimPostID != "" ? model.anaPaylasimPostID : model.docID,
-    //   "begenmeme": [],
-    //   "goruntuleme": [],
-    //   "izBirakYayinTarihi": model.izBirakYayinTarihi,
-    //   "thumbnailOfVideo": model.thumbnailOfVideo,
-    //   "mainUserID": model.mainUserID
-    // });
-    //
-    // FirebaseFirestore.instance.collection("Posts").doc(model.docID).update({
-    //   "yenidenPaylasilanPostlar": FieldValue.arrayUnion([docID]),
-    //   "yenidenPaylasilanKullanicilar":
-    //   FieldValue.arrayUnion([FirebaseAuth.instance.currentUser!.uid])
-    // });
-    //
-    // yenidenPaylasilanKullanicilar
-    //     .add(FirebaseAuth.instance.currentUser!.uid);
   }
 
   Future<void> yorumYap(BuildContext context, {VoidCallback? onClosed}) async {

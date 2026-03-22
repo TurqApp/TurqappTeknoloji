@@ -43,7 +43,7 @@ class CikmisSorularController extends GetxController {
   }
 
   Future<void> _bootstrapInitialData() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _snapshotRepository
         .openHome(userId: userId)
@@ -57,7 +57,7 @@ class CikmisSorularController extends GetxController {
     }
     try {
       final resource = await _snapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         forceSync: !silent,
       );
       final items = resource.data ?? const <Map<String, dynamic>>[];
@@ -132,7 +132,7 @@ class CikmisSorularController extends GetxController {
     try {
       final resource = await _snapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );

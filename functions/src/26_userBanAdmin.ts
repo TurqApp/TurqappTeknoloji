@@ -118,7 +118,11 @@ async function writeBanState(
   const displayName = String(userDoc.get("displayName") || "").trim();
   const avatarUrl = String(userDoc.get("avatarUrl") || "").trim();
   const rozet = String(userDoc.get("rozet") || "").trim();
-  const bannedRef = db.collection("bannedUser").doc(userDoc.id);
+  const bannedRef = db
+    .collection("adminConfig")
+    .doc("admin")
+    .collection("bannedUser")
+    .doc(userDoc.id);
 
   if (action === "clear") {
     await userDoc.ref.set(

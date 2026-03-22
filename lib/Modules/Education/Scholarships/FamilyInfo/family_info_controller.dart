@@ -174,7 +174,7 @@ class FamilyInfoController extends GetxController {
   Future<void> fetchFromFirestore() async {
     try {
       final data = await _userRepository.getUserRaw(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
       );
       if (data != null) {
         familyInfo.value = userString(data, key: 'familyInfo', scope: 'family');
@@ -478,7 +478,7 @@ class FamilyInfoController extends GetxController {
     // Veri kaydetme
     try {
       await _userRepository.updateUserFields(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
         {
           ...scopedUserUpdate(
             scope: 'family',
@@ -538,7 +538,7 @@ class FamilyInfoController extends GetxController {
     try {
       // Firestore'dan aile bilgilerini sıfırla
       await _userRepository.updateUserFields(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
         {
           ...scopedUserUpdate(
             scope: 'family',

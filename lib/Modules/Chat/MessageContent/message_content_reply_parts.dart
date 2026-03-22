@@ -72,7 +72,7 @@ extension MessageContentReplyParts on MessageContent {
   }
 
   String _replySenderLabel() {
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (model.replySenderId.trim().isNotEmpty &&
         model.replySenderId.trim() == currentUid) {
       return 'chat.you'.tr;

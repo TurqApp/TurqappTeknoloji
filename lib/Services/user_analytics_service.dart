@@ -20,6 +20,8 @@ class UserAnalyticsService {
   final _userService = CurrentUserService.instance;
   bool _writesDisabledByPermission = false;
 
+  String get _currentUid => _userService.effectiveUserId;
+
   bool get _canWrite {
     // Debug log temizliği için analytics write'larını kapat.
     if (kDebugMode) return false;
@@ -33,12 +35,13 @@ class UserAnalyticsService {
   }) async {
     try {
       if (!_canWrite) return;
-      if (!_userService.isLoggedIn) return;
+      final uid = _currentUid;
+      if (uid.isEmpty) return;
 
       await FirebaseFirestore.instance
           .collection('Analytics')
           .doc('CachePerformance')
-          .collection(_userService.userId)
+          .collection(uid)
           .add({
         'cacheHit': cacheHit,
         'loadTimeMs': loadTimeMs,
@@ -61,14 +64,15 @@ class UserAnalyticsService {
   }) async {
     try {
       if (!_canWrite) return;
-      if (!_userService.isLoggedIn) return;
+      final uid = _currentUid;
+      if (uid.isEmpty) return;
 
       final durationMinutes = endTime.difference(startTime).inMinutes;
 
       await FirebaseFirestore.instance
           .collection('Analytics')
           .doc('UserSessions')
-          .collection(_userService.userId)
+          .collection(uid)
           .add({
         'startTime': startTime.millisecondsSinceEpoch,
         'endTime': endTime.millisecondsSinceEpoch,
@@ -88,12 +92,13 @@ class UserAnalyticsService {
   Future<void> trackFeatureUsage(String featureName) async {
     try {
       if (!_canWrite) return;
-      if (!_userService.isLoggedIn) return;
+      final uid = _currentUid;
+      if (uid.isEmpty) return;
 
       await FirebaseFirestore.instance
           .collection('Analytics')
           .doc('FeatureUsage')
-          .collection(_userService.userId)
+          .collection(uid)
           .add({
         'feature': featureName,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
@@ -116,12 +121,13 @@ class UserAnalyticsService {
   }) async {
     try {
       if (!_canWrite) return;
-      if (!_userService.isLoggedIn) return;
+      final uid = _currentUid;
+      if (uid.isEmpty) return;
 
       await FirebaseFirestore.instance
           .collection('Analytics')
           .doc('RuntimeHealth')
-          .collection(_userService.userId)
+          .collection(uid)
           .add({
         'surface': surface,
         'timestamp': DateTime.now().millisecondsSinceEpoch,

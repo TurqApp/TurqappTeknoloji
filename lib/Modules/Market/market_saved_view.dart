@@ -26,7 +26,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
   @override
   void initState() {
     super.initState();
-    uid = CurrentUserService.instance.userId;
+    uid = CurrentUserService.instance.effectiveUserId;
     _reload();
   }
 
@@ -175,10 +175,10 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                      : Icon(
-                          AppIcons.saved,
-                          color: Colors.orange,
-                        ),
+                  : Icon(
+                      AppIcons.saved,
+                      color: Colors.orange,
+                    ),
             ),
           ],
         ),

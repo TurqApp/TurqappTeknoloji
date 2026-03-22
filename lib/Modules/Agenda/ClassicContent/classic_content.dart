@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/relative_time_tick_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
@@ -112,11 +112,7 @@ class _ClassicContentState extends State<ClassicContent>
   Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
   String _quotedSourceProfileUserId = '';
 
-  String get _currentUid {
-    final serviceUid = controller.userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => controller.userService.effectiveUserId;
 
   int get _feedCacheWidth {
     final media = MediaQuery.of(context);

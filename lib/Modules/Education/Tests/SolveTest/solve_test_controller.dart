@@ -92,7 +92,7 @@ class SolveTestController extends GetxController {
   Future<void> getUserFullName() async {
     try {
       final summary = await _userSummaryResolver.resolve(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
         preferCache: true,
       );
       fullname.value = summary?.preferredName ?? "";
@@ -109,7 +109,7 @@ class SolveTestController extends GetxController {
     _testRepository
         .submitAnswers(
           testID,
-          userId: CurrentUserService.instance.userId,
+          userId: CurrentUserService.instance.effectiveUserId,
           answers: cevaplar.toList(growable: false),
         )
         .catchError((error) {});

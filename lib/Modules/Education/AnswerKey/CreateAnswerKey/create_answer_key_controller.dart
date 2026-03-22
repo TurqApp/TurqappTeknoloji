@@ -104,7 +104,7 @@ class CreateAnswerKeyController extends GetxController {
       "name": nameController.text.isNotEmpty
           ? nameController.text
           : "answer_key.untitled_optical_form".tr,
-      "userID": CurrentUserService.instance.userId,
+      "userID": CurrentUserService.instance.effectiveUserId,
       "baslangic": selectedDateTime.value.millisecondsSinceEpoch,
       "bitis": selectedDateTime.value.millisecondsSinceEpoch +
           (60000 * sinavSuresiCount.value),

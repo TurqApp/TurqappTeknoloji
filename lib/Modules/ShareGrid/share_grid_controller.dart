@@ -64,7 +64,7 @@ class ShareGridController extends GetxController {
   }
 
   Future<void> getFolowers() async {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     final ids = await _visibilityPolicy.loadViewerFollowingIds(
       viewerUserId: currentUid,
     );
@@ -95,7 +95,7 @@ class ShareGridController extends GetxController {
     final sohbet = chatListingController.list.firstWhereOrNull(
       (val) => val.userID == userID,
     );
-    final currentUID = CurrentUserService.instance.userId;
+    final currentUID = CurrentUserService.instance.effectiveUserId;
     final chatId = sohbet?.chatID ?? buildConversationId(currentUID, userID);
 
     try {

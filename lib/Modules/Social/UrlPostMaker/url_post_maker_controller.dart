@@ -88,6 +88,7 @@ class UrlPostMakerController extends GetxController {
     try {
       GlobalLoaderController.ensure().isOn.value = true;
       final uuid = Uuid().v4();
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
       final normalizedAR = double.parse(aspectRatio.toStringAsFixed(4));
       final imageUrls =
           imgs.map((url) => url.trim()).where((url) => url.isNotEmpty).toList();
@@ -149,7 +150,7 @@ class UrlPostMakerController extends GetxController {
         "tags": [],
         "thumbnail": thumbnail,
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "userID": CurrentUserService.instance.userId,
+        "userID": currentUserId,
         "video": video,
         "hlsStatus": "none",
         "hlsMasterUrl": "",
@@ -183,15 +184,15 @@ class UrlPostMakerController extends GetxController {
                 .collection("Posts")
                 .doc(targetPostID)
                 .collection("postSharers")
-                .doc(CurrentUserService.instance.userId)
+                .doc(currentUserId)
                 .set({
-              "userID": CurrentUserService.instance.userId,
+              "userID": currentUserId,
               "timestamp": DateTime.now().millisecondsSinceEpoch,
               "sharedPostID": uuid, // Paylaşılan yeni post ID'si
               "quotedPost": false,
             });
             print(
-                'postSharers updated for post: $targetPostID by user: ${CurrentUserService.instance.userId}');
+                'postSharers updated for post: $targetPostID by user: $currentUserId');
           }
         } catch (e) {
           print('Error updating postSharers: $e');
@@ -230,7 +231,7 @@ class UrlPostMakerController extends GetxController {
         tags: const [],
         thumbnail: thumbnail,
         timeStamp: DateTime.now().millisecondsSinceEpoch,
-        userID: CurrentUserService.instance.userId,
+        userID: currentUserId,
         video: video,
         hlsStatus: 'none',
         hlsMasterUrl: '',

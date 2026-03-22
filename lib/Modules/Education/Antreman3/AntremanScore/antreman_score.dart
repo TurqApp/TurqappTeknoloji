@@ -19,7 +19,7 @@ class AntremanScore extends StatefulWidget {
 
 class _AntremanScoreState extends State<AntremanScore> {
   late final AntremanScoreController controller;
-  final String currentUserID = CurrentUserService.instance.userId;
+  final String currentUserID = CurrentUserService.instance.effectiveUserId;
   final ScrollController _scrollController = ScrollController();
   late final String _controllerTag;
 

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -74,11 +73,7 @@ class CvController extends GetxController {
   RxBool isUploadingPhoto = false.obs;
   RxString photoUrl = ''.obs;
 
-  String get _currentUid {
-    final serviceUid = _userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => _userService.effectiveUserId;
 
   @override
   void onInit() {

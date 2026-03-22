@@ -28,7 +28,7 @@ class GifLibraryService {
     required String category,
   }) async {
     final cleanUrl = url.trim();
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (cleanUrl.isEmpty || uid.isEmpty) {
       return;
     }

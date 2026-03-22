@@ -42,7 +42,7 @@ void bildirimGonderiliyor(
   String postType,
   String desc,
 ) {
-  final currentUserId = CurrentUserService.instance.userId;
+  final currentUserId = CurrentUserService.instance.effectiveUserId;
   if (currentUserId.isEmpty) return;
   if (gonderilecekUserID != currentUserId) {
     FirebaseFirestore.instance

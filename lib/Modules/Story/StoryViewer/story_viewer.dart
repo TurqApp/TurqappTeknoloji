@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
+import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
@@ -70,8 +70,7 @@ class _StoryViewerState extends State<StoryViewer>
         final idx = currentPageIndex >= 0 ? currentPageIndex : 0;
         if (widget.storyOwnerUsers.isEmpty) return;
         _prefetchNext(idx);
-      } catch (_) {
-      }
+      } catch (_) {}
     });
 
     _returnController = AnimationController(
@@ -160,6 +159,7 @@ class _StoryViewerState extends State<StoryViewer>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey(IntegrationTestKeys.screenStoryViewer),
       backgroundColor: Colors.black,
       body: GestureDetector(
         onVerticalDragStart: (details) {
@@ -318,11 +318,7 @@ class _StoryViewerState extends State<StoryViewer>
 
   void _onScreenshotDetected() {
     try {
-      final uid = (() {
-        final serviceUid = CurrentUserService.instance.userId.trim();
-        if (serviceUid.isNotEmpty) return serviceUid;
-        return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-      })();
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       if (currentPageIndex >= widget.storyOwnerUsers.length) return;
       final storyOwner = widget.storyOwnerUsers[currentPageIndex];
@@ -336,8 +332,7 @@ class _StoryViewerState extends State<StoryViewer>
           userId: uid,
         );
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _animateBack() {
@@ -393,11 +388,7 @@ class _StoryViewerState extends State<StoryViewer>
   /// Kullanıcının tüm hikayelerini bitirdikten sonra çağrılır
   void _markUserAsFullyViewed(int index) async {
     try {
-      final uid = (() {
-        final serviceUid = CurrentUserService.instance.userId.trim();
-        if (serviceUid.isNotEmpty) return serviceUid;
-        return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-      })();
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty && index < widget.storyOwnerUsers.length) {
         final user = widget.storyOwnerUsers[index];
         final targetUserId = user.userID;
@@ -424,8 +415,7 @@ class _StoryViewerState extends State<StoryViewer>
           await Future.delayed(const Duration(milliseconds: 100));
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   int _latestStoryMillis(StoryUserModel user) {

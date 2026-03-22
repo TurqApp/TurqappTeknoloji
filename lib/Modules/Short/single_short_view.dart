@@ -13,6 +13,7 @@ import '../../Models/posts_model.dart';
 import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/short_render_coordinator.dart';
 import '../../Core/Services/video_state_manager.dart';
@@ -173,6 +174,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
   List<PostsModel> _renderedShorts = <PostsModel>[];
   Timer? _engagementRescoreTimer;
+  Timer? _fullscreenPlaybackGuardTimer;
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
   bool _telemetryFirstFrame = false;
@@ -361,6 +363,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     // pageController.addListener ile eklenmediği için removeListener çağrısı gereksiz ve hataya yol açıyor.
     pageController.dispose();
     unawaited(_endActiveTelemetrySession());
+    _fullscreenPlaybackGuardTimer?.cancel();
+    _fullscreenPlaybackGuardTimer = null;
     _clearAllControllers();
     try {
       VideoStateManager.instance.exitExclusiveMode();
@@ -488,6 +492,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           });
         },
         child: Scaffold(
+          key: const ValueKey(IntegrationTestKeys.screenSingleShort),
           backgroundColor: Colors.black,
           body: Obx(() {
             if (shorts.isEmpty) {

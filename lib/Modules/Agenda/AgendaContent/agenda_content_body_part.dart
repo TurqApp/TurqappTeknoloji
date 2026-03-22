@@ -548,7 +548,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
             await UsernameLookupRepository.ensure().findUidForHandle(mention) ??
                 '';
 
-        final currentUid = controller.userService.userId;
+        final currentUid = controller.userService.effectiveUserId;
         if (targetUid.isNotEmpty && targetUid != currentUid) {
           await Get.to(() => SocialProfile(userID: targetUid));
         }
@@ -566,7 +566,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
 
       final totalVotes =
           (poll['totalVotes'] is num) ? poll['totalVotes'] as num : 0;
-      final uid = controller.userService.userId;
+      final uid = controller.userService.effectiveUserId;
       final userVotes = poll['userVotes'] is Map
           ? Map<String, dynamic>.from(poll['userVotes'])
           : <String, dynamic>{};

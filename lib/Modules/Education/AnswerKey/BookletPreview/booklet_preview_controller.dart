@@ -50,7 +50,7 @@ class BookletPreviewController extends GetxController {
   }
 
   void _initialize() {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     _loadBookmarkState(currentUserId);
     fetchAnswerKeys();
     fetchUserData();
@@ -121,7 +121,7 @@ class BookletPreviewController extends GetxController {
   }
 
   Future<void> toggleBookmark() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) return;
 
     try {

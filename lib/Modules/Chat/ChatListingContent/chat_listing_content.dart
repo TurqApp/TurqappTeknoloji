@@ -78,7 +78,7 @@ class ChatListingContent extends StatelessWidget {
     return "${dt.day}.${dt.month}.${dt.year}";
   }
 
-  String get _uid => CurrentUserService.instance.userId;
+  String get _uid => CurrentUserService.instance.effectiveUserId;
 
   Future<void> _refreshList() async {
     await ChatListingController.maybeFind()?.getList();

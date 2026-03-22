@@ -9,6 +9,7 @@ import 'package:turqappv2/Modules/PostCreator/CreatorContent/post_creator_model.
 import 'CreatorContent/creator_content.dart';
 import 'post_creator_controller.dart';
 import '../../Core/BottomSheets/no_yes_alert.dart';
+import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Core/Widgets/app_icon_surface.dart';
 import '../../Core/Widgets/progress_indicators.dart';
@@ -93,6 +94,7 @@ class PostCreator extends StatelessWidget {
           editPost: editPost,
         );
         return Scaffold(
+          key: const ValueKey(IntegrationTestKeys.screenPostCreator),
           body: SafeArea(
             bottom: false,
             child: Obx(() {
@@ -135,6 +137,9 @@ class PostCreator extends StatelessWidget {
                 icon: Icons.arrow_back,
               ),
               InkWell(
+                key: const ValueKey(
+                  IntegrationTestKeys.actionPostCreatorPublish,
+                ),
                 onTap: controller.isPublishing.value
                     ? null
                     : () async {

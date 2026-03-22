@@ -321,7 +321,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
 
       final totalVotes =
           (poll['totalVotes'] is num) ? poll['totalVotes'] as num : 0;
-      final uid = controller.userService.userId;
+      final uid = controller.userService.effectiveUserId;
       final userVotes = poll['userVotes'] is Map
           ? Map<String, dynamic>.from(poll['userVotes'])
           : <String, dynamic>{};
@@ -551,8 +551,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       final hasStableVideoFrame = v.hasRenderedFirstFrame &&
                           !v.isCompleted &&
                           (v.isPlaying ||
-                              v.position >
-                                  const Duration(milliseconds: 180));
+                              v.position > const Duration(milliseconds: 180));
                       if (hasStableVideoFrame) {
                         return const SizedBox.shrink();
                       }

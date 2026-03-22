@@ -40,7 +40,7 @@ class ApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapApplications() async {
-    final userID = CurrentUserService.instance.userId;
+    final userID = CurrentUserService.instance.effectiveUserId;
     if (userID.isEmpty) {
       isLoading.value = false;
       return;
@@ -73,7 +73,7 @@ class ApplicationsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       applications.assignAll(applicationList);
-      final userID = CurrentUserService.instance.userId;
+      final userID = CurrentUserService.instance.effectiveUserId;
       if (userID.isNotEmpty) {
         SilentRefreshGate.markRefreshed('scholarships:applications:$userID');
       }
@@ -88,7 +88,7 @@ class ApplicationsController extends GetxController {
     bool cacheOnly = false,
     bool forceRefresh = false,
   }) async {
-    final userID = CurrentUserService.instance.userId;
+    final userID = CurrentUserService.instance.effectiveUserId;
     if (userID.isEmpty) {
       throw StateError('Kullanıcı oturumu açık değil.');
     }
@@ -155,7 +155,7 @@ class ApplicationsController extends GetxController {
 
   Future<void> withdrawApplication(String bursID) async {
     try {
-      final userID = CurrentUserService.instance.userId;
+      final userID = CurrentUserService.instance.effectiveUserId;
       if (userID.isEmpty) {
         AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
         return;

@@ -21,9 +21,10 @@
  *   (Bu şema CF tarafını hazır eder; client migration ayrı sprint.)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = void 0;
+exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.backfillHybridFeedForUser = void 0;
 exports.resolveFollowerCollection = resolveFollowerCollection;
 exports.upsertPostIntoHybridFeed = upsertPostIntoHybridFeed;
+exports.rebuildHybridFeedForUser = rebuildHybridFeedForUser;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const db = () => admin.firestore();
@@ -120,6 +121,150 @@ async function upsertPostIntoHybridFeed(args) {
         isCelebrity: false,
     }, { merge: true });
 }
+async function collectRelationIds(uid, relation) {
+    const normalizedUid = uid.trim();
+    if (!normalizedUid)
+        return [];
+    const ids = [];
+    let lastDoc = null;
+    while (true) {
+        let q = db()
+            .collection("users")
+            .doc(normalizedUid)
+            .collection(relation)
+            .orderBy(admin.firestore.FieldPath.documentId())
+            .limit(450);
+        if (lastDoc)
+            q = q.startAfter(lastDoc);
+        const snap = await q.get();
+        if (snap.empty)
+            break;
+        ids.push(...snap.docs.map((doc) => doc.id).filter((id) => id.trim().length > 0));
+        lastDoc = snap.docs[snap.docs.length - 1];
+        if (snap.docs.length < 450)
+            break;
+    }
+    return Array.from(new Set(ids));
+}
+function isVisiblePostRecord(data) {
+    if (!data)
+        return false;
+    return (data.arsiv !== true &&
+        data.deletedPost !== true &&
+        data.gizlendi !== true &&
+        data.isUploading !== true);
+}
+async function rebuildHybridFeedForUser(args) {
+    const normalizedUid = args.uid.trim();
+    if (!normalizedUid) {
+        return {
+            uid: "",
+            followingCount: 0,
+            authorCount: 0,
+            postCount: 0,
+            writeCount: 0,
+        };
+    }
+    const perAuthorLimit = Math.min(Math.max(Number(args.perAuthorLimit) || 3, 1), 20);
+    const cutoffMs = Date.now() - FEED_TTL_MS;
+    const followings = await collectRelationIds(normalizedUid, "followings");
+    const authorIds = Array.from(new Set([normalizedUid, ...followings]));
+    const celebIds = new Set((await Promise.all(authorIds
+        .filter((id) => id.trim().length > 0)
+        .reduce((chunks, id, index) => {
+        const chunkIndex = Math.floor(index / 10);
+        if (!chunks[chunkIndex])
+            chunks[chunkIndex] = [];
+        chunks[chunkIndex].push(id);
+        return chunks;
+    }, [])
+        .map(async (chunk) => {
+        const snap = await db()
+            .collection("celebAccounts")
+            .where(admin.firestore.FieldPath.documentId(), "in", chunk)
+            .get();
+        return snap.docs.map((doc) => doc.id);
+    }))).flat());
+    const postEntries = (await Promise.all(authorIds.map(async (authorId) => {
+        const postsSnap = await db()
+            .collection("Posts")
+            .where("userID", "==", authorId)
+            .where("arsiv", "==", false)
+            .where("deletedPost", "==", false)
+            .orderBy("timeStamp", "desc")
+            .limit(perAuthorLimit)
+            .get();
+        return postsSnap.docs
+            .filter((doc) => {
+            const data = doc.data();
+            const timeStamp = Number(data?.timeStamp) || 0;
+            return isVisiblePostRecord(data) && timeStamp >= cutoffMs;
+        })
+            .map((doc) => {
+            const data = doc.data();
+            const timeStamp = Number(data?.timeStamp) || Date.now();
+            return {
+                postId: doc.id,
+                authorId,
+                timeStamp,
+                isVideo: !!(data?.videoHLSMasterUrl || data?.hlsMasterUrl || data?.video),
+                isCelebrity: celebIds.has(authorId),
+            };
+        });
+    }))).flat();
+    const deduped = new Map();
+    for (const entry of postEntries) {
+        deduped.set(entry.postId, entry);
+    }
+    const entries = Array.from(deduped.values()).sort((a, b) => b.timeStamp - a.timeStamp);
+    let writeCount = 0;
+    for (let i = 0; i < entries.length; i += 400) {
+        const chunk = entries.slice(i, i + 400);
+        const wb = db().batch();
+        for (const entry of chunk) {
+            wb.set(db()
+                .collection("userFeeds")
+                .doc(normalizedUid)
+                .collection("items")
+                .doc(entry.postId), {
+                postId: entry.postId,
+                authorId: entry.authorId,
+                timeStamp: entry.timeStamp,
+                isVideo: entry.isVideo,
+                expiresAt: entry.timeStamp + FEED_TTL_MS,
+                isCelebrity: entry.isCelebrity,
+            }, { merge: true });
+            writeCount += 1;
+        }
+        await wb.commit();
+    }
+    return {
+        uid: normalizedUid,
+        followingCount: followings.length,
+        authorCount: authorIds.length,
+        postCount: entries.length,
+        writeCount,
+    };
+}
+exports.backfillHybridFeedForUser = functions
+    .region("europe-west1")
+    .https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Auth required");
+    }
+    const requestedUid = typeof data?.uid === "string" ? data.uid.trim() : "";
+    const targetUid = requestedUid || context.auth.uid;
+    const isAdmin = context.auth.token?.admin === true;
+    if (!isAdmin && targetUid !== context.auth.uid) {
+        throw new functions.https.HttpsError("permission-denied", "Only admins can backfill other users");
+    }
+    const result = await rebuildHybridFeedForUser({
+        uid: targetUid,
+        perAuthorLimit: Number(data?.perAuthorLimit) || 3,
+    });
+    console.log("[HybridFeed] Backfill callable complete", result);
+    return result;
+});
 // ─────────────────────────────────────────────────────────
 // 📤 TRIGGER: Post oluşturulduğunda fan-out başlat
 // ─────────────────────────────────────────────────────────

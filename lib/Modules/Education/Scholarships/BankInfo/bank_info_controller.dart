@@ -98,7 +98,7 @@ class BankInfoController extends GetxController {
   Future<void> loadData() async {
     try {
       final data = await _userRepository.getUserRaw(
-            CurrentUserService.instance.userId,
+            CurrentUserService.instance.effectiveUserId,
           ) ??
           const <String, dynamic>{};
       final bank = userString(data, key: "bank", scope: "finance");
@@ -177,7 +177,8 @@ class BankInfoController extends GetxController {
     }
 
     // Save to Firestore
-    _userRepository.updateUserFields(CurrentUserService.instance.userId, {
+    _userRepository
+        .updateUserFields(CurrentUserService.instance.effectiveUserId, {
       ...scopedUserUpdate(
         scope: 'finance',
         values: {

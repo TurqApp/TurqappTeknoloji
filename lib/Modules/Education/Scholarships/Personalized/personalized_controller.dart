@@ -98,7 +98,7 @@ class PersonalizedController extends GetxController {
   }
 
   String get _cacheKey {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return '$_cacheKeyPrefix:guest';
     return '$_cacheKeyPrefix:$uid';
   }
@@ -160,7 +160,7 @@ class PersonalizedController extends GetxController {
   // Load user data from Firestore
   Future<void> _loadUserData() async {
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
 
       final data = await _userRepository.getUserRaw(uid);
@@ -361,7 +361,7 @@ class PersonalizedController extends GetxController {
 
     // Update in Firestore
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) {
         await _userRepository.updateUserFields(uid, {
           ...scopedUserUpdate(

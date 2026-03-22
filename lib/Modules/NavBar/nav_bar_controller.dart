@@ -289,7 +289,7 @@ class NavBarController extends GetxController
         _scheduleRatingPrompt(const Duration(seconds: 12));
       }
       try {
-        AgendaController.maybeFind()?.resumeFeedPlayback();
+        AgendaController.maybeFind()?.resumePlaybackAfterOverlay();
       } catch (_) {}
     }
     if (state == AppLifecycleState.resumed &&
@@ -306,13 +306,14 @@ class NavBarController extends GetxController
     final hasEducation =
         SettingsController.maybeFind()?.educationScreenIsOn.value ?? false;
     final educationIndex = hasEducation ? 3 : -1;
-    selectedIndex.value = index;
-    unawaited(_persistSelectedIndex(index));
 
     if (index != previous) {
       suspendFeedForTabExit();
       pauseGlobalTabMedia();
     }
+
+    selectedIndex.value = index;
+    unawaited(_persistSelectedIndex(index));
 
     if (index == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

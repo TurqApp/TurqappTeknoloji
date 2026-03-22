@@ -27,7 +27,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
   @override
   void initState() {
     super.initState();
-    uid = CurrentUserService.instance.userId;
+    uid = CurrentUserService.instance.effectiveUserId;
     _reload();
   }
 

@@ -41,7 +41,7 @@ class ResultsAndAnswersController extends GetxController {
   Future<void> getCevaplarim() async {
     final fetchedCevaplar = await _opticalFormRepository.fetchUserAnswers(
       model.docID,
-      CurrentUserService.instance.userId,
+      CurrentUserService.instance.effectiveUserId,
       preferCache: true,
     );
     cevaplar.assignAll(fetchedCevaplar);

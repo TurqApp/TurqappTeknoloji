@@ -3,6 +3,55 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  void _scheduleFullscreenPlaybackGuard(HLSVideoAdapter ctrl, String docId) {
+    _fullscreenPlaybackGuardTimer?.cancel();
+    _fullscreenPlaybackGuardTimer = Timer(
+      const Duration(milliseconds: 1400),
+      () async {
+        if (!mounted || ctrl.isDisposed) return;
+        if (currentPage < 0 || currentPage >= shorts.length) return;
+        if (shorts[currentPage].docID != docId) return;
+
+        final before = ctrl.value.position;
+        final beforeDiag = await ctrl.getPlaybackDiagnostics();
+        final beforePlaying = (beforeDiag['isPlaying'] as bool?) ?? false;
+        final beforeSilenceMs =
+            (beforeDiag['rendererFrameSilenceMs'] as num?)?.toInt() ?? 0;
+
+        await Future<void>.delayed(const Duration(milliseconds: 900));
+        if (!mounted || ctrl.isDisposed) return;
+        if (currentPage < 0 || currentPage >= shorts.length) return;
+        if (shorts[currentPage].docID != docId) return;
+
+        final after = ctrl.value.position;
+        final afterDiag = await ctrl.getPlaybackDiagnostics();
+        final afterPlaying = (afterDiag['isPlaying'] as bool?) ?? false;
+        final afterSilenceMs =
+            (afterDiag['rendererFrameSilenceMs'] as num?)?.toInt() ?? 0;
+        final advancedMs = after.inMilliseconds - before.inMilliseconds;
+
+        final likelyFrozen = (beforePlaying || afterPlaying) &&
+            advancedMs < 180 &&
+            afterSilenceMs >= 1500 &&
+            afterSilenceMs >= beforeSilenceMs;
+
+        if (!likelyFrozen) return;
+
+        try {
+          await ctrl.recoverFrozenPlayback();
+        } catch (_) {}
+        try {
+          await ctrl.setVolume(volume ? 1 : 0);
+        } catch (_) {}
+        _scheduleVolumeRestore(ctrl);
+        try {
+          await ctrl.play();
+        } catch (_) {}
+        _requestExclusivePlayback(docId);
+      },
+    );
+  }
+
   void _scheduleVolumeRestore(HLSVideoAdapter ctrl) {
     final targetVolume = volume ? 1.0 : 0.0;
     Future<void>.microtask(() async {
@@ -259,6 +308,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         await Future.delayed(const Duration(milliseconds: 120));
         if (ctrl.value.isPlaying) break;
       }
+      _scheduleFullscreenPlaybackGuard(ctrl, docId);
     } catch (_) {}
   }
 
@@ -297,6 +347,9 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     _scheduleVolumeRestore(ctrl);
     unawaited(ctrl.play());
     _requestExclusivePlayback(shorts[index].docID);
+    if (index == currentPage) {
+      _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
+    }
     if (index == currentPage) {
       _beginTelemetryForCurrentPage(ctrl);
     }

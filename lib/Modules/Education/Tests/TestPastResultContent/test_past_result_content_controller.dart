@@ -86,7 +86,7 @@ class TestPastResultContentController extends GetxController {
   void _applySnapshot(List<Map<String, dynamic>> snapshot) {
     count.value = 0;
     timeStamp.value = 0;
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     final filtered = snapshot
         .where(
           (doc) => (doc["userID"] ?? "").toString() == currentUserId,

@@ -101,7 +101,7 @@ class SearchAnswerKeyController extends GetxController {
     try {
       final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );

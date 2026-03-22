@@ -52,7 +52,7 @@ class MyQRCodeController extends GetxController {
     if (nickname.isNotEmpty) {
       return buildTurqAppProfileUrl(nickname);
     }
-    final uid = userService.userId.isNotEmpty ? userService.userId : '';
+    final uid = userService.effectiveUserId;
     if (uid.isNotEmpty) {
       return buildTurqAppProfileUrl(uid);
     }
@@ -66,7 +66,7 @@ class MyQRCodeController extends GetxController {
   Future<void> _prepareProfileLink() async {
     final link = _buildProfileLink();
     profileLink.value = link;
-    final uid = userService.userId.isNotEmpty ? userService.userId : '';
+    final uid = userService.effectiveUserId;
     final nickname = normalizeProfileSlug(userService.nickname);
     if (uid.isEmpty || nickname.isEmpty) return;
     try {

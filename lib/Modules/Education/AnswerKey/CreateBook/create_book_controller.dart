@@ -160,7 +160,8 @@ class CreateBookController extends GetxController {
       "timeStamp":
           existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
       "yayinEvi": yayinEviController.text,
-      "userID": existingBook?.userID ?? CurrentUserService.instance.userId,
+      "userID":
+          existingBook?.userID ?? CurrentUserService.instance.effectiveUserId,
       "viewCount": existingBook?.viewCount ?? 0,
     }, SetOptions(merge: true));
 
@@ -218,7 +219,7 @@ class CreateBookController extends GetxController {
     BuildContext context,
   ) async {
     try {
-      final userId = CurrentUserService.instance.userId;
+      final userId = CurrentUserService.instance.effectiveUserId;
       if (userId.isEmpty) {
         showIndicator.value = false;
         return;

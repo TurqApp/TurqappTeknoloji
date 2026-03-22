@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 import '../network_awareness_service.dart';
 import 'cache_manager.dart';
 import 'download_worker.dart';
+import 'hls_data_usage_probe.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
 
@@ -430,6 +431,7 @@ class PrefetchScheduler extends GetxController {
     if (cacheManager == null) return;
 
     try {
+      final probe = HlsDataUsageProbe.ensure();
       // Master playlist'i çek (veya cache'den oku)
       final masterPath = 'Posts/${job.docID}/hls/master.m3u8';
       String? masterContent;
@@ -437,6 +439,13 @@ class PrefetchScheduler extends GetxController {
       final cachedMaster = cacheManager.getPlaylistFile(masterPath);
       if (cachedMaster != null) {
         masterContent = await cachedMaster.readAsString();
+        probe.recordMasterPlaylist(
+          docId: job.docID,
+          path: '/$masterPath',
+          content: masterContent,
+          source: HlsTrafficSource.prefetch,
+          cacheHit: true,
+        );
       } else {
         final url = '$_cdnOrigin/$masterPath';
         final response = await _httpClient
@@ -444,6 +453,13 @@ class PrefetchScheduler extends GetxController {
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           masterContent = response.body;
+          probe.recordMasterPlaylist(
+            docId: job.docID,
+            path: '/$masterPath',
+            content: masterContent,
+            source: HlsTrafficSource.prefetch,
+            cacheHit: false,
+          );
           await cacheManager.writePlaylist(masterPath, masterContent);
         }
       }
@@ -464,6 +480,13 @@ class PrefetchScheduler extends GetxController {
       final cachedVariant = cacheManager.getPlaylistFile(variantPath);
       if (cachedVariant != null) {
         variantContent = await cachedVariant.readAsString();
+        probe.recordVariantPlaylist(
+          docId: job.docID,
+          path: '/$variantPath',
+          content: variantContent,
+          source: HlsTrafficSource.prefetch,
+          cacheHit: true,
+        );
       } else {
         final url = '$_cdnOrigin/$variantPath';
         final response = await _httpClient
@@ -471,6 +494,13 @@ class PrefetchScheduler extends GetxController {
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           variantContent = response.body;
+          probe.recordVariantPlaylist(
+            docId: job.docID,
+            path: '/$variantPath',
+            content: variantContent,
+            source: HlsTrafficSource.prefetch,
+            cacheHit: false,
+          );
           await cacheManager.writePlaylist(variantPath, variantContent);
         }
       }
@@ -540,6 +570,11 @@ class PrefetchScheduler extends GetxController {
 
         _activeDownloads++;
         _resetWatchdog();
+        probe.recordSegmentStart(
+          docId: job.docID,
+          segmentKey: segmentKey,
+          source: HlsTrafficSource.prefetch,
+        );
         _worker?.download(DownloadRequest(
           url: segmentCdnUrl,
           segmentKey: segmentKey,
@@ -655,6 +690,13 @@ class PrefetchScheduler extends GetxController {
     if (result.success) {
       final bytes = result.bytes!;
       _trackDownloadBytes(bytes.length);
+      HlsDataUsageProbe.ensure().recordSegmentTransfer(
+        docId: result.docID,
+        segmentKey: result.segmentKey,
+        bytes: bytes.length,
+        source: HlsTrafficSource.prefetch,
+        cacheHit: false,
+      );
       final cacheManager = _getCacheManager();
       if (cacheManager != null) {
         unawaited(

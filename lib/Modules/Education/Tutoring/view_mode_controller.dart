@@ -30,7 +30,7 @@ class ViewModeController extends GetxController {
   }
 
   Future<void> _restoreViewMode() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       isGridView.value = false;
       isReady.value = true;
@@ -47,7 +47,7 @@ class ViewModeController extends GetxController {
   }
 
   Future<void> _persistViewMode() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();

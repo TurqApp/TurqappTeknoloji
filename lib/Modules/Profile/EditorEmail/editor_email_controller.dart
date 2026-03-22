@@ -37,11 +37,7 @@ class EditorEmailController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
 
-  String get _currentUid {
-    final serviceUid = _userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => _userService.effectiveUserId;
 
   @override
   void onInit() {

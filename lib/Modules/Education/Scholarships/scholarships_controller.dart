@@ -89,7 +89,7 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> _bootstrapScholarships() async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _scholarshipSnapshotRepository
         .openHome(
@@ -116,7 +116,7 @@ class ScholarshipsController extends GetxController {
     }
     try {
       final result = await _scholarshipSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 1,
       );
       totalCount.value = result.data?.found ?? 0;
@@ -181,7 +181,7 @@ class ScholarshipsController extends GetxController {
     try {
       final result = await _scholarshipSnapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );
@@ -211,7 +211,7 @@ class ScholarshipsController extends GetxController {
   Future<void> _primeLocalStateForCombined(
     List<Map<String, dynamic>> items,
   ) async {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     final followTasks = <Future<void>>[];
 
     for (final item in items) {
@@ -259,7 +259,7 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> toggleFollow(String followedId) async {
-    final currentUserId = CurrentUserService.instance.userId;
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
     if (currentUserId.isEmpty) return;
     followLoading[followedId] = true;
     try {
@@ -293,7 +293,7 @@ class ScholarshipsController extends GetxController {
         isLoading.value = true;
       }
       final result = await _scholarshipSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: initialBatchSize,
         forceSync: forceRefresh,
       );
@@ -326,7 +326,7 @@ class ScholarshipsController extends GetxController {
     try {
       isLoadingMore.value = true;
       final result = await _scholarshipSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: batchSize,
         page: _typesensePage + 1,
         forceSync: true,
@@ -368,7 +368,7 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> toggleLike(String docId, String type) async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
@@ -428,7 +428,7 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> toggleBookmark(String docId, String type) async {
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
@@ -492,7 +492,7 @@ class ScholarshipsController extends GetxController {
     BuildContext context,
   ) async {
     final burs = scholarshipData['model'];
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     final ownerUid =
         (burs?.userID ?? scholarshipData['userID'] ?? '').toString();
     final canShare = AdminAccessService.isKnownAdminSync() ||

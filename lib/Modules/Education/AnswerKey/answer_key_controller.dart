@@ -92,7 +92,7 @@ class AnswerKeyController extends GetxController {
       '${_listingSelectionPrefKeyPrefix}_$uid';
 
   Future<void> _restoreListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       listingSelection.value = 0;
       listingSelectionReady.value = true;
@@ -110,7 +110,7 @@ class AnswerKeyController extends GetxController {
   }
 
   Future<void> _persistListingSelection() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -138,7 +138,7 @@ class AnswerKeyController extends GetxController {
 
   Future<void> _bootstrapInitialData() async {
     await AnswerKeyContentController.warmSavedIdsForCurrentUser();
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _answerKeySnapshotRepository
         .openHome(
@@ -230,7 +230,7 @@ class AnswerKeyController extends GetxController {
     _lastDocument = null;
     try {
       final resource = await _answerKeySnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: _pageSize,
       );
       final items = resource.data ?? const <BookletModel>[];
@@ -284,7 +284,7 @@ class AnswerKeyController extends GetxController {
     try {
       final resource = await _answerKeySnapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );

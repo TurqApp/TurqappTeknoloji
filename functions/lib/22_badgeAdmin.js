@@ -4,6 +4,7 @@ exports.processBadgeRenewals = exports.setUserBadgeByUserId = exports.setUserBad
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
+const notificationInbox_1 = require("./notificationInbox");
 const userSchemaUtils_1 = require("./userSchemaUtils");
 if (admin.apps.length === 0) {
     admin.initializeApp();
@@ -13,6 +14,9 @@ const RENEWAL_CUTOFF_MS = Date.UTC(2026, 3, 1, 0, 0, 0, 0);
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const ONE_MONTH_MS = 30 * ONE_DAY_MS;
 const ONE_YEAR_MS = 365 * ONE_DAY_MS;
+function verifiedCollection() {
+    return db.collection("adminConfig").doc("admin").collection("TurqAppVerified");
+}
 const BADGE_MAP = new Map([
     ["", ""],
     ["gri", "Gri"],
@@ -32,11 +36,7 @@ function badgeNeedsAnnualRenewal(rozet, nowMs) {
     return rozet !== "Turkuaz" && rozet !== "Gri";
 }
 async function createRenewalNotification(uid, rozet, expiresAt) {
-    await db
-        .collection("users")
-        .doc(uid)
-        .collection("notifications")
-        .add({
+    await (0, notificationInbox_1.addInboxItem)(db, uid, {
         type: "System",
         fromUserID: "",
         postID: "",
@@ -179,7 +179,7 @@ async function applyBadgeToUserDoc(userDoc, rozet, requestedNicknameRaw) {
         userPatch.rozetExpiredAt = admin.firestore.FieldValue.delete();
     }
     await userDoc.ref.update(userPatch);
-    await db.collection("TurqAppVerified").doc(userDoc.id).set({
+    await verifiedCollection().doc(userDoc.id).set({
         userID: userDoc.id,
         selected: rozet,
         status: "approved",
@@ -276,7 +276,7 @@ exports.processBadgeRenewals = functions
                     updatedDate: nowMs,
                     rozetExpiredAt: nowMs,
                 }, { merge: true });
-                await db.collection("TurqAppVerified").doc(doc.id).set({
+                await verifiedCollection().doc(doc.id).set({
                     userID: doc.id,
                     status: "expired",
                     expiredAt: nowMs,
@@ -289,7 +289,7 @@ exports.processBadgeRenewals = functions
                     rozetRenewalWarnedAt: nowMs,
                     updatedDate: nowMs,
                 }, { merge: true });
-                await db.collection("TurqAppVerified").doc(doc.id).set({
+                await verifiedCollection().doc(doc.id).set({
                     userID: doc.id,
                     status: "renewal_open",
                     renewalOpenedAt: nowMs,

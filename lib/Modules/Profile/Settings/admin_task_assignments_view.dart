@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -33,11 +32,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   bool _saving = false;
   bool _clearing = false;
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {
@@ -102,12 +97,10 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   }
 
   Widget _buildEditorCard() {
-    final selectedNickname = (_selectedUser?['nickname'] ?? '')
-        .toString()
-        .trim();
-    final selectedDisplayName = (_selectedUser?['displayName'] ?? '')
-        .toString()
-        .trim();
+    final selectedNickname =
+        (_selectedUser?['nickname'] ?? '').toString().trim();
+    final selectedDisplayName =
+        (_selectedUser?['displayName'] ?? '').toString().trim();
     final selectedRozet = (_selectedUser?['rozet'] ?? '').toString().trim();
 
     return Container(
@@ -317,7 +310,9 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                             )
                           : const Icon(Icons.task_alt),
                       label: Text(
-                        _saving ? 'admin.tasks.saving'.tr : 'admin.tasks.save'.tr,
+                        _saving
+                            ? 'admin.tasks.saving'.tr
+                            : 'admin.tasks.save'.tr,
                         style: const TextStyle(
                           fontFamily: 'MontserratBold',
                         ),
@@ -493,7 +488,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
     FocusManager.instance.primaryFocus?.unfocus();
     final nickname = normalizeNicknameInput(_nicknameController.text);
     if (nickname.isEmpty) {
-      AppSnackbar('admin.tasks.missing_info'.tr, 'admin.tasks.username_required'.tr);
+      AppSnackbar(
+          'admin.tasks.missing_info'.tr, 'admin.tasks.username_required'.tr);
       return;
     }
     setState(() {
@@ -503,7 +499,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       final data = await _userRepository.findUserByNickname(nickname);
       if (!mounted) return;
       if (data == null) {
-        AppSnackbar('admin.tasks.not_found'.tr, 'admin.tasks.user_not_found'.tr);
+        AppSnackbar(
+            'admin.tasks.not_found'.tr, 'admin.tasks.user_not_found'.tr);
         setState(() {
           _selectedUser = null;
           _selectedTaskIds = <String>[];
@@ -516,11 +513,14 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       setState(() {
         _selectedUser = data;
         _selectedTaskIds = normalizeAdminTaskIds(
-          assignment?['taskIds'] is List ? assignment!['taskIds'] as List : const [],
+          assignment?['taskIds'] is List
+              ? assignment!['taskIds'] as List
+              : const [],
         );
       });
     } catch (e) {
-      AppSnackbar('support.error_title'.tr, '${'admin.tasks.load_failed'.tr} $e');
+      AppSnackbar(
+          'support.error_title'.tr, '${'admin.tasks.load_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -533,7 +533,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   Future<void> _saveTasks() async {
     final user = _selectedUser;
     if (user == null) {
-      AppSnackbar('admin.tasks.missing_info'.tr, 'admin.tasks.load_user_first'.tr);
+      AppSnackbar(
+          'admin.tasks.missing_info'.tr, 'admin.tasks.load_user_first'.tr);
       return;
     }
     setState(() {
@@ -569,7 +570,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         'admin.tasks.saved'.trParams({'nickname': nickname}),
       );
     } catch (e) {
-      AppSnackbar('support.error_title'.tr, '${'admin.tasks.save_failed'.tr} $e');
+      AppSnackbar(
+          'support.error_title'.tr, '${'admin.tasks.save_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -582,7 +584,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
   Future<void> _clearTasks() async {
     final user = _selectedUser;
     if (user == null) {
-      AppSnackbar('admin.tasks.missing_info'.tr, 'admin.tasks.load_user_first'.tr);
+      AppSnackbar(
+          'admin.tasks.missing_info'.tr, 'admin.tasks.load_user_first'.tr);
       return;
     }
     setState(() {
@@ -603,7 +606,8 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
         }),
       );
     } catch (e) {
-      AppSnackbar('support.error_title'.tr, '${'admin.tasks.clear_failed'.tr} $e');
+      AppSnackbar(
+          'support.error_title'.tr, '${'admin.tasks.clear_failed'.tr} $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -629,7 +633,6 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
       );
     });
   }
-
 }
 
 class _AssignmentCard extends StatelessWidget {
@@ -669,7 +672,8 @@ class _AssignmentCard extends StatelessWidget {
               radius: 22,
               backgroundImage:
                   avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-              child: avatarUrl.isEmpty ? const Icon(CupertinoIcons.person) : null,
+              child:
+                  avatarUrl.isEmpty ? const Icon(CupertinoIcons.person) : null,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -745,7 +749,8 @@ class _AssignmentCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              ((adminTaskCatalogById[id]?.titleKey ?? '').isNotEmpty)
+                              ((adminTaskCatalogById[id]?.titleKey ?? '')
+                                      .isNotEmpty)
                                   ? adminTaskCatalogById[id]!.titleKey.tr
                                   : id,
                               style: const TextStyle(

@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
@@ -71,7 +72,11 @@ class EducationController extends GetxController {
       settingsController.pasajVisibility,
       (_) => _recomputeVisibleTabs(),
     );
+    ever<int>(selectedTab, (_) => _suppressBackgroundFeedMedia());
     _bindPasajConfig();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _suppressBackgroundFeedMedia();
+    });
   }
 
   @override
@@ -280,6 +285,7 @@ class EducationController extends GetxController {
     _syncTabBarPosition(visibleIndex);
     _restoreSearchForTab(actualIndex);
     resetActivePasajSurfaceToTop();
+    _suppressBackgroundFeedMedia();
   }
 
   void onPageChanged(int visibleIndex) {
@@ -288,6 +294,16 @@ class EducationController extends GetxController {
     _syncTabBarPosition(visibleIndex);
     _restoreSearchForTab(actualIndex);
     resetActivePasajSurfaceToTop();
+    _suppressBackgroundFeedMedia();
+  }
+
+  void _suppressBackgroundFeedMedia() {
+    try {
+      AgendaController.maybeFind()?.suspendPlaybackForOverlay();
+    } catch (_) {}
+    try {
+      NavBarController.maybeFind()?.pauseGlobalTabMedia();
+    } catch (_) {}
   }
 
   bool get canExitToFeed =>

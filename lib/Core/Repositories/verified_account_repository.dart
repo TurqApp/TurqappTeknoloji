@@ -116,7 +116,7 @@ class VerifiedAccountRepository extends GetxService {
   }
 
   Future<void> submitApplication(Map<String, dynamic> payload) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final ref = _collection().doc(uid);
     final existing = await ref.get();

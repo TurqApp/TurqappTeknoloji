@@ -259,7 +259,7 @@ class MyTutoringsController extends GetxController {
   }
 
   String? getCurrentUserId() {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     return uid.isNotEmpty ? uid : null;
   }
 

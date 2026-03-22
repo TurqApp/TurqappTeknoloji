@@ -168,7 +168,7 @@ class EducationFeedPostShareService {
     required String ctaType,
     required String ctaDocId,
   }) async {
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     if (currentUid.isEmpty) {
       AppSnackbar(
           'login.sign_in'.tr, 'education_feed.share_sign_in_required'.tr);

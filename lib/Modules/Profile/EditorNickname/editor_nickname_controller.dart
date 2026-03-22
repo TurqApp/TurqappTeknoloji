@@ -30,7 +30,7 @@ class EditorNicknameController extends GetxController {
 
   final TextEditingController nicknameController = TextEditingController();
 
-  final uid = CurrentUserService.instance.userId;
+  final uid = CurrentUserService.instance.effectiveUserId;
   static const Duration _graceWindow = Duration(hours: 1);
   static const Duration _changeCooldown = Duration(days: 15);
 

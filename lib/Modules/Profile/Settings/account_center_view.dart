@@ -23,15 +23,11 @@ class AccountCenterView extends StatelessWidget {
   final SignInController _signInController = SignInController();
   final Future<void> _initFuture = AccountCenterService.ensure().init();
 
-  bool get _isLoggedIn => FirebaseAuth.instance.currentUser != null;
+  bool get _isLoggedIn => _currentUid.isNotEmpty;
 
   CurrentUserService get _currentUserService => CurrentUserService.instance;
 
-  String get _currentUid {
-    final serviceUid = _currentUserService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => _currentUserService.effectiveUserId;
 
   Future<void> _continueWithAccount(StoredAccount account) async {
     final currentUid = _currentUid;
@@ -46,8 +42,8 @@ class AccountCenterView extends StatelessWidget {
 
     if (account.hasPasswordProvider) {
       if (account.requiresReauth) {
-        final identifier =
-            await _signInController.preferredIdentifierForStoredAccount(account);
+        final identifier = await _signInController
+            .preferredIdentifierForStoredAccount(account);
         await Get.offAll(
           () => SignIn(
             initialIdentifier: identifier,
@@ -115,7 +111,7 @@ class AccountCenterView extends StatelessWidget {
 
     final shouldRemove = await showCupertinoDialog<bool>(
           context: context,
-        builder: (dialogContext) => CupertinoAlertDialog(
+          builder: (dialogContext) => CupertinoAlertDialog(
             title: Text('account_center.remove_account_title'.tr),
             content: Text(
               'account_center.remove_account_body'
@@ -188,7 +184,8 @@ class AccountCenterView extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Obx(() {
-                      final items = accountCenter.accounts.toList(growable: false);
+                      final items =
+                          accountCenter.accounts.toList(growable: false);
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -240,11 +237,14 @@ class AccountCenterView extends StatelessWidget {
                                   )
                                 : Column(
                                     children: [
-                                      for (var i = 0; i < items.length; i++) ...[
+                                      for (var i = 0;
+                                          i < items.length;
+                                          i++) ...[
                                         _AccountRow(
                                           account: items[i],
                                           avatar: _avatar(items[i]),
-                                          onTap: () => _continueWithAccount(items[i]),
+                                          onTap: () =>
+                                              _continueWithAccount(items[i]),
                                           onLongPress: () =>
                                               _confirmRemoveAccount(
                                             context,
@@ -261,8 +261,8 @@ class AccountCenterView extends StatelessWidget {
                                       InkWell(
                                         borderRadius:
                                             const BorderRadius.vertical(
-                                              bottom: Radius.circular(18),
-                                            ),
+                                          bottom: Radius.circular(18),
+                                        ),
                                         onTap: () => Get.to(() => SignIn()),
                                         child: Padding(
                                           padding: EdgeInsets.symmetric(
@@ -326,11 +326,7 @@ class _SessionSecuritySection extends StatelessWidget {
 
   final AccountCenterService accountCenter;
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +357,8 @@ class _SessionSecuritySection extends StatelessWidget {
             stream: UserRepository.ensure().watchUserRaw(uid),
             builder: (context, snapshot) {
               final enabled =
-                  (snapshot.data?['singleDeviceSessionEnabled'] ?? false) == true;
+                  (snapshot.data?['singleDeviceSessionEnabled'] ?? false) ==
+                      true;
               return SwitchListTile.adaptive(
                 value: enabled,
                 onChanged: (value) async {
@@ -470,25 +467,20 @@ class _PersonalDetailsSection extends StatelessWidget {
   final UserRepository userRepository;
   final VoidCallback onContactTap;
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<String?> _loadContactDetails() async {
     final current = currentUserService.currentUser;
-    final authUser = FirebaseAuth.instance.currentUser;
     final parts = <String>[];
 
-    final directEmail = (current?.email ?? authUser?.email ?? '').trim();
+    final directEmail = (current?.email ?? currentUserService.email).trim();
     final directPhone =
-        (current?.phoneNumber ?? authUser?.phoneNumber ?? '').trim();
+        (current?.phoneNumber ?? currentUserService.phoneNumber).trim();
     if (directEmail.isNotEmpty) parts.add(directEmail);
     if (directPhone.isNotEmpty) parts.add(directPhone);
     if (parts.isNotEmpty) return parts.join(', ');
 
-    final uid = authUser?.uid ?? '';
+    final uid = _currentUid;
     if (uid.isEmpty) return null;
     final raw = await userRepository.getUserRaw(uid, preferCache: true);
     if (raw == null) return null;
@@ -609,14 +601,14 @@ class _ContactDetailsView extends StatelessWidget {
         child: Column(
           children: [
             BackButtons(text: 'account_center.contact_details'.tr),
-            
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Obx(() {
                   final email = _emailValue(currentUserService);
                   final phone = _phoneValue(currentUserService);
-                  final emailVerified = currentUserService.emailVerifiedRx.value;
+                  final emailVerified =
+                      currentUserService.emailVerifiedRx.value;
                   final phoneVerified = phone.isNotEmpty;
                   return Container(
                     decoration: BoxDecoration(

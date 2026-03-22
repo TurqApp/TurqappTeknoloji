@@ -42,7 +42,7 @@ class MyBookletResultsController extends GetxController {
   }
 
   Future<void> _bootstrapResults() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       isLoading.value = false;
       return;
@@ -81,7 +81,7 @@ class MyBookletResultsController extends GetxController {
   Future<void> fetchBookletResults({bool forceRefresh = false}) async {
     try {
       final snapshot = await _userSubcollectionRepository.getEntries(
-        CurrentUserService.instance.userId,
+        CurrentUserService.instance.effectiveUserId,
         subcollection: "KitapcikCevaplari",
         orderByField: "timeStamp",
         descending: true,
@@ -96,7 +96,7 @@ class MyBookletResultsController extends GetxController {
   /// Eski: tüm OptikKodlar çek → her biri için Yanitlar/{uid} oku (N+1)
   /// Yeni: collectionGroup("Yanitlar") ile uid dokümanlarını bul → parent OptikKodlar'ı batch çek
   Future<void> fetchOptikSonuclari({bool forceRefresh = false}) async {
-    final currentUserUID = CurrentUserService.instance.userId;
+    final currentUserUID = CurrentUserService.instance.effectiveUserId;
 
     try {
       final tempList = await _opticalFormRepository.fetchAnsweredByUser(
@@ -114,7 +114,7 @@ class MyBookletResultsController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final shouldShowLoader = !silent && list.isEmpty && optikSonuclari.isEmpty;
     if (shouldShowLoader) {
       isLoading.value = true;

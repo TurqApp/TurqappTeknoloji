@@ -42,7 +42,7 @@ class _MyStatisticViewState extends State<MyStatisticView> {
     Color(0xFF0097A7),
   ];
 
-  String get _currentUid => userService.userId;
+  String get _currentUid => userService.effectiveUserId;
 
   @override
   void initState() {

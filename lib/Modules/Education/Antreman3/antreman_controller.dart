@@ -47,7 +47,7 @@ class AntremanController extends GetxController {
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
   String get _activeUid {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     return uid.isEmpty ? 'guest' : uid;
   }
 
@@ -177,7 +177,7 @@ class AntremanController extends GetxController {
   final RxList<QuestionBankModel> searchResults = <QuestionBankModel>[].obs;
   final RxBool isSearchLoading = false.obs;
 
-  final String userID = CurrentUserService.instance.userId;
+  final String userID = CurrentUserService.instance.effectiveUserId;
   final int batchSize = 5;
   final RxInt expandedSubIndex = RxInt(-1);
   final RxString mainCategory = ''.obs;

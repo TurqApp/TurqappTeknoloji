@@ -58,7 +58,7 @@ class DenemeSinaviYapController extends GetxController
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   DenemeSinaviYapController({
     required this.model,

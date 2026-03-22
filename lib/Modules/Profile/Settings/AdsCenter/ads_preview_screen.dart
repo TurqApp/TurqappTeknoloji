@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
@@ -20,11 +19,7 @@ class _AdsPreviewScreenState extends State<AdsPreviewScreen> {
   final _userId = TextEditingController();
   AdPlacementType _placement = AdPlacementType.feed;
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {

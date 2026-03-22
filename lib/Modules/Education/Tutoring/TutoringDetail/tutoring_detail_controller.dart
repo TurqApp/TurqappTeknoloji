@@ -62,7 +62,7 @@ class TutoringDetailController extends GetxController {
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
 
-  String get _uid => CurrentUserService.instance.userId;
+  String get _uid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {

@@ -61,7 +61,7 @@ class JobContentController extends GetxController {
   }
 
   static Future<void> warmSavedIdsForCurrentUser() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final cached = _savedIdsByUser[uid];
     if (cached != null) return;
@@ -78,7 +78,7 @@ class JobContentController extends GetxController {
       return;
     }
     _initializedSavedDocId = normalizedDocId;
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
       final savedIds = await _loadSavedIds(uid);
@@ -92,7 +92,7 @@ class JobContentController extends GetxController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.saveJob)) {
       return;
     }
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
 
     try {
@@ -111,7 +111,7 @@ class JobContentController extends GetxController {
   }
 
   Future<void> reactivateEndedJob(JobModel model) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     if (model.userID != uid || !model.ended) return;
 
@@ -157,7 +157,7 @@ class JobContentController extends GetxController {
   }
 
   Future<void> shareJob(JobModel model) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final canShare =
         AdminAccessService.isKnownAdminSync() || uid == model.userID;
     if (!canShare) {

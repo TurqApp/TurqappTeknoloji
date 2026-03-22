@@ -123,7 +123,7 @@ class NotifyLookupRepository extends GetxService {
 
   Future<NotifyChatLookup> getChatLookup(String chatID) async {
     _pruneStaleLookups();
-    final currentUid = CurrentUserService.instance.userId;
+    final currentUid = CurrentUserService.instance.effectiveUserId;
     final cacheKey = '${currentUid}_$chatID';
     final cached = _chatLookupCache[cacheKey];
     if (cached != null &&

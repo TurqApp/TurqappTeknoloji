@@ -72,7 +72,7 @@ String timeAgoMetin(num timestamp) {
 Future<void> getDeviceInfo() async {
   final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
-  final currentUid = CurrentUserService.instance.userId;
+  final currentUid = CurrentUserService.instance.effectiveUserId;
   if (currentUid.isNotEmpty) {
     if (Platform.isAndroid) {
       AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;

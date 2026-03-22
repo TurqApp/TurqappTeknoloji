@@ -28,6 +28,7 @@ class DeletedStoriesController extends GetxController {
   final PageController pageController = PageController();
   final StoryRepository _storyRepository = StoryRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
+  String get _currentUid => _userService.effectiveUserId;
 
   @override
   void onInit() {
@@ -68,7 +69,7 @@ class DeletedStoriesController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       if (uid.isEmpty) return;
 
       if (initial) {
@@ -118,7 +119,7 @@ class DeletedStoriesController extends GetxController {
     list.removeWhere((e) => e.id == storyId);
     deletedAtById.remove(storyId);
     deleteReasonById.remove(storyId);
-    final uid = _userService.userId.trim();
+    final uid = _currentUid;
     if (uid.isNotEmpty) {
       await _persistCache(uid);
     }
@@ -141,7 +142,7 @@ class DeletedStoriesController extends GetxController {
     list.removeWhere((e) => e.id == story.id);
     deletedAtById.remove(story.id);
     deleteReasonById.remove(story.id);
-    final uid = _userService.userId.trim();
+    final uid = _currentUid;
     if (uid.isNotEmpty) {
       await _persistCache(uid);
     }

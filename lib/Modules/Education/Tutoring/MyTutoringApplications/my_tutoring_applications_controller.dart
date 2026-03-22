@@ -43,7 +43,7 @@ class MyTutoringApplicationsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final cached = await _subcollectionRepository.getEntries(
       uid,
@@ -76,7 +76,7 @@ class MyTutoringApplicationsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       final items = await _subcollectionRepository.getEntries(
         uid,
@@ -99,7 +99,7 @@ class MyTutoringApplicationsController extends GetxController {
 
   Future<void> cancelApplication(String tutoringDocID) async {
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
 
       await _tutoringRepository.cancelApplication(

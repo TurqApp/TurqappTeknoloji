@@ -95,7 +95,7 @@ class SavedJobsController extends GetxController {
   }
 
   Future<void> _bootstrapSavedJobs() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       list.clear();
       isLoading.value = false;
@@ -134,7 +134,7 @@ class SavedJobsController extends GetxController {
     bool forceRefresh = false,
     bool allowLocationPrompt = false,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       list.clear();
       isLoading.value = false;

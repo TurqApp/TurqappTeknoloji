@@ -124,7 +124,7 @@ class OpticsAndBooksPublishedController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       isLoading.value = false;
       return;
@@ -166,7 +166,7 @@ class OpticsAndBooksPublishedController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final shouldShowLoader = !silent && list.isEmpty && optikler.isEmpty;
     if (shouldShowLoader) {
       isLoading.value = true;
@@ -185,7 +185,7 @@ class OpticsAndBooksPublishedController extends GetxController {
 
   Future<void> getData({bool forceRefresh = false}) async {
     final tempList = await _bookletRepository.fetchByOwner(
-      CurrentUserService.instance.userId,
+      CurrentUserService.instance.effectiveUserId,
       preferCache: true,
       forceRefresh: forceRefresh,
     );
@@ -197,7 +197,7 @@ class OpticsAndBooksPublishedController extends GetxController {
 
   Future<void> getOptikler({bool forceRefresh = false}) async {
     final tempList = await _opticalFormRepository.fetchByOwner(
-      CurrentUserService.instance.userId,
+      CurrentUserService.instance.effectiveUserId,
       preferCache: true,
       forceRefresh: forceRefresh,
     );

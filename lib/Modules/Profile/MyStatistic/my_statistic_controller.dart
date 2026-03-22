@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_stats_repository.dart';
@@ -50,11 +49,7 @@ class MyStatisticController extends GetxController {
   // Approx profile visits (story views in last 30d)
   final profileVisitsApprox = 0.obs;
 
-  String get _currentUid {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   // Controls
   @override

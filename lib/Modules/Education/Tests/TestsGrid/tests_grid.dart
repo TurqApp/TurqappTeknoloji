@@ -26,7 +26,7 @@ class _TestsGridState extends State<TestsGrid> {
   TestsModel get model => widget.model;
   Function? get update => widget.update;
 
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {

@@ -94,7 +94,7 @@ class MyJobAdsController extends GetxController {
   }
 
   Future<void> _bootstrap() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       isLoadingActive.value = false;
       isLoadingDeactive.value = false;
@@ -154,7 +154,7 @@ class MyJobAdsController extends GetxController {
       isLoadingActive.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       final jobs = await _jobRepository.fetchByOwnerAndEnded(
         uid,
@@ -181,7 +181,7 @@ class MyJobAdsController extends GetxController {
       isLoadingDeactive.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       final nextDeactive = await _jobRepository.fetchByOwnerAndEnded(
         uid,

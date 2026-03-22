@@ -44,6 +44,7 @@ class InAppNotificationsController extends GetxController {
       NotificationsSnapshotRepository.ensure();
   bool _markAllReadQueued = false;
   bool _inboxSeenRequested = false;
+  String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void onInit() {
@@ -53,7 +54,7 @@ class InAppNotificationsController extends GetxController {
   }
 
   void _bindPreferences() {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     _settingsSub?.cancel();
     _settingsSub =
@@ -73,7 +74,7 @@ class InAppNotificationsController extends GetxController {
   }
 
   Future<void> getData() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) {
       complatedDataFetch.value = true;
       list.clear();
@@ -219,7 +220,7 @@ class InAppNotificationsController extends GetxController {
     complatedDataFetch.value = true;
     _applyFilters();
     _refreshUnreadTotal();
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isNotEmpty) {
       unawaited(_notificationsSnapshotRepository.persistInboxSnapshot(
         userId: uid,
@@ -284,7 +285,7 @@ class InAppNotificationsController extends GetxController {
   }
 
   Future<void> delete(String docID) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final previousAll = List<NotificationModel>.from(_allNotifications);
     _allNotifications.removeWhere((n) => n.docID == docID);
@@ -313,7 +314,7 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> deleteMany(List<String> docIDs) async {
     if (docIDs.isEmpty) return;
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
@@ -346,7 +347,7 @@ class InAppNotificationsController extends GetxController {
     final idx = _allNotifications.indexWhere((n) => n.docID == docID);
     if (idx < 0 || _allNotifications[idx].isRead) return;
 
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     _allNotifications[idx].isRead = true;
     _applyFilters();
@@ -373,7 +374,7 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> markManyAsRead(List<String> docIDs) async {
     if (docIDs.isEmpty) return;
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
@@ -439,7 +440,7 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> markAllAsRead() async {
     if (busyMarkAllRead.value) return;
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     busyMarkAllRead.value = true;
     final unread = list
@@ -470,7 +471,7 @@ class InAppNotificationsController extends GetxController {
   int get unreadCount => unreadTotal.value;
 
   Future<void> bildirimleriTopluSil() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = _currentUid;
     await _notificationsRepository.deleteAll(uid);
   }
 

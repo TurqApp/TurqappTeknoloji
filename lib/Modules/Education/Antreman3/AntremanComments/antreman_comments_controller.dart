@@ -117,7 +117,7 @@ class AntremanCommentsController extends GetxController {
   final QuestionBankModel question;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
-  final String userID = CurrentUserService.instance.userId;
+  final String userID = CurrentUserService.instance.effectiveUserId;
   final FocusNode focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
 

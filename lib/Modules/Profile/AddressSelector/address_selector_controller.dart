@@ -36,7 +36,9 @@ class AddressSelectorController extends GetxController {
       addressController.text = current.adres;
     }
 
-    _userRepository.getUserRaw(CurrentUserService.instance.userId).then((data) {
+    _userRepository
+        .getUserRaw(CurrentUserService.instance.effectiveUserId)
+        .then((data) {
       addressController.text = ((data ?? const {})["adres"] ?? "").toString();
     });
   }
@@ -49,7 +51,7 @@ class AddressSelectorController extends GetxController {
 
   Future<void> setData() async {
     await _userRepository.updateUserFields(
-      CurrentUserService.instance.userId,
+      CurrentUserService.instance.effectiveUserId,
       {"adres": addressController.text},
     );
 

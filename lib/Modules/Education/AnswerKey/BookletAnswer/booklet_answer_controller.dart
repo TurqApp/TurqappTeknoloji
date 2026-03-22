@@ -99,7 +99,7 @@ class BookletAnswerController extends GetxController {
     try {
       await FirebaseFirestore.instance
           .collection("users")
-          .doc(CurrentUserService.instance.userId)
+          .doc(CurrentUserService.instance.effectiveUserId)
           .collection("KitapcikCevaplari")
           .add({
         "timeStamp": DateTime.now().millisecondsSinceEpoch,

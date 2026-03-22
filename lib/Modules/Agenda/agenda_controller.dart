@@ -19,6 +19,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Core/Services/video_state_manager.dart';
+import '../../Core/Services/audio_focus_coordinator.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/IndexPool/index_pool_store.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
@@ -132,6 +133,20 @@ class AgendaController extends GetxController {
 
   bool _canAutoplayVideoPost(PostsModel post, [int? nowMs]) {
     return post.hasPlayableVideo && !_isBlurredIzBirakVideo(post, nowMs);
+  }
+
+  bool get isPrimaryFeedRouteVisible {
+    final route = Get.currentRoute.trim();
+    if (route.isEmpty) return true;
+    return route == '/NavBarView' || route == 'NavBarView';
+  }
+
+  bool get canClaimPlaybackNow {
+    final nav = NavBarController.maybeFind();
+    if (nav != null && nav.selectedIndex.value != 0) return false;
+    if (playbackSuspended.value) return false;
+    if (!isPrimaryFeedRouteVisible) return false;
+    return true;
   }
 
   Future<bool> _canViewerSeePost(PostsModel post) async {
@@ -385,6 +400,9 @@ class AgendaController extends GetxController {
     playbackSuspended.value = true;
     try {
       VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
   }
 

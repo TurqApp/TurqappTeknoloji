@@ -247,7 +247,7 @@ class AntremanScoreController extends GetxController {
       const int pageSize = 200;
       DocumentSnapshot<Map<String, dynamic>>? lastDocument;
       userRank.value = 0;
-      final currentUserId = CurrentUserService.instance.userId;
+      final currentUserId = CurrentUserService.instance.effectiveUserId;
 
       while (tempLeaderboard.length < limit) {
         final page = await _antremanRepository.fetchLeaderboardPage(
@@ -300,7 +300,7 @@ class AntremanScoreController extends GetxController {
   }
 
   Future<void> getUserAntPoint() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final monthlyScore = await _antremanRepository.getMonthlyScore(uid);
     if (monthlyScore != null) {
       userPoint.value = monthlyScore;

@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -36,9 +35,7 @@ class SupportMessageRepository extends GetxService {
   }) async {
     final currentService = CurrentUserService.instance;
     final current = currentService.currentUser;
-    final uid = currentService.userId.trim().isNotEmpty
-        ? currentService.userId.trim()
-        : (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
+    final uid = currentService.effectiveUserId.trim();
     if (uid.trim().isEmpty) {
       throw Exception('not_authenticated');
     }
@@ -83,7 +80,8 @@ class SupportMessageRepository extends GetxService {
       'updatedAt': FieldValue.serverTimestamp(),
       'resolvedAt':
           status.trim() == 'open' ? null : FieldValue.serverTimestamp(),
-      'resolvedBy': status.trim() == 'open' ? '' : currentService.userId,
+      'resolvedBy':
+          status.trim() == 'open' ? '' : currentService.effectiveUserId,
       'resolvedByNickname':
           status.trim() == 'open' ? '' : (current?.nickname.trim() ?? ''),
     }, SetOptions(merge: true));

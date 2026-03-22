@@ -50,7 +50,7 @@ class CareerProfileController extends GetxController {
   }
 
   Future<void> _bootstrapCvData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       isLoading.value = false;
       return;
@@ -82,7 +82,7 @@ class CareerProfileController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       final data = await _cvRepository.getCv(
         uid,
@@ -138,7 +138,7 @@ class CareerProfileController extends GetxController {
   Future<void> toggleFindingJob() async {
     try {
       isFindingJob.value = !isFindingJob.value;
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isEmpty) return;
       await FirebaseFirestore.instance
           .collection('CV')

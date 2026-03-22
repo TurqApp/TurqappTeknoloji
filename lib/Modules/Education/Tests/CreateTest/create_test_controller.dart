@@ -223,7 +223,7 @@ class CreateTestController extends GetxController {
       "favoriler": [],
       "paylasilabilir": paylasilabilir.value,
       "timeStamp": DateTime.now().millisecondsSinceEpoch.toString(),
-      "userID": CurrentUserService.instance.userId,
+      "userID": CurrentUserService.instance.effectiveUserId,
       "taslak": true,
       "testTuru": testTuru.value,
     }, SetOptions(merge: true));

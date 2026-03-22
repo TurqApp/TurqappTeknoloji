@@ -33,7 +33,7 @@ class NotificationPreferencesService {
       NotificationPreferencesRepository.ensure();
 
   static Stream<Map<String, dynamic>> currentUserPreferencesStream() {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       return Stream.value(defaults());
     }
@@ -41,14 +41,14 @@ class NotificationPreferencesService {
   }
 
   static Future<Map<String, dynamic>> getCurrentUserPreferences() async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return defaults();
     final data = await _repository.getPreferences(uid, preferCache: true);
     return mergeWithDefaults(data);
   }
 
   static Future<void> setValue(String path, dynamic value) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     final current = mergeWithDefaults(
       await _repository.getPreferences(uid, preferCache: true),
@@ -148,7 +148,8 @@ class NotificationPreferencesService {
     return result;
   }
 
-  static void _writePath(Map<String, dynamic> source, String path, dynamic value) {
+  static void _writePath(
+      Map<String, dynamic> source, String path, dynamic value) {
     final segments = path.split('.');
     Map<String, dynamic> current = source;
     for (var i = 0; i < segments.length - 1; i++) {

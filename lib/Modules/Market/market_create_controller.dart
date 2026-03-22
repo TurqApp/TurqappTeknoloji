@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:geocoding/geocoding.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -529,7 +528,7 @@ class MarketCreateController extends GetxController {
   String _resolveSellerPhone(dynamic current) {
     final values = <String>[
       (current?.phoneNumber ?? '').toString().trim(),
-      (FirebaseAuth.instance.currentUser?.phoneNumber ?? '').toString().trim(),
+      CurrentUserService.instance.phoneNumber.trim(),
     ];
     for (final value in values) {
       if (value.isNotEmpty) return value;
@@ -584,7 +583,7 @@ class MarketCreateController extends GetxController {
     if (!UserModerationGuard.ensureAllowed(RestrictedAction.publishMarket)) {
       return;
     }
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       AppSnackbar(
         'common.error'.tr,

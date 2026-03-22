@@ -206,7 +206,8 @@ class VideoTelemetryService {
 
   Future<void> _flush(VideoSessionMetrics session) async {
     if (!_canWrite) return;
-    if (!_userService.isLoggedIn) return;
+    final uid = _userService.effectiveUserId;
+    if (uid.isEmpty) return;
     // Skip very short sessions (less than 1 second watch time).
     if (session.watchTimeSeconds < 1.0) return;
 
@@ -214,7 +215,7 @@ class VideoTelemetryService {
       await FirebaseFirestore.instance
           .collection('Analytics')
           .doc('VideoPlayback')
-          .collection(_userService.userId)
+          .collection(uid)
           .add(session.toMap());
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {

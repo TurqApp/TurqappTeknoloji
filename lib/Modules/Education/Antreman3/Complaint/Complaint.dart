@@ -56,7 +56,7 @@ class ComplaintController extends GetxController {
   }
 
   final RxString selectedSikayet = ''.obs;
-  final String userID = CurrentUserService.instance.userId;
+  final String userID = CurrentUserService.instance.effectiveUserId;
 
   void submitSikayet(
     String postID,

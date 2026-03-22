@@ -88,7 +88,7 @@ class StoryInteractionOptimizer extends GetxService {
     _isWriting = true;
 
     try {
-      final uid = _userService.userId.trim();
+      final uid = _userService.effectiveUserId;
       if (uid.isEmpty) {
         _isWriting = false;
         return;

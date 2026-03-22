@@ -81,7 +81,7 @@ class SinavSonuclarimController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final currentUserID = CurrentUserService.instance.userId;
+    final currentUserID = CurrentUserService.instance.effectiveUserId;
     if (currentUserID.isEmpty) return;
     final cached = await _practiceExamRepository.fetchAnsweredByUser(
       currentUserID,
@@ -111,7 +111,7 @@ class SinavSonuclarimController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final currentUserID = CurrentUserService.instance.userId;
+      final currentUserID = CurrentUserService.instance.effectiveUserId;
       final exams = await _practiceExamRepository.fetchAnsweredByUser(
         currentUserID,
         preferCache: !forceRefresh,

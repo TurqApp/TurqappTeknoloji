@@ -106,7 +106,7 @@ class TutoringController extends GetxController {
   Future<void> _bootstrapTutoringData() async {
     final savedController = SavedTutoringsController.ensure(permanent: true);
     await savedController.loadSavedTutorings();
-    final userId = CurrentUserService.instance.userId;
+    final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _tutoringSnapshotRepository
         .openHome(
@@ -148,7 +148,7 @@ class TutoringController extends GetxController {
     _currentPage = 1;
     try {
       final result = await _tutoringSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: _pageSize,
         forceSync: forceRefresh,
       );
@@ -175,7 +175,7 @@ class TutoringController extends GetxController {
     try {
       final nextPage = _currentPage + 1;
       final result = await _tutoringSnapshotRepository.loadHome(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: _pageSize,
         page: nextPage,
         forceSync: true,
@@ -215,7 +215,7 @@ class TutoringController extends GetxController {
     final normalized = query.trim();
     try {
       final result = await _tutoringSnapshotRepository.search(
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         query: normalized,
         limit: 40,
         forceSync: true,

@@ -38,7 +38,7 @@ class MyTestsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     final cached = await _testRepository.fetchByOwner(
       uid,
       cacheOnly: true,
@@ -65,7 +65,7 @@ class MyTestsController extends GetxController {
       isLoading.value = true;
     }
     try {
-      final uid = CurrentUserService.instance.userId;
+      final uid = CurrentUserService.instance.effectiveUserId;
       final items = await _testRepository.fetchByOwner(
         uid,
         preferCache: !forceRefresh,

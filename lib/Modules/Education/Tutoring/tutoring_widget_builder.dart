@@ -21,7 +21,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 String? getCurrentUserId() {
-  final userId = CurrentUserService.instance.userId;
+  final userId = CurrentUserService.instance.effectiveUserId;
   return userId.isNotEmpty ? userId : null;
 }
 

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
@@ -64,11 +63,7 @@ class JobDetailsController extends GetxController {
   final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
       JobHomeSnapshotRepository.ensure();
   final JobRepository _jobRepository = JobRepository.ensure();
-  String get _currentUserId {
-    final serviceUid = CurrentUserService.instance.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   JobDetailsController({required JobModel model}) : model = model.obs;
 

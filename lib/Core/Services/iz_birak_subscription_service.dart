@@ -31,7 +31,7 @@ class IzBirakSubscriptionService extends GetxService {
   }
 
   Future<bool> subscribe(String postId) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     final normalizedPostId = postId.trim();
     if (uid.isEmpty || normalizedPostId.isEmpty) return false;
     if (subscribedPostIds.contains(normalizedPostId)) return true;
@@ -59,7 +59,7 @@ class IzBirakSubscriptionService extends GetxService {
   }
 
   Future<void> _hydrateSubscription(String postId) async {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty || postId.isEmpty || _loadingPostIds.contains(postId)) {
       return;
     }

@@ -72,7 +72,7 @@ class SavedPracticeExamsController extends GetxController {
   }
 
   Future<void> _bootstrapData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
 
     final savedEntries = await _subcollectionRepository.getEntries(
@@ -112,7 +112,7 @@ class SavedPracticeExamsController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
 
     if (!silent || savedExams.isEmpty) {
@@ -153,7 +153,7 @@ class SavedPracticeExamsController extends GetxController {
   }
 
   Future<void> toggleSavedExam(String docId) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
 
     if (savedExamIds.contains(docId)) {

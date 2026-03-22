@@ -122,7 +122,7 @@ class ApplicationReviewController extends GetxController {
 
   Future<void> updateStatus(String userID, String newStatus) async {
     try {
-      final actorUid = CurrentUserService.instance.userId;
+      final actorUid = CurrentUserService.instance.effectiveUserId;
       if (actorUid.isEmpty) {
         AppSnackbar(
           'common.error'.tr,

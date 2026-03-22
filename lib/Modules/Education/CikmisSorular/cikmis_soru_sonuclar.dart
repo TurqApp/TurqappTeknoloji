@@ -25,8 +25,8 @@ class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
   }
 
   Future<void> getData() async {
-    final uid = CurrentUserService.instance.userId.isNotEmpty
-        ? CurrentUserService.instance.userId
+    final uid = CurrentUserService.instance.effectiveUserId.isNotEmpty
+        ? CurrentUserService.instance.effectiveUserId
         : "local";
     final tempList = await _repository.fetchUserResults(uid);
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));

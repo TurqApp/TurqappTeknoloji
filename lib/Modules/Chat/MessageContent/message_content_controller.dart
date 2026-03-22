@@ -364,7 +364,7 @@ class MessageContentController extends GetxController {
 
   Future<void> deleteMessage() async {
     if (model.source == "preview") return;
-    final currentUid = CurrentUserService.instance.userId.trim();
+    final currentUid = CurrentUserService.instance.effectiveUserId.trim();
     if (currentUid.isEmpty) return;
 
     await showActionSheet(
@@ -403,7 +403,7 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> likeImage() async {
-    final currentUserID = CurrentUserService.instance.userId.trim();
+    final currentUserID = CurrentUserService.instance.effectiveUserId.trim();
     if (currentUserID.isEmpty) return;
     await _conversationRepository.toggleMessageLike(
       chatId: mainID,

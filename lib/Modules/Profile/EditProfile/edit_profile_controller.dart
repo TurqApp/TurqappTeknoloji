@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -61,11 +60,7 @@ class EditProfileController extends GetxController {
   final RxString phoneNumber = ''.obs;
   StreamSubscription<Map<String, dynamic>?>? _userSub;
 
-  String get _currentUid {
-    final serviceUid = userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => userService.effectiveUserId;
 
   // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
   String get defaultAvatarUrl => kDefaultAvatarUrl;
@@ -102,7 +97,7 @@ class EditProfileController extends GetxController {
           : const <String, dynamic>{};
       final rawEmail = (data["email"] ??
               profile["email"] ??
-              FirebaseAuth.instance.currentUser?.email ??
+              CurrentUserService.instance.email ??
               "")
           .toString()
           .trim();

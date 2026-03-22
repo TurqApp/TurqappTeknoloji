@@ -884,7 +884,7 @@ class PersonelInfoController extends GetxController
   }
 
   Future<void> fetchData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       isLoading.value = false;
@@ -976,7 +976,7 @@ class PersonelInfoController extends GetxController
   }
 
   Future<void> saveData() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;

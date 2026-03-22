@@ -415,12 +415,13 @@ class AgendaView extends StatelessWidget {
                 bottom: 82,
                 right: 20,
                 child: GestureDetector(
+                  key: const ValueKey(IntegrationTestKeys.actionFeedCreate),
                   onTap: () {
                     final prevIndex = controller.lastCenteredIndex;
                     controller.lastCenteredIndex = prevIndex;
-                    controller.centeredIndex.value = -1;
+                    controller.suspendPlaybackForOverlay();
                     Get.to(() => PostCreator())?.then((_) {
-                      controller.resumeFeedPlayback();
+                      controller.resumePlaybackAfterOverlay();
                     });
                   },
                   child: ClipOval(
@@ -668,9 +669,9 @@ class AgendaView extends StatelessWidget {
                         }
                         final prevIndex = controller.lastCenteredIndex;
                         controller.lastCenteredIndex = prevIndex;
-                        controller.centeredIndex.value = -1;
+                        controller.suspendPlaybackForOverlay();
                         Get.to(() => ChatListing())?.then((_) {
-                          controller.resumeFeedPlayback();
+                          controller.resumePlaybackAfterOverlay();
                           try {
                             recommendedController.getUsers();
                           } catch (_) {}
@@ -695,9 +696,9 @@ class AgendaView extends StatelessWidget {
                       onTap: () {
                         final prevIndex = controller.lastCenteredIndex;
                         controller.lastCenteredIndex = prevIndex;
-                        controller.centeredIndex.value = -1;
+                        controller.suspendPlaybackForOverlay();
                         Get.to(() => InAppNotifications())?.then((_) {
-                          controller.resumeFeedPlayback();
+                          controller.resumePlaybackAfterOverlay();
                           try {
                             recommendedController.getUsers();
                           } catch (_) {}

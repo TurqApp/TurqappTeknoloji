@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
@@ -39,11 +38,7 @@ class _StoryCircleState extends State<StoryCircle> {
   static const double _labelWidth = 78;
   static const double _addBadgeSize = 18;
 
-  String get _currentUid {
-    final serviceUid = userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => userService.effectiveUserId;
 
   @override
   Widget build(BuildContext context) {

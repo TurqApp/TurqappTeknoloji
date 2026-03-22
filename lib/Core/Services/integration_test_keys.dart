@@ -23,6 +23,8 @@ class IntegrationTestKeys {
   static const String screenComments = 'it-screen-comments';
   static const String screenStoryViewer = 'it-screen-story-viewer';
   static const String screenSingleShort = 'it-screen-single-short';
+  static const String screenMyQr = 'it-screen-my-qr';
+  static const String storyRow = 'it-story-row';
 
   static const String actionOpenNotifications = 'it-action-open-notifications';
   static const String actionShortBack = 'it-action-short-back';

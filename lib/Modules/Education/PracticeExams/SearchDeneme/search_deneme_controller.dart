@@ -85,7 +85,7 @@ class SearchDenemeController extends GetxController {
     try {
       final resource = await _practiceExamSnapshotRepository.search(
         query: normalized,
-        userId: CurrentUserService.instance.userId,
+        userId: CurrentUserService.instance.effectiveUserId,
         limit: 40,
         forceSync: true,
       );

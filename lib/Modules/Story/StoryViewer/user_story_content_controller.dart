@@ -48,6 +48,7 @@ class UserStoryContentController extends GetxController {
   var isLikedMe = false.obs;
   final StoryRepository _storyRepository = StoryRepository.ensure();
   final CurrentUserService _userService = CurrentUserService.instance;
+  String get _currentUid => _userService.effectiveUserId;
 
   // Reaction emoji support
   static const List<String> reactionEmojis = [
@@ -62,7 +63,7 @@ class UserStoryContentController extends GetxController {
   final RxString myReaction = ''.obs;
 
   Future<void> getLikes(String storyID) async {
-    final uid = _userService.userId.trim();
+    final uid = _currentUid;
     final snapshot = await _storyRepository.fetchStoryEngagement(
       storyID,
       currentUid: uid,
@@ -152,7 +153,7 @@ class UserStoryContentController extends GetxController {
 
   Future<void> getReactions(String storyID) async {
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       final snapshot = await _storyRepository.fetchStoryEngagement(
         storyID,
         currentUid: uid,
@@ -166,7 +167,7 @@ class UserStoryContentController extends GetxController {
 
   Future<void> react(String storyID, String emoji) async {
     try {
-      final uid = _userService.userId.trim();
+      final uid = _currentUid;
       if (uid.isEmpty) return;
 
       final previousReaction = myReaction.value;
@@ -199,7 +200,7 @@ class UserStoryContentController extends GetxController {
   }
 
   Future<void> like(String storyID) async {
-    final uid = _userService.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     final next = await _storyRepository.toggleStoryLike(
       storyID,
@@ -219,7 +220,7 @@ class UserStoryContentController extends GetxController {
   }
 
   Future<void> setSeen(String storyID) async {
-    final uid = _userService.userId.trim();
+    final uid = _currentUid;
     if (uid.isEmpty) return;
     await _storyRepository.setStorySeen(
       storyID,

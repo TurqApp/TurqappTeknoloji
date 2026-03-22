@@ -330,18 +330,12 @@ class ChatListingController extends GetxController {
     final userCache = UserProfileCacheService.ensure();
     for (final doc in docs) {
       final data = doc.data();
-      final archivedMap = data["archived"] is Map
-          ? Map<String, dynamic>.from(data["archived"] as Map)
-          : <String, dynamic>{};
-      final pinnedMap = data["pinned"] is Map
-          ? Map<String, dynamic>.from(data["pinned"] as Map)
-          : <String, dynamic>{};
-      final mutedMap = data["muted"] is Map
-          ? Map<String, dynamic>.from(data["muted"] as Map)
-          : <String, dynamic>{};
-      final isArchived = archivedMap[uid] == true;
-      final isPinned = pinnedMap[uid] == true;
-      final isMuted = mutedMap[uid] == true;
+      final isArchived =
+          _conversationRepository.participantBoolValue(data["archived"], uid);
+      final isPinned =
+          _conversationRepository.participantBoolValue(data["pinned"], uid);
+      final isMuted =
+          _conversationRepository.participantBoolValue(data["muted"], uid);
       final userID1 = (data["userID1"] ?? "").toString().trim();
       final userID2 = (data["userID2"] ?? "").toString().trim();
       var participants = data["participants"] is List
@@ -387,16 +381,8 @@ class ChatListingController extends GetxController {
         cacheOnly: cacheOnly,
       );
       if (userData == null) continue;
-      final unreadMap = data["unread"] is Map
-          ? Map<String, dynamic>.from(data["unread"] as Map)
-          : <String, dynamic>{};
-      final deletedMap = data["deletedAt"] is Map
-          ? Map<String, dynamic>.from(data["deletedAt"] as Map)
-          : <String, dynamic>{};
-      final rawUnread = unreadMap[uid];
-      final serverUnread = rawUnread is num
-          ? rawUnread.toInt()
-          : int.tryParse("$rawUnread") ?? 0;
+      final serverUnread =
+          _conversationRepository.participantIntValue(data["unread"], uid);
       final lastMessageAt = data["lastMessageAt"];
       int ts = 0;
       if (lastMessageAt is Timestamp) {
@@ -411,10 +397,8 @@ class ChatListingController extends GetxController {
       final localUnread =
           lastSenderId.isNotEmpty && lastSenderId != uid && ts > seenTs;
       final seenCoversLatestMessage = ts > 0 && seenTs >= ts;
-      final rawDeletedCutoff = deletedMap[uid];
-      final deletedCutoff = rawDeletedCutoff is num
-          ? rawDeletedCutoff.toInt()
-          : int.tryParse("$rawDeletedCutoff") ?? 0;
+      final deletedCutoff =
+          _conversationRepository.participantIntValue(data["deletedAt"], uid);
       final isDeleted = deletedCutoff > 0 && ts > 0 && ts <= deletedCutoff;
       final unreadCount = seenCoversLatestMessage
           ? 0

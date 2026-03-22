@@ -67,7 +67,7 @@ class MyPracticeExamsController extends GetxController {
   }
 
   Future<void> _bootstrapExams() async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       exams.clear();
       isLoading.value = false;
@@ -98,7 +98,7 @@ class MyPracticeExamsController extends GetxController {
     bool forceRefresh = false,
     bool silent = false,
   }) async {
-    final uid = CurrentUserService.instance.userId;
+    final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
       exams.clear();
       isLoading.value = false;

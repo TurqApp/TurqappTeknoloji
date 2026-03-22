@@ -129,7 +129,7 @@ class FollowRepository extends GetxService {
     String? currentUid,
     bool preferCache = true,
   }) async {
-    final me = currentUid ?? CurrentUserService.instance.userId;
+    final me = currentUid ?? CurrentUserService.instance.effectiveUserId;
     if (me.isEmpty || otherUid.isEmpty) return false;
 
     final cached = await getFollowingIds(

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
@@ -41,11 +40,7 @@ class StoryRowController extends GetxController {
   DateTime? _lastExpireCleanupAt;
   final StoryRepository _storyRepository = StoryRepository.ensure();
 
-  String get _currentUid {
-    final serviceUid = userService.userId.trim();
-    if (serviceUid.isNotEmpty) return serviceUid;
-    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
-  }
+  String get _currentUid => userService.effectiveUserId;
 
   void _ensureMyUserPlaceholder() {
     final myUid = _currentUid;
@@ -325,7 +320,7 @@ class StoryRowController extends GetxController {
 
   Future<void> _loadStoriesFromMiniCache({bool allowExpired = false}) async {
     try {
-      final expectedUid = userService.userId.trim();
+      final expectedUid = userService.effectiveUserId;
       final loaded = await _storyRepository.restoreStoryRowCache(
         ownerUid: expectedUid,
         allowExpired: allowExpired,

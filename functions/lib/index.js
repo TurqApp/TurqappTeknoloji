@@ -14,12 +14,13 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.backfillHybridFeedForUser = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
 const hybridFeed_1 = require("./hybridFeed");
+const notificationInbox_1 = require("./notificationInbox");
 var storyArchive_1 = require("./storyArchive");
 Object.defineProperty(exports, "archiveOnStoryDelete", { enumerable: true, get: function () { return storyArchive_1.archiveOnStoryDelete; } });
 Object.defineProperty(exports, "cleanupExpiredStories", { enumerable: true, get: function () { return storyArchive_1.cleanupExpiredStories; } });
@@ -57,6 +58,7 @@ Object.defineProperty(exports, "onPostBecomeVisible", { enumerable: true, get: f
 Object.defineProperty(exports, "onPostDelete", { enumerable: true, get: function () { return hybridFeed_2.onPostDelete; } });
 Object.defineProperty(exports, "onNewFollower", { enumerable: true, get: function () { return hybridFeed_2.onNewFollower; } });
 Object.defineProperty(exports, "cleanupExpiredFeedItems", { enumerable: true, get: function () { return hybridFeed_2.cleanupExpiredFeedItems; } });
+Object.defineProperty(exports, "backfillHybridFeedForUser", { enumerable: true, get: function () { return hybridFeed_2.backfillHybridFeedForUser; } });
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 👤 AUTHOR FIELD DENORMALIZATION (B10)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -78,6 +80,8 @@ __exportStar(require("./22_badgeAdmin"), exports);
 __exportStar(require("./23_sharedPostCascade"), exports);
 __exportStar(require("./24_reports"), exports);
 __exportStar(require("./25_typesenseMarket"), exports);
+__exportStar(require("./26_userBanAdmin"), exports);
+__exportStar(require("./27_nicknameChange"), exports);
 // USER SCHEMA NORMALIZER (canonical-only)
 exports.syncUserSchemaAndFlags = functions.firestore
     .document("users/{uid}")
@@ -103,6 +107,24 @@ exports.syncUserSchemaAndFlags = functions.firestore
         patch.isDeleted = false;
     if (afterData?.isBanned === undefined)
         patch.isBanned = false;
+    if (afterData?.moderationStrikeCount === undefined)
+        patch.moderationStrikeCount = 0;
+    if (afterData?.moderationLevel === undefined)
+        patch.moderationLevel = 0;
+    if (afterData?.moderationRestrictedUntil === undefined)
+        patch.moderationRestrictedUntil = 0;
+    if (afterData?.moderationPermanentBan === undefined)
+        patch.moderationPermanentBan = false;
+    if (afterData?.moderationBanReason === undefined)
+        patch.moderationBanReason = "";
+    if (afterData?.moderationUpdatedAt === undefined)
+        patch.moderationUpdatedAt = 0;
+    if (afterData?.singleDeviceSessionEnabled === undefined)
+        patch.singleDeviceSessionEnabled = false;
+    if (afterData?.activeSessionDeviceKey === undefined)
+        patch.activeSessionDeviceKey = "";
+    if (afterData?.activeSessionUpdatedAt === undefined)
+        patch.activeSessionUpdatedAt = 0;
     if (afterData?.isBot === undefined)
         patch.isBot = false;
     const canonicalAvatarUrl = (0, userSchemaUtils_1.normalizeAvatarUrl)(afterData?.avatarUrl);
@@ -411,12 +433,27 @@ exports.onUserNotificationCreate = functions.firestore
         });
     }
     catch (e) {
+        const code = String(e?.errorInfo?.code || e?.code || "");
+        if (code === "messaging/registration-token-not-registered") {
+            try {
+                const uid = context.params.uid;
+                await db.collection("users").doc(uid).set({
+                    fcmToken: admin.firestore.FieldValue.delete(),
+                }, { merge: true });
+                console.log("onUserNotificationCreate cleared_invalid_token", {
+                    uid,
+                });
+            }
+            catch (cleanupError) {
+                console.error("onUserNotificationCreate clear_invalid_token_error", cleanupError);
+            }
+        }
         console.error("onUserNotificationCreate error", e);
     }
 });
 // ACCOUNT DELETION CRON: process users whose deletion grace period is over
 exports.processScheduledAccountDeletions = functions.pubsub
-    .schedule("0 0 * * *")
+    .schedule("every 60 minutes")
     .timeZone("UTC")
     .onRun(async () => {
     const now = Date.now();
@@ -457,8 +494,12 @@ exports.processScheduledAccountDeletions = functions.pubsub
                     accountStatus: "deleted",
                     username: deletedName,
                     nickname: deletedName,
-                    updatedAt: Date.now(),
-                    deletedAt: Date.now(),
+                    usernameLower: deletedName.toLowerCase(),
+                    isDeleted: true,
+                    isPrivate: true,
+                    updatedDate: timestamp,
+                    deletedAt: timestamp,
+                    deletionCompletedAt: timestamp,
                 }, { merge: true });
                 await actionDoc.ref.set({
                     status: "completed",
@@ -533,7 +574,7 @@ exports.publishScheduledIzBirakPosts = functions.pubsub
                     .collection("users")
                     .doc(subscriberId)
                     .collection("notifications")
-                    .doc(`izbirak_${postDoc.id}`), {
+                    .doc(`izbirak_${postDoc.id}`), (0, notificationInbox_1.buildInboxPayload)(subscriberId, {
                     type: "Posts",
                     fromUserID: ownerId,
                     postID: postDoc.id,
@@ -542,7 +583,7 @@ exports.publishScheduledIzBirakPosts = functions.pubsub
                     title: "İz Bırak yayında",
                     body,
                     imageUrl,
-                });
+                }));
                 opCount++;
                 if (opCount >= 400) {
                     await batch.commit();

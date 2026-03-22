@@ -47,7 +47,7 @@ class DenemeSinaviPreviewController extends GetxController {
   final int fifteenMinutes = 15 * 60 * 1000;
 
   final SinavModel model;
-  String get _currentUserId => CurrentUserService.instance.userId;
+  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   DenemeSinaviPreviewController({required this.model});
 
