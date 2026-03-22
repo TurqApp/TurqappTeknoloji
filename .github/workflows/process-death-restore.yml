@@ -58,7 +58,7 @@ jobs:
 
   process-death-ios:
     name: iOS Process Death Restore
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 90
     env:
       IOS_SIMULATOR_NAME: iPhone 16

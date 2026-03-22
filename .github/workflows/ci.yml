@@ -128,7 +128,7 @@ jobs:
     needs:
       - flutter-quality
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 110
     env:
       IOS_SIMULATOR_NAME: iPhone 16

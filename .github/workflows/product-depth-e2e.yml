@@ -58,7 +58,7 @@ jobs:
 
   product-depth-ios:
     name: Product Depth iOS E2E
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 120
     env:
       IOS_SIMULATOR_NAME: iPhone 16

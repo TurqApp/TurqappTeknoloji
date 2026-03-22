@@ -58,7 +58,7 @@ jobs:
 
   permission-os-matrix-ios:
     name: iOS Permission OS Matrix
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 100
     env:
       IOS_SIMULATOR_NAME: iPhone 16
